@@ -27,9 +27,7 @@ import static org.mockito.Mockito.when;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.os.Binder;
 import android.view.Display;
-import android.view.SurfaceControlViewHost;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
@@ -41,10 +39,12 @@ import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
 import androidx.xr.scenecore.testing.FakeXrExtensions;
+import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,8 +52,6 @@ import org.mockito.Mockito;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
-
-import java.util.Objects;
 
 @RunWith(RobolectricTestRunner.class)
 public class PanelEntityImplTest {
@@ -68,7 +66,7 @@ public class PanelEntityImplTest {
             new FakeScheduledExecutorService();
     private final PerceptionLibrary mPerceptionLibrary = mock(PerceptionLibrary.class);
     private final EntityManager mEntityManager = new EntityManager();
-    private JxrPlatformAdapterAxr mTestRuntime;
+    private JxrPlatformAdapterAxr mTestPlatformAdapter;
 
     SplitEngineSubspaceManager mSplitEngineSubspaceManager =
             Mockito.mock(SplitEngineSubspaceManager.class);
@@ -79,7 +77,7 @@ public class PanelEntityImplTest {
         when(mPerceptionLibrary.initSession(eq(mActivity), anyInt(), eq(mMakeFakeExecutor)))
                 .thenReturn(immediateFuture(Mockito.mock(Session.class)));
 
-        mTestRuntime =
+        mTestPlatformAdapter =
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mMakeFakeExecutor,
@@ -92,32 +90,33 @@ public class PanelEntityImplTest {
                         /* useSplitEngine= */ false);
     }
 
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mTestPlatformAdapter.dispose();
+    }
+
     private PanelEntityImpl createPanelEntity(Dimensions surfaceDimensionsPx) {
         Display display = mActivity.getSystemService(DisplayManager.class).getDisplays()[0];
         Context displayContext = mActivity.createDisplayContext(display);
         View view = new View(displayContext);
         view.setLayoutParams(new LayoutParams(640, 480));
-        SurfaceControlViewHost surfaceControlViewHost =
-                new SurfaceControlViewHost(
-                        displayContext,
-                        Objects.requireNonNull(displayContext.getDisplay()),
-                        new Binder());
-        surfaceControlViewHost.setView(
-                view, (int) surfaceDimensionsPx.width, (int) surfaceDimensionsPx.height);
         Node node = mFakeExtensions.createNode();
 
         PanelEntityImpl panelEntity =
                 new PanelEntityImpl(
                         node,
+                        view,
                         mFakeExtensions,
                         mEntityManager,
-                        surfaceControlViewHost,
                         new PixelDimensions(
                                 (int) surfaceDimensionsPx.width, (int) surfaceDimensionsPx.height),
+                        "panel",
+                        displayContext,
                         mMakeFakeExecutor);
 
         // TODO(b/352829122): introduce a TestRootEntity which can serve as a parent
-        panelEntity.setParent(mTestRuntime.getActivitySpaceRootImpl());
+        panelEntity.setParent(mTestPlatformAdapter.getActivitySpaceRootImpl());
         return panelEntity;
     }
 
@@ -164,5 +163,38 @@ public class PanelEntityImplTest {
 
         assertThat(panelEntity.getPixelDimensions().width).isEqualTo(640);
         assertThat(panelEntity.getPixelDimensions().height).isEqualTo(480);
+    }
+
+    @Test
+    public void createPanel_setsCornerRadius() {
+        PanelEntityImpl panelEntity = createPanelEntity(kVgaResolutionPx);
+
+        // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
+        // Validate that the corner radius is set to 32dp.
+        assertThat(panelEntity.getCornerRadius()).isEqualTo(32.0f);
+        FakeNode fakeNode = (FakeNode) panelEntity.getNode();
+        assertThat(fakeNode.getCornerRadius()).isEqualTo(32.0f);
+    }
+
+    @Test
+    public void createPanel_smallPanelWidth_setsCornerRadiusToPanelSize() {
+        PanelEntityImpl panelEntity = createPanelEntity(new Dimensions(40f, 1000f, 0f));
+
+        // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
+        // Validate that the corner radius is set to 32dp.
+        assertThat(panelEntity.getCornerRadius()).isEqualTo(20f);
+        FakeNode fakeNode = (FakeNode) panelEntity.getNode();
+        assertThat(fakeNode.getCornerRadius()).isEqualTo(20f);
+    }
+
+    @Test
+    public void createPanel_smallPanelHeight_setsCornerRadiusToPanelSize() {
+        PanelEntityImpl panelEntity = createPanelEntity(new Dimensions(1000f, 40f, 0f));
+
+        // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
+        // Validate that the corner radius is set to 32dp.
+        assertThat(panelEntity.getCornerRadius()).isEqualTo(20f);
+        FakeNode fakeNode = (FakeNode) panelEntity.getNode();
+        assertThat(fakeNode.getCornerRadius()).isEqualTo(20f);
     }
 }

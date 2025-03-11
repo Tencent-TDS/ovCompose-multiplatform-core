@@ -952,6 +952,7 @@ public final class GuaranteedConfigurationsUtil {
         surfaceCombinations.addAll(getLegacySupportedCombinationList());
 
         if (hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED
+                || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL
                 || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL
                 || hardwareLevel == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3) {
             surfaceCombinations.addAll(getLimitedSupportedCombinationList());

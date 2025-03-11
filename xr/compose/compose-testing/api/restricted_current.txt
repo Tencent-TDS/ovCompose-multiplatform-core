@@ -1,5 +1,5 @@
 // Signature format: 4.0
-package androidx.xr.compose.testing {
+package @RequiresApi(34) androidx.xr.compose.testing {
 
   public final class SubspaceAssertionsKt {
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) @com.google.errorprone.annotations.CanIgnoreReturnValue public static androidx.xr.compose.testing.SubspaceSemanticsNodeInteraction assertDepthIsAtLeast(androidx.xr.compose.testing.SubspaceSemanticsNodeInteraction, float expectedMinDepth);
@@ -46,14 +46,14 @@ package androidx.xr.compose.testing {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class SubspaceSemanticsMatcher {
-    ctor public SubspaceSemanticsMatcher(String description, kotlin.jvm.functions.Function1<? super androidx.xr.compose.subspace.node.SubspaceSemanticsNode,java.lang.Boolean> matcher);
+    ctor public SubspaceSemanticsMatcher(String description, kotlin.jvm.functions.Function1<? super androidx.xr.compose.subspace.node.SubspaceSemanticsInfo,java.lang.Boolean> matcher);
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class SubspaceSemanticsNodeInteraction {
     ctor public SubspaceSemanticsNodeInteraction(androidx.xr.compose.testing.SubspaceTestContext testContext, androidx.xr.compose.testing.SubspaceSemanticsMatcher matcher);
     method public void assertDoesNotExist();
     method @com.google.errorprone.annotations.CanIgnoreReturnValue public androidx.xr.compose.testing.SubspaceSemanticsNodeInteraction assertExists(optional String? errorMessageOnFail);
-    method public androidx.xr.compose.subspace.node.SubspaceSemanticsNode fetchSemanticsNode(optional String? errorMessageOnFail);
+    method public androidx.xr.compose.subspace.node.SubspaceSemanticsInfo fetchSemanticsNode(optional String? errorMessageOnFail);
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class SubspaceSemanticsNodeInteractionCollection {
@@ -68,8 +68,8 @@ package androidx.xr.compose.testing {
     ctor public SubspaceTestingActivity();
     method public androidx.xr.scenecore.testing.FakeXrExtensions getExtensions();
     method public androidx.xr.scenecore.Session getSession();
-    property public final androidx.xr.scenecore.testing.FakeXrExtensions extensions;
-    property public final androidx.xr.scenecore.Session session;
+    property public androidx.xr.scenecore.testing.FakeXrExtensions extensions;
+    property public androidx.xr.scenecore.Session session;
   }
 
   public final class SubspaceTestingActivityKt {

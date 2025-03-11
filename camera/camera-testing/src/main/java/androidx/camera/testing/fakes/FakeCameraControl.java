@@ -25,10 +25,14 @@ import static androidx.camera.testing.impl.fakes.FakeCameraDeviceSurfaceManager.
 import static java.util.Objects.requireNonNull;
 
 import android.graphics.Rect;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Process;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.CameraControl;
+import androidx.camera.core.CameraXThreads;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageCapture;
@@ -50,6 +54,7 @@ import androidx.camera.testing.imagecapture.CaptureResult;
 import androidx.camera.testing.impl.FakeCameraCapturePipeline;
 import androidx.camera.testing.impl.fakes.FakeCameraDeviceSurfaceManager;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
+import androidx.core.os.HandlerCompat;
 import androidx.core.util.Pair;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -73,6 +78,8 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class FakeCameraControl implements CameraControlInternal {
     private static final String TAG = "FakeCameraControl";
+    static final long AUTO_FOCUS_TIMEOUT_DURATION = 5000;
+
     private static final ControlUpdateCallback NO_OP_CALLBACK = new ControlUpdateCallback() {
         @Override
         public void onCameraControlUpdateSessionConfig() {
@@ -455,6 +462,11 @@ public final class FakeCameraControl implements CameraControlInternal {
      * Stores the last submitted {@link FocusMeteringAction} and returns a result that may still be
      * incomplete based on {@link #disableFocusMeteringAutoComplete(boolean)}.
      *
+     * <p> The focus-metering operation is automatically canceled in a background thread after the
+     * duration of {@link FocusMeteringAction#getAutoCancelDurationInMillis()} is elapsed. After 5
+     * seconds, any ongoing focus-metering operation is timed out with unsuccessful
+     * {@link FocusMeteringResult}.
+     *
      * @param action The {@link FocusMeteringAction} to be used.
      * @return Returns a {@link Futures#immediateFuture} which immediately contains a empty
      * {@link FocusMeteringResult}.
@@ -481,11 +493,46 @@ public final class FakeCameraControl implements CameraControlInternal {
                 // already be available
                 mFocusMeteringActionToResultMap.put(action, resultCompleter.get());
 
+                scheduleFocusTimeoutAndAutoCancellation(action, resultCompleter.get());
+
                 return future;
             }
         }
 
         return Futures.immediateFuture(FocusMeteringResult.emptyInstance());
+    }
+
+    private void scheduleFocusTimeoutAndAutoCancellation(
+            @NonNull FocusMeteringAction action,
+            CallbackToFutureAdapter.Completer<FocusMeteringResult> focusMeteringResultCompleter) {
+        HandlerThread handlerThread = new HandlerThread(CameraXThreads.TAG + TAG,
+                Process.THREAD_PRIORITY_BACKGROUND);
+        handlerThread.start();
+        Handler handler = HandlerCompat.createAsync(handlerThread.getLooper());
+
+        // Sets auto focus timeout runnable first so that action will be completed with
+        // unsuccessful focusing when auto cancel is enabled with the same duration as focus
+        // timeout.
+        handler.postDelayed(() -> {
+            Logger.d(TAG, "Completing focus result as unsuccessful after timeout!");
+            focusMeteringResultCompleter.set(FocusMeteringResult.create(false));
+        }, AUTO_FOCUS_TIMEOUT_DURATION);
+
+        long cancelDurationMillis = action.getAutoCancelDurationInMillis();
+        Logger.d(TAG, "Focus action auto cancel duration: " + cancelDurationMillis + " ms");
+
+        if (cancelDurationMillis > 0L) {
+            handler.postDelayed(() -> {
+                Logger.d(TAG, "Cancelling focus operation after " + cancelDurationMillis + " ms");
+                focusMeteringResultCompleter.setException(new OperationCanceledException(
+                        "Auto-cancelled after " + cancelDurationMillis + " ms"));
+            }, cancelDurationMillis);
+        }
+
+        // Note that quitSafely isn't immediate and doesn't block, the thread will be closed after
+        // all already submitted tasks are done.
+        handler.postDelayed(handlerThread::quitSafely,
+                Math.max(AUTO_FOCUS_TIMEOUT_DURATION, cancelDurationMillis));
     }
 
     /** Returns a {@link Futures#immediateFuture} which immediately contains a result. */

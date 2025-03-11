@@ -24,8 +24,7 @@ public class MyDao_Impl(
   init {
     this.__db = __db
     this.__insertAdapterOfMyEntity = object : EntityInsertAdapter<MyEntity>() {
-      protected override fun createQuery(): String =
-          "INSERT OR ABORT INTO `MyEntity` (`valuePrimitive`,`valueBoolean`,`valueString`,`valueNullableString`,`variablePrimitive`,`variableNullableBoolean`,`variableString`,`variableNullableString`) VALUES (?,?,?,?,?,?,?,?)"
+      protected override fun createQuery(): String = "INSERT OR ABORT INTO `MyEntity` (`valuePrimitive`,`valueBoolean`,`valueString`,`valueNullableString`,`variablePrimitive`,`variableNullableBoolean`,`variableString`,`variableNullableString`) VALUES (?,?,?,?,?,?,?,?)"
 
       protected override fun bind(statement: SQLiteStatement, entity: MyEntity) {
         statement.bindLong(1, entity.valuePrimitive)
@@ -57,8 +56,7 @@ public class MyDao_Impl(
     }
   }
 
-  public override fun addEntity(item: MyEntity): Unit = performBlocking(__db, false, true) {
-      _connection ->
+  public override fun addEntity(item: MyEntity): Unit = performBlocking(__db, false, true) { _connection ->
     __insertAdapterOfMyEntity.insert(_connection, item)
   }
 
@@ -87,11 +85,9 @@ public class MyDao_Impl(
     val _columnIndexOfValueString: Int = getColumnIndex(statement, "valueString")
     val _columnIndexOfValueNullableString: Int = getColumnIndex(statement, "valueNullableString")
     val _columnIndexOfVariablePrimitive: Int = getColumnIndex(statement, "variablePrimitive")
-    val _columnIndexOfVariableNullableBoolean: Int = getColumnIndex(statement,
-        "variableNullableBoolean")
+    val _columnIndexOfVariableNullableBoolean: Int = getColumnIndex(statement, "variableNullableBoolean")
     val _columnIndexOfVariableString: Int = getColumnIndex(statement, "variableString")
-    val _columnIndexOfVariableNullableString: Int = getColumnIndex(statement,
-        "variableNullableString")
+    val _columnIndexOfVariableNullableString: Int = getColumnIndex(statement, "variableNullableString")
     val _tmpValuePrimitive: Long
     if (_columnIndexOfValuePrimitive == -1) {
       _tmpValuePrimitive = 0

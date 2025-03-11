@@ -9,13 +9,15 @@ package androidx.camera.viewfinder {
     method @UiThread public android.graphics.Bitmap? getBitmap();
     method @UiThread public androidx.camera.viewfinder.core.ScaleType getScaleType();
     method @UiThread public androidx.camera.viewfinder.core.ImplementationMode getSurfaceImplementationMode();
-    method @UiThread public com.google.common.util.concurrent.ListenableFuture<android.view.Surface!> requestSurfaceAsync(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest);
+    method @UiThread public androidx.camera.viewfinder.core.TransformationInfo? getTransformationInfo();
+    method @UiThread public com.google.common.util.concurrent.ListenableFuture<androidx.camera.viewfinder.core.ViewfinderSurfaceSession!> requestSurfaceSessionAsync(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest);
+    method @UiThread public com.google.common.util.concurrent.ListenableFuture<androidx.camera.viewfinder.core.ViewfinderSurfaceSession!> requestSurfaceSessionAsync(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest, androidx.camera.viewfinder.core.TransformationInfo);
     method @UiThread public void setScaleType(androidx.camera.viewfinder.core.ScaleType);
+    method @UiThread public void setTransformationInfo(androidx.camera.viewfinder.core.TransformationInfo);
   }
 
-  public final class CameraViewfinderExt {
-    method public suspend Object? requestSurface(androidx.camera.viewfinder.CameraViewfinder, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, kotlin.coroutines.Continuation<? super android.view.Surface>);
-    field public static final androidx.camera.viewfinder.CameraViewfinderExt INSTANCE;
+  public final class CameraViewfinderExtKt {
+    method public static suspend Object? requestSurfaceSession(androidx.camera.viewfinder.CameraViewfinder, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, kotlin.coroutines.Continuation<? super androidx.camera.viewfinder.core.ViewfinderSurfaceSession>);
   }
 
 }

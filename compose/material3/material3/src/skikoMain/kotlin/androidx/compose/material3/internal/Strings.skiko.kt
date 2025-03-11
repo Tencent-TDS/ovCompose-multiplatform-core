@@ -75,26 +75,32 @@ internal actual value class Strings(val value: Int) {
         actual val DateRangePickerDayInRange = Strings(44)
         actual val DateRangeInputTitle = Strings(45)
         actual val DateRangeInputInvalidRangeInput = Strings(46)
-        actual val BottomSheetPaneTitle = Strings(47)
-        actual val BottomSheetDragHandleDescription = Strings(48)
-        actual val BottomSheetPartialExpandDescription = Strings(49)
-        actual val BottomSheetDismissDescription = Strings(50)
-        actual val BottomSheetExpandDescription = Strings(51)
-        actual val TooltipLongPressLabel = Strings(52)
-        actual val TimePickerAM = Strings(53)
-        actual val TimePickerPM = Strings(54)
-        actual val TimePickerPeriodToggle = Strings(55)
-        actual val TimePickerHourSelection = Strings(56)
-        actual val TimePickerMinuteSelection = Strings(57)
-        actual val TimePickerHourSuffix = Strings(58)
-        actual val TimePicker24HourSuffix = Strings(59)
-        actual val TimePickerMinuteSuffix = Strings(60)
-        actual val TimePickerHour = Strings(61)
-        actual val TimePickerMinute = Strings(62)
-        actual val TimePickerHourTextField = Strings(63)
-        actual val TimePickerMinuteTextField = Strings(64)
-        actual val TooltipPaneDescription = Strings(65)
-        actual val WideNavigationRailPaneTitle = Strings(66)
+        actual val FloatingToolbarCollapse = Strings(47)
+        actual val FloatingToolbarExpand = Strings(48)
+        actual val BottomSheetPaneTitle = Strings(49)
+        actual val BottomSheetDragHandleDescription = Strings(50)
+        actual val BottomSheetPartialExpandDescription = Strings(51)
+        actual val BottomSheetDismissDescription = Strings(52)
+        actual val BottomSheetExpandDescription = Strings(53)
+        actual val TooltipLongPressLabel = Strings(54)
+        actual val TimePickerAM = Strings(55)
+        actual val TimePickerPM = Strings(56)
+        actual val TimePickerPeriodToggle = Strings(57)
+        actual val TimePickerHourSelection = Strings(58)
+        actual val TimePickerMinuteSelection = Strings(59)
+        actual val TimePickerHourSuffix = Strings(60)
+        actual val TimePicker24HourSuffix = Strings(61)
+        actual val TimePickerMinuteSuffix = Strings(62)
+        actual val TimePickerHour = Strings(63)
+        actual val TimePickerMinute = Strings(64)
+        actual val TimePickerHourTextField = Strings(65)
+        actual val TimePickerMinuteTextField = Strings(66)
+        actual val TimePickerDialogTitle = Strings(67)
+        actual val TimeInputDialogTitle = Strings(68)
+        actual val TimePickerToggleKeyboard = Strings(69)
+        actual val TimePickerToggleTouch = Strings(70)
+        actual val TooltipPaneDescription = Strings(71)
+        actual val WideNavigationRailPaneTitle = Strings(72)
         // When adding values here, make sure to also add them in material3/build.gradle,
         // updateTranslations task (stringByResourceName parameter), and re-run the task
     }
@@ -104,8 +110,8 @@ internal actual value class Strings(val value: Int) {
 //  (without creating intermediate strings)
 // TODO current implementation doesn't support sophisticated formatting like %.2f,
 //  but currently we use it only for integers and strings
-internal actual fun String.format(vararg formatArgs: Any?): String {
-    var result = this
+internal actual fun formatString(string: String, vararg formatArgs: Any?): String {
+    var result = string
     formatArgs.forEachIndexed { index, arg ->
         result = result
             .replace("%${index+1}\$d", arg.toString())
@@ -128,7 +134,7 @@ internal actual fun getString(string: Strings): String {
 @Composable
 @ReadOnlyComposable
 internal actual fun getString(string: Strings, vararg formatArgs: Any): String =
-    getString(string).format(*formatArgs)
+    formatString(getString(string), *formatArgs)
 
 /**
  * A single translation; should contain all the [Strings].

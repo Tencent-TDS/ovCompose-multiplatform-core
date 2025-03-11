@@ -254,7 +254,6 @@ public interface MotionScheme {
  * Setting the value here is typically done as part of [MaterialTheme]. To retrieve the current
  * value of this CompositionLocal, use [MaterialTheme.motionScheme].
  */
-@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
 internal val LocalMotionScheme = staticCompositionLocalOf { MotionScheme.standard() }
 
 // TODO - These values should come from Tokens.

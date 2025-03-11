@@ -18,14 +18,17 @@ package androidx.compose.material3
 
 import android.os.Build
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material3.tokens.ElevationTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertAgainstGolden
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -33,6 +36,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.screenshot.AndroidXScreenshotTestRule
@@ -185,6 +189,62 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
     }
 
     @Test
+    fun horizontalFloatingToolbar_leading_trailing_collapsed_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalFloatingToolbar(
+                    expanded = false,
+                    leadingContent = { Text("leading") },
+                    trailingContent = { Text("trailing") },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "horizontalFloatingToolbar_leading_trailing_collapsed_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
+    fun horizontalFloatingToolbar_leading_trailing_expanded_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalFloatingToolbar(
+                    expanded = true,
+                    leadingContent = { Text("leading") },
+                    trailingContent = { Text("trailing") },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "horizontalFloatingToolbar_leading_trailing_expanded_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
     fun horizontalFloatingToolbar_leading_trailing_collapsed_vibrant() {
         rule.setMaterialContent(scheme.colorScheme) {
             Box(Modifier.testTag(FloatingToolbarTestTag)) {
@@ -295,6 +355,62 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
     }
 
     @Test
+    fun verticalFloatingToolbar_leading_trailing_collapsed_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                VerticalFloatingToolbar(
+                    expanded = false,
+                    leadingContent = { Text(text = "leading") },
+                    trailingContent = { Text(text = "trailing") },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "verticalFloatingToolbar_leading_trailing_collapsed_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
+    fun verticalFloatingToolbar_leading_trailing_expanded_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                VerticalFloatingToolbar(
+                    expanded = true,
+                    leadingContent = { Text(text = "leading") },
+                    trailingContent = { Text(text = "trailing") },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "verticalFloatingToolbar_leading_trailing_expanded_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
     fun verticalFloatingToolbar_leading_trailing_vibrant() {
         rule.setMaterialContent(scheme.colorScheme) {
             Box(Modifier.testTag(FloatingToolbarTestTag)) {
@@ -388,6 +504,33 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
     }
 
     @Test
+    fun horizontalFloatingToolbar_withFab_expanded_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalFloatingToolbar(
+                    expanded = true,
+                    floatingActionButton = { ToolbarFab(isVibrant = false) },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "horizontalFloatingToolbar_withFab_expanded_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
     fun horizontalFloatingToolbar_withFab_expanded_vibrant() {
         rule.setMaterialContent(scheme.colorScheme) {
             val colors = FloatingToolbarDefaults.vibrantFloatingToolbarColors()
@@ -434,6 +577,33 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
     }
 
     @Test
+    fun horizontalFloatingToolbar_withFab_collapsed_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalFloatingToolbar(
+                    expanded = false,
+                    floatingActionButton = { ToolbarFab(isVibrant = false) },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "horizontalFloatingToolbar_withFab_collapsed_customShadowElevation_${scheme.name}"
+            )
+    }
+
+    @Test
     fun verticalFloatingToolbar_withFab_expanded() {
         rule.setMaterialContent(scheme.colorScheme) {
             Box(Modifier.testTag(FloatingToolbarTestTag)) {
@@ -452,6 +622,33 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
             .assertAgainstGolden(
                 screenshotRule,
                 "verticalFloatingToolbar_withFab_expanded_${scheme.name}"
+            )
+    }
+
+    @Test
+    fun verticalFloatingToolbar_withFab_expanded_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                VerticalFloatingToolbar(
+                    expanded = true,
+                    floatingActionButton = { ToolbarFab(isVibrant = false) },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "verticalFloatingToolbar_withFab_expanded_customShadowElevation_${scheme.name}"
             )
     }
 
@@ -498,6 +695,33 @@ class FloatingToolbarScreenshotTest(private val scheme: ColorSchemeWrapper) {
             .assertAgainstGolden(
                 screenshotRule,
                 "verticalFloatingToolbar_withFab_collapsed_${scheme.name}"
+            )
+    }
+
+    @Test
+    fun verticalFloatingToolbar_withFab_collapsed_customShadowElevation() {
+        rule.setMaterialContent(scheme.colorScheme) {
+            Box(
+                Modifier.testTag(FloatingToolbarTestTag).padding(10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                VerticalFloatingToolbar(
+                    expanded = false,
+                    floatingActionButton = { ToolbarFab(isVibrant = false) },
+                    expandedShadowElevation = ElevationTokens.Level2,
+                    collapsedShadowElevation = ElevationTokens.Level4
+                ) {
+                    ToolbarContent()
+                }
+            }
+        }
+
+        rule
+            .onNodeWithTag(FloatingToolbarTestTag)
+            .captureToImage()
+            .assertAgainstGolden(
+                screenshotRule,
+                "verticalFloatingToolbar_withFab_collapsed_customShadowElevation_${scheme.name}"
             )
     }
 

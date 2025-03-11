@@ -70,7 +70,9 @@ class SubspaceTest {
         }
 
         val node = composeTestRule.onSubspaceNodeWithTag("panel").fetchSemanticsNode()
-        assertThat(node.coreEntity?.entity?.getParent())
+        val panel = node.semanticsEntity
+        val subspaceBox = panel?.getParent()
+        assertThat(subspaceBox?.getParent())
             .isEqualTo(composeTestRule.activity.session.activitySpace)
     }
 
@@ -86,15 +88,18 @@ class SubspaceTest {
             }
         }
 
-        val panelNode = composeTestRule.onSubspaceNodeWithTag("panel").fetchSemanticsNode()
+        val outerPanelNode = composeTestRule.onSubspaceNodeWithTag("panel").fetchSemanticsNode()
+        val outerPanelEntity = outerPanelNode.semanticsEntity
         val innerPanelNode =
             composeTestRule.onSubspaceNodeWithTag("innerPanel").fetchSemanticsNode()
-        val innerPanelEntity = innerPanelNode.coreEntity?.entity
-        val subspaceRootEntity = innerPanelEntity?.getParent()
+        val innerPanelEntity = innerPanelNode.semanticsEntity
+        val subspaceBoxEntity = innerPanelEntity?.getParent()
+        val subspaceLayoutEntity = subspaceBoxEntity?.getParent()
+        val subspaceRootEntity = subspaceLayoutEntity?.getParent()
         val subspaceRootContainerEntity = subspaceRootEntity?.getParent()
         val parentPanel = subspaceRootContainerEntity?.getParent()
         assertThat(parentPanel).isNotNull()
-        assertThat(parentPanel).isEqualTo(panelNode.coreEntity?.entity)
+        assertThat(parentPanel).isEqualTo(outerPanelEntity)
     }
 
     @Test
@@ -134,5 +139,10 @@ class SubspaceTest {
         runtime.requestFullSpaceMode()
         composeTestRule.onSubspaceNodeWithTag("panel").assertExists()
         assertThat(SceneManager.getSceneCount()).isEqualTo(1)
+    }
+
+    @Test
+    fun subspace_shouldNotFailInSubspace() {
+        composeTestRule.setContent { TestSetup { Subspace { Subspace {} } } }
     }
 }

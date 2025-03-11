@@ -30,6 +30,7 @@ import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DelegatableNode.RegistrationHandle
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.NodeCoordinator
+import androidx.compose.ui.node.Nodes
 import androidx.compose.ui.postDelayed
 import androidx.compose.ui.removePost
 import androidx.compose.ui.unit.IntOffset
@@ -203,6 +204,16 @@ internal class RectManager(
         scheduleDebounceCallback(ensureSomethingScheduled = true)
     }
 
+    fun updateFlagsFor(layoutNode: LayoutNode, focusable: Boolean, gesturable: Boolean) {
+        if (layoutNode.isAttached) {
+            rects.updateFlagsFor(
+                value = layoutNode.semanticsId,
+                focusable = focusable,
+                gesturable = gesturable
+            )
+        }
+    }
+
     fun onLayoutLayerPositionalPropertiesChanged(layoutNode: LayoutNode) {
         @OptIn(ExperimentalComposeUiApi::class) if (!ComposeUiFlags.isRectTrackingEnabled) return
         val outerToInnerOffset = layoutNode.outerToInnerOffset()
@@ -344,6 +355,8 @@ internal class RectManager(
                 r,
                 b,
                 parentId = parentId,
+                focusable = layoutNode.nodes.has(Nodes.FocusTarget),
+                gesturable = layoutNode.nodes.has(Nodes.PointerInput)
             )
         }
         invalidate()
@@ -367,6 +380,8 @@ internal class RectManager(
                 r,
                 b,
                 parentId = parentId,
+                focusable = layoutNode.nodes.has(Nodes.FocusTarget),
+                gesturable = layoutNode.nodes.has(Nodes.PointerInput)
             )
         }
         invalidate()
@@ -543,4 +558,4 @@ private inline val Int.isIdentity: Boolean
 private inline val Int.hasNonTranslationComponents: Boolean
     get() = this and 0b10 == 0
 
-@Suppress("NOTHING_TO_INLINE") private inline fun Boolean.toInt(): Int = if (this) 1 else 0
+@Suppress("NOTHING_TO_INLINE") internal inline fun Boolean.toInt(): Int = if (this) 1 else 0

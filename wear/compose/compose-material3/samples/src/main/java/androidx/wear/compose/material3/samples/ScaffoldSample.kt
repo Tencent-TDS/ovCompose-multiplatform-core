@@ -17,10 +17,16 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberOverscrollEffect
+import androidx.compose.foundation.withoutVisualEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
@@ -71,26 +77,44 @@ fun ScaffoldWithEdgeButtonSample() {
     // Declare just one [AppScaffold] per app such as in the activity.
     // [AppScaffold] allows static screen elements (i.e. [TimeText]) to remain visible
     // during in-app transitions such as swipe-to-dismiss.
-    AppScaffold {
+    AppScaffold(modifier = Modifier.background(Color.Black)) {
         // Define the navigation hierarchy within the AppScaffold,
         // such as using SwipeDismissableNavHost.
         // For this sample, we will define a single screen inline.
+        val overscrollEffect = rememberOverscrollEffect()
         val listState = rememberScalingLazyListState()
 
         // By default, ScreenScaffold will handle transitions showing/hiding ScrollIndicator,
         // showing/hiding/scrolling away TimeText and optionally hosting the EdgeButton.
         ScreenScaffold(
             scrollState = listState,
+            overscrollEffect = overscrollEffect,
             // Define custom spacing between [EdgeButton] and [ScalingLazyColumn].
             edgeButtonSpacing = 15.dp,
-            edgeButton = { EdgeButton(onClick = {}) { Text("Clear All") } },
+            edgeButton = {
+                EdgeButton(
+                    onClick = {},
+                    modifier =
+                        // In case user starts scrolling from the EdgeButton.
+                        Modifier.scrollable(
+                            listState,
+                            orientation = Orientation.Vertical,
+                            reverseDirection = true,
+                            overscrollEffect = overscrollEffect
+                        )
+                ) {
+                    Text("Clear All")
+                }
+            },
         ) { contentPadding ->
             ScalingLazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
-                autoCentering = null,
+                // Don't consume overscroll effect inside [ScalingLazyColumn] since we want to apply
+                // it to the scaffold itself.
+                overscrollEffect = overscrollEffect?.withoutVisualEffect(),
                 // Bottom spacing is derived from [ScreenScaffold.edgeButtonSpacing].
-                contentPadding = contentPadding
+                contentPadding = contentPadding,
             ) {
                 items(10) {
                     Button(

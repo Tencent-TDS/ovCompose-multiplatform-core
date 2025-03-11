@@ -48,6 +48,7 @@ import androidx.camera.core.impl.ImageOutputConfig.OPTION_SUPPORTED_RESOLUTIONS
 import androidx.camera.core.impl.MutableOptionsBundle
 import androidx.camera.core.impl.OptionsBundle
 import androidx.camera.core.impl.SessionConfig
+import androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.impl.StreamSpec
 import androidx.camera.core.impl.TagBundle
@@ -649,6 +650,25 @@ class ImageCaptureTest {
         assertThat(camera.cameraControlInternal).isInstanceOf(FakeCameraControl::class.java)
         val cameraControl = camera.cameraControlInternal as FakeCameraControl
         assertThat(cameraControl.isZslConfigAdded).isTrue()
+    }
+
+    @Test
+    fun sessionConfigMatchesStreamSpec() {
+        val imageCapture =
+            ImageCapture.Builder()
+                .setSessionOptionUnpacker { _, _, _,
+                    ->
+                }
+                .setCaptureOptionUnpacker { _, _ -> }
+                .build()
+        val streamSpec =
+            StreamSpec.builder(Size(640, 480)).setSessionType(SESSION_TYPE_HIGH_SPEED).build()
+
+        imageCapture.bindToCamera(FakeCamera(), null, null, null)
+        imageCapture.updateSuggestedStreamSpec(streamSpec, null)
+
+        val sessionConfig = imageCapture.sessionConfig
+        assertThat(sessionConfig.sessionType).isEqualTo(SESSION_TYPE_HIGH_SPEED)
     }
 
     @Test

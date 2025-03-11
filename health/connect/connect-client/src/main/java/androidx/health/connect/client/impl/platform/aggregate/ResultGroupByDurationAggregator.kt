@@ -33,17 +33,26 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 /**
- * Implementation of [ResultGroupedByDurationAggregator] that aggregates into
- * [AggregationResultGroupedByDuration] buckets.
+ * Implementation of [Aggregator] that aggregates into [AggregationResultGroupedByDuration] buckets.
  *
  * @param initProcessor initialization function for an [AggregationProcessor] that does the actual
  *   computation per bucket.
  */
 internal class ResultGroupedByDurationAggregator<T : Record>(
-    private val timeRange: InstantTimeRange,
+    private val timeRange: TimeRange<*>,
     private val bucketDuration: Duration,
     private val initProcessor: (InstantTimeRange) -> AggregationProcessor<T>
 ) : Aggregator<T, List<AggregationResultGroupedByDurationWithMinTime>> {
+
+    private val instantTimeRange: InstantTimeRange =
+        when (timeRange) {
+            is InstantTimeRange -> timeRange
+            is LocalTimeRange ->
+                InstantTimeRange(
+                    startTime = timeRange.startTime.toInstant(ZoneOffset.MAX),
+                    endTime = timeRange.endTime.toInstant(ZoneOffset.MIN)
+                )
+        }
 
     private val bucketProcessors = mutableMapOf<Instant, AggregationProcessorWithZoneOffset<T>>()
 
@@ -54,7 +63,7 @@ internal class ResultGroupedByDurationAggregator<T : Record>(
 
         var bucketStartTime =
             maxOf(
-                timeRange.startTime,
+                instantTimeRange.startTime,
                 when (record) {
                     is InstantaneousRecord -> getBucketStartTime(record.time)
                     is IntervalRecord -> getBucketStartTime(record.startTime)
@@ -64,12 +73,14 @@ internal class ResultGroupedByDurationAggregator<T : Record>(
 
         val lastBucketStartTime =
             when (record) {
-                is InstantaneousRecord -> getBucketStartTime(record.time)
+                is InstantaneousRecord -> bucketStartTime
                 is IntervalRecord -> getBucketStartTime(record.endTime)
                 else -> error("Unsupported value for aggregation: $record")
             }
 
-        while (bucketStartTime <= lastBucketStartTime && bucketStartTime < timeRange.endTime) {
+        while (
+            bucketStartTime <= lastBucketStartTime && bucketStartTime < instantTimeRange.endTime
+        ) {
             val bucketTimeRange = getBucketTimeRange(bucketStartTime)
             if (AggregatorUtils.contributesToAggregation(record, bucketTimeRange)) {
                 bucketProcessors
@@ -106,14 +117,14 @@ internal class ResultGroupedByDurationAggregator<T : Record>(
     }
 
     private fun getBucketStartTime(time: Instant): Instant {
-        return timeRange.startTime +
+        return instantTimeRange.startTime +
             bucketDuration.multipliedBy(
-                Duration.between(timeRange.startTime, time).dividedBy(bucketDuration)
+                Duration.between(instantTimeRange.startTime, time).dividedBy(bucketDuration)
             )
     }
 
     private fun getBucketTimeRange(bucketStartTime: Instant): InstantTimeRange {
-        val bucketEndTime = minOf(bucketStartTime + bucketDuration, timeRange.endTime)
+        val bucketEndTime = minOf(bucketStartTime + bucketDuration, instantTimeRange.endTime)
         return InstantTimeRange(bucketStartTime, bucketEndTime)
     }
 }

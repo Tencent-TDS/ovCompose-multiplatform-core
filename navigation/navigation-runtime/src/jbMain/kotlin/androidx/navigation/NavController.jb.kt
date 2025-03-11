@@ -913,7 +913,7 @@ public actual open class NavController {
     @MainThread
     private fun onGraphCreated(startDestinationArgs: SavedState?) {
         navigatorStateToRestore?.read {
-            val navigatorNames = getStringArrayOrElse(KEY_NAVIGATOR_STATE_NAMES) { emptyArray() }
+            val navigatorNames = getStringArrayOrNull(KEY_NAVIGATOR_STATE_NAMES) ?: emptyArray()
             for (name in navigatorNames) {
                 val navigator = _navigatorProvider.getNavigator<Navigator<*>>(name)
                 if (contains(name)) {
@@ -1683,7 +1683,7 @@ public actual open class NavController {
                     }
                 }
             }
-            deepLinkHandled = getBooleanOrElse(KEY_DEEP_LINK_HANDLED) { false }
+            deepLinkHandled = getBooleanOrNull(KEY_DEEP_LINK_HANDLED) ?: false
         }
     }
 

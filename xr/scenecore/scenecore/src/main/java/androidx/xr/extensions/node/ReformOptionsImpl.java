@@ -189,18 +189,28 @@ class ReformOptionsImpl implements ReformOptions {
 
     @Override
     public @NonNull Consumer<ReformEvent> getEventCallback() {
+        com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.ReformEvent>
+                callback = mOptions.getEventCallback();
+
         return (event) -> {
-            mOptions.getEventCallback().accept(NodeTypeConverter.toFramework(event));
+            callback.accept(NodeTypeConverter.toFramework(event));
         };
     }
 
     @Override
     @NonNull
     public ReformOptions setEventCallback(@NonNull Consumer<ReformEvent> callback) {
-        mOptions.setEventCallback(
-                (event) -> {
-                    callback.accept(NodeTypeConverter.toLibrary(event));
-                });
+        com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.ReformEvent>
+                platformConsumer =
+                        new com.android.extensions.xr.function.Consumer<
+                                com.android.extensions.xr.node.ReformEvent>() {
+                            @Override
+                            public void accept(com.android.extensions.xr.node.ReformEvent event) {
+                                callback.accept(NodeTypeConverter.toLibrary(event));
+                            }
+                        };
+
+        mOptions.setEventCallback(platformConsumer);
         return this;
     }
 

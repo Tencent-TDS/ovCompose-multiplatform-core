@@ -60,5 +60,6 @@
     <string name="page_broken" msgid="2968770793669433462">"PDF নথিৰ বাবে পৃষ্ঠাখন বিসংগতিপূৰ্ণ"</string>
     <string name="needs_more_data" msgid="3520133467908240802">"PDF নথিখন প্ৰক্ৰিয়াকৰণ কৰিবলৈ অপৰ্যাপ্ত ডেটা"</string>
     <string name="error_cannot_open_pdf" msgid="2361919778558145071">"PDF ফাইল খুলিব নোৱাৰি"</string>
+    <string name="cannot_edit_pdf" msgid="7677598370087228978">"এই PDFটো সম্পাদনা কৰিব নোৱাৰি"</string>
     <string name="clipboard_label" msgid="8943155331324944981">"PDFৰ পৰা সমল প্ৰতিলিপি কৰা হৈছে"</string>
 </resources>

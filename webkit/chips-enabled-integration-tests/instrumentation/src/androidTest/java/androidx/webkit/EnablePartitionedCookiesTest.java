@@ -30,7 +30,6 @@ import androidx.webkit.test.common.WebkitUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -63,19 +62,14 @@ public class EnablePartitionedCookiesTest {
 
     private Context mCtx;
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        Context ctx = ApplicationProvider.getApplicationContext();
-        String featureName = WebViewFeature.STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES;
-        WebkitUtils.checkStartupFeature(ctx, featureName);
-        ProcessGlobalConfig config = new ProcessGlobalConfig();
-        config.setPartitionedCookiesEnabled(ctx, true);
-        ProcessGlobalConfig.apply(config);
-    }
-
     @Before
     public void setUp() {
         mCtx = ApplicationProvider.getApplicationContext();
+        WebkitUtils.checkStartupFeature(mCtx,
+                WebViewFeature.STARTUP_FEATURE_CONFIGURE_PARTITIONED_COOKIES);
+        ProcessGlobalConfig config = new ProcessGlobalConfig();
+        config.setPartitionedCookiesEnabled(mCtx, true);
+        ProcessGlobalConfig.apply(config);
         clearCookies();
         CookieManager.getInstance().setAcceptCookie(true);
     }

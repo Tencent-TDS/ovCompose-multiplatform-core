@@ -17,6 +17,7 @@
 package androidx.health.connect.client.impl.platform.records
 
 import android.annotation.SuppressLint
+import android.health.connect.datatypes.Metadata.RECORDING_METHOD_UNKNOWN
 import android.os.Build
 import androidx.health.connect.client.RECORD_CLASSES
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
@@ -739,10 +740,12 @@ class RecordConvertersTest {
         val blocks =
             listOf(
                 PlannedExerciseBlock(
+                    description = "Warmup runs",
                     repetitions = 3,
                     steps =
                         listOf(
                             PlannedExerciseStep(
+                                description = "Easy jog",
                                 exerciseType = ExerciseSegment.EXERCISE_SEGMENT_TYPE_RUNNING,
                                 exercisePhase = PlannedExerciseStep.EXERCISE_PHASE_WARMUP,
                                 completionGoal =
@@ -783,10 +786,12 @@ class RecordConvertersTest {
             assertThat(blocks).hasSize(1)
 
             val platformBlock = Iterables.getOnlyElement(this.blocks)
+            assertThat(platformBlock.description).isEqualTo("Warmup runs")
             assertThat(platformBlock.repetitions).isEqualTo(3)
             assertThat(platformBlock.steps).hasSize(1)
 
             val platformStep = platformBlock.steps[0]
+            assertThat(platformStep.description).isEqualTo("Easy jog")
             assertThat(platformStep.exerciseType)
                 .isEqualTo(PlatformExerciseSegmentType.EXERCISE_SEGMENT_TYPE_RUNNING)
             assertThat(platformStep.exerciseCategory)
@@ -814,10 +819,12 @@ class RecordConvertersTest {
             assertThat(blocks).hasSize(1)
 
             val sdkBlock = Iterables.getOnlyElement(this.blocks)
+            assertThat(sdkBlock.description).isEqualTo("Warmup runs")
             assertThat(sdkBlock.repetitions).isEqualTo(3)
             assertThat(sdkBlock.steps).hasSize(1)
 
             val sdkStep = sdkBlock.steps[0]
+            assertThat(sdkStep.description).isEqualTo("Easy jog")
             assertThat(sdkStep.exerciseType)
                 .isEqualTo(ExerciseSegment.EXERCISE_SEGMENT_TYPE_RUNNING)
             assertThat(sdkStep.exercisePhase).isEqualTo(PlannedExerciseStep.EXERCISE_PHASE_WARMUP)
@@ -869,6 +876,7 @@ class RecordConvertersTest {
                         )
                 ),
                 PlannedExerciseBlock(
+                    description = "Brick workout",
                     repetitions = 3,
                     steps =
                         listOf(
@@ -886,6 +894,7 @@ class RecordConvertersTest {
                                     )
                             ),
                             PlannedExerciseStep(
+                                description = "Fast run",
                                 exerciseType = ExerciseSegment.EXERCISE_SEGMENT_TYPE_RUNNING,
                                 exercisePhase = PlannedExerciseStep.EXERCISE_PHASE_COOLDOWN,
                                 completionGoal =
@@ -2312,6 +2321,7 @@ class RecordConvertersTest {
 
         val METADATA =
             Metadata(
+                recordingMethod = RECORDING_METHOD_UNKNOWN,
                 id = "someId",
                 dataOrigin = DataOrigin("somePackage"),
                 device =

@@ -12,5 +12,8 @@ mnuzen@google.com
 andreykulikov@google.com
 soboleva@google.com
 
+# SubcomposeLayout + exception handling related
+ashikov@google.com
+
 # For text related files
 include /TEXT_OWNERS

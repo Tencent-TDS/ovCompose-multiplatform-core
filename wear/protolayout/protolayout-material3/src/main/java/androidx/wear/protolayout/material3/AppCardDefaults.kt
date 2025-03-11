@@ -27,6 +27,7 @@ import androidx.wear.protolayout.LayoutElementBuilders.Row
 import androidx.wear.protolayout.ModifiersBuilders.Padding
 import androidx.wear.protolayout.material3.Typography.TypographyToken
 import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 
 internal object AppCardDefaults {
     /**
@@ -68,13 +69,13 @@ internal object AppCardDefaults {
                                 .setWidth(expand())
                                 .build()
                         }
-                        .orElse(null),
+                        .getOrNull(),
                     verticalSpacer(style.labelToAvatarSpaceDp)
                 )
                 .addElement(time, verticalSpacer(style.labelToTimeSpaceDp))
 
         ContainerWithSpacersBuilder<LayoutElement>(
-                { it: LayoutElement? -> verticalElementBuilder.addContent(it!!) },
+                { element: LayoutElement? -> verticalElementBuilder.addContent(element!!) },
                 if (headerBuilder.isEmpty) null else headerSlot.build()
             )
             .addElement(title, horizontalSpacer(style.headerToTitleSpaceDp))
@@ -174,7 +175,7 @@ internal constructor(
                 titleTypography = Typography.TITLE_MEDIUM,
                 contentTypography = Typography.LABEL_SMALL,
                 timeTypography = Typography.BODY_MEDIUM,
-                labelTypography = Typography.LABEL_SMALL,
+                labelTypography = Typography.TITLE_SMALL,
             )
     }
 }

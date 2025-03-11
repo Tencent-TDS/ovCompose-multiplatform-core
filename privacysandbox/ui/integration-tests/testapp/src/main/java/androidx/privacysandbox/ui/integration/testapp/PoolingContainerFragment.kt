@@ -22,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -42,15 +43,19 @@ class PoolingContainerFragment : BaseFragment() {
     }
 
     override fun handleLoadAdFromDrawer(
+        @AdFormat adFormat: Int,
         @AdType adType: Int,
         @MediationOption mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {
+        currentAdFormat = adFormat
         currentAdType = adType
         currentMediationOption = mediationOption
         shouldDrawViewabilityLayer = drawViewabilityLayer
-        val recyclerViewAdapter = CustomAdapter(adType, mediationOption, zOrderOnTop = false)
-        recyclerView.adapter = recyclerViewAdapter
+        if (adFormat == AdFormat.BANNER_AD) {
+            val recyclerViewAdapter = CustomAdapter(adType, mediationOption, zOrderOnTop = false)
+            recyclerView.adapter = recyclerViewAdapter
+        }
     }
 
     override fun onCreateView(
@@ -60,7 +65,9 @@ class PoolingContainerFragment : BaseFragment() {
     ): View {
         inflatedView = inflater.inflate(R.layout.fragment_poolingcontainer, container, false)
         recyclerView = inflatedView.findViewById(R.id.recycler_view)
-        setRecyclerViewAdapter()
+        if (currentAdFormat == AdFormat.BANNER_AD) {
+            setRecyclerViewAdapter()
+        }
         return inflatedView
     }
 

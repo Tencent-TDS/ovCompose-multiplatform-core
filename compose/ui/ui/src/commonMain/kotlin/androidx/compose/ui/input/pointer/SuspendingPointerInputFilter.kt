@@ -18,9 +18,9 @@ package androidx.compose.ui.input.pointer
 
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.PlatformOptimizedCancellationException
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.PlatformOptimizedCancellationException
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.PointerInputModifierNode
 import androidx.compose.ui.node.requireLayoutNode
@@ -908,11 +908,12 @@ expect class PointerEventTimeoutCancellationException(time: Long) : Cancellation
  * lookups to build the exception message and stack trace collection. Remove if these are changed in
  * kotlinx.coroutines.
  */
-private class PointerInputResetException : PlatformOptimizedCancellationException("Pointer input was reset")
+internal class PointerInputResetException() :
+    PlatformOptimizedCancellationException("Pointer input was reset")
 
 /**
  * Also used in place of standard Job cancellation pathway; since we control this code path we
  * shouldn't need to worry about other code calling addSuppressed on this exception so a singleton
  * instance is used
  */
-private object CancelTimeoutCancellationException : PlatformOptimizedCancellationException()
+internal object CancelTimeoutCancellationException : PlatformOptimizedCancellationException()

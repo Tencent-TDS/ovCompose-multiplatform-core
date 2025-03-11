@@ -47,6 +47,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -152,22 +155,6 @@ public fun Slider(
             ) {
                 val increaseButtonEnabled = enabled && currentStep < steps + 1
                 val decreaseButtonEnabled = enabled && currentStep > 0
-
-                InlineSliderButton(
-                    enabled = decreaseButtonEnabled,
-                    onClick = { updateValue(-1) },
-                    contentAlignment = Alignment.Center,
-                    buttonControlSize = CONTROL_SIZE,
-                    modifier = Modifier,
-                    content = {
-                        SliderButtonContent(
-                            decreaseButtonEnabled,
-                            { enabled -> colors.buttonIconColor(enabled) },
-                            decreaseIcon
-                        )
-                    }
-                )
-
                 val valueRatio by
                     animateFloatAsState(
                         targetValue = currentStep.toFloat() / (steps + 1).toFloat(),
@@ -179,6 +166,24 @@ public fun Slider(
                             ),
                         label = "sliderProgressBarAnimation"
                     )
+
+                InlineSliderButton(
+                    enabled = decreaseButtonEnabled,
+                    onClick = { updateValue(-1) },
+                    contentAlignment = Alignment.Center,
+                    buttonControlSize = CONTROL_SIZE,
+                    modifier =
+                        Modifier.semantics(mergeDescendants = true) {
+                            progressBarRangeInfo = ProgressBarRangeInfo(valueRatio, 0f..1f)
+                        },
+                    content = {
+                        SliderButtonContent(
+                            decreaseButtonEnabled,
+                            { enabled -> colors.buttonIconColor(enabled) },
+                            decreaseIcon
+                        )
+                    }
+                )
 
                 Box(
                     modifier =
@@ -202,7 +207,10 @@ public fun Slider(
                     onClick = { updateValue(1) },
                     contentAlignment = Alignment.Center,
                     buttonControlSize = CONTROL_SIZE,
-                    modifier = Modifier,
+                    modifier =
+                        Modifier.semantics(mergeDescendants = true) {
+                            progressBarRangeInfo = ProgressBarRangeInfo(valueRatio, 0f..1f)
+                        },
                     content = {
                         SliderButtonContent(
                             increaseButtonEnabled,

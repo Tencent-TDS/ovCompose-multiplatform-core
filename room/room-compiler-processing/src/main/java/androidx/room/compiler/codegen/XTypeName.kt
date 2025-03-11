@@ -291,6 +291,7 @@ protected constructor(
         }
 
         /** Creates a type variable named with bounds. */
+        @JvmStatic
         fun getTypeVariableName(name: String, bounds: List<XTypeName> = emptyList()): XTypeName {
             return XTypeName(
                 java = JTypeVariableName.get(name, *bounds.map { it.java }.toTypedArray()),

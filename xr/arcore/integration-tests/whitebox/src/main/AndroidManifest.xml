@@ -16,6 +16,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
   <uses-permission android:name="android.permission.SCENE_UNDERSTANDING" />
+  <uses-permission android:name="android.permission.HAND_TRACKING" />
   <application android:label="ARCore Whitebox" android:taskAffinity="">
     <activity
         android:name=".MainActivity"
@@ -36,6 +37,11 @@
     </activity>
      <activity
         android:name=".persistentanchors.PersistentAnchorsActivity"
+        android:exported="true"
+        android:theme="@style/Theme.AppCompat.NoActionBar">
+    </activity>
+    <activity
+        android:name=".handtracking.HandTrackingActivity"
         android:exported="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
     </activity>

@@ -119,6 +119,7 @@ public class WebViewFeature {
             DEFAULT_TRAFFICSTATS_TAGGING,
             DELETE_BROWSING_DATA,
             PRERENDER_WITH_URL,
+            SAVE_STATE,
     })
     @Retention(RetentionPolicy.SOURCE)
     @Target({ElementType.PARAMETER, ElementType.METHOD})
@@ -665,7 +666,14 @@ public class WebViewFeature {
      * {@link Profile#setSpeculativeLoadingConfig(SpeculativeLoadingConfig)}
      */
     @Profile.ExperimentalUrlPrefetch
-    public static final String SPECULATIVE_LOADING_CONFIG = "SPECULATIVE_LOADING_CONFIG";
+    public static final String SPECULATIVE_LOADING_CONFIG = "SPECULATIVE_LOADING_CONFIG_V2";
+
+    /**
+     * Feature for {@link #isFeatureSupported(String)}.
+     * This feature covers {@link WebViewCompat#saveState}.
+     */
+    @WebViewCompat.ExperimentalSaveState
+    public static final String SAVE_STATE = "SAVE_STATE";
 
     /**
      * Return whether a feature is supported at run-time. This will check whether a feature is

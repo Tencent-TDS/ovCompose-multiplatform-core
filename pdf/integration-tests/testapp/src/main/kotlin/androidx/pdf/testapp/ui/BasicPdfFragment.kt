@@ -30,17 +30,19 @@ import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
+import androidx.core.os.BundleCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.pdf.testapp.R
 import androidx.pdf.testapp.databinding.BasicPdfFragmentBinding
+import androidx.pdf.viewer.fragment.PdfViewerFragmentV1
 import com.google.android.material.button.MaterialButton
 
 @SuppressLint("RestrictedApiAndroidX")
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 class BasicPdfFragment : Fragment(), OpCancellationHandler {
 
-    private var pdfViewerFragment: HostFragment? = null
+    private var pdfViewerFragment: PdfViewerFragmentV1? = null
     private var isPdfViewInitialized = false
 
     @VisibleForTesting
@@ -52,7 +54,8 @@ class BasicPdfFragment : Fragment(), OpCancellationHandler {
 
         if (pdfViewerFragment == null) {
             pdfViewerFragment =
-                childFragmentManager.findFragmentByTag(PDF_VIEWER_FRAGMENT_TAG) as HostFragment?
+                childFragmentManager.findFragmentByTag(PDF_VIEWER_FRAGMENT_TAG)
+                    as PdfViewerFragmentV1?
         }
     }
 
@@ -89,7 +92,21 @@ class BasicPdfFragment : Fragment(), OpCancellationHandler {
         val fragmentManager: FragmentManager = childFragmentManager
 
         // Fragment initialization
-        pdfViewerFragment = HostFragment()
+        val fragmentType =
+            arguments?.let {
+                BundleCompat.getSerializable<FragmentType>(
+                    it,
+                    FRAGMENT_TYPE_KEY,
+                    FragmentType::class.java
+                )
+            }
+
+        pdfViewerFragment =
+            when (fragmentType) {
+                FragmentType.BASIC_FRAGMENT -> HostFragment()
+                FragmentType.STYLED_FRAGMENT -> StyledPdfViewerFragmentV1.newInstance()
+                else -> HostFragment()
+            }
 
         // Replace an existing fragment in a container with an instance of a new fragment
         fragmentManager
@@ -136,5 +153,21 @@ class BasicPdfFragment : Fragment(), OpCancellationHandler {
     companion object {
         private const val MIME_TYPE_PDF = "application/pdf"
         private const val PDF_VIEWER_FRAGMENT_TAG = "pdf_viewer_fragment_tag"
+        private const val FRAGMENT_TYPE_KEY = "fragmentTypeKey"
+
+        enum class FragmentType {
+            BASIC_FRAGMENT,
+            STYLED_FRAGMENT
+        }
+
+        fun newInstance(
+            fragmentType: FragmentType = FragmentType.BASIC_FRAGMENT
+        ): BasicPdfFragment {
+            val fragment = BasicPdfFragment()
+            val args = Bundle().also { it.putSerializable(FRAGMENT_TYPE_KEY, fragmentType) }
+            fragment.arguments = args
+
+            return fragment
+        }
     }
 }

@@ -67,6 +67,8 @@ public class SearchResultToPlatformConverter {
 
     private static SearchResult.@NonNull MatchInfo toJetpackMatchInfo(
             android.app.appsearch.SearchResult.@NonNull MatchInfo platformMatchInfo) {
+        // TODO(b/395128139): Use the new version of MatchInfo with EmbeddingMatchInfo once it's
+        //  available in platform.
         Preconditions.checkNotNull(platformMatchInfo);
         SearchResult.MatchInfo.Builder builder = new SearchResult.MatchInfo.Builder(
                 platformMatchInfo.getPropertyPath())

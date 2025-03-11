@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.KotlinTarget
+
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
@@ -26,8 +28,8 @@ android {
     defaultConfig {
         applicationId = "androidx.wear.compose.integration.demos"
         minSdk = 25
-        versionCode = 64
-        versionName = "1.64"
+        versionCode = 70
+        versionName = "1.70"
     }
 
     buildTypes {
@@ -74,10 +76,16 @@ dependencies {
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime:2.7.0")
     androidTestImplementation("androidx.lifecycle:lifecycle-common:2.7.0")
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    androidTestImplementation("androidx.core:core:1.15.0")
+    androidTestImplementation("androidx.core:core-ktx:1.15.0")
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
+}
+
+androidx {
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

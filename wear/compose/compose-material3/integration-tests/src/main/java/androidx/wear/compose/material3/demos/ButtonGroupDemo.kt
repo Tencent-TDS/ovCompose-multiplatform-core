@@ -114,7 +114,7 @@ fun ButtonGroupToggleButtonsDemo() {
                 MyTextToggleButton(TextToggleButtonDefaults.shapes()) { checked ->
                     Text(
                         text = if (checked) "On" else "Off",
-                        style = TextToggleButtonDefaults.defaultButtonTextStyle
+                        style = TextToggleButtonDefaults.textStyle
                     )
                 }
                 MyTextToggleButton(
@@ -123,7 +123,7 @@ fun ButtonGroupToggleButtonsDemo() {
                 ) { checked ->
                     Text(
                         text = if (checked) "On" else "Off",
-                        style = TextToggleButtonDefaults.defaultButtonTextStyle
+                        style = TextToggleButtonDefaults.textStyle
                     )
                 }
             }
@@ -143,7 +143,7 @@ private fun ButtonGroupScope.MyIconToggleButton(
         checked = checked,
         modifier =
             modifier
-                .height(IconToggleButtonDefaults.SmallButtonSize)
+                .height(IconToggleButtonDefaults.SmallSize)
                 .fillMaxWidth()
                 .animateWidth(interactionSource),
         onCheckedChange = { checked = !checked },
@@ -166,7 +166,7 @@ private fun ButtonGroupScope.MyTextToggleButton(
         checked = checked,
         modifier =
             modifier
-                .height(TextToggleButtonDefaults.DefaultButtonSize)
+                .height(TextToggleButtonDefaults.Size)
                 .fillMaxWidth()
                 .animateWidth(interactionSource),
         onCheckedChange = { checked = !checked },

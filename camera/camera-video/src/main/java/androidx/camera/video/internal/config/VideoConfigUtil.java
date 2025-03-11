@@ -52,6 +52,8 @@ import androidx.camera.core.impl.Timebase;
 import androidx.camera.video.MediaSpec;
 import androidx.camera.video.VideoSpec;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
+import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
+import androidx.camera.video.internal.compat.quirk.MediaCodecDefaultDataSpaceQuirk;
 import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderDataSpace;
 import androidx.camera.video.internal.utils.DynamicRangeUtil;
@@ -74,8 +76,6 @@ public final class VideoConfigUtil {
 
     private static final Map<String, Map<Integer, VideoEncoderDataSpace>> MIME_TO_DATA_SPACE_MAP =
             new HashMap<>();
-
-    private static final Timebase DEFAULT_TIME_BASE = Timebase.UPTIME;
 
     // Should not be instantiated.
     private VideoConfigUtil() {
@@ -262,6 +262,32 @@ public final class VideoConfigUtil {
     }
 
     /**
+     * Workarounds data space of {@link VideoEncoderConfig} if required.
+     *
+     * @param config            the video encoder config.
+     * @param hasGlProcessing   whether OpenGL processing is involved.
+     * @return VideoEncoderConfig.
+     */
+    @NonNull
+    public static VideoEncoderConfig workaroundDataSpaceIfRequired(
+            @NonNull VideoEncoderConfig config, boolean hasGlProcessing) {
+        // Not to modify data space if it is already specified.
+        if (config.getDataSpace() != ENCODER_DATA_SPACE_UNSPECIFIED) {
+            return config;
+        }
+
+        // Apply workaround if required.
+        MediaCodecDefaultDataSpaceQuirk quirk = DeviceQuirks.get(
+                MediaCodecDefaultDataSpaceQuirk.class);
+        if (hasGlProcessing && quirk != null) {
+            VideoEncoderDataSpace dataSpace = quirk.getSuggestedDataSpace();
+            return config.toBuilder().setDataSpace(dataSpace).build();
+        }
+
+        return config;
+    }
+
+    /**
      * Scales and clamps the bitrate based on the input conditions.
      *
      * @param baseBitrate     the bitrate to be scaled and clamped.
@@ -340,18 +366,5 @@ public final class VideoConfigUtil {
         Logger.w(TAG, String.format("Unsupported mime type %s or profile level %d. Data space is "
                 + "unspecified.", mimeType, codecProfileLevel));
         return ENCODER_DATA_SPACE_UNSPECIFIED;
-    }
-
-    /** Converts a {@link VideoProfileProxy} to a {@link VideoEncoderConfig}. */
-    public static @NonNull VideoEncoderConfig toVideoEncoderConfig(
-            @NonNull VideoProfileProxy videoProfile) {
-        return VideoEncoderConfig.builder()
-                .setMimeType(videoProfile.getMediaType())
-                .setProfile(videoProfile.getProfile())
-                .setResolution(new Size(videoProfile.getWidth(), videoProfile.getHeight()))
-                .setFrameRate(videoProfile.getFrameRate())
-                .setBitrate(videoProfile.getBitrate())
-                .setInputTimebase(DEFAULT_TIME_BASE)
-                .build();
     }
 }

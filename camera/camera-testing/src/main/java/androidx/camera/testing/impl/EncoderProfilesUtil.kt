@@ -109,35 +109,24 @@ public object EncoderProfilesUtil {
 
     /** Default audio code profile. */
     public const val DEFAULT_AUDIO_PROFILE: Int = EncoderProfilesProxy.CODEC_PROFILE_NONE
-    public val PROFILES_QCIF: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_QCIF.width, RESOLUTION_QCIF.height)
-    public val PROFILES_QVGA: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_QVGA.width, RESOLUTION_QVGA.height)
-    public val PROFILES_CIF: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_CIF.width, RESOLUTION_CIF.height)
-    public val PROFILES_VGA: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_VGA.width, RESOLUTION_VGA.height)
-    public val PROFILES_480P: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_480P.width, RESOLUTION_480P.height)
-    public val PROFILES_720P: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_720P.width, RESOLUTION_720P.height)
+    public val PROFILES_QCIF: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_QCIF)
+    public val PROFILES_QVGA: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_QVGA)
+    public val PROFILES_CIF: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_CIF)
+    public val PROFILES_VGA: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_VGA)
+    public val PROFILES_480P: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_480P)
+    public val PROFILES_720P: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_720P)
     public val PROFILES_1080P: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_1080P.width, RESOLUTION_1080P.height)
-    public val PROFILES_2K: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_2K.width, RESOLUTION_2K.height)
-    public val PROFILES_QHD: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_QHD.width, RESOLUTION_QHD.height)
+        createFakeEncoderProfilesProxy(RESOLUTION_1080P)
+    public val PROFILES_2K: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_2K)
+    public val PROFILES_QHD: EncoderProfilesProxy = createFakeEncoderProfilesProxy(RESOLUTION_QHD)
     public val PROFILES_2160P: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_2160P.width, RESOLUTION_2160P.height)
+        createFakeEncoderProfilesProxy(RESOLUTION_2160P)
     public val PROFILES_4KDCI: EncoderProfilesProxy =
-        createFakeEncoderProfilesProxy(RESOLUTION_4KDCI.width, RESOLUTION_4KDCI.height)
+        createFakeEncoderProfilesProxy(RESOLUTION_4KDCI)
 
     /** A utility method to create an EncoderProfilesProxy with some default values. */
-    public fun createFakeEncoderProfilesProxy(
-        videoFrameWidth: Int,
-        videoFrameHeight: Int
-    ): EncoderProfilesProxy {
-        val videoProfile = createFakeVideoProfileProxy(videoFrameWidth, videoFrameHeight)
+    public fun createFakeEncoderProfilesProxy(videoResolution: Size): EncoderProfilesProxy {
+        val videoProfile = createFakeVideoProfileProxy(videoResolution)
         val audioProfile = createFakeAudioProfileProxy()
         return ImmutableEncoderProfilesProxy.create(
             DEFAULT_DURATION,
@@ -149,8 +138,7 @@ public object EncoderProfilesUtil {
 
     /** A utility method to create a VideoProfileProxy with some default values. */
     public fun createFakeVideoProfileProxy(
-        videoFrameWidth: Int,
-        videoFrameHeight: Int,
+        videoResolution: Size,
         videoCodec: Int = DEFAULT_VIDEO_CODEC,
         videoMediaType: String = DEFAULT_VIDEO_MEDIA_TYPE,
         bitrate: Int = DEFAULT_VIDEO_BITRATE,
@@ -162,8 +150,8 @@ public object EncoderProfilesUtil {
             videoMediaType,
             bitrate,
             DEFAULT_VIDEO_FRAME_RATE,
-            videoFrameWidth,
-            videoFrameHeight,
+            videoResolution.width,
+            videoResolution.height,
             DEFAULT_VIDEO_PROFILE,
             videoBitDepth,
             DEFAULT_VIDEO_CHROMA_SUBSAMPLING,

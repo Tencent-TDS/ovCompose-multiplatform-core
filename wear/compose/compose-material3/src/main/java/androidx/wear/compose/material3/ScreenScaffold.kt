@@ -16,12 +16,14 @@
 
 package androidx.wear.compose.material3
 
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.overscroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -87,7 +89,10 @@ import kotlin.math.roundToInt
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists to properly offset the [EdgeButton].
@@ -103,6 +108,7 @@ public fun ScreenScaffold(
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
     edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -113,6 +119,7 @@ public fun ScreenScaffold(
         edgeButtonSpacing = edgeButtonSpacing,
         timeText = timeText,
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -144,6 +151,9 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists to properly offset the [EdgeButton].
@@ -157,6 +167,7 @@ public fun ScreenScaffold(
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -165,6 +176,7 @@ public fun ScreenScaffold(
         timeText = timeText,
         scrollInfoProvider = ScrollInfoProvider(scrollState),
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -208,7 +220,10 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the[OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists to properly offset the [EdgeButton].
@@ -224,6 +239,7 @@ public fun ScreenScaffold(
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
     edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -234,6 +250,7 @@ public fun ScreenScaffold(
         timeText = timeText,
         scrollIndicator = scrollIndicator,
         edgeButtonSpacing = edgeButtonSpacing,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -269,6 +286,9 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists.
@@ -282,6 +302,7 @@ public fun ScreenScaffold(
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -290,6 +311,7 @@ public fun ScreenScaffold(
         contentPadding = contentPadding,
         timeText = timeText,
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -329,7 +351,10 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
- * @param edgeButtonSpacing The space between [EdgeButton] and the list content.
+ * @param edgeButtonSpacing The space between [EdgeButton] and the list content
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to useModifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists to properly offset the [EdgeButton].
@@ -344,6 +369,7 @@ public fun ScreenScaffold(
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
+    overscrollEffect: OverscrollEffect? = null,
     edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
@@ -355,6 +381,7 @@ public fun ScreenScaffold(
         timeText = timeText,
         scrollIndicator = scrollIndicator,
         edgeButtonSpacing = edgeButtonSpacing,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -386,6 +413,9 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists.
@@ -399,6 +429,7 @@ public fun ScreenScaffold(
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -407,6 +438,7 @@ public fun ScreenScaffold(
         contentPadding = contentPadding,
         timeText = timeText,
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -440,6 +472,9 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists.
@@ -453,6 +488,7 @@ public fun ScreenScaffold(
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = {
         ScrollIndicator(scrollState, modifier = Modifier.align(Alignment.CenterEnd))
     },
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit =
     ScreenScaffold(
@@ -461,6 +497,7 @@ public fun ScreenScaffold(
         contentPadding = contentPadding,
         timeText = timeText,
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = content
     )
 
@@ -505,6 +542,9 @@ public fun ScreenScaffold(
  *   provided by default. No scroll indicator is displayed if null is passed.
  * @param edgeButtonSpacing The space between [EdgeButton] and the list content. This gap size could
  *   not be smaller then [ScreenScaffoldDefaults.EdgeButtonMinSpacing].
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists to properly offset the [EdgeButton].
@@ -518,6 +558,7 @@ public fun ScreenScaffold(
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = null,
     edgeButtonSpacing: Dp = ScreenScaffoldDefaults.EdgeButtonSpacing,
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit {
     val effectiveEdgeButtonSpacing =
@@ -532,6 +573,7 @@ public fun ScreenScaffold(
         timeText = timeText,
         scrollInfoProvider = scrollInfoProvider,
         scrollIndicator = scrollIndicator,
+        overscrollEffect = overscrollEffect,
         content = {
             var intrinsicButtonHeight by remember(edgeButton) { mutableStateOf<Float?>(null) }
 
@@ -591,6 +633,9 @@ public fun ScreenScaffold(
  * @param scrollIndicator The [ScrollIndicator] to display on this screen, which is expected to be
  *   aligned to Center-End. It is recommended to use the Material3 [ScrollIndicator] which is
  *   provided by default. No scroll indicator is displayed if null is passed.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content The body content for this screen. The lambda receives a [PaddingValues] that
  *   should be applied to the content root via [Modifier.padding] or contentPadding parameter when
  *   used with lists.
@@ -602,31 +647,33 @@ public fun ScreenScaffold(
     contentPadding: PaddingValues = ScreenScaffoldDefaults.contentPadding,
     timeText: (@Composable () -> Unit)? = null,
     scrollIndicator: (@Composable BoxScope.() -> Unit)? = null,
+    overscrollEffect: OverscrollEffect? = null,
     content: @Composable BoxScope.(PaddingValues) -> Unit,
 ): Unit {
     val scaffoldState = LocalScaffoldState.current
     val key = remember { Any() }
 
     key(scrollInfoProvider) {
-        DisposableEffect(key) { onDispose { scaffoldState.removeScreen(key) } }
+        DisposableEffect(key) { onDispose { scaffoldState.screenContent.removeScreen(key) } }
 
         ActiveFocusListener { focused ->
             if (focused) {
-                scaffoldState.addScreen(key, timeText, scrollInfoProvider)
+                scaffoldState.screenContent.addScreen(key, timeText, scrollInfoProvider)
             } else {
-                scaffoldState.removeScreen(key)
+                scaffoldState.screenContent.removeScreen(key)
             }
         }
     }
 
-    scaffoldState.UpdateIdlingDetectorIfNeeded()
+    scaffoldState.screenContent.UpdateIdlingDetectorIfNeeded()
 
     Box(modifier = modifier.fillMaxSize()) {
-        content(contentPadding)
+        Box(modifier = Modifier.overscroll(overscrollEffect)) { content(contentPadding) }
+
         scrollInfoProvider?.let {
             AnimatedIndicator(
                 isVisible = {
-                    scaffoldState.screenStage.value != ScreenStage.Idle &&
+                    scaffoldState.screenContent.screenStage.value != ScreenStage.Idle &&
                         scrollInfoProvider.isScrollable
                 },
                 content = scrollIndicator,
@@ -637,29 +684,6 @@ public fun ScreenScaffold(
 
 /** Contains the default values used by [ScreenScaffold] */
 public object ScreenScaffoldDefaults {
-    /**
-     * Creates padding values with extra bottom padding for an EdgeButton.
-     *
-     * @param edgeButtonSize The size of the EdgeButton.
-     * @param start The padding on the start side of the content.
-     * @param top The padding on the top side of the content.
-     * @param end The padding on the end side of the content.
-     * @param extraBottom Additional padding to be added to the bottom padding calculated from the
-     *   edge button size.
-     * @return A [PaddingValues] object with the calculated padding.
-     */
-    @Deprecated(
-        "Use the combination of a new contentPadding parameter on the ScreenScaffold to " +
-            "get back the padding values inside of the content lambda."
-    )
-    public fun contentPaddingWithEdgeButton(
-        edgeButtonSize: EdgeButtonSize,
-        start: Dp = 0.dp,
-        top: Dp = 0.dp,
-        end: Dp = 0.dp,
-        extraBottom: Dp = 0.dp,
-    ): PaddingValues =
-        PaddingValues(start, top, end, extraBottom + edgeButtonSize.maximumHeightPlusPadding())
 
     /** The default space between [EdgeButton] and list content in [ScreenScaffold]. */
     public val EdgeButtonSpacing: Dp = 16.dp

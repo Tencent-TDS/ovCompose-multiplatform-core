@@ -263,5 +263,15 @@ public class FakeUseCaseConfig implements UseCaseConfig<FakeUseCase>, ImageOutpu
             getMutableConfig().insertOption(OPTION_TARGET_FRAME_RATE, targetFrameRate);
             return this;
         }
+
+        /**
+         * Sets specific target high speed frame rate to the fake use case.
+         */
+        public @NonNull Builder setTargetHighSpeedFrameRate(
+                @NonNull Range<Integer> targetHighSPeedFrameRate) {
+            getMutableConfig().insertOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE,
+                    targetHighSPeedFrameRate);
+            return this;
+        }
     }
 }

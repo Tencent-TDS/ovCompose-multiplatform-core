@@ -66,11 +66,11 @@ internal object ClipboardUtils {
     }
 }
 
-internal actual fun ClipEntry.readText(): String? {
+internal actual suspend fun ClipEntry.readText(): String? {
     return ClipboardUtils.readText(this)
 }
 
-internal actual fun ClipEntry.readAnnotatedString(): AnnotatedString? {
+internal actual suspend fun ClipEntry.readAnnotatedString(): AnnotatedString? {
     return ClipboardUtils.readAnnotatedString(this)
 }
 

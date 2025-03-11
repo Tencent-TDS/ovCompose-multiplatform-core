@@ -64,6 +64,16 @@ class Parameterized
             """
             )
 
+        val TestParameterInjector =
+            TestFiles.kotlin(
+                    """
+                    package com.google.testing.junit.testparameterinjector
+
+                    class TestParameterInjector
+                    """
+                )
+                .indented()
+
         val AndroidJUnit4Runner =
             TestFiles.kotlin(
                 """

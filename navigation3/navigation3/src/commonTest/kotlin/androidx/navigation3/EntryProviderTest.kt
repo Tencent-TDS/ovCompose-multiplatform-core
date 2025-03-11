@@ -53,7 +53,7 @@ class EntryProviderTest {
 
     @Test
     fun entryProvider_noInitializers_getsInvalidEntry() {
-        val provider = entryProvider {}
+        val provider = entryProvider<Any> {}
         try {
             provider.invoke("something")
             fail("Expected `IllegalStateException` but no exception has been throw.")

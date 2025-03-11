@@ -18,10 +18,14 @@ package androidx.camera.viewfinder;
 
 import android.graphics.Bitmap;
 import android.util.Size;
+import android.view.Display;
+import android.view.Surface;
 import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
+import androidx.camera.viewfinder.core.impl.RefCounted;
+import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -35,8 +39,6 @@ abstract class ViewfinderImplementation {
 
     protected final @NonNull FrameLayout mParent;
 
-    protected @Nullable Size mResolution;
-
     private final @NonNull ViewfinderTransformation mViewfinderTransformation;
 
     private boolean mWasSurfaceProvided = false;
@@ -47,15 +49,12 @@ abstract class ViewfinderImplementation {
         mViewfinderTransformation = viewfinderTransformation;
     }
 
-    abstract void initializeViewfinder();
-
     abstract @Nullable View getViewfinder();
 
-    abstract void onSurfaceRequested(@NonNull ViewfinderSurfaceRequest surfaceRequest);
+    abstract void onSurfaceRequested(@NonNull ViewfinderSurfaceRequest surfaceRequest,
+            CallbackToFutureAdapter.Completer<RefCounted<Surface>> surfaceResponse);
 
-    abstract void onAttachedToWindow();
-
-    abstract void onDetachedFromWindow();
+    abstract void onImplementationReplaced();
 
     void onSurfaceProvided() {
         mWasSurfaceProvided = true;
@@ -79,18 +78,35 @@ abstract class ViewfinderImplementation {
         if (viewfinder == null || !mWasSurfaceProvided) {
             return;
         }
+
+        Display display = viewfinder.getDisplay();
+        if (display == null) {
+            return;
+        }
+
         mViewfinderTransformation.transformView(new Size(mParent.getWidth(),
-                mParent.getHeight()), mParent.getLayoutDirection(), viewfinder);
+                        mParent.getHeight()), mParent.getLayoutDirection(), viewfinder,
+                display.getRotation());
     }
 
     @Nullable Bitmap getBitmap() {
+        View viewfinder = getViewfinder();
+        if (viewfinder == null) {
+            return null;
+        }
+
+        Display display = viewfinder.getDisplay();
+        if (display == null) {
+            return null;
+        }
+
         final Bitmap bitmap = getViewfinderBitmap();
         if (bitmap == null) {
             return null;
         }
         return mViewfinderTransformation.createTransformedBitmap(bitmap,
                 new Size(mParent.getWidth(), mParent.getHeight()),
-                mParent.getLayoutDirection());
+                mParent.getLayoutDirection(), display.getRotation());
     }
 
     abstract @Nullable Bitmap getViewfinderBitmap();

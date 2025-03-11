@@ -75,8 +75,7 @@ public class MyDao_Impl(
       val _stmt: SQLiteStatement = _connection.prepare(_sql)
       try {
         val _columnIndexOfArtistId: Int = getColumnIndexOrThrow(_stmt, "artistId")
-        val _collectionSongs: LongSparseArray<MutableList<Song>> =
-            LongSparseArray<MutableList<Song>>()
+        val _collectionSongs: LongSparseArray<MutableList<Song>> = LongSparseArray<MutableList<Song>>()
         while (_stmt.step()) {
           val _tmpKey: Long
           _tmpKey = _stmt.getLong(_columnIndexOfArtistId)
@@ -113,8 +112,7 @@ public class MyDao_Impl(
       val _stmt: SQLiteStatement = _connection.prepare(_sql)
       try {
         val _columnIndexOfPlaylistId: Int = getColumnIndexOrThrow(_stmt, "playlistId")
-        val _collectionSongs: LongSparseArray<MutableList<Song>> =
-            LongSparseArray<MutableList<Song>>()
+        val _collectionSongs: LongSparseArray<MutableList<Song>> = LongSparseArray<MutableList<Song>>()
         while (_stmt.step()) {
           val _tmpKey: Long
           _tmpKey = _stmt.getLong(_columnIndexOfPlaylistId)
@@ -145,8 +143,7 @@ public class MyDao_Impl(
     }
   }
 
-  private fun __fetchRelationshipArtistAsArtist(_connection: SQLiteConnection,
-      _map: LongSparseArray<Artist?>) {
+  private fun __fetchRelationshipArtistAsArtist(_connection: SQLiteConnection, _map: LongSparseArray<Artist?>) {
     if (_map.isEmpty()) {
       return
     }
@@ -191,8 +188,7 @@ public class MyDao_Impl(
     }
   }
 
-  private fun __fetchRelationshipSongAsSong(_connection: SQLiteConnection,
-      _map: LongSparseArray<MutableList<Song>>) {
+  private fun __fetchRelationshipSongAsSong(_connection: SQLiteConnection, _map: LongSparseArray<MutableList<Song>>) {
     if (_map.isEmpty()) {
       return
     }
@@ -241,8 +237,7 @@ public class MyDao_Impl(
     }
   }
 
-  private fun __fetchRelationshipSongAsSong_1(_connection: SQLiteConnection,
-      _map: LongSparseArray<MutableList<Song>>) {
+  private fun __fetchRelationshipSongAsSong_1(_connection: SQLiteConnection, _map: LongSparseArray<MutableList<Song>>) {
     if (_map.isEmpty()) {
       return
     }

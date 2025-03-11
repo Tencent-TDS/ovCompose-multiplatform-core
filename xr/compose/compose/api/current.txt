@@ -1,20 +1,20 @@
 // Signature format: 4.0
-package androidx.xr.compose.unit {
+package @RequiresApi(34) androidx.xr.compose.unit {
 
   public final class DpVolumeSize {
     ctor public DpVolumeSize(float width, float height, float depth);
     method public float getDepth();
     method public float getHeight();
     method public float getWidth();
-    property public final float depth;
-    property public final float height;
-    property public final float width;
+    property public float depth;
+    property public float height;
+    property public float width;
     field public static final androidx.xr.compose.unit.DpVolumeSize.Companion Companion;
   }
 
   public static final class DpVolumeSize.Companion {
     method public androidx.xr.compose.unit.DpVolumeSize getZero();
-    property public final androidx.xr.compose.unit.DpVolumeSize Zero;
+    property public androidx.xr.compose.unit.DpVolumeSize Zero;
   }
 
   public final class IntVolumeSize {
@@ -22,15 +22,15 @@ package androidx.xr.compose.unit {
     method public int getDepth();
     method public int getHeight();
     method public int getWidth();
-    property public final int depth;
-    property public final int height;
-    property public final int width;
+    property public int depth;
+    property public int height;
+    property public int width;
     field public static final androidx.xr.compose.unit.IntVolumeSize.Companion Companion;
   }
 
   public static final class IntVolumeSize.Companion {
     method public androidx.xr.compose.unit.IntVolumeSize getZero();
-    property public final androidx.xr.compose.unit.IntVolumeSize Zero;
+    property public androidx.xr.compose.unit.IntVolumeSize Zero;
   }
 
   @androidx.compose.runtime.Immutable @kotlin.jvm.JvmInline public final value class Meter implements java.lang.Comparable<androidx.xr.compose.unit.Meter> {
@@ -51,9 +51,9 @@ package androidx.xr.compose.unit {
     method public inline float toM();
     method public inline float toMm();
     method public inline float toPx(androidx.compose.ui.unit.Density density);
-    property public final inline boolean isFinite;
-    property public final inline boolean isSpecified;
-    property public final float value;
+    property public inline boolean isFinite;
+    property public inline boolean isSpecified;
+    property public float value;
     field public static final androidx.xr.compose.unit.Meter.Companion Companion;
   }
 
@@ -70,17 +70,17 @@ package androidx.xr.compose.unit {
     method public float getMillimeters(float);
     method public float getMillimeters(int);
     method public float getNaN();
-    property public final float Infinity;
-    property public final float NaN;
-    property public final float centimeters;
-    property public final float centimeters;
-    property public final float centimeters;
-    property public final float meters;
-    property public final float meters;
-    property public final float meters;
-    property public final float millimeters;
-    property public final float millimeters;
-    property public final float millimeters;
+    property public float Infinity;
+    property public float NaN;
+    property public float int.centimeters;
+    property public float float.centimeters;
+    property public float double.centimeters;
+    property public float int.meters;
+    property public float float.meters;
+    property public float double.meters;
+    property public float int.millimeters;
+    property public float float.millimeters;
+    property public float double.millimeters;
   }
 
   public final class MeterKt {
@@ -105,21 +105,21 @@ package androidx.xr.compose.unit {
     method public boolean hasBoundedDepth();
     method public boolean hasBoundedHeight();
     method public boolean hasBoundedWidth();
-    property public final boolean hasBoundedDepth;
-    property public final boolean hasBoundedHeight;
-    property public final boolean hasBoundedWidth;
-    property public final int maxDepth;
-    property public final int maxHeight;
-    property public final int maxWidth;
-    property public final int minDepth;
-    property public final int minHeight;
-    property public final int minWidth;
+    property public boolean hasBoundedDepth;
+    property public boolean hasBoundedHeight;
+    property public boolean hasBoundedWidth;
+    property public int maxDepth;
+    property public int maxHeight;
+    property public int maxWidth;
+    property public int minDepth;
+    property public int minHeight;
+    property public int minWidth;
     field public static final androidx.xr.compose.unit.VolumeConstraints.Companion Companion;
     field public static final int INFINITY = 2147483647; // 0x7fffffff
   }
 
   public static final class VolumeConstraints.Companion {
-    property public static final int INFINITY;
+    property public static int INFINITY;
   }
 
   public final class VolumeConstraintsKt {

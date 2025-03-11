@@ -566,6 +566,40 @@ class SecurityPatchStateTest {
     }
 
     @Test
+    fun testGetPatchedCves_withSystemModulesComponent_returnsCorrectCvesCategorizedBySeverity() {
+        val spl = SecurityPatchState.DateBasedSecurityPatchLevel.fromString("2023-01-15")
+        val jsonInput =
+            """
+            {
+                "vulnerabilities": {
+                    "2023-01-01": [{
+                        "cve_identifiers": ["CVE-2023-0001", "CVE-2023-0002"],
+                        "asb_identifiers": ["ASB-A-2023011"],
+                        "severity": "high",
+                        "components": ["system"]
+                    }],
+                    "2023-01-15": [{
+                        "cve_identifiers": ["CVE-2023-0010"],
+                        "asb_identifiers": ["ASB-A-2023022"],
+                        "severity": "moderate",
+                        "components": ["com.google.android.modulemetadata"]
+                    }]
+                },
+                "kernel_lts_versions": {}
+            }
+        """
+                .trimIndent()
+        securityState.loadVulnerabilityReport(jsonInput)
+
+        val cves = securityState.getPatchedCves(SecurityPatchState.COMPONENT_SYSTEM_MODULES, spl)
+
+        assertEquals(1, cves[SecurityPatchState.Severity.MODERATE]?.size)
+        assertEquals(setOf("CVE-2023-0010"), cves[SecurityPatchState.Severity.MODERATE])
+
+        assertEquals(null, cves[SecurityPatchState.Severity.HIGH])
+    }
+
+    @Test
     fun testGetPatchedCves_withVendorComponent_whenVendorIsEnabled_returnsCorrectCvesCategorizedBySeverity() {
         SecurityPatchState.Companion.USE_VENDOR_SPL = true
         val spl = SecurityPatchState.DateBasedSecurityPatchLevel.fromString("2023-01-15")

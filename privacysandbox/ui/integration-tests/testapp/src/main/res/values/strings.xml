@@ -42,4 +42,6 @@
     <string name="option_portrait">Portrait</string>
     <string name="label_screen_orientation">Screen Orientation</string>
     <string name="compose_switch">Compose</string>
+    <string name="ad_format_switch_banner_ad">Banner Ad</string>
+    <string name="ad_format_switch_native_ad">Native Ad</string>
 </resources>

@@ -2886,9 +2886,6 @@ public abstract class AnnotationProcessorTestBase {
         @Document.EmbeddingProperty(indexingType = 1)
         EmbeddingVector mTitleEmbedding;
 
-        @Document.EmbeddingProperty(indexingType = 1, quantizationType = 1)
-        EmbeddingVector mTitleQuantizedEmbedding;
-
         @Document.EmbeddingProperty(indexingType = 1)
         Collection<EmbeddingVector> mReceiverEmbeddings;
 
@@ -2906,7 +2903,6 @@ public abstract class AnnotationProcessorTestBase {
                     && Objects.equals(mSender, email.mSender)
                     && Objects.equals(mSenderEmbedding, email.mSenderEmbedding)
                     && Objects.equals(mTitleEmbedding, email.mTitleEmbedding)
-                    && Objects.equals(mTitleQuantizedEmbedding, email.mTitleQuantizedEmbedding)
                     && Objects.equals(mReceiverEmbeddings, email.mReceiverEmbeddings)
                     && Arrays.equals(mBodyEmbeddings, email.mBodyEmbeddings);
         }
@@ -2920,9 +2916,44 @@ public abstract class AnnotationProcessorTestBase {
                     new EmbeddingVector(new float[]{0.1f, 0.2f, 0.3f, 0.4f}, "model3");
             EmbeddingVector embedding4 =
                     new EmbeddingVector(new float[]{-0.1f, -0.2f, -0.3f, -0.4f}, "model3");
+            EmailWithEmbedding email = new EmailWithEmbedding();
+            email.mNamespace = "namespace";
+            email.mId = "id";
+            email.mCreationTimestampMillis = 1000;
+            email.mSender = "sender";
+            email.mSenderEmbedding = embedding1;
+            email.mTitleEmbedding = embedding2;
+            email.mReceiverEmbeddings = Collections.singletonList(embedding3);
+            email.mBodyEmbeddings = new EmbeddingVector[]{embedding3, embedding4};
+            return email;
+        }
+    }
+
+    @Document
+    static class EmailWithQuantizedEmbedding extends EmailWithEmbedding {
+        @Document.EmbeddingProperty(indexingType = 1, quantizationType = 1)
+        EmbeddingVector mTitleQuantizedEmbedding;
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            if (!super.equals(o)) return false;
+            EmailWithQuantizedEmbedding email = (EmailWithQuantizedEmbedding) o;
+            return Objects.equals(mTitleQuantizedEmbedding, email.mTitleQuantizedEmbedding);
+        }
+
+        public static EmailWithQuantizedEmbedding createSampleDoc() {
+            EmbeddingVector embedding1 =
+                    new EmbeddingVector(new float[]{1, 2, 3}, "model1");
+            EmbeddingVector embedding2 =
+                    new EmbeddingVector(new float[]{-1, -2, -3}, "model2");
+            EmbeddingVector embedding3 =
+                    new EmbeddingVector(new float[]{0.1f, 0.2f, 0.3f, 0.4f}, "model3");
+            EmbeddingVector embedding4 =
+                    new EmbeddingVector(new float[]{-0.1f, -0.2f, -0.3f, -0.4f}, "model3");
             EmbeddingVector embedding5 =
                     new EmbeddingVector(new float[]{1, 2}, "model4");
-            EmailWithEmbedding email = new EmailWithEmbedding();
+            EmailWithQuantizedEmbedding email = new EmailWithQuantizedEmbedding();
             email.mNamespace = "namespace";
             email.mId = "id";
             email.mCreationTimestampMillis = 1000;
@@ -3035,11 +3066,11 @@ public abstract class AnnotationProcessorTestBase {
                 Features.SCHEMA_EMBEDDING_QUANTIZATION));
 
         mSession.setSchemaAsync(new SetSchemaRequest.Builder()
-                .addDocumentClasses(EmailWithEmbedding.class)
+                .addDocumentClasses(EmailWithQuantizedEmbedding.class)
                 .build()).get();
 
         // Create and add a document
-        EmailWithEmbedding email = new EmailWithEmbedding();
+        EmailWithQuantizedEmbedding email = new EmailWithQuantizedEmbedding();
         email.mNamespace = "namespace";
         email.mId = "id";
         email.mCreationTimestampMillis = 1000;
@@ -3067,8 +3098,9 @@ public abstract class AnnotationProcessorTestBase {
         List<SearchResult> results = retrieveAllSearchResults(searchResults);
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getRankingSignal()).isWithin(0.0001).of(256.45);
-        // Convert GenericDocument to EmailWithEmbedding and check values.
-        EmailWithEmbedding outputDocument = results.get(0).getDocument(EmailWithEmbedding.class);
+        // Convert GenericDocument to EmailWithQuantizedEmbedding and check values.
+        EmailWithQuantizedEmbedding outputDocument = results.get(0).getDocument(
+                EmailWithQuantizedEmbedding.class);
         assertThat(outputDocument).isEqualTo(email);
 
         // titleQuantizedEmbedding is quantized, so it should have an embedding score
@@ -3086,8 +3118,8 @@ public abstract class AnnotationProcessorTestBase {
         results = retrieveAllSearchResults(searchResults);
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getRankingSignal()).isWithin(0.0001).of(256);
-        // Convert GenericDocument to EmailWithEmbedding and check values.
-        outputDocument = results.get(0).getDocument(EmailWithEmbedding.class);
+        // Convert GenericDocument to EmailWithQuantizedEmbedding and check values.
+        outputDocument = results.get(0).getDocument(EmailWithQuantizedEmbedding.class);
         assertThat(outputDocument).isEqualTo(email);
     }
 

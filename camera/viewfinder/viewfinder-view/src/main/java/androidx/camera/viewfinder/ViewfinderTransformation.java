@@ -20,30 +20,20 @@ import static android.graphics.Paint.ANTI_ALIAS_FLAG;
 import static android.graphics.Paint.DITHER_FLAG;
 import static android.graphics.Paint.FILTER_BITMAP_FLAG;
 
-import static androidx.camera.viewfinder.core.ScaleType.FIT_CENTER;
-import static androidx.camera.viewfinder.core.ScaleType.FIT_END;
-import static androidx.camera.viewfinder.core.ScaleType.FIT_START;
-import static androidx.camera.viewfinder.internal.utils.TransformUtils.getRectToRect;
-import static androidx.camera.viewfinder.internal.utils.TransformUtils.is90or270;
-import static androidx.camera.viewfinder.internal.utils.TransformUtils.isAspectRatioMatchingWithRoundingError;
-import static androidx.camera.viewfinder.internal.utils.TransformUtils.surfaceRotationToRotationDegrees;
-
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.RectF;
-import android.util.LayoutDirection;
 import android.util.Size;
-import android.view.Display;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 
-import androidx.annotation.VisibleForTesting;
 import androidx.camera.viewfinder.core.ScaleType;
-import androidx.camera.viewfinder.internal.transform.TransformationInfo;
+import androidx.camera.viewfinder.core.TransformationInfo;
+import androidx.camera.viewfinder.core.impl.RotationValue;
+import androidx.camera.viewfinder.core.impl.Transformations;
 import androidx.camera.viewfinder.internal.utils.Logger;
 import androidx.core.util.Preconditions;
 
@@ -55,7 +45,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p> This class transforms the camera output and display it in a {@link CameraViewfinder}.
  * The goal is to transform it in a way so that the entire area of
- * {@link TransformationInfo#getCropRect()} is 1) visible to end users, and 2)
+ * {@link TransformationInfo}'s crop rect is 1) visible to end users, and 2)
  * displayed as large as possible.
  *
  * <p> The inputs for the calculation are 1) the dimension of the Surface, 2) the crop rect, 3) the
@@ -97,11 +87,7 @@ final class ViewfinderTransformation {
     private @Nullable Size mResolution;
     // This represents the area of the Surface that should be visible to end users. The area is
     // defined by the Viewport class.
-    private @Nullable Rect mSurfaceCropRect;
-
-    private int mViewfinderRotationDegrees;
-    private int mTargetRotation;
-    private boolean mIsFrontCamera;
+    private @Nullable TransformationInfo mTransformationInfo;
 
     private ScaleType mScaleType = DEFAULT_SCALE_TYPE;
 
@@ -112,10 +98,9 @@ final class ViewfinderTransformation {
      * Sets the {@link TransformationInfo}.
      */
     void setTransformationInfo(@NonNull TransformationInfo transformationInfo,
-            Size resolution, boolean isFrontCamera) {
+            Size resolution) {
         updateTransformInfo(transformationInfo);
         mResolution = resolution;
-        mIsFrontCamera = isFrontCamera;
     }
 
     /**
@@ -123,9 +108,15 @@ final class ViewfinderTransformation {
      * @param transformationInfo {@link TransformationInfo}.
      */
     void updateTransformInfo(@NonNull TransformationInfo transformationInfo) {
-        mSurfaceCropRect = transformationInfo.getCropRect();
-        mViewfinderRotationDegrees = transformationInfo.getRotationDegrees();
-        mTargetRotation = transformationInfo.getTargetRotation();
+        mTransformationInfo = transformationInfo;
+    }
+
+    /**
+     * Returns the currently set {@link TransformationInfo}, or {@code null} if none has been set.
+     */
+    @Nullable
+    TransformationInfo getTransformationInfo() {
+        return mTransformationInfo;
     }
 
     /**
@@ -135,7 +126,8 @@ final class ViewfinderTransformation {
      * {@link TextureView} needs a preliminary correction since it doesn't handle the
      * display rotation.
      */
-    void transformView(Size viewfinderSize, int layoutDirection, @NonNull View viewfinder) {
+    void transformView(Size viewfinderSize, int layoutDirection, @NonNull View viewfinder,
+            @RotationValue int displayRotation) {
         if (viewfinderSize.getHeight() == 0 || viewfinderSize.getWidth() == 0) {
             Logger.w(TAG, "Transform not applied due to Viewfinder size: "
                     + viewfinderSize);
@@ -146,15 +138,12 @@ final class ViewfinderTransformation {
         }
 
         if (viewfinder instanceof TextureView) {
-            // For TextureView, correct the orientation to match the target rotation.
-            ((TextureView) viewfinder).setTransform(getTextureViewCorrectionMatrix());
-        } else {
-            // Logs an error if non-display rotation is used with SurfaceView.
-            Display display = viewfinder.getDisplay();
-            if (display != null && display.getRotation() != mTargetRotation) {
-                Logger.e(TAG, "Non-display rotation not supported with SurfaceView / PERFORMANCE "
-                        + "mode.");
-            }
+            // For TextureView, correct the orientation to match the display rotation.
+            ((TextureView) viewfinder).setTransform(Transformations.getTextureViewCorrectionMatrix(
+                    Transformations.surfaceRotationToRotationDegrees(displayRotation),
+                    mResolution.getWidth(),
+                    mResolution.getHeight()
+            ));
         }
 
         RectF surfaceRectInViewfinder = getTransformedSurfaceRect(viewfinderSize,
@@ -189,165 +178,51 @@ final class ViewfinderTransformation {
      *
      * @param original a snapshot of the untransformed inner view.
      */
-    Bitmap createTransformedBitmap(@NonNull Bitmap original, Size previewViewSize,
-            int layoutDirection) {
+    Bitmap createTransformedBitmap(@NonNull Bitmap original, Size viewfinderSize,
+            int layoutDirection, int displayRotation) {
         if (!isTransformationInfoReady()) {
             return original;
         }
-        Matrix textureViewCorrection = getTextureViewCorrectionMatrix();
-        RectF surfaceRectInPreviewView = getTransformedSurfaceRect(previewViewSize,
+        Matrix textureViewCorrection =
+                Transformations.getTextureViewCorrectionMatrix(
+                        Transformations.surfaceRotationToRotationDegrees(displayRotation),
+                        mResolution.getWidth(),
+                        mResolution.getHeight()
+                );
+        RectF surfaceRectInViewfinder = getTransformedSurfaceRect(viewfinderSize,
                 layoutDirection);
 
         Bitmap transformed = Bitmap.createBitmap(
-                previewViewSize.getWidth(), previewViewSize.getHeight(), original.getConfig());
+                viewfinderSize.getWidth(), viewfinderSize.getHeight(), original.getConfig());
         Canvas canvas = new Canvas(transformed);
 
         Matrix canvasTransform = new Matrix();
         canvasTransform.postConcat(textureViewCorrection);
-        canvasTransform.postScale(surfaceRectInPreviewView.width() / mResolution.getWidth(),
-                surfaceRectInPreviewView.height() / mResolution.getHeight());
-        canvasTransform.postTranslate(surfaceRectInPreviewView.left, surfaceRectInPreviewView.top);
+        canvasTransform.postScale(surfaceRectInViewfinder.width() / mResolution.getWidth(),
+                surfaceRectInViewfinder.height() / mResolution.getHeight());
+        canvasTransform.postTranslate(surfaceRectInViewfinder.left, surfaceRectInViewfinder.top);
 
         canvas.drawBitmap(original, canvasTransform,
                 new Paint(ANTI_ALIAS_FLAG | FILTER_BITMAP_FLAG | DITHER_FLAG));
         return transformed;
     }
 
-    @VisibleForTesting
-    Matrix getTextureViewCorrectionMatrix() {
-        Preconditions.checkState(isTransformationInfoReady());
-        RectF surfaceRect = new RectF(0, 0, mResolution.getWidth(), mResolution.getHeight());
-        int rotationDegrees = -surfaceRotationToRotationDegrees(mTargetRotation);
-        return getRectToRect(surfaceRect, surfaceRect, rotationDegrees);
-    }
-
     private boolean isTransformationInfoReady() {
-        return mSurfaceCropRect != null && mResolution != null;
+        return mTransformationInfo != null && mResolution != null;
     }
 
     private RectF getTransformedSurfaceRect(Size viewfinderSize, int layoutDirection) {
         Preconditions.checkState(isTransformationInfoReady());
         Matrix surfaceToViewfinder =
-                getSurfaceToViewfinderMatrix(viewfinderSize, layoutDirection);
+                Transformations.getSurfaceToViewfinderMatrix(
+                        viewfinderSize,
+                        mResolution,
+                        mTransformationInfo,
+                        layoutDirection,
+                        mScaleType
+                );
         RectF rect = new RectF(0, 0, mResolution.getWidth(), mResolution.getHeight());
         surfaceToViewfinder.mapRect(rect);
         return rect;
-    }
-
-    private Matrix getSurfaceToViewfinderMatrix(Size viewfinderSize, int layoutDirection) {
-        Preconditions.checkState(isTransformationInfoReady());
-
-        // Get the target of the mapping, the coordinates of the crop rect in viewfinder.
-        RectF viewfinderCropRect;
-        if (isViewportAspectRatioMatchViewfinder(viewfinderSize)) {
-            // If crop rect has the same aspect ratio as Viewfinder, scale the crop rect to fill
-            // the entire viewfinder. This happens if the scale type is FILL_* AND a
-            // viewfinder-based viewport is used.
-            viewfinderCropRect = new RectF(0, 0, viewfinderSize.getWidth(),
-                    viewfinderSize.getHeight());
-        } else {
-            // If the aspect ratios don't match, it could be 1) scale type is FIT_*, 2) the
-            // Viewport is not based on the Viewfinder or 3) both.
-            viewfinderCropRect = getViewfinderViewportRectForMismatchedAspectRatios(
-                    viewfinderSize, layoutDirection);
-        }
-        Matrix matrix = getRectToRect(new RectF(mSurfaceCropRect), viewfinderCropRect,
-                mViewfinderRotationDegrees);
-        if (mIsFrontCamera) {
-            // SurfaceView/TextureView automatically mirrors the Surface for front camera, which
-            // needs to be compensated by mirroring the Surface around the upright direction of the
-            // output image.
-            if (is90or270(mViewfinderRotationDegrees)) {
-                // If the rotation is 90/270, the Surface should be flipped vertically.
-                //   +---+     90 +---+  270 +---+
-                //   | ^ | -->    | < |      | > |
-                //   +---+        +---+      +---+
-                matrix.preScale(1F, -1F, mSurfaceCropRect.centerX(), mSurfaceCropRect.centerY());
-            } else {
-                // If the rotation is 0/180, the Surface should be flipped horizontally.
-                //   +---+      0 +---+  180 +---+
-                //   | ^ | -->    | ^ |      | v |
-                //   +---+        +---+      +---+
-                matrix.preScale(-1F, 1F, mSurfaceCropRect.centerX(), mSurfaceCropRect.centerY());
-            }
-        }
-        return matrix;
-    }
-
-    @VisibleForTesting
-    boolean isViewportAspectRatioMatchViewfinder(Size viewfinderSize) {
-        // Using viewport rect to check if the viewport is based on the Viewfinder.
-        Size rotatedViewportSize = getRotatedViewportSize();
-        return isAspectRatioMatchingWithRoundingError(
-                viewfinderSize, /* isAccurate1= */ true,
-                rotatedViewportSize,  /* isAccurate2= */ false);
-    }
-
-    private Size getRotatedViewportSize() {
-        if (is90or270(mViewfinderRotationDegrees)) {
-            return new Size(mSurfaceCropRect.height(), mSurfaceCropRect.width());
-        }
-        return new Size(mSurfaceCropRect.width(), mSurfaceCropRect.height());
-    }
-
-    private RectF getViewfinderViewportRectForMismatchedAspectRatios(Size viewfinderViewSize,
-            int layoutDirection) {
-        RectF viewfinderRect = new RectF(0, 0, viewfinderViewSize.getWidth(),
-                viewfinderViewSize.getHeight());
-        Size rotatedViewportSize = getRotatedViewportSize();
-        RectF rotatedViewportRect = new RectF(0, 0, rotatedViewportSize.getWidth(),
-                rotatedViewportSize.getHeight());
-        Matrix matrix = new Matrix();
-        setMatrixRectToRect(matrix, rotatedViewportRect, viewfinderRect, mScaleType);
-        matrix.mapRect(rotatedViewportRect);
-        if (layoutDirection == LayoutDirection.RTL) {
-            return flipHorizontally(rotatedViewportRect, (float) viewfinderViewSize.getWidth() / 2);
-        }
-        return rotatedViewportRect;
-    }
-
-    private static void setMatrixRectToRect(Matrix matrix,
-            RectF source,
-            RectF destination,
-            ScaleType scaleType) {
-        Matrix.ScaleToFit matrixScaleType;
-        switch (scaleType) {
-            case FIT_CENTER:
-                // Fallthrough.
-            case FILL_CENTER:
-                matrixScaleType = Matrix.ScaleToFit.CENTER;
-                break;
-            case FIT_END:
-                // Fallthrough.
-            case FILL_END:
-                matrixScaleType = Matrix.ScaleToFit.END;
-                break;
-            case FIT_START:
-                // Fallthrough.
-            case FILL_START:
-                matrixScaleType = Matrix.ScaleToFit.START;
-                break;
-            default:
-                Logger.e(TAG, "Unexpected crop rect: " + scaleType);
-                matrixScaleType = Matrix.ScaleToFit.FILL;
-        }
-        boolean isFitTypes =
-                scaleType == FIT_CENTER || scaleType == FIT_START || scaleType == FIT_END;
-        if (isFitTypes) {
-            matrix.setRectToRect(source, destination, matrixScaleType);
-        } else {
-            // android.graphics.Matrix doesn't support fill scale types. The workaround is
-            // mapping inversely from destination to source, then invert the matrix.
-            matrix.setRectToRect(destination, source, matrixScaleType);
-            matrix.invert(matrix);
-        }
-    }
-
-    private static RectF flipHorizontally(RectF original, float flipLineX) {
-        return new RectF(
-                flipLineX + flipLineX - original.right,
-                original.top,
-                flipLineX + flipLineX - original.left,
-                original.bottom);
     }
 }

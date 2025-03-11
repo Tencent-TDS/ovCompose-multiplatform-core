@@ -32,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -195,15 +194,14 @@ var TypographyDemos =
     )
 
 @Composable
-private fun ArcWithLetterSpacing(arcStyle: TextStyle, label: String) {
+private fun ArcWithLetterSpacing(baseStyle: CurvedTextStyle, label: String) {
     var topLetterSpacing by remember { mutableFloatStateOf(0.6f) }
     var bottomLetterSpacing by remember { mutableFloatStateOf(2.0f) }
     val curvedStyle =
-        CurvedTextStyle(arcStyle)
-            .copy(
-                letterSpacing = topLetterSpacing.sp,
-                letterSpacingCounterClockwise = bottomLetterSpacing.sp
-            )
+        baseStyle.copy(
+            letterSpacing = topLetterSpacing.sp,
+            letterSpacingCounterClockwise = bottomLetterSpacing.sp
+        )
     val mmms = "MMMMMMMMMMMMMMMMMMMM"
     var useMMMs by remember { mutableStateOf(true) }
 

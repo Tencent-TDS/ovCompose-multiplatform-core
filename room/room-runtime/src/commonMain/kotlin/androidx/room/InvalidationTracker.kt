@@ -54,7 +54,9 @@ constructor(
     viewTables: Map<String, @JvmSuppressWildcards Set<String>>,
     vararg tableNames: String
 ) {
-    /** Internal method to initialize tracker for a given connection. Invoked by generated code. */
+    /**
+     * Internal function to initialize tracker for a given connection. Invoked by generated code.
+     */
     internal fun internalInit(connection: SQLiteConnection)
 
     /**
@@ -303,9 +305,7 @@ internal class TriggerBasedInvalidationTracker(
                     return@useConnection
                 }
                 val tablesToSync = observedTableStates.getTablesToSync()
-                val startOrStopTracking =
-                    tablesToSync != null && tablesToSync.any { it != ObserveOp.NO_OP }
-                if (startOrStopTracking) {
+                if (tablesToSync != null) {
                     connection.withTransaction(SQLiteTransactionType.IMMEDIATE) {
                         tablesToSync.forEachIndexed { tableId, observeOp ->
                             when (observeOp) {
@@ -502,7 +502,7 @@ internal class ObservedTableStates(size: Int) {
     /**
      * Gets an array of operations to be performed for table at index i from the last time this
      * function was called and based on the [onObserverAdded] and [onObserverRemoved] invocations
-     * that occurred in-between.
+     * that occurred in-between and if at least one operation is ADD or REMOVE.
      */
     internal fun getTablesToSync(): Array<ObserveOp>? =
         lock.withLock {
@@ -510,15 +510,19 @@ internal class ObservedTableStates(size: Int) {
                 return null
             }
             needsSync = false
-            Array(tableObserversCount.size) { i ->
-                val newState = tableObserversCount[i] > 0
-                if (newState != tableObservedState[i]) {
-                    tableObservedState[i] = newState
-                    if (newState) ObserveOp.ADD else ObserveOp.REMOVE
-                } else {
-                    ObserveOp.NO_OP
+            var addOrRemove = false
+            val ops =
+                Array(tableObserversCount.size) { i ->
+                    val newState = tableObserversCount[i] > 0
+                    if (newState != tableObservedState[i]) {
+                        addOrRemove = true
+                        tableObservedState[i] = newState
+                        if (newState) ObserveOp.ADD else ObserveOp.REMOVE
+                    } else {
+                        ObserveOp.NO_OP
+                    }
                 }
-            }
+            if (addOrRemove) ops else null
         }
 
     /** Notifies that an observer was added and return true if the state of some table changed. */

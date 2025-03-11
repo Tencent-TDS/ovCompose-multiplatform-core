@@ -23,9 +23,9 @@ package androidx.appfunctions
  * When a class is annotated with `@AppFunctionSerializable` and is used as a parameter or return
  * type (directly or as a nested entity) in an AppFunction, the shape of the entity defined within
  * its primary constructor will be exposed to the caller as an
- * [androidx.appfunctions.metadata.AppFunctionMetadata]. This information allows the caller to
- * construct the structure input to call an AppFunction or understand what properties are provided
- * in the structured output.
+ * [androidx.appfunctions.metadata.AppFunctionMetadataDocument]. This information allows the caller
+ * to construct the structured input to call an AppFunction or understand what properties are
+ * provided in the structured output.
  *
  * **Constraints for Classes Annotated with `@AppFunctionSerializable`:**
  * * **Primary Constructor Parameters:** Only properties declared in the primary constructor that
@@ -87,6 +87,7 @@ package androidx.appfunctions
  * )
  * ```
  */
-@Retention(AnnotationRetention.SOURCE)
+// Use BINARY here so that the annotation is kept around at the aggregation stage.
+@Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.CLASS)
 public annotation class AppFunctionSerializable

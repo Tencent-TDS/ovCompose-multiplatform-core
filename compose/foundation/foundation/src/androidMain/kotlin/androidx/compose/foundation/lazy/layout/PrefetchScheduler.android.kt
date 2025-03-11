@@ -26,6 +26,8 @@ import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.util.traceValue
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
 @ExperimentalFoundationApi
@@ -113,11 +115,24 @@ internal class AndroidPrefetchScheduler(private val view: View) :
             prefetchScheduled = false
             return
         }
-        val nextFrameNs = frameStartTimeNanos + frameIntervalNs
+        // Use both the view drawing time or the frameStartTime given by the choreographer.
+        // In most cases the view drawing time should be enough and equal to the frame start
+        // time given by the choreographer. These are the cases where they should differ:
+        // 1) When this handler is executed in the same frame as it was scheduled. In these cases,
+        // using view drawing time will be correct because scheduling is usually followed by a
+        // drawing operation as it happens during scroll.
+        // 2) When there wasn't enough time to complete a request in the current frame. If there
+        // isn't enough time, the handler will be executed in the next frame where there might
+        // not have been a drawing operation. Using the choreographer frame start time will be
+        // safe in these cases.
+        val viewDrawTimeNanos = TimeUnit.MILLISECONDS.toNanos(view.drawingTime)
+        val nextFrameNs = maxOf(frameStartTimeNanos, viewDrawTimeNanos) + frameIntervalNs
         val scope = PrefetchRequestScopeImpl(nextFrameNs)
         var scheduleForNextFrame = false
         while (prefetchRequests.isNotEmpty() && !scheduleForNextFrame) {
-            if (scope.availableTimeNanos() > 0) {
+            val availableTimeNanos = scope.availableTimeNanos()
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
+            if (availableTimeNanos > 0) {
                 val request = prefetchRequests[0]
                 val hasMoreWorkToDo = with(request) { scope.execute() }
                 if (hasMoreWorkToDo) {
@@ -137,6 +152,7 @@ internal class AndroidPrefetchScheduler(private val view: View) :
         } else {
             prefetchScheduled = false
         }
+        traceValue("compose:lazy:prefetch:available_time_nanos", 0L) // reset counter
     }
 
     /**

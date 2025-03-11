@@ -68,7 +68,6 @@ private val FEATURE_TO_VERSION_INFO_MAP: Map<Int, HealthConnectVersionInfo> =
     )
 
 // TODO(b/271840604): Added test case for Android V once this library compiles against SDK 35.
-@OptIn(ExperimentalFeatureAvailabilityApi::class)
 @RunWith(AndroidJUnit4::class)
 @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 class HealthConnectFeaturesPlatformImplTest {

@@ -80,7 +80,7 @@ fun HomeScreen(navController: NavController) {
     Scaffold(
         content = { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Navigation Button
+                // Registration Button
                 Button(
                     onClick = { navController.navigate("register") },
                     modifier = Modifier.align(Alignment.Start)
@@ -90,10 +90,10 @@ fun HomeScreen(navController: NavController) {
                         contentDescription = "Go to Register"
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go to registration screen")
+                    Text("Go to registration screen.")
                 }
 
-                // Navigation Button
+                // Scrolling registration button 1
                 Button(
                     onClick = { navController.navigate("scrolling-then-register") },
                     modifier = Modifier.align(Alignment.Start)
@@ -106,7 +106,7 @@ fun HomeScreen(navController: NavController) {
                     Text("Go to scrolling registration screen 1.")
                 }
 
-                // Navigation Button
+                // Scrolling registration button 2
                 Button(
                     onClick = { navController.navigate("register-then-scrolling") },
                     modifier = Modifier.align(Alignment.Start)
@@ -120,13 +120,30 @@ fun HomeScreen(navController: NavController) {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text =
-                        "This is the Home Screen. From here, you can navigate to the registration " +
-                            "screen, or scrolling login screens. Scrolling screen 1 has a username field," +
-                            " then scrolling content, then a password field. " +
-                            "Scrolling screen 2 has credentials, then content."
-                )
+                val homescreenText =
+                    """ 
+                    This is the Home Screen. From here, you can navigate to the registration screen,
+                    or scrolling login screens. Scrolling screen 1 has a username field, then 
+                    scrolling content, then a password field. Scrolling screen 2 has credentials, 
+                    then content. After registering credentials, you may then return to use the 
+                    login page.
+                    """
+                        .trimIndent()
+                Text(text = homescreenText)
+
+                Spacer(modifier = Modifier.height(16.dp))
+                // Login Button
+                Button(
+                    onClick = { navController.navigate("login") },
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Go to login"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Go to the login screen.")
+                }
             }
         }
     )
@@ -169,12 +186,7 @@ fun SubmittedScreen(navController: NavController) {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun RegisterScreen(navController: NavController) {
-    TwoButtonNavigationScaffold(
-        navController,
-        "login",
-        "home",
-        content = { RegisterScreenContent() }
-    )
+    TwoButtonNavigationScaffold(navController, null, "home", content = { RegisterScreenContent() })
 }
 
 /**
@@ -193,7 +205,7 @@ fun LoginScreen(navController: NavController) {
 fun ScrollingRegisterScreen(navController: NavController) {
     TwoButtonNavigationScaffold(
         navController,
-        "login",
+        null,
         "home",
         content = { ScrollingRegisterScreenContent() }
     )
@@ -205,7 +217,7 @@ fun ScrollingRegisterScreen(navController: NavController) {
 fun RegisterThenScrollScreen(navController: NavController) {
     TwoButtonNavigationScaffold(
         navController,
-        "login",
+        null,
         "home",
         content = { RegisterThenScrollScreenContent() }
     )
@@ -222,14 +234,14 @@ fun RegisterScreenContent() {
 
     Column(modifier = Modifier.fillMaxSize()) {
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "This is the register screen.")
+        Text(text = "This is the register screen. Toggle to show the passworld field.")
 
         // Enter Credentials -------------------------------------------------
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "Enter your username and password below:")
+        Text(text = "Enter your username below:")
         Spacer(modifier = Modifier.height(8.dp))
-        NavigationDemoTextField(contentType = ContentType.NewUsername)
 
+        NavigationDemoTextField(contentType = ContentType.NewUsername)
         Spacer(modifier = Modifier.height(8.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = showPassword, onCheckedChange = { showPassword = it })
@@ -237,6 +249,8 @@ fun RegisterScreenContent() {
         }
 
         if (showPassword) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "Enter your password below:")
             Spacer(modifier = Modifier.height(8.dp))
             NavigationDemoTextField(contentType = ContentType.NewPassword)
         }
@@ -336,7 +350,7 @@ fun NavigationDemoTextField(
 @Composable
 fun TwoButtonNavigationScaffold(
     navController: NavController,
-    forwardRoute: String,
+    forwardRoute: String? = null,
     backwardRoute: String,
     content: @Composable () -> Unit
 ) {
@@ -356,20 +370,22 @@ fun TwoButtonNavigationScaffold(
                     Text("Go to $backwardRoute.")
                 }
 
-                // Navigation Button forwards
-                Button(
-                    onClick = { navController.navigate(forwardRoute) },
-                    modifier = Modifier.align(Alignment.Start)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "Go to $forwardRoute"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Go to $forwardRoute screen")
+                if (forwardRoute != null) {
+                    // Navigation Button forwards
+                    Button(
+                        onClick = { navController.navigate(forwardRoute) },
+                        modifier = Modifier.align(Alignment.Start)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Go to $forwardRoute"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Go to $forwardRoute screen")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
                 content()
             }
         }

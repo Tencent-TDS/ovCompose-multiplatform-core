@@ -1,29 +1,90 @@
 // Signature format: 4.0
-package androidx.xr.scenecore.testing {
+package @RequiresApi(34) androidx.xr.scenecore.testing {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public class FakeImpressApi implements com.google.ar.imp.apibindings.ImpressApi {
     ctor public FakeImpressApi();
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> animateGltfModel(int, String?, boolean);
+    method public com.google.ar.imp.apibindings.Texture borrowReflectionTexture();
     method public int createImpressNode();
     method public int createStereoSurface(@com.google.ar.imp.apibindings.ImpressApi.StereoMode int);
+    method public com.google.common.util.concurrent.ListenableFuture<com.google.ar.imp.apibindings.WaterMaterial!> createWaterMaterial(boolean);
     method public void destroyImpressNode(int);
+    method public void destroyNativeObject(long);
+    method public int getImpressNodeParent(int);
+    method public java.util.Map<androidx.xr.scenecore.testing.FakeImpressApi.GltfNodeData!,androidx.xr.scenecore.testing.FakeImpressApi.GltfNodeData!> getImpressNodes();
     method public java.util.List<java.lang.Integer!> getImpressNodesForToken(long);
+    method public java.util.Map<java.lang.Long!,androidx.xr.scenecore.testing.FakeImpressApi.MaterialData!> getMaterials();
+    method public java.util.Map<java.lang.Integer!,androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData!> getStereoSurfaceEntities();
     method public android.view.Surface getSurfaceFromStereoSurface(int);
+    method public java.util.Map<java.lang.Long!,com.google.ar.imp.apibindings.Texture!> getTextureImages();
     method public int impressNodeAnimatingSize();
     method public boolean impressNodeHasParent(int);
     method public int impressNodeLoopAnimatingSize();
     method public int instanceGltfModel(long);
     method public int instanceGltfModel(long, boolean);
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Long!> loadGltfModel(String);
+    method public com.google.common.util.concurrent.ListenableFuture<com.google.ar.imp.apibindings.Texture!> loadTexture(String, com.google.ar.imp.apibindings.TextureSampler);
     method public void onPause();
     method public void onResume();
     method public void releaseGltfModel(long);
-    method public void setCanvasDimensionsForStereoSurface(int, float, float);
+    method public void setAlphaStepMultiplierOnWaterMaterial(long, float);
+    method public void setAlphaStepUOnWaterMaterial(long, float, float, float, float);
+    method public void setAlphaStepVOnWaterMaterial(long, float, float, float, float);
     method public void setGltfModelColliderEnabled(int, boolean);
     method public void setImpressNodeParent(int, int);
+    method public void setMaterialOverride(int, long, String);
+    method public void setNormalMapOnWaterMaterial(long, long);
+    method public void setNormalSpeedOnWaterMaterial(long, float);
+    method public void setNormalTilingOnWaterMaterial(long, float);
+    method public void setReflectionCubeOnWaterMaterial(long, long);
     method public void setStereoModeForStereoSurface(int, @com.google.ar.imp.apibindings.ImpressApi.StereoMode int);
+    method public void setStereoSurfaceEntityCanvasShapeHemisphere(int, float);
+    method public void setStereoSurfaceEntityCanvasShapeQuad(int, float, float);
+    method public void setStereoSurfaceEntityCanvasShapeSphere(int, float);
     method public void setup(com.google.ar.imp.view.View);
     method public void stopGltfModelAnimation(int);
+    field public final java.util.Map<java.lang.Long!,androidx.xr.scenecore.testing.FakeImpressApi.MaterialData!>! mMaterials;
+    field public final java.util.Map<java.lang.Long!,com.google.ar.imp.apibindings.Texture!>! mTextureImages;
+  }
+
+  public static class FakeImpressApi.GltfNodeData {
+    ctor public FakeImpressApi.GltfNodeData();
+    method public void setEntityId(int);
+    method public void setMaterialOverride(androidx.xr.scenecore.testing.FakeImpressApi.MaterialData?);
+    field public int entityId;
+    field public androidx.xr.scenecore.testing.FakeImpressApi.MaterialData? materialOverride;
+  }
+
+  public static class FakeImpressApi.MaterialData {
+    ctor public FakeImpressApi.MaterialData(androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type, long);
+    field public long materialHandle;
+    field public androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type type;
+  }
+
+  public enum FakeImpressApi.MaterialData.Type {
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type GENERIC;
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type WATER;
+  }
+
+  public static class FakeImpressApi.StereoSurfaceEntityData {
+    ctor public FakeImpressApi.StereoSurfaceEntityData();
+    method public androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData.CanvasShape? getCanvasShape();
+    method public float getHeight();
+    method public float getRadius();
+    method @com.google.ar.imp.apibindings.ImpressApi.StereoMode public int getStereoMode();
+    method public android.view.Surface? getSurface();
+    method public float getWidth();
+  }
+
+  public enum FakeImpressApi.StereoSurfaceEntityData.CanvasShape {
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData.CanvasShape QUAD;
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData.CanvasShape VR_180_HEMISPHERE;
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData.CanvasShape VR_360_SPHERE;
+  }
+
+  public static class FakeImpressApi.TestSurface extends android.view.Surface {
+    ctor public FakeImpressApi.TestSurface(int);
+    field public int id;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public class FakeScheduledExecutorService extends java.util.concurrent.AbstractExecutorService implements java.lang.AutoCloseable java.util.concurrent.ScheduledExecutorService {
@@ -51,11 +112,8 @@ package androidx.xr.scenecore.testing {
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public class FakeXrExtensions implements androidx.xr.extensions.XrExtensions {
     ctor public FakeXrExtensions();
     method public void addFindableView(android.view.View, android.view.ViewGroup);
-    method @Deprecated public void attachSpatialEnvironment(android.app.Activity, androidx.xr.extensions.node.Node);
     method public void attachSpatialEnvironment(android.app.Activity, androidx.xr.extensions.node.Node, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public void attachSpatialScene(android.app.Activity, androidx.xr.extensions.node.Node, androidx.xr.extensions.node.Node);
     method public void attachSpatialScene(android.app.Activity, androidx.xr.extensions.node.Node, androidx.xr.extensions.node.Node, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public boolean canEmbedActivityPanel(android.app.Activity);
     method public void clearSpatialStateCallback(android.app.Activity);
     method public androidx.xr.extensions.space.ActivityPanel createActivityPanel(android.app.Activity, androidx.xr.extensions.space.ActivityPanelLaunchParameters);
     method public androidx.xr.extensions.node.Node createNode();
@@ -63,14 +121,10 @@ package androidx.xr.scenecore.testing {
     method public androidx.xr.extensions.node.ReformOptions createReformOptions(androidx.xr.extensions.Consumer<androidx.xr.extensions.node.ReformEvent!>, java.util.concurrent.Executor);
     method public androidx.xr.extensions.splitengine.SplitEngineBridge createSplitEngineBridge();
     method public androidx.xr.extensions.subspace.Subspace createSubspace(androidx.xr.extensions.splitengine.SplitEngineBridge, int);
-    method @Deprecated public void detachSpatialEnvironment(android.app.Activity);
     method public void detachSpatialEnvironment(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public void detachSpatialScene(android.app.Activity);
     method public void detachSpatialScene(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public java.util.concurrent.CompletableFuture<androidx.xr.extensions.XrExtensions.SceneViewerResult!> displayGltfModel(android.app.Activity!, androidx.xr.extensions.asset.GltfModelToken!);
     method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeActivityPanel getActivityPanelForHost(android.app.Activity);
     method public int getApiVersion();
-    method public void getBounds(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.space.Bounds!>, java.util.concurrent.Executor);
     method public androidx.xr.extensions.Config getConfig();
     method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getFakeEnvironmentNode();
     method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getFakeNodeForMainWindow();
@@ -80,7 +134,6 @@ package androidx.xr.scenecore.testing {
     method public int getOpenXrWorldSpaceType();
     method public float getPreferredAspectRatio();
     method public androidx.xr.scenecore.testing.FakeXrExtensions.SpaceMode getSpaceMode();
-    method public void getSpatialCapabilities(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.space.SpatialCapabilities!>, java.util.concurrent.Executor);
     method public androidx.xr.extensions.space.SpatialState getSpatialState(android.app.Activity);
     method public androidx.xr.extensions.Consumer<androidx.xr.extensions.space.SpatialState!>? getSpatialStateCallback();
     method public androidx.xr.extensions.node.Node? getSurfaceTrackingNode(android.view.View);
@@ -92,20 +145,14 @@ package androidx.xr.scenecore.testing {
     method @Deprecated public java.util.concurrent.CompletableFuture<androidx.xr.extensions.asset.SceneToken!> loadImpressScene(java.io.InputStream!, int, int);
     method public void registerSpatialStateCallback(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.space.SpatialState!>, java.util.concurrent.Executor);
     method public void removeFindableView(android.view.View, android.view.ViewGroup);
-    method @Deprecated public boolean requestFullSpaceMode(android.app.Activity);
     method public void requestFullSpaceMode(android.app.Activity, boolean, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public boolean requestHomeSpaceMode(android.app.Activity);
     method public void sendSpatialState(androidx.xr.extensions.space.SpatialState);
     method public android.os.Bundle setFullSpaceMode(android.os.Bundle);
     method public android.os.Bundle setFullSpaceModeWithEnvironmentInherited(android.os.Bundle);
-    method @Deprecated public android.os.Bundle setMainPanelCurvatureRadius(android.os.Bundle, float);
     method @Deprecated public void setMainWindowCurvatureRadius(android.app.Activity, float);
-    method @Deprecated public void setMainWindowSize(android.app.Activity, int, int);
     method public void setMainWindowSize(android.app.Activity, int, int, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
     method public void setOpenXrWorldSpaceType(int);
-    method public void setPreferredAspectRatio(android.app.Activity, float);
     method public void setPreferredAspectRatio(android.app.Activity, float, androidx.xr.extensions.Consumer<androidx.xr.extensions.XrExtensionResult!>, java.util.concurrent.Executor);
-    method @Deprecated public void setSpatialStateCallback(android.app.Activity, androidx.xr.extensions.Consumer<androidx.xr.extensions.space.SpatialStateEvent!>, java.util.concurrent.Executor);
     method @Deprecated public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode testGetNodeWithEnvironmentToken(androidx.xr.extensions.asset.EnvironmentToken);
     method @Deprecated public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode testGetNodeWithGltfToken(androidx.xr.extensions.asset.GltfModelToken);
     field public final java.util.Map<android.app.Activity!,androidx.xr.scenecore.testing.FakeXrExtensions.FakeActivityPanel!> activityPanelMap;
@@ -151,6 +198,7 @@ package androidx.xr.scenecore.testing {
   }
 
   public static class FakeXrExtensions.FakeEnvironmentToken implements androidx.xr.extensions.asset.EnvironmentToken {
+    ctor public FakeXrExtensions.FakeEnvironmentToken(String);
     method public String getUrl();
   }
 
@@ -203,6 +251,7 @@ package androidx.xr.scenecore.testing {
     method public int describeContents();
     method public float getAlpha();
     method public android.os.IBinder? getAnchorId();
+    method public float getCornerRadius();
     method @Deprecated public androidx.xr.extensions.asset.EnvironmentToken? getEnvironment();
     method public java.util.concurrent.Executor? getExecutor();
     method @Deprecated public androidx.xr.extensions.asset.GltfModelToken? getGltfModel();

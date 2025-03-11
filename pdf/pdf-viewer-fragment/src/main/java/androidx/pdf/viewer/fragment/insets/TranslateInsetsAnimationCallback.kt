@@ -45,7 +45,10 @@ internal class TranslateInsetsAnimationCallback(
                 insets.getInsets(WindowInsetsCompat.Type.ime()).run {
                     Insets.of(left, top, right, bottom)
                 }
-            translateViewWithKeyboard(keyboardInsets)
+            // Avoid consuming null ime events which are set as zero on configuration changes.
+            if (keyboardInsets.bottom > 0) {
+                translateViewWithKeyboard(keyboardInsets)
+            }
 
             insets
         }

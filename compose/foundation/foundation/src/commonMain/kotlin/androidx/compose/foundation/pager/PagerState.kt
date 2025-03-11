@@ -453,7 +453,7 @@ internal constructor(
 
     internal val prefetchState =
         LazyLayoutPrefetchState(prefetchScheduler) {
-            Snapshot.withoutReadObservation { schedulePrefetch(firstVisiblePage) }
+            Snapshot.withoutReadObservation { schedulePrecomposition(firstVisiblePage) }
         }
 
     internal val beyondBoundsInfo = LazyLayoutBeyondBoundsInfo()
@@ -759,7 +759,10 @@ internal constructor(
                     this.wasPrefetchingForward = isPrefetchingForward
                     this.indexToPrefetch = indexToPrefetch
                     currentPrefetchHandle =
-                        prefetchState.schedulePrefetch(indexToPrefetch, premeasureConstraints)
+                        prefetchState.schedulePrecompositionAndPremeasure(
+                            indexToPrefetch,
+                            premeasureConstraints
+                        )
                 }
                 if (isPrefetchingForward) {
                     val lastItem = info.visiblePagesInfo.last()

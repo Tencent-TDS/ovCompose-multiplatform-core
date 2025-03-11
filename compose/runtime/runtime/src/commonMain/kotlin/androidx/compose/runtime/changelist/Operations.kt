@@ -342,11 +342,12 @@ internal class Operations : OperationsDebugStringFormattable() {
     fun executeAndFlushAllPendingOperations(
         applier: Applier<*>,
         slots: SlotWriter,
-        rememberManager: RememberManager
+        rememberManager: RememberManager,
+        errorContext: OperationErrorContext?
     ) {
         drain {
             with(operation) {
-                execute(applier = applier, slots = slots, rememberManager = rememberManager)
+                executeWithComposeStackTrace(applier, slots, rememberManager, errorContext)
             }
         }
     }

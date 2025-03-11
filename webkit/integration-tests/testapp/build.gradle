@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.ApkCopyHelperKt
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -69,7 +69,7 @@ android {
 
 androidx {
     name = "WebKit Test App"
-    type = LibraryType.TEST_APPLICATION
+    type = SoftwareType.TEST_APPLICATION
     inceptionYear = "2017"
     description = "The WebKit Support Library test application is a demonstration of the APIs provided in the androidx.webkit library."
     additionalDeviceTestApkKeys.add("chrome")

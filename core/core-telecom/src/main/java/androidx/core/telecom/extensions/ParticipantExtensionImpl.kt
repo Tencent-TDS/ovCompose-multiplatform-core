@@ -21,6 +21,7 @@ import android.util.Log
 import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import androidx.core.telecom.internal.CapabilityExchangeRepository
+import androidx.core.telecom.internal.MeetingSummaryStateListenerRemote
 import androidx.core.telecom.internal.ParticipantActionCallbackRepository
 import androidx.core.telecom.internal.ParticipantStateListenerRemote
 import androidx.core.telecom.util.ExperimentalAppActions
@@ -69,6 +70,11 @@ internal class ParticipantExtensionImpl(
          * whenever there is an API change to this extension or an existing action.
          */
         internal const val VERSION = 1
+        /**
+         * The version of this MeetingSummaryExtension used for capability exchange. Should be
+         * updated whenever there is an API change to this extension or an existing action.
+         */
+        internal const val MEETING_SUMMARY_VERSION = 1
 
         /**
          * Constants used to denote the type of action supported by the [Capability] being
@@ -124,11 +130,26 @@ internal class ParticipantExtensionImpl(
      * Setup the participant extension creation callback receiver and return the Capability of this
      * extension to be shared with the remote.
      */
-    internal fun onExchangeStarted(callbacks: CapabilityExchangeRepository): Capability {
+    internal fun onParticipantExchangeStarted(callbacks: CapabilityExchangeRepository): Capability {
         callbacks.onCreateParticipantExtension = ::onCreateParticipantExtension
         return Capability().apply {
             featureId = Extensions.PARTICIPANT
             featureVersion = VERSION
+            supportedActions = actionRemoteConnector.keys.toIntArray()
+        }
+    }
+
+    /**
+     * Setup the Meeting Summary extension creation callback receiver and return the Capability of
+     * this extension to be shared with the remote.
+     */
+    internal fun onMeetingSummaryExchangeStarted(
+        callbacks: CapabilityExchangeRepository
+    ): Capability {
+        callbacks.onMeetingSummaryExtension = ::onCreateMeetingSummaryExtension
+        return Capability().apply {
+            featureId = Extensions.MEETING_SUMMARY
+            featureVersion = MEETING_SUMMARY_VERSION
             supportedActions = actionRemoteConnector.keys.toIntArray()
         }
     }
@@ -142,6 +163,76 @@ internal class ParticipantExtensionImpl(
      */
     private fun registerAction(action: Int, connector: ActionConnector) {
         actionRemoteConnector[action] = connector
+    }
+
+    /**
+     * Creates and initializes the meeting summary extension.
+     *
+     * This function is responsible for setting up the meeting summary extension, synchronizing the
+     * initial state with the remote, and establishing listeners for changes to the participant
+     * count and the current speaker.
+     *
+     * The process involves:
+     * 1. **Initial State Synchronization:** Retrieves the initial values of the `participants` list
+     *    and the `activeParticipant` from their respective `StateFlow`s. It then sends these
+     *    initial values to the remote side using the provided `binder`.
+     * 2. **Setting up Flow Listeners:** Creates `Flow` pipelines using `onEach`, `combine`, and
+     *    `distinctUntilChanged` to observe changes to both the `participants` list and the
+     *    `activeParticipant`.
+     *     - `participants.onEach`: This listener triggers whenever the `participants` list changes.
+     *       It sends the updated participant count to the remote.
+     *     - `combine(activeParticipant)`: This operator combines the latest values from the
+     *       `participants` flow and the `activeParticipant` flow. It emits a new value whenever
+     *       *either* flow emits. The lambda function checks if the `activeParticipant` is still
+     *       present in the `participants` list. If not, it emits `null`.
+     *     - `distinctUntilChanged`: This operator ensures that the downstream flow only receives
+     *       updates when the value emitted by `combine` actually changes. This prevents redundant
+     *       updates to the remote.
+     *     - `onEach`: This listener triggers whenever the combined and filtered value changes. It
+     *       sends the updated current speaker (or null) to the remote.
+     *     - `launchIn(coroutineScope)`: This terminal operator launches the entire flow pipeline in
+     *       the provided `coroutineScope`. This means the listeners will remain active as long as
+     *       the `coroutineScope` is active.
+     * 3. **Finishing Synchronization:** After setting up the listeners, it calls
+     *    `binder.finishSync()` to signal to the remote side that the initial synchronization is
+     *    complete.
+     *
+     * @param coroutineScope The [CoroutineScope] in which the flow listeners will be launched. This
+     *   scope should be tied to the lifecycle of the component managing the meeting summary
+     *   extension to ensure that the listeners are automatically cancelled when the component is
+     *   destroyed.
+     * @param binder The [MeetingSummaryStateListenerRemote] instance used to communicate with the
+     *   remote side. This binder provides methods for updating the participant count and current
+     *   speaker.
+     */
+    private fun onCreateMeetingSummaryExtension(
+        coroutineScope: CoroutineScope,
+        binder: MeetingSummaryStateListenerRemote
+    ) {
+        Log.i(LOG_TAG, "onCreateMeetingSummaryExtension")
+        // sync state
+        val initParticipants = participants.value
+        val initActiveParticipant = activeParticipant.value?.name.toString()
+        binder.updateParticipantCount(initParticipants.size)
+        binder.updateCurrentSpeaker(initActiveParticipant)
+        // Setup listeners for changes to state
+        participants
+            .onEach { updatedParticipants ->
+                Log.i(LOG_TAG, "to remote: updateParticipantCount: ${updatedParticipants.size}")
+                binder.updateParticipantCount(updatedParticipants.size)
+            }
+            .combine(activeParticipant) { p, a ->
+                val result = if (a != null && p.contains(a)) a else null
+                Log.v(LOG_TAG, "combine: $p + $a = $result")
+                result
+            }
+            .distinctUntilChanged()
+            .onEach {
+                Log.i(LOG_TAG, "to remote: updateCurrentSpeaker=${it?.name.toString()}")
+                binder.updateCurrentSpeaker(it?.name.toString())
+            }
+            .launchIn(coroutineScope)
+        binder.finishSync()
     }
 
     /**

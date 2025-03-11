@@ -35,6 +35,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.Subcomponent
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
 
 @CameraGraphScope
 @Subcomponent(modules = [SharedCameraGraphModules::class, ExternalCameraGraphConfigModule::class])
@@ -59,6 +60,9 @@ internal class ExternalCameraGraphConfigModule(
         object : CameraBackend {
             override val id: CameraBackendId
                 get() = CameraBackendId("External")
+
+            override val cameraIds: Flow<List<CameraId>>
+                get() = throwUnsupportedOperationException()
 
             override suspend fun getCameraIds(): List<CameraId>? {
                 throwUnsupportedOperationException()

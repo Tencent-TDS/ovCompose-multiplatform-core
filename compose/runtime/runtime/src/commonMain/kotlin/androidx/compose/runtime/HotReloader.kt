@@ -81,6 +81,9 @@ private class HotReloader {
  */
 @TestOnly fun invalidateGroupsWithKey(key: Int) = HotReloader.invalidateGroupsWithKey(key)
 
+/** Disables hot reload mode in recomposer. Test-only API, not for use in production. */
+@TestOnly fun disableHotReloadMode() = Recomposer.setHotReloadEnabled(false)
+
 /**
  * Get list of errors captured in composition. This list is only available when recomposer is in hot
  * reload mode. Test-only API, not for use in production.

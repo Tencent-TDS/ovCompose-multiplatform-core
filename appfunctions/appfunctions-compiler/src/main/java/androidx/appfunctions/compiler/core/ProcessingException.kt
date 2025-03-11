@@ -18,9 +18,9 @@ package androidx.appfunctions.compiler.core
 
 import com.google.devtools.ksp.symbol.KSNode
 
-/** An exception represents an error is occurred while processing [symbol]. */
+/** An exception representing an error is occurred while processing [symbol]. */
 class ProcessingException(
     message: String,
     val symbol: KSNode?,
     val throwable: Throwable? = null,
-) : Exception(message)
+) : Exception(message, throwable)

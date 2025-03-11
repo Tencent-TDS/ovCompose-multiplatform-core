@@ -426,6 +426,7 @@ public final class SearchSpecToProtoConverter {
      * @param namespaceCache  The NamespaceCache instance held in AppSearch.
      * @param schemaCache     The SchemaCache instance held in AppSearch.
      */
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     public @NonNull ResultSpecProto toResultSpecProto(
             @NonNull NamespaceCache namespaceCache,
             @NonNull SchemaCache schemaCache) {
@@ -435,7 +436,9 @@ public final class SearchSpecToProtoConverter {
                         ResultSpecProto.SnippetSpecProto.newBuilder()
                                 .setNumToSnippet(mSearchSpec.getSnippetCount())
                                 .setNumMatchesPerProperty(mSearchSpec.getSnippetCountPerProperty())
-                                .setMaxWindowUtf32Length(mSearchSpec.getMaxSnippetSize()))
+                                .setMaxWindowUtf32Length(mSearchSpec.getMaxSnippetSize())
+                                .setGetEmbeddingMatchInfo(
+                                        mSearchSpec.shouldRetrieveEmbeddingMatchInfos()))
                 .setNumTotalBytesPerPageThreshold(mIcingOptionsConfig.getMaxPageBytesLimit());
         JoinSpec joinSpec = mSearchSpec.getJoinSpec();
         if (joinSpec != null) {

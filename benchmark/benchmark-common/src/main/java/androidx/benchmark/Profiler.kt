@@ -202,31 +202,34 @@ internal fun startRuntimeMethodTracing(
     InstrumentationResults.reportAdditionalFileToCopy("profiling_trace", path)
 
     val bufferSize = 16 * 1024 * 1024
-    if (sampled) {
-        val intervalUs = (1_000_000.0 / Arguments.profilerSampleFrequencyHz).toInt()
-        Debug.startMethodTracingSampling(path, bufferSize, intervalUs)
-    } else {
-        // NOTE: 0x10 flag enables low-overhead wall clock timing when ART module version supports
-        // it. Note that this doesn't affect trace parsing, since this doesn't affect wall clock,
-        // it only removes the expensive thread time clock which our parser doesn't use.
-        // TODO: switch to platform-defined constant once available (b/329499422)
-        Debug.startMethodTracing(path, bufferSize, 0x10)
-    }
 
+    // Note: The last thing this method does is start profiling,
+    // since we want to capture as little benchmark infra as possible
     return if (sampled) {
+        val intervalUs = (1_000_000.0 / Arguments.profilerSampleFrequencyHz).toInt()
         Profiler.ResultFile.of(
-            outputRelativePath = traceFileName,
-            label = "Stack Sampling (legacy) Trace",
-            type = ProfilerOutput.Type.StackSamplingTrace,
-            source = profiler
-        )
+                outputRelativePath = traceFileName,
+                label = "Stack Sampling (legacy) Trace",
+                type = ProfilerOutput.Type.StackSamplingTrace,
+                source = profiler
+            )
+            .also { Debug.startMethodTracingSampling(path, bufferSize, intervalUs) }
     } else {
         Profiler.ResultFile.of(
-            outputRelativePath = traceFileName,
-            label = "Method Trace",
-            type = ProfilerOutput.Type.MethodTrace,
-            source = profiler
-        )
+                outputRelativePath = traceFileName,
+                label = "Method Trace",
+                type = ProfilerOutput.Type.MethodTrace,
+                source = profiler
+            )
+            .also {
+                // NOTE: 0x10 flag enables low-overhead wall clock timing when ART module version
+                // supports
+                // it. Note that this doesn't affect trace parsing, since this doesn't affect wall
+                // clock,
+                // it only removes the expensive thread time clock which our parser doesn't use.
+                // TODO: switch to platform-defined constant once available (b/329499422)
+                Debug.startMethodTracing(path, bufferSize, 0x10)
+            }
     }
 }
 

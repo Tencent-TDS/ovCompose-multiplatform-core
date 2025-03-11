@@ -1178,6 +1178,135 @@ class XTypeTest {
     }
 
     @Test
+    fun rawTypeSuperType() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(ANY_OBJECT.copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
+        }
+    }
+
+    @Test
+    fun rawTypeSuperType_singleBounds() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T extends Bar> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        interface Bar {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(XClassName.get("test", "Bar").copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
+        }
+    }
+
+    @Test
+    fun rawTypeSuperType_multipleBounds() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T extends Bar & Baz> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        interface Bar {}
+                        interface Baz {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    XTypeName.ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(XClassName.get("test", "Bar").copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
+        }
+    }
+
+    @Test
     fun isKotlinUnit() {
         val kotlinSubject =
             Source.kotlin(

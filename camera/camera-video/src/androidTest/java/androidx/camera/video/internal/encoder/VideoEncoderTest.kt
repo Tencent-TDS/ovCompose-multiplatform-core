@@ -381,7 +381,7 @@ class VideoEncoderTest(
         val videoCapabilities = Recorder.getVideoCapabilities(cameraInfo)
         val videoProfile = videoCapabilities.getProfiles(quality, dynamicRange)?.defaultVideoProfile
         assumeTrue(videoProfile != null)
-        val resolution = Size(videoProfile!!.width, videoProfile.height)
+        val resolution = videoProfile!!.resolution
 
         videoEncoderConfig =
             VideoEncoderConfig.builder()

@@ -240,15 +240,7 @@ fun PlaceholderButtonList() {
             }
             item {
                 var label by remember { mutableStateOf("") }
-                ButtonWithOverlaidPlaceholder(
-                    label = label,
-                    icon = Icons.Filled.Home,
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            iconColor = Color.Magenta.copy(alpha = 0.5f),
-                        ),
-                )
+                ButtonWithOverlaidPlaceholder(label = label, icon = Icons.Filled.Home)
                 LaunchedEffect(resetCount) {
                     label = ""
                     delay(3000)
@@ -262,7 +254,12 @@ fun PlaceholderButtonList() {
                     label = label,
                     icon = Icons.Filled.Home,
                     secondaryLabel = secondaryLabel,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Magenta),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = Color.Magenta,
+                            contentColor = Color.Black,
+                            secondaryContentColor = Color.Black
+                        ),
                 )
                 LaunchedEffect(resetCount) {
                     label = ""
@@ -294,13 +291,18 @@ fun PlaceholderButtonList() {
             }
         }
 
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Bottom,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CompactButton(label = { Text("Reset") }, onClick = { resetCount++ })
-        }
+        FloatingResetButton(onClick = { resetCount++ })
+    }
+}
+
+@Composable
+fun FloatingResetButton(onClick: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CompactButton(label = { Text("Reset") }, onClick = onClick)
     }
 }
 
@@ -322,7 +324,6 @@ fun PlaceholderCardList() {
 
     ScalingLazyColumn {
         item { ListHeader { Text("Overlaid Placeholders", textAlign = TextAlign.Center) } }
-        item { Centralize { Button(label = { Text("Reset") }, onClick = { resetCount++ }) } }
         repeat(4) { itemIndex ->
             item {
                 CardWithOverlaidPlaceholder(
@@ -335,6 +336,8 @@ fun PlaceholderCardList() {
             }
         }
     }
+
+    FloatingResetButton(onClick = { resetCount++ })
 }
 
 @Composable

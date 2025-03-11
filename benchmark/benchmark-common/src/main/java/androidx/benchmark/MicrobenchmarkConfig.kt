@@ -64,9 +64,15 @@ constructor(
 
     /** Optional profiler to be used after the primary timing phase. */
     val profiler: ProfilerConfig? = null,
+
+    /**
+     * Number of non-measured warmup iterations to perform, leave `null` to determine automatically.
+     */
     @Suppress("AutoBoxing") // null is distinct, and boxing cost is trivial (off critical path)
     @get:Suppress("AutoBoxing") // null is distinct, and boxing cost is trivial (off critical path)
     val warmupCount: Int? = null,
+
+    /** Number of measurements to perform, leave `null` for default behavior. */
     @Suppress("AutoBoxing") // null is distinct, and boxing cost is trivial (off critical path)
     @get:Suppress("AutoBoxing") // null is distinct, and boxing cost is trivial (off critical path)
     val measurementCount: Int? = null

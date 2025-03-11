@@ -35,18 +35,34 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 
+/**
+ * Scope handle for pausing/resuming microbenchmark measurement.
+ *
+ * This is functionally an equivalent to `BenchmarkRule.Scope` which will work without the JUnit
+ * dependency.
+ */
+open class MicrobenchmarkScope
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-open class MicrobenchmarkScope(internal val state: MicrobenchmarkRunningState) {
+constructor(internal val state: MicrobenchmarkRunningState) {
+    /**
+     * Disable measurement for a block of code.
+     *
+     * Used for disabling timing/measurement for work that isn't part of the benchmark:
+     * - When constructing per-loop randomized inputs for operations with caching,
+     * - Controlling which parts of multi-stage work are measured (e.g. View measure/layout)
+     * - Per-loop verification
+     *
+     * @sample androidx.benchmark.samples.runWithMeasurementDisabledSample
+     */
     inline fun <T> runWithMeasurementDisabled(block: () -> T): T {
         pauseMeasurement()
-        // Note: we only bother with tracing for the runWithTimingDisabled function for
-        // Kotlin callers, as it's more difficult to corrupt the trace with incorrectly
-        // paired BenchmarkState pause/resume calls
+        // Note: we only bother with tracing for the runWithMeasurementDisabled function for
+        // Kotlin callers, since we want to avoid corrupting the trace with incorrectly paired
+        // pauseMeasurement/resumeMeasurement calls
         val ret: T =
             try {
-                // TODO: use `trace() {}` instead of this manual try/finally,
-                //  once the block parameter is marked crossinline.
-                Trace.beginSection("runWithTimingDisabled")
+                // have to use begin/end since block isn't crossinline
+                Trace.beginSection("runWithMeasurementDisabled")
                 block()
             } finally {
                 Trace.endSection()
@@ -56,9 +72,13 @@ open class MicrobenchmarkScope(internal val state: MicrobenchmarkRunningState) {
     }
 
     /**
-     * Resume measurement after a call to [pauseMeasurement].
+     * Pause measurement until the next call to [resumeMeasurement].
      *
-     * Kotlin callers should generally instead use [runWithTimingDisabled].
+     * [resumeMeasurement] must be called before exiting the measurement loop.
+     *
+     * Re-entrant pausing is not supported.
+     *
+     * Kotlin callers should generally instead use [runWithMeasurementDisabled].
      */
     fun pauseMeasurement() {
         state.pauseMeasurement()
@@ -67,7 +87,7 @@ open class MicrobenchmarkScope(internal val state: MicrobenchmarkRunningState) {
     /**
      * Resume measurement after a call to [pauseMeasurement]
      *
-     * Kotlin callers should generally instead use [runWithTimingDisabled].
+     * Kotlin callers should generally instead use [runWithMeasurementDisabled].
      */
     fun resumeMeasurement() {
         state.resumeMeasurement()

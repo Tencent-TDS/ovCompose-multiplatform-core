@@ -99,7 +99,7 @@ internal class AndroidTextFieldKeyEventHandler : TextFieldKeyEventHandler() {
         clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
         editable: Boolean,
         singleLine: Boolean,
-        onSubmit: () -> Unit
+        onSubmit: () -> Boolean
     ): Boolean {
         if (
             event.type == KeyDown &&

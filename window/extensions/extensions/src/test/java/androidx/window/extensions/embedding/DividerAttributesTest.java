@@ -25,14 +25,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import androidx.test.filters.SmallTest;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
 /** Verifies {@link DividerAttributes} behavior. */
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
 public class DividerAttributesTest {
 

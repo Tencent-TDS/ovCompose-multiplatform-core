@@ -20,6 +20,7 @@ import android.annotation.SuppressLint
 import android.os.Build
 import android.security.NetworkSecurityPolicy
 import android.util.Log
+import androidx.annotation.CheckResult
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.benchmark.InMemoryTracing
@@ -31,6 +32,7 @@ import androidx.benchmark.ShellScript
 import androidx.benchmark.StartedShellScript
 import androidx.benchmark.inMemoryTrace
 import androidx.benchmark.perfetto.PerfettoHelper
+import androidx.benchmark.traceprocessor.ExperimentalTraceProcessorApi
 import androidx.benchmark.traceprocessor.PerfettoTrace
 import androidx.benchmark.traceprocessor.ServerLifecycleManager
 import androidx.benchmark.traceprocessor.TraceProcessor
@@ -146,38 +148,46 @@ fun <T> TraceProcessor.Companion.runSingleSessionServer(
 ) = TraceProcessor.runServer { loadTrace(PerfettoTrace(absoluteTracePath), block) }
 
 /**
- * Starts a Perfetto Trace Processor shell server in http mode, loads a trace and executes the given
- * block. It stops the server after the block is complete
+ * Starts a Perfetto TraceProcessor shell server in http mode.
  *
- * Uses a default timeout of 60 seconds.
+ * The server is stopped after the block is complete.
  *
- * @param block Command to execute using trace processor
- */
-fun <T> TraceProcessor.Companion.runServer(block: TraceProcessor.() -> T): T =
-    TraceProcessor.runServer(60.seconds, block)
-
-/**
- * Starts a Perfetto Trace Processor shell server in http mode, loads a trace and executes the given
- * block. It stops the server after the block is complete
- *
+ * @sample androidx.benchmark.samples.traceProcessorRunServerSimple
  * @param timeout waiting for the server to start. If less or equal to zero uses 60 seconds
  * @param block Command to execute using trace processor
  */
-fun <T> TraceProcessor.Companion.runServer(timeout: Duration, block: TraceProcessor.() -> T): T =
-    runServer(
+@JvmOverloads
+@ExperimentalTraceProcessorApi
+fun <T> TraceProcessor.Companion.runServer(
+    timeout: Duration = 60.seconds,
+    block: TraceProcessor.() -> T
+): T = startServer(timeout).use { block(it.traceProcessor) }
+
+/**
+ * Starts a Perfetto TraceProcessor shell server in http mode.
+ *
+ * @sample androidx.benchmark.samples.traceProcessorStartServerSimple
+ * @param timeout waiting for the server to start. If less or equal to zero uses 60 seconds
+ */
+@JvmOverloads
+@ExperimentalTraceProcessorApi
+@CheckResult
+fun TraceProcessor.Companion.startServer(timeout: Duration = 60.seconds): TraceProcessor.Handle =
+    startServer(
         ShellServerLifecycleManager(),
         eventCallback =
             object : TraceProcessor.EventCallback {
                 override fun onLoadTraceFailure(trace: PerfettoTrace, throwable: Throwable) {
                     // TODO: consider a label argument to control logging like this in the success
-                    // case as
-                    //  well, which lets us get rid of FileLinkingRule (which doesn't work well
-                    // anyway)
+                    //  case as well, which lets us get rid of FileLinkingRule (which doesn't work
+                    //  well anyway)
                     if (trace.path.startsWith(Outputs.outputDirectory.absolutePath)) {
                         // only link trace with failure to Studio if it's an output file
                         InstrumentationResults.instrumentationReport {
                             val label =
-                                "Trace with processing error: ${throwable.message?.take(50)?.trim()}..."
+                                "Trace with processing error: ${
+                                    throwable.message?.take(50)?.trim()
+                                }..."
                             reportSummaryToIde(
                                 profilerResults =
                                     listOf(
@@ -201,6 +211,5 @@ fun <T> TraceProcessor.Companion.runServer(timeout: Duration, block: TraceProces
                     InMemoryTracing.endSection()
                 }
             },
-        timeout = timeout,
-        block = block,
+        timeout = timeout
     )

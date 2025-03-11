@@ -187,6 +187,7 @@ internal open class AndroidViewHolder(
 
     private val position = IntArray(2)
     private var size = IntSize.Zero
+    private var insets: WindowInsetsCompat? = null
 
     /**
      * The [OwnerSnapshotObserver] of this holder's [Owner]. Will be null when this view is not
@@ -244,7 +245,40 @@ internal open class AndroidViewHolder(
 
     override fun onDeactivate() {
         reset()
-        removeAllViewsInLayout()
+        if (hasFocus()) {
+            // When a focused View is removed, it will request a focus change. We'll give it a
+            // temporary View to focus on so that we don't do a recompose during applyChanges()
+            // while searching for a focusable View (e.g. in a LazyColumn)
+            val focused = findFocus()
+            // focused should not be null here, but we'll check just in case
+            if (focused == null) {
+                removeAllViewsInLayout()
+            } else {
+                val tempFocusable = View(context)
+                val rect = Rect(0, 0, focused.width, focused.height)
+                offsetDescendantRectToMyCoords(focused, rect)
+                addView(tempFocusable)
+
+                with(tempFocusable) {
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    nextFocusUpId = focused.nextFocusUpId
+                    nextFocusDownId = focused.nextFocusDownId
+                    nextFocusLeftId = focused.nextFocusLeftId
+                    nextFocusRightId = focused.nextFocusRightId
+                    nextFocusForwardId = focused.nextFocusForwardId
+                    layout(rect.left, rect.top, rect.right, rect.bottom)
+                    requestFocus()
+                }
+                repeat(childCount - 1) { removeViewAt(0) }
+                owner.registerOnEndApplyChangesListener {
+                    // Now we're ready to send focus to the next focusable item.
+                    removeView(tempFocusable)
+                }
+            }
+        } else {
+            removeAllViewsInLayout()
+        }
     }
 
     override fun onRelease() {
@@ -404,8 +438,27 @@ internal open class AndroidViewHolder(
                     view.getLocationOnScreen(position)
                     val oldSize = size
                     size = it.size
-                    if (previousX != position[0] || previousY != position[1] || oldSize != size) {
-                        view.requestApplyInsets()
+                    val previouslyDispatchedInsets = insets
+                    if (previouslyDispatchedInsets != null) {
+                        if (
+                            previousX != position[0] || previousY != position[1] || oldSize != size
+                        ) {
+                            // If we have previously been dispatched insets (no parents consumed
+                            // the insets already), we need to dispatch the insets again when the
+                            // view is moved as this could cause the insets (once we account for
+                            // the layout position) to change.
+                            insetToLayoutPosition(previouslyDispatchedInsets)
+                                .toWindowInsets()
+                                ?.let { translatedInsets ->
+                                    // Re-dispatch the insets - we do this instead of calling
+                                    // requestApplyInsets() as that schedules a full traversal of
+                                    // the
+                                    // view hierarchy - there is no need to do that when only the
+                                    // AndroidView moved. Other changes that cause insets to change
+                                    // will be dispatched as normal.
+                                    view.dispatchApplyWindowInsets(translatedInsets)
+                                }
+                        }
                     }
                 }
         layoutNode.compositeKeyHash = compositeKeyHash
@@ -624,6 +677,8 @@ internal open class AndroidViewHolder(
     }
 
     override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
+        // Cache a copy of the last known insets
+        this.insets = WindowInsetsCompat(insets)
         return insetToLayoutPosition(insets)
     }
 

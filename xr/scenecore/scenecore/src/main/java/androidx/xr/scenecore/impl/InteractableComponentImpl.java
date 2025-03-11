@@ -18,6 +18,7 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
 import androidx.xr.scenecore.JxrPlatformAdapter.InteractableComponent;
@@ -36,7 +37,7 @@ class InteractableComponentImpl implements InteractableComponent {
     }
 
     @Override
-    public boolean onAttach(Entity entity) {
+    public boolean onAttach(@NonNull Entity entity) {
         if (mEntity != null) {
             Log.e("Runtime", "Already attached to entity " + mEntity);
             return false;
@@ -51,7 +52,7 @@ class InteractableComponentImpl implements InteractableComponent {
     }
 
     @Override
-    public void onDetach(Entity entity) {
+    public void onDetach(@NonNull Entity entity) {
         if (entity instanceof GltfEntityImplSplitEngine) {
             ((GltfEntityImplSplitEngine) entity).setColliderEnabled(false);
         }

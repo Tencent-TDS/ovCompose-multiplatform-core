@@ -33,7 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.BackwardCompatUtil
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -273,7 +273,7 @@ class SandboxedSdkViewTest {
         class CustomUiAdapter : AbstractSandboxedUiAdapter() {
             override fun openSession(
                 context: Context,
-                sessionConstants: SessionConstants,
+                sessionData: SessionData,
                 initialWidth: Int,
                 initialHeight: Int,
                 isZOrderOnTop: Boolean,
@@ -310,7 +310,7 @@ class SandboxedSdkViewTest {
         class CustomUiAdapter : AbstractSandboxedUiAdapter() {
             override fun openSession(
                 context: Context,
-                sessionConstants: SessionConstants,
+                sessionData: SessionData,
                 initialWidth: Int,
                 initialHeight: Int,
                 isZOrderOnTop: Boolean,
@@ -476,7 +476,7 @@ class SandboxedSdkViewTest {
         // Verify that the UI adapter receives the same host token object when opening a session.
         addViewToLayout()
         testSandboxedUiAdapter.assertSessionOpened()
-        assertThat(testSandboxedUiAdapter.sessionConstants?.windowInputToken).isEqualTo(token)
+        assertThat(testSandboxedUiAdapter.sessionData?.windowInputToken).isEqualTo(token)
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -486,8 +486,8 @@ class SandboxedSdkViewTest {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM)
         addViewToLayoutAndWaitToBeActive()
         val inputTransferToken = view.rootSurfaceControl?.inputTransferToken
-        assertThat(testSandboxedUiAdapter.sessionConstants?.inputTransferToken).isNotNull()
-        assertThat(testSandboxedUiAdapter.sessionConstants?.inputTransferToken)
+        assertThat(testSandboxedUiAdapter.sessionData?.inputTransferToken).isNotNull()
+        assertThat(testSandboxedUiAdapter.sessionData?.inputTransferToken)
             .isEqualTo(inputTransferToken)
     }
 
@@ -690,6 +690,20 @@ class SandboxedSdkViewTest {
         // Return to the first activity. The onScreenGeometry should now be non-empty.
         sandboxedSdkViewUiInfo = session.runAndRetrieveNextUiChange { uiDevice.pressBack() }
         assertThat(sandboxedSdkViewUiInfo.onScreenGeometry.isEmpty).isFalse()
+    }
+
+    @Test
+    fun signalsSentWhenVisibilityChanges() {
+        // onVisibilityAggregated is only available on N+
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+        addViewToLayoutAndWaitToBeActive()
+        val session = testSandboxedUiAdapter.testSession!!
+        // Catch initial UI change so that we can ensure the subsequent event is caught.
+        session.runAndRetrieveNextUiChange {}
+        // If no viewability event occurs, this will throw an exception.
+        session.runAndRetrieveNextUiChange {
+            activityScenarioRule.withActivity { view.visibility = View.INVISIBLE }
+        }
     }
 
     @Test

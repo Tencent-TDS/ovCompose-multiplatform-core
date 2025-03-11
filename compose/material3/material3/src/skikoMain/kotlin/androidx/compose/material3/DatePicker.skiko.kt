@@ -16,16 +16,16 @@
 
 package androidx.compose.material3
 
-import androidx.compose.material3.internal.format
+import androidx.compose.material3.internal.formatString
 
 @Suppress("NOTHING_TO_INLINE")
 internal actual inline fun formatDatePickerNavigateToYearString(
     template: String,
     localizedYear: String
-): String = template.format(localizedYear)
+): String = formatString(template, localizedYear)
 
 @Suppress("NOTHING_TO_INLINE")
 internal actual inline fun formatHeadlineDescription(
     template: String,
     verboseDateDescription: String
-): String = template.format(verboseDateDescription)
+): String = formatString(template, verboseDateDescription)

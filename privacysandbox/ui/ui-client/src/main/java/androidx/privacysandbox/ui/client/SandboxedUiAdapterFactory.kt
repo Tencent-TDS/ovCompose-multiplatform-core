@@ -38,7 +38,7 @@ import androidx.privacysandbox.ui.core.RemoteCallManager.addBinderDeathListener
 import androidx.privacysandbox.ui.core.RemoteCallManager.closeRemoteSession
 import androidx.privacysandbox.ui.core.RemoteCallManager.tryToCallRemoteObject
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -113,15 +113,15 @@ object SandboxedUiAdapterFactory {
                 uiProviderBinder.javaClass.classLoader
             )
 
-        private val targetSessionConstantsClass =
+        private val targetSessionDataClass =
             Class.forName(
-                SessionConstants::class.java.name,
+                "androidx.privacysandbox.ui.core.SessionData",
                 /* initialize = */ false,
                 uiProviderBinder.javaClass.classLoader
             )
 
-        private val targetSessionConstantsCompanionObject =
-            targetSessionConstantsClass.getDeclaredField("Companion").get(null)
+        private val targetSessionDataCompanionObject =
+            targetSessionDataClass.getDeclaredField("Companion").get(null)
 
         // The adapterInterface provided must have a openSession method on its class.
         // Since the object itself has been instantiated on a different classloader, we
@@ -135,7 +135,7 @@ object SandboxedUiAdapterFactory {
                 .getMethod(
                     "openSession",
                     Context::class.java,
-                    targetSessionConstantsClass,
+                    targetSessionDataClass,
                     Int::class.java,
                     Int::class.java,
                     Boolean::class.java,
@@ -144,14 +144,11 @@ object SandboxedUiAdapterFactory {
                 )
 
         private val fromBundleMethod: Method =
-            targetSessionConstantsCompanionObject.javaClass.getMethod(
-                "fromBundle",
-                Bundle::class.java
-            )
+            targetSessionDataCompanionObject.javaClass.getMethod("fromBundle", Bundle::class.java)
 
         override fun openSession(
             context: Context,
-            sessionConstants: SessionConstants,
+            sessionData: SessionData,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -171,8 +168,8 @@ object SandboxedUiAdapterFactory {
                     uiProviderBinder,
                     context,
                     fromBundleMethod.invoke(
-                        targetSessionConstantsCompanionObject,
-                        SessionConstants.toBundle(sessionConstants)
+                        targetSessionDataCompanionObject,
+                        SessionData.toBundle(sessionData)
                     ),
                     initialWidth,
                     initialHeight,
@@ -289,7 +286,7 @@ object SandboxedUiAdapterFactory {
 
         override fun openSession(
             context: Context,
-            sessionConstants: SessionConstants,
+            sessionData: SessionData,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,
@@ -302,7 +299,7 @@ object SandboxedUiAdapterFactory {
 
             tryToCallRemoteObject(adapterInterface) {
                 this.openRemoteSession(
-                    SessionConstants.toBundle(sessionConstants),
+                    SessionData.toBundle(sessionData),
                     displayId,
                     initialWidth,
                     initialHeight,

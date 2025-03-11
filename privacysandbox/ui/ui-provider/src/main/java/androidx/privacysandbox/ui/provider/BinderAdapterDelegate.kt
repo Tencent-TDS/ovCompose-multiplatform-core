@@ -41,7 +41,7 @@ import androidx.privacysandbox.ui.core.ISandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ProtocolConstants
 import androidx.privacysandbox.ui.core.RemoteCallManager.tryToCallRemoteObject
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
 import androidx.privacysandbox.ui.provider.impl.DeferredSessionClient
@@ -123,7 +123,7 @@ private class BinderAdapterDelegate(
     /** Called in local mode via reflection. */
     override fun openSession(
         context: Context,
-        sessionConstants: SessionConstants,
+        sessionData: SessionData,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,
@@ -137,7 +137,7 @@ private class BinderAdapterDelegate(
             val displayContext = sandboxContext.createDisplayContext(display)
             openSessionInternal(
                 displayContext,
-                sessionConstants,
+                sessionData,
                 initialWidth,
                 initialHeight,
                 isZOrderOnTop,
@@ -149,7 +149,7 @@ private class BinderAdapterDelegate(
 
     /** Called in remote mode via binder call. */
     override fun openRemoteSession(
-        sessionConstants: Bundle,
+        sessionData: Bundle,
         displayId: Int,
         initialWidth: Int,
         initialHeight: Int,
@@ -162,7 +162,7 @@ private class BinderAdapterDelegate(
             }
             return
         }
-        val constants = SessionConstants.fromBundle(sessionConstants)
+        val constants = SessionData.fromBundle(sessionData)
         MainThreadExecutor.execute {
             try {
                 val displayManager =
@@ -210,7 +210,7 @@ private class BinderAdapterDelegate(
 
     private fun openSessionInternal(
         context: Context,
-        sessionConstants: SessionConstants,
+        sessionData: SessionData,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,
@@ -219,7 +219,7 @@ private class BinderAdapterDelegate(
     ) {
         adapter.openSession(
             context,
-            sessionConstants,
+            sessionData,
             initialWidth,
             initialHeight,
             isZOrderOnTop,
@@ -424,14 +424,12 @@ private class BinderAdapterDelegate(
         fun createSessionClientProxy(
             displayContext: Context,
             display: Display,
-            sessionConstants: SessionConstants,
+            sessionData: SessionData,
             isZOrderOnTop: Boolean,
             remoteSessionClient: IRemoteSessionClient
         ): SessionClientProxy {
             val surfaceControlViewHost =
-                checkNotNull(
-                    createSurfaceControlViewHost(displayContext, display, sessionConstants)
-                ) {
+                checkNotNull(createSurfaceControlViewHost(displayContext, display, sessionData)) {
                     "Failed to create SurfaceControlViewHost"
                 }
             val touchTransferringView =
@@ -447,20 +445,11 @@ private class BinderAdapterDelegate(
         fun createSurfaceControlViewHost(
             displayContext: Context,
             display: Display,
-            sessionConstants: SessionConstants
+            sessionData: SessionData
         ): SurfaceControlViewHost? {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                Api35PlusImpl.createSurfaceControlViewHost(
-                    displayContext,
-                    display,
-                    sessionConstants
-                )
-            } else
-                Api34PlusImpl.createSurfaceControlViewHost(
-                    displayContext,
-                    display,
-                    sessionConstants
-                )
+                Api35PlusImpl.createSurfaceControlViewHost(displayContext, display, sessionData)
+            } else Api34PlusImpl.createSurfaceControlViewHost(displayContext, display, sessionData)
         }
 
         @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
@@ -470,9 +459,9 @@ private class BinderAdapterDelegate(
             fun createSurfaceControlViewHost(
                 context: Context,
                 display: Display,
-                sessionConstants: SessionConstants
+                sessionData: SessionData
             ): SurfaceControlViewHost {
-                return SurfaceControlViewHost(context, display, sessionConstants.inputTransferToken)
+                return SurfaceControlViewHost(context, display, sessionData.inputTransferToken)
             }
         }
 
@@ -483,9 +472,9 @@ private class BinderAdapterDelegate(
             fun createSurfaceControlViewHost(
                 context: Context,
                 display: Display,
-                sessionConstants: SessionConstants
+                sessionData: SessionData
             ): SurfaceControlViewHost {
-                return SurfaceControlViewHost(context, display, sessionConstants.windowInputToken)
+                return SurfaceControlViewHost(context, display, sessionData.windowInputToken)
             }
         }
     }

@@ -30,7 +30,7 @@ import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ExperimentalFeatures
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
 import androidx.privacysandbox.ui.core.SessionObserverFactory
@@ -69,7 +69,7 @@ class TestSessionManager(
         viewForSession: SandboxedSdkView?,
         testSessionClient: TestSessionClient = TestSessionClient(),
         sessionObserverFactories: List<SessionObserverFactory>? = null,
-        sessionConstants: SessionConstants = SessionConstants()
+        sessionData: SessionData = SessionData()
     ): TestSandboxedUiAdapter {
 
         val adapter = TestSandboxedUiAdapter(failToProvideUi, placeViewInsideFrameLayout)
@@ -81,7 +81,7 @@ class TestSessionManager(
         } else {
             adapterFromCoreLibInfo.openSession(
                 context,
-                sessionConstants,
+                sessionData,
                 INITIAL_WIDTH,
                 INITIAL_HEIGHT,
                 isZOrderOnTop = true,
@@ -199,7 +199,7 @@ class TestSessionManager(
 
         override fun openSession(
             context: Context,
-            sessionConstants: SessionConstants,
+            sessionData: SessionData,
             initialWidth: Int,
             initialHeight: Int,
             isZOrderOnTop: Boolean,

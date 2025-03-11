@@ -276,9 +276,11 @@ public class BiometricFragment extends Fragment {
 
         // Some device credential implementations in API 29 cause the prompt to receive a cancel
         // signal immediately after it's shown (b/162022588).
+        // TODO(b/162022588): mViewModel.info hasn't been set. So isDeviceCredentialAllowed()
+        //  check will always be false. Reproduce the bug and fix it.
         if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q
                 && AuthenticatorUtils.isDeviceCredentialAllowed(
-                    mViewModel.getAllowedAuthenticators())) {
+                mViewModel.getAllowedAuthenticators())) {
             mViewModel.setIgnoringCancel(true);
             mHandler.postDelayed(new StopIgnoringCancelRunnable(mViewModel), 250L);
         }
@@ -290,7 +292,7 @@ public class BiometricFragment extends Fragment {
         // TODO(b/349214064): When removing BiometricFragment, leverage the client's lifecycle
         //  observer to cancel authentication when the client enters the background.
         if (mViewModel.isPromptShowing() && !mViewModel.isConfirmingDeviceCredential()
-                && !isChangingConfigurations()) {
+                && isPermanentRemoving()) {
             cancelAuthentication(BiometricFragment.CANCELED_FROM_INTERNAL);
         }
     }
@@ -383,19 +385,13 @@ public class BiometricFragment extends Fragment {
     void authenticate(
             BiometricPrompt.@NonNull PromptInfo info,
             BiometricPrompt.@Nullable CryptoObject crypto) {
+        // PromptInfo has to be set prior to others.
         mViewModel.setPromptInfo(info);
 
-        // Use a fake crypto object to force Strong biometric auth prior to Android 11 (API 30).
-        @BiometricManager.AuthenticatorTypes final int authenticators =
-                AuthenticatorUtils.getConsolidatedAuthenticators(info, crypto);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && Build.VERSION.SDK_INT < Build.VERSION_CODES.R
-                && authenticators == Authenticators.BIOMETRIC_STRONG
-                && crypto == null) {
-            mViewModel.setCryptoObject(CryptoObjectUtils.createFakeCryptoObject());
-        } else {
-            mViewModel.setCryptoObject(crypto);
-        }
+        mViewModel.setIsIdentityCheckAvailable(
+                BiometricManager.from(requireContext()).isIdentityCheckAvailable());
+
+        mViewModel.setCryptoObject(crypto);
 
         if (isManagingDeviceCredentialButton()) {
             mViewModel.setNegativeButtonTextOverride(
@@ -705,9 +701,11 @@ public class BiometricFragment extends Fragment {
     @VisibleForTesting
     void onAuthenticationError(int errorCode, @Nullable CharSequence errorMessage) {
         // Ensure we're only sending publicly defined errors.
-        final int knownErrorCode = ErrorUtils.isKnownError(errorCode)
-                ? errorCode
-                : BiometricPrompt.ERROR_VENDOR;
+        final int knownErrorCode =
+                ErrorUtils.isKnownError(errorCode) ? (
+                        errorCode == BiometricPrompt.ERROR_NOT_ENABLED_FOR_APPS
+                                ? BiometricPrompt.ERROR_HW_UNAVAILABLE : errorCode)
+                        : BiometricPrompt.ERROR_VENDOR;
 
         final Context context = getContext();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && ErrorUtils.isLockoutError(
@@ -809,8 +807,8 @@ public class BiometricFragment extends Fragment {
      * pressed on the prompt content.
      */
     void onMoreOptionsButtonPressed() {
-        sendErrorAndDismiss(BiometricPrompt.ERROR_MORE_OPTIONS_BUTTON,
-                "More options button in the content view is clicked.");
+        sendErrorAndDismiss(BiometricPrompt.ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON,
+                getString(R.string.content_view_more_options_button_clicked));
         cancelAuthentication(BiometricFragment.CANCELED_FROM_MORE_OPTIONS_BUTTON);
     }
 
@@ -927,7 +925,6 @@ public class BiometricFragment extends Fragment {
         sendErrorToClient(errorCode, errorString);
         dismiss();
     }
-
 
     /**
      * Sends a successful authentication result to the client callback.
@@ -1104,14 +1101,15 @@ public class BiometricFragment extends Fragment {
     }
 
     /**
-     * Checks if the client activity is currently changing configurations (e.g. rotating screen
-     * orientation).
+     * Checks if the client activity is being destroyed and will not be recreated.  This is
+     * distinct from a configuration change (like screen rotation), where the activity is
+     * destroyed but immediately recreated.
      *
-     * @return Whether the client activity is changing configurations.
+     * @return {@code true} if the activity is being permanently destroyed; {@code false} otherwise.
      */
-    private boolean isChangingConfigurations() {
+    private boolean isPermanentRemoving() {
         final FragmentActivity activity = getActivity();
-        return activity != null && activity.isChangingConfigurations();
+        return isRemoving() && (activity == null || !activity.isChangingConfigurations());
     }
 
     /**

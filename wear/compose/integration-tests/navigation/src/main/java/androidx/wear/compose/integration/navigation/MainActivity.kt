@@ -35,14 +35,17 @@ import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.edgeSwipeToDismiss
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
+import androidx.wear.compose.foundation.pager.HorizontalPager
 import androidx.wear.compose.foundation.pager.rememberPagerState
 import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
 import androidx.wear.compose.material.CompactChip
 import androidx.wear.compose.material.ListHeader
 import androidx.wear.compose.material.MaterialTheme
 import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.AnimatedPage
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.HorizontalPagerScaffold
+import androidx.wear.compose.material3.PagerScaffoldDefaults
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
@@ -164,13 +167,23 @@ class MainActivity : ComponentActivity() {
                         AppScaffold {
                             val pagerState = rememberPagerState(pageCount = { 10 })
 
-                            HorizontalPagerScaffold(pagerState = pagerState) { page ->
-                                ScreenScaffold {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("Page $page")
+                            HorizontalPagerScaffold(pagerState = pagerState) {
+                                HorizontalPager(
+                                    state = pagerState,
+                                    flingBehavior =
+                                        PagerScaffoldDefaults.snapWithSpringFlingBehavior(
+                                            state = pagerState
+                                        )
+                                ) { page ->
+                                    AnimatedPage(page = page, pagerState = pagerState) {
+                                        ScreenScaffold {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("Page $page")
+                                            }
+                                        }
                                     }
                                 }
                             }

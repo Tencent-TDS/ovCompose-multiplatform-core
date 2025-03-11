@@ -31,7 +31,7 @@ import androidx.annotation.RequiresApi
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.tests.endtoend.IntegrationTestSetupRule.Companion.INITIAL_HEIGHT
 import androidx.privacysandbox.ui.tests.endtoend.IntegrationTestSetupRule.Companion.INITIAL_WIDTH
@@ -145,7 +145,7 @@ class IntegrationTests(private val invokeBackwardsCompatFlow: Boolean) {
         val adapter =
             sessionManager.createAdapterAndEstablishSession(
                 viewForSession = null,
-                sessionConstants = deriveSessionConstants()
+                sessionData = derivesessionData()
             )
         assertThat(adapter.session).isNotNull()
     }
@@ -535,18 +535,18 @@ class IntegrationTests(private val invokeBackwardsCompatFlow: Boolean) {
         }
     }
 
-    private fun deriveSessionConstants(): SessionConstants {
+    private fun derivesessionData(): SessionData {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            return Api35PlusImpl.deriveSessionConstants(view)
+            return Api35PlusImpl.derivesessionData(view)
         } else {
-            return SessionConstants(windowInputToken = Binder(), inputTransferToken = null)
+            return SessionData(windowInputToken = Binder(), inputTransferToken = null)
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
     private object Api35PlusImpl {
-        fun deriveSessionConstants(view: SandboxedSdkView): SessionConstants {
-            return SessionConstants(
+        fun derivesessionData(view: SandboxedSdkView): SessionData {
+            return SessionData(
                 windowInputToken = Binder(),
                 inputTransferToken = view.rootSurfaceControl?.inputTransferToken
             )

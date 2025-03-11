@@ -16,9 +16,9 @@
 
 package androidx.xr.compose.subspace.layout
 
-import android.content.res.Resources
 import androidx.annotation.RestrictTo
 import androidx.compose.ui.unit.Density
+import androidx.xr.compose.subspace.node.SubspaceLayoutNode
 
 /**
  * The receiver scope of a layout's measure lambda. The return value of the measure lambda is
@@ -55,10 +55,12 @@ public interface MeasureScope : Density {
             }
         }
     }
+}
 
-    public override val density: Float
-        get() = Resources.getSystem().displayMetrics.density
+internal class LayoutMeasureScope(private val layoutNode: SubspaceLayoutNode) : MeasureScope {
+    override val density: Float
+        get() = layoutNode.density.density
 
     public override val fontScale: Float
-        get() = Resources.getSystem().configuration.fontScale
+        get() = layoutNode.density.fontScale
 }

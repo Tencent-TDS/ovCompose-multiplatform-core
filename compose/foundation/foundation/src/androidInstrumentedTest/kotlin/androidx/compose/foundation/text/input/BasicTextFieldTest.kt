@@ -45,7 +45,6 @@ import androidx.compose.foundation.text.input.internal.TextLayoutState
 import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
 import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
-import androidx.compose.foundation.text.input.internal.setComposingRegion
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
@@ -1577,6 +1576,35 @@ internal class BasicTextFieldTest {
             assertThat(state.text.toString()).isEqualTo("Hello")
             assertThat(state.composition).isEqualTo(TextRange(0, 5))
         }
+    }
+
+    @Test
+    fun whenWindowFocusGained_unfocusedTextFieldStateIsNotRecomposed() {
+        val state = TextFieldState("Hello")
+        var isWindowFocused by mutableStateOf(false)
+        var windowInfo =
+            object : WindowInfo {
+                override val isWindowFocused: Boolean
+                    get() = isWindowFocused
+            }
+        var decoratorCallCount = 0
+        val decorator = TextFieldDecorator { innerTextField ->
+            decoratorCallCount++
+            innerTextField()
+        }
+        rule.setContent {
+            CompositionLocalProvider(LocalWindowInfo provides windowInfo) {
+                BasicTextField(
+                    state = state,
+                    decorator = decorator,
+                )
+            }
+        }
+
+        val initialDecoratorCallCount = rule.runOnIdle { decoratorCallCount }
+        isWindowFocused = true
+
+        rule.runOnIdle { assertThat(decoratorCallCount).isEqualTo(initialDecoratorCallCount) }
     }
 
     // regression test for b/355900176#comment2

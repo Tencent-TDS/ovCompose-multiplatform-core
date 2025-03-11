@@ -19,6 +19,7 @@ package androidx.health.connect.client.impl.platform.aggregate
 import android.annotation.TargetApi
 import android.content.Context
 import android.os.Build
+import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregationResult
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
@@ -30,6 +31,7 @@ import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
 import androidx.health.connect.client.records.metadata.DataOrigin
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
@@ -42,6 +44,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.Period
@@ -50,6 +53,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertThrows
+import org.junit.Assume
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -87,10 +92,17 @@ class SeriesRecordAggregationExtensionsTest {
                 .toTypedArray())
         )
 
+    @Before
+    fun setUp() {
+        Assume.assumeTrue(
+            SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) < 10
+        )
+    }
+
     @After
     fun tearDown() = runTest {
         for (recordType in SERIES_AGGREGATION_FALLBACK_RECORD_TYPES) {
-            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+            healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
         }
     }
 
@@ -103,6 +115,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 30.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             CyclingPedalingCadenceRecord.Sample(
@@ -127,7 +140,7 @@ class SeriesRecordAggregationExtensionsTest {
                             CyclingPedalingCadenceRecord.RPM_MAX,
                             CyclingPedalingCadenceRecord.RPM_MIN
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -145,6 +158,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 30.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             CyclingPedalingCadenceRecord.Sample(
@@ -162,6 +176,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 2.days + 30.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             CyclingPedalingCadenceRecord.Sample(
@@ -179,6 +194,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             SpeedRecord.Sample(
@@ -258,6 +274,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 30.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             CyclingPedalingCadenceRecord.Sample(
@@ -275,6 +292,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 2.hours + 30.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             CyclingPedalingCadenceRecord.Sample(
@@ -292,6 +310,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             SpeedRecord.Sample(
@@ -369,6 +388,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             SpeedRecord.Sample(
@@ -389,7 +409,7 @@ class SeriesRecordAggregationExtensionsTest {
                 AggregateRequest(
                     metrics =
                         setOf(SpeedRecord.SPEED_AVG, SpeedRecord.SPEED_MAX, SpeedRecord.SPEED_MIN),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -407,6 +427,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -425,7 +446,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -445,7 +466,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -464,6 +485,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -475,6 +497,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -482,6 +505,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0)
@@ -499,7 +523,7 @@ class SeriesRecordAggregationExtensionsTest {
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -518,6 +542,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -529,6 +554,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -536,6 +562,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0)
@@ -551,7 +578,7 @@ class SeriesRecordAggregationExtensionsTest {
                         setOf(
                             StepsCadenceRecord.RATE_MAX,
                         ),
-                    timeRangeFilter = TimeRangeFilter.none()
+                    timeRangeFilter = TimeRangeFilter.after(Instant.EPOCH)
                 )
             )
 
@@ -570,6 +597,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -581,6 +609,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -588,6 +617,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0),
@@ -626,6 +656,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -637,6 +668,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -644,6 +676,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0),
@@ -684,6 +717,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -695,6 +729,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -702,6 +737,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0),
@@ -749,6 +785,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 10.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 3.minutes, rate = 170.0),
@@ -760,6 +797,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 15.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples = listOf()
                 ),
                 StepsCadenceRecord(
@@ -767,6 +805,7 @@ class SeriesRecordAggregationExtensionsTest {
                     endTime = START_TIME + 20.minutes,
                     startZoneOffset = ZoneOffset.UTC,
                     endZoneOffset = ZoneOffset.UTC,
+                    metadata = Metadata.manualEntry(),
                     samples =
                         listOf(
                             StepsCadenceRecord.Sample(time = START_TIME + 17.minutes, rate = 181.0),
@@ -805,15 +844,14 @@ class SeriesRecordAggregationExtensionsTest {
     fun aggregateSeriesRecord_invalidMetrics_throws() = runTest {
         assertThrows(IllegalStateException::class.java) {
             runBlocking {
-                healthConnectClient.aggregateSeriesRecord(
-                    StepsCadenceRecord::class,
+                healthConnectClient.aggregateSeries<StepsCadenceRecord>(
                     AggregateRequest(
                         setOf(
                             SpeedRecord.SPEED_AVG,
                             StepsCadenceRecord.RATE_MAX,
                             StepsCadenceRecord.RATE_MIN
                         ),
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         emptySet()
                     )
                 )
@@ -825,15 +863,14 @@ class SeriesRecordAggregationExtensionsTest {
     fun aggregateSeriesRecord_invalidSeriesRecord_throws() = runTest {
         assertThrows(IllegalArgumentException::class.java) {
             runBlocking {
-                healthConnectClient.aggregateSeriesRecord(
-                    recordType = HeartRateRecord::class,
+                healthConnectClient.aggregateSeries<HeartRateRecord>(
                     AggregateRequest(
                         setOf(
                             HeartRateRecord.BPM_AVG,
                             HeartRateRecord.BPM_MAX,
                             HeartRateRecord.BPM_MIN
                         ),
-                        TimeRangeFilter.none(),
+                        TimeRangeFilter.after(Instant.EPOCH),
                         emptySet()
                     )
                 )

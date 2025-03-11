@@ -334,7 +334,9 @@ public class SwipeToDismissBoxState(
         get() = swipeableState.targetValue
 
     /**
-     * The current offset, or [Float.NaN] if it has not been initialized yet.
+     * The current offset, or [Float.NaN] if it has not been initialized yet. Consider using
+     * `requireOffset()` method instead - this field should only be used when the access to the
+     * uninitialised value is required.
      *
      * The offset shows how far the foreground content was swiped from its original position.
      */
@@ -344,6 +346,16 @@ public class SwipeToDismissBoxState(
     /** Whether the state is currently animating. */
     public val isAnimationRunning: Boolean
         get() = swipeableState.isAnimationRunning
+
+    /**
+     * Require the current offset. This method should always be used instead of using the `offset`
+     * field, unless the access to the uninitialised value is required.
+     *
+     * The offset shows how far the foreground content was swiped from its original position.
+     *
+     * @throws IllegalStateException If the offset has not been initialized yet
+     */
+    public fun requireOffset(): Float = swipeableState.requireOffset()
 
     internal fun edgeNestedScrollConnection(
         edgeSwipeState: State<EdgeSwipeState>

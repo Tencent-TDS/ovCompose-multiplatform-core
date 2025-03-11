@@ -64,14 +64,14 @@ internal class PageLayoutManager(
     val dimensions: SharedFlow<Pair<Int, Point>>
         get() = _dimensions
 
-    private val _visiblePages = MutableStateFlow<Range<Int>>(Range(0, 0))
+    private val _visiblePages = MutableStateFlow<PagesInViewport>(PagesInViewport(Range(0, 0)))
 
     /**
      * A [StateFlow] representing the [Range] of pages that are currently visible in the window.
      *
      * Values in the range are 0-indexed.
      */
-    val visiblePages: StateFlow<Range<Int>>
+    val visiblePages: StateFlow<PagesInViewport>
         get() = _visiblePages
 
     private val _fullyVisiblePages = MutableStateFlow<Range<Int>>(Range(0, 0))
@@ -155,7 +155,7 @@ internal class PageLayoutManager(
      */
     fun getPdfPointAt(contentCoordinates: PointF, viewport: Rect): PdfPoint? {
         val visiblePages = visiblePages.value
-        for (pageIndex in visiblePages.lower..visiblePages.upper) {
+        for (pageIndex in visiblePages.pages.lower..visiblePages.pages.upper) {
             val pageBounds = paginationModel.getPageLocation(pageIndex, viewport)
             if (RectF(pageBounds).contains(contentCoordinates.x, contentCoordinates.y)) {
                 return PdfPoint(
@@ -195,14 +195,17 @@ internal class PageLayoutManager(
 
         val fullyVisiblePageRange =
             paginationModel.getPagesInViewport(contentTop, contentBottom, includePartial = false)
-        if (fullyVisiblePageRange != _fullyVisiblePages.value) {
-            _fullyVisiblePages.tryEmit(fullyVisiblePageRange)
+        if (fullyVisiblePageRange.pages != _fullyVisiblePages.value) {
+            _fullyVisiblePages.tryEmit(fullyVisiblePageRange.pages)
         }
 
         if (prevVisiblePages != newVisiblePages) {
             _visiblePages.tryEmit(newVisiblePages)
             increaseReach(
-                minOf(newVisiblePages.upper + pagePrefetchRadius, paginationModel.numPages - 1)
+                minOf(
+                    newVisiblePages.pages.upper + pagePrefetchRadius,
+                    paginationModel.numPages - 1
+                )
             )
         }
     }

@@ -22,7 +22,7 @@ import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.PaneScaffoldParentData
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldHorizontalOrder
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldOverride
-import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldOverrideContext
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldOverrideScope
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldRole
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +38,7 @@ import androidx.xr.compose.subspace.SpatialRow
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.fillMaxHeight
 import androidx.xr.compose.subspace.layout.height
+import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.width
 import kotlin.math.roundToInt
 
@@ -71,7 +72,12 @@ public fun ThreePaneScaffold(
     primaryPane: @Composable () -> Unit
 ) {
     Subspace {
-        SpatialRow(modifier = modifier.height(XrThreePaneScaffoldTokens.PanelHeight)) {
+        SpatialRow(
+            // Offset by 1dp as a workaround to fix b/395685251, where elements in the XR-overrides
+            // ThreePaneScaffold are not clickable when composed from within the XR-overrides
+            // NavigationSuiteScaffold.
+            modifier = modifier.offset(z = 1.dp).height(XrThreePaneScaffoldTokens.PanelHeight)
+        ) {
             var drawSpacer = false // Only draws spacers after the first pane is drawn
             paneOrder.each { role ->
                 when (role) {
@@ -147,7 +153,7 @@ private fun Panel(
 )
 internal object XrThreePaneScaffoldOverride : ThreePaneScaffoldOverride {
     @Composable
-    override fun ThreePaneScaffoldOverrideContext.ThreePaneScaffold() {
+    override fun ThreePaneScaffoldOverrideScope.ThreePaneScaffold() {
         ThreePaneScaffold(
             modifier = SubspaceModifier,
             scaffoldDirective = scaffoldDirective.copy(maxHorizontalPartitions = 3),

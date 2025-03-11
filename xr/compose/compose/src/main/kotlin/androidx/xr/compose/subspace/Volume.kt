@@ -22,6 +22,7 @@ import androidx.xr.compose.subspace.layout.SubspaceLayout
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.runtime.math.Pose
+import androidx.xr.scenecore.ContentlessEntity
 import androidx.xr.scenecore.Entity
 
 /**
@@ -48,11 +49,12 @@ public fun Volume(
 
     SubspaceLayout(
         modifier = modifier,
+        name = name,
         coreEntity =
             rememberCoreContentlessEntity {
-                createEntity(name = name, pose = Pose.Identity).apply(onVolumeEntity)
+                ContentlessEntity.create(this, name = name, pose = Pose.Identity)
+                    .apply(onVolumeEntity)
             },
-        name = name,
     ) { measurables, constraints ->
         val initialWidth = defaultWidthPx.coerceIn(constraints.minWidth, constraints.maxWidth)
         val initialHeight = defaultHeightPx.coerceIn(constraints.minHeight, constraints.maxHeight)

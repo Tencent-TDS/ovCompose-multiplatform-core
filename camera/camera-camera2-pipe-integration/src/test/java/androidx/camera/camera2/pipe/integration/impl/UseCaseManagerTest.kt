@@ -18,12 +18,16 @@ package androidx.camera.camera2.pipe.integration.impl
 
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.hardware.camera2.CameraDevice.TEMPLATE_RECORD
+import android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY
 import android.hardware.camera2.CameraMetadata.CONTROL_CAPTURE_INTENT_PREVIEW
+import android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT
 import android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE
 import android.hardware.camera2.CaptureRequest.CONTROL_CAPTURE_INTENT
+import android.hardware.camera2.params.DynamicRangeProfiles
 import android.hardware.camera2.params.SessionConfiguration.SESSION_HIGH_SPEED
 import android.os.Build
 import android.util.Range
@@ -45,6 +49,7 @@ import androidx.camera.camera2.pipe.integration.adapter.ZslControlNoOpImpl
 import androidx.camera.camera2.pipe.integration.compat.StreamConfigurationMapCompat
 import androidx.camera.camera2.pipe.integration.compat.quirk.CameraQuirks
 import androidx.camera.camera2.pipe.integration.compat.quirk.CaptureIntentPreviewQuirk
+import androidx.camera.camera2.pipe.integration.compat.workaround.NoOpAutoFlashAEModeDisabler
 import androidx.camera.camera2.pipe.integration.compat.workaround.NoOpTemplateParamsOverride
 import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCorrector
 import androidx.camera.camera2.pipe.integration.compat.workaround.TemplateParamsOverride
@@ -53,12 +58,12 @@ import androidx.camera.camera2.pipe.integration.config.CameraConfig
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraControl
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
 import androidx.camera.camera2.pipe.integration.testing.FakeCamera2CameraControlCompat
-import androidx.camera.camera2.pipe.integration.testing.FakeCameraProperties
 import androidx.camera.camera2.pipe.integration.testing.FakeSessionProcessor
 import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCameraComponentBuilder
 import androidx.camera.camera2.pipe.testing.FakeCameraBackend
 import androidx.camera.camera2.pipe.testing.FakeCameraDevices
 import androidx.camera.camera2.pipe.testing.FakeCameraMetadata
+import androidx.camera.core.DynamicRange
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
@@ -75,6 +80,7 @@ import androidx.camera.testing.impl.fakes.FakeEncoderProfilesProvider
 import androidx.camera.testing.impl.fakes.FakeUseCase
 import androidx.camera.testing.impl.fakes.FakeUseCaseConfig
 import androidx.test.core.app.ApplicationProvider
+import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertNull
@@ -108,6 +114,7 @@ class UseCaseManagerTest {
     private val useCaseManagerList = mutableListOf<UseCaseManager>()
     private val useCaseList = mutableListOf<UseCase>()
     private lateinit var useCaseThreads: UseCaseThreads
+    private lateinit var lowLightBoostControl: LowLightBoostControl
 
     @After
     fun tearDown() = runBlocking {
@@ -655,6 +662,77 @@ class UseCaseManagerTest {
             .isEqualTo(CONTROL_CAPTURE_INTENT_PREVIEW)
     }
 
+    @Test
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun enableLowLightBoost_whenFpsRangeExceed30() = runTest {
+        // Arrange
+        initializeUseCaseThreads(this)
+        val useCaseManager =
+            createUseCaseManager(
+                characteristicsMap =
+                    mapOf(
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP to
+                            streamConfigurationMap,
+                        CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES to
+                            intArrayOf(CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY)
+                    )
+            )
+        val fakeUseCase =
+            FakeUseCase().apply {
+                updateSessionConfigForTesting(
+                    SessionConfig.Builder()
+                        .setTemplateType(TEMPLATE_PREVIEW)
+                        .setExpectedFrameRateRange(Range(30, 60))
+                        .build()
+                )
+            }
+        useCaseManager.attach(listOf(fakeUseCase))
+
+        assertThrows<IllegalStateException> {
+            lowLightBoostControl.setLowLightBoostAsync(true).await()
+        }
+    }
+
+    @Test
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun enableLowLightBoost_when10BitIsOn() = runTest {
+        // Arrange
+        initializeUseCaseThreads(this)
+        val useCaseManager =
+            createUseCaseManager(
+                characteristicsMap =
+                    mapOf(
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP to
+                            streamConfigurationMap,
+                        CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES to
+                            intArrayOf(CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY),
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES to
+                            intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT),
+                        REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES to
+                            DynamicRangeProfiles(
+                                longArrayOf(
+                                    DynamicRangeProfiles.HLG10,
+                                    DynamicRangeProfiles.HLG10,
+                                    0L
+                                )
+                            )
+                    )
+            )
+
+        val fakeUseCase =
+            FakeUseCaseConfig.Builder().setDynamicRange(DynamicRange.HLG_10_BIT).build().apply {
+                simulateActivation(DynamicRange.HLG_10_BIT)
+                updateSessionConfigForTesting(
+                    SessionConfig.Builder().setTemplateType(TEMPLATE_PREVIEW).build()
+                )
+            }
+        useCaseManager.attach(listOf(fakeUseCase))
+
+        assertThrows<IllegalStateException> {
+            lowLightBoostControl.setLowLightBoostAsync(true).await()
+        }
+    }
+
     @OptIn(ExperimentalCamera2Interop::class)
     @Suppress("UNCHECKED_CAST", "PLATFORM_CLASS_MAPPED_TO_KOTLIN")
     private fun createUseCaseManager(
@@ -662,12 +740,12 @@ class UseCaseManagerTest {
         useCaseCameraComponentBuilder: FakeUseCaseCameraComponentBuilder =
             FakeUseCaseCameraComponentBuilder(),
         templateParamsOverride: TemplateParamsOverride = NoOpTemplateParamsOverride,
-    ): UseCaseManager {
-        val cameraId = CameraId("0")
-        val characteristicsMap: Map<CameraCharacteristics.Key<*>, Any?> =
+        characteristicsMap: Map<CameraCharacteristics.Key<*>, Any?> =
             mapOf(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP to streamConfigurationMap,
-            )
+            ),
+    ): UseCaseManager {
+        val cameraId = CameraId("0")
 
         val characteristics = ShadowCameraCharacteristics.newCameraCharacteristics()
         (Shadow.extract<Any>(
@@ -681,6 +759,15 @@ class UseCaseManagerTest {
         val fakeCamera = FakeCamera()
         val cameraPipe = CameraPipe(CameraPipe.Config(ApplicationProvider.getApplicationContext()))
         val fakeCameraBackend = FakeCameraBackend(mapOf(cameraId to fakeCameraMetadata))
+        val cameraProperties =
+            CameraPipeCameraProperties(CameraConfig(cameraId), fakeCameraMetadata)
+        lowLightBoostControl =
+            LowLightBoostControl(
+                fakeCameraMetadata,
+                State3AControl(cameraProperties, NoOpAutoFlashAEModeDisabler),
+                useCaseThreads,
+                ComboRequestListener()
+            )
         return UseCaseManager(
                 cameraPipe = cameraPipe,
                 cameraDevices =
@@ -696,6 +783,7 @@ class UseCaseManagerTest {
                 cameraConfig = CameraConfig(cameraId),
                 builder = useCaseCameraComponentBuilder,
                 zslControl = ZslControlNoOpImpl(),
+                lowLightBoostControl = lowLightBoostControl,
                 controls = controls as java.util.Set<UseCaseCameraControl>,
                 camera2CameraControl =
                     Camera2CameraControl.create(
@@ -718,11 +806,7 @@ class UseCaseManagerTest {
                 templateParamsOverride = templateParamsOverride,
                 encoderProfilesProvider = FakeEncoderProfilesProvider.Builder().build(),
                 context = ApplicationProvider.getApplicationContext(),
-                cameraProperties =
-                    FakeCameraProperties(
-                        metadata = fakeCameraMetadata,
-                        cameraId = cameraId,
-                    ),
+                cameraProperties = cameraProperties,
                 displayInfoManager =
                     DisplayInfoManager(ApplicationProvider.getApplicationContext()),
             )
@@ -826,7 +910,7 @@ class UseCaseManagerTest {
                 useCaseList.add(it)
             }
 
-    private fun UseCase.simulateActivation() {
+    private fun UseCase.simulateActivation(dynamicRange: DynamicRange? = null) {
         bindToCamera(
             FakeCamera("0"),
             null,
@@ -836,6 +920,11 @@ class UseCaseManagerTest {
                 CameraUseCaseAdapter(ApplicationProvider.getApplicationContext())
             )
         )
-        updateSuggestedStreamSpec(StreamSpec.builder(supportedSizes[0]).build(), null)
+        updateSuggestedStreamSpec(
+            StreamSpec.builder(supportedSizes[0])
+                .also { builder -> dynamicRange?.let { builder.setDynamicRange(it) } }
+                .build(),
+            null
+        )
     }
 }

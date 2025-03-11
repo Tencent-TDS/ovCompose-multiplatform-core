@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import androidx.build.ApkCopyHelperKt
+
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
@@ -50,12 +53,23 @@ dependencies {
 android {
     compileSdk = 35
     defaultConfig {
-        minSdk = 32
+        minSdk = 34
     }
     namespace = "androidx.xr.compose.material3.integration.testapp"
+    buildTypes {
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        }
+    }
 }
 
 androidx {
     // TODO: b/326456246
     optOutJSpecify = true
 }
+
+// Making this APK available via Android Build so the QA team can
+// access it in a convenient manner.
+ApkCopyHelperKt.setupAppApkCopy(project, "release")

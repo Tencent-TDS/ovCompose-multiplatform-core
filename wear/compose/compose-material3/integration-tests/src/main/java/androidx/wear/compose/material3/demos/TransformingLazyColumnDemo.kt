@@ -51,7 +51,6 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.scrollTransform
-import androidx.wear.compose.material3.lazy.targetMorphingHeight
 import androidx.wear.compose.material3.samples.AppCardSample
 import androidx.wear.compose.material3.samples.AppCardWithIconSample
 import androidx.wear.compose.material3.samples.AppCardWithImageSample
@@ -102,7 +101,6 @@ fun TransformingLazyColumnNotificationsDemo() {
                             notification.title,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.targetMorphingHeight(this@items)
                         )
                         Text(notification.body)
                     }

@@ -38,7 +38,9 @@ import androidx.compose.ui.demos.autofill.BasicTextFieldAutofill
 import androidx.compose.ui.demos.autofill.ExplicitAutofillTypesDemo
 import androidx.compose.ui.demos.autofill.LegacyTextFieldAutofillDemo
 import androidx.compose.ui.demos.autofill.MixedOldNewAutofillDemo
+import androidx.compose.ui.demos.autofill.MultiPageLoginDemo
 import androidx.compose.ui.demos.autofill.OutlinedTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.OutlinedTextFieldVisualTransformationAutofillDemo
 import androidx.compose.ui.demos.focus.AdjacentScrollablesFocusDemo
 import androidx.compose.ui.demos.focus.CancelFocusDemo
 import androidx.compose.ui.demos.focus.CaptureFocusDemo
@@ -281,15 +283,18 @@ private val AutofillDemos =
     DemoCategory(
         "Autofill",
         listOf(
-            ComposableDemo("S: New login") { BTFResetCredentialsDemo() },
-            ComposableDemo("S: BasicTextField Autofill") { BasicTextFieldAutofill() },
-            ComposableDemo("S: BasicSecureTextField Autofill") {
-                BasicSecureTextFieldAutofillDemo()
+            ComposableDemo("New login") { BTFResetCredentialsDemo() },
+            ComposableDemo("BasicTextField Autofill") { BasicTextFieldAutofill() },
+            ComposableDemo("BasicSecureTextField Autofill") { BasicSecureTextFieldAutofillDemo() },
+            ComposableDemo("Legacy TextField Autofill") { LegacyTextFieldAutofillDemo() },
+            ComposableDemo("Legacy OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() },
+            ComposableDemo("Legacy OutlinedTextField with Visual Transformation Autofill") {
+                OutlinedTextFieldVisualTransformationAutofillDemo()
             },
-            ComposableDemo("S: TextField Autofill") { LegacyTextFieldAutofillDemo() },
-            ComposableDemo("S: OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() },
             ComposableDemo("Navigation Sample") { AutofillNavigation() },
-            ComposableDemo("Old and New Autofill Mixed") { MixedOldNewAutofillDemo() }
+            ComposableDemo("Multipage Navigation Sample") { MultiPageLoginDemo() },
+            ComposableDemo("Old and New Autofill Mixed") { MixedOldNewAutofillDemo() },
+            ComposableDemo("Old Autofill demo") { ExplicitAutofillTypesDemo() },
         )
     )
 
@@ -314,7 +319,6 @@ val CoreDemos =
         listOfNotNull(
             ModifierDemos,
             if (SDK_INT >= 26) AutofillDemos else null,
-            ComposableDemo("Explicit autofill types") { ExplicitAutofillTypesDemo() },
             FocusDemos,
             KeyInputDemos,
             ComposableDemo("TouchMode") { TouchModeDemo() },

@@ -16,16 +16,21 @@
 
 package androidx.compose.foundation.text.modifiers
 
+import android.graphics.Typeface
 import androidx.compose.foundation.text.DefaultMinLines
 import androidx.compose.foundation.text.TEST_FONT_FAMILY
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.input.internal.AsyncFauxFont
+import androidx.compose.foundation.text.input.internal.AsyncTestTypefaceLoader
 import androidx.compose.foundation.text.toIntPx
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -38,7 +43,13 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import kotlin.math.ceil
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -485,11 +496,225 @@ class MultiParagraphLayoutCacheTest {
     }
 
     @Test
-    fun TextLayoutResult_autoSize_ellipsized_isLineEllipsized() {
+    fun TextLayoutResult_autoSize_startEllipsis_fittingText_doesNotEllipsize() {
+        autoSizeEllipsizeFittingTextDoesNotEllipsize(TextOverflow.StartEllipsis)
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_middleEllipsis_fittingText_doesNotEllipsize() {
+        autoSizeEllipsizeFittingTextDoesNotEllipsize(TextOverflow.MiddleEllipsis)
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_ellipsis_fittingText_doesNotEllipsize() {
+        autoSizeEllipsizeFittingTextDoesNotEllipsize(TextOverflow.Ellipsis)
+    }
+
+    private fun autoSizeEllipsizeFittingTextDoesNotEllipsize(textOverflow: TextOverflow) {
+        check(
+            textOverflow == TextOverflow.StartEllipsis ||
+                textOverflow == TextOverflow.MiddleEllipsis ||
+                textOverflow == TextOverflow.Ellipsis
+        ) {
+            "textOverflow should be an Ellipsis mode, but was $textOverflow"
+        }
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        val text = "aaaaaaaaaa"
+        val widthPerCharacter =
+            with(density) { (constraints.maxWidth / text.length.toFloat()).toSp() }
+
+        val layoutCache =
+            MultiParagraphLayoutCache(
+                    text = AnnotatedString(text),
+                    style = TextStyle(fontFamily = fontFamily),
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = textOverflow,
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = widthPerCharacter * 0.5,
+                            maxFontSize = widthPerCharacter * 0.9,
+                            stepSize = (0.5).sp
+                        ),
+                    // Use maxLines to ensure that the text would be ellipsized if it was too big
+                    maxLines = 1
+                )
+                .also { it.density = density }
+
+        layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val layoutResult = layoutCache.textLayoutResult
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(widthPerCharacter * 0.9)
+        assertThat(layoutResult.didOverflowWidth).isFalse()
+        assertThat(layoutResult.didOverflowHeight).isFalse()
+        assertThat(layoutResult.lineCount).isEqualTo(1)
+        assertThat(layoutResult.isLineEllipsized(0)).isFalse()
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_startEllipsis_overflowingText_firstLineIsEllipsized() {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        val text = "aaaaaaaaaa"
+        val widthPerCharacter =
+            with(density) { (constraints.maxWidth / text.length.toFloat()).toSp() }
+
+        // The min font size overflows
+        val minFontSize = widthPerCharacter * 1.2
+        val maxFontSize = widthPerCharacter * 3
+
+        val layoutCache =
+            MultiParagraphLayoutCache(
+                    text = AnnotatedString(text),
+                    style = TextStyle(fontFamily = fontFamily),
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = TextOverflow.StartEllipsis,
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = minFontSize,
+                            maxFontSize = maxFontSize,
+                            stepSize = 1.sp
+                        ),
+                    // StartEllipsis only happens for single-line text
+                    maxLines = 1
+                )
+                .also { it.density = density }
+
+        layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val layoutResult = layoutCache.textLayoutResult
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(minFontSize)
+        assertThat(layoutResult.isLineEllipsized(0)).isTrue()
+        assertThat(layoutResult.didOverflowWidth).isFalse()
+        assertThat(layoutResult.lineCount).isEqualTo(1)
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_startEllipsis_overflowingText_multiLine_isClipped() {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        val text = "aaaaaaaaaa"
+        val linesToOverflow =
+            ceil(calculateLinesNeededToOverflowVertically(text.length)).roundToInt()
+        val overflowingCharacterSize = (constraints.maxHeight / linesToOverflow).sp
+
+        val minFontSize = overflowingCharacterSize
+        val maxFontSize = overflowingCharacterSize * 2
+
+        val layoutCache =
+            MultiParagraphLayoutCache(
+                    text = AnnotatedString(text),
+                    style = TextStyle(fontFamily = fontFamily),
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = TextOverflow.StartEllipsis,
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = minFontSize,
+                            maxFontSize = maxFontSize,
+                            stepSize = 1.sp
+                        )
+                )
+                .also { it.density = density }
+
+        layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val layoutResult = layoutCache.textLayoutResult
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(minFontSize)
+        assertThat(layoutResult.hasVisualOverflow).isTrue()
+        assertThat(layoutResult.lineCount).isGreaterThan(1)
+
+        val ellipsizedLines = mutableListOf<Int>()
+        for (line in 0 until layoutResult.lineCount) {
+            if (layoutResult.isLineEllipsized(line)) {
+                ellipsizedLines.add(line)
+            }
+        }
+        assertWithMessage("No lines should be ellipsized").that(ellipsizedLines).isEmpty()
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_middleEllipsis_overflowingText_singleLine_hasEllipsizedLine() {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        val text = "aaaaaaaaaa"
+        val widthPerCharacter =
+            with(density) { (constraints.maxWidth / text.length.toFloat()).toSp() }
+
+        // The min font size overflows
+        val minFontSize = widthPerCharacter * 1.2
+        val maxFontSize = widthPerCharacter * 3
+
+        val layoutCache =
+            MultiParagraphLayoutCache(
+                    text = AnnotatedString(text),
+                    style = TextStyle(fontFamily = fontFamily),
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = minFontSize,
+                            maxFontSize = maxFontSize,
+                            stepSize = 1.sp
+                        ),
+                    // MiddleEllipsis only happens for single-line text
+                    maxLines = 1
+                )
+                .also { it.density = density }
+
+        layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val layoutResult = layoutCache.textLayoutResult
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(minFontSize)
+        assertThat(layoutResult.isLineEllipsized(0)).isTrue()
+        assertThat(layoutResult.didOverflowWidth).isFalse()
+        assertThat(layoutResult.lineCount).isEqualTo(1)
+    }
+
+    @Test
+    fun TextLayoutResult_autoSize_middleEllipsis_overflowingText_multiLine_isClipped() {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        val text = "aaaaaaaaaa"
+        val linesToOverflow =
+            ceil(calculateLinesNeededToOverflowVertically(text.length)).roundToInt()
+        val overflowingCharacterSize = (constraints.maxHeight / linesToOverflow).sp
+
+        val minFontSize = overflowingCharacterSize
+        val maxFontSize = overflowingCharacterSize * 2
+
+        val layoutCache =
+            MultiParagraphLayoutCache(
+                    text = AnnotatedString(text),
+                    style = TextStyle(fontFamily = fontFamily),
+                    fontFamilyResolver = fontFamilyResolver,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = minFontSize,
+                            maxFontSize = maxFontSize,
+                            stepSize = 1.sp
+                        )
+                )
+                .also { it.density = density }
+
+        layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val layoutResult = layoutCache.textLayoutResult
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(minFontSize)
+        assertThat(layoutResult.hasVisualOverflow).isTrue()
+        assertThat(layoutResult.lineCount).isGreaterThan(1)
+
+        val ellipsizedLines = mutableListOf<Int>()
+        for (line in 0 until layoutResult.lineCount) {
+            if (layoutResult.isLineEllipsized(line)) {
+                ellipsizedLines.add(line)
+            }
+        }
+        assertWithMessage("No lines should be ellipsized").that(ellipsizedLines).isEmpty()
+    }
+
+    /**
+     * This test isn't aligned with the StartEllipsis and MiddleEllipsis tests due to a bug on FTL's
+     * Nexus 4 API 21 target. TODO: Align this test with the other tests (b/401074904)
+     */
+    @Test
+    fun TextLayoutResult_autoSize_ellipsis_overflowingText_lastLineIsEllipsized() {
         val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
         val text =
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec egestas " +
                 "sollicitudin arcu, sed mattis orci gravida vel. Donec luctus turpis."
+        val minFontSize = 20.sp
+        val maxFontSize = 51.sp
 
         val layoutCache =
             MultiParagraphLayoutCache(
@@ -497,21 +722,51 @@ class MultiParagraphLayoutCacheTest {
                     style = TextStyle(fontFamily = fontFamily),
                     fontFamilyResolver = fontFamilyResolver,
                     overflow = TextOverflow.Ellipsis,
-                    autoSize = TextAutoSize.StepBased(20.sp, 51.sp, 1.sp)
+                    autoSize =
+                        TextAutoSize.StepBased(
+                            minFontSize = minFontSize,
+                            maxFontSize = maxFontSize,
+                            stepSize = 1.sp
+                        )
                 )
                 .also { it.density = density }
 
         layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
         val layoutResult = layoutCache.textLayoutResult
-        // Without ellipsis logic, the text would overflow with a height of 600.
-        // This shouldn't overflow due to the ellipsis logic.
-        // hasVisualOverflow unreliable here due to ellipsis logic. We'll test height manually
-        // instead
-        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(20.sp)
+        assertThat(layoutResult.layoutInput.style.fontSize).isEqualTo(minFontSize)
         assertThat(layoutResult.didOverflowWidth).isFalse()
         assertThat(layoutResult.multiParagraph.height).isEqualTo(100)
         assertThat(layoutResult.lineCount).isEqualTo(5)
-        assertThat(layoutResult.isLineEllipsized(4)).isTrue()
+        for (line in 0..3) {
+            assertWithMessage("Line $line should not be ellipsized")
+                .that(layoutResult.isLineEllipsized(line))
+                .isFalse()
+        }
+        assertWithMessage("Last line should be ellipsized")
+            .that(layoutResult.isLineEllipsized(4))
+            .isTrue()
+    }
+
+    /**
+     * Calculate the number of lines needed for a text of length [textLength] to overflow in a grid
+     * with 1:1 aspect ratio (width == height). This can be used to calculate e.g. the size uniform
+     * sized characters need to take up in order to overflow.
+     *
+     * @param textLength The length of the text
+     * @return The number of lines needed to overflow, as a double. Consider using [ceil] on the
+     *   result.
+     */
+    private fun calculateLinesNeededToOverflowVertically(textLength: Int): Double {
+        val charCount = textLength.toDouble()
+        // In a grid with uniformly sized rows and columns, the total grid capacity can be expressed
+        //  as: charCount = x^2. Solving for x gets us: x = √(charCount).
+        val gridCapacity = sqrt(charCount)
+        // In order to calculate how many lines we need to overflow, we're looking for x + 1:
+        //  charCount = (x + 1) * x. Applying the quadratic formula gets us the following equation:
+        val linesNeededToOverflow = sqrt(charCount + 0.25) - 0.5
+        // Finally, rounding up the upper bound (linesNeededToOverflow) could leave us with too high
+        //  of a line count, so we take the mean of the lower and upper bound.
+        return (gridCapacity + linesNeededToOverflow) / 2
     }
 
     @Test
@@ -600,13 +855,25 @@ class MultiParagraphLayoutCacheTest {
         // of ~9.7, so we use a string with 10 chars to test.
         val text = "aaaaaaaaaa"
 
+        fun fakeAutoSize(returnFontSize: TextUnit) =
+            object : TextAutoSize {
+                override fun TextAutoSizeLayoutScope.getFontSize(
+                    constraints: Constraints,
+                    text: AnnotatedString
+                ) = returnFontSize
+
+                override fun equals(other: Any?) = this === other
+
+                override fun hashCode() = System.identityHashCode(this)
+            }
+
         val layoutCache =
             MultiParagraphLayoutCache(
                     text = AnnotatedString(text),
                     style = TextStyle(fontFamily = fontFamily),
                     fontFamilyResolver = fontFamilyResolver,
                     overflow = TextOverflow.Clip,
-                    autoSize = AutoSizePreset(arrayOf(1.em))
+                    autoSize = fakeAutoSize(1.em)
                 )
                 .also { it.density = density }
 
@@ -615,11 +882,7 @@ class MultiParagraphLayoutCacheTest {
         // doesn't overflow
         assertThat(layoutResult.hasVisualOverflow).isFalse()
 
-        layoutCache.updateAutoSize(
-            text = text,
-            fontSize = TextUnit.Unspecified,
-            AutoSizePreset(arrayOf(2.em))
-        )
+        layoutCache.updateAutoSize(text, TextUnit.Unspecified, fakeAutoSize(2.em))
 
         layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
         layoutResult = layoutCache.textLayoutResult
@@ -727,6 +990,77 @@ class MultiParagraphLayoutCacheTest {
         assertThat(layoutResult.layoutInput.constraints).isEqualTo(constraints)
     }
 
+    /**
+     * Regression test for b/392070664. Tests the scenario where we have successfully performed auto
+     * size before the font was resolved, requiring us to re-layout without the cache getting
+     * invalidated entirely.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun autoSize_layoutAfterFontResolutionCompletesProducesSameResult() = runTest {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        // Use an auto size that only performs two passes and returns the size of the last pass as
+        // the most optimal size. This simulates using TextAutoSize.StepBased with a string that can
+        // be fitted using auto size's max font size.
+        val autoSize =
+            object : TextAutoSize {
+                override fun TextAutoSizeLayoutScope.getFontSize(
+                    constraints: Constraints,
+                    text: AnnotatedString
+                ): TextUnit {
+                    performLayout(constraints, text, 110.sp)
+                    performLayout(constraints, text, 112.sp)
+                    return 112.sp
+                }
+
+                override fun equals(other: Any?) = this === other
+
+                override fun hashCode() = System.identityHashCode(this)
+            }
+
+        // Font family resolution is executed on the main thread by default, but we need to control
+        // the dispatcher in this test. FontListFontFamilyTypefaceAdapter creates a SupervisorJob
+        // that will then be active in this coroutine context, so we pass a Job along to make that
+        // SupervisorJob a child of our job and control its lifespan.
+        val fontFamilyResolutionJob = Job()
+        val testSchedulerControlledFontFamilyResolver =
+            createFontFamilyResolver(
+                context = context,
+                coroutineContext = this.coroutineContext + fontFamilyResolutionJob
+            )
+
+        val typefaceLoader = AsyncTestTypefaceLoader()
+        val fauxFont = AsyncFauxFont(typefaceLoader)
+        val autoSizeLayoutCache =
+            createLayoutCache(
+                AnnotatedString("aaaaaaaaa"),
+                autoSize,
+                style = TextStyle(fontFamily = fauxFont.toFontFamily()),
+                fontFamilyResolver = testSchedulerControlledFontFamilyResolver
+            )
+
+        autoSizeLayoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val firstPassAutoSizeLayoutResult = autoSizeLayoutCache.textLayoutResult
+
+        // By default, the system will fall back to Typeface.DEFAULT. We return something different
+        //  here to make sure the fonts actually become stale.
+        typefaceLoader.completeOne(fauxFont, Typeface.DEFAULT_BOLD)
+        advanceUntilIdle()
+
+        autoSizeLayoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val secondPassAutoSizeLayoutResult = autoSizeLayoutCache.textLayoutResult
+
+        assertWithMessage("First pass LayoutInput's fontSize is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.layoutInput.style.fontSize)
+            .isEqualTo(secondPassAutoSizeLayoutResult.layoutInput.style.fontSize)
+        assertWithMessage("First pass MultiParagraph width is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.multiParagraph.width)
+            .isEqualTo(secondPassAutoSizeLayoutResult.multiParagraph.width)
+        assertWithMessage("First pass MultiParagraph height is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.multiParagraph.height)
+            .isEqualTo(secondPassAutoSizeLayoutResult.multiParagraph.height)
+    }
+
     @Test
     fun maxHeight_hasSameHeight_asParagraph() {
         val text = buildAnnotatedString {
@@ -799,7 +1133,8 @@ class MultiParagraphLayoutCacheTest {
         text: AnnotatedString,
         autoSize: TextAutoSize? = null,
         style: TextStyle = TextStyle(fontFamily = fontFamily),
-        maxLines: Int = Int.MAX_VALUE
+        maxLines: Int = Int.MAX_VALUE,
+        fontFamilyResolver: FontFamily.Resolver = this.fontFamilyResolver
     ): MultiParagraphLayoutCache {
         return MultiParagraphLayoutCache(
                 text = text,

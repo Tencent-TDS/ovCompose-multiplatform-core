@@ -23,7 +23,7 @@
  */
 
 import androidx.build.KotlinTarget
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -39,7 +39,7 @@ dependencies {
     kspAndroidTest(project(":room:room-compiler"))
     androidTestImplementation(project(":room:room-rxjava2"))
     androidTestImplementation("androidx.arch.core:core-runtime:2.2.0")
-    androidTestImplementation(projectOrArtifact(":benchmark:benchmark-junit4"))
+    androidTestImplementation(androidx.projectOrArtifact(":benchmark:benchmark-junit4"))
     androidTestImplementation(libs.rxjava2)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testExtJunit)
@@ -55,7 +55,7 @@ android {
 }
 
 androidx {
-    type = LibraryType.BENCHMARK
+    type = SoftwareType.BENCHMARK
     kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 

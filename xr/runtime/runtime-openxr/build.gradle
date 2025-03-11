@@ -24,7 +24,7 @@
 
 import androidx.build.AndroidXConfig
 import androidx.build.KotlinTarget
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -52,19 +52,19 @@ android {
     namespace = "androidx.xr.runtime.openxr"
     sourceSets.main {
         resources.srcDirs += "src/main/resources"
-        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/android")
+        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/native/android")
     }
     defaultConfig {
         consumerProguardFiles 'proguard-rules.pro'
     }
     sourceSets.androidTest {
-        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/androidTest")
+        jniLibs.srcDirs += new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/native/androidTest")
     }
 }
 
 androidx {
     name = "XR OpenXR Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "An implementation of the XR runtime using OpenXR."
     kotlinTarget = KotlinTarget.KOTLIN_1_9

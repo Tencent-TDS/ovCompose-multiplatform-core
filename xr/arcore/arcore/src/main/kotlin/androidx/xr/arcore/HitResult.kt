@@ -35,7 +35,7 @@ internal constructor(
     public val hitPose: Pose,
     public val trackable: Trackable<Trackable.State>,
 ) {
-    public fun createAnchor(): Anchor {
+    public fun createAnchor(): AnchorCreateResult {
         return trackable.createAnchor(hitPose)
     }
 

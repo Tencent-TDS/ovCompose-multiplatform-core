@@ -23,7 +23,7 @@
  */
 
 import androidx.build.KotlinTarget
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -83,7 +83,7 @@ tasks.withType(KotlinCompile).configureEach {
 
 androidx {
     name = "Benchmark - Macrobenchmark JUnit4"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Benchmark - Macrobenchmark JUnit4"
     legacyDisableKotlinStrictApiMode = true

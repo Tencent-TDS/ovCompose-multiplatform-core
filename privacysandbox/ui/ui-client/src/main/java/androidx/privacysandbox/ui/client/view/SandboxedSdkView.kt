@@ -33,7 +33,7 @@ import androidx.customview.poolingcontainer.isWithinPoolingContainer
 import androidx.customview.poolingcontainer.removePoolingContainerListener
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import kotlin.math.min
 
 /** A listener for events relating to the SandboxedSdkView UI presentation. */
@@ -82,7 +82,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private var isTransitionGroupSet = false
     private var previousChildWidth = -1
     private var previousChildHeight = -1
-    private var sessionConstants: SessionConstants? = null
+    private var sessionData: SessionData? = null
     private var viewContainingPoolingContainerListener: View? = null
     private var poolingContainerListener = PoolingContainerListener {}
     private var eventListener: SandboxedSdkViewEventListener? = null
@@ -136,7 +136,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         val adapter = adapter
         if (
             adapter != null &&
-                sessionConstants != null &&
+                sessionData != null &&
                 width > 0 &&
                 height > 0 &&
                 windowVisibility == View.VISIBLE
@@ -145,7 +145,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                 client = Client(this)
                 adapter.openSession(
                     context,
-                    sessionConstants!!,
+                    sessionData!!,
                     width,
                     height,
                     isZOrderOnTop,
@@ -157,7 +157,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                 this.refreshCallback = callback
                 adapter.openSession(
                     context,
-                    sessionConstants!!,
+                    sessionData!!,
                     width,
                     height,
                     isZOrderOnTop,
@@ -302,6 +302,11 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         signalMeasurer?.maybeSendSignals()
     }
 
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        signalMeasurer?.maybeSendSignals()
+    }
+
     override fun setAlpha(alpha: Float) {
         super.setAlpha(alpha)
         signalMeasurer?.maybeSendSignals()
@@ -310,7 +315,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     internal fun closeClient() {
         client?.close()
         client = null
-        sessionConstants = null
+        sessionData = null
     }
 
     private fun attachPoolingContainerListener() {
@@ -539,7 +544,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 Api34PlusImpl.attachTemporarySurfaceViewAndOpenSession(context, sandboxedSdkView)
             } else {
-                sandboxedSdkView.sessionConstants = SessionConstants()
+                sandboxedSdkView.sessionData = SessionData()
                 sandboxedSdkView.checkClientOpenSession()
             }
         }
@@ -562,8 +567,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         private object Api35PlusImpl {
             @JvmStatic
             fun setInputTransferTokenAndOpenSession(sandboxedSdkView: SandboxedSdkView) {
-                sandboxedSdkView.sessionConstants =
-                    SessionConstants(
+                sandboxedSdkView.sessionData =
+                    SessionData(
                         windowInputToken = null,
                         inputTransferToken = sandboxedSdkView.rootSurfaceControl?.inputTransferToken
                     )
@@ -586,11 +591,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                             view.removeOnAttachStateChangeListener(this)
                             @Suppress("DEPRECATION")
                             surfaceView.hostToken?.let {
-                                sandboxedSdkView.sessionConstants =
-                                    SessionConstants(
-                                        windowInputToken = it,
-                                        inputTransferToken = null
-                                    )
+                                sandboxedSdkView.sessionData =
+                                    SessionData(windowInputToken = it, inputTransferToken = null)
                             }
                             sandboxedSdkView.removeTemporarySurfaceView(surfaceView)
                             sandboxedSdkView.checkClientOpenSession()

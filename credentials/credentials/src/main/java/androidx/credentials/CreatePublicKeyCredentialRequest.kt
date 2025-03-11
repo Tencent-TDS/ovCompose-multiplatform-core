@@ -281,6 +281,7 @@ private constructor(
                         getRequestDisplayInfo(requestJson)
                     }
                 val isAutoSelectAllowed = data.getBoolean(BUNDLE_KEY_IS_AUTO_SELECT_ALLOWED, false)
+                val isConditionalCreateRequest = data.getBoolean(BUNDLE_KEY_CONDITIONAL_CREATE)
                 return CreatePublicKeyCredentialRequest(
                     requestJson = requestJson,
                     clientDataHash = clientDataHash,
@@ -290,6 +291,7 @@ private constructor(
                     isAutoSelectAllowed = isAutoSelectAllowed,
                     credentialData = data,
                     candidateQueryData = candidateQueryData,
+                    isConditionalCreateRequest = isConditionalCreateRequest
                 )
             } catch (e: Exception) {
                 throw FrameworkClassParsingException()

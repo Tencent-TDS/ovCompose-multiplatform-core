@@ -71,6 +71,7 @@ import androidx.compose.ui.util.fastSumBy
  * contextually related to the primary action.
  *
  * @sample androidx.compose.material3.samples.FilledSplitButtonSample
+ * @sample androidx.compose.material3.samples.SplitButtonWithDropdownMenuSample
  * @sample androidx.compose.material3.samples.TonalSplitButtonSample
  * @sample androidx.compose.material3.samples.ElevatedSplitButtonSample
  * @sample androidx.compose.material3.samples.OutlinedSplitButtonSample

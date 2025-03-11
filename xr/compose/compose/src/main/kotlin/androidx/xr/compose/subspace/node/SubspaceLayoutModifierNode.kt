@@ -48,6 +48,17 @@ public interface SubspaceLayoutModifierNode {
 }
 
 /**
+ * Requests a relayout of the [SubspaceLayoutModifierNode] composition tree.
+ *
+ * This is used to request a relayout in stateful layout modifiers that are impacted by events that
+ * don't trigger a recomposition. *Do not* call this from [measure].
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public fun SubspaceLayoutModifierNode.requestRelayout() {
+    coordinator.layoutNode?.requestRelayout()
+}
+
+/**
  * Returns the [SubspaceLayoutModifierNodeCoordinator] associated with this
  * [SubspaceLayoutModifierNode].
  *

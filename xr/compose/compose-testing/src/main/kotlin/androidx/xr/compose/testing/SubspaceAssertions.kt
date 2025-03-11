@@ -165,7 +165,7 @@ public fun SubspaceSemanticsNodeInteraction.assertLeftPositionInRootIsEqualTo(
     expectedLeft: Dp
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve the node.")
-    (node.positionInRoot.x.toDp() - node.size.width.toDp() / 2.0f).assertIsEqualTo(
+    (node.poseInRoot.translation.x.toDp() - node.size.width.toDp() / 2.0f).assertIsEqualTo(
         expectedLeft,
         "left",
     )
@@ -200,7 +200,7 @@ public fun SubspaceSemanticsNodeInteraction.assertTopPositionInRootIsEqualTo(
     expectedTop: Dp
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve the node.")
-    (node.positionInRoot.y.toDp() + node.size.height.toDp() / 2.0f).assertIsEqualTo(
+    (node.poseInRoot.translation.y.toDp() + node.size.height.toDp() / 2.0f).assertIsEqualTo(
         expectedTop,
         "top",
     )
@@ -407,7 +407,7 @@ private fun SubspaceSemanticsNodeInteraction.withPosition(
     assertion: (Vector3) -> Unit
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve position of the node.")
-    assertion.invoke(node.position)
+    assertion.invoke(node.pose.translation)
     return this
 }
 
@@ -416,7 +416,7 @@ private fun SubspaceSemanticsNodeInteraction.withPositionInRoot(
     assertion: (Vector3) -> Unit
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve position of the node.")
-    assertion.invoke(node.positionInRoot)
+    assertion.invoke(node.poseInRoot.translation)
     return this
 }
 
@@ -425,7 +425,7 @@ private fun SubspaceSemanticsNodeInteraction.withRotation(
     assertion: (Quaternion) -> Unit
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve rotation of the node.")
-    assertion.invoke(node.rotation)
+    assertion.invoke(node.pose.rotation)
     return this
 }
 
@@ -434,7 +434,7 @@ private fun SubspaceSemanticsNodeInteraction.withRotationInRoot(
     assertion: (Quaternion) -> Unit
 ): SubspaceSemanticsNodeInteraction {
     val node = fetchSemanticsNode("Failed to retrieve rotation of the node.")
-    assertion.invoke(node.rotationInRoot)
+    assertion.invoke(node.poseInRoot.rotation)
     return this
 }
 

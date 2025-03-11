@@ -17,6 +17,7 @@
 package androidx.health.connect.client.impl.platform.aggregate
 
 import android.annotation.SuppressLint
+import android.health.connect.datatypes.Metadata.RECORDING_METHOD_MANUAL_ENTRY
 import androidx.health.connect.client.aggregate.AggregationResult
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.records.NutritionRecord
@@ -32,6 +33,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,6 +41,177 @@ import org.junit.runner.RunWith
 @SuppressLint("NewApi")
 @RunWith(AndroidJUnit4::class)
 class ResultGroupByDurationAggregatorTest {
+
+    @Test
+    fun getResult_localTimeRange_filterRecordsBasedOnLocalTime() {
+        val aggregator =
+            ResultGroupedByDurationAggregator(
+                LocalTimeRange(
+                    startTime = LocalDateTime.parse("2025-02-03T00:00:00"),
+                    endTime = LocalDateTime.parse("2025-02-03T02:00:00")
+                ),
+                bucketDuration = Duration.ofHours(1)
+            ) {
+                TransFatTotalAggregationProcessor(it)
+            }
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime =
+                    LocalDateTime.parse("2025-02-03T00:10:00").toInstant(ZoneOffset.ofHours(10)),
+                endTime =
+                    LocalDateTime.parse("2025-02-03T00:15:00").toInstant(ZoneOffset.ofHours(10)),
+                startZoneOffset = ZoneOffset.ofHours(10),
+                endZoneOffset = ZoneOffset.ofHours(10),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("within.range")
+                    ),
+                transFat = 5.grams
+            )
+        )
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime =
+                    LocalDateTime.parse("2025-02-03T00:20:00").toInstant(ZoneOffset.ofHours(10)),
+                endTime =
+                    LocalDateTime.parse("2025-02-03T00:25:00").toInstant(ZoneOffset.ofHours(10)),
+                startZoneOffset = ZoneOffset.UTC,
+                endZoneOffset = ZoneOffset.UTC,
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("out.of.range")
+                    ),
+                transFat = 15.grams
+            )
+        )
+
+        assertThat(aggregator.getResult())
+            .containsExactly(
+                AggregationResultGroupedByDurationWithMinTime(
+                    aggregationResultGroupedByDuration =
+                        AggregationResultGroupedByDuration(
+                            result = aggregationResult(5.grams, "within.range"),
+                            startTime =
+                                LocalDateTime.parse("2025-02-03T00:00:00")
+                                    .toInstant(ZoneOffset.ofHours(10)),
+                            endTime =
+                                LocalDateTime.parse("2025-02-03T01:00:00")
+                                    .toInstant(ZoneOffset.ofHours(10)),
+                            zoneOffset = ZoneOffset.ofHours(10)
+                        ),
+                    minTime =
+                        LocalDateTime.parse("2025-02-03T00:10:00").toInstant(ZoneOffset.ofHours(10))
+                )
+            )
+    }
+
+    @Test
+    fun getResult_localTimeRange_bucketsAreCalculatedUsingInstantTime() {
+        val aggregator =
+            ResultGroupedByDurationAggregator(
+                LocalTimeRange(
+                    startTime = LocalDateTime.parse("2025-02-03T00:00:00"),
+                    endTime = LocalDateTime.parse("2025-02-03T02:00:00")
+                ),
+                bucketDuration = Duration.ofHours(1)
+            ) {
+                TransFatTotalAggregationProcessor(it)
+            }
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime =
+                    LocalDateTime.parse("2025-02-03T00:30:00").toInstant(ZoneOffset.ofHours(1)),
+                endTime =
+                    LocalDateTime.parse("2025-02-03T00:35:00").toInstant(ZoneOffset.ofHours(1)),
+                startZoneOffset = ZoneOffset.ofHours(1),
+                endZoneOffset = ZoneOffset.ofHours(1),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("first.hour.offset1")
+                    ),
+                transFat = 5.grams
+            )
+        )
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime =
+                    LocalDateTime.parse("2025-02-03T01:20:00").toInstant(ZoneOffset.ofHours(2)),
+                endTime =
+                    LocalDateTime.parse("2025-02-03T01:25:00").toInstant(ZoneOffset.ofHours(2)),
+                startZoneOffset = ZoneOffset.ofHours(2),
+                endZoneOffset = ZoneOffset.ofHours(2),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("second.hour.offset2")
+                    ),
+                transFat = 50.grams
+            )
+        )
+
+        aggregator.filterAndAggregate(
+            NutritionRecord(
+                startTime =
+                    LocalDateTime.parse("2025-02-03T01:10:00").toInstant(ZoneOffset.ofHours(3)),
+                endTime =
+                    LocalDateTime.parse("2025-02-03T01:15:00").toInstant(ZoneOffset.ofHours(3)),
+                startZoneOffset = ZoneOffset.ofHours(3),
+                endZoneOffset = ZoneOffset.ofHours(3),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("second.hour.offset3")
+                    ),
+                transFat = 500.grams
+            )
+        )
+
+        assertThat(aggregator.getResult())
+            .containsExactly(
+                AggregationResultGroupedByDurationWithMinTime(
+                    aggregationResultGroupedByDuration =
+                        AggregationResultGroupedByDuration(
+                            result = aggregationResult(500.grams, "second.hour.offset3"),
+                            startTime =
+                                LocalDateTime.parse("2025-02-03T01:00:00")
+                                    .toInstant(ZoneOffset.ofHours(3)),
+                            endTime =
+                                LocalDateTime.parse("2025-02-03T02:00:00")
+                                    .toInstant(ZoneOffset.ofHours(3)),
+                            zoneOffset = ZoneOffset.ofHours(3)
+                        ),
+                    minTime =
+                        LocalDateTime.parse("2025-02-03T01:10:00").toInstant(ZoneOffset.ofHours(3))
+                ),
+                AggregationResultGroupedByDurationWithMinTime(
+                    aggregationResultGroupedByDuration =
+                        AggregationResultGroupedByDuration(
+                            result =
+                                aggregationResult(
+                                    55.grams,
+                                    "first.hour.offset1",
+                                    "second.hour.offset2"
+                                ),
+                            startTime =
+                                LocalDateTime.parse("2025-02-03T01:00:00")
+                                    .toInstant(ZoneOffset.ofHours(2)),
+                            endTime =
+                                LocalDateTime.parse("2025-02-03T02:00:00")
+                                    .toInstant(ZoneOffset.ofHours(2)),
+                            zoneOffset = ZoneOffset.ofHours(2)
+                        ),
+                    minTime =
+                        LocalDateTime.parse("2025-02-03T01:20:00").toInstant(ZoneOffset.ofHours(2))
+                )
+            )
+    }
 
     @Test
     fun getResult_filterShorterThanDuration_singleBucket() {
@@ -56,7 +229,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(1000),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 transFat = 5.grams
             )
         )
@@ -95,7 +272,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = filterEndTime.plus(Duration.ofHours(1)),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 transFat = 20.grams
             )
         )
@@ -149,7 +330,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(99),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("out.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("out.package")
+                    ),
                 transFat = 10.grams
             )
         )
@@ -161,7 +346,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = filterStartTime.plus(Duration.ofMinutes(1)).plusMillis(100),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("bucket_1.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("bucket_1.package")
+                    ),
                 transFat = 10.grams
             )
         )
@@ -173,7 +362,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = filterStartTime.plus(Duration.ofMinutes(2)).plusMillis(100),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("bucket_2.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("bucket_2.package")
+                    ),
                 transFat = 100.grams
             )
         )
@@ -185,7 +378,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = filterStartTime.plus(Duration.ofMinutes(2)).plusSeconds(30),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("buckets_1_2.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("buckets_1_2.package")
+                    ),
                 transFat = 1.kilograms
             )
         )
@@ -197,7 +394,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = filterStartTime.plus(Duration.ofMinutes(5)).plusSeconds(45),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("bucket_4.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("bucket_4.package")
+                    ),
                 transFat = 10.kilograms
             )
         )
@@ -263,7 +464,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(2000),
                 startZoneOffset = ZoneOffset.ofHours(2),
                 endZoneOffset = ZoneOffset.ofHours(3),
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 transFat = 10.grams
             )
         )
@@ -274,7 +479,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(3000),
                 startZoneOffset = ZoneOffset.ofHours(1),
                 endZoneOffset = ZoneOffset.ofHours(6),
-                metadata = Metadata(dataOrigin = DataOrigin("some.other.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.other.package")
+                    ),
                 transFat = 20.grams
             )
         )
@@ -285,7 +494,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(2001),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("yet.some.other.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("yet.some.other.package")
+                    ),
                 transFat = 30.grams
             )
         )
@@ -327,7 +540,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(2000),
                 startZoneOffset = ZoneOffset.ofHours(2),
                 endZoneOffset = ZoneOffset.ofHours(3),
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 samples = emptyList()
             )
         )
@@ -338,7 +555,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(3000),
                 startZoneOffset = ZoneOffset.ofHours(1),
                 endZoneOffset = ZoneOffset.ofHours(6),
-                metadata = Metadata(dataOrigin = DataOrigin("some.other.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.other.package")
+                    ),
                 samples =
                     listOf(
                         SpeedRecord.Sample(Instant.ofEpochMilli(100), 20.kilometersPerHour),
@@ -353,7 +574,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(2001),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("yet.some.other.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("yet.some.other.package")
+                    ),
                 samples =
                     listOf(SpeedRecord.Sample(Instant.ofEpochMilli(156), 34.kilometersPerHour))
             )
@@ -403,7 +628,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(1000),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 transFat = 5.grams
             )
         )
@@ -427,7 +656,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(1000),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
             )
         )
 
@@ -450,7 +683,11 @@ class ResultGroupByDurationAggregatorTest {
                 endTime = Instant.ofEpochMilli(1000).plus(Duration.ofMinutes(10)),
                 startZoneOffset = ZoneOffset.UTC,
                 endZoneOffset = ZoneOffset.UTC,
-                metadata = Metadata(dataOrigin = DataOrigin("some.package")),
+                metadata =
+                    Metadata(
+                        recordingMethod = RECORDING_METHOD_MANUAL_ENTRY,
+                        dataOrigin = DataOrigin("some.package")
+                    ),
                 transFat = 5.grams
             )
         )

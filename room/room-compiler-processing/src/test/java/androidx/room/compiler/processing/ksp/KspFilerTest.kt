@@ -181,8 +181,9 @@ class KspFilerTest {
                 .bufferedWriter(Charsets.UTF_8)
                 .use { it.write("Not a real service...") }
             invocation.assertCompilationResult {
-                generatedResourceFileWithPath(logFileName)
-                generatedResourceFileWithPath(serviceFileName)
+                generatedTextResourceFileWithPath(logFileName).isEqualTo("Hello!")
+                generatedTextResourceFileWithPath(serviceFileName)
+                    .isEqualTo("Not a real service...")
                 hasNoWarnings()
             }
         }

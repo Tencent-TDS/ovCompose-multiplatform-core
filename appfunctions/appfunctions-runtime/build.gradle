@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,21 +31,36 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
+    api(libs.kotlinCoroutinesAndroid)
+    api project(":appfunctions:appfunctions-common")
 
     // Internal dependencies
+    implementation("androidx.appsearch:appsearch:1.1.0-beta01")
+    implementation("androidx.appsearch:appsearch-platform-storage:1.1.0-beta01")
     implementation("androidx.annotation:annotation:1.9.0-rc01")
-    implementation project(":appfunctions:appfunctions-common")
+    implementation(libs.kotlinCoroutinesGuava) {
+        exclude group: "com.google.guava", module: "guava"
+    }
+
+    // Compile only dependencies
+    compileOnly(project(":appfunctions:appfunctions-stubs"))
 
     // Test dependencies
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.mockitoCore4)
 
-    androidTestImplementation(libs.testCore)
-    androidTestImplementation(libs.testRules)
+    androidTestCompileOnly(project(":appfunctions:appfunctions-stubs"))
+    androidTestImplementation("androidx.appsearch:appsearch:1.1.0-beta01")
+    androidTestImplementation("androidx.appsearch:appsearch-platform-storage:1.1.0-beta01")
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.kotlinCoroutinesTest)
+    androidTestImplementation(libs.testParameterInjector)
+    androidTestImplementation('androidx.concurrent:concurrent-futures-ktx:1.1.0')
+    androidTestImplementation(libs.guavaAndroid)
+    androidTestImplementation(libs.testMonitor)
+    androidTestImplementation(libs.testRunner)
 }
 
 android {
@@ -55,7 +70,7 @@ android {
 
 androidx {
     name = "androidx.appfunctions:appfunctions-runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2025"
     description = "Runtime library for the app to provide and interact with AppFunctions"
 }

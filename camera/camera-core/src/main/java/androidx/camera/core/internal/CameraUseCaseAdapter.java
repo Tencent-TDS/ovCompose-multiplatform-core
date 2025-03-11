@@ -25,7 +25,9 @@ import static androidx.camera.core.DynamicRange.ENCODING_UNSPECIFIED;
 import static androidx.camera.core.ImageCapture.OUTPUT_FORMAT_JPEG_ULTRA_HDR;
 import static androidx.camera.core.ImageCapture.OUTPUT_FORMAT_RAW;
 import static androidx.camera.core.impl.ImageCaptureConfig.OPTION_OUTPUT_FORMAT;
+import static androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED;
 import static androidx.camera.core.impl.UseCaseConfig.OPTION_CAPTURE_TYPE;
+import static androidx.camera.core.impl.UseCaseConfig.OPTION_TARGET_HIGH_SPEED_FRAME_RATE;
 import static androidx.camera.core.impl.utils.TransformUtils.rectToSize;
 import static androidx.camera.core.processing.TargetUtils.getNumberOfTargets;
 import static androidx.camera.core.streamsharing.StreamSharing.getCaptureTypes;
@@ -43,6 +45,7 @@ import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
@@ -134,6 +137,9 @@ public final class CameraUseCaseAdapter implements Camera {
 
     @GuardedBy("mLock")
     private @NonNull List<CameraEffect> mEffects = emptyList();
+
+    @GuardedBy("mLock")
+    private @NonNull Range<Integer> mTargetHighSpeedFps = FRAME_RATE_RANGE_UNSPECIFIED;
 
     // Additional configs to apply onto the UseCases when added to this Camera
     @GuardedBy("mLock")
@@ -280,6 +286,16 @@ public final class CameraUseCaseAdapter implements Camera {
     }
 
     /**
+     * Set the target high speed frame rate that will be used for the {@link UseCase} attached to
+     * the camera.
+     */
+    public void setTargetHighSpeedFrameRate(@NonNull Range<Integer> frameRate) {
+        synchronized (mLock) {
+            mTargetHighSpeedFps = frameRate;
+        }
+    }
+
+    /**
      * Add the specified collection of {@link UseCase} to the adapter with dual camera support.
      *
      * @throws CameraException Thrown if the combination of newly added UseCases and the
@@ -368,8 +384,8 @@ public final class CameraUseCaseAdapter implements Camera {
             // Calculate suggested resolutions. This step throws exception if the camera UseCases
             // fails the supported stream combination rules.
             Map<UseCase, ConfigPair> configs = getConfigs(cameraUseCasesToAttach,
-                    mCameraConfig.getUseCaseConfigFactory(), mUseCaseConfigFactory);
-
+                    mCameraConfig.getUseCaseConfigFactory(), mUseCaseConfigFactory,
+                    mTargetHighSpeedFps);
             Map<UseCase, StreamSpec> primaryStreamSpecMap;
             Map<UseCase, StreamSpec> secondaryStreamSpecMap = Collections.emptyMap();
             try {
@@ -792,7 +808,10 @@ public final class CameraUseCaseAdapter implements Camera {
                     Preconditions.checkNotNull(useCase.getAttachedStreamSpec()).getDynamicRange(),
                     getCaptureTypes(useCase),
                     useCase.getAttachedStreamSpec().getImplementationOptions(),
-                    useCase.getCurrentConfig().getTargetFrameRate(null));
+                    useCase.getCurrentConfig().getTargetFrameRate(null),
+                    Preconditions.checkNotNull(
+                            useCase.getCurrentConfig().getTargetHighSpeedFrameRate(
+                                    FRAME_RATE_RANGE_UNSPECIFIED)));
             existingSurfaces.add(attachedSurfaceInfo);
             surfaceInfoUseCaseMap.put(attachedSurfaceInfo, useCase);
             suggestedStreamSpecs.put(useCase, useCase.getAttachedStreamSpec());
@@ -971,7 +990,8 @@ public final class CameraUseCaseAdapter implements Camera {
      */
     private static Map<UseCase, ConfigPair> getConfigs(@NonNull Collection<UseCase> useCases,
             @NonNull UseCaseConfigFactory extendedFactory,
-            @NonNull UseCaseConfigFactory cameraFactory) {
+            @NonNull UseCaseConfigFactory cameraFactory,
+            @NonNull Range<Integer> targetHighSpeedFps) {
         Map<UseCase, ConfigPair> configs = new HashMap<>();
         for (UseCase useCase : useCases) {
             UseCaseConfig<?> extendedConfig;
@@ -982,9 +1002,23 @@ public final class CameraUseCaseAdapter implements Camera {
                 extendedConfig = useCase.getDefaultConfig(false, extendedFactory);
             }
             UseCaseConfig<?> cameraConfig = useCase.getDefaultConfig(true, cameraFactory);
+            cameraConfig = attachUseCaseSharedConfigs(useCase, cameraConfig, targetHighSpeedFps);
             configs.put(useCase, new ConfigPair(extendedConfig, cameraConfig));
         }
         return configs;
+    }
+
+    @NonNull
+    private static UseCaseConfig<?> attachUseCaseSharedConfigs(
+            @NonNull UseCase useCase,
+            @Nullable UseCaseConfig<?> useCaseConfig,
+            @NonNull Range<Integer> targetHighSpeedFps) {
+        MutableOptionsBundle mutableConfig = useCaseConfig != null
+                ? MutableOptionsBundle.from(useCaseConfig) : MutableOptionsBundle.create();
+
+        mutableConfig.insertOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE, targetHighSpeedFps);
+
+        return useCase.getUseCaseConfigBuilder(mutableConfig).getUseCaseConfig();
     }
 
     private static UseCaseConfig<?> generateExtendedStreamSharingConfigFromPreview(
@@ -1160,7 +1194,8 @@ public final class CameraUseCaseAdapter implements Camera {
             // If the UseCases exceed the resolutions then it will throw an exception
             try {
                 Map<UseCase, ConfigPair> configs = getConfigs(useCasesToVerify,
-                        mCameraConfig.getUseCaseConfigFactory(), mUseCaseConfigFactory);
+                        mCameraConfig.getUseCaseConfigFactory(), mUseCaseConfigFactory,
+                        FRAME_RATE_RANGE_UNSPECIFIED);
                 calculateSuggestedStreamSpecs(
                         getCameraMode(),
                         mCameraInternal.getCameraInfoInternal(),

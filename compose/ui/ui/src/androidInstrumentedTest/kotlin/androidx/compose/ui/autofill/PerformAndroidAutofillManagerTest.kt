@@ -36,6 +36,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.material.Text
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -44,6 +45,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.contentDataType
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.contentType
@@ -58,7 +60,9 @@ import androidx.compose.ui.semantics.semanticsId
 import androidx.compose.ui.semantics.setText
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.TestActivity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -112,6 +116,24 @@ class PerformAndroidAutofillManagerTest {
         }
         @OptIn(ExperimentalComposeUiApi::class)
         ComposeUiFlags.isSemanticAutofillEnabled = previousFlagValue
+    }
+
+    @Test
+    @SmallTest
+    @SdkSuppress(minSdkVersion = 26)
+    fun autofillModifier_contentType() {
+        rule.setContent {
+            Box(Modifier.testTag("TestTag").autofillContentType(ContentType.NewUsername)) {}
+        }
+
+        rule
+            .onNodeWithTag("TestTag")
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ContentType,
+                    ContentType.NewUsername
+                )
+            )
     }
 
     // The "filling" user journey consists of populating a viewStructure for the Autofill framework

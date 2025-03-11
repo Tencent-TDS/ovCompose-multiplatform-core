@@ -65,10 +65,7 @@ fun SquareButtonSample() {
 @Sampled
 @Composable
 fun SmallButtonSample() {
-    Button(
-        onClick = { /* Do something! */ },
-        contentPadding = ButtonDefaults.SmallButtonContentPadding
-    ) {
+    Button(onClick = { /* Do something! */ }, contentPadding = ButtonDefaults.SmallContentPadding) {
         Text("Button")
     }
 }

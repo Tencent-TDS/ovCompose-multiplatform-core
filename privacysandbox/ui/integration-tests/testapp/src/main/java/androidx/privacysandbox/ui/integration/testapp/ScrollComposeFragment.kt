@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
 import androidx.privacysandbox.ui.client.view.SandboxedSdkUi
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -50,10 +51,12 @@ class ScrollComposeFragment : BaseFragment() {
     private var scrollBannerAdapter: SandboxedUiAdapter? by mutableStateOf(null)
 
     override fun handleLoadAdFromDrawer(
+        adFormat: Int,
         adType: Int,
         mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {
+        currentAdFormat = adFormat
         currentAdType = adType
         currentMediationOption = mediationOption
         shouldDrawViewabilityLayer = drawViewabilityLayer
@@ -99,7 +102,8 @@ class ScrollComposeFragment : BaseFragment() {
             bottomBannerAdapter =
                 SandboxedUiAdapterFactory.createFromCoreLibInfo(
                     getSdkApi()
-                        .loadBannerAd(
+                        .loadAd(
+                            AdFormat.BANNER_AD,
                             currentAdType,
                             currentMediationOption,
                             false,
@@ -109,7 +113,8 @@ class ScrollComposeFragment : BaseFragment() {
             scrollBannerAdapter =
                 SandboxedUiAdapterFactory.createFromCoreLibInfo(
                     getSdkApi()
-                        .loadBannerAd(
+                        .loadAd(
+                            AdFormat.BANNER_AD,
                             currentAdType,
                             currentMediationOption,
                             false,

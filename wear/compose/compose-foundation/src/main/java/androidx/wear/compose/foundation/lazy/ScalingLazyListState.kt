@@ -444,6 +444,14 @@ public class ScalingLazyListState(
     override val canScrollBackward: Boolean
         get() = lazyListState.canScrollBackward
 
+    @get:Suppress("GetterSetterNames")
+    override val lastScrolledForward: Boolean
+        get() = lazyListState.lastScrolledForward
+
+    @get:Suppress("GetterSetterNames")
+    override val lastScrolledBackward: Boolean
+        get() = lazyListState.lastScrolledBackward
+
     /**
      * Instantly brings the item at [index] to the center of the viewport and positions it based on
      * the [anchorType] and applies the [scrollOffset] pixels.

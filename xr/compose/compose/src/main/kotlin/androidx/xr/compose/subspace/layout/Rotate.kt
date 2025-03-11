@@ -18,7 +18,7 @@ package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
 import androidx.xr.compose.subspace.node.SubspaceLayoutModifierNode
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
@@ -56,7 +56,7 @@ public fun SubspaceModifier.rotate(quaternion: Quaternion): SubspaceModifier =
     this.then(RotationElement(quaternion))
 
 private class RotationElement(private val quaternion: Quaternion) :
-    SubspaceModifierElement<RotationNode>() {
+    SubspaceModifierNodeElement<RotationNode>() {
 
     public constructor(
         pitch: Float,

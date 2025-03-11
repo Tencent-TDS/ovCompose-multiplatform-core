@@ -16,6 +16,7 @@
 
 package androidx.camera.viewfinder.compose
 
+import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.camera.testing.impl.SurfaceUtil
 import androidx.camera.viewfinder.core.ImplementationMode
@@ -25,8 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Face
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -37,7 +36,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.VectorPainter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -315,27 +314,47 @@ class ViewfinderScreenshotTest {
     }
 
     private fun assertImplementationDrawsUpright(testParams: ViewfinderTestParams) {
-        val surfaceRequest = ViewfinderSurfaceRequest.Builder(testParams.sourceResolution).build()
+        val surfaceRequest =
+            ViewfinderSurfaceRequest(
+                width = testParams.sourceResolution.width,
+                height = testParams.sourceResolution.height,
+                implementationMode = testParams.implementationMode,
+            )
         val coordinateTransformer = MutableCoordinateTransformer()
         composeTestRule.setContent {
+            val faceIcon = Icons.Outlined.Face
+            val facePainter = rememberVectorPainter(image = faceIcon)
+            val density = LocalDensity.current
+            val touchCoordinates = Offset(200f, 200f)
             Viewfinder(
                 modifier = Modifier.size(testParams.viewfinderSize).testTag(VIEWFINDER_TAG),
                 surfaceRequest = surfaceRequest,
                 transformationInfo = testParams.transformationInfo,
-                implementationMode = testParams.implementationMode,
                 coordinateTransformer = coordinateTransformer
-            )
-
-            val touchCoordinates = Offset(200f, 200f)
+            ) {
+                onSurfaceSession {
+                    // Fill Viewfinder buffer with content
+                    drawFaceToSurface(
+                        testParams = testParams,
+                        surface = surface,
+                        painter = facePainter,
+                        density = density,
+                        coordinateTransformer = coordinateTransformer,
+                        touchCoordinates = touchCoordinates
+                    )
+                }
+            }
 
             // Draw touch coordinate on top of Viewfinder
-            val imageVec = Icons.Filled.Add
-            val painter = rememberVectorPainter(image = imageVec)
-            val density = LocalDensity.current
+            val touchCoordIcon = Icons.Filled.Add
+            val touchCoordPainter = rememberVectorPainter(image = touchCoordIcon)
             Canvas(modifier = Modifier.size(testParams.viewfinderSize)) {
                 val imageSize =
                     with(density) {
-                        Size(imageVec.defaultWidth.toPx(), imageVec.defaultHeight.toPx())
+                        Size(
+                            touchCoordIcon.defaultWidth.toPx(),
+                            touchCoordIcon.defaultHeight.toPx()
+                        )
                     }
                 withTransform({
                     translate(
@@ -343,19 +362,11 @@ class ViewfinderScreenshotTest {
                         top = touchCoordinates.y - imageSize.height / 2f
                     )
                 }) {
-                    with(painter) {
+                    with(touchCoordPainter) {
                         draw(size = imageSize, colorFilter = ColorFilter.tint(Color.Green))
                     }
                 }
             }
-
-            // Fill Viewfinder buffer with content
-            DrawFaceToSurface(
-                testParams = testParams,
-                surfaceRequest = surfaceRequest,
-                coordinateTransformer = coordinateTransformer,
-                touchCoordinates = touchCoordinates
-            )
         }
 
         composeTestRule
@@ -373,83 +384,78 @@ class ViewfinderScreenshotTest {
 
     /** This emulates the camera sensor. */
     @RequiresApi(26)
-    @Composable
-    private fun DrawFaceToSurface(
+    private fun drawFaceToSurface(
         testParams: ViewfinderTestParams,
-        surfaceRequest: ViewfinderSurfaceRequest,
+        surface: Surface,
+        painter: VectorPainter,
+        density: Density,
         coordinateTransformer: CoordinateTransformer,
         touchCoordinates: Offset?
     ) {
-        val imageVec = Icons.Outlined.Face
-        val painter = rememberVectorPainter(image = imageVec)
-        val density = LocalDensity.current
-        LaunchedEffect(Unit) {
-            val surface = surfaceRequest.getSurface()
-            SurfaceUtil.setBuffersTransform(
-                surface,
-                toTransformEnum(
-                    sourceRotation = testParams.sourceRotation,
-                    horizontalMirror = testParams.isMirroredHorizontally,
-                    verticalMirror = testParams.isMirroredVertically
-                )
+        SurfaceUtil.setBuffersTransform(
+            surface,
+            toTransformEnum(
+                sourceRotation = testParams.sourceRotation,
+                horizontalMirror = testParams.isMirroredHorizontally,
+                verticalMirror = testParams.isMirroredVertically
             )
-            val resolution = testParams.sourceResolution
-            val canvas = ComposeCanvas(surface.lockHardwareCanvas())
-            try {
-                CanvasDrawScope().draw(
-                    density = density,
-                    layoutDirection = LayoutDirection.Ltr,
-                    canvas = canvas,
-                    size = Size(resolution.width.toFloat(), resolution.height.toFloat())
-                ) {
-                    val rotation = testParams.sourceRotation
-                    val iconSize = imageVec.calcFitSize(size, rotation, density)
-                    val mirrorX =
-                        when (testParams.isMirroredHorizontally) {
-                            true -> -1.0f
-                            false -> 1.0f
-                        }
-                    val flipY =
-                        when (testParams.isMirroredVertically) {
-                            true -> -1.0f
-                            false -> 1.0f
-                        }
-
-                    drawRect(Color.Gray)
-
-                    // For drawing the face, we need to emulate how the real world
-                    // would project onto the sensor. So we must apply the reverse rotation
-                    // and mirroring.
-                    withTransform({
-                        scale(mirrorX, flipY)
-                        rotate(degrees = -rotation.toFloat())
-                        translate(
-                            left = (size.width - iconSize.width) / 2f,
-                            top = (size.height - iconSize.height) / 2f
-                        )
-                    }) {
-                        with(painter) { draw(iconSize) }
+        )
+        val resolution = testParams.sourceResolution
+        val canvas = ComposeCanvas(surface.lockHardwareCanvas())
+        try {
+            CanvasDrawScope().draw(
+                density = density,
+                layoutDirection = LayoutDirection.Ltr,
+                canvas = canvas,
+                size = Size(resolution.width.toFloat(), resolution.height.toFloat())
+            ) {
+                val rotation = testParams.sourceRotation
+                val iconSize = painter.calcFitSize(size, rotation)
+                val mirrorX =
+                    when (testParams.isMirroredHorizontally) {
+                        true -> -1.0f
+                        false -> 1.0f
+                    }
+                val flipY =
+                    when (testParams.isMirroredVertically) {
+                        true -> -1.0f
+                        false -> 1.0f
                     }
 
-                    // For drawing the touch coordinates, we are already in the "sensor"
-                    // coordinates. No need to apply any transformations.
-                    touchCoordinates?.let {
-                        with(coordinateTransformer) {
-                            drawCircle(
-                                radius = 25f,
-                                color = Color.Red,
-                                center = touchCoordinates.transform()
-                            )
-                        }
+                drawRect(Color.Gray)
+
+                // For drawing the face, we need to emulate how the real world
+                // would project onto the sensor. So we must apply the reverse rotation
+                // and mirroring.
+                withTransform({
+                    scale(mirrorX, flipY)
+                    rotate(degrees = -rotation.toFloat())
+                    translate(
+                        left = (size.width - iconSize.width) / 2f,
+                        top = (size.height - iconSize.height) / 2f
+                    )
+                }) {
+                    with(painter) { draw(iconSize) }
+                }
+
+                // For drawing the touch coordinates, we are already in the "sensor"
+                // coordinates. No need to apply any transformations.
+                touchCoordinates?.let {
+                    with(coordinateTransformer) {
+                        drawCircle(
+                            radius = 25f,
+                            color = Color.Red,
+                            center = touchCoordinates.transform()
+                        )
                     }
                 }
-            } finally {
-                surface.unlockCanvasAndPost(canvas.nativeCanvas)
             }
+        } finally {
+            surface.unlockCanvasAndPost(canvas.nativeCanvas)
         }
     }
 
-    private fun ImageVector.calcFitSize(boundSize: Size, rotation: Int, density: Density): Size {
+    private fun VectorPainter.calcFitSize(boundSize: Size, rotation: Int): Size {
         val rotatedBoundSize =
             when (abs(rotation)) {
                 90,
@@ -457,7 +463,7 @@ class ViewfinderScreenshotTest {
                 else -> boundSize
             }
 
-        val defaultSize = with(density) { Size(defaultWidth.toPx(), defaultHeight.toPx()) }
+        val defaultSize = intrinsicSize
 
         val scale = ContentScale.Fit.computeScaleFactor(defaultSize, rotatedBoundSize)
 

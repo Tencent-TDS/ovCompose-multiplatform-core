@@ -30,7 +30,6 @@ import androidx.health.connect.client.HealthConnectFeatures.Companion.FeatureSta
  * Implementation of [HealthConnectFeatures] that performs the availability checks of features in
  * Android Platform.
  */
-@ExperimentalFeatureAvailabilityApi
 internal class HealthConnectFeaturesPlatformImpl : HealthConnectFeatures {
 
     @FeatureStatus

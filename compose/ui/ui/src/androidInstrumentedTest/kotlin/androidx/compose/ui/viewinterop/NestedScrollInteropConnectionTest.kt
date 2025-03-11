@@ -199,6 +199,8 @@ class NestedScrollInteropConnectionTest {
         // act
         onView(withId(R.id.app_bar)).perform(click(), swipeUp())
 
+        rule.waitForIdle()
+
         // assert: toolbar is collapsed
         onView(withId(R.id.fab)).check(matches(not(isDisplayed())))
         // assert: compose list is not scrolled

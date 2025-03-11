@@ -17,7 +17,6 @@
 package androidx.wear.compose.material3
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -64,6 +63,7 @@ import androidx.wear.compose.material3.tokens.FilledTonalButtonTokens
 import androidx.wear.compose.material3.tokens.ImageButtonTokens
 import androidx.wear.compose.material3.tokens.OutlinedButtonTokens
 import androidx.wear.compose.material3.tokens.ShapeTokens
+import androidx.wear.compose.materialcore.ImageWithScrimPainter
 
 /**
  * Base level Wear Material3 [Button] that offers a single slot to take any content. Used as the
@@ -111,6 +111,8 @@ import androidx.wear.compose.material3.tokens.ShapeTokens
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param content Slot for composable body content displayed on the Button
  */
 // TODO(b/261838497) Add Material3 UX guidance links
@@ -126,6 +128,7 @@ public fun Button(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     content: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -140,6 +143,7 @@ public fun Button(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         content = content
     )
 
@@ -192,6 +196,8 @@ public fun Button(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param content Slot for composable body content displayed on the Button
  */
 // TODO(b/261838497) Add Material3 UX guidance links
@@ -207,6 +213,7 @@ public fun FilledTonalButton(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     content: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -221,6 +228,7 @@ public fun FilledTonalButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         content = content
     )
 
@@ -272,6 +280,8 @@ public fun FilledTonalButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param content Slot for composable body content displayed on the OutlinedButton
  */
 // TODO(b/261838497) Add Material3 UX guidance links
@@ -287,6 +297,7 @@ public fun OutlinedButton(
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     content: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -301,6 +312,7 @@ public fun OutlinedButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         content = content
     )
 
@@ -351,6 +363,8 @@ public fun OutlinedButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param content Slot for composable body content displayed on the ChildButton
  */
 // TODO(b/261838497) Add Material3 UX guidance links
@@ -366,6 +380,7 @@ public fun ChildButton(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     content: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -380,6 +395,7 @@ public fun ChildButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         content = content
     )
 
@@ -447,6 +463,8 @@ public fun ChildButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param label A slot for providing the button's main label. The contents are expected to be text
  *   which is "start" aligned if there is an icon preset and "start" or "center" aligned if not.
  */
@@ -465,6 +483,7 @@ public fun Button(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     label: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -492,6 +511,7 @@ public fun Button(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         labelContent =
             provideScopeContent(
                 contentColor = colors.contentColor(enabled),
@@ -570,6 +590,8 @@ public fun Button(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param label A slot for providing the button's main label. The contents are expected to be text
  *   which is "start" aligned if there is an icon preset and "start" or "center" aligned if not.
  */
@@ -588,6 +610,7 @@ public fun FilledTonalButton(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     label: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -615,6 +638,7 @@ public fun FilledTonalButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         labelContent =
             provideScopeContent(
                 contentColor = colors.contentColor(enabled),
@@ -688,6 +712,8 @@ public fun FilledTonalButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param label A slot for providing the button's main label. The contents are expected to be text
  *   which is "start" aligned if there is an icon preset and "start" or "center" aligned if not.
  */
@@ -706,6 +732,7 @@ public fun OutlinedButton(
     border: BorderStroke? = ButtonDefaults.outlinedButtonBorder(enabled),
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     label: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -733,6 +760,7 @@ public fun OutlinedButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         labelContent =
             provideScopeContent(
                 contentColor = colors.contentColor(enabled),
@@ -805,6 +833,8 @@ public fun OutlinedButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param label A slot for providing the button's main label. The contents are expected to be text
  *   which is "start" aligned if there is an icon preset and "start" or "center" aligned if not.
  */
@@ -823,6 +853,7 @@ public fun ChildButton(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     label: @Composable RowScope.() -> Unit,
 ): Unit =
     ButtonImpl(
@@ -850,6 +881,7 @@ public fun ChildButton(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
         labelContent =
             provideScopeContent(
                 contentColor = colors.contentColor(enabled),
@@ -927,26 +959,28 @@ public fun ChildButton(
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
  *   set, [onLongClickLabel] should be set as well.
  * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
- * @param label A slot for providing the button's main label. The contents are expected to be a
- *   single line of text which is "start" aligned if there is an icon preset and "center" aligned if
- *   not.
  * @param icon A slot for providing the button's icon. The contents are expected to be a
  *   horizontally and vertically aligned icon of size [ButtonDefaults.ExtraSmallIconSize] when used
  *   with a label or [ButtonDefaults.SmallIconSize] when used as the only content in the button.
+ * @param enabled Controls the enabled state of the button. When `false`, this button will not be
+ *   clickable.
+ * @param shape Defines the button's shape. It is strongly recommended to use the default as this
+ *   shape is a key characteristic of the Wear Material3 Theme
  * @param colors [ButtonColors] that will be used to resolve the background and content color for
  *   this button in different states. See [ButtonDefaults.buttonColors].
- * @param enabled Controls the enabled state of the button. When `false`, this button will not be
- *   clickable
+ * @param border Optional [BorderStroke] that will be used to resolve the border for this button in
+ *   different states.
+ * @param contentPadding The spacing values to apply internally between the container and the
+ *   content
  * @param interactionSource an optional hoisted [MutableInteractionSource] for observing and
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param contentPadding The spacing values to apply internally between the container and the
- *   content
- * @param shape Defines the button's shape. It is strongly recommended to use the default as this
- *   shape is a key characteristic of the Wear Material3 Theme
- * @param border Optional [BorderStroke] that will be used to resolve the border for this button in
- *   different states.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
+ * @param label A slot for providing the button's main label. The contents are expected to be a
+ *   single line of text which is "start" aligned if there is an icon preset and "center" aligned if
+ *   not.
  */
 // TODO(b/261838497) Add Material3 samples and UX guidance links
 @Composable
@@ -962,6 +996,7 @@ public fun CompactButton(
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.CompactButtonContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     label: (@Composable RowScope.() -> Unit)? = null,
 ) {
     if (label != null) {
@@ -982,6 +1017,7 @@ public fun CompactButton(
             border = border,
             contentPadding = contentPadding,
             interactionSource = interactionSource,
+            transformation = transformation,
             labelContent =
                 provideScopeContent(
                     contentColor = colors.contentColor(enabled),
@@ -1014,6 +1050,7 @@ public fun CompactButton(
             border = border,
             contentPadding = contentPadding,
             interactionSource = interactionSource,
+            transformation = transformation,
         ) {
             // Use a box to fill and center align the icon into the single slot of the
             // Button
@@ -1308,7 +1345,7 @@ public object ButtonDefaults {
     ): ButtonColors {
         val backgroundPainter =
             remember(backgroundImagePainter, backgroundImageScrimBrush) {
-                androidx.wear.compose.materialcore.ImageWithScrimPainter(
+                ImageWithScrimPainter(
                     imagePainter = backgroundImagePainter,
                     brush = backgroundImageScrimBrush,
                     forcedSize = forcedSize,
@@ -1318,7 +1355,7 @@ public object ButtonDefaults {
         val disabledContainerAlpha = ImageButtonTokens.DisabledContainerOpacity
         val disabledBackgroundPainter =
             remember(backgroundImagePainter, backgroundImageScrimBrush, disabledContainerAlpha) {
-                androidx.wear.compose.materialcore.ImageWithScrimPainter(
+                ImageWithScrimPainter(
                     imagePainter = backgroundImagePainter,
                     brush = backgroundImageScrimBrush,
                     alpha = disabledContainerAlpha,
@@ -1835,7 +1872,6 @@ private fun Modifier.compactButtonModifier(): Modifier =
  * Button with label. This allows to use the token values for individual buttons instead of relying
  * on common values.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ButtonImpl(
     onClick: () -> Unit,
@@ -1849,6 +1885,7 @@ private fun ButtonImpl(
     border: BorderStroke?,
     contentPadding: PaddingValues,
     interactionSource: MutableInteractionSource?,
+    transformation: SurfaceTransformation?,
     content: @Composable RowScope.() -> Unit
 ) {
     Row(
@@ -1858,7 +1895,12 @@ private fun ButtonImpl(
         modifier =
             modifier
                 .width(intrinsicSize = IntrinsicSize.Max)
-                .container(colors.containerPainter(enabled = enabled), shape, border)
+                .surface(
+                    transformation = transformation,
+                    painter = colors.containerPainter(enabled = enabled),
+                    shape = shape,
+                    border = border,
+                )
                 .combinedClickable(
                     enabled = enabled,
                     onClick = onClick,
@@ -1892,6 +1934,7 @@ private fun ButtonImpl(
     border: BorderStroke?,
     contentPadding: PaddingValues,
     interactionSource: MutableInteractionSource?,
+    transformation: SurfaceTransformation?,
     labelContent: @Composable RowScope.() -> Unit
 ) {
     ButtonImpl(
@@ -1906,6 +1949,7 @@ private fun ButtonImpl(
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
+        transformation = transformation,
     ) {
         if (icon != null) {
             Box(

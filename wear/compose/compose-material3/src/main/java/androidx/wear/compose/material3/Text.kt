@@ -305,5 +305,5 @@ public object TextConfigurationDefaults {
     public val Overflow: TextOverflow = TextOverflow.Clip
 
     /** Default max lines for [Text] */
-    public const val MaxLines: Int = Int.MAX_VALUE
+    public val MaxLines: Int = Int.MAX_VALUE
 }

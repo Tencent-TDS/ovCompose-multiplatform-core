@@ -32,7 +32,7 @@ internal class FastScrollGestureDetector(
     private val fastScoller: FastScroller,
     private val gestureHandler: FastScrollGestureHandler
 ) {
-    private var trackingFastScrollGesture: Boolean = false
+    internal var trackingFastScrollGesture: Boolean = false
 
     /**
      * Handles touch events and detects fast scroll gestures.

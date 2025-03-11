@@ -18,6 +18,7 @@ package androidx.xr.runtime.openxr
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.internal.Anchor
+import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
 import androidx.xr.runtime.internal.Plane
 import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
@@ -53,6 +54,7 @@ internal constructor(
     override fun createAnchor(pose: Pose): Anchor {
         val xrTime = timeSource.getXrTime(timeSource.markNow())
         val anchorNativePointer = nativeCreateAnchorForPlane(planeId, pose, xrTime)
+        checkNativeAnchorIsValid(anchorNativePointer)
         val anchor: Anchor = OpenXrAnchor(anchorNativePointer, xrResources)
         xrResources.addUpdatable(anchor as Updatable)
         return anchor
@@ -70,6 +72,13 @@ internal constructor(
 
         if (planeState.subsumedByPlaneId != 0L) {
             subsumedBy = xrResources.trackablesMap[planeState.subsumedByPlaneId] as OpenXrPlane?
+        }
+    }
+
+    private fun checkNativeAnchorIsValid(nativeAnchor: Long) {
+        when (nativeAnchor) {
+            -2L -> throw IllegalStateException("Failed to create anchor.") // kErrorRuntimeFailure
+            -10L -> throw AnchorResourcesExhaustedException() // kErrorLimitReached
         }
     }
 

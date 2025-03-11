@@ -17,19 +17,19 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.xr.compose.subspace.node.SubspaceModifierElement
+import androidx.xr.compose.subspace.node.LayoutCoordinatesAwareModifierNode
+import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
 
 /**
- * Invoke [onGloballyPositioned] with the [LayoutVolumeCoordinates] of the element when the global
+ * Invoke [onGloballyPositioned] with the [SubspaceLayoutCoordinates] of the element when the global
  * position of the content may have changed. Note that it will be called **after** a composition
  * when the coordinates are finalized.
  *
- * This callback will be invoked at least once when the [LayoutVolumeCoordinates] are available, and
- * every time the element's position changes within the window. However, it is not guaranteed to be
- * invoked every time the position _relative to the screen_ of the modified element changes. For
+ * This callback will be invoked at least once when the [SubspaceLayoutCoordinates] are available,
+ * and every time the element's position changes within the window. However, it is not guaranteed to
+ * be invoked every time the position _relative to the screen_ of the modified element changes. For
  * example, the system may move the contents inside a window around without firing a callback. If
- * you are using the [LayoutVolumeCoordinates] to calculate position on the screen, and not just
+ * you are using the [SubspaceLayoutCoordinates] to calculate position on the screen, and not just
  * inside the window, you may not receive a callback.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -39,7 +39,7 @@ public fun SubspaceModifier.onGloballyPositioned(
 
 private class OnGloballyPositionedVolumeElement(
     public val onGloballyPositioned: (SubspaceLayoutCoordinates) -> Unit
-) : SubspaceModifierElement<OnGloballyPositionedNode>() {
+) : SubspaceModifierNodeElement<OnGloballyPositionedNode>() {
     override fun create(): OnGloballyPositionedNode {
         return OnGloballyPositionedNode(onGloballyPositioned)
     }
@@ -60,5 +60,9 @@ private class OnGloballyPositionedVolumeElement(
 }
 
 /** Node associated with [onGloballyPositioned]. */
-internal class OnGloballyPositionedNode(public var callback: (SubspaceLayoutCoordinates) -> Unit) :
-    SubspaceModifier.Node()
+private class OnGloballyPositionedNode(public var callback: (SubspaceLayoutCoordinates) -> Unit) :
+    SubspaceModifier.Node(), LayoutCoordinatesAwareModifierNode {
+    override fun onLayoutCoordinates(coordinates: SubspaceLayoutCoordinates) {
+        callback(coordinates)
+    }
+}

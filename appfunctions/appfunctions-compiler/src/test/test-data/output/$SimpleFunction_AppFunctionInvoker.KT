@@ -21,7 +21,7 @@ public class `$SimpleFunction_AppFunctionInvoker` : AppFunctionInvoker {
     functionIdentifier: String,
     parameters: Map<String, Any?>,
   ): Any? {
-    val result = when (functionIdentifier) {
+    val result: Any? = when (functionIdentifier) {
       "com.testdata.SimpleFunction#simpleFunction" -> {
         ConfigurableAppFunctionFactory<SimpleFunction>(
           appFunctionContext.context

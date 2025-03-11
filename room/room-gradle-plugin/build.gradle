@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.SdkResourceGenerator
 
 plugins {
@@ -76,10 +76,6 @@ tasks.withType(Test).configureEach { test ->
     // Configure publishing tasks to be dependencies of 'test' so those artifacts are available for
     // the test project executed with Gradle Test Kit.
     test.dependsOn(
-            ":annotation:annotation:publish",
-            ":collection:collection:publish",
-            ":annotation:annotation-experimental:publish",
-            ":collection:collection:publish",
             ":room:room-common:publish",
             ":room:room-runtime:publish",
             ":room:room-migration:publish",
@@ -102,7 +98,7 @@ gradlePlugin {
 
 androidx {
     name = "Room Gradle Plugin"
-    type = LibraryType.GRADLE_PLUGIN
+    type = SoftwareType.GRADLE_PLUGIN
     inceptionYear = "2023"
     description = "Android Room Gradle Plugin"
 }

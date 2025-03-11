@@ -73,7 +73,7 @@ internal class AccessibilityPageHelper(
             }
 
         // Check if the coordinates fall within the visible page bounds
-        return (visiblePages.lower..visiblePages.upper).firstOrNull { page ->
+        return (visiblePages.pages.lower..visiblePages.pages.upper).firstOrNull { page ->
             pageLayoutManager
                 .getPageLocation(page, pdfView.getVisibleAreaInContentCoords())
                 .contains(contentX, contentY)
@@ -85,7 +85,7 @@ internal class AccessibilityPageHelper(
         loadPageLinks()
 
         virtualViewIds.apply {
-            addAll(visiblePages.lower..visiblePages.upper)
+            addAll(visiblePages.pages.lower..visiblePages.pages.upper)
             addAll(gotoLinks.keys)
             addAll(urlLinks.keys)
         }
@@ -217,7 +217,7 @@ internal class AccessibilityPageHelper(
 
         var cumulativeId = totalPages
 
-        (visiblePages.lower..visiblePages.upper).forEach { pageIndex ->
+        (visiblePages.pages.lower..visiblePages.pages.upper).forEach { pageIndex ->
             pageManager.pages[pageIndex]?.links?.let { links ->
                 links.gotoLinks.forEach { link ->
                     gotoLinks[cumulativeId] =

@@ -58,7 +58,12 @@ private fun getComponentName(context: Context) =
  *   empty.
  * @param currentUserStyleRepository The [CurrentUserStyleRepository] used to listen for
  *   [ComplicationSlotsUserStyleSetting] changes and apply them.
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class ComplicationSlotsManager(
     complicationSlotCollection: Collection<ComplicationSlot>,
     private val currentUserStyleRepository: CurrentUserStyleRepository

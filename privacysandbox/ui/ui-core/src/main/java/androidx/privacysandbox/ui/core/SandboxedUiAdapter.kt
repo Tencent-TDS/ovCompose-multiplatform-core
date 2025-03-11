@@ -37,7 +37,7 @@ interface SandboxedUiAdapter {
      */
     fun openSession(
         context: Context,
-        sessionConstants: SessionConstants,
+        sessionData: SessionData,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,

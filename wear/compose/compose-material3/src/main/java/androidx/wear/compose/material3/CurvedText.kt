@@ -118,7 +118,7 @@ public fun CurvedScope.curvedText(
         angularDirection = angularDirection,
         overflow = overflow
     ) {
-        val baseStyle = style ?: CurvedTextStyle(MaterialTheme.typography.arcMedium)
+        val baseStyle = style ?: MaterialTheme.typography.arcMedium
         val textColor =
             color.takeOrElse { baseStyle.color.takeOrElse { LocalContentColor.current } }
         baseStyle.merge(
@@ -145,13 +145,13 @@ public object CurvedTextDefaults {
      * This is calculated by keeping the length of the corresponding chord on the circle to be
      * approximately 57% of the screen width.
      */
-    public const val ScrollableContentMaxSweepAngle: Float = 70f
+    public val ScrollableContentMaxSweepAngle: Float = 70f
 
     /**
      * The recommended maximum sweep angle in degrees used by [curvedText] for screens without
      * scrollable content.
      */
-    public const val StaticContentMaxSweepAngle: Float = 120f
+    public val StaticContentMaxSweepAngle: Float = 120f
 
     /**
      * The recommended background color to use when displaying curved text so it is visible on top

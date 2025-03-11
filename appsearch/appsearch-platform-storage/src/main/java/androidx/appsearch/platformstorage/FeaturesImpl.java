@@ -99,6 +99,16 @@ final class FeaturesImpl implements Features {
             case Features.ENTERPRISE_GLOBAL_SEARCH_SESSION:
                 return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
 
+            // M-2024-08 Features
+            case Features.SEARCH_SPEC_RANKING_FUNCTION_MAX_MIN_OR_DEFAULT:
+                // fall through
+            case Features.SEARCH_SPEC_RANKING_FUNCTION_FILTER_BY_RANGE:
+                // For devices that receive mainline updates, this will be available in M-2024-08,
+                // and in V for devices that don't receive mainline updates.
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+                        || AppSearchVersionUtil.getAppSearchVersionCode(mContext)
+                        >= AppSearchVersionUtil.APPSEARCH_V_BASE_VERSION_CODE;
+
             // M-2024-11 Features
             case Features.INDEXER_MOBILE_APPLICATIONS:
                 // For devices that receive mainline updates, this will be available in M-2024-11,
@@ -139,6 +149,8 @@ final class FeaturesImpl implements Features {
                 // fall through
             case Features.SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM:
                 // TODO(b/384947619) : Update when feature is ready in service-appsearch.
+            case Features.SEARCH_EMBEDDING_MATCH_INFO:
+                // TODO(395128139) : Update when feature is ready in service-appsearch.
                 return false;
 
             default:

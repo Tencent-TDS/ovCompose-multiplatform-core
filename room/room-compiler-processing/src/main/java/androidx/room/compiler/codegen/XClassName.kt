@@ -90,6 +90,20 @@ internal constructor(
             nullability = XNullability.NONNULL
         )
 
+    fun enclosingClassName(): XClassName? {
+        return if (java.enclosingClassName() != null && kotlin.enclosingClassName() != null) {
+            XClassName(
+                java = java.enclosingClassName(),
+                kotlin = kotlin.enclosingClassName()!!,
+                nullability = XNullability.NONNULL
+            )
+        } else {
+            check(java.enclosingClassName() == null)
+            check(kotlin.enclosingClassName() == null)
+            null
+        }
+    }
+
     fun topLevelClass() =
         XClassName(
             java = java.topLevelClassName(),

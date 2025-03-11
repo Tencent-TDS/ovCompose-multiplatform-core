@@ -16,7 +16,6 @@
 
 @file:RestrictTo(RestrictTo.Scope.LIBRARY)
 @file:RequiresApi(api = 34)
-@file:OptIn(ExperimentalFeatureAvailabilityApi::class)
 
 package androidx.health.connect.client.impl.platform.records
 
@@ -25,7 +24,6 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
-import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
@@ -998,7 +996,10 @@ private fun PlannedExerciseBlock.toPlatformPlannedExerciseBlock() =
     PlatformPlannedExerciseBlockBuilder(
             repetitions,
         )
-        .apply { setSteps(steps.map { it.toPlatformPlannedExerciseStep() }) }
+        .apply {
+            setDescription(description)
+            setSteps(steps.map { it.toPlatformPlannedExerciseStep() })
+        }
         .build()
 
 @SuppressLint("NewApi")
@@ -1009,6 +1010,7 @@ private fun PlannedExerciseStep.toPlatformPlannedExerciseStep() =
             completionGoal.toPlatformExerciseCompletionGoal()
         )
         .apply {
+            setDescription(description)
             setPerformanceGoals(performanceTargets.map { it.toPlatformExercisePerformanceTarget() })
         }
         .build()
@@ -1078,6 +1080,7 @@ private fun PlatformPlannedExerciseBlock.toSdkPlannedExerciseBlock() =
 @SuppressLint("NewApi")
 private fun PlatformPlannedExerciseStep.toSdkPlannedExerciseStep() =
     PlannedExerciseStep(
+        description = description?.toString(),
         exerciseType = exerciseType.toSdkExerciseSegmentType(),
         exercisePhase = exerciseCategory.toSdkExerciseCategory(),
         completionGoal = completionGoal.toSdkExerciseCompletionGoal(),

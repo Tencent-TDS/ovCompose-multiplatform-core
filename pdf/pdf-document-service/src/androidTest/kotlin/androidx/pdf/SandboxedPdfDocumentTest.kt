@@ -57,6 +57,21 @@ class SandboxedPdfDocumentTest {
         }
     }
 
+    @Test
+    fun getPageInfo_validDimension_onCorruptedPage() = runTest {
+        withDocument(PDF_DOCUMENT_PARTIALLY_CORRUPTED_FILE) { document ->
+            val pageNumber = 5
+
+            val pageInfo = document.getPageInfo(pageNumber)
+
+            val expectedHeight = 400
+            val expectedWidth = 400
+            assertThat(pageInfo.pageNum == pageNumber).isTrue()
+            assertThat(pageInfo.height == expectedHeight).isTrue()
+            assertThat(pageInfo.width == expectedWidth).isTrue()
+        }
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun getPageInfo_invalidPage_throwsIllegalArgumentException() = runTest {
         withDocument(PDF_DOCUMENT) { document ->
@@ -287,6 +302,7 @@ class SandboxedPdfDocumentTest {
     companion object {
         private const val PDF_DOCUMENT = "sample.pdf"
         private const val PDF_DOCUMENT_WITH_LINKS = "sample_links.pdf"
+        private const val PDF_DOCUMENT_PARTIALLY_CORRUPTED_FILE = "partially_corrupted.pdf"
         private const val PDF_DOCUMENT_WITH_TEXT_AND_IMAGE = "alt_text.pdf"
 
         private suspend fun withDocument(filename: String, block: suspend (PdfDocument) -> Unit) {

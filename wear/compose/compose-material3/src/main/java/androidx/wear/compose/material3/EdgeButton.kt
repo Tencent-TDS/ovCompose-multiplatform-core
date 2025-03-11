@@ -122,6 +122,8 @@ import kotlin.math.sqrt
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
  * @param content Slot for composable body content displayed on the Button. Either an Icon or Text.
+ *   Note that when using an Icon is recommended to remove any extra spacing the icon may have,
+ *   either processing the image or using something like the list sample.
  */
 // TODO(b/261838497) Add Material3 UX guidance links
 @Composable
@@ -276,15 +278,11 @@ public value class EdgeButtonSize internal constructor(internal val maximumHeigh
     /** Size of the Edge button surrounded by default paddings. */
     internal fun maximumHeightPlusPadding() = maximumHeight + VERTICAL_PADDING * 2
 
-    /** Inner padding inside [EdgeButton]. */
-    internal fun verticalContentPadding() =
-        when (this) {
-            ExtraSmall -> Pair(10.dp, 12.dp)
-            Small -> Pair(8.dp, 12.dp)
-            Medium -> Pair(14.dp, 20.dp)
-            Large -> Pair(18.dp, 22.dp)
-            else -> Pair(14.dp, 20.dp)
-        }
+    /**
+     * Inner padding inside [EdgeButton]. We use a slightly bigger bottom padding so the content is
+     * offset a bit, which works better on the asymmetrical shape of the Edge Button
+     */
+    internal fun verticalContentPadding() = 6.dp to 8.dp
 
     public companion object {
         /** The Size to be applied for an extra small [EdgeButton]. */

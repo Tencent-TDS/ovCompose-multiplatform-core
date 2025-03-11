@@ -36,9 +36,13 @@
       <item quantity="other">‏‫%d שניות</item>
     </plurals>
     <string name="wear_m3c_time_picker_period" msgid="5567285614451063120">"תקופת זמן"</string>
+    <!-- no translation found for wear_m3c_time_picker_heading (1741225633698384262) -->
+    <skip />
     <string name="wear_m3c_date_picker_day" msgid="8932770593644830235">"יום"</string>
     <string name="wear_m3c_date_picker_month" msgid="5962969526377479136">"חודש"</string>
     <string name="wear_m3c_date_picker_year" msgid="4697690064312147449">"שנה"</string>
+    <!-- no translation found for wear_m3c_date_picker_heading (1824308273028674826) -->
+    <skip />
     <string name="wear_m3c_picker_confirm_button_content_description" msgid="8440144719909288057">"אישור"</string>
     <string name="wear_m3c_picker_next_button_content_description" msgid="3346011303652897029">"הבא"</string>
     <string name="wear_m3c_slider_decrease_content_description" msgid="8242572466064289486">"הפחתה"</string>
@@ -46,4 +50,5 @@
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"אישור"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"סגירה"</string>
     <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"פתיחה בטלפון"</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="7845336918219306426">"סמל של פתיחה בטלפון"</string>
 </resources>

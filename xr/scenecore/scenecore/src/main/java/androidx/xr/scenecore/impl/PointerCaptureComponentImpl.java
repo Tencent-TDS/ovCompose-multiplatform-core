@@ -43,7 +43,7 @@ final class PointerCaptureComponentImpl implements PointerCaptureComponent {
     }
 
     @Override
-    public boolean onAttach(Entity entity) {
+    public boolean onAttach(@NonNull Entity entity) {
         if (!(entity instanceof AndroidXrEntity) || mAttachedEntity != null) {
             return false;
         }
@@ -53,7 +53,7 @@ final class PointerCaptureComponentImpl implements PointerCaptureComponent {
     }
 
     @Override
-    public void onDetach(Entity entity) {
+    public void onDetach(@NonNull Entity entity) {
         mAttachedEntity.stopPointerCapture();
         mAttachedEntity = null;
     }

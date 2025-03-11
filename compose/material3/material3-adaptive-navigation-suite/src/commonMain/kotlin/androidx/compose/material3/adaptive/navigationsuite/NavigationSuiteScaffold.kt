@@ -19,7 +19,6 @@
 package androidx.compose.material3.adaptive.navigationsuite
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
@@ -52,13 +51,16 @@ import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -145,7 +147,6 @@ fun rememberNavigationSuiteScaffoldState(
  * @sample androidx.compose.material3.adaptive.navigationsuite.samples.NavigationSuiteScaffoldCustomConfigSample
  * @param navigationSuiteItems the navigation items to be displayed
  * @param modifier the [Modifier] to be applied to the navigation suite scaffold
- * @param state the [NavigationSuiteScaffoldState] of this navigation suite scaffold
  * @param layoutType the current [NavigationSuiteType]. Defaults to
  *   [NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo]
  * @param navigationSuiteColors [NavigationSuiteColors] that will be used to determine the container
@@ -155,60 +156,87 @@ fun rememberNavigationSuiteScaffoldState(
  *   including the passed [content] composable. Use [Color.Transparent] to have no color
  * @param contentColor the preferred color to be used for typography and iconography within the
  *   passed in [content] lambda inside the navigation suite scaffold.
+ * @param state the [NavigationSuiteScaffoldState] of this navigation suite scaffold
  * @param content the content of your screen
  */
+@OptIn(ExperimentalMaterial3AdaptiveComponentOverrideApi::class)
 @Composable
 fun NavigationSuiteScaffold(
     navigationSuiteItems: NavigationSuiteScope.() -> Unit,
     modifier: Modifier = Modifier,
-    state: NavigationSuiteScaffoldState = rememberNavigationSuiteScaffoldState(),
     layoutType: NavigationSuiteType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(WindowAdaptiveInfoDefault),
     navigationSuiteColors: NavigationSuiteColors = NavigationSuiteDefaults.colors(),
     containerColor: Color = NavigationSuiteScaffoldDefaults.containerColor,
     contentColor: Color = NavigationSuiteScaffoldDefaults.contentColor,
+    state: NavigationSuiteScaffoldState = rememberNavigationSuiteScaffoldState(),
     content: @Composable () -> Unit = {},
 ) {
-    Surface(modifier = modifier, color = containerColor, contentColor = contentColor) {
-        NavigationSuiteScaffoldLayout(
-            navigationSuite = {
-                NavigationSuite(
-                    layoutType = layoutType,
-                    colors = navigationSuiteColors,
-                    content = navigationSuiteItems
-                )
-            },
-            state = state,
-            layoutType = layoutType,
-            content = {
-                Box(
-                    Modifier.consumeWindowInsets(
-                        if (
-                            state.currentValue == NavigationSuiteScaffoldValue.Hidden &&
-                                !state.isAnimating
-                        ) {
-                            NoWindowInsets
-                        } else {
-                            when (layoutType) {
-                                NavigationSuiteType.NavigationBar ->
-                                    NavigationBarDefaults.windowInsets.only(
-                                        WindowInsetsSides.Bottom
-                                    )
-                                NavigationSuiteType.NavigationRail ->
-                                    NavigationRailDefaults.windowInsets.only(
-                                        WindowInsetsSides.Start
-                                    )
-                                NavigationSuiteType.NavigationDrawer ->
-                                    DrawerDefaults.windowInsets.only(WindowInsetsSides.Start)
-                                else -> NoWindowInsets
-                            }
-                        }
+    with(LocalNavigationSuiteScaffoldOverride.current) {
+        NavigationSuiteScaffoldOverrideScope(
+                navigationSuiteItems = navigationSuiteItems,
+                modifier = modifier,
+                layoutType = layoutType,
+                navigationSuiteColors = navigationSuiteColors,
+                containerColor = containerColor,
+                contentColor = contentColor,
+                state = state,
+                content = content
+            )
+            .NavigationSuiteScaffold()
+    }
+}
+
+/**
+ * This override provides the default behavior of the [NavigationSuiteScaffold] component.
+ *
+ * [NavigationSuiteScaffoldOverride] used when no override is specified.
+ */
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+object DefaultNavigationSuiteScaffoldOverride : NavigationSuiteScaffoldOverride {
+    @Composable
+    override fun NavigationSuiteScaffoldOverrideScope.NavigationSuiteScaffold() {
+        Surface(modifier = modifier, color = containerColor, contentColor = contentColor) {
+            NavigationSuiteScaffoldLayout(
+                navigationSuite = {
+                    NavigationSuite(
+                        layoutType = layoutType,
+                        colors = navigationSuiteColors,
+                        content = navigationSuiteItems
                     )
-                ) {
-                    content()
+                },
+                state = state,
+                layoutType = layoutType,
+                content = {
+                    Box(
+                        Modifier.consumeWindowInsets(
+                            if (
+                                state.currentValue == NavigationSuiteScaffoldValue.Hidden &&
+                                    !state.isAnimating
+                            ) {
+                                NoWindowInsets
+                            } else {
+                                when (layoutType) {
+                                    NavigationSuiteType.NavigationBar ->
+                                        NavigationBarDefaults.windowInsets.only(
+                                            WindowInsetsSides.Bottom
+                                        )
+                                    NavigationSuiteType.NavigationRail ->
+                                        NavigationRailDefaults.windowInsets.only(
+                                            WindowInsetsSides.Start
+                                        )
+                                    NavigationSuiteType.NavigationDrawer ->
+                                        DrawerDefaults.windowInsets.only(WindowInsetsSides.Start)
+                                    else -> NoWindowInsets
+                                }
+                            }
+                        )
+                    ) {
+                        content()
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 }
 
@@ -271,17 +299,17 @@ fun NavigationSuiteScaffold(
  *
  * @sample androidx.compose.material3.adaptive.navigationsuite.samples.NavigationSuiteScaffoldCustomNavigationRail
  * @param navigationSuite the navigation component to be displayed, typically [NavigationSuite]
- * @param state the [NavigationSuiteScaffoldState] of this navigation suite scaffold layout
  * @param layoutType the current [NavigationSuiteType]. Defaults to
  *   [NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo]
+ * @param state the [NavigationSuiteScaffoldState] of this navigation suite scaffold layout
  * @param content the content of your screen
  */
 @Composable
 fun NavigationSuiteScaffoldLayout(
     navigationSuite: @Composable () -> Unit,
-    state: NavigationSuiteScaffoldState = rememberNavigationSuiteScaffoldState(),
     layoutType: NavigationSuiteType =
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(WindowAdaptiveInfoDefault),
+    state: NavigationSuiteScaffoldState = rememberNavigationSuiteScaffoldState(),
     content: @Composable () -> Unit = {}
 ) {
     val animationProgress by
@@ -877,3 +905,56 @@ private const val ContentLayoutIdTag = "content"
 private val NoWindowInsets = WindowInsets(0, 0, 0, 0)
 private val AnimationSpec: SpringSpec<Float> =
     spring(dampingRatio = SpringDefaultSpatialDamping, stiffness = SpringDefaultSpatialStiffness)
+
+/**
+ * Interface that allows libraries to override the behavior of the [NavigationSuiteScaffold]
+ * component.
+ *
+ * To override this component, implement the member function of this interface, then provide the
+ * implementation to [LocalNavigationSuiteScaffoldOverride] in the Compose hierarchy.
+ */
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+interface NavigationSuiteScaffoldOverride {
+    /** Behavior function that is called by the [NavigationSuiteScaffold] component. */
+    @Composable fun NavigationSuiteScaffoldOverrideScope.NavigationSuiteScaffold()
+}
+
+/**
+ * Parameters available to [NavigationSuiteScaffold].
+ *
+ * @param navigationSuiteItems the navigation items to be displayed
+ * @param modifier the [Modifier] to be applied to the navigation suite scaffold
+ * @param layoutType the current [NavigationSuiteType]. Defaults to
+ *   [NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo]
+ * @param navigationSuiteColors [NavigationSuiteColors] that will be used to determine the container
+ *   (background) color of the navigation component and the preferred color for content inside the
+ *   navigation component
+ * @param containerColor the color used for the background of the navigation suite scaffold,
+ *   including the passed [content] composable. Use [Color.Transparent] to have no color
+ * @param contentColor the preferred color to be used for typography and iconography within the
+ *   passed in [content] lambda inside the navigation suite scaffold.
+ * @param state the [NavigationSuiteScaffoldState] of this navigation suite scaffold
+ * @param content the content of your screen
+ */
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+class NavigationSuiteScaffoldOverrideScope
+internal constructor(
+    val navigationSuiteItems: NavigationSuiteScope.() -> Unit,
+    val modifier: Modifier = Modifier,
+    val layoutType: NavigationSuiteType,
+    val navigationSuiteColors: NavigationSuiteColors,
+    val containerColor: Color,
+    val contentColor: Color,
+    val state: NavigationSuiteScaffoldState,
+    val content: @Composable () -> Unit = {},
+)
+
+/** CompositionLocal containing the currently-selected [NavigationSuiteScaffoldOverride]. */
+@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:ExperimentalMaterial3AdaptiveComponentOverrideApi
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+val LocalNavigationSuiteScaffoldOverride:
+    ProvidableCompositionLocal<NavigationSuiteScaffoldOverride> =
+    compositionLocalOf {
+        DefaultNavigationSuiteScaffoldOverride
+    }

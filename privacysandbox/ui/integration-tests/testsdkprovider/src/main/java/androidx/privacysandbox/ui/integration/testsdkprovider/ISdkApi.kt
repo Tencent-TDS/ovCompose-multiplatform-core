@@ -21,7 +21,8 @@ import androidx.privacysandbox.tools.PrivacySandboxService
 
 @PrivacySandboxService
 interface ISdkApi {
-    suspend fun loadBannerAd(
+    suspend fun loadAd(
+        adFormat: Int,
         adType: Int,
         mediationOption: Int,
         waitInsideOnDraw: Boolean,
@@ -33,4 +34,10 @@ interface ISdkApi {
     fun triggerProcessDeath()
 
     fun launchFullscreenAd(launcherInfo: Bundle, screenOrientation: Int, backButtonNavigation: Int)
+
+    /**
+     * Registers the In-App mediatee adapter so that it can be used by the Mediator later to show
+     * ads.
+     */
+    fun registerInAppMediateeAdapter(mediateeAdapter: MediateeAdapterInterface)
 }

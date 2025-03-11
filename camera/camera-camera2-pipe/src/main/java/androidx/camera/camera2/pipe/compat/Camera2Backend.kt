@@ -32,6 +32,7 @@ import androidx.camera.camera2.pipe.graph.GraphListener
 import androidx.camera.camera2.pipe.graph.StreamGraphImpl
 import javax.inject.Inject
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.flow.Flow
 
 /** This is the default [CameraBackend] implementation for CameraPipe based on Camera2. */
 internal class Camera2Backend
@@ -44,6 +45,9 @@ constructor(
 ) : CameraBackend {
     override val id: CameraBackendId
         get() = CameraBackendId("CXCP-Camera2")
+
+    override val cameraIds: Flow<List<CameraId>>
+        get() = camera2DeviceCache.cameraIds
 
     override suspend fun getCameraIds(): List<CameraId> = camera2DeviceCache.getCameraIds()
 
@@ -75,6 +79,7 @@ constructor(
     }
 
     override fun shutdownAsync(): Deferred<Unit> {
+        camera2DeviceCache.shutdown()
         return camera2DeviceManager.closeAll()
     }
 

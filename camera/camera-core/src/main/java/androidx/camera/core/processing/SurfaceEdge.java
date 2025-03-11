@@ -265,6 +265,7 @@ public class SurfaceEdge {
                 cameraInternal,
                 isPrimary,
                 mStreamSpec.getDynamicRange(),
+                mStreamSpec.getSessionType(),
                 mStreamSpec.getExpectedFrameRateRange(),
                 () -> mainThreadExecutor().execute(() -> {
                     if (!mIsClosed) {

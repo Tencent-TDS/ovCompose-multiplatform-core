@@ -49,6 +49,7 @@ class LiveEditApiTests : BaseComposeTest() {
     @After
     fun tearDown() {
         clearCompositionErrors()
+        disableHotReloadMode()
     }
 
     // IMPORTANT: This must be the first test as the lambda key will change if the lambda is

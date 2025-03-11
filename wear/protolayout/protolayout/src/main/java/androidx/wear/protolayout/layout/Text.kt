@@ -39,6 +39,7 @@ import androidx.wear.protolayout.types.em
 import androidx.wear.protolayout.types.sp
 import java.util.stream.Collectors.toList
 import java.util.stream.Stream
+import kotlin.collections.emptyList
 
 /**
  * Builds a text string.
@@ -129,9 +130,9 @@ fun fontStyle(
     color: LayoutColor? = null,
     @FontWeight weight: Int = FONT_WEIGHT_UNDEFINED,
     letterSpacingEm: Float = Float.NaN,
-    @RequiresSchemaVersion(major = 1, minor = 300) additionalSizesSp: List<Float> = listOf(),
-    @RequiresSchemaVersion(major = 1, minor = 400) settings: List<FontSetting> = listOf(),
-    @RequiresSchemaVersion(major = 1, minor = 400) preferredFontFamilies: List<String> = listOf()
+    @RequiresSchemaVersion(major = 1, minor = 300) additionalSizesSp: List<Float> = emptyList(),
+    @RequiresSchemaVersion(major = 1, minor = 400) settings: List<FontSetting> = emptyList(),
+    @RequiresSchemaVersion(major = 1, minor = 400) preferredFontFamilies: List<String> = emptyList()
 ): FontStyle =
     FontStyle.Builder()
         .apply {

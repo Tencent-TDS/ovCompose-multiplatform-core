@@ -16,6 +16,7 @@
 
 package androidx.xr.scenecore
 
+import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource as RtGltfModel
@@ -37,7 +38,7 @@ import com.google.common.util.concurrent.ListenableFuture
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class GltfModel internal constructor(public val model: RtGltfModel) : Model {
 
-    internal companion object {
+    public companion object {
         @Deprecated(
             message = "This function is deprecated, use createAsync() instead",
             replaceWith = ReplaceWith("createAsync()"),
@@ -76,6 +77,27 @@ public class GltfModel internal constructor(public val model: RtGltfModel) : Mod
                 Runnable::run,
             )
             return modelFuture
+        }
+
+        /**
+         * Public factory function for a [GltfModel], where the glTF is asynchronously loaded.
+         *
+         * This method must be called from the main thread.
+         * https://developer.android.com/guide/components/processes-and-threads
+         *
+         * Currently, only URLs and relative paths from the android_assets/ directory are supported.
+         * Currently, only binary glTF (.glb) files are supported.
+         *
+         * @param session The [Session] to use for loading the model.
+         * @param name The URL or asset-relative path of a binary glTF (.glb) model to be loaded
+         * @return a ListenableFuture<GltfModel>. Listeners will be called on the main thread if
+         *   Runnable::run is supplied.
+         */
+        @MainThread
+        @JvmStatic
+        @Suppress("AsyncSuffixFuture")
+        public fun create(session: Session, name: String): ListenableFuture<GltfModel> {
+            return GltfModel.createAsync(session.platformAdapter, name)
         }
     }
 

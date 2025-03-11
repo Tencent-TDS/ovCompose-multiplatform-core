@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FirstBaseline
@@ -862,6 +863,9 @@ internal class LegacyTextFieldState(
     }
 
     val onImeActionPerformed: (ImeAction) -> Unit = { imeAction ->
+        keyboardActionRunner.runAction(imeAction)
+    }
+    val onImeActionPerformedWithResult: (ImeAction) -> Boolean = { imeAction ->
         keyboardActionRunner.runAction(imeAction)
     }
 

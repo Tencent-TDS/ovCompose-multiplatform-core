@@ -124,16 +124,51 @@ fun NavigationRail(
     windowInsets: WindowInsets = NavigationRailDefaults.windowInsets,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val context =
-        NavigationRailComponentOverrideContext(
-            modifier = modifier,
-            containerColor = containerColor,
+    with(LocalNavigationRailOverride.current) {
+        NavigationRailOverrideScope(
+                modifier = modifier,
+                containerColor = containerColor,
+                contentColor = contentColor,
+                header = header,
+                windowInsets = windowInsets,
+                content = content,
+            )
+            .NavigationRail()
+    }
+}
+
+/**
+ * This override provides the default behavior of the [NavigationRail] component.
+ *
+ * [NavigationRailOverride] used when no override is specified.
+ */
+@ExperimentalMaterial3ComponentOverrideApi
+object DefaultNavigationRailOverride : NavigationRailOverride {
+    @Composable
+    override fun NavigationRailOverrideScope.NavigationRail() {
+        Surface(
+            color = containerColor,
             contentColor = contentColor,
-            header = header,
-            windowInsets = windowInsets,
-            content = content,
-        )
-    with(LocalNavigationRailComponentOverride.current) { context.NavigationRail() }
+            modifier = modifier,
+        ) {
+            Column(
+                Modifier.fillMaxHeight()
+                    .windowInsetsPadding(windowInsets)
+                    .widthIn(min = NavigationRailCollapsedTokens.NarrowContainerWidth)
+                    .padding(vertical = NavigationRailVerticalPadding)
+                    .selectableGroup(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(NavigationRailVerticalPadding)
+            ) {
+                val header = header
+                if (header != null) {
+                    header()
+                    Spacer(Modifier.height(NavigationRailHeaderPadding))
+                }
+                content()
+            }
+        }
+    }
 }
 
 /**
@@ -764,15 +799,20 @@ private val IndicatorVerticalPaddingNoLabel: Dp =
     (NavigationRailVerticalItemTokens.ActiveIndicatorWidth -
         NavigationRailBaselineItemTokens.IconSize) / 2
 
-/** Interface that allows libraries to override the behavior of the [NavigationRail] component. */
+/**
+ * Interface that allows libraries to override the behavior of the [NavigationRail] component.
+ *
+ * To override this component, implement the member function of this interface, then provide the
+ * implementation to [LocalNavigationRailOverride] in the Compose hierarchy.
+ */
 @ExperimentalMaterial3ComponentOverrideApi
-interface NavigationRailComponentOverride {
+interface NavigationRailOverride {
     /** Behavior function that is called by the [NavigationRail] component. */
-    @Composable fun NavigationRailComponentOverrideContext.NavigationRail()
+    @Composable fun NavigationRailOverrideScope.NavigationRail()
 }
 
 /**
- * Parameters available to NavigationRail.
+ * Parameters available to [NavigationRail].
  *
  * @param modifier the [Modifier] to be applied to this navigation rail
  * @param containerColor the color used for the background of this navigation rail. Use
@@ -785,7 +825,7 @@ interface NavigationRailComponentOverride {
  * @param content the content of this navigation rail, typically 3-7 [NavigationRailItem]s
  */
 @ExperimentalMaterial3ComponentOverrideApi
-class NavigationRailComponentOverrideContext
+class NavigationRailOverrideScope
 internal constructor(
     val modifier: Modifier = Modifier,
     val containerColor: Color,
@@ -795,42 +835,11 @@ internal constructor(
     val content: @Composable ColumnScope.() -> Unit,
 )
 
-/** [NavigationRailComponentOverride] used when no override is specified. */
-@ExperimentalMaterial3ComponentOverrideApi
-object DefaultNavigationRailComponentOverride : NavigationRailComponentOverride {
-    @Composable
-    override fun NavigationRailComponentOverrideContext.NavigationRail() {
-        Surface(
-            color = containerColor,
-            contentColor = contentColor,
-            modifier = modifier,
-        ) {
-            Column(
-                Modifier.fillMaxHeight()
-                    .windowInsetsPadding(windowInsets)
-                    .widthIn(min = NavigationRailCollapsedTokens.NarrowContainerWidth)
-                    .padding(vertical = NavigationRailVerticalPadding)
-                    .selectableGroup(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(NavigationRailVerticalPadding)
-            ) {
-                val header = header
-                if (header != null) {
-                    header()
-                    Spacer(Modifier.height(NavigationRailHeaderPadding))
-                }
-                content()
-            }
-        }
-    }
-}
-
-/** CompositionLocal containing the currently-selected [NavigationRailComponentOverride]. */
+/** CompositionLocal containing the currently-selected [NavigationRailOverride]. */
 @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
 @get:ExperimentalMaterial3ComponentOverrideApi
 @ExperimentalMaterial3ComponentOverrideApi
-val LocalNavigationRailComponentOverride:
-    ProvidableCompositionLocal<NavigationRailComponentOverride> =
+val LocalNavigationRailOverride: ProvidableCompositionLocal<NavigationRailOverride> =
     compositionLocalOf {
-        DefaultNavigationRailComponentOverride
+        DefaultNavigationRailOverride
     }

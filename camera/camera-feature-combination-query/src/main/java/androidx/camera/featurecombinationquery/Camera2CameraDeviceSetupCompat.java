@@ -53,6 +53,14 @@ class Camera2CameraDeviceSetupCompat implements CameraDeviceSetupCompat {
                 getBuildTimeEpochMillis());
     }
 
+    @Override
+    public @NonNull SupportQueryResult isSessionConfigurationSupported(
+            @NonNull SessionConfigurationCompat sessionConfig) {
+        throw new IllegalStateException(
+                "This device supports CameraDeviceSetup. Please use Camera2 "
+                        + "SessionConfiguration for querying instead.");
+    }
+
     public static long getBuildTimeEpochMillis() {
         String value = System.getProperty("ro.build.date.utc");
         if (value != null) {

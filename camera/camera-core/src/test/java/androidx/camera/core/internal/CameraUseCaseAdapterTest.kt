@@ -60,6 +60,7 @@ import androidx.camera.core.impl.OptionsBundle
 import androidx.camera.core.impl.PreviewConfig
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.impl.StreamSpec
+import androidx.camera.core.impl.UseCaseConfig.OPTION_TARGET_HIGH_SPEED_FRAME_RATE
 import androidx.camera.core.impl.UseCaseConfigFactory
 import androidx.camera.core.impl.UseCaseConfigFactory.CaptureType
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor
@@ -1372,6 +1373,24 @@ class CameraUseCaseAdapterTest {
         val cameraUseCaseAdapter1 = createCameraUseCaseAdapter(fakeCamera)
         val cameraUseCaseAdapter2 = createCameraUseCaseAdapter(fakeCamera, secondaryCamera = null)
         assertThat(cameraUseCaseAdapter1.cameraId).isEqualTo(cameraUseCaseAdapter2.cameraId)
+    }
+
+    @Test
+    fun setTargetHighSpeedFrameRate_updatesUseCaseConfig() {
+        // Arrange: create use cases.
+        val fakeUseCase1 = FakeUseCase()
+        val fakeUseCase2 = FakeUseCase()
+
+        // Act: set target high speed frame rate and add use cases.
+        val frameRate = Range(120, 120)
+        adapter.setTargetHighSpeedFrameRate(frameRate)
+        adapter.addUseCases(listOf(fakeUseCase1, fakeUseCase2))
+
+        // Assert: use case configs are updated.
+        assertThat(fakeUseCase1.currentConfig.retrieveOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE))
+            .isEqualTo(frameRate)
+        assertThat(fakeUseCase2.currentConfig.retrieveOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE))
+            .isEqualTo(frameRate)
     }
 
     private fun createFakeVideoCaptureUseCase(): FakeUseCase {

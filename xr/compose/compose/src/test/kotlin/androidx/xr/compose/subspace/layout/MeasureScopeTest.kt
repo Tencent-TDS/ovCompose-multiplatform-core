@@ -26,6 +26,9 @@ import org.junit.runner.RunWith
 class TestMeasureScope : MeasureScope {
     override val density: Float
         get() = 2f
+
+    override val fontScale: Float
+        get() = 1f
 }
 
 /** Tests for [MeasureScope]. */

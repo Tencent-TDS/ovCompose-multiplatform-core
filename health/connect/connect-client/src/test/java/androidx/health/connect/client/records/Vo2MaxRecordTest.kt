@@ -44,7 +44,7 @@ class Vo2MaxRecordTest {
                         zoneOffset = null,
                         vo2MillilitersPerMinuteKilogram = 95.0,
                         measurementMethod = Vo2MaxRecord.MEASUREMENT_METHOD_ROCKPORT_FITNESS_TEST,
-                        metadata = Metadata.EMPTY,
+                        metadata = Metadata.unknownRecordingMethod(),
                     )
                     .toString()
             )

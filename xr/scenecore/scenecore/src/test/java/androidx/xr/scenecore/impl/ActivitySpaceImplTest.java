@@ -46,6 +46,7 @@ import androidx.xr.scenecore.testing.FakeXrExtensions.FakeSpatialState;
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,6 +102,12 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
         // for testing.  For now this is fine since there isn't an interface difference (yet).
         assertThat(mActivitySpace).isInstanceOf(ActivitySpaceImpl.class);
         assertThat(mActivitySpace).isNotNull();
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mTestRuntime.dispose();
     }
 
     @Override

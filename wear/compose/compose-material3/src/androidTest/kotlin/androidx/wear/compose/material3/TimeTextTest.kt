@@ -18,11 +18,15 @@ package androidx.wear.compose.material3
 
 import android.os.Build
 import android.text.format.DateFormat
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.testutils.assertContainsColor
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -55,10 +59,13 @@ class TimeTextTest {
                     object : TimeSource {
                         @Composable override fun currentTime(): String = timeText
                     },
-            )
+            ) { time ->
+                // Use 'curvedText' instead of 'timeTextCurvedText' so that we get a content
+                // description that can be verified.
+                curvedText(time)
+            }
         }
 
-        // Note that onNodeWithText doesn't work for curved text, so only testing for non-round.
         rule.onNodeWithContentDescription(timeText).assertIsDisplayed()
     }
 
@@ -73,7 +80,11 @@ class TimeTextTest {
                     object : TimeSource {
                         @Composable override fun currentTime(): String = timeState.value
                     },
-            )
+            ) { time ->
+                // Use 'curvedText' instead of 'timeTextCurvedText' so that we get a content
+                // description that can be verified.
+                curvedText(time)
+            }
         }
         timeState.value = "Changed"
         rule.onNodeWithContentDescription("Changed").assertIsDisplayed()
@@ -94,14 +105,18 @@ class TimeTextTest {
         rule.onNodeWithContentDescription(statusText).assertIsDisplayed()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun checks_separator_displayed() {
-        val statusText = "Status"
-        val separatorText = "·"
+        val separatorColor = Color.Red
 
-        rule.setContentWithTheme { BasicTimeTextWithStatus(statusText) }
+        rule.setContentWithTheme {
+            val style = TimeTextDefaults.timeTextStyle(color = separatorColor)
 
-        rule.onNodeWithContentDescription(separatorText).assertIsDisplayed()
+            TimeText(modifier = Modifier.testTag(TEST_TAG)) { timeTextSeparator(style) }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(separatorColor)
     }
 
     @Test
@@ -120,6 +135,19 @@ class TimeTextTest {
         }
 
         rule.onNodeWithTag(TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun does_not_announce_time() {
+        rule.setContentWithTheme {
+            TimeText {
+                timeTextCurvedText("time")
+                timeTextSeparator()
+            }
+        }
+
+        rule.onNodeWithContentDescription("time").assertDoesNotExist()
+        rule.onNodeWithContentDescription(".").assertDoesNotExist()
     }
 
     @Test

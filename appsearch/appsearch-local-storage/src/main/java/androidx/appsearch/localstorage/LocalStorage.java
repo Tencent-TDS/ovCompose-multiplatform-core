@@ -398,6 +398,7 @@ public class LocalStorage {
                 initStatsBuilder,
                 /*visibilityChecker=*/ null,
                 revocableFileDescriptorStore,
+                /*icingSearchEngine=*/ null,
                 new JetpackOptimizeStrategy());
 
         if (logger != null) {

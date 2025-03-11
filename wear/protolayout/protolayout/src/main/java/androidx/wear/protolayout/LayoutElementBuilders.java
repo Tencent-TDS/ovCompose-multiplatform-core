@@ -99,6 +99,7 @@ public final class LayoutElementBuilders {
 
     @VisibleForTesting static final String WEIGHT_AXIS_TAG = "wght";
     @VisibleForTesting static final String WIDTH_AXIS_TAG = "wdth";
+    @VisibleForTesting static final String ROUNDNESS_AXIS_TAG = "ROND";
     @VisibleForTesting static final String TABULAR_OPTION_TAG = "tnum";
 
     /** The weight to be applied to the font. */
@@ -1142,6 +1143,18 @@ public final class LayoutElementBuilders {
         @RequiresSchemaVersion(major = 1, minor = 400)
         static @NonNull FontSetting width(@FloatRange(from = 25, to = 200) float value) {
             return new FontVariationSetting.Builder(WIDTH_AXIS_TAG, value).build();
+        }
+
+        /**
+         * {@link FontSetting} option for custom roundness for font. For more information, see <a
+         * href="https://fonts.google.com/knowledge/glossary/rond_axis">here</a>.
+         *
+         * @param value roundness, usually in 0..100, but actual range and availability can depend
+         *     on the font used
+         */
+        @RequiresSchemaVersion(major = 1, minor = 400)
+        static @NonNull FontSetting roundness(int value) {
+            return new FontVariationSetting.Builder(ROUNDNESS_AXIS_TAG, value).build();
         }
 
         /**
@@ -5401,9 +5414,9 @@ public final class LayoutElementBuilders {
                 DimensionProto.AngularDimension angularDimensionProto =
                         angularLength.toAngularDimensionProto();
                 if ((angularDimensionProto.hasDegrees()
-                        && angularDimensionProto.getDegrees().hasDynamicValue())
+                                && angularDimensionProto.getDegrees().hasDynamicValue())
                         || (angularDimensionProto.hasDp()
-                        && angularDimensionProto.getDp().hasDynamicValue())) {
+                                && angularDimensionProto.getDp().hasDynamicValue())) {
                     throw new IllegalArgumentException(
                             "ArcSpacer.Builder.setAngularLength doesn't support dynamic values.");
                 }
@@ -6715,7 +6728,7 @@ public final class LayoutElementBuilders {
                 return content.getArc().hasModifiers()
                         && content.getArc().getModifiers().hasTransformation();
             case EXTENSION:
-            // fall through
+                // fall through
             case INNER_NOT_SET:
                 return false;
         }

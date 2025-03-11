@@ -24,56 +24,58 @@ class AppFunctionConfigurationTest {
     fun testEmpty() {
         val configuration = AppFunctionConfiguration.Builder().build()
 
-        assertThat(configuration.factories).isEmpty()
+        assertThat(configuration.enclosingClassFactories).isEmpty()
     }
 
     @Test
     fun testUniqueFactories() {
-        val factory1 = TestAppFunctionClass1.Factory()
-        val factory2 = TestAppFunctionClass2.Factory()
-
         val configuration =
             AppFunctionConfiguration.Builder()
-                .addFactory(TestAppFunctionClass1::class.java, factory1)
-                .addFactory(TestAppFunctionClass2::class.java, factory2)
+                .addEnclosingClassFactory(TestAppFunctionClass1::class.java) {
+                    TestAppFunctionClass1()
+                }
+                .addEnclosingClassFactory(TestAppFunctionClass2::class.java) {
+                    TestAppFunctionClass2()
+                }
                 .build()
 
-        assertThat(configuration.factories).hasSize(2)
-        assertThat(configuration.factories[TestAppFunctionClass1::class.java]).isEqualTo(factory1)
-        assertThat(configuration.factories[TestAppFunctionClass2::class.java]).isEqualTo(factory2)
+        assertThat(configuration.enclosingClassFactories).hasSize(2)
+        assertThat(configuration.enclosingClassFactories[TestAppFunctionClass1::class.java])
+            .isNotNull()
+        assertThat(configuration.enclosingClassFactories[TestAppFunctionClass2::class.java])
+            .isNotNull()
+        assertThat(
+                configuration.enclosingClassFactories[TestAppFunctionClass1::class.java]!!.invoke()
+            )
+            .isInstanceOf(TestAppFunctionClass1::class.java)
+        assertThat(
+                configuration.enclosingClassFactories[TestAppFunctionClass2::class.java]!!.invoke()
+            )
+            .isInstanceOf(TestAppFunctionClass2::class.java)
     }
 
     @Test
     fun testDuplicatedFactories() {
-        val factory1 = TestAppFunctionClass1.Factory()
-
         val configuration =
             AppFunctionConfiguration.Builder()
-                .addFactory(TestAppFunctionClass1::class.java, factory1)
-                .addFactory(TestAppFunctionClass1::class.java, factory1)
+                .addEnclosingClassFactory(TestAppFunctionClass1::class.java) {
+                    TestAppFunctionClass1()
+                }
+                .addEnclosingClassFactory(TestAppFunctionClass1::class.java) {
+                    TestAppFunctionClass1()
+                }
                 .build()
 
-        assertThat(configuration.factories).hasSize(1)
-        assertThat(configuration.factories[TestAppFunctionClass1::class.java]).isEqualTo(factory1)
+        assertThat(configuration.enclosingClassFactories).hasSize(1)
+        assertThat(configuration.enclosingClassFactories[TestAppFunctionClass1::class.java])
+            .isNotNull()
+        assertThat(
+                configuration.enclosingClassFactories[TestAppFunctionClass1::class.java]!!.invoke()
+            )
+            .isInstanceOf(TestAppFunctionClass1::class.java)
     }
 
-    internal class TestAppFunctionClass1 {
-        internal class Factory : AppFunctionFactory<TestAppFunctionClass1> {
-            override fun createEnclosingClass(
-                enclosingClass: Class<TestAppFunctionClass1>
-            ): TestAppFunctionClass1 {
-                return TestAppFunctionClass1()
-            }
-        }
-    }
+    internal class TestAppFunctionClass1
 
-    internal class TestAppFunctionClass2 {
-        internal class Factory : AppFunctionFactory<TestAppFunctionClass2> {
-            override fun createEnclosingClass(
-                enclosingClass: Class<TestAppFunctionClass2>
-            ): TestAppFunctionClass2 {
-                return TestAppFunctionClass2()
-            }
-        }
-    }
+    internal class TestAppFunctionClass2
 }

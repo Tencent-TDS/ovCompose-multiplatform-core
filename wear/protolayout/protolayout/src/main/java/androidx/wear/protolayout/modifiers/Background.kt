@@ -18,6 +18,7 @@ package androidx.wear.protolayout.modifiers
 import android.annotation.SuppressLint
 import androidx.annotation.Dimension
 import androidx.annotation.Dimension.Companion.DP
+import androidx.wear.protolayout.ColorBuilders.Brush
 import androidx.wear.protolayout.ModifiersBuilders.Background
 import androidx.wear.protolayout.ModifiersBuilders.Corner
 import androidx.wear.protolayout.ModifiersBuilders.CornerRadius
@@ -27,21 +28,13 @@ import androidx.wear.protolayout.types.cornerRadius
 import androidx.wear.protolayout.types.dp
 
 /** Sets the background color to [color]. */
-fun LayoutModifier.backgroundColor(color: LayoutColor): LayoutModifier =
+fun LayoutModifier.background(color: LayoutColor): LayoutModifier =
     this then BaseBackgroundElement(color)
 
-/**
- * Sets the background color and clipping.
- *
- * @param color for the background
- * @param corner to use for clipping the background
- */
-fun LayoutModifier.background(color: LayoutColor, corner: Corner? = null): LayoutModifier =
-    if (corner == null) {
-        this then BaseBackgroundElement(color)
-    } else {
-        this then BaseBackgroundElement(color).clip(corner)
-    }
+/** Sets the background brush to [brush]. */
+@RequiresSchemaVersion(major = 1, minor = 500)
+fun LayoutModifier.background(brush: Brush): LayoutModifier =
+    this then BaseBackgroundElement(brush = brush)
 
 /** Clips the element to a rounded rectangle with four corners with [cornerRadius] radius. */
 fun LayoutModifier.clip(@Dimension(DP) cornerRadius: Float): LayoutModifier =
@@ -114,9 +107,16 @@ fun LayoutModifier.clipBottomRight(
     @Dimension(DP) y: Float = x
 ): LayoutModifier = this then BaseCornerElement(bottomRightRadius = cornerRadius(x, y))
 
-internal class BaseBackgroundElement(val color: LayoutColor) : LayoutModifier.Element {
+internal class BaseBackgroundElement(
+    val color: LayoutColor? = null,
+    val brush: Brush? = null,
+) : LayoutModifier.Element {
+    @SuppressLint("ProtoLayoutMinSchema") // Relevant callers have correct Requires annotation.
     fun mergeTo(initial: Background.Builder?): Background.Builder =
-        (initial ?: Background.Builder()).setColor(color.prop)
+        (initial ?: Background.Builder()).apply {
+            color?.let { setColor(it.prop) }
+            brush?.let { setBrush(it) }
+        }
 }
 
 internal class BaseCornerElement(

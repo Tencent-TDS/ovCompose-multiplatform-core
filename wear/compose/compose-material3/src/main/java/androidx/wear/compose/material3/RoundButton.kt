@@ -19,7 +19,6 @@ package androidx.wear.compose.material3
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,7 +48,6 @@ import kotlinx.coroutines.launch
  * This is a copy of RoundButton from materialcore, with additional onLongClick callback and usage
  * of combinedClickable.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun RoundButton(
     onClick: () -> Unit,
@@ -140,19 +138,19 @@ internal fun rememberAnimatedPressedButtonShape(
 
 @Composable
 internal fun animateButtonShape(
-    defaultShape: Shape,
-    pressedShape: Shape?,
+    shape: Shape,
+    pressedShape: Shape,
     onPressAnimationSpec: FiniteAnimationSpec<Float>,
     onReleaseAnimationSpec: FiniteAnimationSpec<Float>,
     interactionSource: MutableInteractionSource?
 ) =
-    if (defaultShape is CornerBasedShape && pressedShape is CornerBasedShape) {
+    if (shape is CornerBasedShape && pressedShape is CornerBasedShape && shape !== pressedShape) {
         val finalInteractionSource = interactionSource ?: remember { MutableInteractionSource() }
 
         val finalShape =
             rememberAnimatedPressedButtonShape(
                 interactionSource = finalInteractionSource,
-                shape = defaultShape,
+                shape = shape,
                 pressedShape = pressedShape,
                 onPressAnimationSpec = onPressAnimationSpec,
                 onReleaseAnimationSpec = onReleaseAnimationSpec
@@ -160,24 +158,24 @@ internal fun animateButtonShape(
         finalShape to finalInteractionSource
     } else {
         // Fallback to static uncheckedShape if no other shapes, or not animatable
-        defaultShape to interactionSource
+        shape to interactionSource
     }
 
 @Composable
 internal fun animateToggleButtonShape(
     uncheckedShape: Shape,
-    checkedShape: Shape?,
-    uncheckedPressedShape: Shape?,
-    checkedPressedShape: Shape?,
+    checkedShape: Shape,
+    uncheckedPressedShape: Shape,
+    checkedPressedShape: Shape,
     onPressAnimationSpec: FiniteAnimationSpec<Float>,
     onReleaseAnimationSpec: FiniteAnimationSpec<Float>,
     checked: Boolean,
     interactionSource: MutableInteractionSource?
 ): Pair<Shape, MutableInteractionSource?> {
-    return if (checkedShape == null) {
+    return if (checkedShape === uncheckedShape) {
         // Reuse pressed animation
         return animateButtonShape(
-            defaultShape = uncheckedShape,
+            shape = uncheckedShape,
             pressedShape = uncheckedPressedShape,
             onPressAnimationSpec = onPressAnimationSpec,
             onReleaseAnimationSpec = onReleaseAnimationSpec,

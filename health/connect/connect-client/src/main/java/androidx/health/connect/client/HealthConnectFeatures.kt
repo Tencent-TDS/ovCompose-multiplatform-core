@@ -18,12 +18,10 @@ package androidx.health.connect.client
 
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
-import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.feature.HealthConnectPlatformVersion
 import androidx.health.connect.client.feature.HealthConnectVersionInfo
 
 /** Interface for checking availability of features in [HealthConnectClient]. */
-@ExperimentalFeatureAvailabilityApi
 interface HealthConnectFeatures {
 
     /**

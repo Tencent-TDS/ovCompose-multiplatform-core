@@ -22,7 +22,6 @@ import android.view.autofill.AutofillId
 import android.view.autofill.AutofillManager
 import android.view.autofill.AutofillValue
 import androidx.annotation.RequiresApi
-import androidx.collection.MutableIntSet
 
 /**
  * This class is here to ensure that the classes that use this API will get verified and can be AOT
@@ -182,14 +181,4 @@ internal object AutofillApi26Helper {
     fun getAutofillTextValue(value: String): AutofillValue {
         return AutofillValue.forText(value)
     }
-}
-
-// Copy all elements from `other` to `this`.
-internal fun MutableIntSet.copyFrom(other: MutableIntSet) {
-    this.clear()
-    this.addAll(other)
-}
-
-internal fun MutableIntSet.containsAll(other: MutableIntSet): Boolean {
-    return other.all { this.contains(it) }
 }

@@ -68,7 +68,8 @@ import androidx.wear.compose.materialcore.screenWidthDp
  * @sample androidx.wear.compose.material3.samples.AlertDialogWithConfirmAndDismissSample
  * @param visible A boolean indicating whether the dialog should be displayed.
  * @param onDismissRequest A lambda function to be called when the dialog is dismissed by swiping
- *   right (typically also called by the [dismissButton]).
+ *   right (typically also called by the [dismissButton]). Implementation of this lambda must remove
+ *   the dialog from the composition hierarchy e.g. by setting [visible] to false.
  * @param confirmButton A slot for a [Button] indicating positive sentiment. Clicking the button
  *   must remove the dialog from the composition hierarchy e.g. by setting [visible] to false. It's
  *   recommended to use [AlertDialogDefaults.ConfirmButton] in this slot with onClick callback.
@@ -140,7 +141,8 @@ public fun AlertDialog(
  *
  * @param visible A boolean indicating whether the dialog should be displayed.
  * @param onDismissRequest A lambda function to be called when the dialog is dismissed by swiping to
- *   the right or by other dismiss action.
+ *   the right or by other dismiss action. Implementation of this lambda must remove the dialog from
+ *   the composition hierarchy e.g. by setting [visible] to false.
  * @param title A slot for displaying the title of the dialog. Title should contain a summary of the
  *   dialog's purpose or content and should not exceed 3 lines of text. By default,
  *   [TextOverflow.Ellipsis] will be applied when text exceeds 3 lines.
@@ -155,6 +157,8 @@ public fun AlertDialog(
  * @param contentPadding The padding to apply around the entire dialog's contents.
  * @param properties An optional [DialogProperties] object for configuring the dialog's behavior.
  * @param content A slot for additional content, displayed within a scrollable [ScalingLazyColumn].
+ *   Any buttons added in this slot that are intended to dismiss the dialog must remove the dialog
+ *   from the composition hierarchy e.g. by setting [visible] to false.
  */
 @Composable
 public fun AlertDialog(
@@ -206,7 +210,8 @@ public fun AlertDialog(
  * @sample androidx.wear.compose.material3.samples.AlertDialogWithContentGroupsSample
  * @param visible A boolean indicating whether the dialog should be displayed.
  * @param onDismissRequest A lambda function to be called when the dialog is dismissed by swiping to
- *   the right or by other dismiss action.
+ *   the right or by other dismiss action. Implementation of this lambda must remove the dialog from
+ *   the composition hierarchy e.g. by setting [visible] to false.
  * @param edgeButton Slot for an [EdgeButton] indicating positive sentiment. Clicking the button
  *   must remove the dialog from the composition hierarchy e.g. by setting [visible] to false. It's
  *   recommended to use [AlertDialogDefaults.EdgeButton] in this slot with onClick callback. Note
@@ -227,6 +232,8 @@ public fun AlertDialog(
  *   will be ignored and default spacing for the [EdgeButton] will be used.
  * @param properties An optional [DialogProperties] object for configuring the dialog's behavior.
  * @param content A slot for additional content, displayed within a scrollable [ScalingLazyColumn].
+ *   Any buttons added in this slot that are intended to dismiss the dialog must remove the dialog
+ *   from the composition hierarchy e.g. by setting [visible] to false.
  */
 @Composable
 public fun AlertDialog(

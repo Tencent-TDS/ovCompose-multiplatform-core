@@ -100,6 +100,8 @@ WARN: .*\/unzippedJvmSources\/androidx\/core\/widget\/RemoteViewsCompat\.kt:[0-9
 WARN: .*\/unzippedJvmSources\/androidx\/core\/widget\/RemoteViewsCompat\.kt:[0-9]+ Missing @param tag for parameter `verticalGravity` in DFunction setLinearLayoutVerticalGravity
 WARN: .*\/unzippedJvmSources\/androidx\/customview\/poolingcontainer\/PoolingContainer\.kt:[0-9]+ Missing @param tag for parameter `listener` in DFunction addPoolingContainerListener
 WARN: .*\/unzippedJvmSources\/androidx\/customview\/widget\/ViewDragHelper\.java:[0-9]+ Missing @param tag for parameter `pointerId` in DFunction isEdgeTouched
+WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/commonJvmMain/androidx/datastore/core/Serializer\.kt:[0-9]+ Missing @param tag for parameter `output` in DFunction writeTo
+WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/commonMain/androidx/datastore/preferences/core/Preferences\.kt:[0-9]+ Missing @param tag for parameter `value` in DFunction set
 WARN: .*\/unzippedJvmSources\/androidx\/datastore\/rxjava2\/RxDataStoreDelegate\.kt:[0-9]+ Missing @param tag for parameter `serializer` in DFunction rxDataStore
 WARN: .*\/unzippedJvmSources\/androidx\/datastore\/rxjava3\/RxDataStoreDelegate\.kt:[0-9]+ Missing @param tag for parameter `serializer` in DFunction rxDataStore
 WARN: .*\/unzippedJvmSources\/androidx\/documentfile\/provider\/DocumentFile\.java:[0-9]+ Missing @param tag for parameter `context` in DFunction fromSingleUri
@@ -107,6 +109,7 @@ WARN: .*\/unzippedJvmSources\/androidx\/documentfile\/provider\/DocumentFile\.ja
 WARN: .*\/unzippedJvmSources\/androidx\/draganddrop\/DropHelper\.java:[0-9]+ Failed to resolve See <a href="https:\/\/developer\.android\.com\/guide\/topics\/ui\/drag-drop">Drag and drop<\/a> in DClass DropHelper
 WARN: .*\/unzippedJvmSources\/androidx\/emoji\/text\/EmojiCompat\.java:[0-9]+ Missing @param tag for parameter `useEmojiAsDefaultStyle` in DFunction setUseEmojiAsDefaultStyle
 WARN: .*\/unzippedJvmSources\/androidx\/emoji2\/text\/EmojiCompat\.java:[0-9]+ Missing @param tag for parameter `useEmojiAsDefaultStyle` in DFunction setUseEmojiAsDefaultStyle
+WARN: \$OUT_DIR/androidx/docs\-public/build/unzippedJvmSources/androidx/navigation/dynamicfeatures/DynamicIncludeGraphNavigator\.kt:[0-9]+ Failed to resolve See Navigator\.navigate in DFunction navigate\. Did you mean Navigator\#navigate\?
 WARN: .*\/unzippedJvmSources\/androidx\/leanback\/app\/SearchFragment\.java:[0-9]+ Missing @param tag for parameter `query` in DFunction createArgs
 WARN: .*\/unzippedJvmSources\/androidx\/leanback\/app\/SearchSupportFragment\.java:[0-9]+ Missing @param tag for parameter `query` in DFunction createArgs
 WARN: .*\/unzippedJvmSources\/androidx\/leanback\/widget\/DetailsOverviewRowPresenter\.java:[0-9]+ Missing @param tag for parameter `detailsPresenter` in DFunction ViewHolder
@@ -259,7 +262,6 @@ public abstract void jvmDelete\(T t\);
 public abstract void jvmInsert\(@org\.jetbrains\.annotations\.NotNull.*
 public abstract java\.util\.List<androidx\.room\.integration\.kotlintestapp\.test\.JvmNameInDaoTest\.JvmNameEntity> jvmQuery\(\);
 public abstract androidx\.room\.integration\.kotlintestapp\.test\.JvmNameInDaoTest\.JvmNameDao jvmDao\(\);
-\^
 # > Task :slice:slice-builders-ktx:compileDebugKotlin
 w: file://\$SUPPORT/slice/slice\-builders\-ktx/src/main/java/androidx/slice/builders/ListBuilder\.kt:[0-9]+:[0-9]+ 'ListBuilder' is deprecated\. Deprecated in Java
 # > Task :slice:slice-builders-ktx:compileDebugAndroidTestKotlin
@@ -336,6 +338,16 @@ e: The daemon has terminated unexpectedly on startup attempt #1 with error code:
 WARN: Attempt to load key 'java\.correct\.class\.type\.by\.place\.resolve\.scope' for not yet loaded registry
 warning: unable to find kotlin\-stdlib\.jar in the Kotlin home directory\. Pass either '\-no\-stdlib' to prevent adding it to the classpath, or the correct '\-kotlin\-home'
 warning: unable to find kotlin\-script\-runtime\.jar in the Kotlin home directory\. Pass either '\-no\-stdlib' to prevent adding it to the classpath, or the correct '\-kotlin\-home'
+# b/388455777
+\$OUT_DIR/tmp/extract\-shim\-transform[0-9]+/androidx/privacysandbox/tools/integration/testsdk/NativeAd\.kt:[0-9]+:[0-9]+: warning: this API is experimental\. It may be changed in the future without notice\.
+\^+$
+public interface NativeAd : SharedUiAdapter
+\$OUT_DIR/tmp/extract\-shim\-transform[0-9]+/androidx/privacysandbox/tools/integration/testsdk/NativeAdClientProxy\.kt:[0-9]+:[0-9]+: warning: this API is experimental\. It may be changed in the future without notice\.
+public override fun openSession\(clientExecutor: Executor, client: SharedUiAdapter\.SessionClient\) \{
+public val sharedUiAdapter: SharedUiAdapter =
+SharedUiAdapterFactory\.createFromCoreLibInfo\(coreLibInfo\)
+client: SharedUiAdapter\.SessionClient\) \{
+sharedUiAdapter\.openSession\(clientExecutor, client\)
 # develocity plugin begign warning, reported back to Gradle
 Failed sysctl call: hw\.nperflevels, Error code: 2
 # > Task :benchmark:benchmark-macro:processReleaseAndroidTestManifest
@@ -361,3 +373,13 @@ For more details, see: https://kotl\.in/gradle/internal\-compiler\-symbols
 # b/359449191
 > Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:testsdkproviderwrapper\) with ExtractCompileSdkShimTransform
 > Transform sdk\-interface\-descriptors\.jar \(project :privacysandbox:ui:integration\-tests:mediateesdkproviderwrapper\) with ExtractCompileSdkShimTransform
+# > Task :room:integration-tests:room-testapp:runErrorProneWithPreKmpCompilerRelease
+\$OUT_DIR/androidx/room/integration\-tests/room\-testapp/build/errorProne/WithPreKmpCompilerRelease/androidx/room/integration/testapp/database/CustomerDao_Impl\.java:[0-9]+: warning: \[removal\] finalize\(\) in Object has been deprecated and marked for removal
+protected void finalize\(\) \{
+1 warning
+# b/399029837
+^C/C\+\+: ninja: warning: build log version is too old; starting over.*
+# b/388455777 Warnings are thrown for classes generated by privacysandbox-tools for features behind
+# the @RequiresOptIn flag. This can be ignored for now as all required code is still generated.
+# > Task :privacysandbox:tools:integration-tests:testsdk:compileReleaseKotlin
+w: file://\$OUT_DIR/androidx/privacysandbox/tools/integration\-tests/testsdk/build/generated/ksp/release/kotlin/androidx/privacysandbox/tools/integration/testsdk/NativeAdDataConverter\.kt:[0-9]+:[0-9]+ This API is experimental\. It may be changed in the future without notice\.

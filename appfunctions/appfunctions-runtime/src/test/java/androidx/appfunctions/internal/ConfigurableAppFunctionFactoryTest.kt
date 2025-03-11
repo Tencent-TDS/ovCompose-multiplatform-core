@@ -19,7 +19,6 @@ package androidx.appfunctions.internal
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.appfunctions.AppFunctionConfiguration
-import androidx.appfunctions.AppFunctionFactory
 import androidx.appfunctions.internal.ConfigurableAppFunctionFactory.AppFunctionInstantiationException
 import org.junit.Assert.assertThrows
 import org.junit.Before
@@ -103,14 +102,16 @@ class ConfigurableAppFunctionFactoryTest {
         override val appFunctionConfiguration: AppFunctionConfiguration
             get() =
                 AppFunctionConfiguration.Builder()
-                    .addFactory(
+                    .addEnclosingClassFactory(
                         NoArgWithFactoryEnclosingClass::class.java,
-                        NoArgWithFactoryEnclosingClass.Factory()
-                    )
-                    .addFactory(
+                    ) {
+                        NoArgWithFactoryEnclosingClass()
+                    }
+                    .addEnclosingClassFactory(
                         RequiredArgsEnclosingClass::class.java,
-                        RequiredArgsEnclosingClass.Factory()
-                    )
+                    ) {
+                        RequiredArgsEnclosingClass(0)
+                    }
                     .build()
     }
 
@@ -121,25 +122,9 @@ class ConfigurableAppFunctionFactoryTest {
     // Test enclosing classes
     class NoArgEnclosingClass()
 
-    class NoArgWithFactoryEnclosingClass() {
-        class Factory : AppFunctionFactory<NoArgWithFactoryEnclosingClass> {
-            override fun createEnclosingClass(
-                enclosingClass: Class<NoArgWithFactoryEnclosingClass>
-            ): NoArgWithFactoryEnclosingClass {
-                return NoArgWithFactoryEnclosingClass()
-            }
-        }
-    }
+    class NoArgWithFactoryEnclosingClass()
 
-    class RequiredArgsEnclosingClass(val x: Int) {
-        class Factory : AppFunctionFactory<RequiredArgsEnclosingClass> {
-            override fun createEnclosingClass(
-                enclosingClass: Class<RequiredArgsEnclosingClass>
-            ): RequiredArgsEnclosingClass {
-                return RequiredArgsEnclosingClass(0)
-            }
-        }
-    }
+    class RequiredArgsEnclosingClass(val x: Int)
 
     class PrivateConstructorEnclosingClass private constructor()
 

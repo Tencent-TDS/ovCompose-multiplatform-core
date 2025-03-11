@@ -122,6 +122,7 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureCapabilities;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
+import androidx.camera.core.LowLightBoostState;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.core.TorchState;
@@ -309,6 +310,11 @@ public class CameraXActivity extends AppCompatActivity {
     @VisibleForTesting
     // Sets this bit to bind ImageAnalysis when using INTENT_EXTRA_USE_CASE_COMBINATION
     public static final int BIND_IMAGE_ANALYSIS = 0x8;
+    // Launch the activity with the specified stream sharing force enable settings. Note that
+    // StreamSharing will only take effect when both Preview and VideoCapture are bound.
+    @VisibleForTesting
+    public static final String INTENT_EXTRA_FORCE_ENABLE_STREAM_SHARING =
+            "force_enable_stream_sharing";
 
     static final CameraSelector BACK_SELECTOR =
             new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
@@ -371,6 +377,8 @@ public class CameraXActivity extends AppCompatActivity {
     private ScreenFlashView mScreenFlashView;
     private TextView mTextView;
     private ImageButton mTorchButton;
+    private TextView mTorchStrengthText;
+    private SeekBar mTorchStrengthSeekBar;
     private ToggleButton mCaptureQualityToggle;
     private Button mPlusEV;
     private Button mDecEV;
@@ -383,6 +391,7 @@ public class CameraXActivity extends AppCompatActivity {
     private Toast mEvToast = null;
     private Toast mPSToast = null;
     private ToggleButton mPreviewStabilizationToggle;
+    private ToggleButton mLowLightBoostToggle;
 
     private OpenGLRenderer mPreviewRenderer;
     private DisplayManager.DisplayListener mDisplayListener;
@@ -396,6 +405,7 @@ public class CameraXActivity extends AppCompatActivity {
     private final Set<DynamicRange> mSelectableDynamicRanges = new HashSet<>();
     private int mVideoMirrorMode = MIRROR_MODE_ON_FRONT_ONLY;
     private boolean mIsPreviewStabilizationOn = false;
+    private boolean mIsLowLightBoostOn = false;
     private Range<Integer> mFpsRange = FPS_UNSPECIFIED;
     private boolean mForceEnableStreamSharing;
     private boolean mDisableViewPort;
@@ -1312,6 +1322,7 @@ public class CameraXActivity extends AppCompatActivity {
             mButtonImageOutputFormat.setVisibility(View.GONE);
             mRecordUi.hideUi();
             mPreviewStabilizationToggle.setVisibility(View.GONE);
+            mLowLightBoostToggle.setVisibility(View.GONE);
             if (!testCase.equals(SWITCH_TEST_CASE)) {
                 mCameraDirectionButton.setVisibility(View.GONE);
             }
@@ -1384,6 +1395,8 @@ public class CameraXActivity extends AppCompatActivity {
         mCameraDirectionButton.setEnabled(getCameraInfo() != null);
         mPreviewStabilizationToggle.setEnabled(mCamera != null
                 && Preview.getPreviewCapabilities(getCameraInfo()).isStabilizationSupported());
+        mLowLightBoostToggle.setEnabled(
+                mCamera != null && mCamera.getCameraInfo().isLowLightBoostSupported());
         mTorchButton.setEnabled(isFlashUnitAvailable());
         // Flash button
         mFlashButton.setEnabled(isFlashAvailable());
@@ -1495,6 +1508,16 @@ public class CameraXActivity extends AppCompatActivity {
         mAnalysisToggle.setChecked((useCaseCombination & BIND_IMAGE_ANALYSIS) != 0L);
     }
 
+    private void updateStreamSharingForceEnableStateByIntent(@NonNull Intent intent) {
+        Bundle bundle = intent.getExtras();
+        if (bundle == null) {
+            return;
+        }
+
+        mForceEnableStreamSharing = bundle.getBoolean(INTENT_EXTRA_FORCE_ENABLE_STREAM_SHARING,
+                false);
+    }
+
     private void updateVideoMirrorModeByIntent(@NonNull Intent intent) {
         int mirrorMode = intent.getIntExtra(INTENT_EXTRA_VIDEO_MIRROR_MODE, -1);
         if (mirrorMode != -1) {
@@ -1586,17 +1609,21 @@ public class CameraXActivity extends AppCompatActivity {
         mPreviewToggle = findViewById(R.id.PreviewToggle);
 
         updateUseCaseCombinationByIntent(getIntent());
+        updateStreamSharingForceEnableStateByIntent(getIntent());
 
         mTakePicture = findViewById(R.id.Picture);
         mFlashButton = findViewById(R.id.flash_toggle);
         mScreenFlashView = findViewById(R.id.screen_flash_view);
         mCameraDirectionButton = findViewById(R.id.direction_toggle);
         mTorchButton = findViewById(R.id.torch_toggle);
+        mTorchStrengthText = findViewById(R.id.torchStrength);
+        mTorchStrengthSeekBar = findViewById(R.id.torchStrengthBar);
         mCaptureQualityToggle = findViewById(R.id.capture_quality);
         mPlusEV = findViewById(R.id.plus_ev_toggle);
         mDecEV = findViewById(R.id.dec_ev_toggle);
         mZslToggle = findViewById(R.id.zsl_toggle);
         mPreviewStabilizationToggle = findViewById(R.id.preview_stabilization);
+        mLowLightBoostToggle = findViewById(R.id.low_light_boost);
         mZoomSeekBar = findViewById(R.id.seekBar);
         mZoomRatioLabel = findViewById(R.id.zoomRatio);
         mZoomIn2XToggle = findViewById(R.id.zoom_in_2x_toggle);
@@ -2207,6 +2234,8 @@ public class CameraXActivity extends AppCompatActivity {
         mCamera = mCameraProvider.bindToLifecycle(this, mCurrentCameraSelector,
                 useCaseGroupBuilder.build());
         setupZoomSeeker();
+        setupTorchStrengthSeeker();
+        setUpLowLightBoostButton();
         return mCamera;
     }
 
@@ -2269,6 +2298,44 @@ public class CameraXActivity extends AppCompatActivity {
                     return true;
                 }
             };
+
+    @SuppressLint("NewApi")
+    private void setupTorchStrengthSeeker() {
+        if (mCamera.getCameraInfo().isTorchStrengthSupported()) {
+            mTorchStrengthText.setVisibility(View.VISIBLE);
+            mTorchStrengthText.setText(
+                    "L" + (mCamera.getCameraInfo().getTorchStrengthLevel().getValue()));
+
+            mTorchStrengthSeekBar.setVisibility(View.VISIBLE);
+            mTorchStrengthSeekBar.setMin(1);
+            mTorchStrengthSeekBar.setMax(mCamera.getCameraInfo().getMaxTorchStrengthLevel());
+            mTorchStrengthSeekBar.setProgress(
+                    mCamera.getCameraInfo().getTorchStrengthLevel().getValue());
+            mTorchStrengthSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    if (!fromUser) {
+                        return;
+                    }
+                    mCamera.getCameraControl().setTorchStrengthLevel(progress);
+                    mTorchStrengthText.setText("L" + progress);
+                }
+
+                @Override
+                public void onStartTrackingTouch(SeekBar seekBar) {
+                    // No-op
+                }
+
+                @Override
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    // No-op
+                }
+            });
+        } else {
+            mTorchStrengthText.setVisibility(View.GONE);
+            mTorchStrengthSeekBar.setVisibility(View.GONE);
+        }
+    }
 
     private void setupZoomSeeker() {
         CameraControl cameraControl = mCamera.getCameraControl();
@@ -2343,6 +2410,44 @@ public class CameraXActivity extends AppCompatActivity {
                 showPreviewStabilizationToast("Preview Stabilization On, FOV changes");
             }
             tryBindUseCases();
+        });
+    }
+
+    @SuppressWarnings("FutureReturnValueIgnored")
+    private void setUpLowLightBoostButton() {
+        mIsLowLightBoostOn = false;
+        mLowLightBoostToggle.setVisibility(
+                mCamera == null || !mCamera.getCameraInfo().isLowLightBoostSupported() ? View.GONE
+                        : View.VISIBLE);
+        if (mLowLightBoostToggle.hasOnClickListeners()) {
+            return;
+        }
+        mLowLightBoostToggle.setOnClickListener(v -> {
+            mIsLowLightBoostOn = !mIsLowLightBoostOn;
+            if (mCamera == null) {
+                return;
+            }
+            if (!mCamera.getCameraInfo().getLowLightBoostState().hasObservers()) {
+                // Show the low-light boost state to the toggle button text for easy observation.
+                mCamera.getCameraInfo().getLowLightBoostState().observe(
+                        this,
+                        state -> {
+                            int resId;
+                            switch (state) {
+                                case LowLightBoostState.INACTIVE:
+                                    resId = R.string.toggle_low_light_boost_inactive;
+                                    break;
+                                case LowLightBoostState.ACTIVE:
+                                    resId = R.string.toggle_low_light_boost_active;
+                                    break;
+                                default:
+                                    resId = R.string.toggle_low_light_boost_off;
+                            }
+                            mLowLightBoostToggle.setText(resId);
+                        }
+                );
+            }
+            mCamera.getCameraControl().enableLowLightBoostAsync(mIsLowLightBoostOn);
         });
     }
 

@@ -16,11 +16,16 @@
 
 package androidx.privacysandbox.ui.integration.testapp
 
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+
 /** Base hidden fragment to be used for testing different automation and benchmarking flows. */
 abstract class BaseHiddenFragment : BaseFragment() {
     final override fun handleLoadAdFromDrawer(
-        adType: Int,
-        mediationOption: Int,
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {}
 

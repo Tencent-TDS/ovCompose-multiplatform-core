@@ -48,7 +48,7 @@ actual constructor(
             onInvalidatedTablesIds = {}
         )
 
-    /** Internal method to initialize table tracking. Invoked by generated code. */
+    /** Internal function to initialize table tracking. Invoked by generated code. */
     internal actual fun internalInit(connection: SQLiteConnection) {
         implementation.configureConnection(connection)
     }

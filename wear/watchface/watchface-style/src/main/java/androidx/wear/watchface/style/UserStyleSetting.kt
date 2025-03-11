@@ -164,7 +164,12 @@ internal abstract class DisplayText {
  *   the [options] list.
  * @property affectedWatchFaceLayers Used by the style configuration UI. Describes which rendering
  *   layers this style affects.
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public sealed class UserStyleSetting
 private constructor(
     public val id: Id,

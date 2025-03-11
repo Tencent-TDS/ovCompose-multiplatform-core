@@ -52,27 +52,33 @@ internal object DataCardDefaults {
         when (titleContentPlacement) {
             Top ->
                 ContainerWithSpacersBuilder<LayoutElement>(
-                        { it: LayoutElement? -> verticalElementBuilder.addContent(it!!) },
+                        { element: LayoutElement? -> verticalElementBuilder.addContent(element!!) },
                         title
                     )
                     .addElement(content, horizontalSpacer(style.titleToContentSpaceDp))
                     .addElement(
                         secondaryIcon ?: secondaryText,
                         horizontalSpacer(
-                            if (secondaryIcon != null) style.iconToTextSpaceDp
-                            else style.secondaryLabelToTextSpaceDp
+                            if (secondaryIcon != null) {
+                                style.iconToTextSpaceDp
+                            } else {
+                                style.secondaryLabelToTextSpaceDp
+                            }
                         )
                     )
             Bottom ->
                 ContainerWithSpacersBuilder<LayoutElement>(
-                        { it: LayoutElement? -> verticalElementBuilder.addContent(it!!) },
+                        { element: LayoutElement? -> verticalElementBuilder.addContent(element!!) },
                         secondaryIcon ?: secondaryText,
                     )
                     .addElement(
                         title,
                         horizontalSpacer(
-                            if (secondaryIcon != null) style.iconToTextSpaceDp
-                            else style.secondaryLabelToTextSpaceDp
+                            if (secondaryIcon != null) {
+                                style.iconToTextSpaceDp
+                            } else {
+                                style.secondaryLabelToTextSpaceDp
+                            }
                         )
                     )
                     .addElement(content, horizontalSpacer(style.titleToContentSpaceDp))

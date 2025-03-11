@@ -75,7 +75,7 @@ import androidx.test.filters.SmallTest;
 
 import com.google.common.collect.Lists;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -504,8 +504,7 @@ public class NotificationCompatTest extends BaseInstrumentationTestCase<TestActi
         assertSame(styleSubclass, style.getClass());
     }
 
-    @NotNull
-    private List<Class<? extends Style>> getStyleSubclasses() {
+    private @NonNull List<Class<? extends Style>> getStyleSubclasses() {
         List<Class<? extends Style>> styleSubclasses = new ArrayList<>();
         for (Class<?> candidate : NotificationCompat.class.getClasses()) {
             try {

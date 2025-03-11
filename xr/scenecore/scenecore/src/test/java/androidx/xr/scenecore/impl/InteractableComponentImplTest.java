@@ -45,6 +45,8 @@ import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -68,7 +70,8 @@ public class InteractableComponentImplTest {
             Mockito.mock(SplitEngineSubspaceManager.class);
     ImpSplitEngineRenderer mSplitEngineRenderer = Mockito.mock(ImpSplitEngineRenderer.class);
 
-    private Entity createTestEntity() {
+    @Before
+    public void setUp() {
         when(mPerceptionLibrary.initSession(eq(mActivity), anyInt(), eq(mFakeExecutor)))
                 .thenReturn(immediateFuture(mock(Session.class)));
         mFakeRuntime =
@@ -82,6 +85,15 @@ public class InteractableComponentImplTest {
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
                         /* useSplitEngine= */ false);
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mFakeRuntime.dispose();
+    }
+
+    private Entity createTestEntity() {
         return mFakeRuntime.createEntity(new Pose(), "test", mFakeRuntime.getActivitySpace());
     }
 

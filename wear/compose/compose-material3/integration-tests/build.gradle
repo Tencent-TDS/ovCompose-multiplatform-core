@@ -21,7 +21,9 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -47,9 +49,10 @@ dependencies {
 
 androidx {
     name = "AndroidX Wear Compose Material3 Components Demos"
-    type = LibraryType.TEST_APPLICATION
+    type = SoftwareType.TEST_APPLICATION
     inceptionYear = "2023"
     description = "Contains the demo code for the AndroidX Wear Compose Material 3 components."
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
 android {

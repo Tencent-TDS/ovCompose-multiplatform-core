@@ -77,8 +77,7 @@ public class CapabilitiesByQuality {
 
             EncoderProfilesProxy.VideoProfileProxy videoProfile =
                     validatedProfiles.getDefaultVideoProfile();
-            Size size = new Size(videoProfile.getWidth(), videoProfile.getHeight());
-            mAreaSortedSizeToQualityMap.put(size, quality);
+            mAreaSortedSizeToQualityMap.put(videoProfile.getResolution(), quality);
 
             // SortedQualities is from size large to small.
             mSupportedProfilesMap.put(quality, validatedProfiles);

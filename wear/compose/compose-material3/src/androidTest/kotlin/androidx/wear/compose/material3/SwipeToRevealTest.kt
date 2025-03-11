@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.foundation.RevealValue
+import androidx.wear.compose.foundation.rememberRevealState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
@@ -51,13 +52,16 @@ class SwipeToRevealTest {
                 Box(modifier = Modifier.fillMaxSize()) {
                     SwipeToReveal(
                         modifier = Modifier.testTag(TEST_TAG),
-                        revealState = rememberRevealState(initialValue = revealState),
+                        revealState =
+                            rememberRevealState(
+                                initialValue = revealState,
+                                anchors = SwipeToRevealDefaults.anchors()
+                            ),
                         actions = {
                             primaryAction(
                                 {},
                                 { Icon(Icons.Outlined.Close, contentDescription = "Clear") },
-                                { Text("Clear") },
-                                "Clear"
+                                { Text("Clear") }
                             )
                         }
                     ) {

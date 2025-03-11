@@ -21,12 +21,17 @@ import android.graphics.Color
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.wear.protolayout.DeviceParametersBuilders
+import androidx.wear.protolayout.DimensionBuilders
 import androidx.wear.protolayout.DimensionBuilders.expand
+import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
+import androidx.wear.protolayout.material3.GraphicDataCardDefaults.CENTER_ICON_SIZE_RATIO_IN_GRAPHIC
+import androidx.wear.protolayout.material3.GraphicDataCardDefaults.constructGraphic
 import androidx.wear.protolayout.modifiers.LayoutModifier
 import androidx.wear.protolayout.modifiers.background
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.testing.LayoutElementAssertionsProvider
+import androidx.wear.protolayout.testing.containsTag
 import androidx.wear.protolayout.testing.hasClickable
 import androidx.wear.protolayout.testing.hasColor
 import androidx.wear.protolayout.testing.hasContentDescription
@@ -36,7 +41,9 @@ import androidx.wear.protolayout.testing.hasTag
 import androidx.wear.protolayout.testing.hasText
 import androidx.wear.protolayout.testing.hasWidth
 import androidx.wear.protolayout.types.argb
+import androidx.wear.protolayout.types.dp
 import androidx.wear.protolayout.types.layoutString
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.internal.DoNotInstrument
@@ -213,7 +220,7 @@ class CardTest {
     @Test
     fun graphicDataCard_hasGraphic() {
         LayoutElementAssertionsProvider(DEFAULT_GRAPHIC_DATA_CARD)
-            .onElement(hasText(TEXT_GRAPHIC))
+            .onElement(containsTag(CircularProgressIndicatorDefaults.METADATA_TAG))
             .assertExists()
     }
 
@@ -398,7 +405,6 @@ class CardTest {
     fun graphicDataCard_withSecondaryLabel_hasColors() {
         val titleColor = Color.YELLOW
         val contentColor = Color.MAGENTA
-        // TODO: b/368272767 - Update to CPI when available.
         val graphicColor = Color.CYAN
         val backgroundColor = Color.BLUE
         val card =
@@ -429,6 +435,81 @@ class CardTest {
         LayoutElementAssertionsProvider(card).onRoot().assert(hasTag(CardDefaults.METADATA_TAG))
     }
 
+    @Test
+    fun graphicDataCard_useConstructGraphic_expandSize_inflates() {
+        val graphicIconColor = Color.MAGENTA
+        val card =
+            materialScope(CONTEXT, DEVICE_CONFIGURATION) {
+                graphicDataCard(
+                    onClick = CLICKABLE,
+                    modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
+                    colors =
+                        CardColors(
+                            backgroundColor = Color.RED.argb,
+                            titleColor = Color.GREEN.argb,
+                            contentColor = Color.BLUE.argb,
+                            graphicIconColor = graphicIconColor.argb,
+                        ),
+                    title = { text(TEXT.layoutString) },
+                    content = { text(TEXT2.layoutString) },
+                    graphic = {
+                        constructGraphic(
+                            mainContent = { circularProgressIndicator() },
+                            iconContent = { icon(AVATAR_ID) }
+                        )
+                    }
+                )
+            }
+
+        LayoutElementAssertionsProvider(card)
+            .onElement(hasImage(AVATAR_ID))
+            .assert(hasColor(graphicIconColor))
+            .assert(hasWidth(expand()))
+            .assert(
+                hasHeight(
+                    DimensionBuilders.ProportionalDimensionProp.Builder()
+                        .setAspectRatioWidth(1)
+                        .setAspectRatioHeight(1)
+                        .build()
+                )
+            )
+    }
+
+    @Test
+    fun graphicDataCard_useConstructGraphic_dpSize_inflates() {
+        val graphicIconColor = Color.MAGENTA
+        val size = 50F.dp
+        val expectedIconSize = (size.value * CENTER_ICON_SIZE_RATIO_IN_GRAPHIC).dp
+        val card =
+            materialScope(CONTEXT, DEVICE_CONFIGURATION) {
+                graphicDataCard(
+                    onClick = CLICKABLE,
+                    modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
+                    colors =
+                        CardColors(
+                            backgroundColor = Color.RED.argb,
+                            titleColor = Color.GREEN.argb,
+                            contentColor = Color.BLUE.argb,
+                            graphicIconColor = graphicIconColor.argb,
+                        ),
+                    title = { text(TEXT.layoutString) },
+                    content = { text(TEXT2.layoutString) },
+                    graphic = {
+                        constructGraphic(
+                            mainContent = { circularProgressIndicator(size = size) },
+                            iconContent = { icon(AVATAR_ID) }
+                        )
+                    }
+                )
+            }
+
+        LayoutElementAssertionsProvider(card)
+            .onElement(hasImage(AVATAR_ID))
+            .assert(hasColor(graphicIconColor))
+            .assert(hasWidth(expectedIconSize))
+            .assert(hasHeight(expectedIconSize))
+    }
+
     // TODO: b/381518061 - Add test for corner shape.
 
     @Test
@@ -453,6 +534,30 @@ class CardTest {
             .assert(hasTag(CardDefaults.METADATA_TAG))
     }
 
+    @Test
+    fun cardColors_copy() {
+        val color = Color.YELLOW
+        val color2 = Color.MAGENTA
+        val originCardColors = CardColors()
+
+        val cardColors =
+            originCardColors.copy(timeColor = color.argb, graphicIconColor = color2.argb)
+
+        assertThat(cardColors.backgroundColor.staticArgb)
+            .isEqualTo(originCardColors.backgroundColor.staticArgb)
+        assertThat(cardColors.titleColor.staticArgb)
+            .isEqualTo(originCardColors.titleColor.staticArgb)
+        assertThat(cardColors.labelColor.staticArgb)
+            .isEqualTo(originCardColors.labelColor.staticArgb)
+        assertThat(cardColors.timeColor.staticArgb).isEqualTo(color)
+        assertThat(cardColors.secondaryIconColor.staticArgb)
+            .isEqualTo(originCardColors.secondaryIconColor.staticArgb)
+        assertThat(cardColors.secondaryTextColor.staticArgb)
+            .isEqualTo(originCardColors.secondaryTextColor.staticArgb)
+        assertThat(cardColors.graphicProgressIndicatorColors).isNull()
+        assertThat(cardColors.graphicIconColor!!.staticArgb).isEqualTo(color2)
+    }
+
     companion object {
         private val CONTEXT = getApplicationContext() as Context
 
@@ -460,9 +565,8 @@ class CardTest {
             DeviceParametersBuilders.DeviceParameters.Builder()
                 .setScreenWidthDp(192)
                 .setScreenHeightDp(192)
+                .setRendererSchemaVersion(VersionInfo.Builder().setMajor(99).setMinor(999).build())
                 .build()
-
-        private val CLICKABLE = clickable(id = "id")
 
         private const val CONTENT_DESCRIPTION = "This is a card"
 
@@ -472,7 +576,6 @@ class CardTest {
         private const val TEXT2 = "Description"
         private const val TEXT3 = "Now"
         private const val TEXT4 = "Label"
-        // TODO: b/368272767 - Update this to CPI
         private const val TEXT_GRAPHIC = "Graphic"
         private const val AVATAR_ID = "id"
 
@@ -549,7 +652,7 @@ class CardTest {
                     modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
                     title = { text(TEXT.layoutString) },
                     content = { text(TEXT2.layoutString) },
-                    graphic = { text(TEXT_GRAPHIC.layoutString) }
+                    graphic = { circularProgressIndicator() }
                 )
             }
     }

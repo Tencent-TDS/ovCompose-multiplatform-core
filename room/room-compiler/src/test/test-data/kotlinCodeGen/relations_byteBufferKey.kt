@@ -71,8 +71,7 @@ public class MyDao_Impl(
     }
   }
 
-  private fun __fetchRelationshipArtistAsArtist(_connection: SQLiteConnection,
-      _map: MutableMap<ByteArrayWrapper, Artist?>) {
+  private fun __fetchRelationshipArtistAsArtist(_connection: SQLiteConnection, _map: MutableMap<ByteArrayWrapper, Artist?>) {
     val __mapKeySet: Set<ByteArrayWrapper> = _map.keys
     if (__mapKeySet.isEmpty()) {
       return

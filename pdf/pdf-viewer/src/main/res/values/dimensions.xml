@@ -35,12 +35,12 @@
     <dimen name="default_track_width">9dp</dimen>
     <dimen name="default_track_height">9dp</dimen>
     <dimen name="scrubber_edge_offset">3dp</dimen>
-    <dimen name="page_indicator_height">12dp</dimen>
-    <dimen name="page_indicator_right_margin">3dp</dimen>
-    <dimen name="page_indicator_text_offset">9dp</dimen>
+    <dimen name="page_indicator_height">14dp</dimen>
+    <dimen name="page_indicator_right_margin">15dp</dimen>
+    <dimen name="page_indicator_text_offset">6dp</dimen>
     <dimen name="page_indicator_text_offset_x">1dp</dimen>
     <dimen name="page_indicator_text_offset_y">20dp</dimen>
-    <dimen name="page_indicator_text_size">4.8dp</dimen>
+    <dimen name="page_indicator_text_size">5.4dp</dimen>
     <dimen name="scroller_top_margin">2dp</dimen>
     <dimen name="scroller_bottom_margin">2dp</dimen>
 </resources>

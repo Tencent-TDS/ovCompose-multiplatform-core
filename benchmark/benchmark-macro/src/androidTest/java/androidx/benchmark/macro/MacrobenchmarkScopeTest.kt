@@ -98,8 +98,14 @@ class MacrobenchmarkScopeTest {
     @SdkSuppress(minSdkVersion = 24)
     @Test
     fun compile_speedProfile_withProfileFlushes() {
-        // Emulator api 30 does not have dex2oat (b/264938965)
-        assumeTrue(Build.VERSION.SDK_INT != Build.VERSION_CODES.R)
+        if (DeviceInfo.isEmulator) {
+            // Emulator API 30 does not have dex2oat (b/264938965)
+            assumeTrue(Build.VERSION.SDK_INT != 30)
+
+            // Emulator API 26 times out when compiling (b/393186249)
+            assumeTrue(Build.VERSION.SDK_INT != 26)
+        }
+
         val scope = MacrobenchmarkScope(Packages.TARGET, launchWithClearTask = true)
         val warmupIterations = 2
         var executions = 0
@@ -108,9 +114,9 @@ class MacrobenchmarkScopeTest {
                 baselineProfileMode = BaselineProfileMode.Disable,
                 warmupIterations = warmupIterations
             )
-        assertEquals(MacrobenchmarkScope.KillFlushMode.None, scope.killFlushMode)
+        assertEquals(MacrobenchmarkScope.KillMode.None, scope.killMode)
         compilation.resetAndCompile(scope) {
-            assertEquals(MacrobenchmarkScope.KillFlushMode.FlushArtProfiles, scope.killFlushMode)
+            assertTrue(scope.killMode.flushArtProfiles)
             executions += 1
 
             // on first iter, kill doesn't kill anything, so profiles are not yet flushed
@@ -120,7 +126,7 @@ class MacrobenchmarkScopeTest {
             scope.pressHome()
             scope.startActivityAndWait()
         }
-        assertEquals(MacrobenchmarkScope.KillFlushMode.None, scope.killFlushMode)
+        assertEquals(MacrobenchmarkScope.KillMode.None, scope.killMode)
         assertEquals(warmupIterations, executions)
     }
 
@@ -137,14 +143,11 @@ class MacrobenchmarkScopeTest {
                 baselineProfileMode = BaselineProfileMode.Disable,
                 warmupIterations = 2
             )
-        assertEquals(MacrobenchmarkScope.KillFlushMode.None, scope.killFlushMode)
+        assertEquals(MacrobenchmarkScope.KillMode.None, scope.killMode)
         assertContains(
             assertFailsWith<IllegalStateException> {
                     compilation.resetAndCompile(scope) {
-                        assertEquals(
-                            MacrobenchmarkScope.KillFlushMode.FlushArtProfiles,
-                            scope.killFlushMode
-                        )
+                        assertTrue(scope.killMode.flushArtProfiles)
                         assertFalse(scope.hasFlushedArtProfiles)
                         // not launching process so profiles can't flush, should fail after this
                         executions++
@@ -153,7 +156,7 @@ class MacrobenchmarkScopeTest {
                 .message!!,
             "never flushed profiles in any process"
         )
-        assertEquals(MacrobenchmarkScope.KillFlushMode.None, scope.killFlushMode)
+        assertEquals(MacrobenchmarkScope.KillMode.None, scope.killMode)
         assertEquals(2, executions)
     }
 

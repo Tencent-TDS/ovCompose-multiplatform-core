@@ -21,6 +21,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.internal.requirePreconditionNotNull
+import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState.LazyLayoutPrefetchResultScope
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState.PrefetchHandle
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
@@ -30,7 +31,9 @@ import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.trace
+import androidx.compose.ui.util.traceValue
 import kotlin.time.TimeSource.Monotonic.markNow
 
 /**
@@ -61,7 +64,32 @@ class LazyLayoutPrefetchState(
      *
      * @param index item index to prefetch.
      */
-    fun schedulePrefetch(index: Int): PrefetchHandle = schedulePrefetch(index, ZeroConstraints)
+    @Deprecated(
+        "Please use schedulePrecomposition(index) instead",
+        level = DeprecationLevel.WARNING
+    )
+    fun schedulePrefetch(index: Int): PrefetchHandle {
+        return prefetchHandleProvider?.schedulePrecomposition(
+            index,
+            prefetchMetrics,
+        ) ?: DummyHandle
+    }
+
+    /**
+     * Schedules precomposition for the new item. If you also want to premeasure the item please use
+     * [schedulePrecompositionAndPremeasure] instead. This function should only be called once per
+     * item. If the item has already been composed at the time this request executes, either from a
+     * previous call to this function or because the item is already visible, this request should
+     * have no meaningful effect.
+     *
+     * @param index item index to prefetch.
+     */
+    fun schedulePrecomposition(index: Int): PrefetchHandle {
+        return prefetchHandleProvider?.schedulePrecomposition(
+            index,
+            prefetchMetrics,
+        ) ?: DummyHandle
+    }
 
     /**
      * Schedules precomposition and premeasure for the new item.
@@ -69,9 +97,37 @@ class LazyLayoutPrefetchState(
      * @param index item index to prefetch.
      * @param constraints [Constraints] to use for premeasuring.
      */
-    fun schedulePrefetch(index: Int, constraints: Constraints): PrefetchHandle {
-        return prefetchHandleProvider?.schedulePrefetch(index, constraints, prefetchMetrics)
-            ?: DummyHandle
+    @Deprecated(
+        "Please use schedulePremeasure(index, constraints) instead",
+        level = DeprecationLevel.WARNING
+    )
+    fun schedulePrefetch(index: Int, constraints: Constraints): PrefetchHandle =
+        schedulePrecompositionAndPremeasure(index, constraints, null)
+
+    /**
+     * Schedules precomposition and premeasure for the new item. This should be used instead of
+     * [schedulePrecomposition] if you also want to premeasure the item. This function should only
+     * be called once per item. If the item has already been composed / measured at the time this
+     * request executes, either from a previous call to this function or because the item is already
+     * visible, this request should have no meaningful effect.
+     *
+     * @param index item index to prefetch.
+     * @param constraints [Constraints] to use for premeasuring.
+     * @param onItemPremeasured This callback is called when the item premeasuring is finished. If
+     *   the request is canceled or no measuring is performed this callback won't be called. Use
+     *   [LazyLayoutPrefetchResultScope.getSize] to get the item's size.
+     */
+    fun schedulePrecompositionAndPremeasure(
+        index: Int,
+        constraints: Constraints,
+        onItemPremeasured: (LazyLayoutPrefetchResultScope.() -> Unit)? = null
+    ): PrefetchHandle {
+        return prefetchHandleProvider?.schedulePremeasure(
+            index,
+            constraints,
+            prefetchMetrics,
+            onItemPremeasured
+        ) ?: DummyHandle
     }
 
     internal fun collectNestedPrefetchRequests(): List<PrefetchRequest> {
@@ -100,6 +156,19 @@ class LazyLayoutPrefetchState(
         fun markAsUrgent()
     }
 
+    /**
+     * A scope for [schedulePrefetch] callbacks. The scope provides additional information about a
+     * prefetched item.
+     */
+    interface LazyLayoutPrefetchResultScope {
+
+        /** The amount of placeables composed into this item. */
+        val placeablesCount: Int
+
+        /** Retrieves the latest measured size for a given placeable [index] in pixels. */
+        fun getSize(index: Int): IntSize
+    }
+
     private inner class NestedPrefetchScopeImpl : NestedPrefetchScope {
 
         val requests: List<PrefetchRequest>
@@ -107,11 +176,14 @@ class LazyLayoutPrefetchState(
 
         private val _requests: MutableList<PrefetchRequest> = mutableListOf()
 
-        override fun schedulePrefetch(index: Int) {
-            schedulePrefetch(index, ZeroConstraints)
+        override fun schedulePrecomposition(index: Int) {
+            val prefetchHandleProvider = prefetchHandleProvider ?: return
+            _requests.add(
+                prefetchHandleProvider.createNestedPrefetchRequest(index, prefetchMetrics)
+            )
         }
 
-        override fun schedulePrefetch(index: Int, constraints: Constraints) {
+        override fun schedulePrecompositionAndPremeasure(index: Int, constraints: Constraints) {
             val prefetchHandleProvider = prefetchHandleProvider ?: return
             _requests.add(
                 prefetchHandleProvider.createNestedPrefetchRequest(
@@ -138,16 +210,43 @@ sealed interface NestedPrefetchScope {
      *
      * @param index item index to prefetch.
      */
-    fun schedulePrefetch(index: Int)
+    @Deprecated(
+        "Please use schedulePrecomposition(index) instead",
+        level = DeprecationLevel.WARNING
+    )
+    fun schedulePrefetch(index: Int) = schedulePrecomposition(index)
+
+    /**
+     * Requests a child index to be precomposed as part of the prefetch of a parent LazyLayout.
+     *
+     * The prefetch will only do the precomposition for the new item. If you also want to premeasure
+     * please use [schedulePrecompositionAndPremeasure].
+     *
+     * @param index item index to prefetch.
+     */
+    fun schedulePrecomposition(index: Int)
 
     /**
      * Requests a child index to be prefetched as part of the prefetch of a parent LazyLayout.
      *
      * @param index the index of the child to prefetch.
-     * @param constraints [Constraints] to use for premeasuring. If null, the child will not be
-     *   premeasured.
+     * @param constraints [Constraints] to use for premeasuring.
      */
-    fun schedulePrefetch(index: Int, constraints: Constraints)
+    @Deprecated(
+        "Please use schedulePremeasure(index, constraints) instead",
+        level = DeprecationLevel.WARNING
+    )
+    fun schedulePrefetch(index: Int, constraints: Constraints) =
+        schedulePrecompositionAndPremeasure(index, constraints)
+
+    /**
+     * Requests a child index to be precomposed and premeasured as part of the prefetch of a parent
+     * LazyLayout. If you just want to precompose an item use [schedulePrecomposition] instead.
+     *
+     * @param index the index of the child to prefetch.
+     * @param constraints [Constraints] to use for premeasuring.
+     */
+    fun schedulePrecompositionAndPremeasure(index: Int, constraints: Constraints)
 }
 
 /**
@@ -167,7 +266,7 @@ internal class PrefetchMetrics {
             lastUsedAverage
         } else {
             averagesByContentType
-                .getOrPut(contentType) { overallAverage.copy() }
+                .getOrPut(contentType) { Averages() }
                 .also {
                     this.lastUsedContentType = contentType
                     this.lastUsedAverage = it
@@ -175,7 +274,6 @@ internal class PrefetchMetrics {
         }
     }
 
-    private val overallAverage = Averages()
     private val averagesByContentType = mutableScatterMapOf<Any?, Averages>()
 
     private var lastUsedContentType: Any? = null
@@ -186,12 +284,10 @@ internal class PrefetchMetrics {
     fun getMeasureTimeNanos(contentType: Any?) = getAverage(contentType).measureTimeNanos
 
     fun saveCompositionTime(contentType: Any?, timeNanos: Long) {
-        overallAverage.saveCompositionTimeNanos(timeNanos)
         getAverage(contentType).saveCompositionTimeNanos(timeNanos)
     }
 
     fun saveMeasureTime(contentType: Any?, timeNanos: Long) {
-        overallAverage.saveMeasureTimeNanos(timeNanos)
         getAverage(contentType).saveMeasureTimeNanos(timeNanos)
     }
 }
@@ -209,12 +305,6 @@ private class Averages {
     fun saveMeasureTimeNanos(timeNanos: Long) {
         measureTimeNanos = calculateAverageTime(timeNanos, measureTimeNanos)
     }
-
-    fun copy() =
-        Averages().also {
-            it.compositionTimeNanos = compositionTimeNanos
-            it.measureTimeNanos = measureTimeNanos
-        }
 
     private fun calculateAverageTime(new: Long, current: Long): Long {
         // Calculate a weighted moving average of time taken to compose an item. We use weighted
@@ -246,30 +336,57 @@ private object DummyHandle : PrefetchHandle {
 internal class PrefetchHandleProvider(
     private val itemContentFactory: LazyLayoutItemContentFactory,
     private val subcomposeLayoutState: SubcomposeLayoutState,
-    private val executor: PrefetchScheduler
+    private val executor: PrefetchScheduler,
 ) {
-    fun schedulePrefetch(
+    fun schedulePrecomposition(
+        index: Int,
+        prefetchMetrics: PrefetchMetrics,
+    ): PrefetchHandle =
+        HandleAndRequestImpl(index, prefetchMetrics, null).also {
+            executor.schedulePrefetch(it)
+            traceValue("compose:lazy:schedule_prefetch:index", index.toLong())
+        }
+
+    fun schedulePremeasure(
         index: Int,
         constraints: Constraints,
-        prefetchMetrics: PrefetchMetrics
+        prefetchMetrics: PrefetchMetrics,
+        onItemPremeasured: (LazyLayoutPrefetchResultScope.() -> Unit)?
     ): PrefetchHandle =
-        HandleAndRequestImpl(index, constraints, prefetchMetrics).also {
+        HandleAndRequestImpl(index, constraints, prefetchMetrics, onItemPremeasured).also {
             executor.schedulePrefetch(it)
+            traceValue("compose:lazy:schedule_prefetch:index", index.toLong())
         }
 
     fun createNestedPrefetchRequest(
         index: Int,
         constraints: Constraints,
         prefetchMetrics: PrefetchMetrics,
-    ): PrefetchRequest = HandleAndRequestImpl(index, constraints = constraints, prefetchMetrics)
+    ): PrefetchRequest =
+        HandleAndRequestImpl(index, constraints = constraints, prefetchMetrics, null)
+
+    fun createNestedPrefetchRequest(
+        index: Int,
+        prefetchMetrics: PrefetchMetrics,
+    ): PrefetchRequest = HandleAndRequestImpl(index, prefetchMetrics, null)
 
     @ExperimentalFoundationApi
     private inner class HandleAndRequestImpl(
         private val index: Int,
-        private val constraints: Constraints,
         private val prefetchMetrics: PrefetchMetrics,
-    ) : PrefetchHandle, PrefetchRequest {
+        private val onItemPremeasured: (LazyLayoutPrefetchResultScope.() -> Unit)?
+    ) : PrefetchHandle, PrefetchRequest, LazyLayoutPrefetchResultScope {
 
+        constructor(
+            index: Int,
+            constraints: Constraints,
+            prefetchMetrics: PrefetchMetrics,
+            onItemPremeasured: (LazyLayoutPrefetchResultScope.() -> Unit)?
+        ) : this(index, prefetchMetrics, onItemPremeasured) {
+            premeasureConstraints = constraints
+        }
+
+        private var premeasureConstraints: Constraints? = null
         private var precomposeHandle: SubcomposeLayoutState.PrecomposedSlotHandle? = null
         private var isMeasured = false
         private var isCanceled = false
@@ -290,6 +407,13 @@ internal class PrefetchHandleProvider(
 
         override fun markAsUrgent() {
             isUrgent = true
+        }
+
+        override val placeablesCount: Int
+            get() = (precomposeHandle?.placeablesCount ?: 0)
+
+        override fun getSize(index: Int): IntSize {
+            return (precomposeHandle?.getSize(index) ?: IntSize.Zero)
         }
 
         private fun shouldExecute(available: Long, average: Long): Boolean {
@@ -316,8 +440,20 @@ internal class PrefetchHandleProvider(
         }
 
         override fun PrefetchRequestScope.execute(): Boolean {
-            val itemProvider = itemContentFactory.itemProvider()
+            return if (isUrgent) {
+                    trace("compose:lazy:prefetch:execute:urgent") { executeRequest() }
+                } else {
+                    executeRequest()
+                }
+                .also {
+                    // execution for this item finished, reset the trace value
+                    traceValue("compose:lazy:prefetch:execute:item", -1)
+                }
+        }
 
+        private fun PrefetchRequestScope.executeRequest(): Boolean {
+            traceValue("compose:lazy:prefetch:execute:item", index.toLong())
+            val itemProvider = itemContentFactory.itemProvider()
             val isValid = !isCanceled && index in 0 until itemProvider.itemCount
             if (!isValid) {
                 return false
@@ -328,7 +464,7 @@ internal class PrefetchHandleProvider(
             // we save the value we get from availableTimeNanos() into a local variable once
             // and manually update it later by calling updateElapsedAndAvailableTime()
             resetAvailableTimeTo(availableTimeNanos())
-
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
             if (!isComposed) {
                 if (
                     shouldExecute(
@@ -351,6 +487,7 @@ internal class PrefetchHandleProvider(
             // is always an estimation and it could potentially do work we will not need in the end,
             // but the measuring will only do exactly the needed work (including composing nested
             // lazy layouts)
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
             if (!isUrgent) {
                 // Nested prefetch logic is best-effort: if nested LazyLayout children are
                 // added/removed/updated after we've resolved nested prefetch states here or
@@ -366,16 +503,20 @@ internal class PrefetchHandleProvider(
                         return true
                     }
                 }
-
+                traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
                 val hasMoreWork =
                     nestedPrefetchController?.run { executeNestedPrefetches() } ?: false
                 if (hasMoreWork) {
                     return true
                 }
                 updateElapsedAndAvailableTime()
+                // set the item value again since it will have changed in the nested block.
+                traceValue("compose:lazy:prefetch:execute:item", index.toLong())
             }
 
-            if (!isMeasured && !constraints.isZero) {
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
+            val constraints = premeasureConstraints
+            if (!isMeasured && constraints != null) {
                 if (
                     shouldExecute(
                         availableTimeNanos,
@@ -385,12 +526,13 @@ internal class PrefetchHandleProvider(
                     trace("compose:lazy:prefetch:measure") { performMeasure(constraints) }
                     updateElapsedAndAvailableTime()
                     prefetchMetrics.saveMeasureTime(contentType, elapsedTimeNanos)
+                    onItemPremeasured?.invoke(this@HandleAndRequestImpl)
                 } else {
                     return true
                 }
             }
 
-            // All our work is done
+            // All our work is done.
             return false
         }
 
@@ -437,7 +579,7 @@ internal class PrefetchHandleProvider(
         }
 
         override fun toString(): String =
-            "HandleAndRequestImpl { index = $index, constraints = $constraints, " +
+            "HandleAndRequestImpl { index = $index, constraints = $premeasureConstraints, " +
                 "isComposed = $isComposed, isMeasured = $isMeasured, isCanceled = $isCanceled }"
 
         private inner class NestedPrefetchController(

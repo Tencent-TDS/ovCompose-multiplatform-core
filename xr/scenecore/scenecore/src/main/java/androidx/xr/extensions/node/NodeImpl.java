@@ -38,7 +38,16 @@ class NodeImpl implements Node {
 
     @Override
     public void listenForInput(@NonNull Consumer<InputEvent> listener, @NonNull Executor executor) {
-        mNode.listenForInput((event) -> listener.accept(new InputEventImpl(event)), executor);
+        com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.InputEvent>
+                platformConsumer =
+                        new com.android.extensions.xr.function.Consumer<
+                                com.android.extensions.xr.node.InputEvent>() {
+                            @Override
+                            public void accept(com.android.extensions.xr.node.InputEvent event) {
+                                listener.accept(new InputEventImpl(event));
+                            }
+                        };
+        mNode.listenForInput(platformConsumer, executor);
     }
 
     @Override
@@ -55,7 +64,14 @@ class NodeImpl implements Node {
     public void requestPointerCapture(
             @NonNull Consumer</* @PointerCaptureState */ Integer> stateCallback,
             @NonNull Executor executor) {
-        mNode.requestPointerCapture((state) -> stateCallback.accept(state), executor);
+        com.android.extensions.xr.function.Consumer<java.lang.Integer> platformConsumer =
+                new com.android.extensions.xr.function.Consumer<java.lang.Integer>() {
+                    @Override
+                    public void accept(java.lang.Integer state) {
+                        stateCallback.accept(state);
+                    }
+                };
+        mNode.requestPointerCapture(platformConsumer, executor);
     }
 
     @Override
@@ -67,11 +83,17 @@ class NodeImpl implements Node {
     @NonNull
     public Closeable subscribeToTransform(
             @NonNull Consumer<NodeTransform> transformCallback, @NonNull Executor executor) {
-        return mNode.subscribeToTransform(
-                (transform) -> {
-                    transformCallback.accept(new NodeTransformImpl(transform));
-                },
-                executor);
+        com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.NodeTransform>
+                platformConsumer =
+                        new com.android.extensions.xr.function.Consumer<
+                                com.android.extensions.xr.node.NodeTransform>() {
+                            @Override
+                            public void accept(
+                                    com.android.extensions.xr.node.NodeTransform transform) {
+                                transformCallback.accept(new NodeTransformImpl(transform));
+                            }
+                        };
+        return mNode.subscribeToTransform(platformConsumer, executor);
     }
 
     @Override

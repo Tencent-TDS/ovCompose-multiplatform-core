@@ -18,11 +18,13 @@ package androidx.xr.scenecore.impl;
 
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.xr.extensions.XrExtensions;
 import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -52,14 +54,14 @@ final class GltfEntityImpl extends AndroidXrEntity implements GltfEntity {
     public void startAnimation(boolean looping, @Nullable String animationName) {
         // Implement this for the non-Split Engine path or ignore until the Split
         // Engine path becomes the default.
-        Log.w("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
+        Log.e("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
     }
 
     @Override
     public void stopAnimation() {
         // Implement this for the non-Split Engine path or ignore until the Split
         // Engine path becomes the default.
-        Log.w("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
+        Log.e("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
     }
 
     @Override
@@ -67,8 +69,17 @@ final class GltfEntityImpl extends AndroidXrEntity implements GltfEntity {
     public int getAnimationState() {
         // Implement this for the non-Split Engine path or ignore until the Split
         // Engine path becomes the default.
-        Log.w("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
+        Log.e("GltfEntityImpl: ", "GLTF Animation is only supported when using SplitEngine.");
         return AnimationState.STOPPED;
+    }
+
+    @Override
+    public void setMaterialOverride(@NonNull MaterialResource material, @NonNull String meshName) {
+        // Implement this for the non-Split Engine path or ignore until the Split
+        // Engine path becomes the default.
+        Log.e(
+                "GltfEntityImpl: ",
+                "GLTF Material Override is only supported when using SplitEngine.");
     }
 
     @SuppressWarnings("ObjectToString")

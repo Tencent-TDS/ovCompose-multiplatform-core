@@ -32,9 +32,11 @@ import androidx.wear.protolayout.expression.PlatformDataValues
 import androidx.wear.protolayout.expression.PlatformHealthSources
 import androidx.wear.protolayout.expression.PlatformHealthSources.DynamicHeartRateAccuracy
 import androidx.wear.protolayout.expression.PlatformHealthSources.HEART_RATE_ACCURACY_MEDIUM
+import androidx.wear.protolayout.expression.VersionBuilders
 import androidx.wear.protolayout.expression.pipeline.DynamicTypeAnimator
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.RequestBuilders.ResourcesRequest
+import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.renderer.TileRenderer
 import androidx.wear.tiles.timeline.TilesTimelineCache
 import androidx.wear.tiles.tooling.preview.TilePreviewData
@@ -223,5 +225,11 @@ internal fun Context.buildDeviceParameters(): DeviceParametersBuilders.DevicePar
         )
         .setDevicePlatform(DeviceParametersBuilders.DEVICE_PLATFORM_WEAR_OS)
         .setFontScale(resources.configuration.fontScale)
+        .setRendererSchemaVersion(
+            VersionBuilders.VersionInfo.Builder()
+                .setMajor(TileBuilders.Version.CURRENT.getMajor())
+                .setMinor(TileBuilders.Version.CURRENT.getMinor())
+                .build()
+        )
         .build()
 }

@@ -21,8 +21,10 @@ import android.content.Intent;
 import android.net.Uri;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.content.IntentCompat;
 
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -37,6 +39,23 @@ public final class TrustedWebActivityIntent {
     TrustedWebActivityIntent(@NonNull Intent intent, @NonNull List<Uri> sharedFileUris) {
         mIntent = intent;
         mSharedFileUris = sharedFileUris;
+    }
+
+    /**
+     * Used by Protocol Handlers to provide context for the browser. When a custom data scheme
+     * link (e.g. web+coffee://latte) is being processed by a WebAPK/TWA, it will get replaced
+     * with an actual http/https location (e.g. https://coffee.com/?type=latte) and that URL gets
+     * sent to the browser. This extra will then store the original link in case the browser needs
+     * different logic for Protocol Handlers and regular links.
+     *
+     * {@see https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/protocol_handlers}
+     *
+     * @return The original URL before being processed by a Protocol Handler, or null if this was
+     *         never a custom data scheme link.
+     */
+    public @Nullable Uri getOriginalLaunchUrl() {
+        return IntentCompat.getParcelableExtra(getIntent(),
+                TrustedWebActivityIntentBuilder.EXTRA_ORIGINAL_LAUNCH_URL, Uri.class);
     }
 
     /**

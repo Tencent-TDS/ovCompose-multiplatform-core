@@ -18,6 +18,8 @@ package androidx.appsearch.localstorage;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Icing options for AppSearch local-storage. Note, these values are not necessarily the defaults
  * set in {@link com.google.android.icing.proto.IcingSearchEngineOptions} proto.
@@ -102,5 +104,10 @@ public class LocalStorageIcingOptionsConfig implements IcingOptionsConfig {
     @Override
     public long getOrphanBlobTimeToLiveMs() {
         return DEFAULT_ORPHAN_BLOB_TIME_TO_LIVE_MS;
+    }
+
+    @Override
+    public @NonNull String getIcuDataFileAbsolutePath() {
+        return DEFAULT_ICU_DATA_FILE_ABSOLUTE_PATH;
     }
 }

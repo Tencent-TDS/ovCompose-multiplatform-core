@@ -185,7 +185,7 @@ class PrivacySandboxApiGenerator {
 
     private fun generateCoreLibInfoConverters(api: ParsedApi, output: File) {
         api.interfaces
-            .filter { it.inheritsSandboxedUiAdapter }
+            .filter { it.inheritsUiAdapter }
             .map { CoreLibInfoAndBinderWrapperConverterGenerator.generate(it).writeTo(output) }
     }
 

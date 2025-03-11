@@ -226,3 +226,11 @@ private fun CodePoint.isPunctuation(): Boolean {
     )
     return punctuationSet.any { it.contains(this.toChar()) }
 }
+
+internal actual fun String.findCodePointOrEmojiStartBefore(
+    index: Int,
+    ifNotFound: Int
+): Int {
+    // TODO https://github.com/JetBrains/compose-multiplatform-core/pull/1869
+    return index
+}

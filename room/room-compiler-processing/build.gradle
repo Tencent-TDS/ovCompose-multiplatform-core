@@ -23,7 +23,7 @@
  */
 
 import androidx.build.KotlinTarget
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -32,7 +32,9 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api(libs.kotlinStdlibJdk8)
+    api(libs.kspApi)
     api(libs.javapoet)
     api(libs.kotlinPoet)
     api(libs.kotlinPoetJavaPoet)
@@ -40,7 +42,6 @@ dependencies {
     implementation(libs.autoCommon)
     implementation(libs.autoValueAnnotations)
     implementation(libs.kotlinMetadataJvm)
-    implementation(libs.kspApi)
 
     testImplementation("androidx.annotation:annotation:1.8.1")
     testImplementation(libs.googleCompileTesting)
@@ -73,7 +74,7 @@ tasks.withType(Test).configureEach { test ->
 
 androidx {
     name = "Room XProcessor"
-    type = LibraryType.ANNOTATION_PROCESSOR_UTILS
+    type = SoftwareType.ANNOTATION_PROCESSOR_UTILS
     inceptionYear = "2020"
     description = "Processing Environment Abstraction for AndroidX Room"
     kotlinTarget = KotlinTarget.KOTLIN_1_9

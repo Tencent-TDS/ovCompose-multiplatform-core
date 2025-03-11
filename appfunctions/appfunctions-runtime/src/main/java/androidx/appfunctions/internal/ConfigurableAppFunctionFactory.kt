@@ -20,18 +20,16 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.appfunctions.AppFunctionConfiguration
-import androidx.appfunctions.AppFunctionFactory
 import androidx.appfunctions.internal.Constants.APP_FUNCTIONS_TAG
 import java.lang.reflect.InvocationTargetException
 
 /**
- * An [AppFunctionFactory] implementation that will incorporate [AppFunctionConfiguration] from
- * [context] to create AppFunction enclosing classes.
+ * A factory that will incorporate [AppFunctionConfiguration] from [context] to create AppFunction
+ * enclosing classes.
  *
  * If the application context from [context] overrides [AppFunctionConfiguration.Provider], the
- * customize [AppFunctionFactory] will be used to instantiate the enclosing class. Otherwise, it
- * will use reflection to create the instance assuming the enclosing class has no argument
- * constructor.
+ * customized factory method will be used to instantiate the enclosing class. Otherwise, it will use
+ * reflection to create the instance assuming the enclosing class has a no argument constructor.
  *
  * [createEnclosingClass] will throw [AppFunctionInstantiationException] if unable to instantiate
  * the enclosing class.
@@ -39,54 +37,54 @@ import java.lang.reflect.InvocationTargetException
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class ConfigurableAppFunctionFactory<T : Any>(
     private val context: Context,
-) : AppFunctionFactory<T> {
-
-    override fun createEnclosingClass(enclosingClass: Class<T>): T {
+) {
+    public fun createEnclosingClass(enclosingClass: Class<T>): T {
         val configurationProvider = context.applicationContext as? AppFunctionConfiguration.Provider
         val customFactory =
-            configurationProvider?.appFunctionConfiguration?.factories?.get(enclosingClass)
+            configurationProvider
+                ?.appFunctionConfiguration
+                ?.enclosingClassFactories
+                ?.get(enclosingClass)
         if (customFactory == null) {
             Log.d(APP_FUNCTIONS_TAG, "Unable to find custom factory for [$enclosingClass]")
-            return getNoArgumentAppFunctionFactory<T>().createEnclosingClass(enclosingClass)
+            return getNoArgumentAppFunctionFactory<T>().invoke(enclosingClass)
         }
 
-        @Suppress("UNCHECKED_CAST")
-        return (customFactory as AppFunctionFactory<T>).createEnclosingClass(enclosingClass)
+        val instance = customFactory.invoke()
+        @Suppress("UNCHECKED_CAST") return instance as T
     }
 
     /** Thrown when unable to instantiate the AppFunction enclosing class. */
     public class AppFunctionInstantiationException(errorMessage: String) :
         RuntimeException(errorMessage)
 
-    private fun <T : Any> getNoArgumentAppFunctionFactory(): AppFunctionFactory<T> {
-        return object : AppFunctionFactory<T> {
-            override fun createEnclosingClass(enclosingClass: Class<T>): T {
-                return try {
-                    enclosingClass.getDeclaredConstructor().newInstance()
-                } catch (_: IllegalAccessException) {
-                    throw AppFunctionInstantiationException(
-                        "Cannot access the constructor of $enclosingClass"
-                    )
-                } catch (_: NoSuchMethodException) {
-                    throw AppFunctionInstantiationException(
-                        "$enclosingClass requires additional parameter to create. " +
-                            "Please either remove the additional parameters or implement the " +
-                            "${AppFunctionFactory::class.qualifiedName} and provide it in " +
-                            "${AppFunctionConfiguration::class.qualifiedName}",
-                    )
-                } catch (_: InstantiationException) {
-                    throw AppFunctionInstantiationException(
-                        "$enclosingClass should have a public no-argument constructor"
-                    )
-                } catch (_: InvocationTargetException) {
-                    throw AppFunctionInstantiationException(
-                        "Something went wrong when creating $enclosingClass"
-                    )
-                } catch (_: ExceptionInInitializerError) {
-                    throw AppFunctionInstantiationException(
-                        "Something went wrong when creating $enclosingClass"
-                    )
-                }
+    private fun <T : Any> getNoArgumentAppFunctionFactory(): (Class<T>) -> T {
+        return { enclosingClass: Class<T> ->
+            try {
+                enclosingClass.getDeclaredConstructor().newInstance()
+            } catch (_: IllegalAccessException) {
+                throw AppFunctionInstantiationException(
+                    "Cannot access the constructor of $enclosingClass"
+                )
+            } catch (_: NoSuchMethodException) {
+                throw AppFunctionInstantiationException(
+                    "$enclosingClass requires additional parameter to create. " +
+                        "Please either remove the additional parameters or implement the " +
+                        "factory and provide it in " +
+                        "${AppFunctionConfiguration::class.qualifiedName}",
+                )
+            } catch (_: InstantiationException) {
+                throw AppFunctionInstantiationException(
+                    "$enclosingClass should have a public no-argument constructor"
+                )
+            } catch (_: InvocationTargetException) {
+                throw AppFunctionInstantiationException(
+                    "Something went wrong when creating $enclosingClass"
+                )
+            } catch (_: ExceptionInInitializerError) {
+                throw AppFunctionInstantiationException(
+                    "Something went wrong when creating $enclosingClass"
+                )
             }
         }
     }

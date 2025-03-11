@@ -249,6 +249,8 @@ class PopupTest {
             }
         UiDevice.getInstance(getInstrumentation()).click(outsideX, outsideY)
 
+        rule.waitForIdle()
+
         // Popup should not exist
         rule.onNodeWithTag(testTag).assertDoesNotExist()
     }

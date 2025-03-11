@@ -20,6 +20,7 @@ import android.media.EncoderProfiles
 import android.media.MediaFormat
 import android.media.MediaRecorder
 import android.os.Build
+import android.util.Size
 import androidx.camera.core.DynamicRange
 import androidx.camera.core.impl.EncoderProfilesProxy.VideoProfileProxy
 import androidx.camera.testing.impl.EncoderProfilesUtil
@@ -147,19 +148,14 @@ class VideoConfigUtilTest {
         fun createMediaSpec(outputFormat: Int = MediaSpec.OUTPUT_FORMAT_AUTO) =
             MediaSpec.builder().apply { setOutputFormat(outputFormat) }.build()
 
-        private const val DEFAULT_VIDEO_WIDTH = 1920
-        private const val DEFAULT_VIDEO_HEIGHT = 1080
+        private val DEFAULT_VIDEO_RESOLUTION = Size(1920, 1080)
 
         val VIDEO_PROFILE_DEFAULT =
-            EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT
-            )
+            EncoderProfilesUtil.createFakeVideoProfileProxy(DEFAULT_VIDEO_RESOLUTION)
 
         val VIDEO_PROFILE_HEVC_HLG10 =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.HEVC,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_HEVC,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HLG,
@@ -168,8 +164,7 @@ class VideoConfigUtilTest {
 
         val VIDEO_PROFILE_HEVC_HDR10 =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.HEVC,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_HEVC,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HDR10,
@@ -178,8 +173,7 @@ class VideoConfigUtilTest {
 
         val VIDEO_PROFILE_HEVC_HDR10_PLUS =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.HEVC,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_HEVC,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HDR10PLUS,
@@ -188,8 +182,7 @@ class VideoConfigUtilTest {
 
         val VIDEO_PROFILE_DOLBY_VISION_10_BIT =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.DOLBY_VISION,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_DOLBY_VISION,
@@ -198,8 +191,7 @@ class VideoConfigUtilTest {
 
         val VIDEO_PROFILE_DOLBY_VISION_8_BIT =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.DOLBY_VISION,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_DOLBY_VISION,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_DOLBY_VISION,
@@ -208,8 +200,7 @@ class VideoConfigUtilTest {
 
         val VIDEO_PROFILE_VP9_HLG10 =
             EncoderProfilesUtil.createFakeVideoProfileProxy(
-                DEFAULT_VIDEO_WIDTH,
-                DEFAULT_VIDEO_HEIGHT,
+                DEFAULT_VIDEO_RESOLUTION,
                 videoCodec = MediaRecorder.VideoEncoder.VP9,
                 videoMediaType = MediaFormat.MIMETYPE_VIDEO_VP9,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HLG,

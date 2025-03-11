@@ -46,7 +46,10 @@ import androidx.camera.core.impl.AttachedSurfaceInfo
 import androidx.camera.core.impl.CameraMode
 import androidx.camera.core.impl.EncoderProfilesProvider
 import androidx.camera.core.impl.ImageFormatConstants
+import androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED
+import androidx.camera.core.impl.SessionConfig.SESSION_TYPE_REGULAR
 import androidx.camera.core.impl.StreamSpec
+import androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED
 import androidx.camera.core.impl.SurfaceCombination
 import androidx.camera.core.impl.SurfaceConfig
 import androidx.camera.core.impl.SurfaceConfig.ConfigSize
@@ -267,12 +270,17 @@ public class SupportedSurfaceCombination(
         newUseCaseConfigsSupportedSizeMap: Map<UseCaseConfig<*>, List<Size>>,
         isPreviewStabilizationOn: Boolean = false,
         hasVideoCapture: Boolean = false,
-        targetHighSpeedFpsRange: Range<Int>? = null
     ): Pair<Map<UseCaseConfig<*>, StreamSpec>, Map<AttachedSurfaceInfo, StreamSpec>> {
         // Refresh Preview Size based on current display configurations.
         refreshPreviewSize()
 
-        val isHighSpeedOn = targetHighSpeedFpsRange != null
+        val targetHighSpeedFpsRange =
+            HighSpeedResolver.getTargetHighSpeedFrameRate(
+                attachedSurfaces,
+                newUseCaseConfigsSupportedSizeMap.keys
+            )
+
+        val isHighSpeedOn = targetHighSpeedFpsRange != FRAME_RATE_RANGE_UNSPECIFIED
         // Filter out unsupported sizes for high-speed at the beginning to ensure correct
         // resolution selection later. High-speed session requires all surface sizes to be the same.
         val filteredNewUseCaseConfigsSupportedSizeMap =
@@ -903,6 +911,9 @@ public class SupportedSurfaceCombination(
                 bestSizesAndMaxFps.bestSizes[useCasesPriorityOrder.indexOf(index)]
             val streamSpecBuilder =
                 StreamSpec.builder(resolutionForUseCase)
+                    .setSessionType(
+                        if (isHighSpeedOn) SESSION_TYPE_HIGH_SPEED else SESSION_TYPE_REGULAR
+                    )
                     .setDynamicRange(checkNotNull(resolvedDynamicRanges[useCaseConfig]))
                     .setImplementationOptions(
                         StreamUseCaseUtil.getStreamSpecImplementationOptions(useCaseConfig)
@@ -992,7 +1003,8 @@ public class SupportedSurfaceCombination(
 
     private fun getMaxFrameRate(imageFormat: Int, size: Size, isHighSpeedOn: Boolean): Int {
         return if (isHighSpeedOn) {
-            highSpeedResolver.getMaxFrameRate(imageFormat, size)
+            check(imageFormat == ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE)
+            highSpeedResolver.getMaxFrameRate(size)
         } else {
             getMaxFrameRate(imageFormat, size)
         }
@@ -1552,7 +1564,7 @@ public class SupportedSurfaceCombination(
             if (encoderProfilesProvider.hasProfile(quality)) {
                 val profiles = encoderProfilesProvider.getAll(quality)
                 if (profiles != null && profiles.videoProfiles.isNotEmpty()) {
-                    return profiles.videoProfiles[0]!!.let { Size(it.width, it.height) }
+                    return profiles.videoProfiles[0]!!.resolution
                 }
             }
         }

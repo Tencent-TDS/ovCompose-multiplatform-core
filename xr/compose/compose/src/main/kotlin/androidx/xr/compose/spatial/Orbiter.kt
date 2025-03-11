@@ -16,7 +16,6 @@
 
 package androidx.xr.compose.spatial
 
-import android.view.View
 import androidx.annotation.RestrictTo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -24,29 +23,30 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ComposableOpenTarget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.xr.compose.platform.LocalCoreEntity
 import androidx.xr.compose.platform.LocalDialogManager
-import androidx.xr.compose.platform.LocalPanelEntity
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
+import androidx.xr.compose.platform.coreMainPanelEntity
 import androidx.xr.compose.spatial.EdgeOffset.Companion.outer
 import androidx.xr.compose.subspace.layout.SpatialRoundedCornerShape
 import androidx.xr.compose.subspace.layout.SpatialShape
@@ -66,13 +66,15 @@ public object OrbiterDefaults {
 /**
  * Settings for an Orbiter.
  *
- * @property shouldRenderInNonSpatial controls whether the orbiter content should be rendered in the
- *   normal flow in non-spatial environments. If `true`, the content is rendered normally;
- *   otherwise, it's removed from the flow.
+ * @property shouldRenderInNonSpatial In a non-spatial environment, if `true` the orbiter content is
+ *   rendered as if the orbiter wrapper was not present and removed from the flow otherwise. In
+ *   spatial environments, this flag is ignored.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class OrbiterSettings(
-    @get:JvmName("shouldRenderInNonSpatial") public val shouldRenderInNonSpatial: Boolean = true
+    @get:Suppress("GetterSetterNames")
+    @get:JvmName("shouldRenderInNonSpatial")
+    public val shouldRenderInNonSpatial: Boolean = true
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -99,6 +101,14 @@ public class OrbiterSettings(
 /**
  * A composable that creates an orbiter along the top or bottom edges of a view.
  *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
+ *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Top] or [OrbiterEdge.Bottom].
  * @param offset The offset of the orbiter based on the outer edge of the orbiter.
  * @param alignment The alignment of the orbiter. Use [Alignment.CenterHorizontally] or
@@ -115,6 +125,7 @@ public class OrbiterSettings(
  * ```
  */
 @Composable
+@ComposableOpenTarget(index = -1)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Orbiter(
     position: OrbiterEdge.Horizontal,
@@ -122,7 +133,7 @@ public fun Orbiter(
     alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
     shape: SpatialShape = OrbiterDefaults.shape,
-    content: @Composable () -> Unit,
+    content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
         OrbiterData(
@@ -138,6 +149,14 @@ public fun Orbiter(
 
 /**
  * A composable that creates an orbiter along the top or bottom edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Top] or [OrbiterEdge.Bottom].
  * @param offset The offset of the orbiter based on the inner or outer edge of the orbiter. Use
@@ -158,6 +177,7 @@ public fun Orbiter(
  * ```
  */
 @Composable
+@ComposableOpenTarget(index = -1)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Orbiter(
     position: OrbiterEdge.Horizontal,
@@ -165,7 +185,7 @@ public fun Orbiter(
     alignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
     shape: SpatialShape = OrbiterDefaults.shape,
-    content: @Composable () -> Unit,
+    content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
         OrbiterData(
@@ -181,6 +201,14 @@ public fun Orbiter(
 
 /**
  * A composable that creates an orbiter along the start or end edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Start] or [OrbiterEdge.End].
  * @param offset The offset of the orbiter based on the outer edge of the orbiter.
@@ -198,6 +226,7 @@ public fun Orbiter(
  * ```
  */
 @Composable
+@ComposableOpenTarget(index = -1)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Orbiter(
     position: OrbiterEdge.Vertical,
@@ -205,7 +234,7 @@ public fun Orbiter(
     alignment: Alignment.Vertical = Alignment.CenterVertically,
     settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
     shape: SpatialShape = OrbiterDefaults.shape,
-    content: @Composable () -> Unit,
+    content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
         OrbiterData(
@@ -221,6 +250,14 @@ public fun Orbiter(
 
 /**
  * A composable that creates an orbiter along the start or end edges of a view.
+ *
+ * Orbiters are floating elements that contain controls for spatial content. They allow the content
+ * to have more space and give users quick access to features like navigation without obstructing
+ * the main content.
+ *
+ * In non-spatial environments, orbiters may be configured using
+ * [OrbiterSettings.shouldRenderInNonSpatial] to render their content as if the orbiter wrapper was
+ * not present or be removed from the flow entirely.
  *
  * @param position The edge of the orbiter. Use [OrbiterEdge.Start] or [OrbiterEdge.End].
  * @param offset The offset of the orbiter based on the inner or outer edge of the orbiter. Use
@@ -241,6 +278,7 @@ public fun Orbiter(
  * ```
  */
 @Composable
+@ComposableOpenTarget(index = -1)
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Orbiter(
     position: OrbiterEdge.Vertical,
@@ -248,7 +286,7 @@ public fun Orbiter(
     alignment: Alignment.Vertical = Alignment.CenterVertically,
     settings: OrbiterSettings = OrbiterDefaults.orbiterSettings,
     shape: SpatialShape = OrbiterDefaults.shape,
-    content: @Composable () -> Unit,
+    content: @Composable @UiComposable () -> Unit,
 ) {
     Orbiter(
         OrbiterData(
@@ -273,27 +311,28 @@ private fun Orbiter(data: OrbiterData) {
 
 @Composable
 internal fun PositionedOrbiter(data: OrbiterData) {
-    val view = LocalView.current
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
-    val panelEntity = LocalPanelEntity.current ?: session.mainPanelEntity
-    var panelSize by remember { mutableStateOf(panelEntity.getPixelDimensions()) }
+    val entity = LocalCoreEntity.current ?: session.coreMainPanelEntity
     var contentSize: IntSize? by remember { mutableStateOf(null) }
     val dialogManager = LocalDialogManager.current
     val density = LocalDensity.current
-
-    DisposableEffect(view) {
-        val listener =
-            View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-                panelSize = panelEntity.getPixelDimensions()
-            }
-        view.addOnLayoutChangeListener(listener)
-        onDispose { view.removeOnLayoutChangeListener(listener) }
-    }
+    val panelSize = entity.size
 
     ElevatedPanel(
-        spatialElevationLevel = SpatialElevationLevel.Level1,
         contentSize = contentSize ?: IntSize.Zero,
-        contentOffset = contentSize?.let { data.calculateOffset(panelSize, it, density) },
+        pose =
+            contentSize?.let {
+                rememberCalculatePose(
+                    data.calculateOffset(
+                        panelSize.run { PixelDimensions(width, height) },
+                        it,
+                        density
+                    ),
+                    panelSize.run { IntSize(width, height) },
+                    it,
+                    SpatialElevationLevel.Level1.level,
+                )
+            },
         shape = data.shape,
     ) {
         Box(

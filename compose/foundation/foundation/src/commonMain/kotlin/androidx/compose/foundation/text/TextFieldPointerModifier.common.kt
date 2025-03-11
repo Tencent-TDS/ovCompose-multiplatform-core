@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.selection.updateSelectionTouchMode
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.input.OffsetMapping
 
@@ -74,4 +75,4 @@ internal fun Modifier.defaultTextFieldPointer(
         mouseSelectionObserver = manager.mouseSelectionObserver,
         textDragObserver = manager.touchSelectionObserver,
     )
-    .pointerHoverIcon(textPointerIcon)
+    .pointerHoverIcon(PointerIcon.Text)

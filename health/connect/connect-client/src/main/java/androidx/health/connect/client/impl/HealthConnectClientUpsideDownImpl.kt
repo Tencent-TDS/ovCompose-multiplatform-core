@@ -41,9 +41,7 @@ import androidx.health.connect.client.aggregate.AggregationResultGroupedByDurati
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
-import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.feature.HealthConnectFeaturesPlatformImpl
-import androidx.health.connect.client.impl.platform.aggregate.AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10
 import androidx.health.connect.client.impl.platform.aggregate.aggregateFallback
 import androidx.health.connect.client.impl.platform.aggregate.isPlatformSupportedMetric
 import androidx.health.connect.client.impl.platform.records.toPlatformRecord
@@ -75,7 +73,6 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 
 /** Implements the [HealthConnectClient] with APIs in UpsideDownCake. */
 @RequiresApi(api = 34)
-@OptIn(ExperimentalFeatureAvailabilityApi::class)
 class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionController {
 
     private val executor = Dispatchers.Default.asExecutor()
@@ -217,11 +214,14 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     }
 
     override suspend fun aggregate(request: AggregateRequest): AggregationResult {
-        verifyAggregationMetrics(request.metrics)
+        requireAggregationMetrics(request.metrics)
 
         val fallbackResponse = aggregateFallback(request)
 
-        if (request.metrics.none { it.isPlatformSupportedMetric() }) {
+        val platformSupportedMetrics =
+            request.metrics.filter { it.isPlatformSupportedMetric() }.toSet()
+
+        if (platformSupportedMetrics.isEmpty()) {
             return fallbackResponse
         }
 
@@ -235,7 +235,7 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
                         )
                     }
                 }
-                .toSdkResponse(request.metrics.filter { it.isPlatformSupportedMetric() }.toSet())
+                .toSdkResponse(platformSupportedMetrics)
 
         return platformResponse + fallbackResponse
     }
@@ -243,69 +243,112 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
     override suspend fun aggregateGroupByDuration(
         request: AggregateGroupByDurationRequest
     ): List<AggregationResultGroupedByDuration> {
-        verifyAggregationMetrics(request.metrics)
+        requireAggregationMetrics(request.metrics)
 
-        return wrapPlatformException {
-                suspendCancellableCoroutine { continuation ->
-                    healthConnectManager.aggregateGroupByDuration(
-                        request.toPlatformRequest(),
-                        request.timeRangeSlicer,
-                        executor,
-                        continuation.asOutcomeReceiver()
-                    )
+        val fallbackResponse = aggregateFallback(request)
+
+        val platformSupportedMetrics =
+            request.metrics.filter { it.isPlatformSupportedMetric() }.toSet()
+
+        if (platformSupportedMetrics.isEmpty()) {
+            return fallbackResponse
+        }
+
+        val platformResponse =
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.aggregateGroupByDuration(
+                            request.toPlatformRequest(),
+                            request.timeRangeSlicer,
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
                 }
+                .map { it.toSdkResponse(platformSupportedMetrics) }
+
+        return (fallbackResponse + platformResponse)
+            .groupingBy { it.startTime }
+            .reduce { startTime, accumulator, element ->
+                AggregationResultGroupedByDuration(
+                    result = accumulator.result + element.result,
+                    startTime = startTime,
+                    endTime = accumulator.endTime,
+                    zoneOffset = accumulator.zoneOffset
+                )
             }
-            .map { it.toSdkResponse(request.metrics) }
+            .values
+            .sortedBy { it.startTime }
     }
 
     override suspend fun aggregateGroupByPeriod(
         request: AggregateGroupByPeriodRequest
     ): List<AggregationResultGroupedByPeriod> {
-        verifyAggregationMetrics(request.metrics)
+        requireAggregationMetrics(request.metrics)
 
-        return wrapPlatformException {
-                suspendCancellableCoroutine { continuation ->
-                    healthConnectManager.aggregateGroupByPeriod(
-                        request.toPlatformRequest(),
-                        request.timeRangeSlicer,
-                        executor,
-                        continuation.asOutcomeReceiver()
-                    )
-                }
-            }
-            .mapIndexed { index, platformResponse ->
-                if (
-                    SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10 ||
-                        (request.timeRangeSlicer.months == 0 && request.timeRangeSlicer.years == 0)
-                ) {
-                    platformResponse.toSdkResponse(request.metrics)
-                } else {
-                    // Handle bug in the Platform for versions of module before SDK extensions 10
-                    val requestTimeRangeFilter =
-                        request.timeRangeFilter.toPlatformLocalTimeRangeFilter()
-                    val bucketStartTime =
-                        requestTimeRangeFilter.startTime!!.plus(
-                            request.timeRangeSlicer.multipliedBy(index)
+        val fallbackResponse = aggregateFallback(request)
+
+        val platformSupportedMetrics =
+            request.metrics.filter { it.isPlatformSupportedMetric() }.toSet()
+
+        if (platformSupportedMetrics.isEmpty()) {
+            return fallbackResponse
+        }
+
+        val platformResponse =
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.aggregateGroupByPeriod(
+                            request.toPlatformRequest(),
+                            request.timeRangeSlicer,
+                            executor,
+                            continuation.asOutcomeReceiver()
                         )
-                    val bucketEndTime = bucketStartTime.plus(request.timeRangeSlicer)
-                    platformResponse.toSdkResponse(
-                        metrics = request.metrics,
-                        bucketStartTime = bucketStartTime,
-                        bucketEndTime =
-                            if (requestTimeRangeFilter.endTime!!.isBefore(bucketEndTime)) {
-                                requestTimeRangeFilter.endTime!!
-                            } else {
-                                bucketEndTime
-                            }
-                    )
+                    }
                 }
+                .mapIndexed { index, response ->
+                    if (
+                        SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >=
+                            10 ||
+                            (request.timeRangeSlicer.months == 0 &&
+                                request.timeRangeSlicer.years == 0)
+                    ) {
+                        response.toSdkResponse(platformSupportedMetrics)
+                    } else {
+                        // Handle bug in the Platform for versions of mainline module before SDK
+                        // extension 10, where bucket endTime < bucket startTime (b/298290400)
+                        val requestTimeRangeFilter =
+                            request.timeRangeFilter.toPlatformLocalTimeRangeFilter()
+                        val bucketStartTime =
+                            requestTimeRangeFilter.startTime!! +
+                                request.timeRangeSlicer.multipliedBy(index)
+                        response.toSdkResponse(
+                            metrics = platformSupportedMetrics,
+                            bucketStartTime = bucketStartTime,
+                            bucketEndTime =
+                                minOf(
+                                    bucketStartTime + request.timeRangeSlicer,
+                                    requestTimeRangeFilter.endTime!!
+                                )
+                        )
+                    }
+                }
+
+        return (fallbackResponse + platformResponse)
+            .groupingBy { it.startTime }
+            .reduce { startTime, accumulator, element ->
+                AggregationResultGroupedByPeriod(
+                    result = accumulator.result + element.result,
+                    startTime = startTime,
+                    endTime = accumulator.endTime
+                )
             }
+            .values
+            .sortedBy { it.startTime }
     }
 
-    private fun verifyAggregationMetrics(metrics: Set<AggregateMetric<*>>) {
-        AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10.intersect(metrics).firstOrNull()?.let {
-            throw UnsupportedOperationException("Unsupported metric type ${it.metricKey}")
-        }
+    private fun requireAggregationMetrics(metrics: Set<AggregateMetric<*>>) {
+        require(metrics.isNotEmpty()) { "At least one of the aggregation types must be set" }
     }
 
     override suspend fun getChangesToken(request: ChangesTokenRequest): String {

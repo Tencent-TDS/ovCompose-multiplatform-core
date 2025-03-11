@@ -17,154 +17,123 @@
 package androidx.camera.viewfinder
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.hardware.camera2.CameraManager
-import android.util.Size
-import android.view.Surface
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.RectF
+import androidx.camera.viewfinder.core.ImplementationMode
 import androidx.camera.viewfinder.core.ScaleType
-import androidx.camera.viewfinder.core.ScaleType.FILL_CENTER
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest
-import androidx.camera.viewfinder.core.impl.utils.futures.FutureCallback
-import androidx.camera.viewfinder.core.impl.utils.futures.Futures
-import androidx.camera.viewfinder.core.populateFromCharacteristics
-import androidx.camera.viewfinder.utils.CoreAppTestUtil
-import androidx.camera.viewfinder.utils.FakeActivity
 import androidx.core.content.ContextCompat
-import androidx.test.core.app.ActivityScenario.ActivityAction
+import androidx.core.graphics.toRect
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.ext.junit.rules.ActivityScenarioRule
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
-import androidx.test.platform.app.InstrumentationRegistry
-import com.google.common.truth.Truth
-import com.google.common.util.concurrent.ListenableFuture
-import java.util.concurrent.atomic.AtomicReference
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
+import androidx.test.screenshot.AndroidXScreenshotTestRule
+import androidx.test.screenshot.assertAgainstGolden
+import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
+@SdkSuppress(minSdkVersion = 33) // Required for screenshot tests
 @LargeTest
-@RunWith(AndroidJUnit4::class)
-@SdkSuppress(minSdkVersion = 21)
-class CameraViewfinderBitmapTest {
-
-    @get:Rule
-    val mActivityRule: ActivityScenarioRule<FakeActivity> =
-        ActivityScenarioRule<FakeActivity>(FakeActivity::class.java)
-
+@RunWith(Parameterized::class)
+class CameraViewfinderBitmapTest(
+    private val implementationMode: ImplementationMode,
+    private val scaleType: ScaleType
+) {
     companion object {
-        private const val ANY_WIDTH = 640
-        private const val ANY_HEIGHT = 480
-        private val ANY_SIZE: Size by lazy { Size(ANY_WIDTH, ANY_HEIGHT) }
+        @JvmStatic
+        @Parameterized.Parameters(name = "impl={0},scaleType={1}")
+        fun data() =
+            setOf(ImplementationMode.EMBEDDED, ImplementationMode.EXTERNAL).flatMap { impl ->
+                setOf(
+                        ScaleType.FILL_CENTER,
+                        ScaleType.FILL_START,
+                        ScaleType.FILL_END,
+                        ScaleType.FIT_CENTER,
+                        ScaleType.FIT_START,
+                        ScaleType.FIT_END
+                    )
+                    .map { scaleType -> arrayOf(impl, scaleType) }
+            }
     }
 
-    private val mInstrumentation = InstrumentationRegistry.getInstrumentation()
-    private lateinit var mSurfaceRequest: ViewfinderSurfaceRequest
-    private lateinit var mContext: Context
+    @get:Rule val screenshotRule = AndroidXScreenshotTestRule(GOLDEN_CAMERA_VIEWFINDER_VIEW)
 
-    @Before
-    fun setUp() {
-        CoreAppTestUtil.prepareDeviceUI(mInstrumentation)
-        mContext = ApplicationProvider.getApplicationContext()
-
-        val cameraManager =
-            ApplicationProvider.getApplicationContext<Context>()
-                .getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameraIds = cameraManager.cameraIdList
-        Assume.assumeTrue("No cameras found on device.", cameraIds.isNotEmpty())
-        val cameraId = cameraIds[0]
-        val characteristics = cameraManager.getCameraCharacteristics(cameraId)
-        mSurfaceRequest =
-            ViewfinderSurfaceRequest.Builder(ANY_SIZE)
-                .populateFromCharacteristics(characteristics)
-                .build()
-    }
-
-    @After fun tearDown() {}
+    private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Test
-    @Throws(Throwable::class)
-    fun bitmapNotNull_whenViewfinderIsDisplaying_surfaceView() {
-        // Arrange
-        val viewfinder: CameraViewfinder = setUpViewfinder(FILL_CENTER)
+    fun bitmapCapturesCorrectly() = runViewfinderTest {
+        val surfaceRequest =
+            ViewfinderSurfaceRequest(
+                width = ANY_WIDTH,
+                height = ANY_HEIGHT,
+                implementationMode = implementationMode,
+            )
 
-        // assert
-        runOnMainThread(
-            Runnable {
-                val surfaceListenableFuture: ListenableFuture<Surface?> =
-                    viewfinder.requestSurfaceAsync(mSurfaceRequest)
-
-                Futures.addCallback<Surface?>(
-                    surfaceListenableFuture,
-                    object : FutureCallback<Surface?> {
-                        override fun onSuccess(result: Surface?) {
-                            val bitmap: Bitmap? = viewfinder.getBitmap()
-                            Truth.assertThat(bitmap).isNotNull()
-                            Truth.assertThat(bitmap?.width).isNotEqualTo(0)
-                            Truth.assertThat(bitmap?.height).isNotEqualTo(0)
-                        }
-
-                        override fun onFailure(t: Throwable) {}
-                    },
-                    ContextCompat.getMainExecutor(mContext)
-                )
+        withTimeout(REQUEST_TIMEOUT) {
+                withContext(Dispatchers.Main) {
+                    viewfinder.scaleType = scaleType
+                    viewfinder.requestSurfaceSession(
+                        viewfinderSurfaceRequest = surfaceRequest,
+                        transformationInfo = ANY_TRANSFORMATION_INFO
+                    )
+                }
             }
-        )
-    }
+            .use { surfaceSession ->
+                surfaceSession.surface.lockHardwareCanvas().let { canvas ->
+                    try {
+                        ContextCompat.getDrawable(
+                                context,
+                                androidx.camera.viewfinder.test.R.drawable.baseline_face_2_24
+                            )
+                            ?.let { drawable ->
+                                // Map input drawable to the output surface
+                                val dstRect =
+                                    RectF(
+                                            0f,
+                                            0f,
+                                            drawable.intrinsicWidth.toFloat(),
+                                            drawable.intrinsicHeight.toFloat()
+                                        )
+                                        .also { srcRect ->
+                                            Matrix()
+                                                .apply {
+                                                    setRectToRect(
+                                                        srcRect,
+                                                        RectF(
+                                                            0f,
+                                                            0f,
+                                                            canvas.width.toFloat(),
+                                                            canvas.height.toFloat()
+                                                        ),
+                                                        Matrix.ScaleToFit.CENTER
+                                                    )
+                                                }
+                                                .mapRect(srcRect)
+                                        }
 
-    @Test
-    @Throws(Throwable::class)
-    fun bitmapNotNull_whenViewfinderIsDisplaying_textureView() {
-        // Arrange
-        val viewfinder: CameraViewfinder = setUpViewfinder(FILL_CENTER)
+                                canvas.drawColor(Color.GRAY)
 
-        // assert
-        runOnMainThread(
-            Runnable {
-                val surfaceListenableFuture: ListenableFuture<Surface?> =
-                    viewfinder.requestSurfaceAsync(mSurfaceRequest)
-
-                Futures.addCallback<Surface?>(
-                    surfaceListenableFuture,
-                    object : FutureCallback<Surface?> {
-                        override fun onSuccess(result: Surface?) {
-                            val bitmap: Bitmap? = viewfinder.getBitmap()
-                            Truth.assertThat(bitmap).isNotNull()
-                            Truth.assertThat(bitmap?.width).isNotEqualTo(0)
-                            Truth.assertThat(bitmap?.height).isNotEqualTo(0)
-                        }
-
-                        override fun onFailure(t: Throwable) {}
-                    },
-                    ContextCompat.getMainExecutor(mContext)
-                )
-            }
-        )
-    }
-
-    private fun setUpViewfinder(scaleType: ScaleType): CameraViewfinder {
-        val viewfinderAtomicReference: AtomicReference<CameraViewfinder> =
-            AtomicReference<CameraViewfinder>()
-        runOnMainThread {
-            val viewfiner = CameraViewfinder(ApplicationProvider.getApplicationContext<Context>())
-            viewfiner.setScaleType(scaleType)
-            mActivityRule
-                .getScenario()
-                .onActivity(
-                    ActivityAction<FakeActivity> { activity: FakeActivity ->
-                        activity.setContentView(viewfiner)
+                                drawable.bounds = dstRect.toRect()
+                                drawable.draw(canvas)
+                            }
+                    } finally {
+                        surfaceSession.surface.unlockCanvasAndPost(canvas)
                     }
-                )
-            viewfinderAtomicReference.set(viewfiner)
-        }
-        return viewfinderAtomicReference.get()
-    }
+                }
+            }
 
-    private fun runOnMainThread(block: Runnable) {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(block)
+        val outputBitmap = withContext(Dispatchers.Main) { viewfinder.bitmap }
+        assertThat(outputBitmap).isNotNull()
+        outputBitmap?.assertAgainstGolden(
+            rule = screenshotRule,
+            goldenIdentifier = "upright_face_${"$scaleType".lowercase()}",
+        )
     }
 }

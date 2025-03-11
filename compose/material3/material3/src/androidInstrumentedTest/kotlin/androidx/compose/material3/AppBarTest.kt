@@ -1772,13 +1772,8 @@ class AppBarTest {
                     },
                     navigationIcon = { FakeIcon(Modifier.testTag(NavigationIconTestTag)) },
                     actions = { FakeIcon(Modifier.testTag(ActionsTestTag)) },
-                    height = { expanded ->
-                        if (expanded) {
-                            expandedHeightDp
-                        } else {
-                            collapsedHeightDp
-                        }
-                    }
+                    collapsedHeight = collapsedHeightDp,
+                    expandedHeight = expandedHeightDp,
                 )
             }
         }
@@ -1807,13 +1802,8 @@ class AppBarTest {
                         },
                         navigationIcon = { FakeIcon(Modifier.testTag(NavigationIconTestTag)) },
                         actions = { FakeIcon(Modifier.testTag(ActionsTestTag)) },
-                        height = { expanded ->
-                            if (expanded) {
-                                expandedHeightDp
-                            } else {
-                                collapsedHeightDp
-                            }
-                        },
+                        collapsedHeight = collapsedHeightDp,
+                        expandedHeight = expandedHeightDp,
                         windowInsets = windowInsets,
                         scrollBehavior = scrollBehavior,
                     )

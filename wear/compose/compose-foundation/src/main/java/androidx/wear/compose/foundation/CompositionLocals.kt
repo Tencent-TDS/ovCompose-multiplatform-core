@@ -21,6 +21,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.View.OnAttachStateChangeListener
 import androidx.compose.runtime.MutableState
@@ -35,7 +36,7 @@ import androidx.core.os.HandlerCompat
 
 /**
  * CompositionLocal for global reduce-motion setting, which turns off animations and screen
- * movements. To use, call LocalReduceMotion.current.enabled(), which returns a Boolean.
+ * movements. To use, call LocalReduceMotion.current, which returns a Boolean.
  */
 public val LocalReduceMotion: ProvidableCompositionLocal<Boolean> =
     compositionLocalWithComputedDefaultOf {
@@ -100,9 +101,16 @@ public val LocalSwipeToDismissContentScrimColor: ProvidableCompositionLocal<Colo
     }
 
 private fun getReducedMotionSettingValue(resolver: ContentResolver): Boolean {
-    return Settings.Global.getInt(resolver, REDUCE_MOTION, REDUCE_MOTION_DEFAULT) == 1
+    return try {
+        Settings.Global.getInt(resolver, REDUCE_MOTION, REDUCE_MOTION_DEFAULT) == 1
+    } catch (e: SecurityException) {
+        Log.w(TAG, "Failed to fetch reduce motion setting, using value: false", e)
+        false
+    }
 }
 
 // See framework's Settings.Global.Wearable#REDUCE_MOTION.
 private const val REDUCE_MOTION = "reduce_motion"
 private const val REDUCE_MOTION_DEFAULT = 0
+
+internal const val TAG = "CompositionLocals"

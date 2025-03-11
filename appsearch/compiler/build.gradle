@@ -21,11 +21,13 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("java-library")
+    id("org.jetbrains.kotlin.jvm")
 }
 
 androidx.configureAarAsJarForConfiguration("testImplementation")
@@ -42,8 +44,7 @@ dependencies {
     implementation(libs.guava)
     implementation(libs.javapoet)
     implementation(libs.kotlinMetadataJvm)
-
-    annotationProcessor(libs.autoValue)
+    implementation(libs.kotlinStdlib)
 
     // For testing, add in the compiled classes from appsearch to get access to annotations.
     testImplementationAarAsJar(project(":appsearch:appsearch"))
@@ -55,8 +56,9 @@ dependencies {
 
 androidx {
     name = "AppSearch Compiler"
-    type = LibraryType.ANNOTATION_PROCESSOR
+    type = SoftwareType.ANNOTATION_PROCESSOR
     inceptionYear = '2019'
     description = 'Compiler for classes annotated with @androidx.appsearch.annotation.Document'
     failOnDeprecationWarnings = false
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

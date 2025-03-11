@@ -34,12 +34,31 @@ public class ProgressIndicatorColors(
     public val indicatorColor: LayoutColor,
     public val trackColor: LayoutColor,
     public val trackOverflowColor: LayoutColor = trackColor
-)
+) {
+    /**
+     * Returns a copy of this [ProgressIndicatorColors], optionally overriding some of the values.
+     *
+     * @param indicatorColor Color used to draw the indicator of progress indicator.
+     * @param trackColor Color used to draw the track of progress indicator.
+     * @param trackOverflowColor Color used to draw the track for progress overflow (>1).
+     */
+    public fun copy(
+        indicatorColor: LayoutColor = this.indicatorColor,
+        trackColor: LayoutColor = this.trackColor,
+        trackOverflowColor: LayoutColor = this.trackOverflowColor
+    ): ProgressIndicatorColors =
+        ProgressIndicatorColors(
+            indicatorColor = indicatorColor,
+            trackColor = trackColor,
+            trackOverflowColor = trackOverflowColor
+        )
+}
 
 public object CircularProgressIndicatorDefaults {
     /**
      * Returns the recommended [ProgressIndicatorColors] object to be used when placing the progress
-     * indicator inside a graphic card with [CardDefaults.filledCardColors].
+     * indicator inside a graphic card with [CardDefaults.filledCardColors] from the given
+     * [MaterialScope]'s [ColorScheme].
      */
     public fun MaterialScope.filledProgressIndicatorColors(): ProgressIndicatorColors =
         ProgressIndicatorColors(
@@ -50,7 +69,8 @@ public object CircularProgressIndicatorDefaults {
 
     /**
      * Returns the recommended [ProgressIndicatorColors] object to be used when placing the progress
-     * indicator inside a graphic card with [CardDefaults.filledTonalCardColors].
+     * indicator inside a graphic card with [CardDefaults.filledTonalCardColors] from the given
+     * [MaterialScope]'s [ColorScheme].
      */
     public fun MaterialScope.filledTonalProgressIndicatorColors(): ProgressIndicatorColors =
         ProgressIndicatorColors(
@@ -61,7 +81,8 @@ public object CircularProgressIndicatorDefaults {
 
     /**
      * Returns the recommended [ProgressIndicatorColors] object to be used when placing the progress
-     * indicator inside a graphic card with [CardDefaults.filledVariantCardColors].
+     * indicator inside a graphic card with [CardDefaults.filledVariantCardColors] from the given
+     * [MaterialScope]'s [ColorScheme].
      */
     public fun MaterialScope.filledVariantProgressIndicatorColors(): ProgressIndicatorColors =
         ProgressIndicatorColors(

@@ -33,8 +33,8 @@ import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.DragEvent.DragDelta
 import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.snapFlingBehavior
-import androidx.compose.foundation.PlatformOptimizedCancellationException
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.internal.PlatformOptimizedCancellationException
 import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.layout.offset
@@ -1537,7 +1537,8 @@ private fun Float.coerceToTarget(target: Float): Float {
     return if (target > 0) coerceAtMost(target) else coerceAtLeast(target)
 }
 
-private class AnchoredDragFinishedSignal : PlatformOptimizedCancellationException()
+internal class AnchoredDragFinishedSignal :
+    PlatformOptimizedCancellationException("Anchored drag finished")
 
 private suspend fun <I> restartable(inputs: () -> I, block: suspend (I) -> Unit) {
     try {
@@ -1570,7 +1571,7 @@ private class DefaultDraggableAnchors<T>(
 ) : DraggableAnchors<T> {
 
     init {
-        require(keys.size == anchors.size) {
+        requirePrecondition(keys.size == anchors.size) {
             "DraggableAnchors were constructed with " +
                 "inconsistent key-value sizes. Keys: $keys | Anchors: ${anchors.toList()}"
         }
@@ -1655,12 +1656,13 @@ internal val AnchoredDraggableMinFlingVelocity = 125.dp
 
 private const val ConfigurationMovedToModifier =
     "This constructor of " +
-        "AnchoredDraggableState has been deprecated. Please pass thresholds and animation specs to " +
-        "anchoredDraggableFlingBehavior(..) instead, which can be passed to Modifier.anchoredDraggable."
+        "AnchoredDraggableState has been deprecated. Please pass thresholds and animation specs" +
+        " to AnchoredDraggableDefaults.flingBehavior(..) instead, which can be passed to" +
+        " Modifier.anchoredDraggable."
 private const val SettleWithVelocityDeprecated =
-    "settle does not accept a velocity anymore. " +
-        "Please use FlingBehavior#performFling instead. See AnchoredDraggableSamples.kt for example " +
-        "usages."
+    "settle does not accept a velocity anymore." +
+        " Please use FlingBehavior#performFling instead. See AnchoredDraggableSample.kt for" +
+        " example usages."
 private const val StartDragImmediatelyDeprecated =
     "startDragImmediately has been removed " +
         "without replacement. Modifier.anchoredDraggable sets startDragImmediately to true by " +

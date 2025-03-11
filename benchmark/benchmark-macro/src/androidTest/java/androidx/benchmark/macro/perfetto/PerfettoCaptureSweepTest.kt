@@ -60,7 +60,7 @@ class PerfettoCaptureSweepTest(
     @Before
     @After
     fun cleanup() {
-        PerfettoHelper.stopAllPerfettoProcesses()
+        PerfettoHelper.cleanupPerfettoState()
     }
 
     @Ignore("b/258216025")

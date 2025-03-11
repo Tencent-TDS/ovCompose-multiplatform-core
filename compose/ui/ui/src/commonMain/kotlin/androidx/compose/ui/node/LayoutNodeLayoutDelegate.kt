@@ -369,8 +369,11 @@ internal class LayoutNodeLayoutDelegate(
         lookaheadPassDelegate?.let { it.childDelegatesDirty = true }
     }
 
-    fun clearLookaheadDelegate() {
+    fun onRemovedFromLookaheadScope() {
         lookaheadPassDelegate = null
+        // Clear lookahead invalidations when a LayoutNode is moved out of LookaheadScope.
+        lookaheadLayoutPending = false
+        lookaheadMeasurePending = false
     }
 }
 

@@ -18,6 +18,8 @@ package androidx.xr.arcore
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.Session
+import androidx.xr.runtime.internal.Anchor as RuntimeAnchor
+import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
 import androidx.xr.runtime.internal.Plane as RuntimePlane
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector2
@@ -164,11 +166,16 @@ internal constructor(
     public val type: Type
         get() = typeFromRuntimeType()
 
-    override fun createAnchor(pose: Pose): Anchor {
-        val runtimeAnchor = runtimePlane.createAnchor(pose)
+    override fun createAnchor(pose: Pose): AnchorCreateResult {
+        val runtimeAnchor: RuntimeAnchor
+        try {
+            runtimeAnchor = runtimePlane.createAnchor(pose)
+        } catch (e: AnchorResourcesExhaustedException) {
+            return AnchorCreateResourcesExhausted()
+        }
         val anchor = Anchor(runtimeAnchor, xrResourceManager)
         xrResourceManager.addUpdatable(anchor)
-        return anchor
+        return AnchorCreateSuccess(anchor)
     }
 
     override suspend fun update() {

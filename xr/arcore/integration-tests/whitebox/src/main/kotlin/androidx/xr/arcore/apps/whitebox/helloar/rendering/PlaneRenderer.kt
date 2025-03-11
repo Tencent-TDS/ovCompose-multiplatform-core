@@ -132,7 +132,8 @@ internal class PlaneRenderer(
     }
 
     private fun createPlanePanelEntity(plane: Plane, view: View): PanelEntity {
-        return renderSession.createPanelEntity(
+        return PanelEntity.create(
+            renderSession,
             view,
             Dimensions(320f, 320f),
             Dimensions(1f, 1f, 1f),

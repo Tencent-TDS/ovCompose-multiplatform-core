@@ -40,6 +40,7 @@ import androidx.collection.ArrayMap;
 import androidx.collection.ArraySet;
 import androidx.vectordrawable.graphics.drawable.SeekableAnimatedVectorDrawable;
 import androidx.wear.protolayout.expression.PlatformDataKey;
+import androidx.wear.protolayout.expression.PlatformEventSources;
 import androidx.wear.protolayout.expression.pipeline.BoundDynamicType;
 import androidx.wear.protolayout.expression.pipeline.DynamicTypeAnimator;
 import androidx.wear.protolayout.expression.pipeline.DynamicTypeBindingRequest;
@@ -67,6 +68,7 @@ import androidx.wear.protolayout.proto.TypesProto.BoolProp;
 import androidx.wear.protolayout.renderer.dynamicdata.NodeInfo.ResolvedAvd;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -104,6 +106,7 @@ public class ProtoLayoutDynamicDataPipeline {
     final @NonNull QuotaManager mAnimationQuotaManager;
     private final @NonNull DynamicTypeEvaluator mEvaluator;
     private final @NonNull PlatformTimeUpdateNotifierImpl mTimeNotifier;
+    private final @NonNull VisibilityStatusDataProvider mVisibilityStatusDataProvider;
 
     /** Creates a {@link ProtoLayoutDynamicDataPipeline} without animation support. */
     @RestrictTo(Scope.LIBRARY_GROUP)
@@ -149,15 +152,28 @@ public class ProtoLayoutDynamicDataPipeline {
         DynamicTypeEvaluator.Config.Builder evaluatorConfigBuilder =
                 new DynamicTypeEvaluator.Config.Builder().setStateStore(stateStore);
         evaluatorConfigBuilder.setDynamicTypesQuotaManager(dynamicNodeQuotaManager);
+
+        // Platform sensor data.
         for (Map.Entry<PlatformDataProvider, Set<PlatformDataKey<?>>> providerEntry :
                 platformDataProviders.entrySet()) {
             evaluatorConfigBuilder.addPlatformDataProvider(
                     providerEntry.getKey(), providerEntry.getValue());
         }
+
+        // Platform visibility data.
+        // Add additional provider for visibility status. It's not needed to come from external
+        // callers, as this pipeline knows visibility status
+        mVisibilityStatusDataProvider = new VisibilityStatusDataProvider(mFullyVisible);
+        evaluatorConfigBuilder.addPlatformDataProvider(
+                mVisibilityStatusDataProvider,
+                ImmutableSet.of(PlatformEventSources.Keys.LAYOUT_VISIBILITY));
+
+        // Time data.
         this.mTimeNotifier = new PlatformTimeUpdateNotifierImpl();
 
         evaluatorConfigBuilder.setPlatformTimeUpdateNotifier(this.mTimeNotifier);
         mTimeNotifier.setUpdatesEnabled(true);
+        mVisibilityStatusDataProvider.setUpdatesEnabled(true);
 
         if (enableAnimations) {
             evaluatorConfigBuilder.setAnimationQuotaManager(animationQuotaManager);
@@ -210,6 +226,7 @@ public class ProtoLayoutDynamicDataPipeline {
     @RestrictTo(Scope.LIBRARY_GROUP)
     public void setUpdatesEnabled(boolean canUpdate) {
         mTimeNotifier.setUpdatesEnabled(canUpdate);
+        mVisibilityStatusDataProvider.setUpdatesEnabled(canUpdate);
     }
 
     /** Closes existing gateways. */
@@ -217,7 +234,7 @@ public class ProtoLayoutDynamicDataPipeline {
     @SuppressWarnings("RestrictTo")
     public void close() {
         mPositionIdTree.clear();
-        mTimeNotifier.setUpdatesEnabled(false);
+        setUpdatesEnabled(false);
     }
 
     /**
@@ -1036,9 +1053,14 @@ public class ProtoLayoutDynamicDataPipeline {
         }
 
         this.mFullyVisible = fullyVisible;
+
         // Set visibility to already started INFINITE AVD will pause the animation when the drawable
         // is invisible and resume the animation when becomes visible again.
         setAnimationVisibility(fullyVisible);
+
+        // Send platform data on visibility.
+        this.mVisibilityStatusDataProvider.onVisibilityChanged(fullyVisible);
+
         if (fullyVisible) {
             playAvdAnimations(Trigger.InnerCase.ON_VISIBLE_TRIGGER);
             playAvdAnimations(Trigger.InnerCase.ON_VISIBLE_ONCE_TRIGGER);

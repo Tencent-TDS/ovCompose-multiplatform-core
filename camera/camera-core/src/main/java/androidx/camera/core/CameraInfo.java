@@ -456,6 +456,24 @@ public interface CameraInfo {
         return new MutableLiveData<>(TORCH_STRENGTH_LEVEL_UNSUPPORTED);
     }
 
+    /**
+     * Returns if configuring torch strength is supported on the device.
+     *
+     * <p>If supported, {@link CameraControl#setTorchStrengthLevel(int)} can be used to configure
+     * torch strength.
+     *
+     * <p>If not supported, {@link #getMaxTorchStrengthLevel()} and
+     * {@link #getTorchStrengthLevel()} will return {@link #TORCH_STRENGTH_LEVEL_UNSUPPORTED}
+     * when called.
+     *
+     * @return {@code true} if configuring torch strength is supported on the device, otherwise
+     * {@code false}.
+     * @see CameraControl#setTorchStrengthLevel(int)
+     */
+    default boolean isTorchStrengthSupported() {
+        return false;
+    }
+
     @StringDef(open = true, value = {IMPLEMENTATION_TYPE_UNKNOWN,
             IMPLEMENTATION_TYPE_CAMERA2_LEGACY, IMPLEMENTATION_TYPE_CAMERA2,
             IMPLEMENTATION_TYPE_FAKE})

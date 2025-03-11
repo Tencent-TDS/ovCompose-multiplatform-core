@@ -16,8 +16,6 @@
 
 package androidx.build.lint.replacewith
 
-import androidx.build.lint.ReplaceWithDetector
-import com.android.tools.lint.checks.infrastructure.TestLintTask
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -37,13 +35,13 @@ class ReplaceWithDetectorPropertyTest {
         // Kotlin property accessors until we can properly convert the expressions to Java.
         val expected =
             """
-src/replacewith/PropertyJava.java:42: Information: Replacement available [ReplaceWith]
+src/replacewith/PropertyJava.java:42: Hint: Replacement available [ReplaceWith]
         clazz.setMethodDeprecated("value");
-              ~~~~~~~~~~~~~~~~~~~
-src/replacewith/PropertyJava.java:43: Information: Replacement available [ReplaceWith]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/replacewith/PropertyJava.java:43: Hint: Replacement available [ReplaceWith]
         clazz.getMethodDeprecated();
               ~~~~~~~~~~~~~~~~~~~
-0 errors, 0 warnings
+0 errors, 0 warnings, 2 hints
         """
                 .trimIndent()
 
@@ -54,7 +52,7 @@ src/replacewith/PropertyJava.java:43: Information: Replacement available [Replac
 Fix for src/replacewith/PropertyJava.java line 42: Replace with `otherProperty = "value"`:
 @@ -42 +42
 -         clazz.setMethodDeprecated("value");
-+         clazz.otherProperty = "value"("value");
++         clazz.otherProperty = "value";
 Fix for src/replacewith/PropertyJava.java line 43: Replace with `otherProperty`:
 @@ -43 +43
 -         clazz.getMethodDeprecated();
@@ -62,13 +60,6 @@ Fix for src/replacewith/PropertyJava.java line 43: Replace with `otherProperty`:
         """
                 .trimIndent()
 
-        // Move to check(*input) when b/391690668 is fixed and verifyFixedFileSyntax is removed.
-        TestLintTask.lint()
-            .files(ANDROIDX_REPLACE_WITH_KT, ANDROIDX_ANY_THREAD_KT, *input)
-            .issues(ReplaceWithDetector.ISSUE)
-            .verifyFixedFileSyntax(false)
-            .run()
-            .expect(expected)
-            .expectFixDiffs(expectedFixDiffs)
+        check(*input).expect(expected).expectFixDiffs(expectedFixDiffs)
     }
 }

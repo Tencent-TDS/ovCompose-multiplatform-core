@@ -33,7 +33,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.RevealActionType
-import androidx.wear.compose.foundation.RevealScope
 import androidx.wear.compose.foundation.RevealState
 import androidx.wear.compose.foundation.RevealValue
 import androidx.wear.compose.foundation.rememberRevealState
@@ -392,14 +391,10 @@ class SwipeToRevealTest {
     private fun swipeToRevealChipDefault(
         modifier: Modifier = Modifier,
         revealState: RevealState = rememberRevealState(),
-        primaryAction: @Composable RevealScope.() -> Unit = { createPrimaryAction(revealState) },
-        secondaryAction: @Composable RevealScope.() -> Unit = {
-            createSecondaryAction(revealState)
-        },
-        undoPrimaryAction: (@Composable RevealScope.() -> Unit)? = {
-            createUndoAction(revealState)
-        },
-        undoSecondaryAction: (@Composable RevealScope.() -> Unit)? = {
+        primaryAction: @Composable () -> Unit = { createPrimaryAction(revealState) },
+        secondaryAction: @Composable () -> Unit = { createSecondaryAction(revealState) },
+        undoPrimaryAction: (@Composable () -> Unit)? = { createUndoAction(revealState) },
+        undoSecondaryAction: (@Composable () -> Unit)? = {
             createUndoAction(revealState, modifier = Modifier.testTag(UNDO_SECONDARY_ACTION_TAG))
         },
         onFullSwipe: () -> Unit = {},
@@ -423,14 +418,10 @@ class SwipeToRevealTest {
     private fun swipeToRevealCardDefault(
         modifier: Modifier = Modifier,
         revealState: RevealState = rememberRevealState(),
-        primaryAction: @Composable RevealScope.() -> Unit = { createPrimaryAction(revealState) },
-        secondaryAction: @Composable RevealScope.() -> Unit = {
-            createSecondaryAction(revealState)
-        },
-        undoPrimaryAction: (@Composable RevealScope.() -> Unit)? = {
-            createUndoAction(revealState)
-        },
-        undoSecondaryAction: (@Composable RevealScope.() -> Unit)? = {
+        primaryAction: @Composable () -> Unit = { createPrimaryAction(revealState) },
+        secondaryAction: @Composable () -> Unit = { createSecondaryAction(revealState) },
+        undoPrimaryAction: (@Composable () -> Unit)? = { createUndoAction(revealState) },
+        undoSecondaryAction: (@Composable () -> Unit)? = {
             createUndoAction(revealState, modifier = Modifier.testTag(UNDO_SECONDARY_ACTION_TAG))
         },
         onFullSwipe: () -> Unit = {},
@@ -451,7 +442,7 @@ class SwipeToRevealTest {
     }
 
     @Composable
-    private fun RevealScope.createPrimaryAction(
+    private fun createPrimaryAction(
         revealState: RevealState,
         icon: @Composable () -> Unit = { Icon(SwipeToRevealDefaults.Delete, "Delete") },
         label: @Composable () -> Unit = { Text("Clear") },
@@ -468,7 +459,7 @@ class SwipeToRevealTest {
     }
 
     @Composable
-    private fun RevealScope.createSecondaryAction(
+    private fun createSecondaryAction(
         revealState: RevealState,
         icon: @Composable () -> Unit = { Icon(SwipeToRevealDefaults.MoreOptions, "More Options") },
         modifier: Modifier = Modifier,
@@ -483,7 +474,7 @@ class SwipeToRevealTest {
     }
 
     @Composable
-    private fun RevealScope.createUndoAction(
+    private fun createUndoAction(
         revealState: RevealState,
         label: @Composable () -> Unit = { Text("Undo") },
         modifier: Modifier = Modifier,

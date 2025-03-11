@@ -66,10 +66,7 @@ fun TrackableCard(trackable: Trackable<Trackable.State>) {
 
 @Composable
 fun PlaneStateInfo(state: Plane.State) {
-    Text(
-        text = "Plane Label: ${state.label}",
-        color = convertPlaneLabelToColor(state.label),
-    )
+    Text(text = "Plane Label: ${state.label}", color = convertPlaneLabelToColor(state.label))
     Text(text = "Plane Center Pose: ${state.centerPose}")
     Text(text = "Plane Extents: ${state.extents}")
     Text(text = "Subsumed by Plane: ${state.subsumedBy}")

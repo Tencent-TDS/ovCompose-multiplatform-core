@@ -17,6 +17,7 @@
 package androidx.compose.ui.layout
 
 import androidx.collection.MutableOrderedScatterSet
+import androidx.collection.mutableIntSetOf
 import androidx.collection.mutableOrderedScatterSetOf
 import androidx.collection.mutableScatterMapOf
 import androidx.compose.runtime.Applier
@@ -55,6 +56,7 @@ import androidx.compose.ui.node.requireOwner
 import androidx.compose.ui.node.traverseDescendants
 import androidx.compose.ui.platform.createSubcomposition
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
 
@@ -263,6 +265,12 @@ class SubcomposeLayoutState(private val slotReusePolicy: SubcomposeSlotReusePoli
          * function.
          */
         fun traverseDescendants(key: Any?, block: (TraversableNode) -> TraverseDescendantsAction) {}
+
+        /**
+         * Retrieves the latest measured size for a given placeable [index]. This will return
+         * [IntSize.Zero] if this is called before [premeasure].
+         */
+        fun getSize(index: Int): IntSize = IntSize.Zero
     }
 }
 
@@ -496,6 +504,8 @@ internal class LayoutNodeSubcompositionsState(
         }
     }
 
+    // This may be called in approach pass, if a node is only emitted in the approach pass, but
+    // not in the lookahead pass.
     private fun subcompose(node: LayoutNode, slotId: Any?, content: @Composable () -> Unit) {
         val nodeState = nodeToNodeState.getOrPut(node) { NodeState(slotId, {}) }
         val hasPendingChanges = nodeState.composition?.hasInvalidations ?: true
@@ -823,6 +833,9 @@ internal class LayoutNodeSubcompositionsState(
             subcompose(node, slotId, content)
         }
         return object : PrecomposedSlotHandle {
+            // Saves indices of placeables that have been premeasured in this handle
+            val hasPremeasured = mutableIntSetOf()
+
             override fun dispose() {
                 makeSureStateIsConsistent()
                 val node = precomposeMap.remove(slotId)
@@ -859,6 +872,7 @@ internal class LayoutNodeSubcompositionsState(
                     root.ignoreRemeasureRequests {
                         node.requireOwner().measureAndLayout(node.children[index], constraints)
                     }
+                    hasPremeasured.add(index)
                 }
             }
 
@@ -867,6 +881,23 @@ internal class LayoutNodeSubcompositionsState(
                 block: (TraversableNode) -> TraverseDescendantsAction
             ) {
                 precomposeMap[slotId]?.nodes?.head?.traverseDescendants(key, block)
+            }
+
+            override fun getSize(index: Int): IntSize {
+                val node = precomposeMap[slotId]
+                if (node != null && node.isAttached) {
+                    val size = node.children.size
+                    if (index < 0 || index >= size) {
+                        throwIndexOutOfBoundsException(
+                            "Index ($index) is out of bound of [0, $size)"
+                        )
+                    }
+
+                    if (hasPremeasured.contains(index)) {
+                        return IntSize(node.children[index].width, node.children[index].height)
+                    }
+                }
+                return IntSize.Zero
             }
         }
     }
@@ -878,8 +909,16 @@ internal class LayoutNodeSubcompositionsState(
             // in other cases, all of them are going to be invalidated later anyways
             nodeToNodeState.forEachValue { nodeState -> nodeState.forceRecompose = true }
 
-            if (!root.measurePending) {
-                root.requestRemeasure()
+            if (root.lookaheadRoot != null) {
+                // If the SubcomposeLayout is in a LookaheadScope, request for a lookahead measure
+                // so that lookahead gets triggered again to recompose children.
+                if (!root.lookaheadMeasurePending) {
+                    root.requestLookaheadRemeasure()
+                }
+            } else {
+                if (!root.measurePending) {
+                    root.requestRemeasure()
+                }
             }
         }
     }
@@ -999,6 +1038,13 @@ internal class LayoutNodeSubcompositionsState(
                 root.requestLookaheadRelayout(true)
             } else {
                 root.requestLookaheadRemeasure(true)
+            }
+        } else {
+            // Re-subcompose if needed based on forceRecompose
+            val node = precomposeMap[slotId]
+            val nodeState = node?.let { nodeToNodeState[it] }
+            if (nodeState?.forceRecompose == true) {
+                subcompose(node, slotId, content)
             }
         }
 

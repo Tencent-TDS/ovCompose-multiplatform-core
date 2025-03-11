@@ -24,7 +24,7 @@ import androidx.compose.material3.internal.CalendarDate
 import androidx.compose.material3.internal.CalendarModel
 import androidx.compose.material3.internal.DateInputFormat
 import androidx.compose.material3.internal.Strings
-import androidx.compose.material3.internal.format
+import androidx.compose.material3.internal.formatString
 import androidx.compose.material3.internal.getString
 import androidx.compose.material3.tokens.MotionTokens
 import androidx.compose.runtime.Composable
@@ -315,11 +315,12 @@ internal class DateInputValidator(
         locale: CalendarLocale
     ): String {
         if (dateToValidate == null) {
-            return errorDatePattern.format(dateInputFormat.patternWithDelimiters.uppercase())
+            return formatString(errorDatePattern, dateInputFormat.patternWithDelimiters.uppercase())
         }
         // Check that the date is within the valid range of years.
         if (!yearRange.contains(dateToValidate.year)) {
-            return errorDateOutOfYearRange.format(
+            return formatString(
+                errorDateOutOfYearRange,
                 yearRange.first.toLocalString(),
                 yearRange.last.toLocalString()
             )
@@ -328,9 +329,10 @@ internal class DateInputValidator(
         with(selectableDates) {
             if (
                 !isSelectableYear(dateToValidate.year) ||
-                !isSelectableDate(dateToValidate.utcTimeMillis)
+                    !isSelectableDate(dateToValidate.utcTimeMillis)
             ) {
-                return errorInvalidNotAllowed.format(
+                return formatString(
+                    errorInvalidNotAllowed,
                     dateFormatter.formatDate(
                         dateMillis = dateToValidate.utcTimeMillis,
                         locale = locale
@@ -342,9 +344,9 @@ internal class DateInputValidator(
         // Additional validation when the InputIdentifier is for start of end dates in a range input
         if (
             (inputIdentifier == InputIdentifier.StartDateInput &&
-                dateToValidate.utcTimeMillis >= (currentEndDateMillis ?: Long.MAX_VALUE)) ||
-            (inputIdentifier == InputIdentifier.EndDateInput &&
-                dateToValidate.utcTimeMillis < (currentStartDateMillis ?: Long.MIN_VALUE))
+                dateToValidate.utcTimeMillis > (currentEndDateMillis ?: Long.MAX_VALUE)) ||
+                (inputIdentifier == InputIdentifier.EndDateInput &&
+                    dateToValidate.utcTimeMillis < (currentStartDateMillis ?: Long.MIN_VALUE))
         ) {
             // The input start date is after the end date, or the end date is before the start date.
             return errorInvalidRangeInput

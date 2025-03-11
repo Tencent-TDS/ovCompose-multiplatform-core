@@ -28,7 +28,7 @@ import androidx.privacysandbox.ui.core.IDelegatorCallback
 import androidx.privacysandbox.ui.core.ISessionRefreshCallback
 import androidx.privacysandbox.ui.core.RemoteCallManager.tryToCallRemoteObject
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
-import androidx.privacysandbox.ui.core.SessionConstants
+import androidx.privacysandbox.ui.core.SessionData
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlinx.coroutines.*
@@ -143,7 +143,7 @@ internal class ClientDelegatingAdapter(
      */
     override fun openSession(
         context: Context,
-        sessionConstants: SessionConstants,
+        sessionData: SessionData,
         initialWidth: Int,
         initialHeight: Int,
         isZOrderOnTop: Boolean,
@@ -153,7 +153,7 @@ internal class ClientDelegatingAdapter(
         val delegateUsed: SandboxedUiAdapter = synchronized(lock) { latestDelegate }
         delegateUsed.openSession(
             context,
-            sessionConstants,
+            sessionData,
             initialWidth,
             initialHeight,
             isZOrderOnTop,

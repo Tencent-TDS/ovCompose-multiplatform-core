@@ -35,7 +35,6 @@ import androidx.xr.extensions.node.ReformOptions;
 import androidx.xr.extensions.node.Vec3;
 import androidx.xr.extensions.space.ActivityPanel;
 import androidx.xr.extensions.space.ActivityPanelLaunchParameters;
-import androidx.xr.extensions.space.Bounds;
 import androidx.xr.extensions.space.HitTestResult;
 import androidx.xr.extensions.space.SpatialCapabilities;
 import androidx.xr.extensions.space.SpatialState;
@@ -104,19 +103,6 @@ public interface XrExtensions {
     @NonNull
     CompletableFuture</* @Nullable */ GltfModelToken> loadGltfModel(
             InputStream asset, int regionSizeBytes, int regionOffsetBytes, String url);
-
-    /**
-     * Views a 3D asset.
-     *
-     * @param activity The activity which relinquishes control in order to display the model..
-     * @param gltfModel The model to display.
-     * @return A {@link CompletableFuture} that notifies the caller when the session has completed.
-     * @deprecated JXR Core doesn't need this anymore as it does the same with Split Engine.
-     */
-    @Deprecated
-    @NonNull
-    CompletableFuture</* @Nullable */ SceneViewerResult> displayGltfModel(
-            Activity activity, GltfModelToken gltfModel);
 
     /**
      * Loads and caches the environment in the SpaceFlinger.
@@ -211,28 +197,6 @@ public interface XrExtensions {
      * @param sceneNode the node to show as the presentation of the {@code activity}.
      * @param windowNode a leash node to allow the app to control the position and size of the
      *     activity's main window.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void attachSpatialScene(
-            @NonNull Activity activity, @NonNull Node sceneNode, @NonNull Node windowNode);
-
-    /**
-     * Attaches the given {@code sceneNode} as the presentation for the given {@code activity} in
-     * the space, and asks the system to attach the 2D content of the {@code activity} into the
-     * given {@code windowNode}.
-     *
-     * <p>The {@code sceneNode} will only be visible if the {@code activity} is visible as in a
-     * lifecycle state between {@link Activity#onStart()} and {@link Activity#onStop()} and is
-     * SPATIAL_UI_CAPABLE too.
-     *
-     * <p>One activity can only attach one scene node. When a new scene node is attached for the
-     * same {@code activity}, the previous one will be detached.
-     *
-     * @param activity the owner activity of the {@code sceneNode}.
-     * @param sceneNode the node to show as the presentation of the {@code activity}.
-     * @param windowNode a leash node to allow the app to control the position and size of the
-     *     activity's main window.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -262,19 +226,6 @@ public interface XrExtensions {
      * that was attached for itself.
      *
      * @param activity the owner activity of the {@code sceneNode}.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void detachSpatialScene(@NonNull Activity activity);
-
-    /**
-     * Detaches the {@code sceneNode} that was previously attached for the {@code activity} via
-     * {@link #attachSpatialScene}.
-     *
-     * <p>When an {@link Activity} is destroyed, it must call this method to detach the scene node
-     * that was attached for itself.
-     *
-     * @param activity the owner activity of the {@code sceneNode}.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -291,17 +242,6 @@ public interface XrExtensions {
             @NonNull Activity activity,
             @NonNull Consumer<XrExtensionResult> callback,
             @NonNull Executor executor);
-
-    /**
-     * Resizes the main window of the given activity to the requested size.
-     *
-     * @param activity the activity whose main window should be resized.
-     * @param width the new main window width in pixels.
-     * @param height the new main window height in pixels.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void setMainWindowSize(@NonNull Activity activity, int width, int height);
 
     /**
      * Resizes the main window of the given activity to the requested size.
@@ -351,22 +291,6 @@ public interface XrExtensions {
      * <p>This method can be called multiple times, SysUI will attach the new environment node and
      * detach the old environment node if it exists.
      *
-     * @param activity the activity that provides the environment node to attach.
-     * @param environmentNode the environment node provided by the activity to be attached.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void attachSpatialEnvironment(@NonNull Activity activity, @NonNull Node environmentNode);
-
-    /**
-     * Attaches an environment node for a given activity to make it visible.
-     *
-     * <p>SysUI will attach the environment node to the task node when the activity gains the
-     * APP_ENVIRONMENTS_CAPABLE capability.
-     *
-     * <p>This method can be called multiple times, SysUI will attach the new environment node and
-     * detach the old environment node if it exists.
-     *
      * <p>Note that once an environmentNode is attached and the caller gains
      * APP_ENVIRONMENTS_CAPABLE capability, spatial callback's environment visibility status changes
      * to APP_VISIBLE even if your application hasn't set a skybox or geometry to the environment
@@ -405,19 +329,6 @@ public interface XrExtensions {
      *
      * @param activity the activity with which SysUI will detach and clean up the environment node
      *     tree.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void detachSpatialEnvironment(@NonNull Activity activity);
-
-    /**
-     * Detaches the environment node and its sub tree for a given activity to make it invisible.
-     *
-     * <p>This method will detach and cleanup the environment node and its subtree passed from the
-     * activity.
-     *
-     * @param activity the activity with which SysUI will detach and clean up the environment node
-     *     tree.
      * @param callback the callback that will be called with the result. XrExtensionResult will
      *     indicate either of the following: XrExtensionResult.XR_RESULT_SUCCESS: The request has
      *     been accepted, and the client can expect that a spatial state callback with an updated
@@ -433,27 +344,6 @@ public interface XrExtensions {
     void detachSpatialEnvironment(
             @NonNull Activity activity,
             @NonNull Consumer<XrExtensionResult> callback,
-            @NonNull Executor executor);
-
-    /**
-     * Sets a callback to receive {@link SpatialStateEvent} for the given {@code activity}.
-     *
-     * <p>One activity can only set one callback. When a new callback is set for the same {@code
-     * activity}, the previous one will be cleared.
-     *
-     * <p>The callback will be triggered immediately with the current state when it is set, for each
-     * of the possible events.
-     *
-     * @param activity the activity for the {@code callback} to listen to.
-     * @param callback the callback to set.
-     * @param executor the executor that the callback will be called on.
-     * @see #clearSpatialStateCallback
-     * @deprecated Use registerSpatialStateCallback instead.
-     */
-    @Deprecated
-    void setSpatialStateCallback(
-            @NonNull Activity activity,
-            @NonNull Consumer<SpatialStateEvent> callback,
             @NonNull Executor executor);
 
     /**
@@ -511,40 +401,6 @@ public interface XrExtensions {
     @NonNull
     ActivityPanel createActivityPanel(
             @NonNull Activity host, @NonNull ActivityPanelLaunchParameters launchParameters);
-
-    /**
-     * Synchronously checks if an activity can be the host to embed an {@link ActivityPanel}.
-     *
-     * <p>Activity inside an {@link ActivityPanel} cannot be the host.
-     *
-     * @param activity the activity to check.
-     * @see #createActivityPanel
-     * @return true if the embedding is allowed.
-     * @deprecated Use {@link getSpatialState()} instead. When embedding is possible, SpatialState's
-     *     {@link SpatialCapabilities} has {@code SPATIAL_ACTIVITY_EMBEDDING_CAPABLE}.
-     */
-    @Deprecated
-    boolean canEmbedActivityPanel(@NonNull Activity activity);
-
-    /**
-     * Requests to put an activity in full space mode when it has focus.
-     *
-     * @param activity the activity that requires to enter full space mode.
-     * @return true when the request was sent (when the activity has focus).
-     * @deprecated Use requestFullSpaceMode with 3 arguments.
-     */
-    @Deprecated
-    boolean requestFullSpaceMode(@NonNull Activity activity);
-
-    /**
-     * Requests to put an activity in home space mode when it has focus.
-     *
-     * @param activity the activity that requires to enter home space mode.
-     * @return true when the request was sent (when the activity has focus).
-     * @deprecated Use requestFullSpaceMode with 3 arguments.
-     */
-    @Deprecated
-    boolean requestHomeSpaceMode(@NonNull Activity activity);
 
     /**
      * Requests to put an activity in a different mode when it has focus.
@@ -627,28 +483,6 @@ public interface XrExtensions {
     Bundle setFullSpaceModeWithEnvironmentInherited(@NonNull Bundle bundle);
 
     /**
-     * Sets panel curvature radius to the given {@link Bundle}.
-     *
-     * <p>The {@link Bundle} then could be used to launch an {@link Activity} with requesting to a
-     * custom curvature radius for the main panel through {@link Activity#startActivity}. If there's
-     * a bundle used for customizing how the {@link Activity} should be started by {@link
-     * ActivityOptions.toBundle} or {@link androidx.core.app.ActivityOptionsCompat.toBundle}, it's
-     * suggested to use the bundle to call this method.
-     *
-     * <p>The curvature radius must be used together with {@link
-     * #setFullSpaceModeWithEnvironmentInherited(Bundle)}. Otherwise, it will be ignored.
-     *
-     * @param bundle the input bundle to set with the inherit full space mode environment flag.
-     * @param panelCurvatureRadius the panel curvature radius. It is measured in "radius * 1 /
-     *     curvature". A value of 0.0f means the panel is flat.
-     * @return the input {@code bundle} with the inherit full space mode flag set.
-     * @deprecated Use Split Engine to create a curved panel.
-     */
-    @Deprecated
-    @NonNull
-    Bundle setMainPanelCurvatureRadius(@NonNull Bundle bundle, float panelCurvatureRadius);
-
-    /**
      * Synchronously returns system config information.
      *
      * @return A {@link Config} object.
@@ -725,21 +559,6 @@ public interface XrExtensions {
     Node getSurfaceTrackingNode(@NonNull View view);
 
     /**
-     * Sets a preferred main panel aspect ratio for home space mode.
-     *
-     * <p>The ratio is only applied to the activity. If the activity launches another activity in
-     * the same task, the ratio is not applied to the new activity. Also, while the activity is in
-     * full space mode, the preference is temporarily removed.
-     *
-     * @param activity the activity to set the preference.
-     * @param preferredRatio the aspect ratio determined by taking the panel's width over its
-     *     height. A value <= 0.0f means there are no preferences.
-     * @deprecated Use the new interface with a callback.
-     */
-    @Deprecated
-    void setPreferredAspectRatio(@NonNull Activity activity, float preferredRatio);
-
-    /**
      * Sets a preferred main panel aspect ratio for an activity that is not SPATIAL_UI_CAPABLE.
      *
      * <p>The ratio is only applied to the activity. If the activity launches another activity in
@@ -768,36 +587,6 @@ public interface XrExtensions {
             @NonNull Activity activity,
             float preferredRatio,
             @NonNull Consumer<XrExtensionResult> callback,
-            @NonNull Executor executor);
-
-    /**
-     * Gets the spatial capabilities of the activity.
-     *
-     * @param activity the activity to get the capabilities.
-     * @param callback the callback to run. If the activity is not found in SysUI, the callback runs
-     *     with a null SpatialCapabilities.
-     * @param executor the executor that the callback will be called on.
-     * @deprecated Use getSpatialState synchronous getter.
-     */
-    @Deprecated
-    void getSpatialCapabilities(
-            @NonNull Activity activity,
-            @NonNull Consumer<SpatialCapabilities> callback,
-            @NonNull Executor executor);
-
-    /**
-     * Gets the bounds of the activity.
-     *
-     * @param activity the activity to get the bounds.
-     * @param callback the callback to run. If the activity is not found in SysUI, the callback runs
-     *     with a null Bounds.
-     * @param executor the executor that the callback will be called on.
-     * @deprecated Use getSpatialState synchronous getter.
-     */
-    @Deprecated
-    void getBounds(
-            @NonNull Activity activity,
-            @NonNull Consumer<Bounds> callback,
             @NonNull Executor executor);
 
     /**

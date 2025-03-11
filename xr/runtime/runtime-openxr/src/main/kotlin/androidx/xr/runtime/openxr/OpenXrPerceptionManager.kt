@@ -18,6 +18,8 @@ package androidx.xr.runtime.openxr
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.internal.Anchor
+import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
+import androidx.xr.runtime.internal.Hand
 import androidx.xr.runtime.internal.HitResult
 import androidx.xr.runtime.internal.PerceptionManager
 import androidx.xr.runtime.internal.Plane
@@ -35,7 +37,7 @@ internal constructor(private val timeSource: OpenXrTimeSource) : PerceptionManag
 
     override fun createAnchor(pose: Pose): Anchor {
         val nativeAnchor = nativeCreateAnchor(pose, lastUpdateXrTime)
-        check(nativeAnchor != 0L) { "Failed to create anchor." }
+        checkNativeAnchorIsValid(nativeAnchor)
         val anchor = OpenXrAnchor(nativeAnchor, xrResources)
         anchor.update(lastUpdateXrTime)
         xrResources.addUpdatable(anchor as Updatable)
@@ -69,7 +71,10 @@ internal constructor(private val timeSource: OpenXrTimeSource) : PerceptionManag
 
     override fun loadAnchor(uuid: UUID): Anchor {
         val nativeAnchor = nativeLoadAnchor(uuid)
-        check(nativeAnchor != 0L) { "Failed to load anchor." }
+        when (nativeAnchor) {
+            -2L -> throw IllegalStateException("Failed to load anchor.")
+            -10L -> throw AnchorResourcesExhaustedException()
+        }
         val anchor = OpenXrAnchor(nativeAnchor, xrResources, loadedUuid = uuid)
         anchor.update(lastUpdateXrTime)
         xrResources.addUpdatable(anchor as Updatable)
@@ -89,6 +94,11 @@ internal constructor(private val timeSource: OpenXrTimeSource) : PerceptionManag
 
     internal val xrResources = XrResources()
     override val trackables: Collection<Trackable> = xrResources.trackablesMap.values
+    override val leftHand: Hand
+        get() = xrResources.leftHand
+
+    override val rightHand: Hand
+        get() = xrResources.rightHand
 
     private var lastUpdateXrTime: Long = 0L
 
@@ -133,6 +143,13 @@ internal constructor(private val timeSource: OpenXrTimeSource) : PerceptionManag
             hitPose = hitData.pose,
             trackable = trackable,
         )
+    }
+
+    private fun checkNativeAnchorIsValid(nativeAnchor: Long) {
+        when (nativeAnchor) {
+            -2L -> throw IllegalStateException("Failed to create anchor.") // kErrorRuntimeFailure
+            -10L -> throw AnchorResourcesExhaustedException() // kErrorLimitReached
+        }
     }
 
     private external fun nativeCreateAnchor(pose: Pose, timestampNs: Long): Long

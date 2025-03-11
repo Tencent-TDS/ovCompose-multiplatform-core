@@ -37,7 +37,7 @@ import androidx.benchmark.conditionalError
 import androidx.benchmark.createInsightSummaries
 import androidx.benchmark.inMemoryTrace
 import androidx.benchmark.json.BenchmarkData
-import androidx.benchmark.macro.MacrobenchmarkScope.KillFlushMode
+import androidx.benchmark.macro.MacrobenchmarkScope.KillMode
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig.InitialProcessState
 import androidx.benchmark.traceprocessor.TraceProcessor
@@ -264,12 +264,10 @@ private fun macrobenchmark(
     val iterationResults = mutableListOf<IterationResult>()
 
     TraceProcessor.runServer {
-        scope.withKillFlushMode(
-            current = KillFlushMode.None,
+        scope.withKillMode(
+            current = KillMode.None,
             override =
-                if (compilationMode.requiresClearArtRuntimeImage())
-                    KillFlushMode.ClearArtRuntimeImage
-                else KillFlushMode.None
+                KillMode(clearArtRuntimeImage = compilationMode.requiresClearArtRuntimeImage())
         ) {
             // Measurement Phase
             iterationResults +=

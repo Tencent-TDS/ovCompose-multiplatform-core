@@ -52,6 +52,7 @@ import androidx.wear.compose.material3.TitleCard
 import androidx.wear.compose.material3.samples.AppCardSample
 import androidx.wear.compose.material3.samples.AppCardWithIconSample
 import androidx.wear.compose.material3.samples.AppCardWithImageSample
+import androidx.wear.compose.material3.samples.CardFillContentSample
 import androidx.wear.compose.material3.samples.CardSample
 import androidx.wear.compose.material3.samples.CardWithOnLongClickSample
 import androidx.wear.compose.material3.samples.OutlinedAppCardSample
@@ -74,6 +75,7 @@ fun CardDemo() {
         item { CardWithMultipleImagesDemo() }
         item { OutlinedCardSample() }
         item { VerticallyCenteredBaseCard() }
+        item { CardFillContentSample() }
     }
 }
 
@@ -238,7 +240,7 @@ private fun ImageContent() {
             modifier = Modifier.weight(1f).aspectRatio(16f / 9f).clip(RoundedCornerShape(16.dp)),
             painter = painterResource(id = R.drawable.card_content_image),
             contentScale = ContentScale.Crop,
-            contentDescription = null
+            contentDescription = "Large blank image"
         )
         Spacer(modifier = Modifier.width(imageEndPaddingDp))
     }
@@ -255,7 +257,7 @@ private fun MultipleImagesContent() {
                     .clip(RoundedCornerShape(16.dp)),
             painter = painterResource(id = R.drawable.card_content_image),
             contentScale = ContentScale.Crop,
-            contentDescription = null
+            contentDescription = "Medium blank image"
         )
         Spacer(Modifier.width(4.dp))
         Image(
@@ -266,7 +268,7 @@ private fun MultipleImagesContent() {
                     .clip(RoundedCornerShape(16.dp)),
             painter = painterResource(id = R.drawable.card_content_image),
             contentScale = ContentScale.Crop,
-            contentDescription = null
+            contentDescription = "Small blank image"
         )
     }
 }

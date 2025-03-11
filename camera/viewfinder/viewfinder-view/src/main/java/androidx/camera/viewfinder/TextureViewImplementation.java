@@ -23,21 +23,20 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 
+import androidx.annotation.UiThread;
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest;
-import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest.Result;
-import androidx.camera.viewfinder.core.impl.utils.executor.ViewfinderExecutors;
-import androidx.camera.viewfinder.core.impl.utils.futures.FutureCallback;
-import androidx.camera.viewfinder.core.impl.utils.futures.Futures;
+import androidx.camera.viewfinder.core.impl.RefCounted;
 import androidx.camera.viewfinder.internal.utils.Logger;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.core.content.ContextCompat;
-import androidx.core.util.Consumer;
 import androidx.core.util.Preconditions;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import kotlin.Unit;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * The {@link TextureView} implementation for {@link CameraViewfinder}
@@ -46,148 +45,138 @@ final class TextureViewImplementation extends ViewfinderImplementation {
 
     private static final String TAG = "TextureViewImpl";
 
-    @SuppressWarnings("WeakerAccess")
-    @Nullable ViewfinderSurfaceRequest mSurfaceRequest;
+    private ViewfinderSurfaceRequest mSurfaceRequest = null;
 
-    @SuppressWarnings("WeakerAccess")
-    @Nullable SurfaceTexture mDetachedSurfaceTexture;
+    // SurfaceRequest to check when the target size is met.
+    // Guarded by the UI thread.
+    private CallbackToFutureAdapter.Completer<RefCounted<Surface>> mSurfaceResponse = null;
 
-    @SuppressWarnings("WeakerAccess")
-    @Nullable SurfaceTexture mSurfaceTexture;
+    private RefCounted<Surface> mActiveSurface = null;
 
-    @SuppressWarnings("WeakerAccess")
-    @Nullable ListenableFuture<Result> mSurfaceReleaseFuture;
-
-    boolean mIsSurfaceTextureDetachedFromView = false;
+    private int mCurrentSurfaceWidth = -1;
+    private int mCurrentSurfaceHeight = -1;
 
     // Synthetic Accessor
     @SuppressWarnings("WeakerAccess")
-    @Nullable TextureView mTextureView;
+    final TextureView.SurfaceTextureListener mSurfaceTextureListener =
+            new TextureView.SurfaceTextureListener() {
+                @Override
+                public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surfaceTexture,
+                        int width, int height) {
+                    Logger.d(TAG, "SurfaceTexture available. Size: "
+                            + width + "x" + height);
+                    mActiveSurface = new RefCounted<>(false, (surfaceToRelease) -> {
+                        surfaceToRelease.release();
+                        surfaceTexture.release();
+                        return Unit.INSTANCE;
+                    });
+                    mActiveSurface.initialize(new Surface(surfaceTexture));
+                    mCurrentSurfaceWidth = width;
+                    mCurrentSurfaceHeight = height;
+
+                    tryToComplete();
+                }
+
+                @Override
+                public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surfaceTexture,
+                        int width, int height) {
+                    Logger.d(TAG, "SurfaceTexture size changed: " + width + "x" + height);
+                    mCurrentSurfaceWidth = width;
+                    mCurrentSurfaceHeight = height;
+
+                    tryToComplete();
+                }
+
+                @Override
+                public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surfaceTexture) {
+                    Logger.d(TAG, "SurfaceTexture destroyed.");
+
+                    // If a surface was already provided to the camera, invalidate it so that it
+                    // requests
+                    // a new valid one. Otherwise, cancel the surface request.
+                    if (mActiveSurface != null) {
+                        invalidateSurface();
+                        mActiveSurface.release();
+                    } else {
+                        cancelPreviousRequest();
+                    }
+
+                    // Reset state
+                    mActiveSurface = null;
+                    mCurrentSurfaceWidth = -1;
+                    mCurrentSurfaceHeight = -1;
+
+                    // Always return false since releasing the SurfaceTexture will always be handled
+                    // by RefCounted
+                    return false;
+                }
+
+                @Override
+                public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surfaceTexture) {
+                }
+            };
+
+    // Synthetic Accessor
+    @SuppressWarnings("WeakerAccess")
+    @Nullable
+    TextureView mTextureView;
 
     TextureViewImplementation(@NonNull FrameLayout parent,
             @NonNull ViewfinderTransformation viewfinderTransformation) {
         super(parent, viewfinderTransformation);
     }
 
-    @Override
-    void initializeViewfinder() {
+    void initializeViewfinder(int width, int height) {
         Preconditions.checkNotNull(mParent);
-        Preconditions.checkNotNull(mResolution);
+        Preconditions.checkArgument(width > 0);
+        Preconditions.checkArgument(height > 0);
         mTextureView = new TextureView(mParent.getContext());
         mTextureView.setLayoutParams(
-                new FrameLayout.LayoutParams(mResolution.getWidth(), mResolution.getHeight()));
-        mTextureView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @SuppressWarnings("ObjectToString")
-            @Override
-            public void onSurfaceTextureAvailable(final @NonNull SurfaceTexture surfaceTexture,
-                    final int width, final int height) {
-                Logger.d(TAG, "SurfaceTexture available. Size: "
-                        + width + "x" + height);
-                mSurfaceTexture = surfaceTexture;
-
-                // If a new SurfaceTexture becomes available yet the camera is still using a
-                // previous SurfaceTexture, invalidate its surface to notify the camera to
-                // request a new surface.
-                if (mSurfaceReleaseFuture != null && mSurfaceRequest != null) {
-                    Preconditions.checkNotNull(mSurfaceRequest);
-                    Logger.d(TAG, "Surface invalidated " + mSurfaceRequest);
-                    mSurfaceRequest.markSurfaceSafeToRelease();
-                } else {
-                    tryToProvideViewfinderSurface();
-                }
-            }
-
-            @Override
-            public void onSurfaceTextureSizeChanged(final @NonNull SurfaceTexture surfaceTexture,
-                    final int width, final int height) {
-                Logger.d(TAG, "SurfaceTexture size changed: " + width + "x" + height);
-            }
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(final @NonNull SurfaceTexture surfaceTexture) {
-                mSurfaceTexture = null;
-
-                // If the camera is still using the surface, prevent the TextureView from
-                // releasing the SurfaceTexture, and instead manually handle it once the camera's
-                // no longer using the Surface.
-                if (mSurfaceReleaseFuture != null && mTextureView != null) {
-                    Futures.addCallback(mSurfaceReleaseFuture,
-                            new FutureCallback<Result>() {
-                                @Override
-                                public void onSuccess(Result result) {
-                                    Preconditions.checkState(result.getCode()
-                                                    != Result.RESULT_SURFACE_ALREADY_PROVIDED,
-                                            "Unexpected result from SurfaceRequest. Surface was "
-                                                    + "provided twice.");
-
-                                    Logger.d(TAG, "SurfaceTexture about to manually be destroyed");
-                                    surfaceTexture.release();
-
-                                    if (mDetachedSurfaceTexture != null) {
-                                        mDetachedSurfaceTexture = null;
-                                    }
-                                }
-
-                                @Override
-                                public void onFailure(@NonNull Throwable t) {
-                                    throw new IllegalStateException("SurfaceReleaseFuture did not "
-                                            + "complete nicely.", t);
-                                }
-                            }, ContextCompat.getMainExecutor(mTextureView.getContext()));
-
-                    mDetachedSurfaceTexture = surfaceTexture;
-                    return false;
-                } else {
-                    return true;
-                }
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(final @NonNull SurfaceTexture surfaceTexture) {
-            }
-        });
-
+                new FrameLayout.LayoutParams(width, height));
+        mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
         mParent.removeAllViews();
         mParent.addView(mTextureView);
     }
 
+    @UiThread
     @Override
-    void onSurfaceRequested(@NonNull ViewfinderSurfaceRequest surfaceRequest) {
-        mResolution = surfaceRequest.getResolution();
-        initializeViewfinder();
-        if (mSurfaceRequest != null) {
-            mSurfaceRequest.willNotProvideSurface();
-        }
+    void onSurfaceRequested(@NonNull ViewfinderSurfaceRequest surfaceRequest,
+            CallbackToFutureAdapter.Completer<RefCounted<Surface>> surfaceResponse) {
+        cancelPreviousRequest();
+        initializeViewfinder(surfaceRequest.getWidth(), surfaceRequest.getHeight());
 
         mSurfaceRequest = surfaceRequest;
-        surfaceRequest.addRequestCancellationListener(
-                ContextCompat.getMainExecutor(mTextureView.getContext()), () -> {
-                    if (mSurfaceRequest != null && mSurfaceRequest == surfaceRequest) {
-                        mSurfaceRequest = null;
-                        mSurfaceReleaseFuture = null;
+        mSurfaceResponse = surfaceResponse;
+        mSurfaceResponse.addCancellationListener(
+                () -> {
+                    if (Objects.equals(mSurfaceResponse, surfaceResponse)) {
+                        // Clean up the request
+                        cancelPreviousRequest();
                     }
-                });
+                },
+                ContextCompat.getMainExecutor(
+                        Objects.requireNonNull(mTextureView).getContext())
+        );
 
-        tryToProvideViewfinderSurface();
+        if (!tryToComplete()) {
+            Logger.d(TAG, "Wait for new Surface creation.");
+        }
     }
 
     @Override
-    void onAttachedToWindow() {
-        reattachSurfaceTexture();
+    void onImplementationReplaced() {
+        cancelPreviousRequest();
     }
 
     @Override
-    void onDetachedFromWindow() {
-        mIsSurfaceTextureDetachedFromView = true;
-    }
-
-    @Override
-    @Nullable View getViewfinder() {
+    @Nullable
+    View getViewfinder() {
         return mTextureView;
     }
 
     @Override
-    @Nullable Bitmap getViewfinderBitmap() {
+    @Nullable
+    Bitmap getViewfinderBitmap() {
         // If textureView is still null or its SurfaceTexture isn't available yet, return null
         if (mTextureView == null || !mTextureView.isAvailable()) {
             return null;
@@ -198,59 +187,52 @@ final class TextureViewImplementation extends ViewfinderImplementation {
     }
 
     /**
-     * Provides a {@link Surface} for viewfinder to the camera only if the {@link TextureView}'s
-     * {@link SurfaceTexture} is available, and the {@link ViewfinderSurfaceRequest} was received
-     * from the camera.
+     * Sets the completer if size matches.
+     *
+     * @return true if the completer is set.
      */
-    @SuppressWarnings({"WeakerAccess", "ObjectToString"})
-    void tryToProvideViewfinderSurface() {
-        if (mResolution == null || mSurfaceTexture == null || mSurfaceRequest == null) {
-            return;
+    @UiThread
+    private boolean tryToComplete() {
+        if (mTextureView == null || mSurfaceResponse == null) {
+            return false;
         }
+        if (canProvideSurface()) {
+            Logger.d(TAG, "Surface set on viewfinder.");
 
-        mSurfaceTexture.setDefaultBufferSize(mResolution.getWidth(), mResolution.getHeight());
-        final Surface surface = new Surface(mSurfaceTexture);
-
-        final ViewfinderSurfaceRequest surfaceRequest = mSurfaceRequest;
-        final ListenableFuture<Result> surfaceReleaseFuture = CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    Logger.d(TAG, "Surface set on viewfinder.");
-                    mSurfaceRequest.provideSurface(surface,
-                            ViewfinderExecutors.directExecutor(), new Consumer<Result>() {
-                                @Override
-                                public void accept(Result result) {
-                                    Logger.d(TAG, "provide surface result = "
-                                            + result);
-                                    completer.set(result);
-                                }
-                            });
-                    return "provideSurface[request=" + mSurfaceRequest + " surface=" + surface
-                            + "]";
-                });
-
-        mSurfaceReleaseFuture = surfaceReleaseFuture;
-
-        mSurfaceReleaseFuture.addListener(() -> {
-            Logger.d(TAG, "Safe to release surface.");
-            surface.release();
-            if (mSurfaceReleaseFuture == surfaceReleaseFuture) {
-                mSurfaceReleaseFuture = null;
+            if (mSurfaceResponse.set(mActiveSurface)) {
+                onSurfaceProvided();
+                return true;
             }
-            if (mSurfaceRequest == surfaceRequest) {
-                mSurfaceRequest = null;
-            }
-        }, ContextCompat.getMainExecutor(mTextureView.getContext()));
 
-        onSurfaceProvided();
+            mSurfaceRequest = null;
+            mSurfaceResponse = null;
+        }
+        return false;
     }
 
-    private void reattachSurfaceTexture() {
-        if (mIsSurfaceTextureDetachedFromView
-                && mDetachedSurfaceTexture != null
-                && mTextureView.getSurfaceTexture() != mDetachedSurfaceTexture) {
-            mTextureView.setSurfaceTexture(mDetachedSurfaceTexture);
-            mDetachedSurfaceTexture = null;
-            mIsSurfaceTextureDetachedFromView = false;
+    private boolean canProvideSurface() {
+        return mActiveSurface != null
+                && mSurfaceRequest != null
+                && mSurfaceRequest.getWidth() == mCurrentSurfaceWidth
+                && mSurfaceRequest.getHeight() == mCurrentSurfaceHeight;
+    }
+
+    @UiThread
+    private void cancelPreviousRequest() {
+        if (mSurfaceRequest != null) {
+            Logger.d(TAG, "Request canceled: " + mSurfaceRequest);
+            mSurfaceRequest = null;
+            mSurfaceResponse.setCancelled();
+            mSurfaceResponse = null;
+        }
+    }
+
+    @UiThread
+    private void invalidateSurface() {
+        if (mSurfaceRequest != null) {
+            Logger.d(TAG, "Surface invalidated: " + mSurfaceRequest);
+            // TODO(b/323226220): Differentiate between surface being released by consumer
+            //  vs producer
         }
     }
 }

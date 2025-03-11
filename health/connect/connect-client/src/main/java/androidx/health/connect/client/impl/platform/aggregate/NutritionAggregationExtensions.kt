@@ -72,7 +72,7 @@ internal suspend fun HealthConnectClient.aggregateNutritionTransFatTotal(
             aggregateRequest.dataOriginFilter
         ),
         ResultGroupedByDurationAggregator(
-            createInstantTimeRange(aggregateRequest.timeRangeFilter),
+            createTimeRange(aggregateRequest.timeRangeFilter),
             aggregateRequest.timeRangeSlicer
         ) {
             TransFatTotalAggregationProcessor(it)

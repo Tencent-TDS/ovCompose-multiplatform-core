@@ -53,38 +53,12 @@ class PageIndicatorTest {
     }
 
     @Test
-    public fun horizontalPageIndicator_supports_testtag_linear() {
-        rule.setContentWithTheme {
-            ScreenConfiguration(screenSizeDp = 150, isRound = false) {
-                HorizontalPageIndicator(
-                    modifier = Modifier.testTag(TEST_TAG),
-                    pagerState = pagerState_start
-                )
-            }
-        }
-        rule.onNodeWithTag(TEST_TAG).assertExists()
-    }
-
-    @Test
     public fun verticalPageIndicator_supports_testtag_circular() {
         rule.setContentWithTheme {
             ScreenConfiguration(screenSizeDp = 150, isRound = true) {
                 VerticalPageIndicator(
                     modifier = Modifier.testTag(TEST_TAG),
                     pagerState = pagerState_start,
-                )
-            }
-        }
-        rule.onNodeWithTag(TEST_TAG).assertExists()
-    }
-
-    @Test
-    public fun verticalPageIndicator_supports_testtag_linear() {
-        rule.setContentWithTheme {
-            ScreenConfiguration(screenSizeDp = 150, isRound = false) {
-                VerticalPageIndicator(
-                    modifier = Modifier.testTag(TEST_TAG),
-                    pagerState = pagerState_start
                 )
             }
         }

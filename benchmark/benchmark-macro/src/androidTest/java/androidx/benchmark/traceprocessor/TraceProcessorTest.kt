@@ -346,6 +346,30 @@ class TraceProcessorTest {
     }
 
     @Test
+    fun startSessionNotReentrant() {
+        assumeTrue(isAbiSupported())
+
+        val traceFile = createTempFileFromAsset("api31_startup_cold", ".perfetto-trace")
+        val trace = PerfettoTrace(traceFile.absolutePath)
+
+        // Check server is not running
+        assertTrue(!isRunning())
+
+        TraceProcessor.runServer {
+            val traceProcessor = this
+            startSession(trace).use {
+                assertFailsWith<java.lang.IllegalStateException> {
+                    // fails to load since session already started
+                    traceProcessor.loadTrace(trace) {}
+                }
+            }
+        }
+
+        // Check server is not running
+        assertTrue(!isRunning())
+    }
+
+    @Test
     fun testParseTracesWithProcessTracks() {
         assumeTrue(isAbiSupported())
         val traceFile = createTempFileFromAsset("api31_startup_cold", ".perfetto-trace")

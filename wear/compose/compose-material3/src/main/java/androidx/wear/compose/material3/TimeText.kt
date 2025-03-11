@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -50,6 +49,7 @@ import androidx.wear.compose.foundation.CurvedScope
 import androidx.wear.compose.foundation.CurvedTextStyle
 import androidx.wear.compose.foundation.background
 import androidx.wear.compose.foundation.basicCurvedText
+import androidx.wear.compose.foundation.clearAndSetSemantics
 import androidx.wear.compose.foundation.curvedRow
 import androidx.wear.compose.foundation.padding
 import androidx.wear.compose.foundation.sizeIn
@@ -86,6 +86,7 @@ import java.util.Locale
  * @param modifier The modifier to be applied to the component.
  * @param curvedModifier The [CurvedModifier] used to restrict the arc in which [TimeText] is drawn.
  * @param maxSweepAngle The default maximum sweep angle in degrees.
+ * @param backgroundColor The background color of the arc drawn behind the [TimeText].
  * @param timeSource [TimeSource] which retrieves the current time and formats it.
  * @param contentPadding The spacing values between the container and the content.
  * @param content The content of the [TimeText] - displays the current time by default. This lambda
@@ -98,12 +99,12 @@ public fun TimeText(
     modifier: Modifier = Modifier,
     curvedModifier: CurvedModifier = CurvedModifier,
     maxSweepAngle: Float = TimeTextDefaults.MaxSweepAngle,
+    backgroundColor: Color = TimeTextDefaults.backgroundColor(),
     timeSource: TimeSource = TimeTextDefaults.rememberTimeSource(timeFormat()),
     contentPadding: PaddingValues = TimeTextDefaults.ContentPadding,
     content: CurvedScope.(String) -> Unit = { time -> timeTextCurvedText(time) }
 ) {
     val currentTime = timeSource.currentTime()
-    val backgroundColor = CurvedTextDefaults.backgroundColor()
 
     CurvedLayout(modifier = modifier) {
         curvedRow(
@@ -125,10 +126,10 @@ public object TimeTextDefaults {
     private val Padding = PaddingDefaults.edgePadding
 
     /** Default format for 24h clock. */
-    public const val TimeFormat24Hours: String = "HH:mm"
+    public val TimeFormat24Hours: String = "HH:mm"
 
     /** Default format for 12h clock. */
-    public const val TimeFormat12Hours: String = "h:mm"
+    public val TimeFormat12Hours: String = "h:mm"
 
     /**
      * The default maximum sweep angle in degrees used by [TimeText].
@@ -136,7 +137,7 @@ public object TimeTextDefaults {
      * This is calculated by keeping the length of the corresponding chord on the circle to be
      * approximately 57% of the screen width.
      */
-    public const val MaxSweepAngle: Float = 70f
+    public val MaxSweepAngle: Float = 70f
 
     /** The default content padding used by [TimeText]. */
     public val ContentPadding: PaddingValues = PaddingValues(top = Padding)
@@ -164,13 +165,11 @@ public object TimeTextDefaults {
     @Composable
     public fun timeTextStyle(
         background: Color = Color.Unspecified,
-        color: Color = MaterialTheme.colorScheme.onBackground,
+        color: Color = MaterialTheme.colorScheme.onBackground.setLuminance(80f),
         fontSize: TextUnit = TextUnit.Unspecified,
     ): CurvedTextStyle =
-        CurvedTextStyle(
-            MaterialTheme.typography.arcMedium +
-                TextStyle(color = color, background = background, fontSize = fontSize)
-        )
+        MaterialTheme.typography.arcMedium +
+            CurvedTextStyle(color = color, background = background, fontSize = fontSize)
 
     /**
      * Creates a default implementation of [TimeSource] and remembers it. Once the system time
@@ -188,6 +187,12 @@ public object TimeTextDefaults {
     @Composable
     public fun rememberTimeSource(timeFormat: String): TimeSource =
         remember(timeFormat) { DefaultTimeSource(timeFormat) }
+
+    /**
+     * The recommended background color to use when displaying curved text so it is visible on top
+     * of other content.
+     */
+    @Composable public fun backgroundColor(): Color = CurvedTextDefaults.backgroundColor()
 }
 
 /**
@@ -197,9 +202,8 @@ public object TimeTextDefaults {
  * @param style A [CurvedTextStyle] to override the style used.
  */
 public fun CurvedScope.timeTextCurvedText(time: String, style: CurvedTextStyle? = null) {
-    basicCurvedText(
-        time,
-    ) {
+    // TimeText is intended to be hidden from TalkBack, so we clear semantics.
+    basicCurvedText(time, modifier = CurvedModifier.clearAndSetSemantics {}) {
         style?.let { timeTextStyle() + it } ?: timeTextStyle()
     }
 }
@@ -214,10 +218,11 @@ public fun CurvedScope.timeTextSeparator(
     curvedTextStyle: CurvedTextStyle? = null,
     contentArcPadding: ArcPaddingValues = ArcPaddingValues(angular = 4.dp)
 ) {
+    // TimeText is intended to be hidden from TalkBack, so we clear semantics.
     curvedText(
         text = "·",
         style = curvedTextStyle,
-        modifier = CurvedModifier.padding(contentArcPadding)
+        modifier = CurvedModifier.padding(contentArcPadding).clearAndSetSemantics {}
     )
 }
 

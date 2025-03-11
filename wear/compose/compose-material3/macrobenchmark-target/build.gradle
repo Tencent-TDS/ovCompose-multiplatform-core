@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.KotlinTarget
+
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
@@ -25,6 +27,7 @@ android {
     compileSdk = 35
 
     namespace = "androidx.wear.compose.material3.macrobenchmark.target"
+    defaultConfig.minSdk = 25
     buildTypes {
         release {
             minifyEnabled = true
@@ -46,4 +49,6 @@ dependencies {
     implementation(project(":wear:compose:compose-material3-macrobenchmark-common"))
 }
 
-android.defaultConfig.minSdk = 25
+androidx {
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}

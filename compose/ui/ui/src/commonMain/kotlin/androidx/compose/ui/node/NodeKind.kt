@@ -29,6 +29,7 @@ import androidx.compose.ui.focus.FocusTargetNode
 import androidx.compose.ui.focus.invalidateFocusEvent
 import androidx.compose.ui.focus.invalidateFocusProperties
 import androidx.compose.ui.focus.invalidateFocusTarget
+import androidx.compose.ui.input.indirect.IndirectTouchInputModifierNode
 import androidx.compose.ui.input.key.KeyInputModifierNode
 import androidx.compose.ui.input.key.SoftKeyboardInterceptionModifierNode
 import androidx.compose.ui.input.pointer.PointerInputModifier
@@ -153,6 +154,11 @@ internal object Nodes {
     @JvmStatic
     inline val Unplaced
         get() = NodeKind<OnUnplacedModifierNode>(0b1 shl 20)
+
+    @JvmStatic
+    @OptIn(ExperimentalComposeUiApi::class)
+    inline val IndirectTouchInput
+        get() = NodeKind<IndirectTouchInputModifierNode>(0b1 shl 21)
     // ...
 }
 
@@ -261,6 +267,10 @@ internal fun calculateNodeKindSetFrom(node: Modifier.Node): Int {
         }
         if (node is OnUnplacedModifierNode) {
             mask = mask or Nodes.Unplaced
+        }
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (node is IndirectTouchInputModifierNode) {
+            mask = mask or Nodes.IndirectTouchInput
         }
         mask
     }

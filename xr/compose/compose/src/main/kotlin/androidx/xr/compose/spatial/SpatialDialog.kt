@@ -59,10 +59,12 @@ import kotlinx.coroutines.launch
  * @property dismissOnClickOutside whether the dialog should be dismissed when the user touches
  *   outside of it. Defaults to `true`.
  * @property usePlatformDefaultWidth whether the dialog should use the platform's default width.
- *   Defaults to `true`.
- * @property restingLevelAnimationSpec the animation specification for the resting level.
+ *   Defaults to `true`. This is only used in non-spatial environments.
+ * @property restingLevelAnimationSpec the animation specification for the resting level of the
+ *   dialog as it animates towards or away from the user. This is only used in spatial environments.
  * @property spatialElevationLevel the elevation level of the dialog. Defaults to
  *   [SpatialElevationLevel.DialogDefault].
+ * @see [SpatialDialog]
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SpatialDialogProperties(
@@ -123,6 +125,10 @@ private fun SpatialDialogProperties.toBaseDialogProperties() =
 
 /**
  * [SpatialDialog] is a dialog that is elevated above the activity.
+ *
+ * When spatial dialogs are displayed the existing content is pushed back and the dialog elevates
+ * into place. When the dialog is dismissed the reverse happens with the dialog getting pushed back
+ * and the previous content elevating back into place.
  *
  * @param onDismissRequest a callback to be invoked when the dialog should be dismissed.
  * @param properties the dialog properties.

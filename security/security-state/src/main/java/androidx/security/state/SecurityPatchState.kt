@@ -754,7 +754,13 @@ constructor(
             report.vulnerabilities.forEach { (patchLevel, groups) ->
                 if (spl.toString() >= patchLevel) {
                     groups
-                        .filter { it.components.contains(componentToString(component)) }
+                        .filter { group ->
+                            when (component) {
+                                COMPONENT_SYSTEM_MODULES ->
+                                    group.components.any { it in getSystemModules() }
+                                else -> group.components.contains(componentToString(component))
+                            }
+                        }
                         .forEach { group ->
                             val severity = Severity.valueOf(group.severity.uppercase(Locale.US))
                             relevantFixes

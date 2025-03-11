@@ -54,6 +54,8 @@ import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 import com.google.common.collect.ImmutableSet;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -92,11 +94,13 @@ public class ResizableComponentImplTest {
             Mockito.mock(SplitEngineSubspaceManager.class);
     private final ImpSplitEngineRenderer mSplitEngineRenderer =
             Mockito.mock(ImpSplitEngineRenderer.class);
+    private JxrPlatformAdapter mFakeRuntime;
 
-    private Entity createTestEntity() {
+    @Before
+    public void setUp() {
         when(mPerceptionLibrary.initSession(eq(mActivity), anyInt(), eq(mFakeExecutor)))
                 .thenReturn(immediateFuture(mock(Session.class)));
-        JxrPlatformAdapter fakeRuntime =
+        mFakeRuntime =
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
@@ -107,7 +111,16 @@ public class ResizableComponentImplTest {
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
                         /* useSplitEngine= */ false);
-        return fakeRuntime.createEntity(new Pose(), "test", fakeRuntime.getActivitySpace());
+    }
+
+    @After
+    public void tearDown() {
+        // Dispose the runtime between test cases to clean up lingering references.
+        mFakeRuntime.dispose();
+    }
+
+    private Entity createTestEntity() {
+        return mFakeRuntime.createEntity(new Pose(), "test", mFakeRuntime.getActivitySpace());
     }
 
     @Test

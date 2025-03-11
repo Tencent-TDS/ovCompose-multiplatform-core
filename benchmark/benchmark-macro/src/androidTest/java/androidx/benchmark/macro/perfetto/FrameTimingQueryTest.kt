@@ -180,4 +180,30 @@ class FrameTimingQueryTest {
             }
         )
     }
+
+    @MediumTest
+    @Test
+    fun fixedTrace35_resynced() {
+        assumeTrue(isAbiSupported())
+        val traceFile = createTempFileFromAsset("api35_startup_cold_classinit", ".perfetto-trace")
+        val packageName = "com.android.systemui"
+
+        val frameData =
+            TraceProcessor.runSingleSessionServer(traceFile.absolutePath) {
+                // this trace has a 'Choreographer#doFrame - resynced to 1253256 in 32.8ms' in it
+                // which is used to regression test for b/394610806
+                assertTrue(
+                    querySlices("Choreographer#doFrame - resynced to%", packageName = packageName)
+                        .isNotEmpty()
+                )
+
+                FrameTimingQuery.getFrameData(
+                    session = this,
+                    captureApiLevel = 35,
+                    packageName = packageName
+                )
+            }
+
+        assertEquals(22, frameData.size)
+    }
 }

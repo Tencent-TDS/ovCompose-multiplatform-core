@@ -16,8 +16,10 @@
 package androidx.camera.integration.core.camera2
 
 import android.content.Context
+import android.os.Build
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
 import androidx.camera.core.ImageAnalysis
@@ -34,14 +36,15 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert
-import org.junit.Assume
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
@@ -58,7 +61,6 @@ import org.junit.runners.Parameterized
 @RunWith(Parameterized::class)
 @SdkSuppress(minSdkVersion = 21)
 class CameraControlDeviceTest(
-    private val selectorName: String,
     private val cameraSelector: CameraSelector,
     private val implName: String,
     private val cameraConfig: CameraXConfig
@@ -73,10 +75,39 @@ class CameraControlDeviceTest(
     val cameraRule =
         CameraUtil.grantCameraPermissionAndPreTestAndPostTest(PreTestCameraIdList(cameraConfig))
 
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "selector={0},implName={1}")
+        fun data() =
+            listOf(
+                arrayOf(
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    Camera2Config::class.simpleName,
+                    Camera2Config.defaultConfig()
+                ),
+                arrayOf(
+                    CameraSelector.DEFAULT_BACK_CAMERA,
+                    CameraPipeConfig::class.simpleName,
+                    CameraPipeConfig.defaultConfig()
+                ),
+                arrayOf(
+                    CameraSelector.DEFAULT_FRONT_CAMERA,
+                    Camera2Config::class.simpleName,
+                    Camera2Config.defaultConfig()
+                ),
+                arrayOf(
+                    CameraSelector.DEFAULT_FRONT_CAMERA,
+                    CameraPipeConfig::class.simpleName,
+                    CameraPipeConfig.defaultConfig()
+                )
+            )
+    }
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val analyzer = ImageAnalysis.Analyzer { obj: ImageProxy -> obj.close() }
-    private lateinit var cameraProvider: ProcessCameraProvider
     private val lifecycleOwner = FakeLifecycleOwner().also { it.startAndResume() }
+    private lateinit var cameraProvider: ProcessCameraProvider
+    private lateinit var camera: Camera
 
     @Before
     fun setUp() = runBlocking {
@@ -94,8 +125,17 @@ class CameraControlDeviceTest(
     }
 
     @Test
+    fun enableTorch_futureCompletes() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        assertFutureCompletes(camera.cameraControl.enableTorch(true))
+    }
+
+    @Test
     fun rebindAndEnableTorch_futureCompletes() = runBlocking {
-        Assume.assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
         val camera =
             withContext(Dispatchers.Main) {
                 try {
@@ -115,43 +155,109 @@ class CameraControlDeviceTest(
         assertFutureCompletes(result)
     }
 
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun setTorchStrengthLevel_torchEnabled_futureCompletes() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        camera.cameraControl.enableTorch(true).get()
+        assertFutureCompletes(
+            camera.cameraControl.setTorchStrengthLevel(camera.cameraInfo.maxTorchStrengthLevel)
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun setTorchStrengthLevel_torchDisabled_futureCompletes() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        assertFutureCompletes(
+            camera.cameraControl.setTorchStrengthLevel(camera.cameraInfo.maxTorchStrengthLevel)
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun setTorchStrengthLevel_throwExceptionIfLessThanOne() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        try {
+            camera.cameraControl.setTorchStrengthLevel(0).get()
+        } catch (e: ExecutionException) {
+            assertThat(e.cause).isInstanceOf(java.lang.IllegalArgumentException::class.java)
+            return
+        }
+
+        Assert.fail(
+            "setTorchStrength didn't fail with an IllegalArgumentException when the given level is less than 1."
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun setTorchStrengthLevel_throwExceptionIfLargerThanMax() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        try {
+            camera.cameraControl
+                .setTorchStrengthLevel(camera.cameraInfo.maxTorchStrengthLevel + 1)
+                .get()
+        } catch (e: ExecutionException) {
+            assertThat(e.cause).isInstanceOf(java.lang.IllegalArgumentException::class.java)
+            return
+        }
+
+        Assert.fail(
+            "setTorchStrength didn't fail with an IllegalArgumentException when the given level is larger than the maximum."
+        )
+    }
+
+    @Test
+    @SdkSuppress(maxSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM - 1)
+    fun setTorchStrengthLevel_throwExceptionWhenApiNotMet() {
+        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+
+        bindUseCases()
+
+        try {
+            camera.cameraControl
+                .setTorchStrengthLevel(camera.cameraInfo.maxTorchStrengthLevel)
+                .get()
+        } catch (e: ExecutionException) {
+            assertThat(e.cause).isInstanceOf(java.lang.UnsupportedOperationException::class.java)
+            return
+        }
+
+        Assert.fail(
+            "setTorchStrength didn't fail with an UnsupportedOperationException when the API level is lower than the requirement."
+        )
+    }
+
+    private fun bindUseCases() {
+        instrumentation.runOnMainSync {
+            try {
+                val useCase = ImageAnalysis.Builder().build()
+                useCase.setAnalyzer(CameraXExecutors.ioExecutor(), analyzer)
+                camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, useCase)
+            } catch (e: CameraException) {
+                throw IllegalArgumentException(e)
+            }
+        }
+    }
+
     private fun <T> assertFutureCompletes(future: ListenableFuture<T>) {
         try {
             future[10, TimeUnit.SECONDS]
         } catch (e: Exception) {
             Assert.fail("future fail:$e")
         }
-    }
-
-    companion object {
-        @JvmStatic
-        @Parameterized.Parameters(name = "selector={0},config={2}")
-        fun data() =
-            listOf(
-                arrayOf(
-                    "back",
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    Camera2Config::class.simpleName,
-                    Camera2Config.defaultConfig()
-                ),
-                arrayOf(
-                    "back",
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    CameraPipeConfig::class.simpleName,
-                    CameraPipeConfig.defaultConfig()
-                ),
-                arrayOf(
-                    "front",
-                    CameraSelector.DEFAULT_FRONT_CAMERA,
-                    Camera2Config::class.simpleName,
-                    Camera2Config.defaultConfig()
-                ),
-                arrayOf(
-                    "front",
-                    CameraSelector.DEFAULT_FRONT_CAMERA,
-                    CameraPipeConfig::class.simpleName,
-                    CameraPipeConfig.defaultConfig()
-                )
-            )
     }
 }

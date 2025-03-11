@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +42,7 @@ import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.integration.demos.common.ComposableDemo
 import androidx.wear.compose.material3.AlertDialog
 import androidx.wear.compose.material3.AlertDialogDefaults
+import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.Icon
@@ -77,142 +77,145 @@ fun AlertDialogBuilder() {
 
     var showDialog by remember { mutableStateOf(false) }
 
-    ScreenScaffold(
-        scrollState = scrollState,
-    ) {
-        ScalingLazyColumn(modifier = Modifier.fillMaxSize(), state = scrollState) {
-            item { ListHeader { Text("AlertDialog") } }
-            item {
-                SwitchButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    checked = showIcon,
-                    onCheckedChange = { showIcon = it },
-                    label = { Text("Icon") },
-                )
+    // Use AppScaffold to improve AlertDialog's Performance
+    AppScaffold {
+        ScreenScaffold(
+            scrollState = scrollState,
+        ) {
+            ScalingLazyColumn(modifier = Modifier.fillMaxSize(), state = scrollState) {
+                item { ListHeader { Text("AlertDialog") } }
+                item {
+                    SwitchButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        checked = showIcon,
+                        onCheckedChange = { showIcon = it },
+                        label = { Text("Icon") },
+                    )
+                }
+                item {
+                    SwitchButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        checked = true,
+                        enabled = false,
+                        onCheckedChange = {},
+                        label = { Text("Title") },
+                    )
+                }
+                item {
+                    SwitchButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        checked = showMessage,
+                        onCheckedChange = { showMessage = it },
+                        label = { Text("Message") },
+                    )
+                }
+                item {
+                    SwitchButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        checked = showSecondaryButton,
+                        onCheckedChange = { showSecondaryButton = it },
+                        label = { Text("Secondary button") },
+                    )
+                }
+                item {
+                    SwitchButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        checked = showCaption,
+                        onCheckedChange = { showCaption = it },
+                        label = { Text("Caption") },
+                    )
+                }
+                item { ListHeader { Text("Buttons") } }
+                item {
+                    RadioButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        selected = buttonsType == AlertButtonsType.EDGE_BUTTON,
+                        onSelect = { buttonsType = AlertButtonsType.EDGE_BUTTON },
+                        label = { Text("Single EdgeButton") },
+                    )
+                }
+                item {
+                    RadioButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        selected = buttonsType == AlertButtonsType.CONFIRM_DISMISS,
+                        onSelect = { buttonsType = AlertButtonsType.CONFIRM_DISMISS },
+                        label = { Text("Ok/Cancel buttons") },
+                    )
+                }
+                item {
+                    RadioButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        selected = buttonsType == AlertButtonsType.NO_BUTTONS,
+                        onSelect = { buttonsType = AlertButtonsType.NO_BUTTONS },
+                        label = { Text("No EdgeButton") },
+                    )
+                }
+                item { Button(onClick = { showDialog = true }, label = { Text("Show dialog") }) }
             }
-            item {
-                SwitchButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    checked = true,
-                    enabled = false,
-                    onCheckedChange = {},
-                    label = { Text("Title") },
-                )
-            }
-            item {
-                SwitchButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    checked = showMessage,
-                    onCheckedChange = { showMessage = it },
-                    label = { Text("Message") },
-                )
-            }
-            item {
-                SwitchButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    checked = showSecondaryButton,
-                    onCheckedChange = { showSecondaryButton = it },
-                    label = { Text("Secondary button") },
-                )
-            }
-            item {
-                SwitchButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    checked = showCaption,
-                    onCheckedChange = { showCaption = it },
-                    label = { Text("Caption") },
-                )
-            }
-            item { ListHeader { Text("Buttons") } }
-            item {
-                RadioButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    selected = buttonsType == AlertButtonsType.EDGE_BUTTON,
-                    onSelect = { buttonsType = AlertButtonsType.EDGE_BUTTON },
-                    label = { Text("Single EdgeButton") },
-                )
-            }
-            item {
-                RadioButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    selected = buttonsType == AlertButtonsType.CONFIRM_DISMISS,
-                    onSelect = { buttonsType = AlertButtonsType.CONFIRM_DISMISS },
-                    label = { Text("Ok/Cancel buttons") },
-                )
-            }
-            item {
-                RadioButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    selected = buttonsType == AlertButtonsType.NO_BUTTONS,
-                    onSelect = { buttonsType = AlertButtonsType.NO_BUTTONS },
-                    label = { Text("No EdgeButton") },
-                )
-            }
-            item { Button(onClick = { showDialog = true }, label = { Text("Show dialog") }) }
         }
-    }
 
-    CustomAlertDialog(
-        show = showDialog,
-        showIcon = showIcon,
-        showCaption = showCaption,
-        showSecondaryButton = showSecondaryButton,
-        showMessage = showMessage,
-        buttonsType = buttonsType,
-        onConfirmButton = { showDialog = false },
-        onDismissRequest = { showDialog = false }
-    )
+        CustomAlertDialog(
+            show = showDialog,
+            showIcon = showIcon,
+            showCaption = showCaption,
+            showSecondaryButton = showSecondaryButton,
+            showMessage = showMessage,
+            buttonsType = buttonsType,
+            onConfirmButton = { showDialog = false },
+            onDismissRequest = { showDialog = false }
+        )
+    }
 }
 
 @Composable
 fun AlertDialogWithButtonStack() {
     var showDialog by remember { mutableStateOf(false) }
 
-    Box(Modifier.fillMaxSize()) {
-        FilledTonalButton(
-            modifier = Modifier.align(Alignment.Center),
-            onClick = { showDialog = true },
-            label = { Text("Show Dialog") }
-        )
-    }
+    // Use AppScaffold to improve AlertDialog's Performance
+    AppScaffold {
+        Box(Modifier.fillMaxSize()) {
+            FilledTonalButton(
+                modifier = Modifier.align(Alignment.Center),
+                onClick = { showDialog = true },
+                label = { Text("Show Dialog") }
+            )
+        }
 
-    AlertDialog(
-        visible = showDialog,
-        onDismissRequest = { showDialog = false },
-        icon = {
-            Icon(
-                Icons.Rounded.AccountCircle,
-                modifier = Modifier.size(32.dp),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        title = { Text("Allow access to your photos?") },
-        text = { Text("Lerp ipsum dolor sit amet.") }
-    ) {
-        item {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showDialog = false },
-                label = { Text("While using app") },
-                icon = { Icon(Icons.Filled.Check, "Check") }
-            )
-        }
-        item {
-            FilledTonalButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showDialog = false },
-                label = { Text("Ask every time") },
-                icon = { Icon(Icons.Filled.Check, "Check") }
-            )
-        }
-        item {
-            FilledTonalButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showDialog = false },
-                label = { Text("Don't allow") },
-                icon = { Icon(Icons.Filled.Check, "Check") }
-            )
+        AlertDialog(
+            visible = showDialog,
+            onDismissRequest = { showDialog = false },
+            icon = {
+                Icon(
+                    Icons.Rounded.AccountCircle,
+                    modifier = Modifier.size(32.dp),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = { Text("Allow access to your photos?") },
+            text = { Text("Lerp ipsum dolor sit amet.") }
+        ) {
+            item {
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showDialog = false },
+                    label = { Text("While using app") },
+                )
+            }
+            item {
+                FilledTonalButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showDialog = false },
+                    label = { Text("Ask every time") },
+                )
+            }
+            item {
+                FilledTonalButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { showDialog = false },
+                    label = { Text("Don't allow") },
+                )
+            }
         }
     }
 }

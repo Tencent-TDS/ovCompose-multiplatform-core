@@ -20,6 +20,7 @@ import android.content.Context
 import android.os.Build
 import android.view.ViewConfiguration
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
@@ -111,6 +112,7 @@ class ThresholdHandlerTest {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @RunWith(RobolectricTestRunner::class)
 class RotaryFlingHandlerTest {
 
@@ -126,10 +128,10 @@ class RotaryFlingHandlerTest {
         val mockFlingBehavior: FlingBehavior = mock {}
         val rotaryFlingHandler =
             RotaryFlingHandler(
-                mockScrollState,
-                mockFlingBehavior,
+                scrollableState = mockScrollState,
+                flingBehavior = mockFlingBehavior,
                 flingTimeframe = 100,
-                mockViewConfiguration,
+                viewConfiguration = mockViewConfiguration,
                 inputDeviceId = 0,
                 initialTimestamp = 0
             )
@@ -150,10 +152,10 @@ class RotaryFlingHandlerTest {
         val mockFlingBehavior: FlingBehavior = mock {}
         val rotaryFlingHandler =
             RotaryFlingHandler(
-                mockScrollState,
-                mockFlingBehavior,
+                scrollableState = mockScrollState,
+                flingBehavior = mockFlingBehavior,
                 flingTimeframe = 100,
-                mockViewConfiguration,
+                viewConfiguration = mockViewConfiguration,
                 inputDeviceId = 0,
                 initialTimestamp = 0
             )
@@ -193,10 +195,10 @@ class RotaryFlingHandlerTest {
             }
         val rotaryFlingHandler =
             RotaryFlingHandler(
-                scrollState,
-                flingBehavior,
+                scrollableState = scrollState,
+                flingBehavior = flingBehavior,
                 flingTimeframe = 10,
-                mockViewConfiguration,
+                viewConfiguration = mockViewConfiguration,
                 inputDeviceId = 0,
                 initialTimestamp = 0
             )
@@ -207,7 +209,12 @@ class RotaryFlingHandlerTest {
         rotaryFlingHandler.observeEvent(3, 10f)
 
         var beforeFlingCalled = false
-        rotaryFlingHandler.performFlingIfRequired(this, { beforeFlingCalled = true }, {})
+        rotaryFlingHandler.performFlingIfRequired(
+            this,
+            { beforeFlingCalled = true },
+            RotaryScrollLogic(null, null, false),
+            {}
+        )
 
         delay(1000L)
 
@@ -237,16 +244,18 @@ class RotaryFlingHandlerTest {
             object : FlingBehavior {
                 override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
                     // Scroll by the fixed amount.
-                    scrollBy(10f)
+                    if (initialVelocity != 0f) {
+                        scrollBy(10f)
+                    }
                     return initialVelocity
                 }
             }
         val rotaryFlingHandler =
             RotaryFlingHandler(
-                scrollState,
-                flingBehavior,
+                scrollableState = scrollState,
+                flingBehavior = flingBehavior,
                 flingTimeframe = 10,
-                mockViewConfiguration,
+                viewConfiguration = mockViewConfiguration,
                 inputDeviceId = 0,
                 initialTimestamp = 0
             )
@@ -257,11 +266,16 @@ class RotaryFlingHandlerTest {
         rotaryFlingHandler.observeEvent(3, 10f)
 
         var beforeFlingCalled = false
-        rotaryFlingHandler.performFlingIfRequired(this, { beforeFlingCalled = true }, {})
+        rotaryFlingHandler.performFlingIfRequired(
+            this,
+            { beforeFlingCalled = true },
+            RotaryScrollLogic(null, null, false),
+            {}
+        )
 
         delay(1000L)
 
-        assert(scrollIncrement == 0f)
+        assertEquals(0f, scrollIncrement)
         assert(!beforeFlingCalled)
     }
 }

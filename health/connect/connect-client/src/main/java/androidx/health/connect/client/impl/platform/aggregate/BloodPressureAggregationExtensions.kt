@@ -53,7 +53,7 @@ internal suspend fun HealthConnectClient.aggregateBloodPressure(
             aggregateRequest.dataOriginFilter
         ),
         ResultGroupedByDurationAggregator(
-            createInstantTimeRange(aggregateRequest.timeRangeFilter),
+            createTimeRange(aggregateRequest.timeRangeFilter),
             aggregateRequest.timeRangeSlicer
         ) {
             BloodPressureAggregationProcessor(aggregateRequest.metrics)

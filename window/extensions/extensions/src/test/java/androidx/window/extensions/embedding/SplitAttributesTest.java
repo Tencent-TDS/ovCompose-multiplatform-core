@@ -23,7 +23,6 @@ import static org.junit.Assert.assertNotEquals;
 
 import android.graphics.Color;
 
-import androidx.test.filters.SmallTest;
 import androidx.window.extensions.embedding.SplitAttributes.LayoutDirection;
 
 import org.junit.Test;
@@ -31,7 +30,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
 /** Test for {@link SplitAttributes} */
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
 public class SplitAttributesTest {
     @Test

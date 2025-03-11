@@ -43,6 +43,11 @@ public class ErrorUtilsTest {
         assertThat(ErrorUtils.isKnownError(BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL)).isTrue();
         assertThat(ErrorUtils.isKnownError(BiometricPrompt.ERROR_SECURITY_UPDATE_REQUIRED))
                 .isTrue();
+        assertThat(
+                ErrorUtils.isKnownError(BiometricPrompt.ERROR_IDENTITY_CHECK_NOT_ACTIVE)).isTrue();
+        assertThat(ErrorUtils.isKnownError(BiometricPrompt.ERROR_NOT_ENABLED_FOR_APPS)).isTrue();
+        assertThat(ErrorUtils.isKnownError(
+                BiometricPrompt.ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON)).isTrue();
     }
 
     @Test
@@ -74,6 +79,12 @@ public class ErrorUtilsTest {
         assertThat(ErrorUtils.isLockoutError(BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL)).isFalse();
         assertThat(ErrorUtils.isLockoutError(BiometricPrompt.ERROR_SECURITY_UPDATE_REQUIRED))
                 .isFalse();
+        assertThat(
+                ErrorUtils.isLockoutError(
+                        BiometricPrompt.ERROR_IDENTITY_CHECK_NOT_ACTIVE)).isFalse();
+        assertThat(ErrorUtils.isLockoutError(BiometricPrompt.ERROR_NOT_ENABLED_FOR_APPS)).isFalse();
+        assertThat(ErrorUtils.isLockoutError(
+                BiometricPrompt.ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON)).isFalse();
     }
 
     @Test

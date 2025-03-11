@@ -36,11 +36,10 @@ import kotlin.collections.plus
 @Composable
 public fun <T : Any> NavBackStackProvider(
     backStack: List<T>,
-    localProviders: List<NavLocalProvider>,
     entryProvider: (key: T) -> NavEntry<out T>,
+    localProviders: List<NavLocalProvider> = listOf(SaveableStateNavLocalProvider),
     content: @Composable (List<NavEntry<T>>) -> Unit
 ) {
-    val finalProviders = (listOf(SaveableStateNavLocalProvider()) + localProviders).distinct()
     // Kotlin does not know these things are compatible so we need this explicit cast
     // to ensure our lambda below takes the correct type
     entryProvider as (T) -> NavEntry<T>
@@ -49,16 +48,17 @@ public fun <T : Any> NavBackStackProvider(
     val entries =
         backStack.map {
             val entry = entryProvider.invoke(it)
-            finalProviders.distinct().foldRight(entry) { provider: NavLocalProvider, wrappedEntry ->
+            localProviders.distinct().foldRight(entry) { provider: NavLocalProvider, wrappedEntry ->
                 object : NavEntryWrapper<T>(wrappedEntry) {
-                    override val content: @Composable ((T) -> Unit)
-                        get() = { provider.ProvideToEntry(wrappedEntry) }
+                    override val content: @Composable ((T) -> Unit) = {
+                        provider.ProvideToEntry(wrappedEntry)
+                    }
                 }
             }
         }
 
     // Provides the entire backstack to the previously wrapped entries
-    finalProviders
+    localProviders
         .distinct()
         .foldRight<NavLocalProvider, @Composable () -> Unit>({ content(entries) }) {
             provider: NavLocalProvider,

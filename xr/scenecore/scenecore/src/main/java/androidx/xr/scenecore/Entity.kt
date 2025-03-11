@@ -21,6 +21,7 @@ package androidx.xr.scenecore
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
 import android.view.Surface
@@ -33,6 +34,7 @@ import androidx.xr.runtime.Session as PerceptionSession
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity as RtEntity
+import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity as RtPanelEntity
 import java.time.Duration
 import java.util.UUID
@@ -421,6 +423,7 @@ public sealed class BaseEntity<out RtEntityType : RtEntity>(
         return rtEntity.worldSpaceScale.x
     }
 
+    // TODO: b/356874139 - remove this method
     override fun setSize(dimensions: Dimensions) {
         rtEntity.setSize(dimensions.toRtDimensions())
         this.dimensions = dimensions
@@ -486,7 +489,7 @@ public sealed class BaseEntity<out RtEntityType : RtEntity>(
 public class ContentlessEntity
 private constructor(rtEntity: RtEntity, entityManager: EntityManager) :
     BaseEntity<RtEntity>(rtEntity, entityManager) {
-    internal companion object {
+    public companion object {
         /** Factory method to create ContentlessEntity entities. */
         internal fun create(
             adapter: JxrPlatformAdapter,
@@ -498,6 +501,20 @@ private constructor(rtEntity: RtEntity, entityManager: EntityManager) :
                 adapter.createEntity(pose, name, adapter.activitySpaceRootImpl),
                 entityManager,
             )
+
+        /**
+         * Public factory function for creating a content-less entity. This entity is used as a
+         * connection point for attaching children entities and managing them (i.e. setPose()) as a
+         * group.
+         *
+         * @param session Session to create the ContentlessEntity in.
+         * @param name Name of the entity.
+         * @param pose Initial pose of the entity.
+         */
+        @JvmOverloads
+        @JvmStatic
+        public fun create(session: Session, name: String, pose: Pose = Pose.Identity): Entity =
+            ContentlessEntity.create(session.platformAdapter, session.entityManager, name, pose)
     }
 }
 
@@ -586,7 +603,7 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
         public const val STOPPED: Int = 1
     }
 
-    internal companion object {
+    public companion object {
         /**
          * Factory method for GltfModelEntity.
          *
@@ -604,6 +621,27 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
                 adapter.createGltfEntity(pose, model.model, adapter.activitySpaceRootImpl),
                 entityManager,
             )
+
+        /**
+         * Public factory function for a [GltfModelEntity].
+         *
+         * This method must be called from the main thread.
+         * https://developer.android.com/guide/components/processes-and-threads
+         *
+         * @param session Session to create the [GltfModel] in.
+         * @param model The [GltfModel] this Entity is referencing.
+         * @param pose The initial pose of the entity.
+         * @return a GltfModelEntity instance
+         */
+        @MainThread
+        @JvmStatic
+        @JvmOverloads
+        public fun create(
+            session: Session,
+            model: GltfModel,
+            pose: Pose = Pose.Identity,
+        ): GltfModelEntity =
+            GltfModelEntity.create(session.platformAdapter, session.entityManager, model, pose)
     }
 
     /** Returns the current animation state of this glTF entity. */
@@ -642,15 +680,84 @@ private constructor(rtEntity: JxrPlatformAdapter.GltfEntity, entityManager: Enti
     public fun stopAnimation() {
         rtEntity.stopAnimation()
     }
+
+    /**
+     * Sets a material override for a mesh in the glTF model.
+     *
+     * This method must be called from the main thread.
+     * https://developer.android.com/guide/components/processes-and-threads
+     *
+     * If the material is not created or the mesh name is not found in the glTF model, this method
+     * will throw an IllegalStateException.
+     *
+     * @param material The material to use for the mesh.
+     * @param meshName The name of the mesh to use the material for.
+     */
+    @MainThread
+    public fun setMaterialOverride(material: MaterialResource, meshName: String) {
+        rtEntity.setMaterialOverride(material, meshName)
+    }
 }
 
-/** StereoSurfaceEntity is a concrete implementation of Entity that hosts a StereoSurface Panel. */
+/**
+ * SurfaceEntity is a concrete implementation of Entity that hosts a StereoSurface Canvas. The
+ * entity creates and owns an Android Surface into which the application can render stereo image
+ * content. This Surface is then texture mapped to the canvas, and if a stereoscopic StereoMode is
+ * specified, then the User will see left and right eye content mapped to the appropriate display.
+ *
+ * Note that it is not currently possible to synchronize CanvasShape and StereoMode changes with
+ * application rendering or video decoding. Applications are advised to carefully hide this entity
+ * around transitions to manage glitchiness.
+ *
+ * @property canvasShape The [CanvasShape] which describes the mesh to which the Surface is mapped.
+ * @property stereoMode The [StereoMode] which describes how parts of the surface are displayed to
+ *   the user's eyes.
+ * @property dimensions The dimensions of the canvas in the local spatial coordinate system of the
+ *   entity.
+ */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class StereoSurfaceEntity
+public class SurfaceEntity
 private constructor(
-    rtEntity: JxrPlatformAdapter.StereoSurfaceEntity,
+    rtEntity: JxrPlatformAdapter.SurfaceEntity,
     entityManager: EntityManager,
-) : BaseEntity<JxrPlatformAdapter.StereoSurfaceEntity>(rtEntity, entityManager) {
+    canvasShape: CanvasShape,
+) : BaseEntity<JxrPlatformAdapter.SurfaceEntity>(rtEntity, entityManager) {
+
+    /** Represents the shape of the Canvas that backs a SurfaceEntity. */
+    public abstract class CanvasShape private constructor() {
+        public open val dimensions: Dimensions = Dimensions(0.0f, 0.0f, 0.0f)
+
+        // A Quad-shaped canvas. Width and height are represented in the local spatial coordinate
+        // system of the entity. (0,0,0) is the center of the canvas.
+        public class Quad(public val width: Float, public val height: Float) : CanvasShape() {
+            override val dimensions: Dimensions
+                get() = Dimensions(width, height, 0.0f)
+        }
+
+        // An inwards-facing sphere-shaped canvas, centered at (0,0,0) in the local coordinate
+        // space.
+        // This is intended to be used by setting the entity's pose to the user's head pose.
+        // Radius is represented in the local spatial coordinate system of the entity.
+        // The center of the Surface will be mapped to (0, 0, -radius) in the local coordinate
+        // space,
+        // and UV's are applied from positive X to negative X in an equirectangular projection.
+        public class Vr360Sphere(public val radius: Float) : CanvasShape() {
+            override val dimensions: Dimensions
+                get() = Dimensions(radius * 2, radius * 2, radius * 2)
+        }
+
+        // An inwards-facing hemisphere-shaped canvas, where (0,0,0) is the center of the base of
+        // the
+        // hemisphere. Radius is represented in the local spatial coordinate system of the entity.
+        // This is intended to be used by setting the entity's pose to the user's head pose.
+        // The center of the Surface will be mapped to (0, 0, -radius) in the local coordinate
+        // space,
+        // and UV's are applied from positive X to negative X in an equirectangular projection.
+        public class Vr180Hemisphere(public val radius: Float) : CanvasShape() {
+            override val dimensions: Dimensions
+                get() = Dimensions(radius * 2, radius * 2, radius)
+        }
+    }
 
     /**
      * Specifies how the surface content will be routed for stereo viewing. Applications must render
@@ -676,78 +783,129 @@ private constructor(
     public companion object {
         private fun getRtStereoMode(stereoMode: Int): Int {
             return when (stereoMode) {
-                StereoMode.MONO -> JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.MONO
-                StereoMode.TOP_BOTTOM ->
-                    JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.TOP_BOTTOM
-                else -> JxrPlatformAdapter.StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE
+                StereoMode.MONO -> JxrPlatformAdapter.SurfaceEntity.StereoMode.MONO
+                StereoMode.TOP_BOTTOM -> JxrPlatformAdapter.SurfaceEntity.StereoMode.TOP_BOTTOM
+                else -> JxrPlatformAdapter.SurfaceEntity.StereoMode.SIDE_BY_SIDE
             }
         }
 
         /**
-         * Factory method for StereoSurfaceEntity.
+         * Factory method for SurfaceEntity.
          *
          * @param adapter JxrPlatformAdapter to use.
          * @param entityManager A SceneCore EntityManager
          * @param stereoMode An [Int] which defines how surface subregions map to eyes
-         * @param dimensions A [Dimensions] which specifies the size of the canvas relative to
-         *   parent
          * @param pose Pose for this StereoSurface entity, relative to its parent.
+         * @param canvasShape The [CanvasShape] which describes the spatialized shape of the canvas.
          */
         internal fun create(
             adapter: JxrPlatformAdapter,
             entityManager: EntityManager,
             stereoMode: Int = StereoMode.SIDE_BY_SIDE,
-            dimensions: Dimensions = Dimensions(1.0f, 1.0f, 1.0f),
             pose: Pose = Pose.Identity,
-        ): StereoSurfaceEntity =
-            StereoSurfaceEntity(
-                adapter.createStereoSurfaceEntity(
+            canvasShape: CanvasShape = CanvasShape.Quad(1.0f, 1.0f),
+        ): SurfaceEntity {
+            val rtCanvasShape =
+                when (canvasShape) {
+                    is CanvasShape.Quad ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(
+                            canvasShape.width,
+                            canvasShape.height
+                        )
+                    is CanvasShape.Vr360Sphere ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(canvasShape.radius)
+                    is CanvasShape.Vr180Hemisphere ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(
+                            canvasShape.radius
+                        )
+                    else -> throw IllegalArgumentException("Unsupported canvas shape: $canvasShape")
+                }
+            return SurfaceEntity(
+                adapter.createSurfaceEntity(
                     getRtStereoMode(stereoMode),
-                    dimensions.toRtDimensions(),
+                    rtCanvasShape,
                     pose,
                     adapter.activitySpaceRootImpl,
                 ),
                 entityManager,
+                canvasShape,
             )
+        }
 
         /**
-         * Public factory function for a StereoSurfaceEntity.
+         * Public factory function for a SurfaceEntity.
          *
          * This method must be called from the main thread.
          * https://developer.android.com/guide/components/processes-and-threads
          *
-         * @param session Session to create the StereoSurfaceEntity in.
+         * @param session Session to create the SurfaceEntity in.
          * @param stereoMode Stereo mode for the surface.
-         * @param dimensions Dimensions for the surface.
          * @param pose Pose of this entity relative to its parent, default value is Identity.
-         * @return a StereoSurfaceEntity instance
+         * @param canvasShape The [CanvasShape] which describes the spatialized shape of the canvas.
+         * @return a SurfaceEntity instance
          */
         @MainThread
         @JvmOverloads
+        @JvmStatic
         public fun create(
             session: Session,
-            stereoMode: Int = StereoSurfaceEntity.StereoMode.SIDE_BY_SIDE,
-            dimensions: Dimensions = Dimensions(1.0f, 1.0f, 1.0f),
+            stereoMode: Int = SurfaceEntity.StereoMode.SIDE_BY_SIDE,
             pose: Pose = Pose.Identity,
-        ): StereoSurfaceEntity =
-            StereoSurfaceEntity.create(
+            canvasShape: CanvasShape = CanvasShape.Quad(1.0f, 1.0f),
+        ): SurfaceEntity =
+            SurfaceEntity.create(
                 session.platformAdapter,
                 session.entityManager,
                 stereoMode,
-                dimensions,
                 pose,
+                canvasShape,
             )
     }
 
     /**
-     * Changes the width and height of the "spatial canvas" which the surface is mapped to. (0,0,0)
-     * for this Entity is the canvas's center. (In unscaled ActivitySpace, this is 1 unit per meter)
-     * Width and height <= 0 are unsupported (Depth is ignored).
+     * Controls how the surface content will be routed for stereo viewing. Applications must render
+     * into the surface in accordance with what is specified here in order for the compositor to
+     * correctly produce a stereoscopic view to the user.
+     *
+     * Values must be one of the values from [StereoMode].
      */
-    public var dimensions: Dimensions
-        get() = rtEntity.dimensions.toDimensions()
+    public var stereoMode: Int
+        get() = rtEntity.stereoMode
+        @MainThread
         set(value) {
-            rtEntity.dimensions = value.toRtDimensions()
+            rtEntity.stereoMode = getRtStereoMode(value)
+        }
+
+    /**
+     * Returns the dimensions of the Entity.
+     *
+     * This is the size of the canvas in the local spatial coordinate system of the entity. This
+     * field cannot be directly set - to update the dimensions of the canvas, update the value of
+     * [canvasShape].
+     */
+    public val dimensions: Dimensions
+        get() = rtEntity.dimensions.toDimensions()
+
+    /**
+     * The shape of the canvas that backs the Entity.
+     *
+     * Updating this value will alter the dimensions of the Entity.
+     */
+    public var canvasShape: CanvasShape = canvasShape
+        @MainThread
+        set(value) {
+            val rtCanvasShape =
+                when (value) {
+                    is CanvasShape.Quad ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Quad(value.width, value.height)
+                    is CanvasShape.Vr360Sphere ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr360Sphere(value.radius)
+                    is CanvasShape.Vr180Hemisphere ->
+                        JxrPlatformAdapter.SurfaceEntity.CanvasShape.Vr180Hemisphere(value.radius)
+                    else -> throw IllegalArgumentException("Unsupported canvas shape: $value")
+                }
+            rtEntity.setCanvasShape(rtCanvasShape)
+            field = value
         }
 
     /**
@@ -772,7 +930,7 @@ internal constructor(
     public val isMainPanelEntity: Boolean = false,
 ) : BasePanelEntity<JxrPlatformAdapter.PanelEntity>(rtEntity, entityManager) {
 
-    internal companion object {
+    public companion object {
         /**
          * Factory method for PanelEntity.
          *
@@ -809,6 +967,39 @@ internal constructor(
                     adapter.activitySpaceRootImpl,
                 ),
                 entityManager,
+            )
+
+        // TODO(b/352629832): Update surfaceDimensionsPx to be a PixelDimensions
+        /**
+         * Public factory function for a spatialized PanelEntity.
+         *
+         * @param session Session to create the PanelEntity in.
+         * @param view View to embed in this panel entity.
+         * @param surfaceDimensionsPx Dimensions for the underlying surface for the given view.
+         * @param dimensions Dimensions for the panel in meters.
+         * @param name Name of the panel.
+         * @param pose Pose of this entity relative to its parent, default value is Identity.
+         * @return a PanelEntity instance.
+         */
+        @JvmOverloads
+        @JvmStatic
+        public fun create(
+            session: Session,
+            view: View,
+            surfaceDimensionsPx: Dimensions,
+            dimensions: Dimensions,
+            name: String,
+            pose: Pose = Pose.Identity,
+        ): PanelEntity =
+            PanelEntity.create(
+                session.platformAdapter,
+                session.entityManager,
+                view,
+                surfaceDimensionsPx,
+                dimensions,
+                name,
+                session.activity,
+                pose,
             )
 
         /** Returns the PanelEntity backed by the main window for the Activity. */
@@ -858,7 +1049,7 @@ private constructor(
         rtActivityPanelEntity.moveActivity(activity)
     }
 
-    internal companion object {
+    public companion object {
         /**
          * Factory method for ActivityPanelEntity.
          *
@@ -885,6 +1076,33 @@ private constructor(
                     adapter.activitySpaceRootImpl,
                 ),
                 entityManager,
+            )
+
+        // TODO(b/352629832): Update windowBoundsPx to be a PixelDimensions
+        /**
+         * Public factory function for a spatial ActivityPanelEntity.
+         *
+         * @param session Session to create the ActivityPanelEntity in.
+         * @param windowBoundsPx Bounds for the panel window in pixels.
+         * @param name Name of the panel.
+         * @param pose Pose of this entity relative to its parent, default value is Identity.
+         * @return an ActivityPanelEntity instance.
+         */
+        @JvmOverloads
+        @JvmStatic
+        public fun create(
+            session: Session,
+            windowBoundsPx: Rect,
+            name: String,
+            pose: Pose = Pose.Identity,
+        ): ActivityPanelEntity =
+            ActivityPanelEntity.create(
+                session.platformAdapter,
+                session.entityManager,
+                PixelDimensions(windowBoundsPx.width(), windowBoundsPx.height()),
+                name,
+                session.activity,
+                pose,
             )
     }
 }
@@ -937,6 +1155,11 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
          * without the possibility of recovery.
          */
         public const val ERROR: Int = 3
+        /**
+         * The PERMISSIONS_NOT_GRANTED state means that the user has not granted the necessary
+         * permissions i.e. SCENE_UNDERSTANDING to create this AnchorEntity.
+         */
+        public const val PERMISSIONS_NOT_GRANTED: Int = 4
     }
 
     /** Specifies the current persist state of the Anchor. */
@@ -956,6 +1179,9 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
     @Suppress("ExecutorRegistration")
     public fun setOnStateChangedListener(onStateChangedListener: OnStateChangedListener?) {
         this.onStateChangedListener = onStateChangedListener
+        if (state.get() == State.PERMISSIONS_NOT_GRANTED) {
+            onStateChangedListener?.onStateChanged(State.PERMISSIONS_NOT_GRANTED)
+        }
     }
 
     /** Updates the current state. */
@@ -1004,7 +1230,7 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
         return Anchor.loadFromNativePointer(session, rtEntity.nativePointer())
     }
 
-    internal companion object {
+    public companion object {
         private const val TAG = "AnchorEntity"
 
         /**
@@ -1069,6 +1295,8 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
                         anchorEntity.setState(State.TIMEDOUT)
                     JxrPlatformAdapter.AnchorEntity.State.ERROR ->
                         anchorEntity.setState(State.ERROR)
+                    JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
+                        anchorEntity.setState(State.PERMISSIONS_NOT_GRANTED)
                 }
             }
             return anchorEntity
@@ -1100,9 +1328,59 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
                         anchorEntity.setState(State.TIMEDOUT)
                     JxrPlatformAdapter.AnchorEntity.State.ERROR ->
                         anchorEntity.setState(State.ERROR)
+                    JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
+                        anchorEntity.setState(State.PERMISSIONS_NOT_GRANTED)
                 }
             }
             return anchorEntity
+        }
+
+        /**
+         * Public factory function for an AnchorEntity which searches for a location to create an
+         * Anchor among the tracked planes available to the perception system.
+         *
+         * Note that this function will fail if the application has not been granted the
+         * "android.permission.SCENE_UNDERSTANDING" permission. Consider using PermissionHelper to
+         * help request permission from the User.
+         *
+         * @param session Session to create the AnchorEntity in.
+         * @param bounds Bounds for this AnchorEntity.
+         * @param planeType Orientation of plane to which this Anchor should attach.
+         * @param planeSemantic Semantics of the plane to which this Anchor should attach.
+         * @param timeout The amount of time as a [Duration] to search for the a suitable plane to
+         *   attach to. If a plane is not found within the timeout, the returned AnchorEntity state
+         *   will be set to AnchorEntity.State.TIMEDOUT. It may take longer than the timeout period
+         *   before the anchor state is updated. If the timeout duration is zero it will search for
+         *   the anchor indefinitely.
+         */
+        @JvmStatic
+        @JvmOverloads
+        public fun create(
+            session: Session,
+            bounds: Dimensions,
+            planeType: @PlaneTypeValue Int,
+            planeSemantic: @PlaneSemanticValue Int,
+            timeout: Duration = Duration.ZERO,
+        ): AnchorEntity {
+            return AnchorEntity.create(
+                session.platformAdapter,
+                session.entityManager,
+                bounds,
+                planeType,
+                planeSemantic,
+                timeout,
+            )
+        }
+
+        /**
+         * Public factory function for an AnchorEntity which uses an Anchor from ARCore for XR.
+         *
+         * @param session Session to create the AnchorEntity in.
+         * @param anchor The PerceptionAnchor to use for this AnchorEntity.
+         */
+        @JvmStatic
+        public fun create(session: Session, anchor: Anchor): AnchorEntity {
+            return AnchorEntity.create(session.platformAdapter, session.entityManager, anchor)
         }
     }
 
@@ -1116,6 +1394,8 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
             JxrPlatformAdapter.AnchorEntity.State.ANCHORED -> State.ANCHORED
             JxrPlatformAdapter.AnchorEntity.State.TIMED_OUT -> State.TIMEDOUT
             JxrPlatformAdapter.AnchorEntity.State.ERROR -> State.ERROR
+            JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
+                State.PERMISSIONS_NOT_GRANTED
         }
 
     /**

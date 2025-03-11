@@ -29,7 +29,6 @@ import androidx.health.connect.client.aggregate.AggregateMetric
 import androidx.health.connect.client.aggregate.AggregationResult
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
-import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.feature.HealthConnectFeaturesUnavailableImpl
 import androidx.health.connect.client.impl.HealthConnectClientImpl
 import androidx.health.connect.client.impl.HealthConnectClientUpsideDownImpl
@@ -56,7 +55,6 @@ interface HealthConnectClient {
     val permissionController: PermissionController
 
     /** Access operations related to feature availability. */
-    @ExperimentalFeatureAvailabilityApi
     val features: HealthConnectFeatures
         get() = HealthConnectFeaturesUnavailableImpl
 

@@ -18,16 +18,12 @@ package androidx.webkit.internal;
 
 import androidx.webkit.OutcomeReceiverCompat;
 import androidx.webkit.PrefetchException;
-import androidx.webkit.PrefetchNetworkException;
 
-import org.chromium.support_lib_boundary.PrefetchExceptionBoundaryInterface;
-import org.chromium.support_lib_boundary.PrefetchNetworkExceptionBoundaryInterface;
-import org.chromium.support_lib_boundary.PrefetchOperationCallbackBoundaryInterface;
-import org.chromium.support_lib_boundary.util.BoundaryInterfaceReflectionUtil;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 
 public class PrefetchOperationCallbackAdapter {
 
@@ -39,48 +35,11 @@ public class PrefetchOperationCallbackAdapter {
      */
     public static @NonNull /* PrefetchOperationCallback */ InvocationHandler buildInvocationHandler(
             @NonNull OutcomeReceiverCompat<@Nullable Void, @NonNull PrefetchException> callback) {
-        PrefetchOperationCallbackBoundaryInterface operationCallback =
-                new PrefetchOperationCallbackBoundaryInterface() {
-                    @Override
-                    public void onSuccess() {
-                        callback.onResult(null);
-                    }
-
-                    @Override
-                    public void onFailure(InvocationHandler failure) {
-                        if (BoundaryInterfaceReflectionUtil.instanceOfInOwnClassLoader(failure,
-                                PrefetchNetworkExceptionBoundaryInterface.class.getName())) {
-                            callback.onError(getNetworkException(failure));
-                        } else {
-                            callback.onError(getPrefetchException(failure));
-                        }
-                    }
-                };
-
-        return BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
-                operationCallback);
-    }
-
-    private static PrefetchNetworkException getNetworkException(InvocationHandler error) {
-        PrefetchNetworkExceptionBoundaryInterface failure =
-                BoundaryInterfaceReflectionUtil.castToSuppLibClass(
-                        PrefetchNetworkExceptionBoundaryInterface.class, error);
-        if (failure.getMessage() != null) {
-            return new PrefetchNetworkException(failure.getMessage(),
-                    failure.getHttpResponseStatusCode());
-        } else {
-            return new PrefetchNetworkException(failure.getHttpResponseStatusCode());
-        }
-    }
-
-    private static PrefetchException getPrefetchException(InvocationHandler error) {
-        PrefetchExceptionBoundaryInterface failure =
-                BoundaryInterfaceReflectionUtil.castToSuppLibClass(
-                        PrefetchExceptionBoundaryInterface.class, error);
-        if (failure.getMessage() != null) {
-            return new PrefetchException(failure.getMessage());
-        } else {
-            return new PrefetchException();
-        }
+        return new InvocationHandler() {
+            @Override
+            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                return null;
+            }
+        };
     }
 }

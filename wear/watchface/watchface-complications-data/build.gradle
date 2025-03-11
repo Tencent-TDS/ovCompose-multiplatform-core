@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -56,6 +56,8 @@ dependencies {
     testImplementation(libs.guavaTestlib)
 
     annotationProcessor(project(":versionedparcelable:versionedparcelable-compiler"))
+
+    compileOnly files("../../wear_sdk/wear-sdk.jar")
 }
 
 android {
@@ -76,7 +78,7 @@ android {
 
 androidx {
     name = "Android Wear Complications Data"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Wear Complications Data"
     legacyDisableKotlinStrictApiMode = true

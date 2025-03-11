@@ -40,6 +40,7 @@ internal class PerceptionStateExtender : StateExtender {
 
     override fun initialize(runtime: Runtime) {
         perceptionManager = runtime.perceptionManager
+        xrResourcesManager.initiateHands(perceptionManager.leftHand, perceptionManager.rightHand)
     }
 
     override suspend fun extend(coreState: CoreState) {
@@ -49,6 +50,10 @@ internal class PerceptionStateExtender : StateExtender {
 
         xrResourcesManager.syncTrackables(perceptionManager.trackables)
         xrResourcesManager.update()
+
+        xrResourcesManager.leftHand?.update()
+        xrResourcesManager.rightHand?.update()
+
         updatePerceptionStateMap(coreState)
     }
 
@@ -61,7 +66,12 @@ internal class PerceptionStateExtender : StateExtender {
     private fun updatePerceptionStateMap(coreState: CoreState) {
         perceptionStateMap.put(
             coreState.timeMark,
-            PerceptionState(coreState.timeMark, xrResourcesManager.trackablesMap.values),
+            PerceptionState(
+                coreState.timeMark,
+                xrResourcesManager.trackablesMap.values,
+                xrResourcesManager.leftHand,
+                xrResourcesManager.rightHand,
+            ),
         )
         timeMarkQueue.add(coreState.timeMark)
 

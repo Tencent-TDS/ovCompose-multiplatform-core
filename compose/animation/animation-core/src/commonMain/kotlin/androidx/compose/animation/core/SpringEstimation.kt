@@ -199,8 +199,7 @@ private fun estimateCriticallyDamped(
             // By finding a point between when concavity changes, and when the inflection point is,
             // Newton's method will always converge onto the rightmost point (in this case),
             // the one that we are interested in.
-            val tConcavChange = -(2.0 / r) - (c1 / c2)
-            tCurr = tConcavChange
+            tCurr = -(2.0 / r) - (c1 / c2)
             delta
         }
 

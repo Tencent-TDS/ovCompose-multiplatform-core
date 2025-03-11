@@ -31,8 +31,10 @@ import androidx.privacysandbox.sdkruntime.client.SdkSandboxManagerCompat
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.client.view.SandboxedSdkViewEventListener
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
+import androidx.privacysandbox.ui.integration.testapp.util.AdHolder
 import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApi
 import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApiFactory
 import kotlinx.coroutines.CoroutineScope
@@ -85,6 +87,13 @@ abstract class BaseFragment : Fragment() {
         setEventListener(TestEventListener(this))
     }
 
+    fun handleOptionsFromIntent(options: FragmentOptions) {
+        currentMediationOption = options.mediation
+        currentAdType = options.adType
+        shouldDrawViewabilityLayer = options.drawViewability
+        providerUiOnTop = options.isZOrderOnTop
+    }
+
     /**
      * Returns the list of [SandboxedSdkView]s that are currently displayed inside this fragment.
      *
@@ -104,11 +113,34 @@ abstract class BaseFragment : Fragment() {
     // TODO(b/343436839) : Handle this automatically
     // TODO(b/348194843): Clean up the options
     open fun handleLoadAdFromDrawer(
-        adType: Int,
-        mediationOption: Int,
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {}
 
+    fun loadAd(
+        adHolder: AdHolder,
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        drawViewabilityLayer: Boolean,
+        waitInsideOnDraw: Boolean = false
+    ) {
+        CoroutineScope(Dispatchers.Main).launch {
+            val sdkBundle =
+                sdkApi.loadAd(
+                    adFormat,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewabilityLayer
+                )
+            adHolder.populateAd(sdkBundle, adFormat)
+        }
+    }
+
+    // TODO(b/369355774): replace with loadAd on all supported fragments
     fun loadBannerAd(
         @AdType adType: Int,
         @MediationOption mediationOption: Int,
@@ -118,8 +150,15 @@ abstract class BaseFragment : Fragment() {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             val sdkBundle =
-                sdkApi.loadBannerAd(adType, mediationOption, waitInsideOnDraw, drawViewabilityLayer)
+                sdkApi.loadAd(
+                    AdFormat.BANNER_AD,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewabilityLayer
+                )
             sandboxedSdkView.setAdapter(SandboxedUiAdapterFactory.createFromCoreLibInfo(sdkBundle))
+            sandboxedSdkView.orderProviderUiAboveClientUi(providerUiOnTop)
         }
     }
 
@@ -154,6 +193,7 @@ abstract class BaseFragment : Fragment() {
             "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
         const val TAG = "TestSandboxClient"
         var isZOrderBelowToggleChecked = false
+        @AdFormat var currentAdFormat = AdFormat.BANNER_AD
         @AdType var currentAdType = AdType.BASIC_NON_WEBVIEW
         @MediationOption var currentMediationOption = MediationOption.NON_MEDIATED
         var shouldDrawViewabilityLayer = false

@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import androidx.build.KotlinTarget
+
 plugins {
     id("AndroidXPlugin")
     id("com.android.test")
@@ -49,4 +51,8 @@ dependencies {
     implementation(libs.testCore)
     implementation(libs.testRunner)
     implementation(libs.testUiautomator)
+}
+
+androidx {
+    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

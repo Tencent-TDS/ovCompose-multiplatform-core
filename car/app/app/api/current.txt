@@ -769,7 +769,8 @@ package androidx.car.app.hardware.info {
 
   @SuppressCompatibility @androidx.car.app.annotations.CarProtocol @androidx.car.app.annotations.RequiresCarApi(3) public final class Mileage {
     method public androidx.car.app.hardware.common.CarValue<java.lang.Integer!> getDistanceDisplayUnit();
-    method public androidx.car.app.hardware.common.CarValue<java.lang.Float!> getOdometerMeters();
+    method public androidx.car.app.hardware.common.CarValue<java.lang.Float!> getOdometerInKilometers();
+    method @Deprecated public androidx.car.app.hardware.common.CarValue<java.lang.Float!> getOdometerMeters();
   }
 
   public static final class Mileage.Builder {
@@ -882,7 +883,7 @@ package androidx.car.app.media.model {
     method public androidx.car.app.model.Header? getHeader();
   }
 
-  public static final class MediaPlaybackTemplate.Builder {
+  @SuppressCompatibility @androidx.car.app.annotations.ExperimentalCarApi public static final class MediaPlaybackTemplate.Builder {
     ctor public MediaPlaybackTemplate.Builder();
     ctor public MediaPlaybackTemplate.Builder(androidx.car.app.media.model.MediaPlaybackTemplate);
     method public androidx.car.app.media.model.MediaPlaybackTemplate build();

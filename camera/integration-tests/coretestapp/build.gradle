@@ -1,3 +1,5 @@
+import androidx.build.ApkCopyHelperKt
+
 /*
  * Copyright (C) 2019 The Android Open Source Project
  *
@@ -136,3 +138,6 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(project(":internal-testutils-ktx"))
 }
+
+// Publish the APK to dist/apk for testing.
+ApkCopyHelperKt.setupAppApkCopy(project, "release")

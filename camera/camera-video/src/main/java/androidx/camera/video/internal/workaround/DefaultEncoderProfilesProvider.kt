@@ -33,8 +33,6 @@ import androidx.camera.video.Quality.FHD
 import androidx.camera.video.Quality.HD
 import androidx.camera.video.Quality.SD
 import androidx.camera.video.Quality.UHD
-import androidx.camera.video.internal.config.VideoConfigUtil
-import androidx.camera.video.internal.encoder.VideoEncoderConfig
 import androidx.camera.video.internal.encoder.VideoEncoderInfo
 
 /**
@@ -50,8 +48,7 @@ import androidx.camera.video.internal.encoder.VideoEncoderInfo
 public class DefaultEncoderProfilesProvider(
     private val cameraInfo: CameraInfoInternal,
     private val targetQualities: List<Quality>,
-    private val videoEncoderInfoFinder:
-        androidx.arch.core.util.Function<VideoEncoderConfig, VideoEncoderInfo>
+    private val videoEncoderInfoFinder: VideoEncoderInfo.Finder
 ) : EncoderProfilesProvider {
 
     private val supportedSizes by lazy {
@@ -104,9 +101,7 @@ public class DefaultEncoderProfilesProvider(
     private fun resolveVideoProfile(width: Int, height: Int, bitrate: Int): VideoProfileProxy? {
         val videoProfile =
             createDefaultVideoProfile(width = width, height = height, bitrate = bitrate)
-        val encoderInfo =
-            videoEncoderInfoFinder.apply(VideoConfigUtil.toVideoEncoderConfig(videoProfile))
-                ?: return null
+        val encoderInfo = videoEncoderInfoFinder.find(videoProfile.mediaType) ?: return null
 
         if (!encoderInfo.isSizeSupportedAllowSwapping(width, height)) {
             return null

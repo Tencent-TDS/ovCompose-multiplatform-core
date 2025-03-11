@@ -158,7 +158,7 @@ public fun CheckboxButton(
             )
         },
         selectionControl = null,
-        modifier = modifier.defaultMinSize(minHeight = MIN_HEIGHT).height(IntrinsicSize.Min),
+        modifier = modifier.defaultMinSize(minHeight = MIN_HEIGHT),
         icon =
             provideNullableScopeContent(
                 contentColor = colors.iconColor(enabled = enabled, checked),

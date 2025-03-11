@@ -80,6 +80,62 @@ class KspTypeTest {
     }
 
     @Test
+    fun assignability_nullability() {
+        val src =
+            Source.java(
+                "Subject",
+                """
+            public class Subject {
+                public Integer method() {
+                    return 0;
+                }
+            }
+            """
+                    .trimIndent()
+            )
+        runProcessorTest(sources = listOf(src)) {
+            // nullability assignability is only relevant in KSP
+            if (!it.isKsp) return@runProcessorTest
+
+            val nonNullString = it.processingEnv.requireType(XTypeName.STRING)
+            val nullableString = nonNullString.makeNullable()
+
+            assertThat(nonNullString.isAssignableFrom(nullableString)).isFalse()
+            assertThat(nullableString.isAssignableFrom(nonNullString)).isTrue()
+
+            val primitiveInt = it.processingEnv.requireType(XTypeName.PRIMITIVE_INT)
+            val nonNullInt =
+                it.processingEnv.requireType(XTypeName.BOXED_INT.copy(nullable = false))
+            val nullableInt = nonNullInt.makeNullable()
+            val unknownInt =
+                it.processingEnv
+                    .requireTypeElement("Subject")
+                    .getDeclaredMethods()
+                    .single()
+                    .returnType
+
+            assertThat(primitiveInt.isAssignableFrom(primitiveInt)).isTrue()
+            assertThat(primitiveInt.isAssignableFrom(nonNullInt)).isTrue()
+            assertThat(primitiveInt.isAssignableFrom(nullableInt)).isFalse()
+            // when nullability is unknown, it is ignored for assignability
+            // https://kotlinlang.org/docs/java-interop.html#null-safety-and-platform-types
+            assertThat(primitiveInt.isAssignableFrom(unknownInt)).isTrue()
+
+            assertThat(nonNullInt.isAssignableFrom(primitiveInt)).isTrue()
+            assertThat(nonNullInt.isAssignableFrom(nonNullInt)).isTrue()
+            assertThat(nonNullInt.isAssignableFrom(nullableInt)).isFalse()
+            // when nullability is unknown, it is ignored for assignability
+            // https://kotlinlang.org/docs/java-interop.html#null-safety-and-platform-types
+            assertThat(nonNullInt.isAssignableFrom(unknownInt)).isTrue()
+
+            assertThat(nullableInt.isAssignableFrom(primitiveInt)).isTrue()
+            assertThat(nullableInt.isAssignableFrom(nonNullInt)).isTrue()
+            assertThat(nullableInt.isAssignableFrom(nullableInt)).isTrue()
+            assertThat(nullableInt.isAssignableFrom(unknownInt)).isTrue()
+        }
+    }
+
+    @Test
     fun errorType() {
         val src =
             Source.kotlin(

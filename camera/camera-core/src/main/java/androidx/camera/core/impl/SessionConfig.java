@@ -53,7 +53,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * CaptureRequest}.
  */
 public final class SessionConfig {
-    public static final int DEFAULT_SESSION_TYPE = SessionConfiguration.SESSION_REGULAR;
+    /** Regular session type. */
+    public static final int SESSION_TYPE_REGULAR = SessionConfiguration.SESSION_REGULAR;
+    /** High-speed session type. */
+    public static final int SESSION_TYPE_HIGH_SPEED = SessionConfiguration.SESSION_HIGH_SPEED;
+    /** The default session type. */
+    public static final int DEFAULT_SESSION_TYPE = SESSION_TYPE_REGULAR;
     // Current supported session template values and the bigger index in the list, the
     // priority is higher.
     private static final List<Integer> SUPPORTED_TEMPLATE_PRIORITY = Arrays.asList(

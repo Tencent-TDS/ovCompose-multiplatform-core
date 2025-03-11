@@ -40,11 +40,7 @@ data class ViewfinderTestParams(
         TransformationInfo(
             sourceRotation = sourceRotation,
             isSourceMirroredHorizontally = isMirroredHorizontally,
-            isSourceMirroredVertically = isMirroredVertically,
-            cropRectLeft = 0,
-            cropRectTop = 0,
-            cropRectRight = sourceResolution.width,
-            cropRectBottom = sourceResolution.height,
+            isSourceMirroredVertically = isMirroredVertically
         )
 ) {
     companion object {

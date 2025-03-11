@@ -630,6 +630,13 @@ public final class CustomTabsIntent {
             "androidx.browser.customtabs.extra.ENABLE_EPHEMERAL_BROWSING";
 
     /**
+     * Extra that enables the close button and shows it in the toolbar. The close button is enabled
+     * by default, this extra provides a way to disable the close button in the toolbar.
+     */
+    public static final String EXTRA_CLOSE_BUTTON_ENABLED =
+            "androidx.browser.customtabs.extra.CLOSE_BUTTON_ENABLED";
+
+    /**
      * Key that specifies the unique ID for an action button. To make a button to show on the
      * toolbar, use {@link #TOOLBAR_ACTION_BUTTON_ID} as its ID.
      */
@@ -795,6 +802,9 @@ public final class CustomTabsIntent {
 
         /**
          * Sets the Close button icon for the custom tab.
+         *
+         * If the close button is disabled (see {@link #setCloseButtonEnabled(boolean)}), then
+         * calling this function has no effect.
          *
          * @param icon The icon {@link Bitmap}
          */
@@ -1334,6 +1344,9 @@ public final class CustomTabsIntent {
         /**
          * Sets the position of the close button.
          *
+         * If the close button is disabled (see {@link #setCloseButtonEnabled(boolean)}), then
+         * calling this function has no effect.
+         *
          * @param position The desired position.
          * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_DEFAULT
          * @see CustomTabsIntent#CLOSE_BUTTON_POSITION_START
@@ -1450,6 +1463,21 @@ public final class CustomTabsIntent {
         @ExperimentalEphemeralBrowsing
         public @NonNull Builder setEphemeralBrowsingEnabled(boolean enabled) {
             mIntent.putExtra(EXTRA_ENABLE_EPHEMERAL_BROWSING, enabled);
+            return this;
+        }
+
+        /**
+         * Sets whether to enable the close button for custom tab.
+         *
+         * The close button is enabled by default. If the close button is disabled, calls
+         * to {@link #setCloseButtonIcon(Bitmap)} or {@link #setCloseButtonPosition(int)}
+         * have no effect.
+         *
+         * @param enabled Whether the close button is enabled.
+         * @see CustomTabsIntent#EXTRA_CLOSE_BUTTON_ENABLED
+         */
+        public @NonNull Builder setCloseButtonEnabled(boolean enabled) {
+            mIntent.putExtra(EXTRA_CLOSE_BUTTON_ENABLED, enabled);
             return this;
         }
 
@@ -1814,6 +1842,14 @@ public final class CustomTabsIntent {
     public static @Nullable PendingIntent getSecondaryToolbarSwipeUpGesture(
             @NonNull Intent intent) {
         return intent.getParcelableExtra(EXTRA_SECONDARY_TOOLBAR_SWIPE_UP_GESTURE);
+    }
+
+    /**
+     * @return Whether the close button is enabled.
+     * @see CustomTabsIntent#EXTRA_CLOSE_BUTTON_ENABLED
+     */
+    public static boolean isCloseButtonEnabled(@NonNull Intent intent) {
+        return intent.getBooleanExtra(EXTRA_CLOSE_BUTTON_ENABLED, true);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)

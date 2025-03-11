@@ -16,8 +16,15 @@
 
 package androidx.navigation3.samples
 
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,10 +46,12 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.LightGray
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.navigation3.LocalNavAnimatedContentScope
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import kotlinx.serialization.InternalSerializationApi
@@ -77,6 +86,13 @@ data class Dashboard(val userId: String? = "no value given") {
         val resourceId: Int = R.string.dashboard
     }
 }
+
+@Serializable object CatList
+
+@Serializable data class CatDetail(val cat: Cat)
+
+@Serializable
+data class Cat(@DrawableRes val imageId: Int, val name: String, val description: String)
 
 @Composable
 fun Profile(viewModel: ProfileViewModel, navigateTo: (Any) -> Unit, onBack: () -> Unit) {
@@ -135,6 +151,48 @@ fun DialogContent(onDismissRequest: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun CatList(sharedScope: SharedTransitionScope, onClick: (cat: Cat) -> Unit) {
+    Column {
+        catList.forEach { cat: Cat ->
+            Row(Modifier.clickable { onClick(cat) }) {
+                with(sharedScope) {
+                    val imageModifier =
+                        Modifier.size(100.dp)
+                            .sharedElement(
+                                sharedScope.rememberSharedContentState(key = cat.imageId),
+                                animatedVisibilityScope = LocalNavAnimatedContentScope.current
+                            )
+                    Image(painterResource(cat.imageId), cat.description, imageModifier)
+                    Text(cat.name)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun CatDetail(cat: Cat, sharedScope: SharedTransitionScope, onBack: () -> Unit) {
+    Column {
+        Box {
+            with(sharedScope) {
+                val imageModifier =
+                    Modifier.size(300.dp)
+                        .sharedElement(
+                            sharedScope.rememberSharedContentState(key = cat.imageId),
+                            animatedVisibilityScope = LocalNavAnimatedContentScope.current
+                        )
+                Image(painterResource(cat.imageId), cat.description, imageModifier)
+            }
+        }
+        Text(cat.name)
+        Text(cat.description)
+        NavigateBackButton(onBack)
+    }
+}
+
 @Composable
 fun NavigateButton(text: String, listener: () -> Unit = {}) {
     Button(
@@ -189,6 +247,13 @@ private val phrases =
         "It's Not Brain Surgery",
         "Fight Fire With Fire",
         "Go For Broke"
+    )
+
+private val catList: List<Cat> =
+    listOf(
+        Cat(R.drawable.cat_1, "happy", "cat lying down"),
+        Cat(R.drawable.cat_2, "lucky", "cat playing"),
+        Cat(R.drawable.cat_3, "chocolate cake", "cat upside down"),
     )
 
 @Composable

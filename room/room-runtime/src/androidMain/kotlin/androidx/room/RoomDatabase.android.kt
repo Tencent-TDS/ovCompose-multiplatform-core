@@ -767,7 +767,7 @@ actual abstract class RoomDatabase {
      * @see SupportSQLiteDatabase.inTransaction
      */
     open fun inTransaction(): Boolean {
-        return openHelper.writableDatabase.inTransaction()
+        return isOpenInternal && openHelper.writableDatabase.inTransaction()
     }
 
     /**
@@ -1628,10 +1628,14 @@ actual abstract class RoomDatabase {
                             "SupportOpenHelper.Factory."
                     )
                 }
+            val autoCloseEnabled = autoCloseTimeout > 0
+            val prePackagedCopyEnabled =
+                copyFromAssetPath != null || copyFromFile != null || copyFromInputStream != null
+            val queryCallbackEnabled = queryCallback != null
             val supportOpenHelperFactory =
                 initialFactory
                     ?.let {
-                        if (autoCloseTimeout > 0) {
+                        if (autoCloseEnabled) {
                             requireNotNull(name) {
                                 "Cannot create auto-closing database for an in-memory database."
                             }
@@ -1646,11 +1650,7 @@ actual abstract class RoomDatabase {
                         }
                     }
                     ?.let {
-                        if (
-                            copyFromAssetPath != null ||
-                                copyFromFile != null ||
-                                copyFromInputStream != null
-                        ) {
+                        if (prePackagedCopyEnabled) {
                             requireNotNull(name) {
                                 "Cannot create from asset or file for an in-memory database."
                             }
@@ -1681,7 +1681,7 @@ actual abstract class RoomDatabase {
                         }
                     }
                     ?.let {
-                        if (queryCallback != null) {
+                        if (queryCallbackEnabled) {
                             val queryCallbackContext =
                                 queryCallbackExecutor?.asCoroutineDispatcher()
                                     ?: requireNotNull(queryCallbackCoroutineContext)
@@ -1694,6 +1694,18 @@ actual abstract class RoomDatabase {
                             it
                         }
                     }
+            // No open helper means a driver is to be used.
+            if (supportOpenHelperFactory == null) {
+                require(!autoCloseEnabled) {
+                    "Auto Closing Database is not supported when an SQLiteDriver is configured."
+                }
+                require(!prePackagedCopyEnabled) {
+                    "Pre-Package Database is not supported when an SQLiteDriver is configured."
+                }
+                require(!queryCallbackEnabled) {
+                    "Query Callback is not supported when an SQLiteDriver is configured."
+                }
+            }
             val configuration =
                 DatabaseConfiguration(
                         context = context,

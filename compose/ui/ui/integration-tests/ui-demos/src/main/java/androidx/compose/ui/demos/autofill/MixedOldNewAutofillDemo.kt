@@ -54,7 +54,11 @@ import kotlin.collections.set
 @Composable
 fun MixedOldNewAutofillDemo() {
     Column(modifier = Modifier.background(color = Color.Black)) {
-        Text(text = "Enter your username and password below.", color = Color.White)
+        Text(
+            text =
+                "This demo mixes the new (username) and old (password) autofill systems. Enter your username and password below.",
+            color = Color.White
+        )
 
         // Text field using new autofill API.
         BasicTextField(
@@ -99,7 +103,7 @@ fun MixedOldNewAutofillDemo() {
             onDispose { autofillTree.children.remove(autofillNode.id) }
         }
 
-        // Submit button (Only available using the new autofill APIs.
+        // Submit button (only available using the new autofill APIs).
         val autofillManager = LocalAutofillManager.current
         Button(onClick = { autofillManager?.commit() }) { Text("Submit credentials") }
     }

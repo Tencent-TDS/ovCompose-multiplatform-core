@@ -20,13 +20,13 @@ package androidx.appfunctions
 public class AppFunctionConfiguration
 internal constructor(
     /**
-     * A map of [AppFunctionFactory] used to construct the enclosing classes of AppFunctions.
+     * A map of factories used to construct the enclosing classes of AppFunctions.
      *
      * The keys in this map are the enclosing classes of the AppFunctions to be constructed, and the
-     * values are the corresponding [AppFunctionFactory] instance. If not provided in the map, the
-     * default no-argument constructors will be used to construct the classes.
+     * values are the corresponding factory. If not provided in the map, the default no-argument
+     * constructors will be used to construct the classes.
      */
-    public val factories: Map<Class<*>, AppFunctionFactory<*>>
+    public val enclosingClassFactories: Map<Class<*>, (() -> Any)>
 ) {
     /**
      * A class to provide customized [AppFunctionConfiguration] object.
@@ -42,24 +42,32 @@ internal constructor(
     /** A builder for [AppFunctionConfiguration]. */
     public class Builder {
 
-        private val factories = mutableMapOf<Class<*>, AppFunctionFactory<*>>()
+        private val enclosingClassFactories = mutableMapOf<Class<*>, (() -> Any)>()
 
         /**
-         * Adds a [factory] instance for creating an [enclosingClass].
+         * Adds a [factory] for creating an [enclosingClass].
          *
          * If there is already a factory instance set for [enclosingClass], it will be overridden.
+         *
+         * @param enclosingClass The [Class] object representing the enclosing class to be
+         *   instantiated.
+         * @param factory The factory to create the instance of [enclosingClass]. This is called by
+         *   the AppFunctions framework to instantiate the class whenever an instance of
+         *   [enclosingClass] is needed.
+         * @see AppFunction
          */
-        public fun <T : Any> addFactory(
+        public fun <T : Any> addEnclosingClassFactory(
             enclosingClass: Class<T>,
-            factory: AppFunctionFactory<T>
+            factory: () -> T
         ): Builder {
-            factories[enclosingClass] = factory
+            @Suppress("UNCHECKED_CAST")
+            enclosingClassFactories[enclosingClass] = factory as () -> Any
             return this
         }
 
         /** Builds the [AppFunctionConfiguration]. */
         public fun build(): AppFunctionConfiguration {
-            return AppFunctionConfiguration(factories.toMap())
+            return AppFunctionConfiguration(enclosingClassFactories.toMap())
         }
     }
 }

@@ -17,8 +17,6 @@
 package androidx.wear.compose.foundation
 
 import androidx.annotation.FloatRange
-import androidx.annotation.RestrictTo
-import androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.animate
@@ -87,9 +85,7 @@ import kotlinx.coroutines.launch
  * @param interactionSource Optional [MutableInteractionSource] that will passed on to the internal
  *   [Modifier.draggable].
  */
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public fun <T> Modifier.swipeableV2(
+internal fun <T> Modifier.swipeableV2(
     state: SwipeableV2State<T>,
     orientation: Orientation,
     enabled: Boolean = true,
@@ -164,9 +160,7 @@ public fun <T> Modifier.swipeableV2(
  *   [possibleValues], given this node's layout size. Return the anchor's offset from the initial
  *   anchor, or `null` to indicate that a value does not have an anchor.
  */
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public fun <T> Modifier.swipeAnchors(
+internal fun <T> Modifier.swipeAnchors(
     state: SwipeableV2State<T>,
     possibleValues: Set<T>,
     anchorChangeHandler: AnchorChangeHandler<T>? = null,
@@ -227,9 +221,7 @@ public fun <T> Modifier.swipeAnchors(
  *   reached.
  */
 @Stable
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public class SwipeableV2State<T>(
+internal class SwipeableV2State<T>(
     initialValue: T,
     internal val animationSpec: AnimationSpec<Float> = SwipeableV2Defaults.AnimationSpec,
     internal val confirmValueChange: (newValue: T) -> Boolean = { true },
@@ -590,10 +582,9 @@ public class SwipeableV2State<T>(
         }
     }
 
-    public companion object {
+    internal companion object {
         /** The default [Saver] implementation for [SwipeableV2State]. */
-        @ExperimentalWearFoundationApi
-        public fun <T : Any> Saver(
+        internal fun <T : Any> Saver(
             animationSpec: AnimationSpec<Float>,
             confirmValueChange: (T) -> Boolean,
             positionalThreshold: Density.(distance: Float) -> Float,
@@ -622,7 +613,6 @@ public class SwipeableV2State<T>(
  * @param confirmValueChange Optional callback invoked to confirm or veto a pending value change.
  */
 @Composable
-@ExperimentalWearFoundationApi
 internal fun <T : Any> rememberSwipeableV2State(
     initialValue: T,
     animationSpec: AnimationSpec<Float> = SwipeableV2Defaults.AnimationSpec,
@@ -656,9 +646,7 @@ internal fun <T : Any> rememberSwipeableV2State(
  *
  * @see [fractionalPositionalThreshold] for a fractional positional threshold
  */
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public fun fixedPositionalThreshold(threshold: Dp): Density.(distance: Float) -> Float = {
+internal fun fixedPositionalThreshold(threshold: Dp): Density.(distance: Float) -> Float = {
     threshold.toPx()
 }
 
@@ -669,18 +657,14 @@ public fun fixedPositionalThreshold(threshold: Dp): Density.(distance: Float) ->
  *
  * @see [fixedPositionalThreshold] for a fixed positional threshold
  */
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public fun fractionalPositionalThreshold(fraction: Float): Density.(distance: Float) -> Float =
+internal fun fractionalPositionalThreshold(fraction: Float): Density.(distance: Float) -> Float =
     { distance ->
         distance * fraction
     }
 
 /** Contains useful defaults for [swipeableV2] and [SwipeableV2State]. */
 @Stable
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public object SwipeableV2Defaults {
+internal object SwipeableV2Defaults {
     /** The default animation that will be used to animate to a new state. */
     public val AnimationSpec: SpringSpec<Float> = SpringSpec<Float>()
 
@@ -710,7 +694,6 @@ public object SwipeableV2Defaults {
      * @param animate A lambda that gets invoked to start an animation to a new target
      * @param snap A lambda that gets invoked to snap to a new target
      */
-    @ExperimentalWearFoundationApi
     internal fun <T> ReconcileAnimationOnAnchorChangeHandler(
         state: SwipeableV2State<T>,
         animate: (target: T, velocity: Float) -> Unit,
@@ -736,9 +719,7 @@ public object SwipeableV2Defaults {
  *
  * @see SwipeableV2Defaults.ReconcileAnimationOnAnchorChangeHandler for a default implementation
  */
-@ExperimentalWearFoundationApi
-@RestrictTo(LIBRARY_GROUP)
-public fun interface AnchorChangeHandler<T> {
+internal fun interface AnchorChangeHandler<T> {
 
     /**
      * Callback that is invoked when the anchors have changed, after the [SwipeableV2State] has been

@@ -16,6 +16,7 @@
 
 package androidx.health.connect.client.records
 
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import java.time.Instant
@@ -34,6 +35,7 @@ class StepsRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     count = 10,
                 )
             )
@@ -43,6 +45,7 @@ class StepsRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     count = 10,
                 )
             )
@@ -56,6 +59,7 @@ class StepsRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1234L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 count = 10,
             )
         }
@@ -69,6 +73,7 @@ class StepsRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1235L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 count = 0,
             )
         }
@@ -82,6 +87,7 @@ class StepsRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1235L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 count = 1000_001,
             )
         }
@@ -95,6 +101,7 @@ class StepsRecordTest {
                         startZoneOffset = null,
                         endTime = Instant.ofEpochMilli(1236L),
                         endZoneOffset = null,
+                        metadata = Metadata.unknownRecordingMethod(),
                         count = 42,
                     )
                     .toString()

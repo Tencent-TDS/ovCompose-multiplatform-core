@@ -16,6 +16,7 @@
 
 package androidx.health.connect.client.records
 
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.calories
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -36,6 +37,7 @@ class NutritionRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     energy = Energy.calories(5.0)
                 )
             )
@@ -45,6 +47,7 @@ class NutritionRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     energy = Energy.calories(5.0)
                 )
             )
@@ -58,6 +61,7 @@ class NutritionRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1236L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 energy = Energy.calories(-1.0)
             )
         }
@@ -67,6 +71,7 @@ class NutritionRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1236L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 energy = Energy.calories(100000001.0)
             )
         }
@@ -80,6 +85,7 @@ class NutritionRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1234L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
             )
         }
     }
@@ -92,6 +98,7 @@ class NutritionRecordTest {
                         startZoneOffset = null,
                         endTime = Instant.ofEpochMilli(1236L),
                         endZoneOffset = null,
+                        metadata = Metadata.unknownRecordingMethod(),
                         energy = 240.calories
                     )
                     .toString()

@@ -25,7 +25,9 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.tokens.ButtonGroupSmallTokens
+import androidx.compose.material3.tokens.ConnectedButtonGroupSmallTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
+import androidx.compose.material3.tokens.ShapeTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,7 +50,6 @@ import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMapIndexed
@@ -62,16 +63,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+// TODO link to mio page when available.
+// TODO link to an image when available
 /**
- * TODO link to mio page when available.
- *
  * A layout composable that places its children in a horizontal sequence. When a child uses
  * [Modifier.interactionSourceData] with a relevant [MutableInteractionSource], this button group
  * can listen to the interactions and expand the width of the pressed child element as well as
  * compress the neighboring child elements. Material3 components already use
  * [Modifier.interactionSourceData] and will behave as expected.
- *
- * TODO link to an image when available
  *
  * @sample androidx.compose.material3.samples.ButtonGroupSample
  *
@@ -101,9 +100,7 @@ fun ButtonGroup(
     content: @Composable ButtonGroupScope.() -> Unit
 ) {
     // TODO Load the motionScheme tokens from the component tokens file
-    // MotionSchemeKeyTokens.DefaultEffects is intentional here to prevent
-    // any bounce in this component.
-    val defaultAnimationSpec = MotionSchemeKeyTokens.DefaultEffects.value<Float>()
+    val defaultAnimationSpec = MotionSchemeKeyTokens.FastSpatial.value<Float>()
     val anim = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
     var pressedIndex by remember { mutableIntStateOf(-1) }
@@ -190,61 +187,94 @@ object ButtonGroupDefaults {
      */
     val ExpandedRatio = 0.15f
 
-    /** The default Arrangement used between children. */
+    /** The default Arrangement used between children for standard button group. */
     val HorizontalArrangement: Arrangement.Horizontal =
         Arrangement.spacedBy(ButtonGroupSmallTokens.BetweenSpace)
 
     /** The default spacing used between children for connected button group */
-    // TODO replace with token value
-    val ConnectedSpaceBetween: Dp = 2.dp
+    val ConnectedSpaceBetween: Dp = ConnectedButtonGroupSmallTokens.BetweenSpace
 
     /** Default shape for the leading button in a connected button group */
     val connectedLeadingButtonShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topStart = ShapeDefaults.CornerFull,
                 bottomStart = ShapeDefaults.CornerFull,
-                topEnd = ShapeDefaults.CornerSmall,
-                bottomEnd = ShapeDefaults.CornerSmall
+                topEnd = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize,
+                bottomEnd = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize
             )
 
     /** Default shape for the pressed state for the leading button in a connected button group. */
     val connectedLeadingButtonPressShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topStart = ShapeDefaults.CornerFull,
                 bottomStart = ShapeDefaults.CornerFull,
-                topEnd = ShapeDefaults.CornerExtraSmall,
-                bottomEnd = ShapeDefaults.CornerExtraSmall
+                topEnd = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize,
+                bottomEnd = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize
             )
 
     /** Default shape for the trailing button in a connected button group */
     val connectedTrailingButtonShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topEnd = ShapeDefaults.CornerFull,
                 bottomEnd = ShapeDefaults.CornerFull,
-                topStart = ShapeDefaults.CornerSmall,
-                bottomStart = ShapeDefaults.CornerSmall
+                topStart = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize,
+                bottomStart = ConnectedButtonGroupSmallTokens.InnerCornerCornerSize
             )
 
     /** Default shape for the pressed state for the trailing button in a connected button group. */
     val connectedTrailingButtonPressShape: Shape
         @Composable
         get() =
-            // TODO replace with token value
             RoundedCornerShape(
                 topEnd = ShapeDefaults.CornerFull,
                 bottomEnd = ShapeDefaults.CornerFull,
-                topStart = ShapeDefaults.CornerExtraSmall,
-                bottomStart = ShapeDefaults.CornerExtraSmall
+                topStart = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize,
+                bottomStart = ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize
             )
+
+    /** Default shape for the checked state for the buttons in a connected button group */
+    val connectedButtonCheckedShape = ShapeTokens.CornerFull
+
+    /** Default shape for the pressed state for the middle buttons in a connected button group. */
+    val connectedMiddleButtonPressShape: Shape
+        @Composable
+        get() = RoundedCornerShape(ConnectedButtonGroupSmallTokens.PressedInnerCornerCornerSize)
+
+    /** Defaults button shapes for the start button in a [ConnectedButtonGroup] */
+    @Composable
+    fun connectedLeadingButtonShapes(
+        shape: Shape = connectedLeadingButtonShape,
+        pressedShape: Shape = connectedLeadingButtonPressShape,
+        checkedShape: Shape = connectedButtonCheckedShape
+    ): ToggleButtonShapes =
+        ToggleButtonShapes(shape = shape, pressedShape = pressedShape, checkedShape = checkedShape)
+
+    /**
+     * Defaults button shapes for a middle button in a [ConnectedButtonGroup]. A middle button is a
+     * button that's not the start / end button in the button group.
+     */
+    @Composable
+    fun connectedMiddleButtonShapes(
+        shape: Shape = ShapeDefaults.Small,
+        pressedShape: Shape = connectedMiddleButtonPressShape,
+        checkedShape: Shape = connectedButtonCheckedShape
+    ): ToggleButtonShapes =
+        ToggleButtonShapes(shape = shape, pressedShape = pressedShape, checkedShape = checkedShape)
+
+    /** Defaults button shapes for the end button in a [ConnectedButtonGroup]. */
+    @Composable
+    fun connectedTrailingButtonShapes(
+        shape: Shape = connectedTrailingButtonShape,
+        pressedShape: Shape = connectedTrailingButtonPressShape,
+        checkedShape: Shape = connectedButtonCheckedShape
+    ): ToggleButtonShapes =
+        ToggleButtonShapes(shape = shape, pressedShape = pressedShape, checkedShape = checkedShape)
 }
 
 private class ButtonGroupMeasurePolicy(

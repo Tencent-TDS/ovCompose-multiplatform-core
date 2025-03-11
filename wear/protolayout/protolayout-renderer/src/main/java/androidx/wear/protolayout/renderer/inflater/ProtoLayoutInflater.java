@@ -52,7 +52,6 @@ import android.graphics.drawable.AnimatedVectorDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
@@ -326,10 +325,12 @@ public final class ProtoLayoutInflater {
 
     @VisibleForTesting static final String WEIGHT_AXIS_TAG = "wght";
     @VisibleForTesting static final String WIDTH_AXIS_TAG = "wdth";
+    @VisibleForTesting static final String ROUNDNESS_AXIS_TAG = "ROND";
     @VisibleForTesting static final String TABULAR_OPTION_TAG = "tnum";
 
     private static final ImmutableSet<String> SUPPORTED_FONT_SETTING_TAGS =
-            ImmutableSet.of(WEIGHT_AXIS_TAG, WIDTH_AXIS_TAG, TABULAR_OPTION_TAG);
+            ImmutableSet.of(
+                    WEIGHT_AXIS_TAG, WIDTH_AXIS_TAG, ROUNDNESS_AXIS_TAG, TABULAR_OPTION_TAG);
 
     /**
      * Listener for clicks on Clickable objects that have an Action to (re)load the contents of a
@@ -356,9 +357,7 @@ public final class ProtoLayoutInflater {
         private final Optional<PipelineMaker> mPipelineMaker;
 
         InflateResult(
-                ViewGroup inflateParent,
-                View firstChild,
-                Optional<PipelineMaker> pipelineMaker) {
+                ViewGroup inflateParent, View firstChild, Optional<PipelineMaker> pipelineMaker) {
             this.inflateParent = inflateParent;
             this.firstChild = firstChild;
             this.mPipelineMaker = pipelineMaker;
@@ -845,6 +844,7 @@ public final class ProtoLayoutInflater {
                 if (mLoadActionListener == null) {
                     mLoadActionListener = p -> {};
                 }
+
                 if (mProtoLayoutTheme == null) {
                     this.mProtoLayoutTheme = ProtoLayoutThemeImpl.defaultTheme(mUiContext);
                 }
@@ -852,11 +852,13 @@ public final class ProtoLayoutInflater {
                 if (mClickableIdExtra == null) {
                     mClickableIdExtra = DEFAULT_CLICKABLE_ID_EXTRA;
                 }
+
                 if (mInflaterStatsLogger == null) {
                     mInflaterStatsLogger =
                             new NoOpProviderStatsLogger("No implementation was provided")
                                     .createInflaterStatsLogger();
                 }
+
                 return new Config(
                         mUiContext,
                         mLayout,
@@ -1152,13 +1154,12 @@ public final class ProtoLayoutInflater {
      */
     private static boolean isBold(FontStyle fontStyle) {
         // Even though we have weight axis too, this concept of bold and bold flag in Typeface is
-        // different, so we only look at the FontWeight enum API here.
-        // Although this method could be a simple equality check against FONT_WEIGHT_BOLD, we list
-        // all current cases here so that this will become a compile time error as soon as a new
-        // FontWeight value is added to the schema. If this fails to build, then this means that an
-        // int typeface style is no longer enough to represent all FontWeight values and a
-        // customizable, per-weight text style must be introduced to ProtoLayoutInflater to handle
-        // this. See b/176980535
+        // different, so we only look at the FontWeight enum API here. Although this method could be
+        // a simple equality check against FONT_WEIGHT_BOLD, we list all current cases here so that
+        // this will become a compile time error as soon as a new FontWeight value is added to the
+        // schema. If this fails to build, then this means that an int typeface style is no longer
+        // enough to represent all FontWeight values and a customizable, per-weight text style must
+        // be introduced to ProtoLayoutInflater to handle this. See b/176980535
         switch (fontStyle.getWeight().getValue()) {
             case FONT_WEIGHT_BOLD:
                 return true;
@@ -1255,10 +1256,10 @@ public final class ProtoLayoutInflater {
 
         // Need to supply typefaceStyle when creating the typeface (will select specialist
         // bold/italic typefaces), *and* when setting the typeface (will set synthetic bold/italic
-        // flags in Paint if they're not supported by the given typeface).
-        // This is fine to do even for variable fonts with weight axis, as if their weight axis is
-        // larger than 700 and BOLD flag is on, it should be "bolded" two times - one for Typeface
-        // selection, one for axis value.
+        // flags in Paint if they're not supported by the given typeface). This is fine to do even
+        // for variable fonts with weight axis, as if their weight axis is larger than 700 and BOLD
+        // flag is on, it should be "bolded" two times - one for Typeface selection, one for axis
+        // value.
         textView.setTypeface(createTypeface(style), fontStyleToTypefaceStyle(style));
 
         if (fontStyleHasSize(style)) {
@@ -1309,9 +1310,8 @@ public final class ProtoLayoutInflater {
                             TAG,
                             "More than "
                                     + TEXT_AUTOSIZES_LIMIT
-                                    + " sizes has been added for the "
-                                    + "text autosizing. Ignoring all other sizes and using the last"
-                                    + "one.");
+                                    + " sizes has been added for the text autosizing. Ignoring all"
+                                    + " other sizes and using the last one.");
                 }
 
                 textView.setTextSize(COMPLEX_UNIT_SP, sizes.get(sizesCnt - 1).getValue());
@@ -1607,17 +1607,31 @@ public final class ProtoLayoutInflater {
         }
     }
 
-    private GradientDrawable applyBackground(
+    private BackgroundDrawable applyBackground(
             View view,
+            @Nullable View wrapper,
             Background background,
-            @Nullable GradientDrawable drawable,
+            @Nullable BackgroundDrawable drawable,
             String posId,
             Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
         if (drawable == null) {
-            drawable = new GradientDrawable();
+            drawable = new BackgroundDrawable();
         }
 
-        if (background.hasColor()) {
+        if (background.hasBrush() && background.getBrush().hasLinearGradient()) {
+            try {
+                LinearGradientHelper linearGradientHelper =
+                        new LinearGradientHelper(
+                                background.getBrush().getLinearGradient(),
+                                wrapper != null ? wrapper : view,
+                                pipelineMaker,
+                                posId,
+                                view::invalidate);
+                drawable.setLinearGradientHelper(linearGradientHelper);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "Failed to apply linear gradient to background", e);
+            }
+        } else if (background.hasColor()) {
             handleProp(background.getColor(), drawable::setColor, posId, pipelineMaker);
         }
 
@@ -1627,7 +1641,7 @@ public final class ProtoLayoutInflater {
     }
 
     private void applyCornerToBackground(
-            View view, @NonNull Background background, @NonNull GradientDrawable drawable) {
+            View view, @NonNull Background background, @NonNull BackgroundDrawable drawable) {
         if (!background.hasCorner()) {
             return;
         }
@@ -1654,7 +1668,7 @@ public final class ProtoLayoutInflater {
             if (radii[0] == 0) {
                 return;
             }
-            // The implementation in GradientDrawable is more efficient by calling setCornerRadius
+            // The implementation in BackgroundDrawable is more efficient by calling setCornerRadius
             // than calling setCornerRadii with an array of all equal items.
             drawable.setCornerRadius(radii[0]);
         } else {
@@ -1684,16 +1698,16 @@ public final class ProtoLayoutInflater {
         return true;
     }
 
-    private GradientDrawable applyBorder(
+    private BackgroundDrawable applyBorder(
             Border border,
-            @Nullable GradientDrawable drawable,
+            @Nullable BackgroundDrawable drawable,
             String posId,
             Optional<ProtoLayoutDynamicDataPipeline.PipelineMaker> pipelineMaker) {
         if (drawable == null) {
-            drawable = new GradientDrawable();
+            drawable = new BackgroundDrawable();
         }
 
-        GradientDrawable finalDrawable = drawable;
+        BackgroundDrawable finalDrawable = drawable;
         int width = safeDpToPx(border.getWidth());
         handleProp(
                 border.getColor(),
@@ -1852,12 +1866,13 @@ public final class ProtoLayoutInflater {
             applyPadding(view, modifiers.getPadding());
         }
 
-        GradientDrawable backgroundDrawable = null;
+        BackgroundDrawable backgroundDrawable = null;
 
         if (modifiers.hasBackground()) {
             backgroundDrawable =
                     applyBackground(
                             view,
+                            wrapper,
                             modifiers.getBackground(),
                             backgroundDrawable,
                             posId,
@@ -2161,7 +2176,6 @@ public final class ProtoLayoutInflater {
 
         return view;
     }
-
 
     private static int textAlignToAndroidGravity(TextAlignment alignment) {
         // Vertical center alignment is usually a default and text will be centered vertically.
@@ -3322,8 +3336,8 @@ public final class ProtoLayoutInflater {
      * @return Returns the drawable if it is successfully set to the image view; otherwise returns
      *     null to indicate the failure of setting drawable.
      */
-    private @Nullable Drawable setImageDrawable(ImageView imageView, Drawable drawable,
-            String protoResId) {
+    private @Nullable Drawable setImageDrawable(
+            ImageView imageView, Drawable drawable, String protoResId) {
         if (drawable != null) {
             mInflaterStatsLogger.logDrawableUsage(drawable);
         }
@@ -3362,8 +3376,18 @@ public final class ProtoLayoutInflater {
         try {
             lineView.setUpdatesEnabled(false);
 
-            if (line.hasBrush()) {
-                lineView.setBrush(line.getBrush());
+            if (line.hasBrush() && line.getBrush().hasSweepGradient()) {
+                try {
+                    SweepGradientHelper sweepGradientHelper =
+                            SweepGradientHelper.create(
+                                    line.getBrush().getSweepGradient(),
+                                    posId,
+                                    pipelineMaker,
+                                    lineView::triggerRefresh);
+                    lineView.setSweepGradient(sweepGradientHelper);
+                } catch (IllegalArgumentException e) {
+                    Log.e(TAG, "Invalid SweepGradient definition: " + e.getMessage());
+                }
             } else if (line.hasColor()) {
                 handleProp(line.getColor(), lineView::setColor, posId, pipelineMaker);
             } else {
@@ -3442,8 +3466,8 @@ public final class ProtoLayoutInflater {
                 lineView.setMaxSweepAngleDegrees(sizeForLayout);
             }
             View wrappedView =
-                    applyModifiersToArcLayoutView(lineView, line.getModifiers(), posId,
-                            pipelineMaker);
+                    applyModifiersToArcLayoutView(
+                            lineView, line.getModifiers(), posId, pipelineMaker);
             return addLineViewToParentArc(
                     parentViewWrapper,
                     wrappedView,
@@ -3512,7 +3536,7 @@ public final class ProtoLayoutInflater {
                 angularAlignmentProtoToAngularAlignment(length.getAngularAlignmentForLayout()),
                 /* arcLayoutWeight= */ 0
                 // Zero weight in ArcLayout means the view should not be stretched.
-        );
+                );
     }
 
     private InflatedView addLineViewToParentArc(
@@ -3524,8 +3548,8 @@ public final class ProtoLayoutInflater {
             float arcLayoutWeight) {
         SizedArcContainer sizeWrapper = null;
         SizedArcContainer.LayoutParams sizedLayoutParams =
-                new SizedArcContainer.LayoutParams(LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT);
+                new SizedArcContainer.LayoutParams(
+                        LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         if (sizeForLayout != null) {
             sizeWrapper = new SizedArcContainer(mUiContext);
             sizeWrapper.setArcDirection(arcLineDirection);
@@ -3541,8 +3565,8 @@ public final class ProtoLayoutInflater {
 
         // A WearDashedArcLineView or WearCurvedLineView must always be the same width/height as its
         // parent, so it can draw the line properly inside of those bounds.
-        ArcLayout.LayoutParams layoutParams = new ArcLayout.LayoutParams(
-                generateDefaultLayoutParams());
+        ArcLayout.LayoutParams layoutParams =
+                new ArcLayout.LayoutParams(generateDefaultLayoutParams());
         layoutParams.width = LayoutParams.MATCH_PARENT;
         layoutParams.height = LayoutParams.MATCH_PARENT;
         layoutParams.setWeight(arcLayoutWeight);
@@ -3622,7 +3646,7 @@ public final class ProtoLayoutInflater {
             int index = FIRST_CHILD_INDEX;
             for (ArcLayoutElement child : arc.getContentsList()) {
                 String childPosId = ProtoLayoutDiffer.createNodePosId(arcPosId, index++);
-                                InflatedView childView =
+                InflatedView childView =
                         inflateArcLayoutElement(
                                 new ParentViewWrapper(arcLayout, layoutParams),
                                 child,
@@ -4017,7 +4041,9 @@ public final class ProtoLayoutInflater {
             case DASHED_LINE:
                 inflatedView =
                         inflateDashedArcLine(
-                                parentViewWrapper, element.getDashedLine(), nodePosId,
+                                parentViewWrapper,
+                                element.getDashedLine(),
+                                nodePosId,
                                 pipelineMaker);
                 break;
 
@@ -4525,7 +4551,7 @@ public final class ProtoLayoutInflater {
             Log.w(TAG, "No previous fingerprint available.");
             return null;
         }
-                LayoutDiff diff =
+        LayoutDiff diff =
                 ProtoLayoutDiffer.getDiff(prevRenderedMetadata.getTreeFingerprint(), targetLayout);
         if (diff == null) {
             Log.w(TAG, "getDiff failed");
@@ -4563,7 +4589,7 @@ public final class ProtoLayoutInflater {
                 }
 
                 // The parent node might also have been updated.
-                                ViewProperties possibleUpdatedParentInfo =
+                ViewProperties possibleUpdatedParentInfo =
                         layoutInfoBuilder.getViewPropertiesFor(parentNodePosId);
                 parentInfo =
                         possibleUpdatedParentInfo != null

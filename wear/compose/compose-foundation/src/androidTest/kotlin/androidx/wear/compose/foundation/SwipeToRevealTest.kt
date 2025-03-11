@@ -39,6 +39,7 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import junit.framework.TestCase.assertEquals
+import kotlin.test.assertFalse
 import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
@@ -138,11 +139,48 @@ class SwipeToRevealTest {
         verifyGesture(
             revealValue = RevealValue.LeftRevealed,
             onFullSwipe = { onFullSwipeTriggered = true },
-            swipeDirection = SwipeDirection.Both,
+            revealDirection = RevealDirection.Both,
             gesture = { swipeRight() }
         )
 
         assertEquals(true, onFullSwipeTriggered)
+    }
+
+    @Test
+    fun noSwipe_singleDirectionSwipeOnTheEdgeDisabled_onFullSwipeRight() {
+        var onFullSwipeTriggered = false
+        verifyGesture(
+            revealValue = RevealValue.Covered,
+            onFullSwipe = { onFullSwipeTriggered = true },
+            revealDirection = RevealDirection.Both,
+            gesture = { swipeRight() },
+            edgeSwipeEnabled = false,
+        )
+
+        assertFalse(onFullSwipeTriggered)
+    }
+
+    @Test
+    fun noSwipe_bothDirectionsSwipeOnTheEdgeDisabled_onFullSwipeRight() {
+        var onFullSwipeTriggered = false
+        verifyGesture(
+            revealValue = RevealValue.Covered,
+            onFullSwipe = { onFullSwipeTriggered = true },
+            gesture = { swipeRight() },
+            edgeSwipeEnabled = false,
+        )
+
+        assertFalse(onFullSwipeTriggered)
+    }
+
+    @Test
+    fun stateToSwiped_bothDirectionsSwipeOnTheEdgeDisabled_onPartialSwipeRight() {
+        verifyGesture(
+            revealValue = RevealValue.LeftRevealing,
+            revealDirection = RevealDirection.Both,
+            gesture = { swipeRight(startX = width / 2f, endX = width.toFloat()) },
+            edgeSwipeEnabled = false,
+        )
     }
 
     @Test
@@ -461,16 +499,20 @@ class SwipeToRevealTest {
         revealValue: RevealValue,
         gesture: TouchInjectionScope.() -> Unit,
         onFullSwipe: () -> Unit = {},
-        swipeDirection: SwipeDirection = SwipeDirection.RightToLeft
+        revealDirection: RevealDirection = RevealDirection.RightToLeft,
+        edgeSwipeEnabled: Boolean = true,
     ) {
         lateinit var revealState: RevealState
         rule.setContent {
             revealState =
-                rememberRevealState(anchors = createAnchors(swipeDirection = swipeDirection))
+                rememberRevealState(
+                    anchors = createRevealAnchors(revealDirection = revealDirection)
+                )
             swipeToRevealWithDefaults(
                 state = revealState,
                 onFullSwipe = onFullSwipe,
-                modifier = Modifier.testTag(TEST_TAG)
+                modifier = Modifier.testTag(TEST_TAG),
+                edgeSwipeEnabled = edgeSwipeEnabled,
             )
         }
 
@@ -481,12 +523,13 @@ class SwipeToRevealTest {
 
     @Composable
     private fun swipeToRevealWithDefaults(
-        primaryAction: @Composable RevealScope.() -> Unit = { getAction() },
+        primaryAction: @Composable () -> Unit = { getAction() },
         state: RevealState = rememberRevealState(),
         modifier: Modifier = Modifier,
-        secondaryAction: (@Composable RevealScope.() -> Unit)? = null,
-        undoAction: (@Composable RevealScope.() -> Unit)? = null,
+        secondaryAction: (@Composable () -> Unit)? = null,
+        undoAction: (@Composable () -> Unit)? = null,
         onFullSwipe: () -> Unit = {},
+        edgeSwipeEnabled: Boolean = true,
         content: @Composable () -> Unit = { getBoxContent() }
     ) {
         SwipeToReveal(
@@ -496,6 +539,12 @@ class SwipeToRevealTest {
             secondaryAction = secondaryAction,
             undoAction = undoAction,
             onFullSwipe = onFullSwipe,
+            gestureInclusion =
+                if (edgeSwipeEnabled) {
+                    SwipeToRevealDefaults.bidirectionalGestureInclusion()
+                } else {
+                    SwipeToRevealDefaults.gestureInclusion()
+                },
             content = content
         )
     }

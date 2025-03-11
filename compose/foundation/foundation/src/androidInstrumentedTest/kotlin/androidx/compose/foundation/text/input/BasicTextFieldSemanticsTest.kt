@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsMatcher.Companion.expectValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -67,6 +66,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.intl.Locale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
@@ -100,6 +100,7 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
 
         rule
             .onNodeWithTag(Tag)
+            .assertInputTextEquals("")
             .assertEditableTextEquals("")
             .assertTextEquals("label", includeEditableText = false)
             .assert(isEditable())
@@ -147,9 +148,75 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assert(isNotFocused()).performTextReplacement("Hello")
-        rule.onNodeWithTag(Tag).assert(isFocused()).assertTextEquals("Hello")
+        rule
+            .onNodeWithTag(Tag)
+            .assert(isFocused())
+            .assertTextEquals("Hello")
+            .assertEditableTextEquals("Hello")
+            .assertInputTextEquals("Hello")
 
         assertThat(state.text.toString()).isEqualTo("Hello")
+    }
+
+    @Test
+    fun semantics_setTextAction_inputTransformation() {
+        val state = TextFieldState()
+        rule.setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag(Tag),
+                inputTransformation = InputTransformation.allCaps(Locale.current)
+            )
+        }
+
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
+
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("ABC")
+            .assertInputTextEquals("ABC")
+            .assertEditableTextEquals("ABC")
+    }
+
+    @Test
+    fun semantics_setTextAction_outputTransformation() {
+        val state = TextFieldState()
+        rule.setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag(Tag),
+                outputTransformation = { append(" xyz") }
+            )
+        }
+
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
+
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("abc xyz")
+            .assertInputTextEquals("abc")
+            .assertEditableTextEquals("abc xyz")
+    }
+
+    @Test
+    fun semantics_setTextAction_inputAndOutputTransformation() {
+        val state = TextFieldState()
+        rule.setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag(Tag),
+                inputTransformation = InputTransformation.allCaps(Locale.current),
+                outputTransformation = { append(" XYZ") }
+            )
+        }
+
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
+
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("ABC XYZ")
+            .assertInputTextEquals("ABC")
+            .assertEditableTextEquals("ABC XYZ")
     }
 
     @Test
@@ -310,7 +377,6 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun inputSelection_changesSelectionState() {
         val state = TextFieldState("hello")
@@ -326,7 +392,6 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(2, 3)) }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun inputSelection_changesSelectionState_appliesFilter() {
         val state = TextFieldState("hello", initialSelection = TextRange(5))
@@ -420,7 +485,6 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.PasteText))
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun semantics_paste() {
         val state = TextFieldState("Here World!")
@@ -440,7 +504,6 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun semantics_paste_appliesFilter() {
         val state = TextFieldState("Here World!")
@@ -471,7 +534,6 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun semantics_copy() = runTest {
         val state = TextFieldState("Hello World!")
@@ -728,6 +790,15 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         assert(
             SemanticsMatcher("${SemanticsProperties.EditableText.name} = '$value'") {
                 it.config.getOrNull(SemanticsProperties.EditableText)?.text.equals(value)
+            }
+        )
+
+    private fun SemanticsNodeInteraction.assertInputTextEquals(
+        value: String
+    ): SemanticsNodeInteraction =
+        assert(
+            SemanticsMatcher("${SemanticsProperties.InputText.name} = '$value'") {
+                it.config.getOrNull(SemanticsProperties.InputText)?.text.equals(value)
             }
         )
 }

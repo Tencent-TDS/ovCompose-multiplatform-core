@@ -131,7 +131,6 @@ public fun RadioButton(
         modifier =
             modifier
                 .defaultMinSize(minHeight = MIN_HEIGHT)
-                .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
                 .clip(shape = shape)
                 .background(colors.containerColor(enabled = enabled, selected = selected).value)

@@ -33,7 +33,6 @@ import static java.util.Collections.singleton;
 import android.util.Size;
 
 import androidx.annotation.RestrictTo;
-import androidx.arch.core.util.Function;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
@@ -48,7 +47,6 @@ import androidx.camera.video.internal.DynamicRangeMatchedEncoderProfilesProvider
 import androidx.camera.video.internal.QualityExploredEncoderProfilesProvider;
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy;
 import androidx.camera.video.internal.compat.quirk.DeviceQuirks;
-import androidx.camera.video.internal.encoder.VideoEncoderConfig;
 import androidx.camera.video.internal.encoder.VideoEncoderInfo;
 import androidx.camera.video.internal.workaround.DefaultEncoderProfilesProvider;
 import androidx.camera.video.internal.workaround.QualityAddedEncoderProfilesProvider;
@@ -106,7 +104,7 @@ public final class RecorderVideoCapabilities implements VideoCapabilities {
      */
     RecorderVideoCapabilities(@Recorder.VideoCapabilitiesSource int videoCapabilitiesSource,
             @NonNull CameraInfoInternal cameraInfo,
-            @NonNull Function<VideoEncoderConfig, VideoEncoderInfo> videoEncoderInfoFinder) {
+            VideoEncoderInfo.@NonNull Finder videoEncoderInfoFinder) {
         checkArgument(videoCapabilitiesSource == VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE
                         || videoCapabilitiesSource == VIDEO_CAPABILITIES_SOURCE_CODEC_CAPABILITIES,
                 "Not a supported video capabilities source: " + videoCapabilitiesSource);

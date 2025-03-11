@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory
 import androidx.privacysandbox.ui.client.view.SandboxedSdkUi
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
@@ -44,10 +45,12 @@ class LazyListFragment : BaseFragment() {
     private var adapters by mutableStateOf(listOf<AdAdapterItem>())
 
     override fun handleLoadAdFromDrawer(
+        adFormat: Int,
         adType: Int,
         mediationOption: Int,
         drawViewabilityLayer: Boolean
     ) {
+        currentAdFormat = adFormat
         currentAdType = adType
         currentMediationOption = mediationOption
         shouldDrawViewabilityLayer = drawViewabilityLayer
@@ -98,7 +101,8 @@ class LazyListFragment : BaseFragment() {
                         adapter =
                             SandboxedUiAdapterFactory.createFromCoreLibInfo(
                                 getSdkApi()
-                                    .loadBannerAd(
+                                    .loadAd(
+                                        AdFormat.BANNER_AD,
                                         currentAdType,
                                         currentMediationOption,
                                         false,
@@ -123,7 +127,8 @@ class LazyListFragment : BaseFragment() {
                         adapter =
                             SandboxedUiAdapterFactory.createFromCoreLibInfo(
                                 getSdkApi()
-                                    .loadBannerAd(
+                                    .loadAd(
+                                        AdFormat.BANNER_AD,
                                         currentAdType,
                                         currentMediationOption,
                                         false,

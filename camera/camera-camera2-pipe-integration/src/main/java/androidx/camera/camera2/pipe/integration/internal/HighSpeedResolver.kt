@@ -16,7 +16,6 @@
 
 package androidx.camera.camera2.pipe.integration.internal
 
-import android.graphics.ImageFormat.PRIVATE
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES
 import android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_CONSTRAINED_HIGH_SPEED_VIDEO
@@ -27,8 +26,11 @@ import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.integration.compat.StreamConfigurationMapCompat
 import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCorrector
 import androidx.camera.core.Logger
-import androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
+import androidx.camera.core.impl.AttachedSurfaceInfo
+import androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED
+import androidx.camera.core.impl.UseCaseConfig
 import androidx.camera.core.internal.utils.SizeUtil.getArea
+import androidx.core.util.Preconditions.checkArgument
 
 /** A class responsible for resolving parameters for high-speed session scenario. */
 public class HighSpeedResolver(private val cameraMetadata: CameraMetadata) {
@@ -85,16 +87,11 @@ public class HighSpeedResolver(private val cameraMetadata: CameraMetadata) {
      * This method retrieves the supported high-speed FPS ranges for the given size from the camera
      * characteristics. It then returns the maximum frame rate (upper bound) among those ranges.
      *
-     * @param imageFormat The image format. Only [PRIVATE] is supported for high-speed session.
      * @param size The size for which to find the maximum supported high-speed frame rate.
      * @return The maximum high-speed frame rate supported for the given size, or 0 if no high-speed
-     *   FPS ranges are supported for that size or the image format is not supported.
+     *   FPS ranges are supported for that size.
      */
-    public fun getMaxFrameRate(imageFormat: Int, size: Size): Int {
-        if (imageFormat != SUPPORTED_FORMAT) {
-            return 0
-        }
-
+    public fun getMaxFrameRate(size: Size): Int {
         val supportedFpsRangesForSize =
             getHighSpeedVideoFpsRangesFor(size).takeIf { it.isNotEmpty() }
                 ?: run {
@@ -193,8 +190,45 @@ public class HighSpeedResolver(private val cameraMetadata: CameraMetadata) {
             ?.toList() ?: emptyList()
     }
 
-    private companion object {
+    public companion object {
         private const val TAG = "HighSpeedResolver"
-        private const val SUPPORTED_FORMAT = INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
+
+        /**
+         * Retrieves the target high-speed frame rate from attached surface information and use case
+         * configurations.
+         *
+         * This function ensures that all provided surfaces and configurations have the same target
+         * high-speed frame rate. If any inconsistencies are found, an `IllegalArgumentException` is
+         * thrown.
+         *
+         * @param attachedSurfaces A collection of `AttachedSurfaceInfo` objects.
+         * @param newUseCaseConfigs A collection of `UseCaseConfig` objects representing the use
+         *   cases for which to retrieve the target high-speed frame rate range.
+         * @return The target high-speed frame rate range common to all use cases, or
+         *   `FRAME_RATE_RANGE_UNSPECIFIED` if no frame rate is specified.
+         * @throws IllegalArgumentException if the target high-speed frame rate ranges specified are
+         *   not the same.
+         */
+        @JvmStatic
+        public fun getTargetHighSpeedFrameRate(
+            attachedSurfaces: Collection<AttachedSurfaceInfo>,
+            newUseCaseConfigs: Collection<UseCaseConfig<*>>
+        ): Range<Int> {
+            val frameRates =
+                attachedSurfaces.map { it.targetHighSpeedFrameRate } +
+                    newUseCaseConfigs.map {
+                        it.getTargetHighSpeedFrameRate(FRAME_RATE_RANGE_UNSPECIFIED)!!
+                    }
+
+            if (frameRates.isEmpty()) {
+                return FRAME_RATE_RANGE_UNSPECIFIED
+            }
+
+            val firstRate = frameRates.first()
+            checkArgument(frameRates.all { it == firstRate }) {
+                "targetHighSpeedFrameRate should be the same."
+            }
+            return firstRate
+        }
     }
 }

@@ -60,5 +60,6 @@
     <string name="page_broken" msgid="2968770793669433462">"Siden er ødelagt for PDF-dokumentet"</string>
     <string name="needs_more_data" msgid="3520133467908240802">"Det er utilstrekkelige data for behandling av PDF-dokumentet"</string>
     <string name="error_cannot_open_pdf" msgid="2361919778558145071">"Kan ikke åpne PDF-filen"</string>
+    <string name="cannot_edit_pdf" msgid="7677598370087228978">"Denne PDF-filen kan ikke redigeres"</string>
     <string name="clipboard_label" msgid="8943155331324944981">"Innholdet er kopiert fra en PDF"</string>
 </resources>

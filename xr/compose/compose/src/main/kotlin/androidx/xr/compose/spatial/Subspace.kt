@@ -19,12 +19,14 @@ package androidx.xr.compose.spatial
 import androidx.activity.ComponentActivity
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ComposableOpenTarget
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
+import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,23 +40,27 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
-import androidx.xr.compose.platform.LocalPanelEntity
+import androidx.xr.compose.platform.LocalCoreEntity
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
 import androidx.xr.compose.platform.SpatialComposeScene
+import androidx.xr.compose.platform.disposableValueOf
 import androidx.xr.compose.platform.getActivity
+import androidx.xr.compose.platform.getValue
 import androidx.xr.compose.subspace.SpatialBox
 import androidx.xr.compose.subspace.SpatialBoxScope
 import androidx.xr.compose.subspace.SubspaceComposable
 import androidx.xr.compose.subspace.layout.CoreContentlessEntity
 import androidx.xr.compose.subspace.layout.SubspaceLayout
+import androidx.xr.compose.subspace.node.SubspaceNodeApplier
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.VolumeConstraints
 import androidx.xr.runtime.math.Pose
+import androidx.xr.scenecore.ContentlessEntity
 
 private val LocalIsInApplicationSubspace: ProvidableCompositionLocal<Boolean> =
     compositionLocalWithComputedDefaultOf {
-        LocalPanelEntity.currentValue != null
+        LocalCoreEntity.currentValue != null
     }
 
 /**
@@ -72,17 +78,23 @@ private val LocalIsInApplicationSubspace: ProvidableCompositionLocal<Boolean> =
  * @param content The 3D content to render within this Subspace.
  */
 @Composable
+@ComposableOpenTarget(index = -1)
+@Suppress("COMPOSE_APPLIER_CALL_MISMATCH")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun Subspace(content: @Composable @SubspaceComposable SpatialBoxScope.() -> Unit) {
     val activity = LocalContext.current.getActivity()
 
-    // TODO(b/369446163) Test the case where a NestedSubspace could be created outside of a Panel.
-    if (LocalSpatialCapabilities.current.isSpatialUiEnabled && activity is ComponentActivity) {
-        if (LocalIsInApplicationSubspace.current) {
-            NestedSubspace(activity, content = content)
-        } else {
-            ApplicationSubspace(activity, content = content)
-        }
+    // If spatial UI capabilities are not enabled, do nothing
+    if (!LocalSpatialCapabilities.current.isSpatialUiEnabled || activity !is ComponentActivity)
+        return
+
+    if (currentComposer.applier is SubspaceNodeApplier) {
+        // We are already in a Subspace, so we can just render the content directly
+        SpatialBox(content = content)
+    } else if (LocalIsInApplicationSubspace.current) {
+        NestedSubspace(activity, content)
+    } else {
+        ApplicationSubspace(activity, content)
     }
 }
 
@@ -100,12 +112,16 @@ private fun ApplicationSubspace(
 ) {
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
     val compositionContext = rememberCompositionContext()
-    val scene = remember {
-        SpatialComposeScene(
-            ownerActivity = activity,
-            jxrSession = session,
-            parentCompositionContext = compositionContext,
-        )
+    val scene by remember {
+        disposableValueOf(
+            SpatialComposeScene(
+                ownerActivity = activity,
+                jxrSession = session,
+                parentCompositionContext = compositionContext,
+            )
+        ) {
+            it.dispose()
+        }
     }
 
     DisposableEffect(session) {
@@ -120,8 +136,6 @@ private fun ApplicationSubspace(
             }
         }
     }
-
-    DisposableEffect(scene) { onDispose { scene.dispose() } }
 }
 
 @Composable
@@ -131,23 +145,36 @@ private fun NestedSubspace(
 ) {
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
     val compositionContext = rememberCompositionContext()
-    val panelEntity = LocalPanelEntity.current
+    val coreEntity = checkNotNull(LocalCoreEntity.current) { "CoreEntity unavailable for subspace" }
     // The subspace root node will be owned and manipulated by the containing composition, we need a
     // container that we can manipulate at the Subspace level in order to position the entire
     // subspace
     // properly.
-    val subspaceRootContainer = remember {
-        session.createEntity("SubspaceRootContainer").apply { setParent(panelEntity) }
+    val subspaceRootContainer by remember {
+        disposableValueOf(
+            ContentlessEntity.create(session, "SubspaceRootContainer").apply {
+                setParent(coreEntity.entity)
+            }
+        ) {
+            it.dispose()
+        }
     }
-    val scene = remember {
+    val scene by remember {
         val subspaceRoot =
-            session.createEntity("SubspaceRoot").apply { setParent(subspaceRootContainer) }
-        SpatialComposeScene(
-            ownerActivity = activity,
-            jxrSession = session,
-            parentCompositionContext = compositionContext,
-            rootEntity = CoreContentlessEntity(subspaceRoot),
-        )
+            ContentlessEntity.create(session, "SubspaceRoot").apply {
+                setParent(subspaceRootContainer)
+            }
+        disposableValueOf(
+            SpatialComposeScene(
+                ownerActivity = activity,
+                jxrSession = session,
+                parentCompositionContext = compositionContext,
+                rootEntity = CoreContentlessEntity(subspaceRoot),
+            )
+        ) {
+            it.dispose()
+            subspaceRoot.dispose()
+        }
     }
     var measuredSize by remember { mutableStateOf(IntVolumeSize.Zero) }
     var contentOffset by remember { mutableStateOf(Offset.Zero) }
@@ -159,7 +186,6 @@ private fun NestedSubspace(
         )
 
     LaunchedEffect(pose) { subspaceRootContainer.setPose(pose) }
-    DisposableEffect(Unit) { onDispose { scene.dispose() } }
 
     Layout(modifier = Modifier.onGloballyPositioned { contentOffset = it.positionInRoot() }) {
         _,

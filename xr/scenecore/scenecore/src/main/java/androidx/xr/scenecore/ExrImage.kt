@@ -31,12 +31,23 @@ import androidx.xr.scenecore.JxrPlatformAdapter.ExrImageResource as RtExrImage
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ExrImage internal constructor(public val image: RtExrImage) : Image {
 
-    internal companion object {
+    public companion object {
         internal fun create(runtime: JxrPlatformAdapter, name: String): ExrImage {
             val exrImageFuture = runtime.loadExrImageByAssetName(name)
             // TODO: b/323022003 - Implement async loading of [ExrImage].
             return ExrImage(exrImageFuture!!.get())
         }
+
+        /**
+         * Public factory function for an EXRImage, where the EXR is loaded from a local file.
+         *
+         * @param session The session to create the EXRImage in.
+         * @param name The path for an EXR image to be loaded
+         * @return an EXRImage instance.
+         */
+        @JvmStatic
+        public fun create(session: Session, name: String): ExrImage =
+            ExrImage.create(session.platformAdapter, name)
     }
 
     override fun equals(other: Any?): Boolean {

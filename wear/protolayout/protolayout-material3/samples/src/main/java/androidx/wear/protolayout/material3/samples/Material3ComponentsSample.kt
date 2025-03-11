@@ -66,7 +66,7 @@ import androidx.wear.protolayout.material3.textDataCard
 import androidx.wear.protolayout.material3.textEdgeButton
 import androidx.wear.protolayout.material3.titleCard
 import androidx.wear.protolayout.modifiers.LayoutModifier
-import androidx.wear.protolayout.modifiers.backgroundColor
+import androidx.wear.protolayout.modifiers.background
 import androidx.wear.protolayout.modifiers.clickable
 import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.types.LayoutString
@@ -341,7 +341,7 @@ fun customButtonSample(
                     onClick = clickable,
                     modifier =
                         LayoutModifier.contentDescription("Big button with image background")
-                            .backgroundColor(colorScheme.primary),
+                            .background(colorScheme.primary),
                     width = expand(),
                     height = expand(),
                     labelContent = {

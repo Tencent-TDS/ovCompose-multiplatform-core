@@ -25,8 +25,7 @@ import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
 import androidx.wear.protolayout.material3.CompactButtonStyle.COMPACT_BUTTON_HEIGHT_DP
 import androidx.wear.protolayout.modifiers.LayoutModifier
-import androidx.wear.protolayout.modifiers.backgroundColor
-import androidx.wear.protolayout.modifiers.clickable
+import androidx.wear.protolayout.modifiers.background
 import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.testing.LayoutElementAssertionsProvider
 import androidx.wear.protolayout.testing.hasClickable
@@ -39,6 +38,7 @@ import androidx.wear.protolayout.testing.hasText
 import androidx.wear.protolayout.testing.hasWidth
 import androidx.wear.protolayout.types.argb
 import androidx.wear.protolayout.types.layoutString
+import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.internal.DoNotInstrument
@@ -219,6 +219,32 @@ class ButtonTest {
             }
 
         LayoutElementAssertionsProvider(button).onElement(hasImage(IMAGE_ID)).assertExists()
+        // Doesn't have the overlay
+        LayoutElementAssertionsProvider(button)
+            .onElement(hasColor(Color.BLACK.argb.withOpacity(ratio = 0.6f).staticArgb))
+            .assertDoesNotExist()
+        LayoutElementAssertionsProvider(button)
+            .onRoot()
+            .assert(hasTag(ButtonDefaults.METADATA_TAG_BUTTON))
+    }
+
+    @Test
+    fun imageButton_hasBackgroundImage_andCustomOverlay() {
+        val color = Color.YELLOW
+        val button =
+            materialScope(CONTEXT, DEVICE_CONFIGURATION) {
+                imageButton(
+                    onClick = CLICKABLE,
+                    modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION),
+                    backgroundContent = {
+                        backgroundImage(protoLayoutResourceId = IMAGE_ID, overlayColor = color.argb)
+                    }
+                )
+            }
+
+        LayoutElementAssertionsProvider(button).onElement(hasImage(IMAGE_ID)).assertExists()
+        // Has the overlay
+        LayoutElementAssertionsProvider(button).onElement(hasColor(color)).assertExists()
         LayoutElementAssertionsProvider(button)
             .onRoot()
             .assert(hasTag(ButtonDefaults.METADATA_TAG_BUTTON))
@@ -233,7 +259,7 @@ class ButtonTest {
                     onClick = CLICKABLE,
                     modifier =
                         LayoutModifier.contentDescription(CONTENT_DESCRIPTION)
-                            .backgroundColor(color.argb),
+                            .background(color.argb),
                     content = { text(TEXT.layoutString) }
                 )
             }
@@ -242,6 +268,22 @@ class ButtonTest {
         LayoutElementAssertionsProvider(button)
             .onRoot()
             .assert(hasTag(ButtonDefaults.METADATA_TAG_BUTTON))
+    }
+
+    @Test
+    fun buttonColors_copy() {
+        val color = Color.YELLOW
+        val originButtonColors = ButtonColors()
+
+        val buttonColors = originButtonColors.copy(secondaryLabelColor = color.argb)
+
+        assertThat(buttonColors.containerColor.staticArgb)
+            .isEqualTo(originButtonColors.containerColor.staticArgb)
+        assertThat(buttonColors.labelColor.staticArgb)
+            .isEqualTo(originButtonColors.labelColor.staticArgb)
+        assertThat(buttonColors.secondaryLabelColor.staticArgb).isEqualTo(color)
+        assertThat(buttonColors.iconColor.staticArgb)
+            .isEqualTo(originButtonColors.iconColor.staticArgb)
     }
 
     // TODO: b/381518061 - Add test for corner shape.
@@ -275,8 +317,6 @@ class ButtonTest {
                 .setScreenWidthDp(192)
                 .setScreenHeightDp(192)
                 .build()
-
-        private val CLICKABLE = clickable(id = "id")
 
         private const val CONTENT_DESCRIPTION = "This is a button"
 

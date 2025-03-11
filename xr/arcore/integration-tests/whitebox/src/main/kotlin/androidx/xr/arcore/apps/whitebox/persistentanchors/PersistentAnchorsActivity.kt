@@ -19,6 +19,7 @@ package androidx.xr.arcore.apps.whitebox.persistentanchors
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -31,8 +32,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
@@ -48,14 +47,17 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.xr.arcore.Anchor
+import androidx.xr.arcore.AnchorCreateResourcesExhausted
 import androidx.xr.arcore.AnchorCreateSuccess
 import androidx.xr.arcore.apps.whitebox.common.BackToMainActivityButton
 import androidx.xr.arcore.apps.whitebox.common.SessionLifecycleHelper
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
+import androidx.xr.scenecore.AnchorEntity
 import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.Entity
+import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.Session as JxrCoreSession
 import java.util.UUID
 import kotlin.collections.List
@@ -71,8 +73,9 @@ class PersistentAnchorsActivity : ComponentActivity() {
     private lateinit var sessionHelper: SessionLifecycleHelper
     private lateinit var jxrCoreSession: JxrCoreSession
     private lateinit var movableEntity: Entity
-    private val movableEntityOffset = Pose(Vector3(0f, 0f, -2.0f))
+    private val movableEntityOffset = Pose(Vector3(0f, 1f, -2.0f))
     private val uuids = MutableStateFlow<List<UUID>>(emptyList())
+    private var anchorOffset = MutableStateFlow<Float>(0f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,7 +98,8 @@ class PersistentAnchorsActivity : ComponentActivity() {
         composeView.setContent { TargetPanel() }
         configureComposeView(composeView, this)
         movableEntity =
-            jxrCoreSession.createPanelEntity(
+            PanelEntity.create(
+                jxrCoreSession,
                 composeView,
                 Dimensions(640f, 640f),
                 Dimensions(1f, 1f, 1f),
@@ -170,21 +174,34 @@ class PersistentAnchorsActivity : ComponentActivity() {
     }
 
     private fun addAnchor() {
+        // We need to use a small offset to avoid overlapping with
+        // the target panel and future anchors.
+        anchorOffset.value += 0.25f
         val anchorPose =
             jxrCoreSession.activitySpace.transformPoseTo(
-                movableEntity.getPose(),
+                movableEntity.getPose().translate(Vector3(anchorOffset.value, 0f, 0f)),
                 jxrCoreSession.perceptionSpace,
             )
-        val anchor = (Anchor.create(session, anchorPose) as AnchorCreateSuccess).anchor
-        createAnchorPanel(anchor)
+        try {
+            when (val anchorResult = Anchor.create(session, anchorPose)) {
+                is AnchorCreateSuccess -> createAnchorPanel(anchorResult.anchor)
+                is AnchorCreateResourcesExhausted -> {
+                    Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
+                    Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: IllegalStateException) {
+            Log.e(ACTIVITY_NAME, "Failed to create anchor: ${e.message}")
+        }
     }
 
     private fun createAnchorPanel(anchor: Anchor) {
         val composeView = ComposeView(this)
         configureComposeView(composeView, this)
-        val anchorEntity = jxrCoreSession.createAnchorEntity(anchor)
+        val anchorEntity = AnchorEntity.create(jxrCoreSession, anchor)
         val panelEntity =
-            jxrCoreSession.createPanelEntity(
+            PanelEntity.create(
+                jxrCoreSession,
                 composeView,
                 Dimensions(640f, 640f),
                 Dimensions(1f, 1f, 1f),
@@ -245,11 +262,26 @@ class PersistentAnchorsActivity : ComponentActivity() {
     }
 
     private fun loadAnchor(uuid: UUID) {
-        val anchor = (Anchor.load(session, uuid) as AnchorCreateSuccess).anchor
-        lifecycleScope.launch {
-            // We need to wait until the anchor is tracked before querying its pose.
-            delay(1.seconds)
-            createAnchorPanel(anchor)
+        try {
+            when (val anchorResult = Anchor.load(session, uuid)) {
+                is AnchorCreateSuccess -> {
+                    lifecycleScope.launch {
+                        // We need to wait until the anchor is tracked before querying its pose.
+                        delay(1.seconds)
+                        createAnchorPanel(anchorResult.anchor)
+                    }
+                }
+                is AnchorCreateResourcesExhausted -> {
+                    Log.e(ACTIVITY_NAME, "Failed to create anchor: anchor resources exhausted.")
+                    Toast.makeText(this, "Anchor limit has been reached.", Toast.LENGTH_LONG).show()
+                }
+            }
+        } catch (e: IllegalStateException) {
+            Log.e(ACTIVITY_NAME, "Failed to create anchor: ${e.message}")
         }
+    }
+
+    companion object {
+        const val ACTIVITY_NAME = "PersistentAnchorsActivity"
     }
 }

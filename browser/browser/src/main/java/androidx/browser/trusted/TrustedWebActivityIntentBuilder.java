@@ -77,6 +77,15 @@ public class TrustedWebActivityIntentBuilder {
     public static final String EXTRA_SCREEN_ORIENTATION =
             "androidx.browser.trusted.extra.SCREEN_ORIENTATION";
 
+    /**
+     * If the TWA is being launched using a Protocol Handler, the original URL (with the custom
+     * scheme) is provided here, set using {@link #setOriginalLaunchUrl(Uri)}.
+     *
+     * @see TrustedWebActivityIntent#getOriginalLaunchUrl()
+     */
+    public static final String EXTRA_ORIGINAL_LAUNCH_URL =
+            "androidx.browser.trusted.extra.ORIGINAL_LAUNCH_URL";
+
     private final @NonNull Uri mUri;
     private final CustomTabsIntent.@NonNull Builder mIntentBuilder = new CustomTabsIntent.Builder();
 
@@ -85,6 +94,8 @@ public class TrustedWebActivityIntentBuilder {
 
     private @Nullable ShareData mShareData;
     private @Nullable ShareTarget mShareTarget;
+
+    private @Nullable Uri mOriginalLaunchUrl;
 
     private @NonNull TrustedWebActivityDisplayMode mDisplayMode =
             new TrustedWebActivityDisplayMode.DefaultMode();
@@ -261,6 +272,23 @@ public class TrustedWebActivityIntentBuilder {
     }
 
     /**
+     * Sets the original launch URL. This is used by Protocol Handlers to let the browser see
+     * the URL that was opened before being processed an modified (the original URL will usually
+     * have a custom data scheme and no host, as opposed to the full http/https location in the
+     * Intent data).
+     *
+     * @see TrustedWebActivityIntent#getOriginalLaunchUrl()
+     *
+     * @param originalLaunchUrl The URL that was originally opened, before being processed and
+     *                          modified by a Protocol Handler.
+     */
+    public @NonNull TrustedWebActivityIntentBuilder setOriginalLaunchUrl(
+            @NonNull Uri originalLaunchUrl) {
+        mOriginalLaunchUrl = originalLaunchUrl;
+        return this;
+    }
+
+    /**
      * Builds an instance of {@link TrustedWebActivityIntent}.
      *
      * @param session The {@link CustomTabsSession} to use for launching a Trusted Web Activity.
@@ -292,6 +320,9 @@ public class TrustedWebActivityIntentBuilder {
         }
         intent.putExtra(EXTRA_DISPLAY_MODE, mDisplayMode.toBundle());
         intent.putExtra(EXTRA_SCREEN_ORIENTATION, mScreenOrientation);
+        if (mOriginalLaunchUrl != null) {
+            intent.putExtra(EXTRA_ORIGINAL_LAUNCH_URL, mOriginalLaunchUrl);
+        }
         return new TrustedWebActivityIntent(intent, sharedUris);
     }
 

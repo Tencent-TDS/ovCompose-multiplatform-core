@@ -70,12 +70,12 @@ object Arguments {
 
     val enableCompilation: Boolean
     val killProcessDelayMillis: Long
-    val enableStartupProfiles: Boolean
     val dryRunMode: Boolean
     val dropShadersEnable: Boolean
     val dropShadersThrowOnFailure: Boolean
     val skipBenchmarksOnEmulator: Boolean
     val saveProfileWaitMillis: Long
+    val killExistingPerfettoRecordings: Boolean
 
     // internal properties are microbenchmark only
     internal val outputEnable: Boolean
@@ -325,9 +325,6 @@ object Arguments {
         saveProfileWaitMillis =
             arguments.getBenchmarkArgument("saveProfileWaitMillis")?.toLong() ?: 1_000L
 
-        enableStartupProfiles =
-            arguments.getBenchmarkArgument("startupProfiles.enable")?.toBoolean() ?: true
-
         dropShadersEnable =
             arguments.getBenchmarkArgument("dropShaders.enable")?.toBoolean() ?: true
         dropShadersThrowOnFailure =
@@ -344,6 +341,9 @@ object Arguments {
 
         throwOnMainThreadMeasureRepeated =
             arguments.getBenchmarkArgument("throwOnMainThreadMeasureRepeated")?.toBoolean() ?: false
+
+        killExistingPerfettoRecordings =
+            arguments.getString("killExistingPerfettoRecordings")?.toBoolean() ?: true
 
         if (arguments.getString("orchestratorService") != null) {
             InstrumentationResults.scheduleIdeWarningOnNextReport(

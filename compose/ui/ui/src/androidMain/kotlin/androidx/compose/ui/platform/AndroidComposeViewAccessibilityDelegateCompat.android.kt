@@ -58,7 +58,6 @@ import androidx.compose.ui.contentcapture.ContentCaptureManager
 import androidx.compose.ui.focus.FocusDirection.Companion.Exit
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.toComposeRect
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.positionInRoot
@@ -84,9 +83,13 @@ import androidx.compose.ui.semantics.SemanticsActions.PageRight
 import androidx.compose.ui.semantics.SemanticsActions.PageUp
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsNodeWithAdjustedBounds
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertiesAndroid
+import androidx.compose.ui.semantics.getAllUncoveredSemanticsNodesToIntObjectMap
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.isHidden
+import androidx.compose.ui.semantics.isImportantForAccessibility
 import androidx.compose.ui.semantics.subtreeSortedByGeometryGrouping
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.AnnotatedString
@@ -95,6 +98,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.platform.URLSpanCache
 import androidx.compose.ui.text.platform.toAccessibilitySpannableString
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toRect
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastForEach
@@ -314,7 +318,10 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
         get() {
             if (currentSemanticsNodesInvalidated) { // first instance of retrieving all nodes
                 currentSemanticsNodesInvalidated = false
-                field = view.semanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap()
+                field =
+                    view.semanticsOwner.getAllUncoveredSemanticsNodesToIntObjectMap(
+                        customRootNodeId = AccessibilityNodeProviderCompat.HOST_VIEW_ID
+                    )
                 if (isEnabled) {
                     setTraversalValues(field, idToBeforeMap, idToAfterMap, view.context.resources)
                 }
@@ -406,7 +413,7 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             // avoid overlapping siblings. Because position is a float (touch event can happen in-
             // between pixels), convert the int-based Android Rect to a float-based Compose Rect
             // before doing the comparison.
-            if (!node.adjustedBounds.toComposeRect().contains(position)) {
+            if (!node.adjustedBounds.toRect().contains(position)) {
                 return@forEachValue
             }
 
@@ -445,11 +452,12 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             view.viewTreeOwners?.lifecycleOwner?.lifecycle?.currentState ==
                 Lifecycle.State.DESTROYED
         ) {
-            return null
+            return emptyNodeInfoOrNull()
         }
-        val info: AccessibilityNodeInfoCompat = AccessibilityNodeInfoCompat.obtain()
-        val semanticsNodeWithAdjustedBounds = currentSemanticsNodes[virtualViewId] ?: return null
+        val semanticsNodeWithAdjustedBounds =
+            currentSemanticsNodes[virtualViewId] ?: return emptyNodeInfoOrNull()
         val semanticsNode: SemanticsNode = semanticsNodeWithAdjustedBounds.semanticsNode
+        val info: AccessibilityNodeInfoCompat = AccessibilityNodeInfoCompat.obtain()
         if (virtualViewId == AccessibilityNodeProviderCompat.HOST_VIEW_ID) {
             info.setParent(view.getParentForAccessibility() as? View)
         } else {
@@ -471,18 +479,37 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
         return info
     }
 
+    /**
+     * There are cases when [createNodeInfo] is called when the view is already destroyed or if the
+     * semantics node is removed from composition. In this case we return null.
+     *
+     * But looks like this is causing crash in Assistant. This happens because 1) Assistant falls
+     * back to using ANIs until we implement b/393515913 and 2) there's no null check in platform's
+     * code until API 35. As a workaround we will return non-null empty ANI for such use cases to
+     * avoid the crash.
+     *
+     * This change should be reverted when b/393515913 is fixed.
+     */
+    private fun emptyNodeInfoOrNull(): AccessibilityNodeInfoCompat? {
+        // Accessibility Manager is not enabled if this code is used by Assistant
+        return if (!accessibilityManager.isEnabled) {
+            AccessibilityNodeInfoCompat.obtain()
+        } else null
+    }
+
     private fun boundsInScreen(node: SemanticsNodeWithAdjustedBounds): android.graphics.Rect {
         val boundsInRoot = node.adjustedBounds
         val topLeftInScreen =
             view.localToScreen(Offset(boundsInRoot.left.toFloat(), boundsInRoot.top.toFloat()))
         val bottomRightInScreen =
             view.localToScreen(Offset(boundsInRoot.right.toFloat(), boundsInRoot.bottom.toFloat()))
-
+        // Due to rotation, the top left corner of the local bounds may not be the top left corner
+        // of the screen bounds.
         return android.graphics.Rect(
-            floor(topLeftInScreen.x).toInt(),
-            floor(topLeftInScreen.y).toInt(),
-            ceil(bottomRightInScreen.x).toInt(),
-            ceil(bottomRightInScreen.y).toInt()
+            floor(min(topLeftInScreen.x, bottomRightInScreen.x)).toInt(),
+            floor(min(topLeftInScreen.y, bottomRightInScreen.y)).toInt(),
+            ceil(max(topLeftInScreen.x, bottomRightInScreen.x)).toInt(),
+            ceil(max(topLeftInScreen.y, bottomRightInScreen.y)).toInt()
         )
     }
 
@@ -1646,11 +1673,13 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
             val topLeftInScreen = view.localToScreen(Offset(visibleBounds.left, visibleBounds.top))
             val bottomRightInScreen =
                 view.localToScreen(Offset(visibleBounds.right, visibleBounds.bottom))
+            // Due to rotation, the top left corner of the local bounds may not be the top left
+            // corner of the screen bounds.
             RectF(
-                topLeftInScreen.x,
-                topLeftInScreen.y,
-                bottomRightInScreen.x,
-                bottomRightInScreen.y
+                min(topLeftInScreen.x, bottomRightInScreen.x),
+                min(topLeftInScreen.y, bottomRightInScreen.y),
+                max(topLeftInScreen.x, bottomRightInScreen.x),
+                max(topLeftInScreen.y, bottomRightInScreen.y)
             )
         } else {
             null

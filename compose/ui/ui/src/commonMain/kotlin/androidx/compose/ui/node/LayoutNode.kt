@@ -19,6 +19,8 @@ import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.CompositionLocalMap
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
+import androidx.compose.runtime.tooling.CompositionErrorContext
+import androidx.compose.runtime.tooling.LocalCompositionErrorContext
 import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
@@ -123,7 +125,7 @@ internal class LayoutNode(
                     // This can happen when lookaheadScope is removed in one of the parents, or
                     // more likely when movableContent moves from a parent in a LookaheadScope to
                     // a parent not in a LookaheadScope.
-                    layoutDelegate.clearLookaheadDelegate()
+                    layoutDelegate.onRemovedFromLookaheadScope()
                 }
                 invalidateMeasurements()
             }
@@ -789,6 +791,12 @@ internal class LayoutNode(
             }
         }
 
+    private val traceContext: CompositionErrorContext?
+        get() = compositionLocalMap[LocalCompositionErrorContext]
+
+    fun rethrowWithComposeStackTrace(e: Throwable): Nothing =
+        throw e.also { traceContext?.apply { e.attachComposeStackTrace(this@LayoutNode) } }
+
     private fun onDensityOrLayoutDirectionChanged() {
         // TODO(b/242120396): it seems like we need to update some densities in the node
         // coordinators here
@@ -946,11 +954,19 @@ internal class LayoutNode(
         }
 
     private fun applyModifier(modifier: Modifier) {
+        val hadPointerInput = nodes.has(Nodes.PointerInput)
+        val hadFocusTarget = nodes.has(Nodes.FocusTarget)
         _modifier = modifier
         nodes.updateFrom(modifier)
+        val hasPointerInput = nodes.has(Nodes.PointerInput)
+        val hasFocusTarget = nodes.has(Nodes.FocusTarget)
         layoutDelegate.updateParentData()
         if (lookaheadRoot == null && nodes.has(Nodes.ApproachMeasure)) {
             lookaheadRoot = this
+        }
+
+        if (hadPointerInput != hasPointerInput || hadFocusTarget != hasFocusTarget) {
+            requireOwner().rectManager.updateFlagsFor(this, hasFocusTarget, hasPointerInput)
         }
     }
 
@@ -1011,7 +1027,7 @@ internal class LayoutNode(
     }
 
     internal fun draw(canvas: Canvas, graphicsLayer: GraphicsLayer?) =
-        outerCoordinator.draw(canvas, graphicsLayer)
+        withComposeStackTrace(this) { outerCoordinator.draw(canvas, graphicsLayer) }
 
     /**
      * Carries out a hit test on the [PointerInputModifier]s associated with this [LayoutNode] and
@@ -1109,7 +1125,7 @@ internal class LayoutNode(
         invalidateIntrinsics: Boolean = true
     ) {
         checkPrecondition(lookaheadRoot != null) {
-            "Lookahead measure cannot be requested on a node that is not a part of the" +
+            "Lookahead measure cannot be requested on a node that is not a part of the " +
                 "LookaheadScope"
         }
         val owner = owner ?: return
@@ -1131,6 +1147,12 @@ internal class LayoutNode(
      * measurement need to be re-done. Such events include modifier change, attach/detach, etc.
      */
     internal fun invalidateMeasurements() {
+        if (isVirtual) {
+            // If the node is virtual, we need to invalidate the parent node (as it is non-virtual)
+            // instead so that children get properly invalidated.
+            parent?.invalidateMeasurements()
+            return
+        }
         outerToInnerOffsetDirty = true
         if (lookaheadRoot != null) {
             requestLookaheadRemeasure()
@@ -1497,6 +1519,13 @@ internal class LayoutNode(
         NotUsed,
     }
 }
+
+internal inline fun <T> withComposeStackTrace(layoutNode: LayoutNode, block: () -> T): T =
+    try {
+        block()
+    } catch (e: Throwable) {
+        layoutNode.rethrowWithComposeStackTrace(e)
+    }
 
 /** Returns [LayoutNode.owner] or throws if it is null. */
 internal fun LayoutNode.requireOwner(): Owner {

@@ -28,6 +28,7 @@ import android.util.Size
 import android.util.SparseArray
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
+import androidx.annotation.WorkerThread
 import androidx.pdf.PdfDocument.BitmapSource
 import androidx.pdf.PdfDocument.PdfPageContent
 import androidx.pdf.content.PageMatchBounds
@@ -37,7 +38,9 @@ import androidx.pdf.service.connect.PdfServiceConnection
 import androidx.pdf.utils.toAndroidClass
 import androidx.pdf.utils.toContentClass
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
@@ -73,10 +76,17 @@ public class SandboxedPdfDocument(
     override val formType: Int
 ) : PdfDocument {
 
+    /** The [CoroutineScope] we use to close [BitmapSource]s asynchronously */
+    private val closeScope = CoroutineScope(dispatcher + SupervisorJob())
+
     override suspend fun getPageInfo(pageNumber: Int): PdfDocument.PageInfo {
         return withDocument { document ->
             document.getPageDimensions(pageNumber).let { dimensions ->
-                PdfDocument.PageInfo(pageNumber, dimensions.height, dimensions.width)
+                if (dimensions.height <= 0 || dimensions.width <= 0) {
+                    PdfDocument.PageInfo(pageNumber, DEFAULT_PAGE, DEFAULT_PAGE)
+                } else {
+                    PdfDocument.PageInfo(pageNumber, dimensions.height, dimensions.width)
+                }
             }
         }
     }
@@ -137,6 +147,7 @@ public class SandboxedPdfDocument(
 
     override fun getPageBitmapSource(pageNumber: Int): BitmapSource = PageBitmapSource(pageNumber)
 
+    @WorkerThread
     override fun close() {
         connection.disconnect()
 
@@ -182,8 +193,15 @@ public class SandboxedPdfDocument(
             }
         }
 
+        @WorkerThread
         override fun close() {
-            runBlocking { withDocument { it.releasePage(pageNumber) } }
+            if (connection.isConnected) {
+                // We can't block the main thread with this IPC
+                closeScope.launch { withDocument { it.releasePage(pageNumber) } }
+            }
+
+            // TODO(b/397324529): Enqueue releasePage requests and execute when connection is
+            //  re-established
         }
     }
 
@@ -203,6 +221,8 @@ public class SandboxedPdfDocument(
     }
 
     private companion object {
+        private const val DEFAULT_PAGE = 400
+
         /**
          * Converts a list of items into a SparseArray, using the item's index as the key.
          *

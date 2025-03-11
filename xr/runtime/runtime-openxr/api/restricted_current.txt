@@ -9,8 +9,8 @@ package androidx.xr.runtime.openxr {
     method public androidx.xr.runtime.openxr.AnchorState copy(androidx.xr.runtime.internal.TrackingState trackingState, androidx.xr.runtime.math.Pose? pose);
     method public androidx.xr.runtime.math.Pose? getPose();
     method public androidx.xr.runtime.internal.TrackingState getTrackingState();
-    property public final androidx.xr.runtime.math.Pose? pose;
-    property public final androidx.xr.runtime.internal.TrackingState trackingState;
+    property public androidx.xr.runtime.math.Pose? pose;
+    property public androidx.xr.runtime.internal.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface ExportableAnchor extends androidx.xr.runtime.internal.Anchor {
@@ -20,6 +20,11 @@ package androidx.xr.runtime.openxr {
     property public abstract long nativePointer;
   }
 
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HandState {
+    ctor public HandState();
+    ctor public HandState(optional boolean isActive, optional java.util.List<androidx.xr.runtime.math.Pose> handJoints);
+  }
+
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HitData {
     ctor public HitData(androidx.xr.runtime.math.Pose pose, long id);
     method public androidx.xr.runtime.math.Pose component1();
@@ -27,8 +32,8 @@ package androidx.xr.runtime.openxr {
     method public androidx.xr.runtime.openxr.HitData copy(androidx.xr.runtime.math.Pose pose, long id);
     method public long getId();
     method public androidx.xr.runtime.math.Pose getPose();
-    property public final long id;
-    property public final androidx.xr.runtime.math.Pose pose;
+    property public long id;
+    property public androidx.xr.runtime.math.Pose pose;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrAnchor implements androidx.xr.runtime.openxr.ExportableAnchor {
@@ -49,6 +54,14 @@ package androidx.xr.runtime.openxr {
     property public java.util.UUID? uuid;
   }
 
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrHand implements androidx.xr.runtime.internal.Hand {
+    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
+    method public boolean isActive();
+    method public void update(long xrTime);
+    property public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
+    property public boolean isActive;
+  }
+
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrManager implements androidx.xr.runtime.internal.LifecycleManager {
     method public void configure();
     method public void create();
@@ -60,13 +73,17 @@ package androidx.xr.runtime.openxr {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrPerceptionManager implements androidx.xr.runtime.internal.PerceptionManager {
     method public androidx.xr.runtime.internal.Anchor createAnchor(androidx.xr.runtime.math.Pose pose);
+    method public androidx.xr.runtime.internal.Hand getLeftHand();
     method public java.util.List<java.util.UUID> getPersistedAnchorUuids();
+    method public androidx.xr.runtime.internal.Hand getRightHand();
     method public java.util.Collection<androidx.xr.runtime.internal.Trackable> getTrackables();
     method public java.util.List<androidx.xr.runtime.internal.HitResult> hitTest(androidx.xr.runtime.math.Ray ray);
     method public androidx.xr.runtime.internal.Anchor loadAnchor(java.util.UUID uuid);
     method public androidx.xr.runtime.internal.Anchor loadAnchorFromNativePointer(long nativePointer);
     method public void unpersistAnchor(java.util.UUID uuid);
     method public void update(long xrTime);
+    property public androidx.xr.runtime.internal.Hand leftHand;
+    property public androidx.xr.runtime.internal.Hand rightHand;
     property public java.util.Collection<androidx.xr.runtime.internal.Trackable> trackables;
   }
 

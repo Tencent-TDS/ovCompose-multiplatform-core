@@ -18,6 +18,7 @@ package androidx.health.connect.client.records
 
 import androidx.health.connect.client.records.MindfulnessSessionRecord.Companion.MINDFULNESS_SESSION_TYPE_INT_TO_STRING_MAP
 import androidx.health.connect.client.records.MindfulnessSessionRecord.Companion.MINDFULNESS_SESSION_TYPE_STRING_TO_INT_MAP
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
@@ -39,6 +40,7 @@ class MindfulnessSessionRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     title = "title",
                     notes = "note",
                     mindfulnessSessionType =
@@ -49,6 +51,7 @@ class MindfulnessSessionRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     title = "title",
                     notes = "note",
                     mindfulnessSessionType =
@@ -61,6 +64,7 @@ class MindfulnessSessionRecordTest {
                     startZoneOffset = null,
                     endTime = Instant.ofEpochMilli(1236L),
                     endZoneOffset = null,
+                    metadata = Metadata.manualEntry(),
                     title = "different title",
                     notes = "different note",
                     mindfulnessSessionType =
@@ -78,6 +82,7 @@ class MindfulnessSessionRecordTest {
                 startZoneOffset = null,
                 endTime = Instant.ofEpochMilli(1234L),
                 endZoneOffset = null,
+                metadata = Metadata.manualEntry(),
                 title = "title",
                 notes = "note",
                 mindfulnessSessionType =
@@ -94,6 +99,7 @@ class MindfulnessSessionRecordTest {
                         startZoneOffset = null,
                         endTime = Instant.ofEpochMilli(1236L),
                         endZoneOffset = null,
+                        metadata = Metadata.unknownRecordingMethod(),
                         title = "title",
                         notes = "note",
                         mindfulnessSessionType =

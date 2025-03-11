@@ -64,11 +64,7 @@ public fun AndroidComposeTestRule<*, SubspaceTestingActivity>.setSubspaceContent
     content: @Composable @SubspaceComposable () -> Unit
 ) {
     setContent {} // Necessary to avoid crashes, as ComposeTestRule expects a call to setContent {}
-    activity.setSubspaceContent(
-        session = activity.session,
-        enableXrForTesting = true,
-        content = content,
-    )
+    activity.setSubspaceContent(session = activity.session, content = content)
 }
 
 /** Analog to [AndroidComposeTestRule.setContent] for testing [SubspaceComposable] content. */
@@ -78,11 +74,7 @@ public fun AndroidComposeTestRule<*, SubspaceTestingActivity>.setSubspaceContent
     content: @Composable @SubspaceComposable () -> Unit,
 ) {
     setContent(uiContent)
-    activity.setSubspaceContent(
-        session = activity.session,
-        enableXrForTesting = true,
-        content = content,
-    )
+    activity.setSubspaceContent(session = activity.session, content = content)
 }
 
 /** Subspace version of onNode in Compose. */

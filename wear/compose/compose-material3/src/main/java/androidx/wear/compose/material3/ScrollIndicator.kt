@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -68,8 +69,8 @@ import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.inverseLerp
 import androidx.wear.compose.material3.ScrollIndicatorDefaults.maxSizeFraction
 import androidx.wear.compose.material3.ScrollIndicatorDefaults.minSizeFraction
+import androidx.wear.compose.material3.tokens.ColorSchemeKeyTokens
 import androidx.wear.compose.materialcore.isLargeScreen
-import androidx.wear.compose.materialcore.isRoundDevice
 import androidx.wear.compose.materialcore.toRadians
 import kotlin.math.asin
 import kotlin.math.cos
@@ -102,6 +103,8 @@ import kotlinx.coroutines.launch
  * @param state The scrollState to use as the basis for the ScrollIndicatorState.
  * @param modifier The modifier to be applied to the component - usually set to
  *   `Modifier.align(Alignment.CenterEnd)`.
+ * @param colors [ScrollIndicatorColors] that will be used to resolve the indicator and track colors
+ *   for this [ScrollIndicator].
  * @param reverseDirection Reverses direction of ScrollIndicator if true
  * @param positionAnimationSpec [AnimationSpec] for position animation. The Position animation is
  *   used for animating changes to the scroll size and position. To disable this animation [snap]
@@ -111,6 +114,7 @@ import kotlinx.coroutines.launch
 public fun ScrollIndicator(
     state: ScrollState,
     modifier: Modifier = Modifier,
+    colors: ScrollIndicatorColors = ScrollIndicatorDefaults.colors(),
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
 ) {
@@ -121,6 +125,8 @@ public fun ScrollIndicator(
         indicatorHeight = ScrollIndicatorDefaults.indicatorHeight,
         indicatorWidth = ScrollIndicatorDefaults.indicatorWidth,
         paddingHorizontal = ScrollIndicatorDefaults.edgePadding,
+        background = colors.trackColor,
+        color = colors.indicatorColor,
         modifier = modifier.onSizeChanged { containerSize = it },
         reverseDirection = reverseDirection,
         positionAnimationSpec = positionAnimationSpec
@@ -150,6 +156,8 @@ public fun ScrollIndicator(
  * @sample androidx.wear.compose.material3.samples.ScrollIndicatorWithSLCSample
  * @param state the [ScalingLazyListState] to use as the basis for the ScrollIndicatorState.
  * @param modifier The modifier to be applied to the component
+ * @param colors [ScrollIndicatorColors] that will be used to resolve the indicator and track colors
+ *   for this [ScrollIndicator].
  * @param reverseDirection Reverses direction of ScrollIndicator if true
  * @param positionAnimationSpec [AnimationSpec] for position animation. The Position animation is
  *   used for animating changes to the scroll size and position. To disable this animation [snap]
@@ -159,6 +167,7 @@ public fun ScrollIndicator(
 public fun ScrollIndicator(
     state: ScalingLazyListState,
     modifier: Modifier = Modifier,
+    colors: ScrollIndicatorColors = ScrollIndicatorDefaults.colors(),
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
 ): Unit =
@@ -167,6 +176,8 @@ public fun ScrollIndicator(
         indicatorHeight = ScrollIndicatorDefaults.indicatorHeight,
         indicatorWidth = ScrollIndicatorDefaults.indicatorWidth,
         paddingHorizontal = ScrollIndicatorDefaults.edgePadding,
+        background = colors.trackColor,
+        color = colors.indicatorColor,
         modifier = modifier,
         reverseDirection = reverseDirection,
         positionAnimationSpec = positionAnimationSpec
@@ -195,6 +206,8 @@ public fun ScrollIndicator(
  * @sample androidx.wear.compose.material3.samples.ScrollIndicatorWithTLCSample
  * @param state the [TransformingLazyColumnState] to use as the basis for the ScrollIndicatorState.
  * @param modifier The modifier to be applied to the component
+ * @param colors [ScrollIndicatorColors] that will be used to resolve the indicator and track colors
+ *   for this [ScrollIndicator].
  * @param reverseDirection Reverses direction of ScrollIndicator if true
  * @param positionAnimationSpec [AnimationSpec] for position animation. The Position animation is
  *   used for animating changes to the scroll size and position. To disable this animation [snap]
@@ -204,6 +217,7 @@ public fun ScrollIndicator(
 public fun ScrollIndicator(
     state: TransformingLazyColumnState,
     modifier: Modifier = Modifier,
+    colors: ScrollIndicatorColors = ScrollIndicatorDefaults.colors(),
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
 ): Unit =
@@ -213,6 +227,8 @@ public fun ScrollIndicator(
         indicatorWidth = ScrollIndicatorDefaults.indicatorWidth,
         paddingHorizontal = ScrollIndicatorDefaults.edgePadding,
         modifier = modifier,
+        background = colors.trackColor,
+        color = colors.indicatorColor,
         reverseDirection = reverseDirection,
         positionAnimationSpec = positionAnimationSpec
     )
@@ -238,6 +254,8 @@ public fun ScrollIndicator(
  * @sample androidx.wear.compose.material3.samples.ScrollIndicatorWithLCSample
  * @param state the [LazyListState] to use as the basis for the ScrollIndicatorState.
  * @param modifier The modifier to be applied to the component
+ * @param colors [ScrollIndicatorColors] that will be used to resolve the indicator and track colors
+ *   for this [ScrollIndicator].
  * @param reverseDirection Reverses direction of ScrollIndicator if true
  * @param positionAnimationSpec [AnimationSpec] for position animation. The Position animation is
  *   used for animating changes to the scroll size and position. To disable this animation [snap]
@@ -247,6 +265,7 @@ public fun ScrollIndicator(
 public fun ScrollIndicator(
     state: LazyListState,
     modifier: Modifier = Modifier,
+    colors: ScrollIndicatorColors = ScrollIndicatorDefaults.colors(),
     reverseDirection: Boolean = false,
     positionAnimationSpec: AnimationSpec<Float> = ScrollIndicatorDefaults.PositionAnimationSpec
 ): Unit =
@@ -256,12 +275,38 @@ public fun ScrollIndicator(
         indicatorWidth = ScrollIndicatorDefaults.indicatorWidth,
         paddingHorizontal = ScrollIndicatorDefaults.edgePadding,
         modifier = modifier,
+        background = colors.trackColor,
+        color = colors.indicatorColor,
         reverseDirection = reverseDirection,
         positionAnimationSpec = positionAnimationSpec
     )
 
 /** Contains the default values used for [ScrollIndicator]. */
 public object ScrollIndicatorDefaults {
+    /**
+     * Creates a [ScrollIndicatorColors] that represents the default colors used in a
+     * [ScrollIndicator].
+     */
+    @Composable
+    public fun colors(): ScrollIndicatorColors =
+        MaterialTheme.colorScheme.defaultScrollIndicatorColors
+
+    /**
+     * Creates a [ScrollIndicatorColors] with modified colors used in [ScrollIndicator].
+     *
+     * @param indicatorColor The indicator color.
+     * @param trackColor The track color.
+     */
+    @Composable
+    public fun colors(
+        indicatorColor: Color = Color.Unspecified,
+        trackColor: Color = Color.Unspecified,
+    ): ScrollIndicatorColors =
+        MaterialTheme.colorScheme.defaultScrollIndicatorColors.copy(
+            indicatorColor = indicatorColor,
+            trackColor = trackColor,
+        )
+
     /**
      * [AnimationSpec] used for position animation. To disable this animation, pass [snap]
      * AnimationSpec instead
@@ -283,6 +328,59 @@ public object ScrollIndicatorDefaults {
     internal val gapHeight = 3.dp
 
     internal val edgePadding = PaddingDefaults.edgePadding
+
+    private val ColorScheme.defaultScrollIndicatorColors: ScrollIndicatorColors
+        get() {
+            return defaultScrollIndicatorColorsCached
+                ?: ScrollIndicatorColors(
+                        indicatorColor =
+                            fromToken(ColorSchemeKeyTokens.OnBackground).setLuminance(80f),
+                        trackColor = fromToken(ColorSchemeKeyTokens.OnBackground).setLuminance(20f),
+                    )
+                    .also { defaultScrollIndicatorColorsCached = it }
+        }
+}
+
+/**
+ * Represents the indicator and track colors used in [ScrollIndicator].
+ *
+ * @param indicatorColor Color used to draw the indicator of [ScrollIndicator].
+ * @param trackColor Color used to draw the track of [ScrollIndicator].
+ */
+public class ScrollIndicatorColors(
+    public val indicatorColor: Color,
+    public val trackColor: Color,
+) {
+    /**
+     * Returns a copy of this ScrollIndicatorColors optionally overriding some of the values.
+     *
+     * @param indicatorColor Color used to draw the indicator of [ScrollIndicator].
+     * @param trackColor Color used to draw the track of [ScrollIndicator].
+     */
+    public fun copy(
+        indicatorColor: Color = this.indicatorColor,
+        trackColor: Color = this.trackColor,
+    ): ScrollIndicatorColors =
+        ScrollIndicatorColors(
+            indicatorColor = indicatorColor.takeOrElse { this.indicatorColor },
+            trackColor = trackColor.takeOrElse { this.trackColor },
+        )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is ScrollIndicatorColors) return false
+
+        if (indicatorColor != other.indicatorColor) return false
+        if (trackColor != other.trackColor) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = indicatorColor.hashCode()
+        result = 31 * result + trackColor.hashCode()
+        return result
+    }
 }
 
 /**
@@ -353,7 +451,6 @@ internal fun IndicatorImpl(
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
 
-    val isScreenRound = isRoundDevice()
     val layoutDirection = LocalLayoutDirection.current
     val gapHeight = ScrollIndicatorDefaults.gapHeight
 
@@ -370,12 +467,12 @@ internal fun IndicatorImpl(
         // position indicator on (the center of the arc, which is indicatorWidth wide).
         val radius = screenWidthDp.value / 2 - paddingHorizontal.value - indicatorWidth.value / 2
         val width =
-            (if (isScreenRound) {
-                // The sqrt is the size of the projection on the x axis of line between center of
-                // the container and the point where we start the arc.
-                // The coerceAtLeast is needed while initializing since containerSize.width is 0
-                radius - sqrt((sqr(radius) - sqr(indicatorHeight.value / 2)).coerceAtLeast(0f))
-            } else 0f) + paddingHorizontal.value + indicatorWidth.value
+            // The sqrt is the size of the projection on the x axis of line between center of
+            // the container and the point where we start the arc.
+            // The coerceAtLeast is needed while initializing since containerSize.width is 0
+            radius - sqrt((sqr(radius) - sqr(indicatorHeight.value / 2)).coerceAtLeast(0f)) +
+                paddingHorizontal.value +
+                indicatorWidth.value
 
         val height = indicatorHeight.value + indicatorWidth.value
 
@@ -434,7 +531,7 @@ internal fun IndicatorImpl(
                 // We need to invert reverseDirection when the screen is round and we are on
                 // the left.
                 val actualReverseDirection =
-                    if (isScreenRound && !indicatorOnTheRight) {
+                    if (!indicatorOnTheRight) {
                         !reverseDirection
                     } else {
                         reverseDirection
@@ -455,31 +552,18 @@ internal fun IndicatorImpl(
 
                 val paddingHorizontalPx = paddingHorizontal.toPx()
                 onDrawWithContent {
-                    if (isScreenRound) {
-                        drawCurvedIndicator(
-                            screenWidthDp.toPx(),
-                            color,
-                            background,
-                            paddingHorizontalPx,
-                            indicatorOnTheRight,
-                            indicatorHeight,
-                            gapHeight,
-                            indicatorWidthPx,
-                            indicatorStart,
-                            sizeFractionAnimatable.value,
-                        )
-                    } else {
-                        drawStraightIndicator(
-                            color,
-                            background,
-                            paddingHorizontalPx,
-                            indicatorOnTheRight,
-                            indicatorWidthPx,
-                            indicatorHeight.toPx(),
-                            indicatorStart,
-                            sizeFractionAnimatable.value,
-                        )
-                    }
+                    drawCurvedIndicator(
+                        screenWidthDp.toPx(),
+                        color,
+                        background,
+                        paddingHorizontalPx,
+                        indicatorOnTheRight,
+                        indicatorHeight,
+                        gapHeight,
+                        indicatorWidthPx,
+                        indicatorStart,
+                        sizeFractionAnimatable.value,
+                    )
                 }
             }
     )
@@ -1005,40 +1089,6 @@ private fun ContentDrawScope.drawCurvedIndicator(
 
 private fun pixelsHeightToDegrees(heightInPixels: Float, radius: Float): Float =
     2 * asin(heightInPixels / 2 / radius).toDegrees()
-
-private fun ContentDrawScope.drawStraightIndicator(
-    color: Color,
-    background: Color,
-    paddingHorizontalPx: Float,
-    indicatorOnTheRight: Boolean,
-    indicatorWidthPx: Float,
-    indicatorHeightPx: Float,
-    indicatorStart: Float,
-    indicatorSize: Float,
-) {
-    val x =
-        if (indicatorOnTheRight) {
-            size.width - paddingHorizontalPx - indicatorWidthPx / 2
-        } else {
-            paddingHorizontalPx + indicatorWidthPx / 2
-        }
-    val lineTop = Offset(x, (size.height - indicatorHeightPx) / 2f)
-    val lineBottom = lineTop + Offset(0f, indicatorHeightPx)
-    drawLine(
-        color = background,
-        lineTop,
-        lineBottom,
-        strokeWidth = indicatorWidthPx,
-        cap = StrokeCap.Round
-    )
-    drawLine(
-        color,
-        lerp(lineTop, lineBottom, indicatorStart),
-        lerp(lineTop, lineBottom, indicatorStart + indicatorSize),
-        strokeWidth = indicatorWidthPx,
-        cap = StrokeCap.Round
-    )
-}
 
 private fun sqr(x: Float) = x * x
 

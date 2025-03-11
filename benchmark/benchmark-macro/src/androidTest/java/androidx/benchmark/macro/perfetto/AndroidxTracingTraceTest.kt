@@ -54,7 +54,7 @@ class AndroidxTracingTraceTest {
     @Before
     @After
     fun cleanup() {
-        PerfettoHelper.stopAllPerfettoProcesses()
+        PerfettoHelper.cleanupPerfettoState()
     }
 
     @LargeTest

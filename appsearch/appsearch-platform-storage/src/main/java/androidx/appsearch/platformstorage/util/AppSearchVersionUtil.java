@@ -39,6 +39,7 @@ import org.jspecify.annotations.NonNull;
 public class AppSearchVersionUtil {
     public static final long APPSEARCH_U_BASE_VERSION_CODE = 340800000;
     public static final long APPSEARCH_M2023_11_VERSION_CODE = 341113000;
+    public static final long APPSEARCH_V_BASE_VERSION_CODE = 350700000;
     public static final long APPSEARCH_M2024_11_VERSION_CODE = 351112060;
 
     private static final String APPSEARCH_MODULE_NAME = "com.android.appsearch";

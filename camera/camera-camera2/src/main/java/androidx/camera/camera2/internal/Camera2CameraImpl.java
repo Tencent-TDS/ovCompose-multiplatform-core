@@ -19,6 +19,7 @@ package androidx.camera.camera2.internal;
 import static android.hardware.camera2.params.DynamicRangeProfiles.STANDARD;
 
 import static androidx.camera.core.concurrent.CameraCoordinator.CAMERA_OPERATING_MODE_CONCURRENT;
+import static androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -1288,7 +1289,9 @@ final class Camera2CameraImpl implements CameraInternal {
                         useCaseInfo.getStreamSpec().getDynamicRange(),
                         useCaseInfo.getCaptureTypes(),
                         useCaseInfo.getStreamSpec().getImplementationOptions(),
-                        useCaseConfig.getTargetFrameRate(null));
+                        useCaseConfig.getTargetFrameRate(null),
+                        Preconditions.checkNotNull(useCaseConfig.getTargetHighSpeedFrameRate(
+                                FRAME_RATE_RANGE_UNSPECIFIED)));
 
                 attachedSurfaces.add(attachedSurfaceInfo);
             }
@@ -1302,7 +1305,7 @@ final class Camera2CameraImpl implements CameraInternal {
 
         try {
             mSupportedSurfaceCombination.getSuggestedStreamSpecifications(cameraMode,
-                    attachedSurfaces, useCaseConfigToSizeMap, false, false, null);
+                    attachedSurfaces, useCaseConfigToSizeMap, false, false);
         } catch (IllegalArgumentException e) {
             debugLog("Surface combination with metering repeating  not supported!", e);
             return false;

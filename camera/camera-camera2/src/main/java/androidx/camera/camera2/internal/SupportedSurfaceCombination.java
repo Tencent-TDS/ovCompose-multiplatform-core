@@ -19,6 +19,8 @@ package androidx.camera.camera2.internal;
 import static android.content.pm.PackageManager.FEATURE_CAMERA_CONCURRENT;
 import static android.hardware.camera2.CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES;
 
+import static androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED;
+import static androidx.camera.core.impl.SessionConfig.SESSION_TYPE_REGULAR;
 import static androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED;
 import static androidx.camera.core.internal.utils.SizeUtil.RESOLUTION_1080P;
 import static androidx.camera.core.internal.utils.SizeUtil.RESOLUTION_480P;
@@ -331,7 +333,9 @@ final class SupportedSurfaceCombination {
     }
 
     private int getMaxFrameRate(int imageFormat, @NonNull Size size, boolean isHighSpeedOn) {
-        return isHighSpeedOn ? mHighSpeedResolver.getMaxFrameRate(imageFormat, size)
+        Preconditions.checkState(!isHighSpeedOn
+                || imageFormat == ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE);
+        return isHighSpeedOn ? mHighSpeedResolver.getMaxFrameRate(size)
                 : getMaxFrameRate(mCharacteristics, imageFormat, size);
     }
 
@@ -570,12 +574,14 @@ final class SupportedSurfaceCombination {
             @NonNull List<AttachedSurfaceInfo> attachedSurfaces,
             @NonNull Map<UseCaseConfig<?>, List<Size>> newUseCaseConfigsSupportedSizeMap,
             boolean isPreviewStabilizationOn,
-            boolean hasVideoCapture,
-            @Nullable Range<Integer> targetHighSpeedFpsRange) {
+            boolean hasVideoCapture) {
         // Refresh Preview Size based on current display configurations.
         refreshPreviewSize();
 
-        boolean isHighSpeedOn = targetHighSpeedFpsRange != null;
+        Range<Integer> targetHighSpeedFpsRange = HighSpeedResolver.getTargetHighSpeedFrameRate(
+                attachedSurfaces, newUseCaseConfigsSupportedSizeMap.keySet());
+
+        boolean isHighSpeedOn = !targetHighSpeedFpsRange.equals(FRAME_RATE_RANGE_UNSPECIFIED);
         // Filter out unsupported sizes for high-speed at the beginning to ensure correct
         // resolution selection later. High-speed session requires all surface sizes to be the same.
         if (isHighSpeedOn) {
@@ -792,6 +798,8 @@ final class SupportedSurfaceCombination {
                 Size resolutionForUseCase = savedSizes.get(
                         useCasesPriorityOrder.indexOf(newUseCaseConfigs.indexOf(useCaseConfig)));
                 StreamSpec.Builder streamSpecBuilder = StreamSpec.builder(resolutionForUseCase)
+                        .setSessionType(
+                                isHighSpeedOn ? SESSION_TYPE_HIGH_SPEED : SESSION_TYPE_REGULAR)
                         .setDynamicRange(Preconditions.checkNotNull(
                                 resolvedDynamicRanges.get(useCaseConfig)))
                         .setImplementationOptions(

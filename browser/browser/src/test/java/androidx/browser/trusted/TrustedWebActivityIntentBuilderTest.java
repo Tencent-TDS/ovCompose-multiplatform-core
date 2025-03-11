@@ -76,6 +76,8 @@ public class TrustedWebActivityIntentBuilderTest {
         ShareTarget shareTarget = new ShareTarget("action", null, null,
                 new ShareTarget.Params(null, null, null));
 
+        Uri originalLaunchUrl = Uri.parse("web+test://page");
+
         CustomTabsSession session = TestUtil.makeMockSession();
 
         ImmersiveMode displayMode = new ImmersiveMode(true,
@@ -90,6 +92,7 @@ public class TrustedWebActivityIntentBuilderTest {
                         .setSplashScreenParams(splashScreenParams)
                         .setShareParams(shareTarget, shareData)
                         .setDisplayMode(displayMode)
+                        .setOriginalLaunchUrl(originalLaunchUrl)
                         .build(session)
                         .getIntent();
 
@@ -132,5 +135,8 @@ public class TrustedWebActivityIntentBuilderTest {
         assertEquals(displayMode.isSticky(), ((ImmersiveMode) displayModeFromIntent).isSticky());
         assertEquals(displayMode.layoutInDisplayCutoutMode(),
                 ((ImmersiveMode) displayModeFromIntent).layoutInDisplayCutoutMode());
+
+        assertEquals(originalLaunchUrl, intent.getParcelableExtra(
+                TrustedWebActivityIntentBuilder.EXTRA_ORIGINAL_LAUNCH_URL));
     }
 }

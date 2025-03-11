@@ -37,5 +37,5 @@ public interface Trackable<out State> {
      * Creates an [Anchor] that is attached to this trackable, using the given initial [pose] in the
      * world coordinate space.
      */
-    public fun createAnchor(pose: Pose): Anchor
+    public fun createAnchor(pose: Pose): AnchorCreateResult
 }

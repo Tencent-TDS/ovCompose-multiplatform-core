@@ -541,7 +541,7 @@ public final class Camera2CameraControlImplDeviceTest {
         HandlerUtil.waitForLooperToIdle(mHandler);
         verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON, FLASH_MODE_TORCH);
 
-        mCamera2CameraControlImpl.enableTorch(true);
+        mCamera2CameraControlImpl.enableLowLightBoostAsync(true);
         HandlerUtil.waitForLooperToIdle(mHandler);
         verifyControlAeModeAndFlashMode(CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY,
                 FLASH_MODE_OFF);
@@ -559,6 +559,7 @@ public final class Camera2CameraControlImplDeviceTest {
                 camera2Config.getCaptureRequestOption(
                         CaptureRequest.FLASH_MODE, FLASH_MODE_OFF))
                 .isEqualTo(expectedFlashMode);
+        Mockito.reset(mControlUpdateCallback);
     }
 
     @Test

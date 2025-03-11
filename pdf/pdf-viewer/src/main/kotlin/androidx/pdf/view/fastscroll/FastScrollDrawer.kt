@@ -21,9 +21,11 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.text.TextPaint
 import android.util.Range
+import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
 import androidx.pdf.PdfDocument
 import androidx.pdf.R
@@ -43,8 +45,9 @@ import com.google.android.material.color.MaterialColors
  * @param trackDrawable The drawable used for the fast scroller track (drag handle).
  * @param pageIndicatorBackground The drawable used for the background of the page indicator.
  */
-internal class FastScrollDrawer(
-    private val context: Context,
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public class FastScrollDrawer(
+    internal val context: Context,
     private val pdfDocument: PdfDocument,
     private val thumbDrawable: Drawable,
     private val trackDrawable: Drawable,
@@ -77,6 +80,8 @@ internal class FastScrollDrawer(
                 )
             textSize = pageIndicatorTextSize.dpToPx(context)
             textAlign = Paint.Align.CENTER
+            isAntiAlias = true
+            typeface = Typeface.DEFAULT_BOLD
         }
 
     private val thumbShadowDrawable: Drawable? =
@@ -94,6 +99,8 @@ internal class FastScrollDrawer(
             textPaint.alpha = value
         }
 
+    internal var currentPageIndicatorLabel: String = ""
+
     /**
      * Draws the fast scroller on the canvas.
      *
@@ -108,7 +115,7 @@ internal class FastScrollDrawer(
      * @param visibleAreaPx The rectangular area of the view that is currently visible.
      * @param visiblePages The range of pages that are currently visible.
      */
-    fun draw(
+    public fun draw(
         canvas: Canvas,
         zoom: Float,
         scrollY: Int,
@@ -138,37 +145,44 @@ internal class FastScrollDrawer(
         thumbDrawable.draw(canvas)
 
         drawDragHandle(canvas, thumbRightPx, thumbTopPx)
-        drawPageIndicator(canvas, thumbLeftPx, thumbTopPx, visiblePages)
+        drawPageIndicator(canvas, zoom, thumbTopPx, visiblePages, visibleAreaPx)
     }
 
     private fun drawPageIndicator(
         canvas: Canvas,
-        thumbLeftPx: Int,
+        zoom: Float,
         thumbTopPx: Int,
-        visiblePages: Range<Int>
+        visiblePages: Range<Int>,
+        visibleAreaPx: Rect,
     ) {
-        val label = generateLabel(visiblePages)
-        val pageIndicatorWidthPx = (label.length + (2 * pageIndicatorTextOffsetDp)).dpToPx(context)
+        currentPageIndicatorLabel = generateLabel(visiblePages)
+        val labelWidth = textPaint.measureText(currentPageIndicatorLabel)
+        val pageIndicatorWidthPx =
+            (labelWidth + (2 * pageIndicatorTextOffsetDp.dpToPx(context))).toInt()
 
-        val indicatorLeftPx =
-            thumbLeftPx - pageIndicatorWidthPx - pageIndicatorRightMarginDp.dpToPx(context)
+        val viewRightPx =
+            (PdfView.toViewCoord(visibleAreaPx.right.toFloat(), zoom, scroll = 0)).toInt()
+        val pageIndicatorHeightPx = pageIndicatorHeightDp.dpToPx(context)
+
+        val indicatorRightPx = viewRightPx - pageIndicatorRightMarginDp.dpToPx(context)
+        val indicatorLeftPx = indicatorRightPx - pageIndicatorWidthPx
         val indicatorTopPx =
-            thumbTopPx +
-                ((thumbHeightDp.dpToPx(context) - pageIndicatorHeightDp.dpToPx(context)) / 2)
+            thumbTopPx + ((thumbHeightDp.dpToPx(context) - pageIndicatorHeightPx) / 2)
+        val indicatorBottomPx = indicatorTopPx + pageIndicatorHeightPx
+
         pageIndicatorBackground.setBounds(
             /* left= */ indicatorLeftPx,
             /* top= */ indicatorTopPx,
-            /* right= */ indicatorLeftPx + pageIndicatorWidthPx,
-            /* bottom= */ indicatorTopPx + pageIndicatorHeightDp.dpToPx(context)
+            /* right= */ indicatorRightPx,
+            /* bottom= */ indicatorBottomPx
         )
         pageIndicatorBackground.draw(canvas)
 
-        val xPos =
-            indicatorLeftPx +
-                ((pageIndicatorWidthPx - label.length) / 2) +
-                pageIndicatorTextXOffsetDp
-        val yPos = indicatorTopPx + pageIndicatorTextYOffsetDp
-        canvas.drawText(label, xPos.toFloat(), yPos.toFloat(), textPaint)
+        val xPos = indicatorLeftPx + (pageIndicatorWidthPx / 2)
+        val yPos =
+            (indicatorTopPx + (pageIndicatorHeightPx / 2) -
+                ((textPaint.descent() + textPaint.ascent()) / 2))
+        canvas.drawText(currentPageIndicatorLabel, xPos.toFloat(), yPos.toFloat(), textPaint)
     }
 
     private fun drawDragHandle(canvas: Canvas, thumbRight: Int, thumbTop: Int) {
@@ -205,9 +219,9 @@ internal class FastScrollDrawer(
         }
     }
 
-    companion object {
+    public companion object {
         private const val SHADOW_OFFSET_FROM_SCRUBBER_DP = 2
-        internal const val VISIBLE_ALPHA = 255
-        internal const val GONE_ALPHA = 0
+        public const val VISIBLE_ALPHA: Int = 255
+        public const val GONE_ALPHA: Int = 0
     }
 }

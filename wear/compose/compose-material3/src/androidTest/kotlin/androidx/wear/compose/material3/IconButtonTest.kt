@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -60,6 +61,7 @@ import androidx.wear.compose.material3.IconButtonDefaults.LargeButtonSize
 import androidx.wear.compose.material3.IconButtonDefaults.SmallButtonSize
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertEquals
+import org.junit.Assume
 import org.junit.Rule
 import org.junit.Test
 
@@ -566,7 +568,9 @@ class IconButtonTest {
     @RequiresApi(Build.VERSION_CODES.O)
     @Test
     fun button_positioned_correctly() {
+        var isScreenRound = false
         rule.setContentWithTheme {
+            isScreenRound = LocalConfiguration.current.isScreenRound
             Box(Modifier.testTag(TEST_TAG).background(Color.Black).padding(1.dp)) {
                 IconButton(
                     onClick = {},
@@ -576,6 +580,9 @@ class IconButtonTest {
                 ) {}
             }
         }
+
+        // Skip test on non-round devices - see b/394103579, failing repeated on Pixel 2.
+        Assume.assumeTrue(isScreenRound)
 
         val bitmap = rule.onNodeWithTag(TEST_TAG).captureToImage().asAndroidBitmap()
         val spaces =

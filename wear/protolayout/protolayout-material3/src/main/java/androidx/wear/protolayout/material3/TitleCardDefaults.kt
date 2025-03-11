@@ -28,6 +28,7 @@ import androidx.wear.protolayout.LayoutElementBuilders.Row
 import androidx.wear.protolayout.ModifiersBuilders.Padding
 import androidx.wear.protolayout.material3.Typography.TypographyToken
 import java.util.Optional
+import kotlin.jvm.optionals.getOrNull
 
 public object TitleCardDefaults {
     /**
@@ -67,12 +68,12 @@ public object TitleCardDefaults {
                                 .setWidth(expand())
                                 .build()
                         }
-                        .orElse(null)
+                        .getOrNull()
                 )
                 .addElement(time, verticalSpacer(style.titleToTimeSpaceDp))
 
         ContainerWithSpacersBuilder<LayoutElement>(
-                { it: LayoutElement? -> verticalElementBuilder.addContent(it!!) },
+                { element: LayoutElement? -> verticalElementBuilder.addContent(element!!) },
                 if (headerBuilder.isEmpty) null else headerSlot.build()
             )
             .addElement(content, horizontalSpacer(style.titleToContentSpaceDp))

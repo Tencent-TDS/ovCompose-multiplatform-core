@@ -17,7 +17,7 @@
 package androidx.appfunctions.internal
 
 import androidx.annotation.RestrictTo
-import androidx.appfunctions.metadata.AppFunctionMetadata
+import androidx.appfunctions.metadata.CompileTimeAppFunctionMetadata
 
 /**
  * An interface providing access to metadata for a set of registered AppFunctions.
@@ -25,7 +25,7 @@ import androidx.appfunctions.metadata.AppFunctionMetadata
  * This interface defines a contract for accessing metadata associated with AppFunctions. Each
  * AppFunction implementation class has a corresponding generated inventory class that implements
  * this interface. This inventory class provides a mapping between AppFunction IDs and their
- * respective [AppFunctionMetadata].
+ * respective [CompileTimeAppFunctionMetadata].
  *
  * For example, consider the following AppFunction implementation:
  * ```kotlin
@@ -45,6 +45,6 @@ import androidx.appfunctions.metadata.AppFunctionMetadata
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public interface AppFunctionInventory {
-    /** A map of function IDs to their corresponding [AppFunctionMetadata]. */
-    public val functionIdToMetadataMap: Map<String, AppFunctionMetadata>
+    /** A map of function IDs to their corresponding [CompileTimeAppFunctionMetadata]. */
+    public val functionIdToMetadataMap: Map<String, CompileTimeAppFunctionMetadata>
 }

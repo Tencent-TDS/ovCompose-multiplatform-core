@@ -18,6 +18,7 @@ package androidx.appfunctions.compiler.core
 
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSName
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.KSTypeArgument
@@ -34,6 +35,23 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.WildcardTypeName
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
+
+/**
+ * Gets the qualified name from [KSFunctionDeclaration].
+ *
+ * @throws ProcessingException if unable to resolve qualified name.
+ */
+fun KSFunctionDeclaration.ensureQualifiedName(): String {
+    return this.qualifiedName?.asString()
+        ?: throw ProcessingException("Unable to resolve the qualified name", this)
+}
+
+/** Gets [ClassName] from [KSClassDeclaration]. */
+fun KSClassDeclaration.toClassName(): ClassName {
+    val packageName = this.packageName.asString()
+    val simpleName = this.simpleName.asString()
+    return ClassName(packageName, simpleName)
+}
 
 /**
  * Resolves the type reference to the parameterized type if it is a list.
@@ -109,6 +127,10 @@ fun KSTypeReference.toTypeName(): TypeName {
     return resolve().toTypeName(args)
 }
 
+internal fun TypeName.ignoreNullable(): TypeName {
+    return copy(nullable = false)
+}
+
 private fun KSType.toTypeName(arguments: List<KSTypeArgument> = emptyList()): TypeName {
     val type =
         when (declaration) {
@@ -139,3 +161,5 @@ private fun ClassName.withTypeArguments(arguments: List<TypeName>): TypeName {
         this.parameterizedBy(arguments)
     }
 }
+
+fun KClass<*>.ensureQualifiedName(): String = checkNotNull(qualifiedName)

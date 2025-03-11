@@ -86,6 +86,12 @@ public interface UseCaseConfig<T extends UseCase> extends TargetConfig<T>, Image
             Config.Option.create("camerax.core.useCase.targetFrameRate", Range.class);
 
     /**
+     * Option: camerax.core.useCase.targetHighSpeedFrameRate
+     */
+    Option<Range<Integer>> OPTION_TARGET_HIGH_SPEED_FRAME_RATE =
+            Config.Option.create("camerax.core.useCase.targetHighSpeedFrameRate", Range.class);
+
+    /**
      * Option: camerax.core.useCase.zslDisabled
      */
     Option<Boolean> OPTION_ZSL_DISABLED =
@@ -266,7 +272,8 @@ public interface UseCaseConfig<T extends UseCase> extends TargetConfig<T>, Image
 
     /**
      * Retrieves target frame rate
-     * @param valueIfMissing
+     *
+     * @param valueIfMissing The value to return if this configuration option has not been set.
      * @return the stored value or <code>valueIfMissing</code> if the value does not exist in
      * this configuration
      */
@@ -282,6 +289,28 @@ public interface UseCaseConfig<T extends UseCase> extends TargetConfig<T>, Image
      */
     default @NonNull Range<Integer> getTargetFrameRate() {
         return retrieveOption(OPTION_TARGET_FRAME_RATE);
+    }
+
+    /**
+     * Retrieves target high speed frame rate
+     *
+     * @param valueIfMissing The value to return if this configuration option has not been set.
+     * @return the stored value or <code>valueIfMissing</code> if the value does not exist in
+     * this configuration
+     */
+    default @Nullable Range<Integer> getTargetHighSpeedFrameRate(
+            @Nullable Range<Integer> valueIfMissing) {
+        return retrieveOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE, valueIfMissing);
+    }
+
+    /**
+     * Retrieves the target high speed frame rate
+     *
+     * @return The stored value, if it exists in this configuration.
+     * @throws IllegalArgumentException if the option does not exist in this configuration.
+     */
+    default @NonNull Range<Integer> getTargetHighSpeedFrameRate() {
+        return retrieveOption(OPTION_TARGET_HIGH_SPEED_FRAME_RATE);
     }
 
     /**

@@ -237,6 +237,11 @@ interface PaddingValues {
         override fun toString() =
             "PaddingValues.Absolute(left=$left, top=$top, right=$right, bottom=$bottom)"
     }
+
+    companion object {
+        /** PaddingValues with all values `0.dp`. */
+        @Stable @get:Stable val Zero: PaddingValues = Absolute()
+    }
 }
 
 /**

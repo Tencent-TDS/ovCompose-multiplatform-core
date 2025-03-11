@@ -26,6 +26,7 @@ import androidx.wear.protolayout.LayoutElementBuilders.Image
 import androidx.wear.protolayout.expression.AppDataKey
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInt32
 import androidx.wear.protolayout.expression.VersionBuilders.VersionInfo
+import androidx.wear.protolayout.expression.mapTo
 import androidx.wear.protolayout.material3.EdgeButtonDefaults.CONTAINER_HEIGHT_DP
 import androidx.wear.protolayout.material3.EdgeButtonDefaults.EDGE_BUTTON_HEIGHT_DP
 import androidx.wear.protolayout.material3.EdgeButtonFallbackDefaults.EDGE_BUTTON_HEIGHT_FALLBACK_DP
@@ -117,7 +118,9 @@ class EdgeButtonTest {
             .onElement(isClickable())
             .assert(hasColor(COLOR_SCHEME.tertiaryContainer.staticArgb))
         queryProvider
-            .onElement(LayoutElementMatcher("Element type is Image") { it is Image })
+            .onElement(
+                LayoutElementMatcher("Element type is Image") { element -> element is Image }
+            )
             .assert(hasColor(COLOR_SCHEME.onTertiary.staticArgb))
     }
 
@@ -143,27 +146,30 @@ class EdgeButtonTest {
     fun dynamicText() {
         val label = "test text"
         val stateKey = AppDataKey<DynamicInt32>("testKey")
+        val testValue = 12
+        val testTimes = 2
         val dynamicLabel =
             LayoutString(
                 label,
-                DynamicInt32.from(stateKey).times(2).format(),
+                DynamicInt32.from(stateKey).times(testTimes).format(),
                 label.asLayoutConstraint()
             )
 
         val queryProvider =
             LayoutElementAssertionsProvider(
-                materialScope(CONTEXT, DEVICE_CONFIGURATION, allowDynamicTheme = false) {
-                    textEdgeButton(
-                        onClick = CLICKABLE,
-                        modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION)
-                    ) {
-                        this.text(dynamicLabel)
+                    materialScope(CONTEXT, DEVICE_CONFIGURATION, allowDynamicTheme = false) {
+                        textEdgeButton(
+                            onClick = CLICKABLE,
+                            modifier = LayoutModifier.contentDescription(CONTENT_DESCRIPTION)
+                        ) {
+                            this.text(dynamicLabel)
+                        }
                     }
-                }
-            )
+                )
+                .withDynamicData(stateKey mapTo testValue)
 
         queryProvider
-            .onElement(hasText(dynamicLabel))
+            .onElement(hasText((testValue * testTimes).toString()))
             .assert(hasColor(COLOR_SCHEME.onPrimary.staticArgb))
     }
 
