@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.uikit.utils.CMPScreenEdgePanGestureRecognizer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
@@ -29,9 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toOffset
 import kotlin.math.abs
 import kotlinx.cinterop.BetaInteropApi
+import kotlinx.cinterop.CPointed
+import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import platform.Foundation.NSSelectorFromString
+import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UIGestureRecognizerStateBegan
 import platform.UIKit.UIGestureRecognizerStateCancelled
 import platform.UIKit.UIGestureRecognizerStateChanged
@@ -58,14 +62,14 @@ internal class UIKitBackGestureDispatcher(
         getListener = { activeListener }
     )
 
-    private val leftEdgePanGestureRecognizer = UIScreenEdgePanGestureRecognizer(
+    private val leftEdgePanGestureRecognizer = UIKitBackGestureRecognizer(
         target = iosGestureHandler,
         action = NSSelectorFromString(UiKitScreenEdgePanGestureHandler::handleEdgePan.name + ":")
     ).apply {
         edges = UIRectEdgeLeft
     }
 
-    private val rightEdgePanGestureRecognizer = UIScreenEdgePanGestureRecognizer(
+    private val rightEdgePanGestureRecognizer = UIKitBackGestureRecognizer(
         target = iosGestureHandler,
         action = NSSelectorFromString(UiKitScreenEdgePanGestureHandler::handleEdgePan.name + ":")
     ).apply {
@@ -103,16 +107,7 @@ internal class UIKitBackGestureDispatcher(
     }
 
     fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.type == KeyEventType.KeyUp && event.key == Key.Escape) {
-            activeListener?.let {
-                it.onStarted()
-                it.onCompleted()
-            }
-
-            return true
-        } else {
-            return false
-        }
+        return handleBackKeyEvent(event, activeListener)
     }
 }
 
@@ -122,13 +117,15 @@ private class UiKitScreenEdgePanGestureHandler(
     private val getTopLeftOffsetInWindow: () -> IntOffset,
     private val getListener: () -> BackGestureListener?
 ) : NSObject() {
+    private var listener: BackGestureListener? = null
+
     @ObjCAction
     fun handleEdgePan(recognizer: UIScreenEdgePanGestureRecognizer) {
-        val listener = getListener() ?: return
         val view = recognizer.view ?: return
         when (recognizer.state) {
             UIGestureRecognizerStateBegan -> {
-                listener.onStarted()
+                listener = getListener()
+                listener?.onStarted()
             }
 
             UIGestureRecognizerStateChanged -> {
@@ -151,7 +148,7 @@ private class UiKitScreenEdgePanGestureHandler(
                             }
                         )
 
-                        listener.onProgressed(event)
+                        listener?.onProgressed(event)
                     }
                 }
             }
@@ -163,29 +160,59 @@ private class UiKitScreenEdgePanGestureHandler(
                     translation.useContents {
                         view.bounds.useContents {
                             val edge = recognizer.edges
-                            val velX = if (edge == UIRectEdgeLeft) this@velocity.x else -this@velocity.x
+                            val velX =
+                                if (edge == UIRectEdgeLeft) this@velocity.x else -this@velocity.x
                             when {
                                 //if movement is fast in the right direction
-                                velX > BACK_GESTURE_VELOCITY -> listener.onCompleted()
+                                velX > BACK_GESTURE_VELOCITY -> listener?.onCompleted()
                                 //if movement is backward
-                                velX < -10 -> listener.onCancelled()
+                                velX < -10 -> listener?.onCancelled()
                                 //if there is no movement, or the movement is slow,
                                 //but the touch is already more than BACK_GESTURE_SCREEN_SIZE
-                                abs(x) >= size.width * BACK_GESTURE_SCREEN_SIZE -> listener.onCompleted()
-                                else -> listener.onCancelled()
+                                abs(x) >= size.width * BACK_GESTURE_SCREEN_SIZE -> listener?.onCompleted()
+                                else -> listener?.onCancelled()
                             }
                         }
                     }
                 }
+                listener = null
             }
 
             UIGestureRecognizerStateCancelled -> {
-                listener.onCancelled()
+                listener?.onCancelled()
+                listener = null
             }
 
             UIGestureRecognizerStateFailed -> {
-                listener.onCancelled()
+                listener?.onCancelled()
+                listener = null
             }
         }
+    }
+}
+
+/**
+ * A special gesture recognizer that can cancel touches in the Compose scene.
+ * See [androidx.compose.ui.window.UserInputGestureRecognizer.canBePreventedByGestureRecognizer]
+ */
+internal class UIKitBackGestureRecognizer(
+    target: Any?, action: CPointer<out CPointed>?
+) : CMPScreenEdgePanGestureRecognizer(target = target, action = action) {
+    init {
+        setDelaysTouchesBegan(true)
+        setDelaysTouchesEnded(true)
+        setCancelsTouchesInView(true)
+    }
+
+    override fun canBePreventedByGestureRecognizer(
+        preventingGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return false
+    }
+
+    override fun canPreventGestureRecognizer(
+        preventedGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return true
     }
 }

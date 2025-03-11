@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
-package androidx.compose.runtime
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 
-// TODO https://youtrack.jetbrains.com/issue/CMP-719/Make-expect-fun-identityHashCodeinstance-Any-Int-internal
-@InternalComposeApi
-@Deprecated("Made internal. It wasn't supposed to be public")
-fun identityHashCode(instance: Any?): Int  =
-    androidx.compose.runtime.internal.identityHashCode(instance)
+NS_ASSUME_NONNULL_BEGIN
+
+@interface CMPHoverGestureHandler : NSObject
+
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithTarget:(nullable id)target action:(nullable SEL)action NS_DESIGNATED_INITIALIZER;
+
+@property (readonly, nullable) UIEvent *lastHandledEvent;
+
+- (void)attachToView:(UIView *)view;
+- (void)detachFromViewAndDispose:(UIView *)view;
+
+@end
+
+NS_ASSUME_NONNULL_END

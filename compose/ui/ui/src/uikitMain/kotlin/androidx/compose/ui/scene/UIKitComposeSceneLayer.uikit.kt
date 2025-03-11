@@ -158,6 +158,7 @@ internal class UIKitComposeSceneLayer(
     internal fun dispose() {
         mediator.dispose()
         view.removeFromSuperview()
+        view.dispose()
     }
 
     @Composable

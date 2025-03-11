@@ -29,8 +29,17 @@ class JsPlatformClipboard : Clipboard {
         getW3CClipboard()
     }
 
+    private val emptyClipboardItems = emptyArray<ClipboardItem>()
+
     override suspend fun getClipEntry(): ClipEntry? {
-        val items = nativeClipboard.read().await()
+        val items = nativeClipboard.read().catch {
+            // The most common reason is that the permission was denied
+            println("Failed to read from Clipboard: $it")
+            emptyClipboardItems
+        }.then {
+            it
+        }.await()
+
         if (items.isEmpty()) return null
         return ClipEntry(items)
     }

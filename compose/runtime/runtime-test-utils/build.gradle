@@ -53,7 +53,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.kotlinStdlibCommon)
+            implementation(libs.kotlinStdlib)
             implementation(projectOrArtifact(":compose:runtime:runtime"))
             implementation kotlin("test")
             implementation(libs.kotlinCoroutinesTest)

@@ -36,7 +36,7 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          * When updating dependencies, make sure to make the an analogous update in the
          * corresponding block below
          */
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation(libs.kotlinCoroutinesCore)
 
         api(project(":compose:ui:ui-graphics"))
@@ -102,7 +102,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
 
                 api(project(":compose:ui:ui-graphics"))

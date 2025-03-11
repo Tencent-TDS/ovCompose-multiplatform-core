@@ -26,6 +26,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
@@ -53,7 +54,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
-import platform.UIKit.reloadInputViews
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -212,7 +212,6 @@ internal class UIKitTextInputService(
         }
         if (textChanged || selectionChanged) {
             updateView()
-            textUIView?.reloadInputViews()
         }
     }
 
@@ -468,7 +467,7 @@ internal class UIKitTextInputService(
          */
         override fun deleteBackward() {
             // Before this function calls, iOS changes selection in setSelectedTextRange.
-            // All needed characters should be allready selected, and we can just remove them.
+            // All needed characters should be already selected, and we can just remove them.
             sendEditCommand(
                 CommitTextCommand("", 0)
             )
@@ -478,7 +477,7 @@ internal class UIKitTextInputService(
          * The text position for the end of a document.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
          */
-        override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
+        override fun endOfDocument(): Int = getState()?.text?.length ?: 0
 
         /**
          * The range of selected text in a document.
@@ -487,34 +486,25 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): IntRange? {
-            val cursorPos = getCursorPos()
-            if (cursorPos != null) {
-                return cursorPos until cursorPos
-            }
-            val selection = getState()?.selection
-            return if (selection != null) {
-                selection.start until selection.end
-            } else {
-                null
-            }
+        override fun getSelectedTextRange(): TextRange? {
+            return getState()?.selection
         }
 
-        override fun setSelectedTextRange(range: IntRange?) {
+        override fun setSelectedTextRange(range: TextRange?) {
             if (range != null) {
                 sendEditCommand(
-                    SetSelectionCommand(range.start, range.endInclusive + 1)
+                    SetSelectionCommand(range.start, range.end)
                 )
             } else {
                 sendEditCommand(
-                    SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
+                    SetSelectionCommand(endOfDocument(), endOfDocument())
                 )
             }
         }
 
         override fun selectAll() {
             sendEditCommand(
-                SetSelectionCommand(0, endOfDocument().toInt())
+                SetSelectionCommand(0, endOfDocument())
             )
         }
 
@@ -524,9 +514,12 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @return A substring of a document that falls within the specified range.
          */
-        override fun textInRange(range: IntRange): String {
-            val text = getState()?.text
-            return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
+        override fun textInRange(range: TextRange): String? {
+            if (isIncorrect(range)) {
+                return null
+            }
+            val text = getState()?.text ?: return null
+            return text.substring(range.start, range.end)
         }
 
         /**
@@ -535,9 +528,9 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @param text A string to replace the text in range.
          */
-        override fun replaceRange(range: IntRange, text: String) {
+        override fun replaceRange(range: TextRange, text: String) {
             sendEditCommand(
-                SetComposingRegionCommand(range.start, range.endInclusive + 1),
+                SetComposingRegionCommand(range.start, range.end),
                 SetComposingTextCommand(text, 1),
                 FinishComposingTextCommand(),
             )
@@ -552,7 +545,7 @@ internal class UIKitTextInputService(
          * @param selectedRange A range within markedText that indicates the current selection.
          * This range is always relative to markedText.
          */
-        override fun setMarkedText(markedText: String?, selectedRange: IntRange) {
+        override fun setMarkedText(markedText: String?, selectedRange: TextRange) {
             if (markedText != null) {
                 sendEditCommand(
                     SetComposingTextCommand(markedText, 1)
@@ -568,13 +561,8 @@ internal class UIKitTextInputService(
          * The current selection, which can be a caret or an extended range, always occurs within the marked text.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
-        override fun markedTextRange(): IntRange? {
-            val composition = getState()?.composition
-            return if (composition != null) {
-                composition.start until composition.end
-            } else {
-                null
-            }
+        override fun markedTextRange(): TextRange? {
+            return getState()?.composition
         }
 
         /**
@@ -590,20 +578,21 @@ internal class UIKitTextInputService(
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun positionFromPosition(position: Long, offset: Long): Long {
-            val text = getState()?.text ?: return 0
+        override fun positionFromPosition(position: Int, offset: Int): Int? {
+            val text = getState()?.text ?: return null
 
-            if (position + offset >= text.lastIndex + 1) {
-                return (text.lastIndex + 1).toLong()
+            val newPosition = position + offset
+            if (newPosition == text.length || newPosition == 0) {
+                return newPosition
             }
-            if (position + offset <= 0) {
-                return 0
+            if (newPosition < 0 || newPosition > text.length) {
+                return null
             }
-            var resultPosition = position.toInt()
+            var resultPosition = position
             val iterator = BreakIterator.makeCharacterInstance()
             iterator.setText(text)
 
-            repeat(offset.absoluteValue.toInt()) {
+            repeat(offset.absoluteValue) {
                 val iteratorResult = if (offset > 0) {
                     iterator.following(resultPosition)
                 } else {
@@ -611,14 +600,42 @@ internal class UIKitTextInputService(
                 }
 
                 if (iteratorResult == BreakIterator.DONE) {
-                    return resultPosition.toLong()
+                    return resultPosition
                 } else {
                     resultPosition = iteratorResult
                 }
             }
 
-            return resultPosition.toLong()
+            return resultPosition
         }
+
+        /**
+         * Returns the text position at a specified offset from another text position.
+         * Returned value must be in range between 0 and length of text (inclusive).
+         */
+        override fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int? {
+            val text = getState()?.text ?: return null
+            val layoutResult = textLayoutResult ?: return null
+
+            val line = layoutResult.getLineForOffset(position)
+            val lineStartOffset = layoutResult.getLineStart(line)
+            val offsetInLine = position - lineStartOffset
+            val targetLine = line + verticalOffset
+            return when {
+                targetLine < 0 -> 0
+                targetLine >= layoutResult.lineCount -> text.length
+                else -> {
+                    val targetLineEnd = layoutResult.getLineEnd(targetLine)
+                    val lineStart = layoutResult.getLineStart(targetLine)
+                    positionFromPosition(
+                        lineStart, min(offsetInLine, targetLineEnd - lineStart)
+                    )
+                }
+            }
+        }
+
+        private fun isIncorrect(range: TextRange): Boolean =
+            range.start < 0 || range.end > endOfDocument() || range.start > range.end
     }
 }
 

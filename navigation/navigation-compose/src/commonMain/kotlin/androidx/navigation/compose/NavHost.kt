@@ -534,17 +534,23 @@ internal fun NavHost(
                 val goodEdge =
                     limitBackGestureSwipeEdge == null || it.swipeEdge == limitBackGestureSwipeEdge
 
-                if (currentBackStack.size > 1 && goodEdge) {
+                if (currentBackStack.size > 1) {
                     inPredictiveBack = true
-                    progress = it.progress
+                    if (goodEdge) {
+                        progress = it.progress
+                    } else {
+                        throw CancellationException(
+                            "The current edge is not allowed to perform back gesture."
+                        )
+                    }
                 }
             }
-            if (currentBackStack.size > 1 && inPredictiveBack) {
+            if (currentBackStack.size > 1) {
                 inPredictiveBack = false
                 composeNavigator.popBackStack(currentBackStackEntry!!, false)
             }
         } catch (e: CancellationException) {
-            if (currentBackStack.size > 1 && inPredictiveBack) {
+            if (currentBackStack.size > 1) {
                 inPredictiveBack = false
             }
         }
