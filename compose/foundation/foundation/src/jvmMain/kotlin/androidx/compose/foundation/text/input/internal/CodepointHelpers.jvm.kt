@@ -16,8 +16,6 @@
 
 package androidx.compose.foundation.text.input.internal
 
-import androidx.compose.foundation.text.input.internal.selection.TextFieldPreparedSelection.Companion.NoCharacterFound
-
 internal actual fun CharSequence.codePointAt(index: Int): Int =
     java.lang.Character.codePointAt(this, index)
 
@@ -25,7 +23,3 @@ internal actual fun charCount(codePoint: Int): Int = java.lang.Character.charCou
 
 internal actual fun CharSequence.codePointBefore(index: Int): Int =
     java.lang.Character.codePointBefore(this, index)
-
-internal actual fun CharSequence.findCodePointBefore(index: Int): Int =
-    if (index <= 0) NoCharacterFound
-    else java.lang.Character.offsetByCodePoints(this, index, /* codePointOffset= */ -1)

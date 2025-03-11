@@ -17,7 +17,6 @@
 package androidx.compose.foundation.text.input.internal.selection
 
 import androidx.annotation.VisibleForTesting
-import androidx.compose.foundation.text.findCodePointOrEmojiStartBefore
 import androidx.compose.foundation.text.findFollowingBreak
 import androidx.compose.foundation.text.findParagraphEnd
 import androidx.compose.foundation.text.findParagraphStart
@@ -214,10 +213,6 @@ internal class TextFieldPreparedSelection(
                 wedgeAffinity = newWedgeAffinity
             }
         }
-
-    fun moveCursorPrevByCodePointOrEmoji() = moveCursorTo {
-        text.findCodePointOrEmojiStartBefore(selection.end)
-    }
 
     fun moveCursorPrevByChar() = moveCursorTo { text.findPrecedingBreak(selection.end) }
 
