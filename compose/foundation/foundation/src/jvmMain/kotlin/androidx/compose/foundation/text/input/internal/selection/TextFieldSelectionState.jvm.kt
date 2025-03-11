@@ -17,6 +17,8 @@
 package androidx.compose.foundation.text.input.internal.selection
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.text.TextDragObserver
+import androidx.compose.foundation.text.selection.MouseSelectionObserver
 import androidx.compose.ui.input.pointer.PointerInputScope
 
 internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
@@ -25,3 +27,10 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     requestFocus: () -> Unit,
     showKeyboard: () -> Unit
 ) = defaultDetectTextFieldTapGestures(selectionState, interactionSource, requestFocus, showKeyboard)
+
+/** Runs platform-specific text selection gestures logic. */
+internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
+    selectionState: TextFieldSelectionState,
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+) = defaultTextFieldSelectionGestures(mouseSelectionObserver, textDragObserver)

@@ -600,12 +600,12 @@ internal class TextFieldSelectionState(
      * * Single taps from any source. This is handled by [detectTextFieldTapGestures]. Only
      *   exception is the first mouse down does immediately place the cursor at the position.
      */
-    suspend fun PointerInputScope.textFieldSelectionGestures(requestFocus: () -> Unit) {
-        selectionGesturePointerInputBtf2(
-            mouseSelectionObserver = TextFieldMouseSelectionObserver(requestFocus),
-            textDragObserver = TextFieldTextDragObserver(requestFocus),
+    suspend fun PointerInputScope.textFieldSelectionGestures(requestFocus: () -> Unit) =
+        getTextFieldSelectionGestures(
+            this@TextFieldSelectionState,
+            TextFieldMouseSelectionObserver(requestFocus),
+            TextFieldTextDragObserver(requestFocus)
         )
-    }
 
     private inner class TextFieldMouseSelectionObserver(private val requestFocus: () -> Unit) :
         MouseSelectionObserver {
@@ -1530,6 +1530,23 @@ internal suspend fun PointerInputScope.defaultDetectTextFieldTapGestures(
                 }
             }
         }
+    )
+}
+
+/** Runs platform-specific text selection gestures logic. */
+internal expect suspend fun PointerInputScope.getTextFieldSelectionGestures(
+    selectionState: TextFieldSelectionState,
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+)
+
+internal suspend fun PointerInputScope.defaultTextFieldSelectionGestures(
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+) {
+    selectionGesturePointerInputBtf2(
+        mouseSelectionObserver = mouseSelectionObserver,
+        textDragObserver = textDragObserver,
     )
 }
 

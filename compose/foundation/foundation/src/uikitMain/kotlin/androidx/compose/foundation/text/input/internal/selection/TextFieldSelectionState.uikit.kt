@@ -16,9 +16,11 @@
 
 package androidx.compose.foundation.text.input.internal.selection
 
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectTapAndPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.determineCursorDesiredOffset
 import androidx.compose.foundation.text.input.internal.IndexTransformationType.Deletion
 import androidx.compose.foundation.text.input.internal.IndexTransformationType.Insertion
@@ -30,6 +32,7 @@ import androidx.compose.foundation.text.input.internal.findClosestRect
 import androidx.compose.foundation.text.input.internal.fromDecorationToTextLayout
 import androidx.compose.foundation.text.input.internal.getIndexTransformationType
 import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.None
+import androidx.compose.foundation.text.selection.MouseSelectionObserver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.text.TextRange
@@ -42,7 +45,7 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     requestFocus: () -> Unit,
     showKeyboard: () -> Unit
 ) {
-    detectTapAndPress(
+    detectTapAndPress( // Should I change for detectRepeatingTapGestures instead?
         onTap = { offset ->
             requestFocus()
 
@@ -165,4 +168,13 @@ internal fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset):
     textFieldState.selectUntransformedCharsIn(untransformedCursorRange)
     newAffinity?.let { textFieldState.selectionWedgeAffinity = it }
     return true
+}
+
+/** Runs platform-specific text selection gestures logic. */
+internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
+    selectionState: TextFieldSelectionState,
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+) {
+
 }
