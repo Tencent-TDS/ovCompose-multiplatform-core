@@ -21,3 +21,5 @@ internal actual fun StringBuilder.appendCodePointX(codePoint: Int): StringBuilde
     return this
 }
 
+internal actual fun String.findCodePointOrEmojiStartBefore(index: Int): Int =
+    implementedInJetBrainsFork()
