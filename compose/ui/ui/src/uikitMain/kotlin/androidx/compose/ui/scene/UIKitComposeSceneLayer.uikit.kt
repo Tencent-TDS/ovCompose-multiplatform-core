@@ -45,6 +45,7 @@ import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGPoint
+import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 
 internal class UIKitComposeSceneLayer(
@@ -76,6 +77,8 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
+    val interopContainerView = UIView()
+
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = view.density,
         getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
@@ -83,6 +86,7 @@ internal class UIKitComposeSceneLayer(
 
     private val mediator = ComposeSceneMediator(
         parentView = view,
+        interopContainerView = interopContainerView,
         onFocusBehavior = onFocusBehavior,
         focusStack = focusStack,
         windowContext = windowContext,
@@ -159,6 +163,7 @@ internal class UIKitComposeSceneLayer(
         mediator.dispose()
         view.removeFromSuperview()
         view.dispose()
+        interopContainerView.removeFromSuperview()
     }
 
     @Composable

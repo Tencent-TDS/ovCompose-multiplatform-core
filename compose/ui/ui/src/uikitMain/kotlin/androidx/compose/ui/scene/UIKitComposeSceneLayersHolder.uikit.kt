@@ -122,8 +122,8 @@ internal class UIKitComposeSceneLayersHolder(
         val isFirstLayer = layers.isEmpty()
 
         layers.add(layer)
+        view.insertSubview(layer.interopContainerView, belowSubview = metalView)
         view.embedSubview(layer.view)
-        view.bringSubviewToFront(metalView)
 
         if (isFirstLayer) {
             // The content of previous layers drawn on the Metal view should be cleared and

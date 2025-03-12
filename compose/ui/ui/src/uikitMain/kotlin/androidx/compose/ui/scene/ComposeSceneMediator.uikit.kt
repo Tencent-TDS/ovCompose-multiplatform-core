@@ -117,12 +117,12 @@ import platform.UIKit.UIView
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
  *
- * @property rootView The UI container associated with the semantics owner.
+ * @property view The UI container associated with the semantics owner.
  * @property coroutineContext The coroutine context to use for handling semantics changes.
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 private class SemanticsOwnerListenerImpl(
-    private val rootView: UIView,
+    private val view: UIView,
     private val coroutineContext: CoroutineContext,
     private val performEscape: () -> Boolean,
     private val onKeyboardPresses: (Set<*>) -> Unit,
@@ -140,7 +140,7 @@ private class SemanticsOwnerListenerImpl(
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (accessibilityMediator == null) {
             accessibilityMediator = AccessibilityMediator(
-                rootView,
+                view,
                 semanticsOwner,
                 coroutineContext,
                 performEscape,
@@ -182,6 +182,7 @@ private class SemanticsOwnerListenerImpl(
 
 internal class ComposeSceneMediator(
     parentView: UIView,
+    interopContainerView: UIView,
     private val onFocusBehavior: OnFocusBehavior,
     private val focusStack: FocusStack?,
     private val windowContext: PlatformWindowContext,
@@ -309,7 +310,7 @@ internal class ComposeSceneMediator(
 
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
-            rootView = parentView,
+            view = view,
             coroutineContext = coroutineContext,
             performEscape = {
                 val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
@@ -342,7 +343,7 @@ internal class ComposeSceneMediator(
                 setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
-            rootView = view,
+            view = view,
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
             onInputStarted = {
@@ -507,7 +508,7 @@ internal class ComposeSceneMediator(
 
     init {
         parentView.embedSubview(view)
-        view.embedSubview(userInputView)
+        interopContainerView.embedSubview(userInputView)
     }
 
     private var lastFocusedRect: Rect? = null
@@ -736,6 +737,11 @@ internal class ComposeSceneMediator(
                     launch {
                         request.textLayoutResult.collect {
                             textInputService.updateTextLayoutResult(it)
+                        }
+                    }
+                    launch {
+                        request.textFieldRectInRoot.collect {
+                            textInputService.updateTextFrame(it)
                         }
                     }
                     suspendCancellableCoroutine<Nothing> { continuation ->
