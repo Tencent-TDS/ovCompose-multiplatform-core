@@ -67,7 +67,7 @@ internal class BackingTextArea(
             if (evt.isComposing) return@addEventListener
 
             processKeyboardEvent(evt)
-            //evt.preventDefault()
+            evt.preventDefault()
         })
 
         htmlInput.addEventListener("compositionstart", { evt ->
@@ -99,6 +99,10 @@ internal class BackingTextArea(
             } else if (evt.inputType == "insertCompositionText") {
                 syncMode = EditSyncMode.FromHtml
                 onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
+            } else if (evt.inputType == "insertText") {
+//                evt.preventDefault()
+//                syncMode = EditSyncMode.FromCompose
+//                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
             }
         })
 
@@ -188,12 +192,12 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
+        console.log("update state", syncMode, textFieldValue.text, textFieldValue)
         if (syncMode is EditSyncMode.FromHtml) return
         try {
             textArea.value = textFieldValue.text
             textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
 
-            console.log("update state", textFieldValue.text, textFieldValue)
         } finally {
             syncMode = EditSyncMode.FromHtml
         }
@@ -217,6 +221,6 @@ private fun KeyboardEventInit.withKeyCode(key: Key) =
 
 
 private sealed interface EditSyncMode {
-    object FromCompose : EditSyncMode
-    object FromHtml : EditSyncMode
+    data object FromCompose : EditSyncMode
+    data object FromHtml : EditSyncMode
 }
