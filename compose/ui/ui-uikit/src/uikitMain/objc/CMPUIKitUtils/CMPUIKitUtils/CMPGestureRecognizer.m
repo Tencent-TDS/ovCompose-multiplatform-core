@@ -42,4 +42,12 @@
     return [super canBePreventedByGestureRecognizer:preventingGestureRecognizer];
 }
 
+- (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return [super shouldRequireFailureOfGestureRecognizer:otherGestureRecognizer];
+}
+
+- (BOOL)shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return [super shouldRequireFailureOfGestureRecognizer:otherGestureRecognizer];
+}
+
 @end
