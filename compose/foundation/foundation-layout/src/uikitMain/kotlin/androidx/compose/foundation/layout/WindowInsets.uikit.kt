@@ -131,7 +131,9 @@ actual val WindowInsets.Companion.tappableElement: WindowInsets
  * The insets for the curved areas in a waterfall display.
  * It is useless for iOS.
  */
-actual val WindowInsets.Companion.waterfall: WindowInsets get() = ZeroInsets
+actual val WindowInsets.Companion.waterfall: WindowInsets
+    @Composable
+    get() = ZeroInsets
 
 /**
  * The insets that include areas where content may be covered by other drawn content.
