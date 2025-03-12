@@ -21,8 +21,9 @@ import androidx.savedstate.RobolectricTest
 import androidx.savedstate.serialization.serializers.MutableStateFlowSerializer
 import kotlin.test.Test
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.serializer
 
 internal class MutableStateFlowSerializerTest : RobolectricTest() {
@@ -34,7 +35,6 @@ internal class MutableStateFlowSerializerTest : RobolectricTest() {
 
         val encoded = encodeToSavedState(serializer, state)
         val decoded = decodeFromSavedState(serializer, encoded)
-
         assertThat(state.value).isEqualTo(decoded.value)
     }
 
@@ -49,10 +49,119 @@ internal class MutableStateFlowSerializerTest : RobolectricTest() {
         assertThat(state.value).isEqualTo(decoded.value)
     }
 
-    companion object {
-        val USER_JOHN_DOE = User(name = "John", surname = "Doe")
-        @OptIn(InternalSerializationApi::class) val USER_SERIALIZER = User::class.serializer()
+    @Test
+    fun encodeDecode_formatSpecificRepresentationShouldWork() {
+        val state = MutableStateFlow(listOf(1, 2, 3))
+        val serializer = MutableStateFlowSerializer<List<Int>>()
+
+        val encoded = encodeToSavedState(serializer, state)
+        val decoded = decodeFromSavedState(serializer, encoded)
+
+        assertThat(state.value).isEqualTo(decoded.value)
     }
 
-    @Serializable data class User(val name: String = "John", val surname: String = "Doe")
+    @Test
+    fun serializerOnProperties() {
+        @Serializable
+        data class Foo(
+            @Serializable(with = MutableStateFlowSerializer::class)
+            val state: MutableStateFlow<User>
+        )
+
+        val original = Foo(MutableStateFlow(USER_JOHN_DOE))
+        val encoded = encodeToSavedState(original)
+        val decoded = decodeFromSavedState<Foo>(encoded)
+
+        assertThat(decoded.state.value).isEqualTo(original.state.value)
+    }
+
+    @Test
+    fun encodeDecode_primitivesShouldWork() {
+        testEncodeDecode(MutableStateFlow(true))
+        testEncodeDecode(MutableStateFlow(123.toShort()))
+        testEncodeDecode(MutableStateFlow(123))
+        testEncodeDecode(MutableStateFlow(123L))
+        testEncodeDecode(MutableStateFlow(3.14F))
+        testEncodeDecode(MutableStateFlow(3.14))
+        testEncodeDecode(MutableStateFlow('c'))
+        testEncodeDecode(MutableStateFlow("foo"))
+    }
+
+    @Test
+    fun encodeDecode_enumsShouldWork() {
+        testEncodeDecode(MutableStateFlow(MyEnum.B))
+    }
+
+    @Test
+    fun encodeDecode_contextualsShouldWork() {
+        testEncodeDecode(
+            mutableState = MutableStateFlow(USER_JOHN_DOE),
+            serializer = MutableStateFlowSerializer(USER_SERIALIZER),
+            configuration =
+                SavedStateConfiguration {
+                    serializersModule = SerializersModule {
+                        contextual(User::class, serializer<User>())
+                    }
+                }
+        )
+    }
+
+    @Test
+    fun encodeDecode_classesShouldWork() {
+        testEncodeDecode(MutableStateFlow(USER_JOHN_DOE))
+    }
+
+    @Test
+    fun encodeDecode_objectsShouldWork() {
+        testEncodeDecode(MutableStateFlow(MyObject))
+    }
+
+    @Test
+    fun encodeDecode_listsShouldWork() {
+        testEncodeDecode(MutableStateFlow(listOf(1, 3, 5)))
+    }
+
+    @Test
+    fun encodeDecode_mapsShouldWork() {
+        testEncodeDecode(MutableStateFlow(mapOf(3 to "foo", 4 to "bar")))
+    }
+
+    private inline fun <reified T : Any> testEncodeDecode(
+        mutableState: MutableStateFlow<T>,
+        serializer: KSerializer<MutableStateFlow<T>> = MutableStateFlowSerializer<T>(),
+        configuration: SavedStateConfiguration = SavedStateConfiguration.DEFAULT
+    ) {
+        val encoded =
+            encodeToSavedState(
+                serializer = serializer,
+                configuration = configuration,
+                value = mutableState
+            )
+        val decoded =
+            decodeFromSavedState<MutableStateFlow<T>>(
+                deserializer = serializer,
+                configuration = configuration,
+                savedState = encoded
+            )
+        assertThat(decoded.value).isEqualTo(mutableState.value)
+    }
+
+    companion object {
+        val USER_JOHN_DOE = User(name = "John", surname = "Doe")
+        val USER_SERIALIZER = serializer<User>()
+    }
+
+    @Serializable data class User(val name: String, val surname: String)
+
+    // `@Serializable` is needed for using the enum as root in native and js.
+    @Serializable
+    private enum class MyEnum {
+        A,
+        B
+    }
+
+    @Serializable
+    private data object MyObject {
+        val user = USER_JOHN_DOE
+    }
 }

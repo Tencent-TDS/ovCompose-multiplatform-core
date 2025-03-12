@@ -34,5 +34,3 @@ internal actual fun PredictiveBackHandler(
 ) {
     PredictiveBackHandler(enabled, onBack)
 }
-
-internal actual typealias DefaultNavTransitions = StandardDefaultNavTransitions
