@@ -62,7 +62,7 @@ internal class BackingTextArea(
 
     private fun initEvents(htmlInput: EventTarget) {
         htmlInput.addEventListener("keydown", { evt ->
-            console.log(evt.type, evt)
+            console.log(evt.type, evt.timeStamp, evt)
             evt as KeyboardEvent
             if (evt.isComposing) return@addEventListener
 
@@ -71,21 +71,21 @@ internal class BackingTextArea(
         })
 
         htmlInput.addEventListener("compositionstart", { evt ->
-            console.log(evt.type, evt)
+            console.log(evt.type, evt.timeStamp, evt)
         })
 
         htmlInput.addEventListener("compositionupdate", { evt ->
-            console.log(evt.type, evt)
+            console.log(evt.type, evt.timeStamp, evt)
         })
 
         htmlInput.addEventListener("compositionend", { evt ->
-            console.log(evt.type, evt)
+            console.log(evt.type, evt.timeStamp, evt)
             evt.preventDefault()
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
-            console.log(evt.type, evt.inputType, evt.data, evt)
+            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data, evt)
 
             if (syncMode is EditSyncMode.FromCompose) {
                 evt.preventDefault()
@@ -108,7 +108,7 @@ internal class BackingTextArea(
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
-            console.log(evt.type, evt.inputType, evt.data, evt)
+            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data, evt)
         })
     }
 
