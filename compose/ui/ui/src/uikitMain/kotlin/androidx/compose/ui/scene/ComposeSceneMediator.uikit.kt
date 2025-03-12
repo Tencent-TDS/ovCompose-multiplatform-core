@@ -267,7 +267,7 @@ internal class ComposeSceneMediator(
     /**
      * View wrapping the hierarchy managed by this Mediator.
      */
-    private val view = ComposeSceneMediatorView(
+    private val view = UIKitTransparentContainerView(
         onLayoutSubviews = ::updateLayout
     )
 
