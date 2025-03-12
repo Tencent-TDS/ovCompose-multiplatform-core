@@ -1181,6 +1181,13 @@ class NavDeepLinkTest {
     }
 
     @Test
+    fun deepLinkQueryParamArgumentWithWildCardIsNotExactDeepLink() {
+        val deepLinkArgument = "$DEEP_LINK_EXACT_HTTPS/{id}"
+        val deepLink = NavDeepLink(deepLinkArgument)
+        assertThat(deepLink.isExactDeepLink).isFalse()
+    }
+
+    @Test
     fun deepLinkQueryParamArgumentWithStarInFront() {
         val deepLinkArgument = "$DEEP_LINK_EXACT_HTTPS/users?productId=A*B{id}"
         val deepLink = NavDeepLink(deepLinkArgument)
@@ -1279,6 +1286,64 @@ class NavDeepLinkTest {
         assertWithMessage("Args should not contain the path")
             .that(matchArgs?.read { getString("path") })
             .isEqualTo("")
+    }
+
+    @Test
+    fun deepLinkDomainWithWildCard() {
+        val deepLinkUri = "https://.*.example.com"
+        val deepLink = NavDeepLink(deepLinkUri)
+
+        val matches = deepLink.matches(Uri.parse(deepLinkUri.replace(".*", "wildCardMatch")))
+        assertThat(matches).isTrue()
+    }
+
+    @Test
+    fun deepLinkDomainWithWildCardAndPathParamWildCard() {
+        val deepLinkUri = "https://.*.example.com/.*"
+        val deepLink = NavDeepLink(deepLinkUri)
+
+        val matches = deepLink.matches(Uri.parse(deepLinkUri.replace(".*", "wildCardMatch")))
+        assertThat(matches).isTrue()
+    }
+
+    @Test
+    fun deepLinkDomainWithWildCardAndPathParamArgumentAndWildCard() {
+        val deepLinkUri = "https://.*.example.com/{id}/.*"
+        val deepLink = NavDeepLink(deepLinkUri)
+
+        val intArg = 1
+        val finalUri =
+            Uri.parse(deepLinkUri.replace(".*", "wildCardMatch").replace("{id}", intArg.toString()))
+
+        val matches = deepLink.matches(finalUri)
+        assertThat(matches).isTrue()
+
+        val matchArgs =
+            deepLink.getMatchingArguments(finalUri, mapOf("id" to intArgument(defaultValue = -1)))
+        assertWithMessage("Args should not be null").that(matchArgs).isNotNull()
+        assertWithMessage("Args should contain the argument")
+            .that(matchArgs?.getInt("id"))
+            .isEqualTo(intArg)
+    }
+
+    @Test
+    fun deepLinkDomainWithWildCardAndQueryParamWildCard() {
+        val deepLinkUri = "https://.*.example.com?productId=.*-{id}"
+        val deepLink = NavDeepLink(deepLinkUri)
+
+        val intArg = 1
+        val finalUri =
+            Uri.parse(deepLinkUri.replace(".*", "wildCardMatch").replace("{id}", intArg.toString()))
+
+        val matches = deepLink.matches(finalUri)
+        assertThat(matches).isTrue()
+
+        val matchArgs =
+            deepLink.getMatchingArguments(finalUri, mapOf("id" to intArgument(defaultValue = -1)))
+        assertWithMessage("Args should not be null").that(matchArgs).isNotNull()
+        assertWithMessage("Args should contain the argument")
+            .that(matchArgs?.getInt("id"))
+            .isEqualTo(intArg)
     }
 
     @Test

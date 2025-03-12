@@ -67,10 +67,10 @@ internal data class NavBackStackEntryState(
         fun fromBundle(bundle: SavedState?): NavBackStackEntryState? {
             if (bundle == null) return null
             bundle.read {
-                val id = getStringOrElse(KEY_ID) { return null }
-                val destinationId = getIntOrElse(KEY_DESTINATION_ID) { return null }
+                val id = getStringOrNull(KEY_ID) ?: return null
+                val destinationId = getIntOrNull(KEY_DESTINATION_ID) ?: return null
                 val args = if (contains(KEY_ARGS)) getSavedState(KEY_ARGS) else null
-                val savedState = getSavedStateOrElse(KEY_SAVED_STATE) { return null }
+                val savedState = getSavedStateOrNull(KEY_SAVED_STATE) ?: return null
                 return NavBackStackEntryState(
                     id = id,
                     destinationId = destinationId,
