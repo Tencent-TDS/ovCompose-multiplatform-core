@@ -63,7 +63,11 @@ internal class BackingTextArea(
     private fun initEvents(htmlInput: EventTarget) {
         htmlInput.addEventListener("keydown", { evt ->
             console.log(evt.type, evt)
-            evt.preventDefault()
+            evt as KeyboardEvent
+            if (evt.isComposing) return@addEventListener
+
+            processKeyboardEvent(evt)
+            //evt.preventDefault()
         })
 
         htmlInput.addEventListener("compositionstart", { evt ->

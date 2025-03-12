@@ -27,7 +27,7 @@ import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
+    fun processKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
