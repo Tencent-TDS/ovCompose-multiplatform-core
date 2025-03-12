@@ -25,17 +25,18 @@ import androidx.navigation.NavGraph
 import androidx.navigation.NavGraphNavigator
 import androidx.navigation.Navigator
 import androidx.navigation.NavigatorProvider
-import androidx.navigation.implementedInJetBrainsFork
 import kotlin.jvm.JvmSuppressWildcards
 
-internal actual class ComposeNavGraphNavigator
-actual constructor(navigatorProvider: NavigatorProvider) : NavGraphNavigator(navigatorProvider) {
+internal actual class ComposeNavGraphNavigator actual constructor(
+    navigatorProvider: NavigatorProvider
+) : NavGraphNavigator(navigatorProvider) {
     actual override fun createDestination(): NavGraph {
-        implementedInJetBrainsFork()
+        return ComposeNavGraph(this)
     }
 
-    internal actual class ComposeNavGraph
-    actual constructor(navGraphNavigator: Navigator<out NavGraph>) : NavGraph(navGraphNavigator) {
+    internal actual class ComposeNavGraph actual constructor(
+        navGraphNavigator: Navigator<out NavGraph>
+    ) : NavGraph(navGraphNavigator) {
         internal actual var enterTransition:
             (@JvmSuppressWildcards
             AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition?)? =

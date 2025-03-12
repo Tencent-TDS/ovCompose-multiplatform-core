@@ -14,17 +14,45 @@
  * limitations under the License.
  */
 
+@file:JvmName("NavHostControllerKt")
+@file:JvmMultifileClass
+
 package androidx.navigation.compose
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.Navigator
-import androidx.navigation.implementedInJetBrainsFork
+import androidx.savedstate.SavedState
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
 @Composable
 public actual fun rememberNavController(
     vararg navigators: Navigator<out NavDestination>
 ): NavHostController {
-    implementedInJetBrainsFork()
+    return rememberSaveable(inputs = navigators, saver = NavControllerSaver()) {
+            createNavController()
+        }
+        .apply {
+            for (navigator in navigators) {
+                navigatorProvider.addNavigator(navigator)
+            }
+        }
 }
+
+private fun createNavController() =
+    NavHostController().apply {
+        navigatorProvider.addNavigator(ComposeNavGraphNavigator(navigatorProvider))
+        navigatorProvider.addNavigator(ComposeNavigator())
+        navigatorProvider.addNavigator(DialogNavigator())
+    }
+
+/** Saver to save and restore the NavController across config change and process death. */
+private fun NavControllerSaver(): Saver<NavHostController, *> =
+    Saver<NavHostController, SavedState>(
+        save = { it.saveState() },
+        restore = { createNavController().apply { restoreState(it) } }
+    )

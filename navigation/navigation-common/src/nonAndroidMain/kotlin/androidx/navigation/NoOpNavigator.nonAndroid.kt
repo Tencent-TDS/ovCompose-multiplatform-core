@@ -20,21 +20,16 @@ import androidx.annotation.RestrictTo
 import androidx.savedstate.SavedState
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public actual class NoOpNavigator actual constructor() : Navigator<NavDestination>() {
-    public actual override fun createDestination(): NavDestination {
-        implementedInJetBrainsFork()
-    }
+public actual class NoOpNavigator
+actual constructor(): Navigator<NavDestination>("NoOp") {
+    public actual override fun createDestination(): NavDestination = NavDestination(this)
 
     public actual override fun navigate(
         destination: NavDestination,
         args: SavedState?,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
-    ): NavDestination {
-        implementedInJetBrainsFork()
-    }
+    ): NavDestination = destination
 
-    public actual override fun popBackStack(): Boolean {
-        implementedInJetBrainsFork()
-    }
+    public actual override fun popBackStack(): Boolean = true
 }
