@@ -45,7 +45,6 @@ import androidx.compose.ui.window.MetalView
 import kotlin.coroutines.CoroutineContext
 import kotlinx.cinterop.CValue
 import platform.CoreGraphics.CGPoint
-import platform.UIKit.UIView
 import platform.UIKit.UIWindow
 
 internal class UIKitComposeSceneLayer(
@@ -77,7 +76,7 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
-    val interopContainerView = UIView()
+    val interopContainerView = UIKitTransparentContainerView()
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = view.density,
