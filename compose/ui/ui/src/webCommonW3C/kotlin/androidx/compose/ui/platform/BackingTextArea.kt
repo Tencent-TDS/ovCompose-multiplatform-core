@@ -82,15 +82,23 @@ internal class BackingTextArea(
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
             console.log(evt.type, evt.inputType, evt.data, evt)
+
+            if (syncMode is EditSyncMode.FromCompose) {
+                evt.preventDefault()
+                return@addEventListener
+            }
+
             if (evt.inputType == "insertFromComposition") {
                 evt.preventDefault()
+                syncMode = EditSyncMode.FromCompose
                 onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
+            } else if (evt.inputType == "insertCompositionText") {
+                syncMode = EditSyncMode.FromHtml
+                onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
             }
         })
 
         htmlInput.addEventListener("input", { evt ->
-            if (syncMode is EditSyncMode.FromCompose) return@addEventListener
-
             evt as InputEvent
             console.log(evt.type, evt.inputType, evt.data, evt)
         })
@@ -176,9 +184,8 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
+        if (syncMode is EditSyncMode.FromHtml) return
         try {
-            syncMode = EditSyncMode.FromCompose
-
             textArea.value = textFieldValue.text
             textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
 
@@ -186,8 +193,6 @@ internal class BackingTextArea(
         } finally {
             syncMode = EditSyncMode.FromHtml
         }
-//        textArea.value = textFieldValue.text
-//        textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
     }
 
     fun dispose() {
