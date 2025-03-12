@@ -46,6 +46,8 @@ internal class BackingTextArea(
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
+    private var syncMode: EditSyncMode = EditSyncMode.FromHtml
+
     private fun processEvent(evt: KeyboardEvent): Boolean {
         // source element is currently in composition session (after "compositionstart" but before "compositionend")
         if (evt.isComposing) return false
@@ -59,67 +61,38 @@ internal class BackingTextArea(
     }
 
     private fun initEvents(htmlInput: EventTarget) {
-        var removeSymbolOnCompositionStart = false
+        htmlInput.addEventListener("keydown", { evt ->
+            console.log(evt.type, evt)
+            evt.preventDefault()
+        })
 
-        DomInputService(htmlInput, object : DomInputListener {
-            override fun onKeyDown(evt: KeyboardEvent) {
-                // Dead keys occur whenever we are in pre-composition mode, initialized by typing OS-specific special keyboard shortcut
-                removeSymbolOnCompositionStart = processEvent(evt) && evt.key != "Dead"
-            }
+        htmlInput.addEventListener("compositionstart", { evt ->
+            console.log(evt.type, evt)
+        })
 
-            override fun onKeyUp(evt: KeyboardEvent) {
-                processEvent(evt)
-            }
+        htmlInput.addEventListener("compositionupdate", { evt ->
+            console.log(evt.type, evt)
+        })
 
-            override fun onCompositionStart(evt: CompositionEvent) {
-                // whenever very first time compose happens, corresponding keydown event happens earlier
-                // so we have to manually delete last key entered
-                if (removeSymbolOnCompositionStart) {
-                    onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
-                    removeSymbolOnCompositionStart = false
-                }
-            }
+        htmlInput.addEventListener("compositionend", { evt ->
+            console.log(evt.type, evt)
+            evt.preventDefault()
+        })
 
-            override fun onCompositionUpdate(evt: CompositionEvent) {
-                onEditCommand(listOf(SetComposingTextCommand(evt.data, 1)))
-            }
-
-            override fun onCompositionEnd(evt: CompositionEvent) {
-                onEditCommand(listOf(CommitTextCommand(evt.data, 1)))
-            }
-
-            override fun onInputInsertLineBreak(evt: InputEvent) {
-                if (imeOptions.singleLine) {
-                    onImeActionPerformed(imeOptions.imeAction)
-                }
-            }
-
-
-            /*
-            This event is used for processing events typed via virtual keyboard
-            on mobile devices
-             */
-            override fun onInputInsertText(evt: InputEvent) {
-                val data = evt.data ?: return
-                onEditCommand(listOf(CommitTextCommand(data, 1)))
-            }
-
-            override fun onInputDeleteContentBackward(evt: InputEvent) {
-                processKeyboardEvent(
-                    KeyboardEvent(
-                        "keydown",
-                        KeyboardEventInit(
-                            key = "Backspace",
-                            code = "Backspace"
-                        ).withKeyCode(Key.Backspace)
-                    )
-                )
+        htmlInput.addEventListener("beforeinput", { evt ->
+            evt as InputEvent
+            console.log(evt.type, evt.inputType, evt.data, evt)
+            if (evt.inputType == "insertFromComposition") {
+                evt.preventDefault()
+                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
             }
         })
 
-        htmlInput.addEventListener("contextmenu", { evt ->
-            evt.preventDefault()
-            evt.stopPropagation()
+        htmlInput.addEventListener("input", { evt ->
+            if (syncMode is EditSyncMode.FromCompose) return@addEventListener
+
+            evt as InputEvent
+            console.log(evt.type, evt.inputType, evt.data, evt)
         })
     }
 
@@ -203,6 +176,16 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
+        try {
+            syncMode = EditSyncMode.FromCompose
+
+            textArea.value = textFieldValue.text
+            textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+
+            console.log("update state", textFieldValue.text, textFieldValue)
+        } finally {
+            syncMode = EditSyncMode.FromHtml
+        }
 //        textArea.value = textFieldValue.text
 //        textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
     }
@@ -222,3 +205,9 @@ private fun KeyboardEventInit.withKeyCode(key: Key) =
     (this as KeyboardEventInitExtended).apply {
         this.keyCode = key.keyCode.toInt()
     }
+
+
+private sealed interface EditSyncMode {
+    object FromCompose : EditSyncMode
+    object FromHtml : EditSyncMode
+}
