@@ -1,11 +1,11 @@
-public final class androidx/navigation/compose/ComposableSingletons$ComposeNavigator_jbKt {
-	public static final field INSTANCE Landroidx/navigation/compose/ComposableSingletons$ComposeNavigator_jbKt;
+public final class androidx/navigation/compose/ComposableSingletons$ComposeNavigator_nonAndroidKt {
+	public static final field INSTANCE Landroidx/navigation/compose/ComposableSingletons$ComposeNavigator_nonAndroidKt;
 	public fun <init> ()V
 	public final fun getLambda-1$navigation_compose ()Lkotlin/jvm/functions/Function4;
 }
 
-public final class androidx/navigation/compose/ComposableSingletons$DialogNavigator_jbKt {
-	public static final field INSTANCE Landroidx/navigation/compose/ComposableSingletons$DialogNavigator_jbKt;
+public final class androidx/navigation/compose/ComposableSingletons$DialogNavigator_nonAndroidKt {
+	public static final field INSTANCE Landroidx/navigation/compose/ComposableSingletons$DialogNavigator_nonAndroidKt;
 	public fun <init> ()V
 	public final fun getLambda-1$navigation_compose ()Lkotlin/jvm/functions/Function3;
 }
@@ -72,7 +72,7 @@ public final class androidx/navigation/compose/DialogNavigatorDestinationBuilder
 	public synthetic fun instantiateDestination ()Landroidx/navigation/NavDestination;
 }
 
-public final class androidx/navigation/compose/NavBackStackEntryProvider_jbKt {
+public final class androidx/navigation/compose/NavBackStackEntryProvider_nonAndroidKt {
 	public static final fun LocalOwnersProvider (Landroidx/navigation/NavBackStackEntry;Landroidx/compose/runtime/saveable/SaveableStateHolder;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;I)V
 }
 

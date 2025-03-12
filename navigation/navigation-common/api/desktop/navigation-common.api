@@ -421,9 +421,8 @@ public abstract class androidx/navigation/NavUri {
 	public abstract fun toString ()Ljava/lang/String;
 }
 
-public final class androidx/navigation/NavUriUtils {
-	public static final field INSTANCE Landroidx/navigation/NavUriUtils;
-	public final fun parse (Ljava/lang/String;)Landroidx/navigation/NavUri;
+public final class androidx/navigation/NavUriKt {
+	public static final fun parseStringAsNavUri (Ljava/lang/String;)Landroidx/navigation/NavUri;
 }
 
 public abstract interface class androidx/navigation/NavViewModelStoreProvider {
