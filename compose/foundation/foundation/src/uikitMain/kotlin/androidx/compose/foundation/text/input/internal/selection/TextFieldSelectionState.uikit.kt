@@ -58,7 +58,7 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     requestFocus: () -> Unit,
     showKeyboard: () -> Unit
 ) {
-    detectTapAndPress( // Should I change for detectRepeatingTapGestures instead?
+    detectTapAndPress(
         onTap = { offset ->
             requestFocus()
 
