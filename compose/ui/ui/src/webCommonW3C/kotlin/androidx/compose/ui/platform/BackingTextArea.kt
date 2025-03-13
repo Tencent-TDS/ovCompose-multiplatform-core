@@ -47,6 +47,7 @@ internal class BackingTextArea(
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
     private var syncMode: EditSyncMode = EditSyncMode.FromHtml
+    private var freshCompositionEnd = false
 
     private fun processEvent(evt: KeyboardEvent): Boolean {
         // source element is currently in composition session (after "compositionstart" but before "compositionend")
@@ -65,11 +66,14 @@ internal class BackingTextArea(
             evt as KeyboardEvent
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
 
+            if (freshCompositionEnd) return@addEventListener
             if (evt.isComposing) return@addEventListener
 
             syncMode = EditSyncMode.FromCompose
             processKeyboardEvent(evt)
             evt.preventDefault()
+
+            freshCompositionEnd = false
         })
 
         htmlInput.addEventListener("compositionstart", { evt ->
@@ -83,6 +87,7 @@ internal class BackingTextArea(
         })
 
         htmlInput.addEventListener("compositionend", { evt ->
+            freshCompositionEnd = true
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
 
