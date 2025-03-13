@@ -85,12 +85,15 @@ internal class BackingTextArea(
         htmlInput.addEventListener("compositionend", { evt ->
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
+
             evt.preventDefault()
+            syncMode = EditSyncMode.FromCompose
+            onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
-            console.log("%c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+            console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
 
             if (syncMode is EditSyncMode.FromCompose) {
                 evt.preventDefault()
@@ -98,22 +101,22 @@ internal class BackingTextArea(
             }
 
             if (evt.inputType == "insertFromComposition") {
-                evt.preventDefault()
-                syncMode = EditSyncMode.FromCompose
-                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
+//                evt.preventDefault()
+//                syncMode = EditSyncMode.FromCompose
+//                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
             } else if (evt.inputType == "insertCompositionText") {
                 syncMode = EditSyncMode.FromHtml
                 onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
             } else if (evt.inputType == "insertText") {
-//                evt.preventDefault()
-//                syncMode = EditSyncMode.FromCompose
-//                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
+                evt.preventDefault()
+                syncMode = EditSyncMode.FromCompose
+                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
             }
         })
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
-            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data, evt)
+            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data)
         })
     }
 
