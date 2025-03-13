@@ -32,6 +32,7 @@ import androidx.compose.foundation.text.input.internal.findClosestRect
 import androidx.compose.foundation.text.input.internal.fromDecorationToTextLayout
 import androidx.compose.foundation.text.input.internal.getIndexTransformationType
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState.InputType
+import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.Cursor
 import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.None
 import androidx.compose.foundation.text.selection.ClicksCounter
 import androidx.compose.foundation.text.selection.MouseSelectionObserver
@@ -65,19 +66,22 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
             if (selectionState.enabled && selectionState.isFocused) {
                 if (!selectionState.readOnly) {
                     showKeyboard()
-                    // TODO: looks unnecessary
-//                    if (selectionState.textFieldState.visualText.isNotEmpty()) {
-//                        selectionState.showCursorHandle = true
-//                    }
+                    if (selectionState.textFieldState.visualText.isNotEmpty()) {
+                        selectionState.showCursorHandle = true
+                    }
                 }
 
-                // do not show any TextToolbar.
                 selectionState.updateTextToolbarState(None)
 
                 val coercedOffset = selectionState.textLayoutState.coercedInVisibleBoundsOfInputText(offset)
-                selectionState.placeCursorAtDesiredOffset(
+                val cursorMoved = selectionState.placeCursorAtDesiredOffset(
                     selectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
                 )
+
+                // TODO: It should be toggleable
+                if (!cursorMoved) {
+                    selectionState.updateTextToolbarState(Cursor)
+                }
             }
         },
         // Should remain as is
@@ -272,7 +276,6 @@ private class UIKitTextFieldTextDragObserver(
             )
         }
         textFieldSelectionState.showCursorHandle = true
-//        textFieldSelectionState.updateTextToolbarState(Cursor)
     }
 
     override fun onDrag(delta: Offset) {
