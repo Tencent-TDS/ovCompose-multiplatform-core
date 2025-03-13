@@ -62,30 +62,35 @@ internal class BackingTextArea(
 
     private fun initEvents(htmlInput: EventTarget) {
         htmlInput.addEventListener("keydown", { evt ->
-            console.log(evt.type, evt.timeStamp, evt)
             evt as KeyboardEvent
+            console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
+
             if (evt.isComposing) return@addEventListener
 
+            syncMode = EditSyncMode.FromCompose
             processKeyboardEvent(evt)
             evt.preventDefault()
         })
 
         htmlInput.addEventListener("compositionstart", { evt ->
-            console.log(evt.type, evt.timeStamp, evt)
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
         })
 
         htmlInput.addEventListener("compositionupdate", { evt ->
-            console.log(evt.type, evt.timeStamp, evt)
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
         })
 
         htmlInput.addEventListener("compositionend", { evt ->
-            console.log(evt.type, evt.timeStamp, evt)
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
             evt.preventDefault()
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
-            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data, evt)
+            console.log("%c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
 
             if (syncMode is EditSyncMode.FromCompose) {
                 evt.preventDefault()
@@ -192,7 +197,7 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
-        console.log("update state", syncMode, textFieldValue.text, textFieldValue)
+        println("update state $syncMode, ${textFieldValue.text}")
         if (syncMode is EditSyncMode.FromHtml) return
         try {
             textArea.value = textFieldValue.text
