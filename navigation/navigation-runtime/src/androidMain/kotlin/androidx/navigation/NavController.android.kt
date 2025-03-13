@@ -2428,7 +2428,7 @@ public actual open class NavController(
                     }
                 }
             }
-            deepLinkHandled = getBooleanOrElse(KEY_DEEP_LINK_HANDLED) { false }
+            deepLinkHandled = getBooleanOrNull(KEY_DEEP_LINK_HANDLED) ?: false
         }
     }
 

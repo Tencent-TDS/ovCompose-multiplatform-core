@@ -106,28 +106,28 @@ kotlin {
         }
 
 
-        jbMain.dependsOn(commonMain)
-        jbTest.dependsOn(commonTest)
+        nonAndroidMain.dependsOn(commonMain)
+        nonAndroidTest.dependsOn(commonTest)
 
         desktopMain {
             dependsOn(jvmMain)
-            dependsOn(jbMain)
+            dependsOn(nonAndroidMain)
         }
         desktopTest {
             dependsOn(jvmTest)
-            dependsOn(jbTest)
+            dependsOn(nonAndroidTest)
             dependencies {
                 implementation(libs.skikoCurrentOs)
                 implementation(libs.kotlinCoroutinesSwing)
             }
         }
-        nonJvmMain.dependsOn(jbMain)
+        nonJvmMain.dependsOn(nonAndroidMain)
         nativeMain.dependsOn(nonJvmMain)
         webMain.dependsOn(nonJvmMain)
         darwinMain.dependsOn(nativeMain)
         linuxMain.dependsOn(nativeMain)
 
-        nonJvmTest.dependsOn(jbTest)
+        nonJvmTest.dependsOn(nonAndroidTest)
         nativeTest.dependsOn(nonJvmTest)
         webTest.dependsOn(nonJvmTest)
         darwinTest.dependsOn(nativeTest)

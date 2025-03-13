@@ -195,7 +195,7 @@ internal class SavedStateHandlesProvider(
         val state = restoredState ?: return null
         if (state.read { !contains(key) }) return null
 
-        val result = state.read { getSavedStateOrElse(key) { savedState() } }
+        val result = state.read { getSavedStateOrNull(key) ?: savedState() }
         state.write { remove(key) }
         if (state.read { isEmpty() }) {
             this.restoredState = null

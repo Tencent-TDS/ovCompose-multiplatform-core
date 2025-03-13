@@ -199,6 +199,65 @@ abstract class RouteDecoderTest(val source: ArgumentSource) {
     }
 
     @Test
+    fun decodeDoubleList() {
+        @Serializable class TestClass(val arg: List<Double>?)
+
+        val map = mapOf("arg" to listOf(11E123, 11.11))
+        val result =
+            decode<TestClass>(
+                map,
+                listOf(navArgument("arg") { type = InternalNavType.DoubleListType })
+            )
+        assertThat(result.arg).isEqualTo(listOf(11E123, 11.11))
+    }
+
+    @Test
+    fun decodeEnumList() {
+        @Serializable class TestClass(val arg: List<TestEnum>)
+
+        val map = mapOf("arg" to listOf(TestEnum.TWO, TestEnum.TWO))
+        val result =
+            decode<TestClass>(
+                map,
+                listOf(
+                    navArgument("arg") {
+                        type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                    }
+                )
+            )
+        assertThat(result.arg).isEqualTo(listOf(TestEnum.TWO, TestEnum.TWO))
+    }
+
+    @Test
+    fun decodeEnumListNullable() {
+        @Serializable class TestClass(val arg: List<TestEnum>?)
+
+        val values = mapOf("arg" to listOf(TestEnum.TWO, TestEnum.TWO))
+        val result =
+            decode<TestClass>(
+                values,
+                listOf(
+                    navArgument("arg") {
+                        type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                    }
+                )
+            )
+        assertThat(result.arg).isEqualTo(listOf(TestEnum.TWO, TestEnum.TWO))
+
+        val values2 = mapOf("arg" to null)
+        val result2 =
+            decode<TestClass>(
+                values2,
+                listOf(
+                    navArgument("arg") {
+                        type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                    }
+                )
+            )
+        assertThat(result2.arg).isNull()
+    }
+
+    @Test
     fun decodeIntString() {
         @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: Int, val arg2: String)
 
