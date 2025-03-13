@@ -74,6 +74,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -116,6 +117,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * <a href="https://m3.material.io/components/search/overview" class="external"
