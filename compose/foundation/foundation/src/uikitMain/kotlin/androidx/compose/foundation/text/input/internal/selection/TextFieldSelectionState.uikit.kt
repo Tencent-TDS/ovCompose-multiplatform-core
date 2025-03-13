@@ -22,6 +22,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.determineCursorDesiredOffset
+import androidx.compose.foundation.text.input.TextFieldCharSequence
 import androidx.compose.foundation.text.input.internal.IndexTransformationType.Deletion
 import androidx.compose.foundation.text.input.internal.IndexTransformationType.Insertion
 import androidx.compose.foundation.text.input.internal.IndexTransformationType.Replacement
@@ -34,8 +35,10 @@ import androidx.compose.foundation.text.input.internal.getIndexTransformationTyp
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState.InputType
 import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.Cursor
 import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.None
+import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.Selection
 import androidx.compose.foundation.text.selection.ClicksCounter
 import androidx.compose.foundation.text.selection.MouseSelectionObserver
+import androidx.compose.foundation.text.selection.SelectionAdjustment
 import androidx.compose.foundation.text.selection.isPrecisePointer
 import androidx.compose.foundation.text.selection.mouseSelectionBtf2
 import androidx.compose.foundation.text.selection.touchSelectionFirstPress
@@ -45,6 +48,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.isPrimaryPressed
@@ -73,7 +77,8 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
 
                 selectionState.updateTextToolbarState(None)
 
-                val coercedOffset = selectionState.textLayoutState.coercedInVisibleBoundsOfInputText(offset)
+                val coercedOffset =
+                    selectionState.textLayoutState.coercedInVisibleBoundsOfInputText(offset)
                 val cursorMoved = selectionState.placeCursorAtDesiredOffset(
                     selectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
                 )
@@ -117,7 +122,7 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     )
 }
 
-internal fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset): Boolean {
+private fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset): Boolean {
     val layoutResult = textLayoutState.layoutResult ?: return false
 
     // First step: calculate the proposed cursor index.
@@ -128,7 +133,8 @@ internal fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset):
     val previousIndex = layoutResult.getOffsetForPosition(handleDragPosition)
     // TODO: Check which type of text is required here
     val currentText = textFieldState.untransformedText.text as String
-    val index = determineCursorDesiredOffset(proposedIndex, previousIndex, layoutResult, currentText)
+    val index =
+        determineCursorDesiredOffset(proposedIndex, previousIndex, layoutResult, currentText)
 
     // Third step: if a transformation is applied, determine if the proposed cursor position
     // would be in a range where the cursor is not allowed to be. If so, push it to the
@@ -212,20 +218,75 @@ internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
                     1 -> {
                         // The default BTF2 logic, except
                         // moving text cursor without selection requires custom TextDragObserver
-                        touchSelectionFirstPress(observer = uiKitTextDragObserver, downEvent = downEvent)
+                        touchSelectionFirstPress(
+                            observer = uiKitTextDragObserver,
+                            downEvent = downEvent
+                        )
                     }
+
                     2 -> {
-                        // Should do word selection only
-
+                        doRepeatingTapSelection(
+                            downEvent.changes.first(),
+                            selectionState,
+                            SelectionAdjustment.Word
+                        )
                     }
-                    else -> {
-                        // Should do sentence selection only
 
+                    else -> {
+                        val downChange = downEvent.changes.first()
+                        clearSelection(
+                            downChange,
+                            selectionState
+                        ) // Previous selection must be cleared, otherwise this closure won't get third (and further) click
+                        doRepeatingTapSelection(
+                            downChange,
+                            selectionState,
+                            SelectionAdjustment.Paragraph
+                        )
                     }
                 }
             }
         }
     }
+}
+
+private fun doRepeatingTapSelection(
+    touchChange: PointerInputChange,
+    selectionState: TextFieldSelectionState,
+    selectionAdjustment: SelectionAdjustment
+) {
+    val selectionOffset = selectionState.textLayoutState.getOffsetForPosition(
+        position = touchChange.position
+    )
+    touchChange.consume()
+
+    val newSelection = selectionState.updateSelection(
+        selectionState.textFieldState.visualText,
+        selectionOffset,
+        selectionOffset,
+        isStartHandle = false,
+        adjustment = selectionAdjustment,
+    )
+
+    selectionState.textFieldState.selectCharsIn(newSelection)
+    selectionState.updateTextToolbarState(Selection)
+}
+
+private fun clearSelection(
+    touchChange: PointerInputChange,
+    selectionState: TextFieldSelectionState
+) {
+    val selectionOffset = selectionState.textLayoutState.getOffsetForPosition(
+        position = touchChange.position
+    )
+    val clearedSelection = selectionState.updateSelection(
+        TextFieldCharSequence(selectionState.textFieldState.visualText, TextRange.Zero),
+        selectionOffset,
+        selectionOffset,
+        isStartHandle = false,
+        adjustment = SelectionAdjustment.None,
+    )
+    selectionState.textFieldState.selectCharsIn(clearedSelection)
 }
 
 private class UIKitTextFieldTextDragObserver(
@@ -285,7 +346,10 @@ private class UIKitTextFieldTextDragObserver(
 
         val currentDragPosition = dragBeginPosition + dragTotalDistance
 
-        val coercedOffset = textFieldSelectionState.textLayoutState.coercedInVisibleBoundsOfInputText(currentDragPosition)
+        val coercedOffset =
+            textFieldSelectionState.textLayoutState.coercedInVisibleBoundsOfInputText(
+                currentDragPosition
+            )
         // A common function must be used here because in iOS during a drag the cursor should move without adjustments,
         // as it does with a single tap
         textFieldSelectionState.placeCursorAtNearestOffset(

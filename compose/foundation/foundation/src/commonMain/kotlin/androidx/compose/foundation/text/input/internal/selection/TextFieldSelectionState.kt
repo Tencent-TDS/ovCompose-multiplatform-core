@@ -1389,7 +1389,7 @@ internal class TextFieldSelectionState(
      *   end padding - a collapsed selection may be necessary context to avoid selection flickering.
      * @param isStartOfSelection Whether this is, for certain, the beginning of a selection.
      */
-    private fun updateSelection(
+    internal fun updateSelection(
         textFieldCharSequence: TextFieldCharSequence,
         startOffset: Int,
         endOffset: Int,
