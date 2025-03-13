@@ -99,6 +99,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGPoint
 import platform.QuartzCore.CACurrentMediaTime
 import platform.QuartzCore.CATransaction
@@ -397,7 +400,7 @@ internal class ComposeSceneMediator(
             scrollDelta = delta.toOffset(density) * SCROLL_DELTA_MULTIPLIER,
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
+            keyboardModifiers = PointerKeyboardModifiers(event.modifierFlagsOrZero)
         )
     }
 
@@ -424,7 +427,7 @@ internal class ComposeSceneMediator(
             ),
             timeMillis = event.timeMillis,
             nativeEvent = event,
-            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
+            keyboardModifiers = PointerKeyboardModifiers(event.modifierFlagsOrZero)
         )
     }
 
@@ -483,7 +486,7 @@ internal class ComposeSceneMediator(
 
         // UIKit sends buttonMask that was before the release action. It should be empty if no
         // pressed pointers left.
-        val pointerButtonsMask = event?.buttonMask?.takeIf {
+        val pointerButtonsMask = event.buttonMaskOrZero.takeIf {
             pointers.any { it.pressed }
         } ?: 0L
 
@@ -494,9 +497,9 @@ internal class ComposeSceneMediator(
             nativeEvent = event,
             button = event?.getButton(previousButtonMask, eventKind, previousTouchEventKind),
             buttons = PointerButtons(pointerButtonsMask),
-            keyboardModifiers = PointerKeyboardModifiers(event?.modifierFlags ?: 0L)
+            keyboardModifiers = PointerKeyboardModifiers(event.modifierFlagsOrZero)
         ).also {
-            previousButtonMask = event?.buttonMask ?: 0L
+            previousButtonMask = event.buttonMaskOrZero
             if (eventKind != TouchesEventKind.MOVED) {
                 previousTouchEventKind = eventKind
             }
@@ -767,11 +770,11 @@ private fun UIEvent.getButton(
 ): PointerButton? =
     if (eventKind == TouchesEventKind.MOVED) {
         null
-    } else if (buttonMask and UIEventButtonMaskPrimary != 0L &&
+    } else if (buttonMaskOrZero and UIEventButtonMaskPrimary != 0L &&
         (previousButtonMask and UIEventButtonMaskPrimary == 0L ||
             eventKind != previousEventKind)) {
         PointerButton.Primary
-    } else if (buttonMask and UIEventButtonMaskSecondary != 0L &&
+    } else if (buttonMaskOrZero and UIEventButtonMaskSecondary != 0L &&
         (previousButtonMask and UIEventButtonMaskSecondary == 0L ||
             eventKind != previousEventKind)) {
         PointerButton.Secondary
@@ -819,6 +822,20 @@ private fun UIEvent.historicalChangesForTouch(
         emptyList()
     }
 }
+
+private val UIEvent?.buttonMaskOrZero: Long get() =
+    if (available(OS.Ios to OSVersion(13, 4))) {
+        this?.buttonMask ?: 0L
+    } else {
+        0L
+    }
+
+private val UIEvent?.modifierFlagsOrZero: Long get() =
+    if (available(OS.Ios to OSVersion(13, 4))) {
+        this?.modifierFlags ?: 0L
+    } else {
+        0L
+    }
 
 private val UITouch.isPressed
     get() = when (phase) {
