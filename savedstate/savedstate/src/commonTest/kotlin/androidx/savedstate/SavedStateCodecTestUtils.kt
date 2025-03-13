@@ -17,17 +17,12 @@
 package androidx.savedstate
 
 import androidx.kruth.assertThat
-import androidx.savedstate.serialization.SavedStateConfiguration
+import androidx.savedstate.serialization.SavedStateConfig
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import kotlinx.serialization.KSerializer
 
-/**
- * Utility object providing helper functions for encoding and decoding instances of `T` using
- * [SavedState]. It supports serialization, parcelization (on Android), and deserialization.
- */
 internal object SavedStateCodecTestUtils {
-
     /* Test the following steps: 1. encode `T` to a `SavedState`, 2. parcelize it to a `Parcel`,
      * 3. un-parcelize it back to a `SavedState`, and 4. decode it back to a `T`. Step 2 and 3
      * are only performed on Android. Here's the whole process:
@@ -39,7 +34,7 @@ internal object SavedStateCodecTestUtils {
      */
     inline fun <reified T : Any> T.encodeDecode(
         serializer: KSerializer<T>? = null,
-        configuration: SavedStateConfiguration? = null,
+        config: SavedStateConfig? = null,
         checkDecoded: (T, T) -> Unit = { decoded, original ->
             assertThat(decoded).isEqualTo(original)
         },
@@ -47,34 +42,35 @@ internal object SavedStateCodecTestUtils {
     ) {
         val encoded =
             if (serializer == null) {
-                if (configuration == null) {
+                if (config == null) {
                     encodeToSavedState(this)
                 } else {
-                    encodeToSavedState(this, configuration)
+                    encodeToSavedState(this, config)
                 }
             } else {
-                if (configuration == null) {
+                if (config == null) {
                     encodeToSavedState(serializer, this)
                 } else {
-                    encodeToSavedState(serializer, this, configuration)
+                    encodeToSavedState(serializer, this, config)
                 }
             }
+
         encoded.read { checkEncoded() }
 
         val restored = platformEncodeDecode(encoded)
 
         val decoded =
             if (serializer == null) {
-                if (configuration == null) {
+                if (config == null) {
                     decodeFromSavedState(restored)
                 } else {
-                    decodeFromSavedState(restored, configuration)
+                    decodeFromSavedState(restored, config)
                 }
             } else {
-                if (configuration == null) {
+                if (config == null) {
                     decodeFromSavedState(serializer, restored)
                 } else {
-                    decodeFromSavedState(serializer, restored, configuration)
+                    decodeFromSavedState(serializer, restored, config)
                 }
             }
 
@@ -82,13 +78,4 @@ internal object SavedStateCodecTestUtils {
     }
 }
 
-/**
- * Platform-specific function for encoding and decoding `SavedState` objects.
- *
- * This function ensures that the encoded state is processed through the platform's parcelization
- * and unparcelization logic (on Android) to simulate real-world behavior.
- *
- * @param savedState The `SavedState` to be encoded and then decoded.
- * @return The resulting `SavedState` after going through the platform encoding-decoding process.
- */
 expect fun platformEncodeDecode(savedState: SavedState): SavedState

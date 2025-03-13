@@ -365,9 +365,7 @@ class NavArgumentGeneratorAndroidTest {
         assertThat(exception.message)
             .isEqualTo(
                 "Cannot find class with name \"MyCustomSerialName\". Ensure that the " +
-                    "serialName for this argument is the default fully qualified name." +
-                    "\nIf the build is minified, try annotating the Enum class " +
-                    "with \"androidx.annotation.Keep\" to ensure the Enum is not removed."
+                    "serialName for this argument is the default fully qualified name"
             )
     }
 

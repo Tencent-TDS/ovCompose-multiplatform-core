@@ -42,9 +42,8 @@ import kotlinx.serialization.encoding.Encoder
  * @see androidx.savedstate.serialization.decodeFromSavedState
  */
 @OptIn(ExperimentalSerializationApi::class)
-public object SavedStateSerializer : KSerializer<SavedState> {
-    override val descriptor: SerialDescriptor =
-        buildClassSerialDescriptor("androidx.savedstate.SavedState")
+public class SavedStateSerializer : KSerializer<SavedState> {
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("SavedState")
 
     override fun serialize(encoder: Encoder, value: SavedState) {
         require(encoder is SavedStateEncoder) {

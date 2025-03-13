@@ -20,12 +20,9 @@ package androidx.savedstate.serialization.serializers
 
 import kotlin.experimental.ExperimentalTypeInference
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -38,43 +35,49 @@ import kotlinx.serialization.serializer
  * [KSerializer] for serialization and deserialization of [MutableStateFlow].
  *
  * @param T The type of the value stored in the [MutableStateFlow].
- * @return A [MutableStateFlowSerializer] for handling [MutableStateFlow] containing a
- *   [Serializable] type [T].
+ * @return A [KSerializer] for handling [MutableStateFlow] containing a [Serializable] type [T].
  */
-public inline fun <reified T> MutableStateFlowSerializer(): MutableStateFlowSerializer<T> {
+public inline fun <reified T> MutableStateFlowSerializer(): KSerializer<MutableStateFlow<T>> {
     return MutableStateFlowSerializer(serializer())
 }
 
 /**
- * A [KSerializer] for [MutableStateFlow].
+ * Creates a [KSerializer] for a [MutableStateFlow] containing a [Serializable] value of type [T].
  *
- * This class wraps a [KSerializer] for the inner value type [T], enabling serialization and
+ * This function allows for explicit specification of the [KSerializer] for the state type [T]. It
+ * provides serialization and deserialization capabilities for [MutableStateFlow] objects.
+ *
+ * @param T The type of the value stored in the [MutableStateFlow].
+ * @param serializer The [KSerializer] for the [Serializable] type [T].
+ * @return A [KSerializer] for handling [MutableStateFlow] containing a [Serializable] type [T].
+ */
+public fun <T> MutableStateFlowSerializer(
+    serializer: KSerializer<T>
+): KSerializer<MutableStateFlow<T>> {
+    return MutableStateFlowSerializerImpl<T>(serializer)
+}
+
+/**
+ * Internal implementation of [KSerializer] for [MutableStateFlow].
+ *
+ * This private class wraps a [KSerializer] for the inner value type [T], enabling serialization and
  * deserialization of [MutableStateFlow] instances. The inner value serialization is delegated to
  * the provided [valueSerializer].
  *
  * @param T The type of the value stored in the [MutableStateFlow].
- * @param valueSerializer The [KSerializer] used to serialize and deserialize the inner value.
+ * @property valueSerializer The [KSerializer] used to serialize and deserialize the inner value.
  */
-public class MutableStateFlowSerializer<T>(
+private class MutableStateFlowSerializerImpl<T>(
     private val valueSerializer: KSerializer<T>,
 ) : KSerializer<MutableStateFlow<T>> {
 
-    @OptIn(ExperimentalSerializationApi::class)
-    override val descriptor: SerialDescriptor = run {
-        val serialName = "kotlinx.coroutines.flow.MutableStateFlow"
-        val kind = valueSerializer.descriptor.kind
-        if (kind is PrimitiveKind) {
-            PrimitiveSerialDescriptor(serialName, kind)
-        } else {
-            SerialDescriptor(serialName, valueSerializer.descriptor)
-        }
-    }
+    override val descriptor: SerialDescriptor = valueSerializer.descriptor
 
     override fun serialize(encoder: Encoder, value: MutableStateFlow<T>) {
-        encoder.encodeSerializableValue(valueSerializer, value.value)
+        valueSerializer.serialize(encoder, value.value)
     }
 
     override fun deserialize(decoder: Decoder): MutableStateFlow<T> {
-        return MutableStateFlow(decoder.decodeSerializableValue(valueSerializer))
+        return MutableStateFlow(valueSerializer.deserialize(decoder))
     }
 }

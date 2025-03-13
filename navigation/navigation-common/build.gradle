@@ -115,24 +115,24 @@ androidXMultiplatform {
         }
 
 
-        nonAndroidMain.dependsOn(commonMain)
-        nonAndroidTest.dependsOn(commonTest)
+        jbMain.dependsOn(commonMain)
+        jbTest.dependsOn(commonTest)
 
         desktopMain {
             dependsOn(jvmMain)
-            dependsOn(nonAndroidMain)
+            dependsOn(jbMain)
         }
         desktopTest {
             dependsOn(jvmTest)
-            dependsOn(nonAndroidTest)
+            dependsOn(jbTest)
         }
-        nonJvmMain.dependsOn(nonAndroidMain)
+        nonJvmMain.dependsOn(jbMain)
         nativeMain.dependsOn(nonJvmMain)
         webMain.dependsOn(nonJvmMain)
         darwinMain.dependsOn(nativeMain)
         linuxMain.dependsOn(nativeMain)
 
-        nonJvmTest.dependsOn(nonAndroidTest)
+        nonJvmTest.dependsOn(jbTest)
         nativeTest.dependsOn(nonJvmTest)
         webTest.dependsOn(nonJvmTest)
         darwinTest.dependsOn(nativeTest)

@@ -32,7 +32,7 @@ import java.io.Serializable
 public actual value class SavedStateWriter
 @PublishedApi
 internal actual constructor(
-    private actual val source: SavedState,
+    @PublishedApi internal actual val source: SavedState,
 ) {
 
     /**
@@ -41,39 +41,39 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [IBinder] value to store.
      */
-    public fun putBinder(key: String, value: IBinder) {
+    public inline fun putBinder(key: String, value: IBinder) {
         source.putBinder(key, value)
     }
 
-    public actual fun putBoolean(key: String, value: Boolean) {
+    public actual inline fun putBoolean(key: String, value: Boolean) {
         source.putBoolean(key, value)
     }
 
-    public actual fun putChar(key: String, value: Char) {
+    public actual inline fun putChar(key: String, value: Char) {
         source.putChar(key, value)
     }
 
-    public actual fun putCharSequence(key: String, value: CharSequence) {
+    public actual inline fun putCharSequence(key: String, value: CharSequence) {
         source.putCharSequence(key, value)
     }
 
-    public actual fun putDouble(key: String, value: Double) {
+    public actual inline fun putDouble(key: String, value: Double) {
         source.putDouble(key, value)
     }
 
-    public actual fun putFloat(key: String, value: Float) {
+    public actual inline fun putFloat(key: String, value: Float) {
         source.putFloat(key, value)
     }
 
-    public actual fun putInt(key: String, value: Int) {
+    public actual inline fun putInt(key: String, value: Int) {
         source.putInt(key, value)
     }
 
-    public actual fun putLong(key: String, value: Long) {
+    public actual inline fun putLong(key: String, value: Long) {
         source.putLong(key, value)
     }
 
-    public actual fun putNull(key: String) {
+    public actual inline fun putNull(key: String) {
         source.putString(key, null)
     }
 
@@ -83,7 +83,7 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [Parcelable] value to store.
      */
-    public fun <T : Parcelable> putParcelable(key: String, value: T) {
+    public inline fun <reified T : Parcelable> putParcelable(key: String, value: T) {
         source.putParcelable(key, value)
     }
 
@@ -93,7 +93,7 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [Serializable] value to store.
      */
-    public fun <T : Serializable> putJavaSerializable(key: String, value: T) {
+    public inline fun <reified T : Serializable> putJavaSerializable(key: String, value: T) {
         source.putSerializable(key, value)
     }
 
@@ -103,7 +103,7 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [Size] value to store.
      */
-    public fun putSize(key: String, value: Size) {
+    public inline fun putSize(key: String, value: Size) {
         source.putSize(key, value)
     }
 
@@ -113,27 +113,27 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [SizeF] value to store.
      */
-    public fun putSizeF(key: String, value: SizeF) {
+    public inline fun putSizeF(key: String, value: SizeF) {
         source.putSizeF(key, value)
     }
 
-    public actual fun putString(key: String, value: String) {
+    public actual inline fun putString(key: String, value: String) {
         source.putString(key, value)
     }
 
-    public actual fun putIntList(key: String, value: List<Int>) {
+    public actual inline fun putIntList(key: String, value: List<Int>) {
         source.putIntegerArrayList(key, value.toArrayListUnsafe())
     }
 
-    public actual fun putCharSequenceList(key: String, value: List<CharSequence>) {
+    public actual inline fun putCharSequenceList(key: String, value: List<CharSequence>) {
         source.putCharSequenceArrayList(key, value.toArrayListUnsafe())
     }
 
-    public actual fun putSavedStateList(key: String, value: List<SavedState>) {
+    public actual inline fun putSavedStateList(key: String, value: List<SavedState>) {
         putParcelableList(key, value)
     }
 
-    public actual fun putStringList(key: String, value: List<String>) {
+    public actual inline fun putStringList(key: String, value: List<String>) {
         source.putStringArrayList(key, value.toArrayListUnsafe())
     }
 
@@ -144,49 +144,49 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [List] of elements to store.
      */
-    public fun <T : Parcelable> putParcelableList(key: String, value: List<T>) {
+    public inline fun <reified T : Parcelable> putParcelableList(key: String, value: List<T>) {
         source.putParcelableArrayList(key, value.toArrayListUnsafe())
     }
 
-    public actual fun putBooleanArray(key: String, value: BooleanArray) {
+    public actual inline fun putBooleanArray(key: String, value: BooleanArray) {
         source.putBooleanArray(key, value)
     }
 
-    public actual fun putCharArray(key: String, value: CharArray) {
+    public actual inline fun putCharArray(key: String, value: CharArray) {
         source.putCharArray(key, value)
     }
 
-    public actual fun putCharSequenceArray(
+    public actual inline fun putCharSequenceArray(
         key: String,
         @Suppress("ArrayReturn") value: Array<CharSequence>
     ) {
         source.putCharSequenceArray(key, value)
     }
 
-    public actual fun putDoubleArray(key: String, value: DoubleArray) {
+    public actual inline fun putDoubleArray(key: String, value: DoubleArray) {
         source.putDoubleArray(key, value)
     }
 
-    public actual fun putFloatArray(key: String, value: FloatArray) {
+    public actual inline fun putFloatArray(key: String, value: FloatArray) {
         source.putFloatArray(key, value)
     }
 
-    public actual fun putIntArray(key: String, value: IntArray) {
+    public actual inline fun putIntArray(key: String, value: IntArray) {
         source.putIntArray(key, value)
     }
 
-    public actual fun putLongArray(key: String, value: LongArray) {
+    public actual inline fun putLongArray(key: String, value: LongArray) {
         source.putLongArray(key, value)
     }
 
-    public actual fun putSavedStateArray(
+    public actual inline fun putSavedStateArray(
         key: String,
         @Suppress("ArrayReturn") value: Array<SavedState>,
     ) {
         putParcelableArray(key, value)
     }
 
-    public actual fun putStringArray(key: String, value: Array<String>) {
+    public actual inline fun putStringArray(key: String, value: Array<String>) {
         source.putStringArray(key, value)
     }
 
@@ -197,7 +197,7 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [Array] of elements to store.
      */
-    public fun <T : Parcelable> putParcelableArray(
+    public inline fun <reified T : Parcelable> putParcelableArray(
         key: String,
         @Suppress("ArrayReturn") value: Array<T>
     ) {
@@ -211,29 +211,32 @@ internal actual constructor(
      * @param key The key to associate the value with.
      * @param value The [SparseArray] of elements to store.
      */
-    public fun <T : Parcelable> putSparseParcelableArray(key: String, value: SparseArray<T>) {
+    public inline fun <reified T : Parcelable> putSparseParcelableArray(
+        key: String,
+        value: SparseArray<T>
+    ) {
         source.putSparseParcelableArray(key, value)
     }
 
-    public actual fun putSavedState(key: String, value: SavedState) {
+    public actual inline fun putSavedState(key: String, value: SavedState) {
         source.putBundle(key, value)
     }
 
-    public actual fun putAll(from: SavedState) {
+    public actual inline fun putAll(from: SavedState) {
         source.putAll(from)
     }
 
-    public actual fun remove(key: String) {
+    public actual inline fun remove(key: String) {
         source.remove(key)
     }
 
-    public actual fun clear() {
+    public actual inline fun clear() {
         source.clear()
     }
 }
 
 @Suppress("UNCHECKED_CAST", "ConcreteCollection")
 @PublishedApi
-internal fun <T : Any> Collection<*>.toArrayListUnsafe(): ArrayList<T> {
+internal inline fun <reified T : Any> Collection<*>.toArrayListUnsafe(): ArrayList<T> {
     return if (this is ArrayList<*>) this as ArrayList<T> else ArrayList(this as Collection<T>)
 }

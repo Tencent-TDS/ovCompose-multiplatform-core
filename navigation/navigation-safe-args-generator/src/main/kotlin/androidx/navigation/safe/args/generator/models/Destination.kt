@@ -40,7 +40,7 @@ data class Destination(
                         } else {
                             specifiedPackage
                         }
-                    ClassName.get(classPackage, name.replace("\\\$", "_").substringAfterLast('.'))
+                    ClassName.get(classPackage, name.substringAfterLast('.'))
                 }
                 id != null -> ClassName.get(id.packageName, id.javaIdentifier.toCamelCase())
                 else -> null

@@ -19,7 +19,7 @@ package androidx.savedstate
 import androidx.kruth.assertThat
 import androidx.kruth.assertThrows
 import androidx.savedstate.SavedStateCodecTestUtils.encodeDecode
-import androidx.savedstate.serialization.SavedStateConfiguration
+import androidx.savedstate.serialization.SavedStateConfig
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import androidx.savedstate.serialization.serializers.SavedStateSerializer
@@ -74,6 +74,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
         }
         Long.MIN_VALUE.encodeDecode {
             assertThat(size()).isEqualTo(1)
+            assertThat(source)
             assertThat(getLong("")).isEqualTo(Long.MIN_VALUE)
         }
         Long.MAX_VALUE.encodeDecode {
@@ -266,9 +267,11 @@ internal class SavedStateCodecTest : RobolectricTest() {
             assertThat(size()).isEqualTo(3)
             assertThat(getString("0")).isEqualTo("a")
             assertThat(isNull("1")).isTrue()
-            assertThrows(IllegalArgumentException::class) { getString("1") }
+            assertThrows(IllegalStateException::class) { getString("1") }
                 .hasMessageThat()
-                .contains(keyOrValueNotFoundErrorMessage("1"))
+                .contains(
+                    "The saved state value associated with the key '1' is either null or not of the expected type. This might happen if the value was saved with a different type or if the saved state has been modified unexpectedly."
+                )
             assertThat(getString("2")).isEqualTo("c")
         }
 
@@ -524,15 +527,17 @@ internal class SavedStateCodecTest : RobolectricTest() {
             putString("s", "foo")
             putIntArray("a", intArrayOf(1, 3, 5))
         }
-        val encoded = encodeToSavedState(SavedStateSerializer, origin)
-        val restored = decodeFromSavedState(SavedStateSerializer, encoded)
-
-        encoded.read {
-            assertThat(size()).isEqualTo(3)
-            assertThat(getInt("i")).isEqualTo(1)
-            assertThat(getString("s")).isEqualTo("foo")
-            assertThat(getIntArray("a")).isEqualTo(intArrayOf(1, 3, 5))
-        }
+        val restored =
+            decodeFromSavedState(
+                SavedStateSerializer(),
+                encodeToSavedState(SavedStateSerializer(), origin).read {
+                    assertThat(size()).isEqualTo(3)
+                    assertThat(getInt("i")).isEqualTo(1)
+                    assertThat(getString("s")).isEqualTo("foo")
+                    assertThat(getIntArray("a")).isEqualTo(intArrayOf(1, 3, 5))
+                    source
+                }
+            )
         assertThat(restored.read { contentDeepEquals(origin) }).isTrue()
         assertThat(restored).isNotSameInstanceAs(origin)
     }
@@ -549,16 +554,15 @@ internal class SavedStateCodecTest : RobolectricTest() {
     // Users shouldn't do this. The test is just to document the behavior.
     @Test
     fun typeMismatchInDecodingWorks() {
-        assertThrows(IllegalArgumentException::class) {
-                decodeFromSavedState<Int>(savedState { putBoolean("", true) })
-            }
-            .hasMessageThat()
-            .contains(keyOrValueNotFoundErrorMessage(""))
-        assertThrows(IllegalArgumentException::class) {
+        assertThat(decodeFromSavedState<Int>(savedState { putBoolean("", true) }))
+            .isEqualTo(0) // This is the default value from `SavedStateReader.getInt(String)`.
+        assertThrows(IllegalStateException::class) {
                 decodeFromSavedState<String>(savedState { putBoolean("", true) })
             }
             .hasMessageThat()
-            .contains(keyOrValueNotFoundErrorMessage(""))
+            .contains(
+                "The saved state value associated with the key '' is either null or not of the expected type. This might happen if the value was saved with a different type or if the saved state has been modified unexpectedly."
+            )
         @Serializable data class Foo(val i: Int)
         @Serializable data class Bar(val i: Int)
         assertEquals(Bar(3), decodeFromSavedState<Bar>(encodeToSavedState(Foo(3))))
@@ -568,7 +572,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
     fun decodeMissingKey() {
         assertThrows(IllegalArgumentException::class) { decodeFromSavedState<Int>(savedState()) }
             .hasMessageThat()
-            .contains(keyOrValueNotFoundErrorMessage(""))
+            .contains("No saved state was found associated with the key ''")
     }
 
     // This is not ideal. The test is just to document the behavior.
@@ -576,11 +580,9 @@ internal class SavedStateCodecTest : RobolectricTest() {
     fun illegalWrite() {
         val savedState = encodeToSavedState(3)
         savedState.write { putString("", "foo") }
-        // Got exception instead of `3` because the savedState got manipulated after
+        // Got the default value of Int instead of 3 because the savedState got manipulated after
         // encoding.
-        assertThrows<IllegalArgumentException> { decodeFromSavedState<Int>(savedState) }
-            .hasMessageThat()
-            .contains(keyOrValueNotFoundErrorMessage(""))
+        assertThat(decodeFromSavedState<Int>(savedState)).isEqualTo(0)
     }
 
     @Test
@@ -597,7 +599,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
 
     @Test
     fun canEncodeWithContextualSerialization() {
-        val config = SavedStateConfiguration {
+        val config = SavedStateConfig {
             serializersModule = SerializersModule {
                 contextual(MyColor::class, MyColorIntArraySerializer)
             }
@@ -605,7 +607,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
 
         // Specifying `ContextualSerializer` explicitly.
         MyColor(1, 3, 5).encodeDecode(
-            configuration = config,
+            config = config,
             serializer = ContextualSerializer(MyColor::class)
         ) {
             assertThat(size()).isEqualTo(1)
@@ -615,14 +617,14 @@ internal class SavedStateCodecTest : RobolectricTest() {
 
     @Test
     fun canEncodeTopLevelObjectsWithImplicitContextualSerialization() {
-        val config = SavedStateConfiguration {
+        val config = SavedStateConfig {
             serializersModule = SerializersModule {
                 contextual(MyColor::class, MyColorIntArraySerializer)
             }
         }
 
         // Fallback to contextual serializer as `MyColor` doesn't have an associated serializer.
-        MyColor(1, 3, 5).encodeDecode(configuration = config) {
+        MyColor(1, 3, 5).encodeDecode(config = config) {
             assertThat(size()).isEqualTo(1)
             assertThat(getIntArray("")).isEqualTo(intArrayOf(1, 3, 5))
         }
@@ -630,7 +632,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
 
     @Test
     fun canEncodeWithPolymorphicSerialization() {
-        val config = SavedStateConfiguration {
+        val config = SavedStateConfig {
             serializersModule = SerializersModule {
                 polymorphic(Shape::class) {
                     subclass(Circle::class, Circle.serializer())
@@ -640,7 +642,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
         }
 
         Circle(3).encodeDecode<Shape>(
-            configuration = config,
+            config = config,
             // This is needed only in Kotlin/Native.
             serializer = PolymorphicSerializer(Shape::class)
         ) {
@@ -652,7 +654,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
             }
         }
         Rectangle(3, 5).encodeDecode<Shape>(
-            configuration = config,
+            config = config,
             // This is needed only in Kotlin/Native.
             serializer = PolymorphicSerializer(Shape::class)
         ) {
@@ -669,7 +671,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
     // Encode a `List<Any>` with `SerializersModule`.
     @Test
     fun canUseContextualSerializationWithPolymorphicSerialization() {
-        val config = SavedStateConfiguration {
+        val config = SavedStateConfig {
             serializersModule = SerializersModule {
                 contextual(Any::class, PolymorphicSerializer(Any::class))
                 polymorphic(Any::class) {
@@ -678,7 +680,7 @@ internal class SavedStateCodecTest : RobolectricTest() {
                 }
             }
         }
-        listOf("foo", 123).encodeDecode<List<Any>>(configuration = config) {
+        listOf("foo", 123).encodeDecode<List<Any>>(config = config) {
             assertThat(size()).isEqualTo(2)
             getSavedState("0").read {
                 assertThat(size()).isEqualTo(2)
@@ -692,49 +694,6 @@ internal class SavedStateCodecTest : RobolectricTest() {
             }
         }
     }
-
-    @Test
-    fun canUseBuiltInSerializersAutomatically() {
-        savedState {
-                putString("name", "foo")
-                putInt("age", 99)
-            }
-            .encodeDecode(
-                checkDecoded = { decoded, original ->
-                    assertThat(decoded.read { contentDeepEquals(original) }).isTrue()
-                },
-                checkEncoded = {
-                    assertThat(size()).isEqualTo(2)
-                    assertThat(getString("name")).isEqualTo("foo")
-                    assertThat(getInt("age")).isEqualTo(99)
-                }
-            )
-    }
-
-    @Test
-    fun canUseContextualSerializer() {
-        savedState {
-                putString("name", "foo")
-                putInt("age", 99)
-            }
-            .encodeDecode(
-                serializer = ContextualSerializer(SavedState::class),
-                checkDecoded = { decoded, original ->
-                    assertThat(decoded.read { contentDeepEquals(original) }).isTrue()
-                },
-                checkEncoded = {
-                    assertThat(size()).isEqualTo(2)
-                    assertThat(getString("name")).isEqualTo("foo")
-                    assertThat(getInt("age")).isEqualTo(99)
-                }
-            )
-    }
-}
-
-private fun keyOrValueNotFoundErrorMessage(key: String): String {
-    return "No valid saved state was found for the key '$key'. It may be missing, null, or not " +
-        "of the expected type. This can occur if the value was saved with a different type or if " +
-        "the saved state was modified unexpectedly."
 }
 
 @Serializable

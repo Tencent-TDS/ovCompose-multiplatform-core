@@ -814,59 +814,6 @@ class RouteFilledTest {
             }
         assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME")
     }
-
-    @Test
-    fun encodeDoubleList() {
-        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<Double>)
-
-        val clazz = TestClass(listOf(11E123, 11.11))
-        val arg =
-            navArgument("arg") {
-                type = InternalNavType.DoubleListType
-                nullable = false
-            }
-        assertThatRouteFilledFrom(clazz, listOf(arg))
-            .isEqualTo("$PATH_SERIAL_NAME?arg=1.1E124&arg=11.11")
-    }
-
-    @Test
-    fun encodeDoubleListNullable() {
-        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<Double>?)
-
-        val clazz = TestClass(null)
-        val arg =
-            navArgument("arg") {
-                type = InternalNavType.DoubleListType
-                nullable = true
-            }
-        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME")
-    }
-
-    @Test
-    fun encodeEnumList() {
-        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<TestEnum>)
-
-        val clazz = TestClass(listOf(TestEnum.ONE, TestEnum.TWO))
-        val arg =
-            navArgument("arg") {
-                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
-                nullable = false
-            }
-        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME?arg=ONE&arg=TWO")
-    }
-
-    @Test
-    fun encodeEnumListNullable() {
-        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<TestEnum>?)
-
-        val clazz = TestClass(null)
-        val arg =
-            navArgument("arg") {
-                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
-                nullable = true
-            }
-        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo(PATH_SERIAL_NAME)
-    }
 }
 
 private fun <T : Any> assertThatRouteFilledFrom(

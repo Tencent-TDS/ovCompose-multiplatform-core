@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.SoftwareType
+import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -30,7 +30,6 @@ plugins {
 }
 
 dependencies {
-    api(libs.jspecify)
     api(libs.kotlinStdlib)
     implementation("androidx.arch.core:core-common:2.2.0")
     implementation("androidx.arch.core:core-runtime:2.2.0")
@@ -49,11 +48,12 @@ dependencies {
 
 androidx {
     name = "Lifecycle LiveData Core"
-    type = SoftwareType.PUBLISHED_LIBRARY
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2017"
     description = "Android Lifecycle LiveData Core"
+    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace = "androidx.lifecycle.livedata.core"
+    namespace "androidx.lifecycle.livedata.core"
 }

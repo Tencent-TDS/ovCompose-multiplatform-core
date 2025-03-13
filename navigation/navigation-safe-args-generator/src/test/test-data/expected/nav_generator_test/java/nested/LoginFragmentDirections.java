@@ -16,7 +16,6 @@
 
 package foo.flavor.account;
 
-import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import androidx.navigation.ActionOnlyNavDirections;
 import androidx.navigation.NavDirections;
@@ -27,13 +26,11 @@ public class LoginFragmentDirections {
     private LoginFragmentDirections() {
     }
 
-    @CheckResult
     @NonNull
     public static NavDirections register() {
         return new ActionOnlyNavDirections(R.id.register);
     }
 
-    @CheckResult
     @NonNull
     public static NavDirections actionDone() {
         return LoginDirections.actionDone();

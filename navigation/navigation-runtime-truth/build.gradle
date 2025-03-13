@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 The Android Open Source Project
+ * Copyright 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-
-import androidx.build.SoftwareType
-import androidx.build.PlatformIdentifier
+import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -32,23 +30,27 @@ plugins {
 }
 
 dependencies {
+    api(project(":navigation:navigation-runtime"))
+    api(libs.truth)
     api(libs.kotlinStdlib)
-
-    api(libs.testUiautomator)
-
-    androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.junit)
+    androidTestImplementation(project(":internal-testutils-truth"))
+    androidTestImplementation(project(":internal-testutils-navigation"), {
+        exclude group: "androidx.navigation", module: "navigation-common"
+    })
     androidTestImplementation(libs.truth)
-}
-
-android {
-    namespace = "androidx.compose.integration.hero.common.macrobenchmark"
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
 }
 
 androidx {
-    name = "androidx.compose.integration.hero:hero-common:macrobenchmark"
-    type = SoftwareType.INTERNAL_TEST_LIBRARY
-    inceptionYear = "2024"
-    description = "Common code shared across hero macrobenchmarks"
+    name = "Navigation Runtime Truth"
+    publish = Publish.NONE
+    inceptionYear = "2019"
+    description = "Android Navigation-Runtime-Truth"
+}
+
+android {
+    namespace "androidx.navigation.truth"
 }

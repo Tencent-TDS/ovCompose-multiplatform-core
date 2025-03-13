@@ -40,8 +40,8 @@ public final class androidx/lifecycle/SavedStateViewModelFactory : androidx/life
 	public fun create (Lkotlin/reflect/KClass;Landroidx/lifecycle/viewmodel/CreationExtras;)Landroidx/lifecycle/ViewModel;
 }
 
-public final class androidx/lifecycle/serialization/SavedStateHandleDelegateKt {
-	public static final fun saved (Landroidx/lifecycle/SavedStateHandle;Lkotlinx/serialization/KSerializer;Ljava/lang/String;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function0;)Lkotlin/properties/ReadWriteProperty;
-	public static synthetic fun saved$default (Landroidx/lifecycle/SavedStateHandle;Lkotlinx/serialization/KSerializer;Ljava/lang/String;Landroidx/savedstate/serialization/SavedStateConfiguration;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lkotlin/properties/ReadWriteProperty;
+public final class androidx/lifecycle/serialization/SavedStateHandleDelegatesKt {
+	public static final fun saved (Landroidx/lifecycle/SavedStateHandle;Ljava/lang/String;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function0;)Lkotlin/properties/ReadWriteProperty;
+	public static final fun saved (Landroidx/lifecycle/SavedStateHandle;Lkotlinx/serialization/KSerializer;Lkotlin/jvm/functions/Function0;)Lkotlin/properties/ReadWriteProperty;
 }
 

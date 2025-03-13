@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.SoftwareType
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -61,7 +61,7 @@ tasks.withType(Test).configureEach {
 
 androidx {
     name = "Lifecycles Compiler"
-    type = SoftwareType.ANNOTATION_PROCESSOR
+    type = LibraryType.ANNOTATION_PROCESSOR
     inceptionYear = "2017"
     description = "Android Lifecycles annotation processor"
 }

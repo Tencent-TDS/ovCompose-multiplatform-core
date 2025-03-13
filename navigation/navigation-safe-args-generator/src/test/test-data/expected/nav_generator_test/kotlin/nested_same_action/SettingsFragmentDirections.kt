@@ -1,7 +1,6 @@
 package foo.flavor
 
 import android.os.Bundle
-import androidx.`annotation`.CheckResult
 import androidx.navigation.NavDirections
 import foo.R
 import kotlin.Int
@@ -22,7 +21,6 @@ public class SettingsFragmentDirections private constructor() {
   }
 
   public companion object {
-    @CheckResult
     public fun exit(exitReason: String = "DIFFERENT"): NavDirections = Exit(exitReason)
   }
 }

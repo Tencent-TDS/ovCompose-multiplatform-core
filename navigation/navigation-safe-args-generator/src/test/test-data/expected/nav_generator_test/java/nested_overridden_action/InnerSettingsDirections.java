@@ -1,7 +1,6 @@
 package foo;
 
 import android.os.Bundle;
-import androidx.annotation.CheckResult;
 import androidx.annotation.NonNull;
 import androidx.navigation.NavDirections;
 import java.lang.Object;
@@ -14,13 +13,11 @@ public class InnerSettingsDirections {
     private InnerSettingsDirections() {
     }
 
-    @CheckResult
     @NonNull
     public static Exit exit(int exitReason) {
         return new Exit(exitReason);
     }
 
-    @CheckResult
     @NonNull
     public static SettingsDirections.Main main() {
         return SettingsDirections.main();

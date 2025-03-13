@@ -21,7 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.SoftwareType
+import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
@@ -36,11 +37,12 @@ dependencies {
 
 androidx {
     name = "LiveData Core Kotlin Extensions"
-    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2018"
     description = "Kotlin extensions for 'livedata-core' artifact"
+    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace = "androidx.lifecycle.livedata.core.ktx"
+    namespace "androidx.lifecycle.livedata.core.ktx"
 }

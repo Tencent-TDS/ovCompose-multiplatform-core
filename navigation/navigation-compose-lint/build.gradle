@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.BundleInsideHelper
-import androidx.build.SoftwareType
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -49,7 +49,7 @@ dependencies {
 
 androidx {
     name = "Navigation Compose Lint"
-    type = SoftwareType.LINT
+    type = LibraryType.LINT
     inceptionYear = "2021"
     description = "Lint checks for Navigation Compose"
 }

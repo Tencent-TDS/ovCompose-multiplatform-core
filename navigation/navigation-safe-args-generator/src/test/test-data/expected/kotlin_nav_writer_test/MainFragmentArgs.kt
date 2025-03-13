@@ -127,7 +127,8 @@ public data class MainFragmentArgs(
       }
       val __objectArrayArgument : Array<ActivityInfo>?
       if (bundle.containsKey("objectArrayArgument")) {
-        __objectArrayArgument = bundle.getParcelableArray("objectArrayArgument")?.map { it as ActivityInfo }?.toTypedArray()
+        __objectArrayArgument = bundle.getParcelableArray("objectArrayArgument")?.map { it as
+            ActivityInfo }?.toTypedArray()
         if (__objectArrayArgument == null) {
           throw IllegalArgumentException("Argument \"objectArrayArgument\" is marked as non-null but was passed a null value.")
         }
@@ -142,20 +143,24 @@ public data class MainFragmentArgs(
       }
       val __optionalParcelable : ActivityInfo?
       if (bundle.containsKey("optionalParcelable")) {
-        if (Parcelable::class.java.isAssignableFrom(ActivityInfo::class.java) || Serializable::class.java.isAssignableFrom(ActivityInfo::class.java)) {
+        if (Parcelable::class.java.isAssignableFrom(ActivityInfo::class.java) ||
+            Serializable::class.java.isAssignableFrom(ActivityInfo::class.java)) {
           __optionalParcelable = bundle.get("optionalParcelable") as ActivityInfo?
         } else {
-          throw UnsupportedOperationException(ActivityInfo::class.java.name + " must implement Parcelable or Serializable or must be an Enum.")
+          throw UnsupportedOperationException(ActivityInfo::class.java.name +
+              " must implement Parcelable or Serializable or must be an Enum.")
         }
       } else {
         __optionalParcelable = null
       }
       val __enumArg : AccessMode?
       if (bundle.containsKey("enumArg")) {
-        if (Parcelable::class.java.isAssignableFrom(AccessMode::class.java) || Serializable::class.java.isAssignableFrom(AccessMode::class.java)) {
+        if (Parcelable::class.java.isAssignableFrom(AccessMode::class.java) ||
+            Serializable::class.java.isAssignableFrom(AccessMode::class.java)) {
           __enumArg = bundle.get("enumArg") as AccessMode?
         } else {
-          throw UnsupportedOperationException(AccessMode::class.java.name + " must implement Parcelable or Serializable or must be an Enum.")
+          throw UnsupportedOperationException(AccessMode::class.java.name +
+              " must implement Parcelable or Serializable or must be an Enum.")
         }
         if (__enumArg == null) {
           throw IllegalArgumentException("Argument \"enumArg\" is marked as non-null but was passed a null value.")
@@ -163,7 +168,9 @@ public data class MainFragmentArgs(
       } else {
         __enumArg = AccessMode.READ
       }
-      return MainFragmentArgs(__main, __floatArrayArg, __objectArrayArgument, __optional, __reference, __referenceZeroDefaultValue, __floatArg, __boolArg, __optionalParcelable, __enumArg)
+      return MainFragmentArgs(__main, __floatArrayArg, __objectArrayArgument, __optional,
+          __reference, __referenceZeroDefaultValue, __floatArg, __boolArg, __optionalParcelable,
+          __enumArg)
     }
 
     @JvmStatic
@@ -224,7 +231,9 @@ public data class MainFragmentArgs(
       }
       val __objectArrayArgument : Array<ActivityInfo>?
       if (savedStateHandle.contains("objectArrayArgument")) {
-        __objectArrayArgument = savedStateHandle.get<Array<Parcelable>>("objectArrayArgument")?.map { it as ActivityInfo }?.toTypedArray()
+        __objectArrayArgument =
+            savedStateHandle.get<Array<Parcelable>>("objectArrayArgument")?.map { it as ActivityInfo
+            }?.toTypedArray()
         if (__objectArrayArgument == null) {
           throw IllegalArgumentException("Argument \"objectArrayArgument\" is marked as non-null but was passed a null value")
         }
@@ -242,20 +251,24 @@ public data class MainFragmentArgs(
       }
       val __optionalParcelable : ActivityInfo?
       if (savedStateHandle.contains("optionalParcelable")) {
-        if (Parcelable::class.java.isAssignableFrom(ActivityInfo::class.java) || Serializable::class.java.isAssignableFrom(ActivityInfo::class.java)) {
+        if (Parcelable::class.java.isAssignableFrom(ActivityInfo::class.java) ||
+            Serializable::class.java.isAssignableFrom(ActivityInfo::class.java)) {
           __optionalParcelable = savedStateHandle.get<ActivityInfo?>("optionalParcelable")
         } else {
-          throw UnsupportedOperationException(ActivityInfo::class.java.name + " must implement Parcelable or Serializable or must be an Enum.")
+          throw UnsupportedOperationException(ActivityInfo::class.java.name +
+              " must implement Parcelable or Serializable or must be an Enum.")
         }
       } else {
         __optionalParcelable = null
       }
       val __enumArg : AccessMode?
       if (savedStateHandle.contains("enumArg")) {
-        if (Parcelable::class.java.isAssignableFrom(AccessMode::class.java) || Serializable::class.java.isAssignableFrom(AccessMode::class.java)) {
+        if (Parcelable::class.java.isAssignableFrom(AccessMode::class.java) ||
+            Serializable::class.java.isAssignableFrom(AccessMode::class.java)) {
           __enumArg = savedStateHandle.get<AccessMode?>("enumArg")
         } else {
-          throw UnsupportedOperationException(AccessMode::class.java.name + " must implement Parcelable or Serializable or must be an Enum.")
+          throw UnsupportedOperationException(AccessMode::class.java.name +
+              " must implement Parcelable or Serializable or must be an Enum.")
         }
         if (__enumArg == null) {
           throw IllegalArgumentException("Argument \"enumArg\" is marked as non-null but was passed a null value")
@@ -263,7 +276,9 @@ public data class MainFragmentArgs(
       } else {
         __enumArg = AccessMode.READ
       }
-      return MainFragmentArgs(__main, __floatArrayArg, __objectArrayArgument, __optional, __reference, __referenceZeroDefaultValue, __floatArg, __boolArg, __optionalParcelable, __enumArg)
+      return MainFragmentArgs(__main, __floatArrayArg, __objectArrayArgument, __optional,
+          __reference, __referenceZeroDefaultValue, __floatArg, __boolArg, __optionalParcelable,
+          __enumArg)
     }
   }
 }

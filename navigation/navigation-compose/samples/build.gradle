@@ -21,9 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-
-import androidx.build.KotlinTarget
-import androidx.build.SoftwareType
+import androidx.build.LibraryType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -36,39 +34,30 @@ plugins {
 }
 
 dependencies {
-    api(libs.kotlinStdlib)
+    implementation(libs.kotlinStdlib)
 
     compileOnly(project(":annotation:annotation-sampled"))
     implementation(project(":compose:animation:animation"))
-    implementation(project(":compose:animation:animation-core"))
-    implementation(project(":compose:foundation:foundation"))
-    implementation(project(":compose:foundation:foundation-layout"))
-    implementation(project(":compose:runtime:runtime"))
-    implementation(project(":compose:runtime:runtime-saveable"))
-    implementation(project(":compose:ui:ui"))
-    implementation(project(":compose:ui:ui-graphics"))
-    implementation(project(":compose:ui:ui-text"))
-    implementation(project(":compose:ui:ui-tooling-preview"))
-    implementation(project(":compose:ui:ui-unit"))
-    implementation(project(":navigation:navigation-compose"))
-    implementation(project(":navigation:navigation-common"))
-    implementation(project(":navigation:navigation-runtime"))
-    implementation("androidx.compose.material:material:1.0.1")
+    implementation("androidx.compose.foundation:foundation:1.0.1")
     implementation("androidx.compose.ui:ui-tooling:1.4.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.2")
-    implementation(libs.kotlinSerializationCore)
-    implementation(libs.kotlinSerializationJson)
+    implementation(projectOrArtifact(":navigation:navigation-compose"))
+    implementation("androidx.compose.material:material:1.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.0")
+    implementation("androidx.savedstate:savedstate-ktx:1.2.1")
 }
 
 androidx {
     name = "Compose UI Navigation Integration Samples"
-    type = SoftwareType.SAMPLES
+    type = LibraryType.SAMPLES
     inceptionYear = "2020"
     description = "Samples for Compose integration with Navigation"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions.freeCompilerArgs += "-Xcontext-receivers"
 }
 
 android {
-    compileSdk = 35
-    namespace = "androidx.navigation.compose.samples"
+    namespace "androidx.navigation.compose.samples"
 }

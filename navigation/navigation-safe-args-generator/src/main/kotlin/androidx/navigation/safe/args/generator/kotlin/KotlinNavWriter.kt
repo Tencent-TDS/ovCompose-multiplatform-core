@@ -16,7 +16,6 @@
 
 package androidx.navigation.safe.args.generator.kotlin
 
-import androidx.annotation.CheckResult
 import androidx.navigation.safe.args.generator.NavWriter
 import androidx.navigation.safe.args.generator.ObjectArrayType
 import androidx.navigation.safe.args.generator.ObjectType
@@ -65,7 +64,6 @@ class KotlinNavWriter(private val useAndroidX: Boolean = true) : NavWriter<Kotli
                 FunSpec.builder(action.id.javaIdentifier.toCamelCaseAsVar())
                     .apply {
                         returns(NAV_DIRECTION_CLASSNAME)
-                        addAnnotation(CHECK_RESULT)
                         addParameters(parameters)
                         if (action.args.isEmpty()) {
                             addStatement(
@@ -101,7 +99,6 @@ class KotlinNavWriter(private val useAndroidX: Boolean = true) : NavWriter<Kotli
                     val params = functionSpec.parameters.joinToString(", ") { param -> param.name }
                     val methodSpec =
                         FunSpec.builder(functionSpec.name)
-                            .addAnnotation(CHECK_RESULT)
                             .addParameters(functionSpec.parameters)
                             .returns(NAV_DIRECTION_CLASSNAME)
                             .addStatement(
@@ -457,7 +454,5 @@ class KotlinNavWriter(private val useAndroidX: Boolean = true) : NavWriter<Kotli
          */
         val CAST_NEVER_SUCCEEDS =
             AnnotationSpec.builder(Suppress::class).addMember("%S", "CAST_NEVER_SUCCEEDS").build()
-
-        val CHECK_RESULT = AnnotationSpec.builder(CheckResult::class).build()
     }
 }

@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.SoftwareType
+import androidx.build.Publish
 
 plugins {
     id("AndroidXPlugin")
@@ -41,11 +41,12 @@ dependencies {
 
 androidx {
     name = "Lifecycle Service"
-    type = SoftwareType.PUBLISHED_LIBRARY
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2018"
     description = "Android Lifecycle Service"
+    metalavaK2UastEnabled = true
 }
 
 android {
-    namespace = "androidx.lifecycle.service"
+    namespace "androidx.lifecycle.service"
 }
