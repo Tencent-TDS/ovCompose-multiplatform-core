@@ -216,7 +216,7 @@ internal class ComposeSceneMediator(
 
     private val scene: ComposeScene by lazy {
         composeSceneFactory(
-            ::setNeedsRedraw,
+            redrawer::setNeedsRedraw,
             PlatformContextImpl()
         )
     }
@@ -289,7 +289,7 @@ internal class ComposeSceneMediator(
      */
     private val interopContainer = UIKitInteropContainer(
         root = userInputView,
-        requestRedraw = ::setNeedsRedraw
+        requestRedraw = redrawer::setNeedsRedraw
     )
 
     var interactionBounds = IntRect.Zero
@@ -339,7 +339,7 @@ internal class ComposeSceneMediator(
     private val textInputService: UIKitTextInputService by lazy {
         UIKitTextInputService(
             updateView = {
-                setNeedsRedraw()
+                redrawer.setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
             rootView = view,
@@ -630,10 +630,6 @@ internal class ComposeSceneMediator(
         semanticsOwnerListener.dispose()
     }
 
-    private fun setNeedsRedraw() {
-        redrawer.setNeedsRedraw()
-    }
-
     /**
      * Updates the [ComposeScene] with the properties derived from the [view].
      */
@@ -656,6 +652,7 @@ internal class ComposeSceneMediator(
     }
 
     fun sceneDidAppear() {
+        redrawer.setNeedsRedraw()
         keyboardManager.start()
     }
 
