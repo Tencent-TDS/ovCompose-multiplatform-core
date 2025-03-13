@@ -31,11 +31,24 @@ import androidx.compose.foundation.text.input.internal.WedgeAffinity
 import androidx.compose.foundation.text.input.internal.findClosestRect
 import androidx.compose.foundation.text.input.internal.fromDecorationToTextLayout
 import androidx.compose.foundation.text.input.internal.getIndexTransformationType
+import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState.InputType
 import androidx.compose.foundation.text.input.internal.selection.TextToolbarState.None
+import androidx.compose.foundation.text.selection.ClicksCounter
 import androidx.compose.foundation.text.selection.MouseSelectionObserver
+import androidx.compose.foundation.text.selection.isPrecisePointer
+import androidx.compose.foundation.text.selection.mouseSelectionBtf2
+import androidx.compose.foundation.text.selection.touchSelectionFirstPress
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.util.fastAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -67,7 +80,7 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
                 )
             }
         },
-        // Should remain untouched
+        // Should remain as is
         onPress = { offset ->
             interactionSource?.let { interactionSource ->
                 coroutineScope {
@@ -176,5 +189,114 @@ internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
     mouseSelectionObserver: MouseSelectionObserver,
     textDragObserver: TextDragObserver
 ) {
+    val uiKitTextDragObserver = UIKitTextFieldTextDragObserver(selectionState)
+    val clicksCounter = ClicksCounter(viewConfiguration)
+    awaitEachGesture {
+        while (true) {
+            val downEvent = awaitDown()
+            clicksCounter.update(downEvent.changes[0])
+            val isPrecise = downEvent.isPrecisePointer
+            if (
+                isPrecise &&
+                downEvent.buttons.isPrimaryPressed &&
+                downEvent.changes.fastAll { !it.isConsumed }
+            ) {
+                // Use default BTF2 logic for mouse
+                mouseSelectionBtf2(mouseSelectionObserver, clicksCounter, downEvent)
+            } else if (!isPrecise) {
+                when (clicksCounter.clicks) {
+                    1 -> {
+                        // The default BTF2 logic, except
+                        // moving text cursor without selection requires custom TextDragObserver
+                        touchSelectionFirstPress(observer = uiKitTextDragObserver, downEvent = downEvent)
+                    }
+                    2 -> {
+                        // Should do word selection only
 
+                    }
+                    else -> {
+                        // Should do sentence selection only
+
+                    }
+                }
+            }
+        }
+    }
+}
+
+private class UIKitTextFieldTextDragObserver(
+    private val textFieldSelectionState: TextFieldSelectionState,
+    private val requestFocus: () -> Unit = {}
+) : TextDragObserver {
+    private var dragBeginPosition: Offset = Offset.Unspecified
+    private var dragTotalDistance: Offset = Offset.Zero
+
+    private fun onDragStop() {
+        // Only execute clear-up if drag was actually ongoing.
+        if (dragBeginPosition.isSpecified) {
+            textFieldSelectionState.clearHandleDragging()
+            dragBeginPosition = Offset.Unspecified
+            dragTotalDistance = Offset.Zero
+            textFieldSelectionState.directDragGestureInitiator = InputType.None
+            requestFocus()
+        }
+    }
+
+    override fun onDown(point: Offset) = Unit
+
+    override fun onUp() = Unit
+
+    override fun onStop() = onDragStop()
+
+    override fun onCancel() = onDragStop()
+
+    override fun onStart(startPoint: Offset) {
+        if (!textFieldSelectionState.enabled) return
+
+        textFieldSelectionState.directDragGestureInitiator = InputType.Touch
+
+        dragBeginPosition = startPoint
+        dragTotalDistance = Offset.Zero
+
+        textFieldSelectionState.hapticFeedBack?.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        // Long Press at the blank area, the cursor should show up at the end of the line.
+        if (!textFieldSelectionState.textLayoutState.isPositionOnText(startPoint)) {
+            val offset = textFieldSelectionState.textLayoutState.getOffsetForPosition(startPoint)
+            textFieldSelectionState.textFieldState.placeCursorBeforeCharAt(offset)
+        } else {
+            if (textFieldSelectionState.textFieldState.visualText.isEmpty()) return
+            val coercedOffset =
+                textFieldSelectionState.textLayoutState.coercedInVisibleBoundsOfInputText(startPoint)
+            textFieldSelectionState.placeCursorAtNearestOffset(
+                textFieldSelectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
+            )
+        }
+        textFieldSelectionState.showCursorHandle = true
+//        textFieldSelectionState.updateTextToolbarState(Cursor)
+    }
+
+    override fun onDrag(delta: Offset) {
+        if (!textFieldSelectionState.enabled || textFieldSelectionState.textFieldState.visualText.isEmpty()) return
+
+        dragTotalDistance += delta
+
+        val currentDragPosition = dragBeginPosition + dragTotalDistance
+
+        val coercedOffset = textFieldSelectionState.textLayoutState.coercedInVisibleBoundsOfInputText(currentDragPosition)
+        // A common function must be used here because in iOS during a drag the cursor should move without adjustments,
+        // as it does with a single tap
+        textFieldSelectionState.placeCursorAtNearestOffset(
+            textFieldSelectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
+        )
+    }
+}
+
+// Copied from SelectionGestures.kt
+// TODO: maybe should be refactored to use same AwaitDown with BTF1
+private suspend fun AwaitPointerEventScope.awaitDown(): PointerEvent {
+    var event: PointerEvent
+    do {
+        event = awaitPointerEvent(PointerEventPass.Main)
+    } while (!event.changes.fastAll { it.changedToDownIgnoreConsumed() })
+    return event
 }
