@@ -83,9 +83,9 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains.androidx.lifecycle</groupId>
-      <artifactId>lifecycle-common</artifactId>
-      <version>2.8.4</version>
+      <groupId>androidx.lifecycle</groupId>
+      <artifactId>lifecycle-common-macosarm64</artifactId>
+      <version>2.8.5</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -136,9 +136,9 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains.androidx.lifecycle</groupId>
-      <artifactId>lifecycle-runtime</artifactId>
-      <version>2.8.4</version>
+      <groupId>androidx.lifecycle</groupId>
+      <artifactId>lifecycle-runtime-macosarm64</artifactId>
+      <version>2.8.5</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -148,9 +148,9 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains.androidx.lifecycle</groupId>
-      <artifactId>lifecycle-viewmodel</artifactId>
-      <version>2.8.4</version>
+      <groupId>androidx.lifecycle</groupId>
+      <artifactId>lifecycle-viewmodel-macosarm64</artifactId>
+      <version>2.8.5</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>

@@ -46,9 +46,9 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains.compose.annotation-internal</groupId>
-      <artifactId>annotation</artifactId>
-      <version>1.7.1</version>
+      <groupId>androidx.annotation</groupId>
+      <artifactId>annotation-iossimulatorarm64</artifactId>
+      <version>1.8.1</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
