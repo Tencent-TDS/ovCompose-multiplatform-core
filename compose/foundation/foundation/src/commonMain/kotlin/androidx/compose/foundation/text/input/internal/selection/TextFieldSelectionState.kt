@@ -1465,6 +1465,7 @@ internal class TextFieldSelectionState(
     }
 }
 
+/** Runs platform-specific text tap gestures logic. */
 internal expect suspend fun PointerInputScope.detectTextFieldTapGestures(
     selectionState: TextFieldSelectionState,
     interactionSource: MutableInteractionSource?,

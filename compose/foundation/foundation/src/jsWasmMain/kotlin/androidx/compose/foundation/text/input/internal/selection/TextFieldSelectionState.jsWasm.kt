@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.selection.MouseSelectionObserver
 import androidx.compose.ui.input.pointer.PointerInputScope
 
+/** Runs platform-specific text tap gestures logic. */
 internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     selectionState: TextFieldSelectionState,
     interactionSource: MutableInteractionSource?,

@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.input.internal.selection
 
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitPress
 import androidx.compose.foundation.gestures.detectTapAndPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -45,18 +46,15 @@ import androidx.compose.foundation.text.selection.touchSelectionFirstPress
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEvent
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.util.fastAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
+/** Runs platform-specific text tap gestures logic. */
 internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     selectionState: TextFieldSelectionState,
     interactionSource: MutableInteractionSource?,
@@ -89,7 +87,6 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
                 }
             }
         },
-        // Should remain as is
         onPress = { offset ->
             interactionSource?.let { interactionSource ->
                 coroutineScope {
@@ -122,6 +119,7 @@ internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     )
 }
 
+// Copied from common part and added adjusting cursor position in iOS-style
 private fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset): Boolean {
     val layoutResult = textLayoutState.layoutResult ?: return false
 
@@ -131,7 +129,6 @@ private fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset): 
 
     // Second step: adjust proposed cursor position as iOS does
     val previousIndex = layoutResult.getOffsetForPosition(handleDragPosition)
-    // TODO: Check which type of text is required here
     val currentText = textFieldState.untransformedText.text as String
     val index =
         determineCursorDesiredOffset(proposedIndex, previousIndex, layoutResult, currentText)
@@ -203,7 +200,7 @@ internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
     val clicksCounter = ClicksCounter(viewConfiguration)
     awaitEachGesture {
         while (true) {
-            val downEvent = awaitDown()
+            val downEvent = awaitPress({true})
             clicksCounter.update(downEvent.changes[0])
             val isPrecise = downEvent.isPrecisePointer
             if (
@@ -356,14 +353,4 @@ private class UIKitTextFieldTextDragObserver(
             textFieldSelectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
         )
     }
-}
-
-// Copied from SelectionGestures.kt
-// TODO: maybe should be refactored to use same AwaitDown with BTF1
-private suspend fun AwaitPointerEventScope.awaitDown(): PointerEvent {
-    var event: PointerEvent
-    do {
-        event = awaitPointerEvent(PointerEventPass.Main)
-    } while (!event.changes.fastAll { it.changedToDownIgnoreConsumed() })
-    return event
 }
