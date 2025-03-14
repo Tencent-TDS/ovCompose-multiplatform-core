@@ -171,7 +171,7 @@ private fun NavBackStackEntry.getRouteWithArgs(): String? {
         nameToTypedValue[key]
         //untyped args stored as strings
         //see: androidx.navigation.NavDeepLink.parseArgument
-            ?: args.read { getStringOrElse(key) { "" } }
+            ?: args.read { getStringOrNull(key) ?: "" }
     }
 
     return routeWithFilledArgs

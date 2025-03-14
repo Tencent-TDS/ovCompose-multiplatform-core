@@ -20,44 +20,84 @@ import kotlin.jvm.JvmStatic
 
 public actual open class NavDeepLinkRequest
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-actual constructor(uri: NavUri?, action: String?, mimeType: String?) {
-    public actual open val uri: NavUri? = implementedInJetBrainsFork()
+actual constructor(
+    public actual open val uri: NavUri?,
+    public actual open val action: String?,
+    public actual open val mimeType: String?
+) {
 
-    public actual open val action: String? = implementedInJetBrainsFork()
-
-    public actual open val mimeType: String? = implementedInJetBrainsFork()
+    public override fun toString(): String {
+        val sb = StringBuilder()
+        sb.append("NavDeepLinkRequest")
+        sb.append("{")
+        if (uri != null) {
+            sb.append(" uri=")
+            sb.append(uri.toString())
+        }
+        if (action != null) {
+            sb.append(" action=")
+            sb.append(action)
+        }
+        if (mimeType != null) {
+            sb.append(" mimetype=")
+            sb.append(mimeType)
+        }
+        sb.append(" }")
+        return sb.toString()
+    }
 
     public actual class Builder private actual constructor() {
+        private var uri: NavUri? = null
+        private var action: String? = null
+        private var mimeType: String? = null
+
         public actual fun setUri(uri: NavUri): Builder {
-            implementedInJetBrainsFork()
+            this.uri = uri
+            return this
         }
 
         public actual fun setAction(action: String): Builder {
-            implementedInJetBrainsFork()
+            require(action.isNotEmpty()) { "The NavDeepLinkRequest cannot have an empty action." }
+            this.action = action
+            return this
         }
 
         public actual fun setMimeType(mimeType: String): Builder {
-            implementedInJetBrainsFork()
+            val mimeTypeMatcher = mimeType.matches("^[-\\w*.]+/[-\\w+*.]+$".toRegex())
+            require(mimeTypeMatcher) {
+                "The given mimeType $mimeType does not match to required \"type/subtype\" format"
+            }
+            this.mimeType = mimeType
+            return this
         }
 
         public actual fun build(): NavDeepLinkRequest {
-            implementedInJetBrainsFork()
+            return NavDeepLinkRequest(uri, action, mimeType)
         }
 
         public actual companion object {
             @JvmStatic
             public actual fun fromUri(uri: NavUri): Builder {
-                implementedInJetBrainsFork()
+                val builder = Builder()
+                builder.setUri(uri)
+                return builder
             }
 
             @JvmStatic
             public actual fun fromAction(action: String): Builder {
-                implementedInJetBrainsFork()
+                require(action.isNotEmpty()) {
+                    "The NavDeepLinkRequest cannot have an empty action."
+                }
+                val builder = Builder()
+                builder.setAction(action)
+                return builder
             }
 
             @JvmStatic
             public actual fun fromMimeType(mimeType: String): Builder {
-                implementedInJetBrainsFork()
+                val builder = Builder()
+                builder.setMimeType(mimeType)
+                return builder
             }
         }
     }

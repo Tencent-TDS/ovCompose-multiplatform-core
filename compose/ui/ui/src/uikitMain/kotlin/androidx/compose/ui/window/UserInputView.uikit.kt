@@ -281,6 +281,13 @@ private class TouchesGestureRecognizer(
         }
     }
 
+    override fun shouldRequireFailureOfGestureRecognizer(
+        otherGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return (otherGestureRecognizer is UIKitBackGestureRecognizer) ||
+            super.shouldRequireFailureOfGestureRecognizer(otherGestureRecognizer)
+    }
+
     /**
      * Checks if compose can get priority over interop view with UIScrollView on it.
      *
