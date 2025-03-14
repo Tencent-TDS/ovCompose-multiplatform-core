@@ -89,35 +89,37 @@ val TextFields = Screen.Selection(
     },
 
     Screen.Example("BasicTextField2") {
-        var textFieldState by remember { mutableStateOf("I am TextField") }
-        val textFieldState2 = remember { TextFieldState("I am TextField 2") }
-        Column(Modifier.fillMaxWidth()) {
-            BasicTextField(
-                textFieldState,
-                onValueChange = { textFieldState = it },
-                Modifier
-                    .padding(16.dp)
-                    .height(24.dp)
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(4.dp)
-                    )
+        var textFieldState by remember { mutableStateOf("I am an old TextField") }
+        val textFieldState2 = remember { TextFieldState("I am a BasicTextField(TextFieldState)") }
+        val textFieldState3 = remember { TextFieldState(bigTextExampleString) }
+
+        val defaultModifier = Modifier
+            .padding(16.dp)
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = Color.LightGray,
+                shape = RoundedCornerShape(4.dp)
             )
-            Box(Modifier.height(16.dp))
-            BasicTextField(
-                textFieldState2,
-                Modifier
-                    .padding(16.dp)
-                    .height(24.dp)
-                    .fillMaxWidth()
-                    .border(
-                        width = 1.dp,
-                        color = Color.LightGray,
-                        shape = RoundedCornerShape(4.dp)
-                    )
-            )
+
+        ClearFocusBox {
+            Column(Modifier.fillMaxWidth()) {
+                BasicTextField(
+                    textFieldState,
+                    onValueChange = { textFieldState = it },
+                    defaultModifier.height(24.dp)
+                )
+                Box(Modifier.height(16.dp))
+                BasicTextField(
+                    textFieldState2,
+                    defaultModifier.height(24.dp)
+                )
+                Box(Modifier.height(16.dp))
+                BasicTextField(
+                    textFieldState3,
+                    defaultModifier
+                )
+            }
         }
     },
 
@@ -159,3 +161,41 @@ private fun AlmostFullscreen2() {
         Modifier.fillMaxSize().padding(vertical = 40.dp).background(Color.LightGray)
     )
 }
+
+private val bigTextExampleString = """
+    An example of big text in a TextField
+    
+    And another paragraph. Just to be sure. Here are random numbers: 0000000 00000000
+    0000 000000000000 000000 00000000 0 000
+    
+    Test with some brackets (word) (longer phrase in a brackets)
+    [different types of brackets] words between brackets [another one]
+    {let's use curly brackets too} words between brackets {and again}
+    
+    This must be a random long phrase to check BiDi
+    يجب أن تكون هذه عبارة طويلة عشوائية للتحقق من Bidi
+
+    A compound emoji line: 👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦👨‍👩‍👧‍👦,
+    
+    """.trimIndent() +
+    """
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+            Praesent placerat ligula sapien, sit amet viverra ligula bibendum sed. Fusce vitae neque pulvinar, 
+            tempus sapien ut, tincidunt nisl. Interdum et malesuada fames ac ante ipsum primis in faucibus. 
+            Sed aliquam congue euismod. Etiam porttitor vehicula ex, a interdum sapien. 
+            Nam sed vehicula dui, quis ornare nulla. Nullam porttitor ante nec magna porta, eget cursus sapien auctor. 
+            Sed hendrerit, nisi eget consequat molestie, eros massa tristique mi, sed consectetur nisl mauris quis eros. 
+            Quisque id leo a sem euismod iaculis non sit amet orci. Proin efficitur pellentesque orci vitae facilisis. 
+            Nulla vulputate tempus leo, ut vehicula ex. Maecenas fringilla pulvinar erat, ac dapibus libero tempor vel. 
+            Sed et dapibus sapien, vel imperdiet augue.
+    """.trimIndent().replace("\n", " ") +
+    """
+            Integer finibus justo facilisis mi porttitor,
+            et malesuada ligula pretium. Integer ipsum felis, 
+            dictum a metus ut, sagittis mattis libero. Morbi facilisis pulvinar nulla eget molestie. 
+            Nulla porta neque eros, at vulputate turpis tristique pretium. 
+            Vestibulum aliquet metus id nisi euismod varius. Nunc nec mi id lorem molestie interdum. 
+            Fusce eget metus quis dui varius scelerisque et id mauris. In sit amet nunc sed tellus sagittis finibus. 
+            Aliquam eleifend lorem vitae lobortis dapibus. Suspendisse ipsum nisi, molestie et porta quis, maximus at ante. 
+            Nam et accumsan nisi, sit amet efficitur ante. Aliquam id volutpat quam, at vestibulum ligula. 
+    """.trimIndent().replace("\n", " ")
