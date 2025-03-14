@@ -234,7 +234,6 @@ internal fun Project.originalToRedirectedDependency(
         .orEmpty()
         .associateBy { DefaultModuleIdentifier.newId(it.moduleGroup, it.moduleName) }
         .mapValuesNotNull { it.value.findRedirectedDependencyHeuristically()?.module?.id }
-//configurations.filter { it.name.contains("mingw") }.mapNotNull { try { it.name to it.resolvedConfiguration } catch (e: Exception) { null } }
 
     return projectDefined + externalWithHeuristic
 }
