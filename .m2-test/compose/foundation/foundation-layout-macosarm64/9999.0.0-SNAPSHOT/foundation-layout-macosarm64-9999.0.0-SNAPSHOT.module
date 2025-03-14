@@ -1,0 +1,186 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../foundation-layout/9999.0.0-SNAPSHOT/foundation-layout-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.foundation",
+    "module": "foundation-layout",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "macosArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-macosArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "foundation-layout-macosarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 477129,
+          "sha512": "982ce94c7315a9706d0db9b6beb412b240560e53911f3e91e9043040782145ee5dce74248eff2be5468133e1cd25c350255a3b2774cdf109d768a6c3b1e07f8d",
+          "sha256": "b6c5c18c3918cb4850c85206696a02c6f09cb4a16b20578bfa2dfaf35f291bc6",
+          "sha1": "0fad83ba4bbb55889c4f83264280ac5ec7925e9e",
+          "md5": "ef8cb434c185f277a9110c3489c56012"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "foundation-layout-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "foundation-layout-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 87762,
+          "sha512": "517f396e4182f5aada99557c5f86ed57909c046fa7ebd3392474823e408c4617c9912e0597f128ab1b3c846f4dcc232aa857c8aa2391059e013a2ac30513e5be",
+          "sha256": "e59e798cdce6314f5762103e372aea27d0b007fa0304f181206e22f0b1e9a638",
+          "sha1": "ec59fea0b62adb04a39ba5def111165ee0b7b9f0",
+          "md5": "42ffc865e61fa0798f7b58e173b1c72e"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "foundation-layout-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 4536,
+          "sha512": "94301d95e3399fdc68f7c634606426cc46a0308e8438a72513a0d73beb12cd7ff779399aed249953250cb5726d54e7d85db0e1214d0bf104fdb71e4430458bb8",
+          "sha256": "02e6e5614905a466f3d234c4027ecdbfabd83dfb9acc53c9978cac4789fb3e7e",
+          "sha1": "5d2091824cae5b6bb743c287efdd62677043d505",
+          "md5": "6ebe493bf451af023275a1d99d0be394"
+        }
+      ]
+    }
+  ]
+}

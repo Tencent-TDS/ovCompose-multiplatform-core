@@ -1,0 +1,130 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../window-core/9999.0.0-SNAPSHOT/window-core-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.window",
+    "module": "window-core",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "tvosArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "tvos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "window-core-tvosArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "window-core-tvosarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 20222,
+          "sha512": "fdedf0eb4c975367292a93a24573043da7ccea87369ab67bc35fb720e33ddc8b4fdeb923820bedb9d3d707506f3a25f950e8d55f599803c5ebb50e58fa27fc12",
+          "sha256": "73063787f1e3130e346631389d2cd359e239e2289e752ba31e81d7f6a599800d",
+          "sha1": "4e472af59b35baa3488f54bff859c8e221fd5bc6",
+          "md5": "c47f996922c0feac19b1644168ed165b"
+        }
+      ]
+    },
+    {
+      "name": "tvosArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "tvos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "window-core-tvosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "window-core-tvosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 8804,
+          "sha512": "ae70222feba801a749b9c9498250c034d6ef44bfabc2edbce34503b0492fe6c7a2f2c0c0a62071cffc7b3aaa48dacbebcb44bf12a96375d60a61c7c58ee68ce5",
+          "sha256": "7f12a1dfe66bf3f3d0f68395b1f749377e533cdd245dffa3465e07d5acc0536e",
+          "sha1": "37942415b980a2d51e646603b246932976db31b8",
+          "md5": "07828aa7ba8527c29503ee6042e34503"
+        }
+      ]
+    },
+    {
+      "name": "tvosArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "tvos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "window-core-tvosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "window-core-tvosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 261,
+          "sha512": "1487e5a20c9e4d74f298e07c42e96a61be11b7a768c3fbc199ee138cd68e1fc2267d1cfe3f11f288acc05df755315344d052cc5f6f751f126ab4fe1caa5125ea",
+          "sha256": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3",
+          "sha1": "2ad14aed781c4a73ed4dbb421966d408a0a06686",
+          "md5": "f43436d6bec321290f6af228ad602604"
+        }
+      ]
+    }
+  ]
+}

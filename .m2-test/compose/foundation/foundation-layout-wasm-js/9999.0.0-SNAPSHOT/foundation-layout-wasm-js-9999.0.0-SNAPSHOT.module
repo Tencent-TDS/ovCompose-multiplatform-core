@@ -1,0 +1,143 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../foundation-layout/9999.0.0-SNAPSHOT/foundation-layout-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.foundation",
+    "module": "foundation-layout",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 477641,
+          "sha512": "99c4e3a4f409d8392f003d2c988c2692fde6a0feb1842e8a2a4121ebe445ccbee9b8e80740ce19e4805e36143a129d36a7f5836e3126b01fbdba1591146c726a",
+          "sha256": "4bc604e525b604cd5da0db244284dacd686c89355fe5059e9d56e6648e51b3b7",
+          "sha1": "4e9c06a86470b2d0f6cc732898a4a9058ec22494",
+          "md5": "bf73dfcf524188b8eb2ee9ff9d67f4cf"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 477641,
+          "sha512": "99c4e3a4f409d8392f003d2c988c2692fde6a0feb1842e8a2a4121ebe445ccbee9b8e80740ce19e4805e36143a129d36a7f5836e3126b01fbdba1591146c726a",
+          "sha256": "4bc604e525b604cd5da0db244284dacd686c89355fe5059e9d56e6648e51b3b7",
+          "sha1": "4e9c06a86470b2d0f6cc732898a4a9058ec22494",
+          "md5": "bf73dfcf524188b8eb2ee9ff9d67f4cf"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "foundation-layout-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 87762,
+          "sha512": "517f396e4182f5aada99557c5f86ed57909c046fa7ebd3392474823e408c4617c9912e0597f128ab1b3c846f4dcc232aa857c8aa2391059e013a2ac30513e5be",
+          "sha256": "e59e798cdce6314f5762103e372aea27d0b007fa0304f181206e22f0b1e9a638",
+          "sha1": "ec59fea0b62adb04a39ba5def111165ee0b7b9f0",
+          "md5": "42ffc865e61fa0798f7b58e173b1c72e"
+        }
+      ]
+    }
+  ]
+}

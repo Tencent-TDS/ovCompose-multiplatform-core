@@ -1,0 +1,172 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../savedstate/9999.0.0-SNAPSHOT/savedstate-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.savedstate",
+    "module": "savedstate",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "watchosArm32ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "savedstate-watchosArm32Main-9999.0.0-SNAPSHOT.klib",
+          "url": "savedstate-watchosarm32-9999.0.0-SNAPSHOT.klib",
+          "size": 93931,
+          "sha512": "0447ba234934fdd7cd8c8f8ca908a52dfbf1db55bf8f2f361fe74f4d76db5a63ef270fceec2553056c92ee98acf9749e1ea898dacb415d2a19a816c3c3880070",
+          "sha256": "6195f0359bb7b92be4872873439bcc683f9a1d93db7328b3247d80ba319d1244",
+          "sha1": "ba1e17b4deea4c18988559554422c3dbaefb2c5a",
+          "md5": "050a01a1cf3243ea6006c16ecb110c76"
+        }
+      ]
+    },
+    {
+      "name": "watchosArm32SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "savedstate-watchosarm32-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "savedstate-watchosarm32-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 35708,
+          "sha512": "fe73dd10087404729faf1169f041fee1ce3596ab3a792635b1956638e89a60dc7a82b93e06b48dceb3117de767ce52b44de580bf0c56b83503a491f8e2fbc5fa",
+          "sha256": "57e64cd0011d76844b7c7993e477d95e1c6a700fb609ce8e7a8bb66f269f8c10",
+          "sha1": "dbe5ac5dd1c34ba472e5340c08365f1bd8ff1e7d",
+          "md5": "1e1a94ccc2854bdcd5e2539260c039ac"
+        }
+      ]
+    },
+    {
+      "name": "watchosArm32MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "savedstate-watchosarm32-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "savedstate-watchosarm32-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 3834,
+          "sha512": "b4e7fd7fe42b7b308aa4d9194fb8fd77e12e2e3e155eb75b7a717f6247a507f13099673de6c7ed6e6cecd43dd191609ebe786b105f42a94f85e76e8454af604b",
+          "sha256": "051752864dfc53c3eff2ee2d9cc594c75783206d99cbac106c4bc9b17095d46c",
+          "sha1": "9c181c2cf7d6e68abbf63814697da6610872e826",
+          "md5": "5e1bf4ce28a786f63d113eca63be231a"
+        }
+      ]
+    }
+  ]
+}

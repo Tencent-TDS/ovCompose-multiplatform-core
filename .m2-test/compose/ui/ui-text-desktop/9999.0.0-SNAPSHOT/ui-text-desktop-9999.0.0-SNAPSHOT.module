@@ -1,0 +1,199 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-text/9999.0.0-SNAPSHOT/ui-text-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-text",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-text-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-text-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 811198,
+          "sha512": "f0b7023effd1eebded96bd8b5a1f0db69a383bc0f9f08e85da9a3163cc05802edfd592425d24048adf9cf2f523eebd044fa4c6ff8a99bfb7ee14d2b5f5b9b0b0",
+          "sha256": "eb8ef32b95d6099098054cd494b00f1c9e3ddaa49e164c296dd03866c71bc45d",
+          "sha1": "9ed01949ebca84366fb705d283f7a742c3269af1",
+          "md5": "14592499267547f05d4a2e57cf76697e"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "atomicfu",
+          "version": {
+            "requires": "0.23.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-text-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-text-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 811198,
+          "sha512": "f0b7023effd1eebded96bd8b5a1f0db69a383bc0f9f08e85da9a3163cc05802edfd592425d24048adf9cf2f523eebd044fa4c6ff8a99bfb7ee14d2b5f5b9b0b0",
+          "sha256": "eb8ef32b95d6099098054cd494b00f1c9e3ddaa49e164c296dd03866c71bc45d",
+          "sha1": "9ed01949ebca84366fb705d283f7a742c3269af1",
+          "md5": "14592499267547f05d4a2e57cf76697e"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-text-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-text-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 246573,
+          "sha512": "a4ab7d5c4952efced088adf864dcb6e41698354204d15bf13f1a59dec1acfcd727034a313246da320f4051ea63799ed88a478fa16a42149d168a1c9dd2fe360c",
+          "sha256": "1e5fe0921258e3617ba6489e24eb3942e7452653ade3a3dba75523ec876d8524",
+          "sha1": "908797b0077e8f13a681c697c95f2054d4cd1bc4",
+          "md5": "e0eaa025fef2ab847c4d0b53891aceaf"
+        }
+      ]
+    }
+  ]
+}

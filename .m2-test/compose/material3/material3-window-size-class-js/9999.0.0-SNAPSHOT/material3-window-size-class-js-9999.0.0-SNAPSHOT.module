@@ -1,0 +1,164 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material3-window-size-class/9999.0.0-SNAPSHOT/material3-window-size-class-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3",
+    "module": "material3-window-size-class",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-window-size-class-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-window-size-class-js-9999.0.0-SNAPSHOT.klib",
+          "size": 20154,
+          "sha512": "a5b2944aa3ee0343ec745416c5286b7aac06ae2b00552afe24c5c4e726436d113b0fe7f18b15ede2a6f5d82d62340acb3d70e06362db3fb79c98f78891bd3fcf",
+          "sha256": "8928b1182e4989a951781575fd7f85115ac8fd326a5bfca410bf623495f6ee88",
+          "sha1": "3bdce9847c5d6024494e69467b3970d862a1976c",
+          "md5": "92c9865f9f95989a1a5db40ac7dd3ae4"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-window-size-class-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-window-size-class-js-9999.0.0-SNAPSHOT.klib",
+          "size": 20154,
+          "sha512": "a5b2944aa3ee0343ec745416c5286b7aac06ae2b00552afe24c5c4e726436d113b0fe7f18b15ede2a6f5d82d62340acb3d70e06362db3fb79c98f78891bd3fcf",
+          "sha256": "8928b1182e4989a951781575fd7f85115ac8fd326a5bfca410bf623495f6ee88",
+          "sha1": "3bdce9847c5d6024494e69467b3970d862a1976c",
+          "md5": "92c9865f9f95989a1a5db40ac7dd3ae4"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "material3-window-size-class-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material3-window-size-class-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 8215,
+          "sha512": "1d1473b5d9871520074fa3026386c5b8dd4a35bc8038428a6f4c8b8aa6d10f8e4cb67f667f379e61b2f117cc886d4ce7a4199a7b82106abfcf96aa535cab03d9",
+          "sha256": "cc82c5cf4d6a5db143e15fac3bc76b70b83967038c75c600ea8a560db3d49e2d",
+          "sha1": "58c795afa7792c2495ec8d0fdc94d763bc549fcb",
+          "md5": "db048b8ab965fdd3c285ab344872cf02"
+        }
+      ]
+    }
+  ]
+}

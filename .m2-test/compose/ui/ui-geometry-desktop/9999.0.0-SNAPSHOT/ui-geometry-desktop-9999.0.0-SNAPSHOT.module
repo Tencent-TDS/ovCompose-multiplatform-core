@@ -1,0 +1,113 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-geometry/9999.0.0-SNAPSHOT/ui-geometry-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-geometry",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-geometry-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-geometry-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 56930,
+          "sha512": "40b9cd8be894845e5ad12545e4fd3fc0741a79d458195975a6491bac7f807b32b3a4290254e64ddd6fa7570aba193289e5e3fd8a05ed1da4e3bb8f7563bc108b",
+          "sha256": "c22d44c85a5d557f61a25b610704f70507c7ad4fd161af712be3adf5c6614429",
+          "sha1": "63f38fb415a3f8e109ce54b7edf43d68b8bb2820",
+          "md5": "5e396f572e755e252d7284286324937f"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-geometry-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-geometry-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 56930,
+          "sha512": "40b9cd8be894845e5ad12545e4fd3fc0741a79d458195975a6491bac7f807b32b3a4290254e64ddd6fa7570aba193289e5e3fd8a05ed1da4e3bb8f7563bc108b",
+          "sha256": "c22d44c85a5d557f61a25b610704f70507c7ad4fd161af712be3adf5c6614429",
+          "sha1": "63f38fb415a3f8e109ce54b7edf43d68b8bb2820",
+          "md5": "5e396f572e755e252d7284286324937f"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-geometry-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-geometry-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 21661,
+          "sha512": "4863e18ae85127f20426ce9c273675971b4a5a446dc13d914462342a376e4f96d570c43d88983e53b724be6db19c860b121e8cab70b12d765f1f52ce5bc5d35c",
+          "sha256": "31f71d7c6afd770bc7be12defed5bf7347e2ec37c88f3be05d65b1c2e4495a94",
+          "sha1": "3d3abd5627ffe20c6230b85b36817e0e738bc3ef",
+          "md5": "764f1ac46b4f9ea3403a167436bc1cdf"
+        }
+      ]
+    }
+  ]
+}

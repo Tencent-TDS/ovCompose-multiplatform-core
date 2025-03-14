@@ -1,0 +1,213 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-text/9999.0.0-SNAPSHOT/ui-text-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-text",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-text-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-text-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 822438,
+          "sha512": "f62ba5d56c2d899b185072e5404ada35099b87cdfce8fb7d61544bfe566d1da94ea9cd3eec459678e544be9ec1ace12150f978f617feb39d4718a4fd841a8181",
+          "sha256": "17837645e73e8f3347960b5900714ae63ff18fee1b1bfd5053d336e106d4c384",
+          "sha1": "4f54d79e992fced05a75fb7b2468ce7be664c077",
+          "md5": "af7e4df299ef2df86db2300b00b6a52b"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "atomicfu",
+          "version": {
+            "requires": "0.23.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko-js-wasm-runtime",
+          "version": {
+            "requires": "0.9.3"
+          }
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko-wasm-js",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-text-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-text-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 822438,
+          "sha512": "f62ba5d56c2d899b185072e5404ada35099b87cdfce8fb7d61544bfe566d1da94ea9cd3eec459678e544be9ec1ace12150f978f617feb39d4718a4fd841a8181",
+          "sha256": "17837645e73e8f3347960b5900714ae63ff18fee1b1bfd5053d336e106d4c384",
+          "sha1": "4f54d79e992fced05a75fb7b2468ce7be664c077",
+          "md5": "af7e4df299ef2df86db2300b00b6a52b"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "ui-text-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-text-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 238309,
+          "sha512": "26c7a2070fa7acf208c2327a1580925a0aa7b7f88d657a1f1f7810ec516985b895f028fc94114c5797860d6241251798e12af73969ed9c463c60aed83a036c85",
+          "sha256": "179b044f9c65bab05cc0f79f4918311708a661f24f4502f2c5d8e7579b6f8735",
+          "sha1": "ff9f6c58a154a529366fa57081f061b580e65bf7",
+          "md5": "4621fa769cfba50ab5efb23add8995b7"
+        }
+      ]
+    }
+  ]
+}

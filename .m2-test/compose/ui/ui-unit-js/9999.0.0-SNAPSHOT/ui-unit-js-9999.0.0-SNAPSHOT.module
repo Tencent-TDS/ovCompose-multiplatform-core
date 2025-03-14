@@ -1,0 +1,150 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-unit/9999.0.0-SNAPSHOT/ui-unit-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-unit",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-unit-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-unit-js-9999.0.0-SNAPSHOT.klib",
+          "size": 89531,
+          "sha512": "e1ed8055da79874e6db3373f2812668a988114e3acbe9e690b74b3374d67d37cbc0380ede9899f4c254861050ef08dc4401f318ba14f7027c6e814ef162f4b94",
+          "sha256": "ee080cab61fdecce2b9ccf0f30f07c961c708f772dfdcc1d53587558a5e35ceb",
+          "sha1": "94f509ead9690fe5ae2ed15fde06c6412f943df1",
+          "md5": "56d20f4903c85b30f7cb775c88eeea60"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-unit-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-unit-js-9999.0.0-SNAPSHOT.klib",
+          "size": 89531,
+          "sha512": "e1ed8055da79874e6db3373f2812668a988114e3acbe9e690b74b3374d67d37cbc0380ede9899f4c254861050ef08dc4401f318ba14f7027c6e814ef162f4b94",
+          "sha256": "ee080cab61fdecce2b9ccf0f30f07c961c708f772dfdcc1d53587558a5e35ceb",
+          "sha1": "94f509ead9690fe5ae2ed15fde06c6412f943df1",
+          "md5": "56d20f4903c85b30f7cb775c88eeea60"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "ui-unit-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-unit-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 31799,
+          "sha512": "6940e703e1fe615ac2727bd5da831914ae121010ee0f2bc9d5a4a91b70821c29e8a571ae489026ef0b1b83b6ca553e9cfff28fa05ada41f11b3ddc05701f9005",
+          "sha256": "a587e1005f77f4317dcf4c1cc131504e26fc48aa82f9ed026f1cb75cc121682e",
+          "sha1": "51b2a62a3348ad43cfa7c07608245c6ccf56789f",
+          "md5": "ede33def32f8adb81b20190f1b47d9bb"
+        }
+      ]
+    }
+  ]
+}

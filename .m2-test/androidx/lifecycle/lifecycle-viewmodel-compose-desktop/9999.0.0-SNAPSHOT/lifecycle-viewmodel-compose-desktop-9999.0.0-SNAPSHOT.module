@@ -1,0 +1,199 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-viewmodel-compose/9999.0.0-SNAPSHOT/lifecycle-viewmodel-compose-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-viewmodel-compose",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel-savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 22450,
+          "sha512": "876f62ee49303ae7398091b8a20a4f6c2af33bf3286e2504009d8c363c8c8bc530c2d121012f936455aee51987267a973fdafbcad6aa47de0d1bbf480c44e194",
+          "sha256": "ddfeeb9262d065a63c540be732a0e620b677ac7aef2c213a5845627a12929921",
+          "sha1": "3a5a998d4381067cada1dfd8aebe48a97755a2dc",
+          "md5": "0e26638c1e216130ab5407b09763409e"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel-savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 22450,
+          "sha512": "876f62ee49303ae7398091b8a20a4f6c2af33bf3286e2504009d8c363c8c8bc530c2d121012f936455aee51987267a973fdafbcad6aa47de0d1bbf480c44e194",
+          "sha256": "ddfeeb9262d065a63c540be732a0e620b677ac7aef2c213a5845627a12929921",
+          "sha1": "3a5a998d4381067cada1dfd8aebe48a97755a2dc",
+          "md5": "0e26638c1e216130ab5407b09763409e"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-viewmodel-compose-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 9553,
+          "sha512": "fc61d33041e6a0a4822dc29aa40341370b91a94c555a6136f67ae993a8bfafe2e877067a82cedf2a2f64a93e3f2782587ca3d46c51404d30b05dce1ef46eb55b",
+          "sha256": "1ea5a386e7b4f93d7cc5095773bc7d55c3f18e3a59341d6a129e0d8d6b8c612c",
+          "sha1": "071a79fd5cb226ee01efa0bb1d0639a84d594f90",
+          "md5": "d4c6a9ec99c9bd6df639bbec6d980768"
+        }
+      ]
+    }
+  ]
+}

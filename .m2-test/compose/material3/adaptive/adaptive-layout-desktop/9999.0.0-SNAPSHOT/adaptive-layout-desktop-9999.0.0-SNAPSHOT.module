@@ -1,0 +1,192 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../adaptive-layout/9999.0.0-SNAPSHOT/adaptive-layout-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.adaptive",
+    "module": "adaptive-layout",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-layout-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "adaptive-layout-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 404475,
+          "sha512": "1501900e508ab647974c8602897f7843b0d5aed719c98e6fce11defbcf97a6a3498f7be5f1e8c4d5c7d704ba35954f57cb84828af041953422a790321c7b0541",
+          "sha256": "3147e598dc4fce2295cdb35087b3fd2f05516303a82b9dcf7ed02be91bdafb52",
+          "sha1": "2512947abb300962823719c448fd89b57c2d233a",
+          "md5": "1f14cefcb26b1aee40811dc7a4a41e03"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.window",
+          "module": "window-core",
+          "version": {
+            "requires": "1.3.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-layout-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "adaptive-layout-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 404475,
+          "sha512": "1501900e508ab647974c8602897f7843b0d5aed719c98e6fce11defbcf97a6a3498f7be5f1e8c4d5c7d704ba35954f57cb84828af041953422a790321c7b0541",
+          "sha256": "3147e598dc4fce2295cdb35087b3fd2f05516303a82b9dcf7ed02be91bdafb52",
+          "sha1": "2512947abb300962823719c448fd89b57c2d233a",
+          "md5": "1f14cefcb26b1aee40811dc7a4a41e03"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "adaptive-layout-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "adaptive-layout-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 67502,
+          "sha512": "5b1ccfe72bfe746240517f6611366295428d78589ad355ba0cc0463caf1b525649703631d134bf553dcc7f1fd6a788d299df108701ef9c9210a9f05ca8e5d398",
+          "sha256": "f256bd2ec5037708eaebf8a5b1c7a8ba1c59fb5eba7ccb597165bd34a21b688e",
+          "sha1": "15e3fd0a4d2d3728efe43476da9b879db41aded5",
+          "md5": "9c6c33c6613ff76074cc79c8aa9a08ee"
+        }
+      ]
+    }
+  ]
+}

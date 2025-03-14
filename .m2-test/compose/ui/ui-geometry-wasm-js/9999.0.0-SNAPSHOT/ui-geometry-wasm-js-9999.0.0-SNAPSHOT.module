@@ -1,0 +1,113 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-geometry/9999.0.0-SNAPSHOT/ui-geometry-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-geometry",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61533,
+          "sha512": "6d891948811c477b02983ee4fa70851bc1d6659fb188ee2eee7b8273e56c6c2f9957037ffee4165497957160b89badde81973c64193853050c626257304b0a46",
+          "sha256": "f0f9d8b87d6dbc2042a36a4d31eccd09522815eb7834576ea6bca375e12e5522",
+          "sha1": "4017651df6ce4ceedf7c1fa9abe0279f1ea30683",
+          "md5": "567d8bb2cea94e7ba1d607e7c5d7f615"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61533,
+          "sha512": "6d891948811c477b02983ee4fa70851bc1d6659fb188ee2eee7b8273e56c6c2f9957037ffee4165497957160b89badde81973c64193853050c626257304b0a46",
+          "sha256": "f0f9d8b87d6dbc2042a36a4d31eccd09522815eb7834576ea6bca375e12e5522",
+          "sha1": "4017651df6ce4ceedf7c1fa9abe0279f1ea30683",
+          "md5": "567d8bb2cea94e7ba1d607e7c5d7f615"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-geometry-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 21661,
+          "sha512": "4863e18ae85127f20426ce9c273675971b4a5a446dc13d914462342a376e4f96d570c43d88983e53b724be6db19c860b121e8cab70b12d765f1f52ce5bc5d35c",
+          "sha256": "31f71d7c6afd770bc7be12defed5bf7347e2ec37c88f3be05d65b1c2e4495a94",
+          "sha1": "3d3abd5627ffe20c6230b85b36817e0e738bc3ef",
+          "md5": "764f1ac46b4f9ea3403a167436bc1cdf"
+        }
+      ]
+    }
+  ]
+}

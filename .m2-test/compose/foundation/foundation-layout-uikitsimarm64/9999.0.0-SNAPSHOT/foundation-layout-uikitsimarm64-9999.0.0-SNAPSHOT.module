@@ -1,0 +1,186 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../foundation-layout/9999.0.0-SNAPSHOT/foundation-layout-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.foundation",
+    "module": "foundation-layout",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "uikitSimArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-uikitSimArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "foundation-layout-uikitsimarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 480827,
+          "sha512": "ca029d5f7d5d30c2a3595dbc0c056afbfbe7e3b7a75a2c822c48a140d4dd8c6dde75d3c2118878a80204ec53de375fd6dda4bfa50b69fcf76d06b0b601209da4",
+          "sha256": "b0da644d6e3e66b43f1319064000078054698a06d2b20b0cf33d158fd2cec310",
+          "sha1": "bd58341b7104bf0a447c580e8967a0909d263673",
+          "md5": "a39c6014b182f886cb6c16dd54bb6005"
+        }
+      ]
+    },
+    {
+      "name": "uikitSimArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "foundation-layout-uikitsimarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "foundation-layout-uikitsimarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 88678,
+          "sha512": "91f9479d0159ebb98d649e4901d2cf23d97a5fe4631daa9ba2e1e5b94a9a25d1863a836c27bd94102f5d47ef0d62637e9ece538b949593e0a14d42de976b4c24",
+          "sha256": "0a0836bb94b71629650371407e7a8384bf85458481b31c926fb8b8796346fbc2",
+          "sha1": "64773f9024c58694dcdbc4414e2ebc06b05927af",
+          "md5": "8312ab38c444c721a262f77b82e1b570"
+        }
+      ]
+    },
+    {
+      "name": "uikitSimArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "foundation-layout-uikitsimarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "foundation-layout-uikitsimarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 4536,
+          "sha512": "94301d95e3399fdc68f7c634606426cc46a0308e8438a72513a0d73beb12cd7ff779399aed249953250cb5726d54e7d85db0e1214d0bf104fdb71e4430458bb8",
+          "sha256": "02e6e5614905a466f3d234c4027ecdbfabd83dfb9acc53c9978cac4789fb3e7e",
+          "sha1": "5d2091824cae5b6bb743c287efdd62677043d505",
+          "md5": "6ebe493bf451af023275a1d99d0be394"
+        }
+      ]
+    }
+  ]
+}

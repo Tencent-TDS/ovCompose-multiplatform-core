@@ -1,0 +1,143 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material3-adaptive-navigation-suite/9999.0.0-SNAPSHOT/material3-adaptive-navigation-suite-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3",
+    "module": "material3-adaptive-navigation-suite",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 89229,
+          "sha512": "9ac71617d28921f4be165ab880471eefef84b0a02fa1217891bdf92be56b664420a927e28a4e8d4c235aa22131de70c3acc2ccf29965eda2800bd5e61fdba631",
+          "sha256": "f548fcaf6ae18a90f151fef8a1ae20b64dda8d8ea95c4b519a42ab887c7e9418",
+          "sha1": "4f0d24ba4302c90ec82cca5a6ec5940dc9d979be",
+          "md5": "f97431f1d6ba43112d726d2653b195cb"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.window",
+          "module": "window-core",
+          "version": {
+            "requires": "1.3.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3",
+          "module": "material3",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 89229,
+          "sha512": "9ac71617d28921f4be165ab880471eefef84b0a02fa1217891bdf92be56b664420a927e28a4e8d4c235aa22131de70c3acc2ccf29965eda2800bd5e61fdba631",
+          "sha256": "f548fcaf6ae18a90f151fef8a1ae20b64dda8d8ea95c4b519a42ab887c7e9418",
+          "sha1": "4f0d24ba4302c90ec82cca5a6ec5940dc9d979be",
+          "md5": "f97431f1d6ba43112d726d2653b195cb"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material3-adaptive-navigation-suite-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 8869,
+          "sha512": "20e9ecfeb003d86c76b45b71f1f444769b3484ca52ff05248fa441d0b53c1002646b4168fd508e0348a3fe2eeeeadcc43a569d15ae0a27f7c660b09840f85e96",
+          "sha256": "81a8cd3e5e2ac725df6c951803da02e2f88269292208d92073b0e013080e8ab6",
+          "sha1": "827b85ce67919df0f7a9d174a79abdc509585fdd",
+          "md5": "97782a2538cf90364472bdbdb082ca05"
+        }
+      ]
+    }
+  ]
+}

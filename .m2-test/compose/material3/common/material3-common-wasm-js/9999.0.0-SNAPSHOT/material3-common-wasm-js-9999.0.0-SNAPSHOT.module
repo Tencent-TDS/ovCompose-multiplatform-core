@@ -1,0 +1,178 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material3-common/9999.0.0-SNAPSHOT/material3-common-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.common",
+    "module": "material3-common",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-common-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 62013,
+          "sha512": "887fc8dcea37e9f81c2dcf015bacee07b006acad28c39ab4d3766e923fa1d44e8d8c167b77afae2c21348053f90d92048741d628e55edd241dda5cd28b3192c8",
+          "sha256": "617d67506e9424404debd7ee81b58d601f90441a5b83b49bd93643697fd95ff9",
+          "sha1": "d6d235000e8151236b787a57fff246896b5f8e4c",
+          "md5": "aa9d418669f28e60793e1e193e5e019d"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-common-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 62013,
+          "sha512": "887fc8dcea37e9f81c2dcf015bacee07b006acad28c39ab4d3766e923fa1d44e8d8c167b77afae2c21348053f90d92048741d628e55edd241dda5cd28b3192c8",
+          "sha256": "617d67506e9424404debd7ee81b58d601f90441a5b83b49bd93643697fd95ff9",
+          "sha1": "d6d235000e8151236b787a57fff246896b5f8e4c",
+          "md5": "aa9d418669f28e60793e1e193e5e019d"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "material3-common-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material3-common-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 13218,
+          "sha512": "5f51f09c866536ca288bf75d476a88a70df3e29aa5e0017de2d9f795add744421527551cd17e4d6bd2807d8c45dd6225cc43256ba60b2d8bac0b74dd8ac88fe3",
+          "sha256": "021696b10e11ad2aa786888f13be623150dcc74ff5711c7cd9be125e81651d96",
+          "sha1": "f0e4a83cef4cdeb9f2b415cc91ea81fac6f48870",
+          "md5": "1e716be6e385c85396b765214cbba4b1"
+        }
+      ]
+    }
+  ]
+}

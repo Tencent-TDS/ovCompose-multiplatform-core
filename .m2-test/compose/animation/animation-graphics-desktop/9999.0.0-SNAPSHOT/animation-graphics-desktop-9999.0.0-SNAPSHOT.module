@@ -1,0 +1,185 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../animation-graphics/9999.0.0-SNAPSHOT/animation-graphics-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.animation",
+    "module": "animation-graphics",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-graphics-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "animation-graphics-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 76019,
+          "sha512": "72dd5acde2c185ee9ec705460721adee25a6805d078fc6aaf622f87a339360fcef5956a86e1c8925cc3e7d60cb054100b51420b524a9758c49506fc905ef6552",
+          "sha256": "50479b41d63910c05733ad285b2885b5e0af90bb9947f133ced1e46fd413deae",
+          "sha1": "4caf61a1954a4b7f580739f538146baadfb5f28b",
+          "md5": "50751560a3b7018f3dec0e9ddc6bdd7a"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-graphics-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "animation-graphics-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 76019,
+          "sha512": "72dd5acde2c185ee9ec705460721adee25a6805d078fc6aaf622f87a339360fcef5956a86e1c8925cc3e7d60cb054100b51420b524a9758c49506fc905ef6552",
+          "sha256": "50479b41d63910c05733ad285b2885b5e0af90bb9947f133ced1e46fd413deae",
+          "sha1": "4caf61a1954a4b7f580739f538146baadfb5f28b",
+          "md5": "50751560a3b7018f3dec0e9ddc6bdd7a"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "animation-graphics-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "animation-graphics-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 9787,
+          "sha512": "5f8cc60aa07f2d9c7a9d97ffae91d936a69d1a100fca72d1e07e023465c37339e2762fba6aed7339c74d13045d329eb3162f7f343dc1b61096c07ac0fc273382",
+          "sha256": "7fdcd209650e49c7f5a5637d34eb0bf1cadd8f4eeecfbdbbf20745be12fe2ac2",
+          "sha1": "2a09afeddc6e36375a393d40af9b9d055023df1c",
+          "md5": "9f36e4a658f8998ac33ccb22d3cfdd83"
+        }
+      ]
+    }
+  ]
+}

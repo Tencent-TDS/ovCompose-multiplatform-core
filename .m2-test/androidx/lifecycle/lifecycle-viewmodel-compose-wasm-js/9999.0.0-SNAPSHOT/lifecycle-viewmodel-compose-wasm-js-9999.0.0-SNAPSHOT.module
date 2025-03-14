@@ -1,0 +1,199 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-viewmodel-compose/9999.0.0-SNAPSHOT/lifecycle-viewmodel-compose-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-viewmodel-compose",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel-savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 24907,
+          "sha512": "dad09fe7bc5fc7ee3b6ee748aaac2ff49319a734e68535a6092ca090e0b93a62eabdfe7b908ba47fb90b07f4ac34b02961f54788b109c75748705bcbb491db46",
+          "sha256": "1a94d254a5b12287765fee9d42b98a8d36e26b39ee78321db50bae5156ef44c5",
+          "sha1": "46913e5ae9019e03e3c647ee2e34cee0c303ca55",
+          "md5": "d799540cd87384c8874abba8c74aadcd"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel-savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime-saveable",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 24907,
+          "sha512": "dad09fe7bc5fc7ee3b6ee748aaac2ff49319a734e68535a6092ca090e0b93a62eabdfe7b908ba47fb90b07f4ac34b02961f54788b109c75748705bcbb491db46",
+          "sha256": "1a94d254a5b12287765fee9d42b98a8d36e26b39ee78321db50bae5156ef44c5",
+          "sha1": "46913e5ae9019e03e3c647ee2e34cee0c303ca55",
+          "md5": "d799540cd87384c8874abba8c74aadcd"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-viewmodel-compose-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 9550,
+          "sha512": "fb49a7a86efd7e2c3ff034ae0edcd9a5b93857ed22bd8999e8657cf059030e4117c4b6efc7aa0821efd8ad233c9f111a295891e7d656614b8a4c2b923cf13c72",
+          "sha256": "36ca9e1435fb87bd81052e2bec8e0189d3be69b85be8646c7549d8bff426a59e",
+          "sha1": "5192ab3a36068d6734fb739217a1de5a925fb230",
+          "md5": "bfb6ac2f0ccd461d6d421eb90eca0fc0"
+        }
+      ]
+    }
+  ]
+}

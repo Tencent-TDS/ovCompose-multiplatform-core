@@ -1,0 +1,130 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-util/9999.0.0-SNAPSHOT/ui-util-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-util",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "macosX64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-macosX64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-util-macosx64-9999.0.0-SNAPSHOT.klib",
+          "size": 36290,
+          "sha512": "5f8f204095cc5c9e591a8cf71d45bd86a3fc9ebad3b4b396fa3ef23fedb069710f3997e23449cded994b2d9fdf55dd64f5e8663d74a048ace09e89224469dbef",
+          "sha256": "a6ef864a394684b408da69732046584c78c645d9b76ea1f9ba4e6720e1a2f0f5",
+          "sha1": "3d1058ad40d95c2066ed3b38eb9e16275a8c22e4",
+          "md5": "0c69d78f89e50771385f33c9dd08a8d4"
+        }
+      ]
+    },
+    {
+      "name": "macosX64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-util-macosx64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-util-macosx64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 14401,
+          "sha512": "e20e6cb8f5660d8d193986e8cfd7be913d029da676c23c5152c75aa008cf20177698d183f7894077542e1e1b0ed51da51cf7ff0e2c51b90ba470b1a25c9336d5",
+          "sha256": "e53aa79a12a0d69b16e556be957872646ee8e48e766e3c1812a44d3930b69b4f",
+          "sha1": "0f9cb93f5244fa557fc8cacd19a967522a99fcab",
+          "md5": "4806352e1e5b6492893e4d5a6a77c505"
+        }
+      ]
+    },
+    {
+      "name": "macosX64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-macosx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "ui-util-macosx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 8148,
+          "sha512": "b22bc01b6108b4c5fbe6a5e7d2eecfd58711ca9a72bce35d9cdd3c595c26cc2516f8fd90f5a0e6248665aaa14384a0ec531b6d54b7039ecc52fc44b7ae6ffbe6",
+          "sha256": "97dcc69944ab5ae0b358709a6dc1035ca9aaa66078ec5d57d4b8c3b93f3e7800",
+          "sha1": "8eb4ff122dbb67047f23dd585fc0262b619d5bca",
+          "md5": "ffe0d01bab0384722b03a43da87b0327"
+        }
+      ]
+    }
+  ]
+}

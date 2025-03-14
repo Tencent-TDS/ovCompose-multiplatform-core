@@ -1,0 +1,107 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-runtime-compose/9999.0.0-SNAPSHOT/lifecycle-runtime-compose-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-runtime-compose",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "mingwX64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "mingw_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-runtime-compose-mingwX64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-runtime-compose-mingwx64-9999.0.0-SNAPSHOT.klib",
+          "size": 43293,
+          "sha512": "205e9843a16c9ccce87c1124495580579adc1b92132b61107162324a536a62bfddfd17cd361222ac0bd936515f109fbb8d94df754bfdf25f25e84cffe4a19764",
+          "sha256": "dd632b5ecab6553410f21e7d5bc8cc597f69bb5dd38265b0d98ed54aa3ce71cc",
+          "sha1": "d1499773da0dddd27246f9c329049a48ac022519",
+          "md5": "1683a0d635ef393f2f4c1267824595a9"
+        }
+      ]
+    },
+    {
+      "name": "mingwX64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "mingw_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "lifecycle-runtime-compose-mingwx64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-runtime-compose-mingwx64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 10368,
+          "sha512": "633ba0feaea83370a8dd1d3ea54c731532d8bd614f41970ed0d79253962909039662171a267e3d9cbf9c21622666eea671aed3182f59a7eb5eb5c286e913a6d3",
+          "sha256": "30491d357aa75907d272141b776ad3fa82a487c59a0cf4582e17d8328ac7bd2b",
+          "sha1": "2373c9ef59a0f66ac432d1915b73bea93dc98c49",
+          "md5": "2678dcc9a9c0c8e6f0f318bd6c413c8a"
+        }
+      ]
+    }
+  ]
+}

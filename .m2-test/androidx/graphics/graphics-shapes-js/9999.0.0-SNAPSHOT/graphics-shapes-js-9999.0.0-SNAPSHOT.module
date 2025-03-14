@@ -1,0 +1,129 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../graphics-shapes/9999.0.0-SNAPSHOT/graphics-shapes-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.graphics",
+    "module": "graphics-shapes",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "graphics-shapes-js-9999.0.0-SNAPSHOT.klib",
+          "url": "graphics-shapes-js-9999.0.0-SNAPSHOT.klib",
+          "size": 118902,
+          "sha512": "9693397c43e3295fb69f9d0b2ff1a5833ed5bd5ca512140e970509881c63d8f9c3863b893e80eae6b41bee5fed17a660abfabde49859dfab7166d480f4cd3456",
+          "sha256": "882358a7e566ccefa1aa2817bf510828b9d1bab854cb21e76fe259682a516e57",
+          "sha1": "1fa39deae0b12224efb3ca59a3e1b9387ba7b4af",
+          "md5": "1a9504decdbb4039a2c9f1ab60bc7408"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "graphics-shapes-js-9999.0.0-SNAPSHOT.klib",
+          "url": "graphics-shapes-js-9999.0.0-SNAPSHOT.klib",
+          "size": 118902,
+          "sha512": "9693397c43e3295fb69f9d0b2ff1a5833ed5bd5ca512140e970509881c63d8f9c3863b893e80eae6b41bee5fed17a660abfabde49859dfab7166d480f4cd3456",
+          "sha256": "882358a7e566ccefa1aa2817bf510828b9d1bab854cb21e76fe259682a516e57",
+          "sha1": "1fa39deae0b12224efb3ca59a3e1b9387ba7b4af",
+          "md5": "1a9504decdbb4039a2c9f1ab60bc7408"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "graphics-shapes-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "graphics-shapes-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 42785,
+          "sha512": "677d2a71a7d2190fb01c061a8654bf6d715a651f3c38c734d79a7910a4091a1c8050250e3fe5b72fa687a699c340f71bad05be5647715b3a2cee003ff89a578d",
+          "sha256": "4ae045b8bdb5b0c3245f8fff3f13e79afa7740a42dc4a9295ffbe75166637077",
+          "sha1": "28fc4f6d9dc7b2a205e839c08909f1f6b736abe3",
+          "md5": "8b0c8efb30421f0f120a97d32b1aa7d4"
+        }
+      ]
+    }
+  ]
+}

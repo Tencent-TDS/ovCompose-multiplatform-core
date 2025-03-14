@@ -1,0 +1,184 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-viewmodel-savedstate/9999.0.0-SNAPSHOT/lifecycle-viewmodel-savedstate-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-viewmodel-savedstate",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 34868,
+          "sha512": "96f2b6a23394be78b6609720197311bfd6d5dc77f85f417acc17732a3d0314e1360ffb58e10ca299ed05ec15db8b934e677e07be2d2ec1c0beaf17abadf7d227",
+          "sha256": "16f65b48781a14c6942256f134154c0540532aaa42177b77fbe59b23e8d1b3d6",
+          "sha1": "d5653204b64fdf93448ba2c2ba7ae8abd1cbde99",
+          "md5": "858fb392a267f00f52c006571b8828de"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 34868,
+          "sha512": "96f2b6a23394be78b6609720197311bfd6d5dc77f85f417acc17732a3d0314e1360ffb58e10ca299ed05ec15db8b934e677e07be2d2ec1c0beaf17abadf7d227",
+          "sha256": "16f65b48781a14c6942256f134154c0540532aaa42177b77fbe59b23e8d1b3d6",
+          "sha1": "d5653204b64fdf93448ba2c2ba7ae8abd1cbde99",
+          "md5": "858fb392a267f00f52c006571b8828de"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-viewmodel-savedstate-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 19678,
+          "sha512": "8fa7fd82fc2eb9c17b9ac0cf822f8d864102f9e6a3d96e529b720648fa4b76af080ae05d6d2acd1b5263fd0febdc2ea39f19873f16ca95c7996af9cb6d55eb1b",
+          "sha256": "80d0d9d4bbbc2ccff0d2984a24209a6de80a5baf39351993c2b5a47e9f3deaae",
+          "sha1": "aef797561ebe326aec24249b9e4cc6864f894513",
+          "md5": "7fd12a09ecfda9e283090b3004649e3b"
+        }
+      ]
+    }
+  ]
+}

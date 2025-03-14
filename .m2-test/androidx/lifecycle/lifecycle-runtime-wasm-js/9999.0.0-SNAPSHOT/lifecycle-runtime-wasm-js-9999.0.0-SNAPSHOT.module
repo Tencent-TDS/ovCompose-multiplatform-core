@@ -1,0 +1,142 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-runtime/9999.0.0-SNAPSHOT/lifecycle-runtime-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-runtime",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 35146,
+          "sha512": "72a67dafc27dab051749470e9bdf98b5e4d709ab029e6d74e9575303e381f61ec83b9f96ff280e37d756c7d9e0be0434c1f748255974e9271d409464f1815a7c",
+          "sha256": "391bc612068efa10599851ff5e7bc86d754653e31ae644538966c13d6c0f42c7",
+          "sha1": "b46702d00ecc6e9ea480dcbff5aa63e63b04bff0",
+          "md5": "c5023ca13ee0f13278bd73577d719b67"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 35146,
+          "sha512": "72a67dafc27dab051749470e9bdf98b5e4d709ab029e6d74e9575303e381f61ec83b9f96ff280e37d756c7d9e0be0434c1f748255974e9271d409464f1815a7c",
+          "sha256": "391bc612068efa10599851ff5e7bc86d754653e31ae644538966c13d6c0f42c7",
+          "sha1": "b46702d00ecc6e9ea480dcbff5aa63e63b04bff0",
+          "md5": "c5023ca13ee0f13278bd73577d719b67"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-runtime-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 15309,
+          "sha512": "449df268af8a6baa0ebe97250f555337da2b617fb7c1af8a538e7c3f04936326b5229bb8014e709369582f2af5e702b08b9cd7e2d489d102afd021597e372603",
+          "sha256": "a00957131f91154e9f30a2f3141cc869c4211390a4d5d471a7d0cc3fa27c6646",
+          "sha1": "b4be26b8a3eecf7e59c6c62b53a3da2587f7140a",
+          "md5": "dbd2200fb1f80ff0d4187d8d9ca0bf7b"
+        }
+      ]
+    }
+  ]
+}

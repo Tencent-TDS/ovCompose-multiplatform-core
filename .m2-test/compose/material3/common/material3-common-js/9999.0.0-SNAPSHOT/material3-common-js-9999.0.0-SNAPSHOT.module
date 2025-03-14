@@ -1,0 +1,192 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material3-common/9999.0.0-SNAPSHOT/material3-common-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.common",
+    "module": "material3-common",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-common-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61812,
+          "sha512": "456f615aa30f65215591bdae343465191b96b58d9859ec3d3c0c3b64b783558eb733ba67bd74066e6713c0450603d7362c296be734822c2c8fec4c73bfa14a10",
+          "sha256": "aa81568f3efba2713215bccea1f5d95b3d96ebcfb8fb0f0a1a331cdb2d0746c5",
+          "sha1": "48cb8fe7a1ba8e2b0ad09e214c091048cae0d3a5",
+          "md5": "bc4957b0322fc95d81fd61ca12c55f00"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-common-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61812,
+          "sha512": "456f615aa30f65215591bdae343465191b96b58d9859ec3d3c0c3b64b783558eb733ba67bd74066e6713c0450603d7362c296be734822c2c8fec4c73bfa14a10",
+          "sha256": "aa81568f3efba2713215bccea1f5d95b3d96ebcfb8fb0f0a1a331cdb2d0746c5",
+          "sha1": "48cb8fe7a1ba8e2b0ad09e214c091048cae0d3a5",
+          "md5": "bc4957b0322fc95d81fd61ca12c55f00"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "material3-common-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material3-common-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 13131,
+          "sha512": "df6e747a9d9308ab7eceedcac6f7401b675e91a525f4739aa5f8379564db4043075111172adcc146b64e6fecc3a4646fb9fd2c74bebc54d5b05ea7508eef39d1",
+          "sha256": "8a5c2a405db57b06b1a79cbf64b04ad01147e7f4205d6ab0ce503fa816701406",
+          "sha1": "d86538b181bcb3184ab023d662ec389941925a1e",
+          "md5": "b19b59674ffe24fe008087cc3bfced40"
+        }
+      ]
+    }
+  ]
+}
