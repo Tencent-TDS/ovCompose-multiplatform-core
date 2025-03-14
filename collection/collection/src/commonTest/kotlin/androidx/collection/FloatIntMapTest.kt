@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 @Suppress("RemoveRedundantCallsOfConversionMethods")
-internal class FloatIntMapTest {
+class FloatIntMapTest {
     @Test
     fun floatIntMap() {
         val map = MutableFloatIntMap()
@@ -650,7 +650,7 @@ internal class FloatIntMapTest {
     }
 
     @Test
-    @JsName("testEquals")
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableFloatIntMap()
         map[1f] = 1

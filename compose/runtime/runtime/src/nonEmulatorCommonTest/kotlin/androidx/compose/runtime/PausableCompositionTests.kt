@@ -25,8 +25,6 @@ import androidx.compose.runtime.mock.ViewApplier
 import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.mock.validate
 import androidx.compose.runtime.mock.view
-import androidx.compose.runtime.platform.SynchronizedObject
-import androidx.compose.runtime.platform.synchronized
 import kotlin.coroutines.resume
 import kotlin.test.Ignore
 import kotlin.test.Test
@@ -431,14 +429,11 @@ private var recorder: TestRecorder =
 
 private inline fun recordTest(block: () -> Unit): String {
     val result = mutableListOf<String>()
-    val lock = SynchronizedObject()
     val oldRecorder = recorder
     recorder =
         object : TestRecorder {
             override fun log(message: String) {
-                synchronized(lock) {
-                    result.add(message)
-                }
+                result.add(message)
             }
 
             override fun logs() = result.joinToString()

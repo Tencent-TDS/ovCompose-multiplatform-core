@@ -22,6 +22,7 @@ import androidx.lifecycle.LifecycleRegistry
 import kotlin.jvm.JvmOverloads
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /**
@@ -54,7 +55,7 @@ constructor(
      * safe to mutate on any thread, but will block that thread during execution.
      */
     public fun handleLifecycleEvent(event: Lifecycle.Event) {
-        runBlockingIfPossible(coroutineDispatcher) { lifecycleRegistry.handleLifecycleEvent(event) }
+        runBlocking(coroutineDispatcher) { lifecycleRegistry.handleLifecycleEvent(event) }
     }
 
     /**
@@ -63,9 +64,9 @@ constructor(
      * instead).
      */
     public var currentState: Lifecycle.State
-        get() = runBlockingIfPossible(coroutineDispatcher) { lifecycleRegistry.currentState }
+        get() = runBlocking(coroutineDispatcher) { lifecycleRegistry.currentState }
         set(value) {
-            runBlockingIfPossible(coroutineDispatcher) { lifecycleRegistry.currentState = value }
+            runBlocking(coroutineDispatcher) { lifecycleRegistry.currentState = value }
         }
 
     /**
@@ -73,7 +74,7 @@ constructor(
      * not block that thread. If the state should be updated from outside of a suspending function,
      * use [currentState] property syntax instead.
      */
-    suspend fun setCurrentState(state: Lifecycle.State) {
+    public suspend fun setCurrentState(state: Lifecycle.State) {
         withContext(coroutineDispatcher) { lifecycleRegistry.currentState = state }
     }
 
@@ -81,9 +82,3 @@ constructor(
     public val observerCount: Int
         get() = lifecycleRegistry.observerCount
 }
-
-// Because k/js and k/wasm don't have runBlocking
-internal expect fun <T> runBlockingIfPossible(
-    dispatcher: CoroutineDispatcher,
-    block: () -> T
-): T

@@ -22,10 +22,10 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
-import androidx.build.RunApiTasks
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -39,29 +39,30 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
+    watchos()
+    tvos()
+    androidNative()
+    mingwX64()
+    wasmJs()
+    js()
 
     defaultPlatform(PlatformIdentifier.JVM)
-}
 
-kotlin {
-    js {
-        browser()
-    }
-    wasmJs()
-
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
-    mingwX64()
-
+    // Source Structure
+    //            commonMain
+    //    ┌────────────────────────┐
+    //    ▼                        ▼
+    // jvmMain                nonJvmMain
+    //                    ┌────────────────┐
+    //                    ▼                ▼
+    //                nativeMain        webMain
+    //                               ┌───────────┐
+    //                               ▼           ▼
+    //                             jsMain   wasmJsMain
     sourceSets {
         commonMain {
             dependencies {
-                api(libs.kotlinStdlib)
+                api(libs.kotlinStdlibCommon)
                 api(libs.kotlinTestCommon)
             }
         }
@@ -83,34 +84,64 @@ kotlin {
         }
 
         jvmTest {
+            dependsOn(commonTest)
             dependencies {
                 api(libs.kotlinCoroutinesTest)
             }
         }
 
-        nonJvmMain.dependsOn(commonMain)
-        nonJvmTest.dependsOn(commonTest)
-        nativeMain.dependsOn(nonJvmMain)
-        webMain.dependsOn(nonJvmMain)
+        nonJvmMain {
+            dependsOn(commonMain)
+        }
+
+        nonJvmTest {
+            dependsOn(commonTest)
+        }
+
+        webMain {
+            dependsOn(nonJvmMain)
+            dependencies {
+                implementation(libs.kotlinTest)
+            }
+        }
+        webTest {
+            dependsOn(nonJvmTest)
+            dependencies {
+                // https://youtrack.jetbrains.com/issue/KT-71032
+                implementation(libs.kotlinTestForWasmTests)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+            }
+        }
 
         jsMain {
             dependsOn(webMain)
-            dependencies {
-                api(libs.kotlinTestJs)
-            }
+        }
+        jsTest {
+            dependsOn(webTest)
         }
 
         wasmJsMain {
             dependsOn(webMain)
-            dependencies {
-                api(libs.kotlinTestWasm)
-            }
+        }
+        wasmJsTest {
+            dependsOn(webTest)
         }
 
-        targets.all { target ->
+        nativeMain {
+            dependsOn(nonJvmMain)
+        }
+        nativeTest {
+            dependsOn(nonJvmTest)
+        }
+
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
+                }
+                target.compilations["test"].defaultSourceSet {
+                    dependsOn(nativeTest)
                 }
             }
         }
@@ -125,12 +156,7 @@ kotlin {
 
 androidx {
     legacyDisableKotlinStrictApiMode = true // Temporarily enabled to allow API tracking
-    publish = Publish.SNAPSHOT_ONLY
-    runApiTasks = new RunApiTasks.Yes() // Used to diff against Google Truth
-    type = LibraryType.INTERNAL_TEST_LIBRARY
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    type = SoftwareType.SNAPSHOT_ONLY_TEST_LIBRARY_WITH_API_TASKS // Used to diff against Google Truth
+    doNotDocumentReason = "Not shipped externally"
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

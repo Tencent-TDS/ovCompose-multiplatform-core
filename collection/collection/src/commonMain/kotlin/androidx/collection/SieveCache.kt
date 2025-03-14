@@ -588,7 +588,6 @@ public constructor(
     }
 
     /** Returns the number of entries in this cache. */
-    @JsName("getCount")
     public fun count(): Int = size
 
     /** Returns the number of entries matching the given [predicate]. */

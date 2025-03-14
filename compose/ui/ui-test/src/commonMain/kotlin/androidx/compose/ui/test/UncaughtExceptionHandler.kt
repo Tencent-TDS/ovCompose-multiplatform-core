@@ -25,8 +25,8 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 /**
  * Similar to [TestCoroutineExceptionHandler], but with clearing all thrown exceptions
  *
- * If we don't clear exceptions they will be thrown twice in this example
- * (the exception will be thrown inside awaitIdle and after the test):
+ * If we don't clear exceptions they will be thrown twice in this example (the exception will be
+ * thrown inside awaitIdle and after the test):
  * ```
  * @Test
  * fun test() {
@@ -61,16 +61,15 @@ internal class UncaughtExceptionHandler(private val delegate: CoroutineException
     }
 
     /**
-     * Checks if the [UncaughtExceptionHandler] has caught uncaught exceptions. If so, will
-     * rethrow the first to fail the test. The rest exceptions will be added to the first and
-     * marked as `suppressed`.
+     * Checks if the [UncaughtExceptionHandler] has caught uncaught exceptions. If so, will rethrow
+     * the first to fail the test. The rest exceptions will be added to the first and marked as
+     * `suppressed`.
      *
      * The next call of this method will not throw already thrown exception.
      *
      * Rather than only calling this only at the end of the test, as recommended by
-     * [UncaughtExceptionCaptor.cleanupTestCoroutines],
-     * try calling this at a few strategic
-     * points to fail the test asap after the exception was caught.
+     * [UncaughtExceptionCaptor.cleanupTestCoroutines], try calling this at a few strategic points
+     * to fail the test asap after the exception was caught.
      */
     fun throwUncaught() {
         synchronized(lock) {

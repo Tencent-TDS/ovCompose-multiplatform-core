@@ -32,7 +32,7 @@ import kotlin.test.assertTrue
 // to ensure the change is available on all versions of the map.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-internal class IntSetTest {
+class IntSetTest {
     @Test
     fun emptyIntSetConstructor() {
         val set = MutableIntSet()
@@ -368,7 +368,7 @@ internal class IntSetTest {
     }
 
     @Test
-    @JsName("testEquals")
+    @JsName("jsEquals")
     fun equals() {
         val set = MutableIntSet()
         set += 1

@@ -24,8 +24,6 @@ import android.view.inputmethod.BaseInputConnection
 import android.view.inputmethod.EditorInfo
 import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.text.LegacyTextFieldState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.foundation.text.handwriting.isStylusHandwritingSupported
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.runtime.withFrameMillis
@@ -40,7 +38,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.TextInputService
 import androidx.emoji2.text.EmojiCompat
 import java.lang.ref.WeakReference
 import kotlin.math.roundToInt
@@ -60,14 +57,8 @@ private const val DEBUG_CLASS = "AndroidLegacyPlatformTextInputServiceAdapter"
 @VisibleForTesting
 internal var inputMethodManagerFactory: (View) -> InputMethodManager = ::InputMethodManagerImpl
 
-@Suppress("DEPRECATION")
-@Composable
-internal actual fun legacyTextInputServiceAdapterAndService():
-    Pair<LegacyPlatformTextInputServiceAdapter, TextInputService> {
-    val adapter = remember { AndroidLegacyPlatformTextInputServiceAdapter() }
-    val service = remember { TextInputService(adapter) }
-    return adapter to service
-}
+internal actual fun createLegacyPlatformTextInputServiceAdapter():
+    LegacyPlatformTextInputServiceAdapter = AndroidLegacyPlatformTextInputServiceAdapter()
 
 internal class AndroidLegacyPlatformTextInputServiceAdapter :
     LegacyPlatformTextInputServiceAdapter() {

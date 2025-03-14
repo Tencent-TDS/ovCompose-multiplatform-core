@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -28,6 +34,7 @@ dependencies {
 
     implementation(libs.kotlinStdlib)
 
+    implementation(project(":activity:activity-compose"))
     implementation(project(":compose:animation:animation"))
     implementation(project(":compose:foundation:foundation"))
     implementation(project(":compose:foundation:foundation-layout"))
@@ -36,15 +43,18 @@ dependencies {
     implementation(project(":compose:runtime:runtime"))
     implementation(project(":compose:ui:ui"))
     implementation(project(":compose:ui:ui-text"))
+
+    implementation("androidx.compose.material:material-icons-extended:1.6.0")
 }
 
 androidx {
-    name = "AndroidX Compose Material3 Components Demos"
-    publish = Publish.NONE
+    name = "Compose Material3 Components Demos"
+    type = SoftwareType.TEST_APPLICATION
     inceptionYear = "2022"
     description = "Contains the demo code for the AndroidX Compose Material 3 components."
 }
 
 android {
-    namespace "androidx.compose.material3.demos"
+    compileSdk = 35
+    namespace = "androidx.compose.material3.demos"
 }

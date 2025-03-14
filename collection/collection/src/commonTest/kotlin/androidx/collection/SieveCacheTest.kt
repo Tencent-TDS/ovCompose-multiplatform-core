@@ -17,8 +17,10 @@
 package androidx.collection
 
 import kotlin.js.JsName
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -651,7 +653,7 @@ class SieveCacheTest {
     }
 
     @Test
-    @JsName("test_equals")
+    @JsName("jsEquals")
     fun equals() {
         val cache = createStandardCache()
         cache["Hello"] = "World"
@@ -874,13 +876,28 @@ class SieveCacheTest {
     }
 
     @Test
-    fun hashCollisions() {
+    fun sequentialHashCollisions() {
         val cache = SieveCache<BadHashKey, Int>(24, 24)
 
-        for (i in 0..128) {
+        for (x in 0..256) {
+            val i = x % 128
             val key = BadHashKey(i.toString())
             cache.put(key, i)
-            assertEquals(min(i + 1, 24), cache.size)
+            assertEquals(min(x + 1, 24), cache.count)
+            for (j in i downTo max(0, i - 24)) {
+                assertTrue(cache.contains(BadHashKey(i.toString())))
+            }
+        }
+    }
+
+    @Test
+    fun randomizedHashCollisions() {
+        val cache = SieveCache<BadHashKey, Int>(24, 24)
+
+        for (x in 0..1024) {
+            val i = abs(Random(6789).nextInt()) % 128
+            val key = BadHashKey(i.toString())
+            cache.put(key, i)
             for (j in i downTo max(0, i - 24)) {
                 assertTrue(cache.contains(BadHashKey(i.toString())))
             }

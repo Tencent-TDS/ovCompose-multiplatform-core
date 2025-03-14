@@ -51,13 +51,9 @@ internal class LegacyCalendarModelImpl(locale: CalendarLocale) : CalendarModel(l
             )
         }
 
-    override val firstDayOfWeek: Int by lazy {
-        dayInISO8601(Calendar.getInstance(locale).firstDayOfWeek)
-    }
+    override val firstDayOfWeek: Int = dayInISO8601(Calendar.getInstance(locale).firstDayOfWeek)
 
-    override val weekdayNames: List<Pair<String, String>> by lazy { weekdayNames() }
-
-    private fun weekdayNames(): List<Pair<String, String>> = buildList {
+    override val weekdayNames: List<Pair<String, String>> = buildList {
         val weekdays = DateFormatSymbols(locale).weekdays
         val shortWeekdays = DateFormatSymbols(locale).shortWeekdays
         // Skip the first item, as it's empty, and the second item, as it represents Sunday while it

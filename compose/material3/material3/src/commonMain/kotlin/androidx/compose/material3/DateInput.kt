@@ -309,6 +309,15 @@ internal class DateInputValidator(
      */
     var currentEndDateMillis: Long? = null
 
+    /**
+     * Validates a [CalendarDate] input and returns an error string in case an issue with the given
+     * date is detected, or an empty string in case there are no issues.
+     *
+     * @param dateToValidate a [CalendarDate] input to validate
+     * @param inputIdentifier an [InputIdentifier] that provides information about the input field
+     *   that is supposed to hold the date.
+     * @param locale the current [CalendarLocale]
+     */
     fun validate(
         dateToValidate: CalendarDate?,
         inputIdentifier: InputIdentifier,

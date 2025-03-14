@@ -19,7 +19,6 @@ package androidx.compose.ui
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.util.fastForEach
-import kotlinx.coroutines.CancellationException
 
 internal actual fun areObjectsOfSameType(a: Any, b: Any): Boolean {
     return a::class.java === b::class.java

@@ -36,6 +36,9 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 
+internal actual val PointerEvent.isShiftPressed: Boolean
+    get() = false
+
 // We use composed{} to read a local, but don't provide inspector info because the underlying
 // magnifier modifier provides more meaningful inspector info.
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
@@ -65,13 +68,6 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
         )
     }
 }
-
-/**
- * Whether the selection handle is in the visible bound of the TextField.
- */
-internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
-    isStartHandle: Boolean
-): Boolean = isSelectionHandleInVisibleBoundDefault(isStartHandle)
 
 internal fun TextFieldSelectionManager.contextMenuBuilder(
     contextMenuState: ContextMenuState,

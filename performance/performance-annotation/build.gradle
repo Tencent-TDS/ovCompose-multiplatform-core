@@ -14,46 +14,27 @@
  * limitations under the License.
  */
 
-
-import androidx.build.JetbrainsAndroidXPlugin
+import androidx.build.KotlinTarget
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("JetbrainsAndroidXPlugin")
 }
 
-JetbrainsAndroidXPlugin.applyAndConfigure(project)
-
 androidXMultiplatform {
-    android()
+    androidTarget()
     jvm()
     mac()
     linux()
     ios()
-    js()
-    wasm()
-
-    defaultPlatform(PlatformIdentifier.ANDROID)
-}
-
-kotlin {
-    js {
-        browser()
-    }
-    wasmJs()
-
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
+    watchos()
+    tvos()
     mingwX64()
+
+    defaultPlatform(PlatformIdentifier.JVM)
 
     sourceSets {
         commonMain {
@@ -80,7 +61,8 @@ android {
 
 androidx {
     name = "Performance - Annotation"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Provides source annotations for performance optimizations."
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

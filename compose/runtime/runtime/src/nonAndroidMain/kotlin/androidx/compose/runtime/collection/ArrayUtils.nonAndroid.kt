@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 @file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
+
 package androidx.compose.runtime.collection
+
 internal actual inline fun <T> Array<out T>.fastCopyInto(
     destination: Array<T>,
     destinationOffset: Int,

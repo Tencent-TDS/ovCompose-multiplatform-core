@@ -79,7 +79,6 @@ import androidx.compose.ui.util.fastAny
 import kotlin.math.abs
 import kotlin.math.absoluteValue
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -619,8 +618,6 @@ private val CanDragCalculation: (PointerInputChange) -> Boolean = { change ->
     change.type != PointerType.Mouse
 }
 
-private val NoOpOnDragStarted: suspend CoroutineScope.(startedPosition: Offset) -> Unit = {}
-
 /**
  * Holds all scrolling related logic: controls nested scrolling, flinging, overscroll and delta
  * dispatching.
@@ -745,7 +742,9 @@ internal class ScrollingLogic(
         val performFling: suspend (Velocity) -> Velocity = { velocity ->
             val preConsumedByParent = nestedScrollDispatcher.dispatchPreFling(velocity)
             val available = velocity - preConsumedByParent
+
             val velocityLeft = doFlingAnimation(available)
+
             val consumedPost =
                 nestedScrollDispatcher.dispatchPostFling((available - velocityLeft), velocityLeft)
             val totalLeft = velocityLeft - consumedPost

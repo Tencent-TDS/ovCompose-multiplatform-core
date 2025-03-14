@@ -39,7 +39,7 @@ import kotlin.test.assertTrue
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 @Suppress("RemoveRedundantCallsOfConversionMethods")
-internal class ObjectPValueTest {
+class ObjectPValueTest {
     @Test
     fun objectPValueMap() {
         val map = MutableObjectPValueMap<String>()

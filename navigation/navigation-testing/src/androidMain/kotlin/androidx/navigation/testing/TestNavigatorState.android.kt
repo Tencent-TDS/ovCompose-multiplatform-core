@@ -17,7 +17,7 @@
 package androidx.navigation.testing
 
 import android.content.Context
-import androidx.core.bundle.Bundle
+import android.os.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.FloatingWindow
@@ -25,7 +25,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavViewModelStoreProvider
 import androidx.navigation.NavigatorState
-import kotlin.jvm.JvmOverloads
+import androidx.navigation.SupportingPane
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -177,6 +177,17 @@ public actual class TestNavigatorState @JvmOverloads constructor(
                                 } else {
                                     Lifecycle.State.STARTED
                                 }
+                            previousEntry.destination is SupportingPane -> {
+                                // Match the previous entry's destination, making sure
+                                // a transitioning destination does not go to resumed
+                                previousEntry.maxLifecycle.coerceAtMost(
+                                    if (!transitioning) {
+                                        Lifecycle.State.RESUMED
+                                    } else {
+                                        Lifecycle.State.STARTED
+                                    }
+                                )
+                            }
                             previousEntry.destination is FloatingWindow -> Lifecycle.State.STARTED
                             else -> Lifecycle.State.CREATED
                         }

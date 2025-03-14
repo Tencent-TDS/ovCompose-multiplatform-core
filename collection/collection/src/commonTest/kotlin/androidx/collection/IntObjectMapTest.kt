@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
 // object-to-object is ScatterMap.kt, which doesn't have a template.
 // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
-internal class IntObjectMapTest {
+class IntObjectMapTest {
     @Test
     fun intObjectMap() {
         val map = MutableIntObjectMap<String>()
@@ -687,7 +687,7 @@ internal class IntObjectMapTest {
     }
 
     @Test
-    @JsName("testEquals")
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableIntObjectMap<String?>()
         map[1] = "World"

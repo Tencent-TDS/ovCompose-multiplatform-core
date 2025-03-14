@@ -31,8 +31,8 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.setProperty
 
 /**
- * Task for verifying the androidx dependency-stability-suffix rule
- * (A library is only as stable as its least stable dependency)
+ * Task for verifying the androidx dependency-stability-suffix rule (A library is only as stable as
+ * its least stable dependency)
  */
 @CacheableTask
 abstract class VerifyDependencyVersionsTask : DefaultTask() {
@@ -42,8 +42,7 @@ abstract class VerifyDependencyVersionsTask : DefaultTask() {
         description = "Task for verifying the androidx dependency-stability-suffix rule"
     }
 
-    @get:Input
-    abstract val version: Property<String>
+    @get:Input abstract val version: Property<String>
 
     @get:Input
     val androidXDependencySet: SetProperty<AndroidXDependency> = project.objects.setProperty()
@@ -57,34 +56,28 @@ abstract class VerifyDependencyVersionsTask : DefaultTask() {
      */
     @TaskAction
     fun verifyDependencyVersions() {
-        androidXDependencySet.get().forEach { dependency ->
-            verifyDependencyVersion(dependency)
-        }
+        androidXDependencySet.get().forEach { dependency -> verifyDependencyVersion(dependency) }
     }
 
     private fun verifyDependencyVersion(dependency: AndroidXDependency) {
         // If the version is unspecified then treat as an alpha version. If the depending project's
         // version is unspecified then it won't matter, and if the dependency's version is
         // unspecified then any non alpha project won't be able to depend on it to ensure safety.
-        val projectVersionExtra = if (version.get() ==
-            AndroidXExtension.DEFAULT_UNSPECIFIED_VERSION
-        ) {
-            "-alpha01"
-        } else {
-            Version(version.get()).extra ?: ""
-        }
-        val dependencyVersionExtra = if (dependency.version ==
-            AndroidXExtension.DEFAULT_UNSPECIFIED_VERSION
-        ) {
-            "-alpha01"
-        } else {
-            Version(dependency.version).extra ?: ""
-        }
+        val projectVersionExtra =
+            if (version.get() == AndroidXExtension.DEFAULT_UNSPECIFIED_VERSION) {
+                "-alpha01"
+            } else {
+                Version(version.get()).extra ?: ""
+            }
+        val dependencyVersionExtra =
+            if (dependency.version == AndroidXExtension.DEFAULT_UNSPECIFIED_VERSION) {
+                "-alpha01"
+            } else {
+                Version(dependency.version).extra ?: ""
+            }
         val projectReleasePhase = releasePhase(projectVersionExtra)
         if (projectReleasePhase < 0) {
-            throw GradleException(
-                "Project has unexpected release phase $projectVersionExtra"
-            )
+            throw GradleException("Project has unexpected release phase $projectVersionExtra")
         }
         val dependencyReleasePhase = releasePhase(dependencyVersionExtra)
         if (dependencyReleasePhase < 0) {
@@ -111,8 +104,10 @@ abstract class VerifyDependencyVersionsTask : DefaultTask() {
             3
         } else if (versionExtra.startsWith("-beta")) {
             2
-        } else if (versionExtra.startsWith("-alpha") || versionExtra.startsWith("-qpreview") ||
-            versionExtra.startsWith("-dev")
+        } else if (
+            versionExtra.startsWith("-alpha") ||
+                versionExtra.startsWith("-qpreview") ||
+                versionExtra.startsWith("-dev")
         ) {
             1
         } else {
@@ -133,45 +128,48 @@ data class AndroidXDependency(
 }
 
 internal fun Project.createVerifyDependencyVersionsTask():
-    TaskProvider<VerifyDependencyVersionsTask>? {
-    /**
-     * Ignore -Pandroidx.useMaxDepVersions when verifying dependency versions because it is a
-     * hypothetical build which is only intended to check for forward compatibility.
-     */
-    if (project.usingMaxDepVersions()) {
-        return null
-    }
-
-    val taskProvider = tasks.register(
-        "verifyDependencyVersions",
-        VerifyDependencyVersionsTask::class.java
-    ) { task ->
-        task.version.set(project.version.toString())
-        task.androidXDependencySet.set(project.provider {
-            val dependencies = mutableSetOf<AndroidXDependency>()
-            project.configurations.filter(::shouldVerifyConfiguration).forEach { configuration ->
-                configuration.allDependencies.filter(
-                    ::shouldVerifyDependency
-                ).forEach { dependency ->
-                    dependencies.add(
-                        AndroidXDependency(
-                            dependency.group!!,
-                            dependency.name,
-                            dependency.version!!,
-                            configuration.name
-                        )
-                    )
+    TaskProvider<VerifyDependencyVersionsTask> {
+    val usingMaxDepsVersions = project.usingMaxDepVersions()
+    val taskProvider =
+        tasks.register("verifyDependencyVersions", VerifyDependencyVersionsTask::class.java) { task
+            ->
+            task.version.set(project.version.toString())
+            task.androidXDependencySet.set(
+                project.provider {
+                    val dependencies = mutableSetOf<AndroidXDependency>()
+                    project.configurations.filter(project::shouldVerifyConfiguration).forEach {
+                        configuration ->
+                        configuration.allDependencies.filter(::shouldVerifyDependency).forEach {
+                            dependency ->
+                            dependencies.add(
+                                AndroidXDependency(
+                                    dependency.group!!,
+                                    dependency.name,
+                                    dependency.version!!,
+                                    configuration.name
+                                )
+                            )
+                        }
+                    }
+                    dependencies
                 }
+            )
+            task.onlyIf {
+                /**
+                 * Ignore -Pandroidx.useMaxDepVersions when verifying dependency versions because it
+                 * is a hypothetical build which is only intended to check for forward
+                 * compatibility.
+                 */
+                !usingMaxDepsVersions.get()
             }
-            dependencies
-        })
-        task.cacheEvenIfNoOutputs()
-    }
+            task.cacheEvenIfNoOutputs()
+        }
+
     addToBuildOnServer(taskProvider)
     return taskProvider
 }
 
-private fun shouldVerifyConfiguration(configuration: Configuration): Boolean {
+private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boolean {
     // Only verify configurations that are exported to POM. In an ideal world, this would be an
     // inclusion derived from the mappings used by the Maven Publish Plugin; however, since we
     // don't have direct access to those, this should remain an exclusion list.
@@ -182,16 +180,24 @@ private fun shouldVerifyConfiguration(configuration: Configuration): Boolean {
     if (name.startsWith("androidTest")) return false
     if (name.startsWith("androidAndroidTest")) return false
     if (name.startsWith("androidCommonTest")) return false
+    if (name.startsWith("androidInstrumentedTest")) return false
+    if (name.startsWith("androidReleaseUnitTest")) return false
+    if (name.startsWith("androidUnitTest")) return false
     if (name.startsWith("debug")) return false
     if (name.startsWith("androidDebug")) return false
     if (name.startsWith("release")) return false
     if (name.startsWith("test")) return false
+    if (name.startsWith("jvmTest")) return false
 
     // Don't check any tooling configurations.
     if (name == "annotationProcessor") return false
     if (name == "errorprone") return false
     if (name.startsWith("lint")) return false
     if (name == "metalava") return false
+
+    // Don't check bundled inspector configurations.
+    if (name == "consumeInspector") return false
+    if (name == "importInspectorImplementation") return false
 
     // Don't check any configurations that directly bundle the dependencies with the output
     if (name == "bundleInside") return false
@@ -211,6 +217,29 @@ private fun shouldVerifyConfiguration(configuration: Configuration): Boolean {
     if (name.startsWith("desktop")) return false
     if (name.startsWith("skiko")) return false
 
+    // Doesn't affect the .pom / .module
+    // https://github.com/JetBrains/kotlin/blob/v1.9.10/libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/plugin/mpp/resolvableMetadataConfiguration.kt#L102
+    if (name.endsWith("DependenciesMetadata")) return false
+
+    // don't verify test configurations of KMP projects
+    if (name.contains("TestCompilation")) return false
+    if (name.contains("TestCompile")) return false
+    if (name.contains("commonTest", ignoreCase = true)) return false
+    if (name.contains("nativeTest", ignoreCase = true)) return false
+    if (
+        multiplatformExtension?.targets?.any {
+            name.contains("${it.name}Test", ignoreCase = true)
+        } == true
+    ) {
+        return false
+    }
+
+    // don't verify baseline profile generating project dependencies
+    if (name == "baselineProfile") return false
+
+    // don't verify samples
+    if (name == "samples") return false
+
     return true
 }
 
@@ -219,12 +248,13 @@ private fun shouldVerifyDependency(dependency: Dependency): Boolean {
     if (dependency.group == null) return false
     if (!dependency.group.toString().startsWith("androidx.")) return false
     if (dependency.name == "annotation-sampled") return false
-    if (dependency.version == AndroidXPlaygroundRootImplPlugin.SNAPSHOT_MARKER) {
+    if (dependency.version == SNAPSHOT_MARKER) {
         // This only happens in playground builds where this magic version gets replaced with
         // the version from the snapshotBuildId defined in playground-common/playground.properties.
         // It is best to leave their validation to the aosp build to ensure it is the right
         // version.
         return false
     }
+
     return true
 }

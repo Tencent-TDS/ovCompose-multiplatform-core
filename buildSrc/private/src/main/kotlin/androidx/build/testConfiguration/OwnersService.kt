@@ -17,6 +17,7 @@
 package androidx.build.testConfiguration
 
 import androidx.build.getDistributionDirectory
+import androidx.build.getSupportRootFolder
 import com.google.gson.GsonBuilder
 import java.io.File
 import org.gradle.api.DefaultTask
@@ -31,16 +32,15 @@ import org.gradle.api.tasks.bundling.Zip
 
 @CacheableTask
 abstract class ModuleInfoGenerator : DefaultTask() {
-    @get:OutputFile
-    abstract val outputFile: RegularFileProperty
+    @get:OutputFile abstract val outputFile: RegularFileProperty
 
-    @get:Internal
-    val testModules: MutableList<TestModule> = mutableListOf()
+    @get:Internal val testModules: MutableList<TestModule> = mutableListOf()
 
     @Input
     fun getSerialized(): String {
         val gson = GsonBuilder().setPrettyPrinting().create()
-        return gson.toJson(testModules.associateBy { it.name })
+        val data = testModules.associateBy { it.name }
+        return gson.toJson(data)
     }
 
     @TaskAction
@@ -52,9 +52,9 @@ abstract class ModuleInfoGenerator : DefaultTask() {
 }
 
 /**
- * Register two tasks needed to generate information for Android test owners service.
- * One task zips all the OWNERS files in frameworks/support, and second task creates a
- * module-info.json that links test modules to paths.
+ * Register two tasks needed to generate information for Android test owners service. One task zips
+ * all the OWNERS files in frameworks/support, and second task creates a module-info.json that links
+ * test modules to paths.
  */
 internal fun Project.registerOwnersServiceTasks() {
     tasks.register("zipOwnersFiles", Zip::class.java) { task ->
@@ -63,15 +63,30 @@ internal fun Project.registerOwnersServiceTasks() {
         task.from(layout.projectDirectory)
         task.include("**/OWNERS")
         task.exclude("buildSrc/.gradle/**")
+        task.exclude(".gradle/**")
+        task.exclude("build/reports/**")
         task.includeEmptyDirs = false
     }
 
-    tasks.register("createModuleInfo", ModuleInfoGenerator::class.java) { task ->
+    tasks.register(CREATE_MODULE_INFO, ModuleInfoGenerator::class.java) { task ->
         task.outputFile.set(File(getDistributionDirectory(), "module-info.json"))
     }
 }
 
-data class TestModule(
-    val name: String,
-    val path: List<String>
-)
+internal fun Project.addToModuleInfo(testName: String, projectIsolationEnabled: Boolean) {
+    if (!projectIsolationEnabled) {
+        rootProject.tasks.named(CREATE_MODULE_INFO).configure {
+            it as ModuleInfoGenerator
+            it.testModules.add(
+                TestModule(
+                    name = testName,
+                    path = listOf(projectDir.toRelativeString(getSupportRootFolder()))
+                )
+            )
+        }
+    }
+}
+
+data class TestModule(val name: String, val path: List<String>)
+
+private const val CREATE_MODULE_INFO = "createModuleInfo"

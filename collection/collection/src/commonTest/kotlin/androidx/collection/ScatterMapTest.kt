@@ -28,7 +28,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-internal class ScatterMapTest {
+class ScatterMapTest {
     @Test
     fun scatterMap() {
         val map = MutableScatterMap<String, String>()
@@ -701,7 +701,7 @@ internal class ScatterMapTest {
     }
 
     @Test
-    @JsName("testEquals")
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableScatterMap<String?, String?>()
         map["Hello"] = "World"

@@ -22,114 +22,99 @@
  * modifying its settings.
  */
 
-import androidx.build.AndroidXComposePlugin
-import androidx.build.JetbrainsAndroidXPlugin
-import androidx.build.LibraryType
+
+import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
+import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
-    id("JetbrainsAndroidXPlugin")
 }
 
-AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
-JetbrainsAndroidXPlugin.applyAndConfigure(project)
+androidXMultiplatform {
+    androidLibrary {
+        namespace = "androidx.compose.material3.adaptive.navigationsuite"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
 
-androidXComposeMultiplatform {
-    android()
-    desktop()
-    darwin()
-    wasm()
-    js()
-}
+        compileSdk = 35
+        aarMetadata.minCompileSdk = 35
+    }
+    jvmStubs()
 
-kotlin {
+    defaultPlatform(PlatformIdentifier.ANDROID)
+
     sourceSets {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
-                implementation(project(":compose:material3:material3"))
-                implementation(project(":compose:material3:adaptive:adaptive"))
-                implementation(project(":compose:ui:ui"))
-                implementation("org.jetbrains.androidx.window:window-core:1.3.1")
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api(project(":compose:material3:material3"))
+                api(project(":compose:material3:adaptive:adaptive"))
+                implementation("androidx.window:window-core:1.3.0")
             }
         }
 
         commonTest {
             dependencies {
-                implementation(libs.kotlinTest)
-                implementation(project(":kruth:kruth"))
             }
         }
 
         jvmMain {
             dependsOn(commonMain)
             dependencies {
-                implementation(libs.kotlinStdlib)
             }
         }
 
         androidMain {
             dependsOn(jvmMain)
             dependencies {
-                api("androidx.annotation:annotation-experimental:1.4.0")
+                api("androidx.annotation:annotation:1.8.1")
+                api("androidx.annotation:annotation-experimental:1.4.1")
             }
         }
 
-        desktopMain {
+        jvmStubsMain {
             dependsOn(jvmMain)
             dependencies {
             }
         }
 
-        jvmTest {
-            dependencies {
-            }
-        }
-
-        desktopTest {
-            dependsOn(jvmTest)
-        }
-
         androidInstrumentedTest {
-            dependsOn(jvmTest)
+            dependsOn(commonTest)
             dependencies {
                 implementation(project(":compose:test-utils"))
-                //implementation(project(":window:window-testing"))
+                implementation("androidx.window:window-testing:1.3.0")
                 implementation(libs.junit)
                 implementation(libs.testRunner)
                 implementation(libs.truth)
             }
         }
 
-        skikoMain.dependsOn(commonMain)
-        desktopMain.dependsOn(skikoMain)
-        nonJvmMain.dependsOn(skikoMain)
-        webMain.dependsOn(nonJvmMain)
-        jsMain.dependsOn(webMain)
-        wasmJsMain.dependsOn(webMain)
-        nativeMain.dependsOn(nonJvmMain)
-
-        skikoTest.dependsOn(commonTest)
-        desktopTest.dependsOn(skikoTest)
-        nonJvmTest.dependsOn(skikoTest)
-        webTest.dependsOn(nonJvmTest)
-        jsTest.dependsOn(webTest)
-        wasmJsTest.dependsOn(webTest)
-        nativeTest.dependsOn(nonJvmTest)
+        androidUnitTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs.testRunner)
+                implementation(libs.truth)
+            }
+        }
     }
 }
 
-android {
-    namespace "androidx.compose.material3.adaptive.navigationsuite"
-}
 
 androidx {
     name = "Material Adaptive Navigation Suite"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2023"
     description = "Compose Material Design Adaptive Navigation Suite Library"
-    //samples(project(":compose:material3:material3-adaptive-navigation-suite:material3-adaptive-navigation-suite-samples"))
+    legacyDisableKotlinStrictApiMode = true
+    samples(project(":compose:material3:material3-adaptive-navigation-suite:material3-adaptive-navigation-suite-samples"))
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

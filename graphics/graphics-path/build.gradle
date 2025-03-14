@@ -34,7 +34,7 @@ dependencies {
 
     implementation("androidx.core:core:1.12.0")
 
-    androidTestImplementation("androidx.annotation:annotation:1.7.0")
+    androidTestImplementation("androidx.annotation:annotation:1.8.1")
     androidTestImplementation("androidx.core:core-ktx:1.12.0")
     androidTestImplementation("androidx.test:core:1.5.0@aar")
     androidTestImplementation(libs.testExtJunit)
@@ -88,6 +88,5 @@ androidx {
     mavenVersion = LibraryVersions.GRAPHICS_PATH
     inceptionYear = "2022"
     description = "Query segment data for android.graphics.Path objects"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

@@ -1,6 +1,8 @@
 name: Run Integration Tests
 on:
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["AndroidX Presubmits"]
+    types: [completed]
 
 jobs:
   run_integration_tests:
@@ -14,7 +16,7 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
       - name: "set output directory"
-        run: echo "::set-output name=output-dir::$(readlink -f .)/outputs"
+        run: echo "output-dir=$(readlink -f .)/outputs" >> $GITHUB_OUTPUT
         id: dirs
       - id: run_tests
         uses: androidX/androidx-ci-action@dist-latest
@@ -23,7 +25,13 @@ jobs:
           gcp-token: ${{ secrets.GCP_SA_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output-folder: ${{ steps.dirs.outputs.output-dir }}
-      - uses: actions/upload-artifact@v2
+          gcp-bucket-name: "androidx-ftl-test-results"
+          gcp-bucket-path: "github-ci-action"
+          log-file: ${{ steps.dirs.outputs.output-dir }}/ftl-logs.txt
+          device-specs: Pixel2.arm:30
+          use-test-config-files: true
+          test-suite-tags: androidx_unit_tests
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: outputs
@@ -40,9 +48,9 @@ jobs:
           if [ "${{ needs.run_integration_tests.result }}" == "success" ]                  && \
             [ "${{ github.event.workflow_run.conclusion }}" == "success" ]
           then
-            echo "::set-output name=result::true"
+            echo "result=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=result::false"
+            echo "result=false" >> GITHUB_OUTPUT
           fi
 
       - name: Result WebHook

@@ -32,7 +32,7 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core-ktx:1.2.0")
     api(libs.kotlinCoroutinesAndroid)
     implementation(libs.guavaAndroid)
@@ -56,8 +56,6 @@ androidx {
     type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Public API surface for apps to use UWB (ultra-wideband) on supported devices."
-    metalavaK2UastEnabled = true
-    legacyDisableKotlinStrictApiMode = true
 }
 
 android {

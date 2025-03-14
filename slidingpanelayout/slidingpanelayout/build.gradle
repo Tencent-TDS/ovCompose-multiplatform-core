@@ -14,7 +14,7 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     implementation("androidx.core:core-ktx:1.1.0")
     api(project(":customview:customview"))
     implementation("androidx.window:window:1.2.0")
@@ -22,7 +22,7 @@ dependencies {
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.testUiautomator)
     androidTestImplementation(libs.truth)
@@ -35,7 +35,6 @@ androidx {
     type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "SlidingPaneLayout offers a responsive, two pane layout that automatically switches between overlapping panes on smaller devices to a side by side view on larger devices."
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }
 

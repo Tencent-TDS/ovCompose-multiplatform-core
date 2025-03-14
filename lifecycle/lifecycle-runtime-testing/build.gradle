@@ -22,28 +22,29 @@
  * modifying its settings.
  */
 
-
-import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
-    id("JetbrainsAndroidXPlugin")
 }
 
-JetbrainsAndroidXPlugin.applyAndConfigure(project)
-
 androidXMultiplatform {
-    android()
+    androidLibrary {
+        namespace = "androidx.lifecycle.testing"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
     desktop()
     mac()
     linux()
     ios()
-    js()
-    wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -72,44 +73,7 @@ androidXMultiplatform {
                 implementation(libs.kotlinCoroutinesTest)
             }
         }
-
-        jvmMain.dependsOn(commonMain)
-        jbMain.dependsOn(commonMain)
-        androidMain.dependsOn(jvmMain)
-        desktopMain.dependsOn(jvmMain)
-        desktopMain.dependsOn(jbMain)
-        nativeMain.dependsOn(jbMain)
-        webMain.dependsOn(jbMain)
-        jsMain.dependsOn(webMain)
-        wasmJsMain.dependsOn(webMain)
-
-        jvmTest.dependsOn(commonTest)
-        androidUnitTest.dependsOn(jvmTest)
-        jbTest.dependsOn(commonTest)
-        desktopTest.dependsOn(jvmTest)
-        desktopTest.dependsOn(jbTest)
-        nativeTest.dependsOn(jbTest)
-        webTest.dependsOn(jbTest)
-        jsTest.dependsOn(webTest)
-        wasmJsTest.dependsOn(webTest)
-
-        targets.all { target ->
-            if (target.platformType == KotlinPlatformType.native) {
-                target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
-                target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
-            }
-        }
     }
-}
-
-kotlin {
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
 }
 
 dependencies {
@@ -118,12 +82,8 @@ dependencies {
 
 androidx {
     name = "Lifecycle Runtime Testing"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_TEST_LIBRARY
     inceptionYear = "2019"
     description = "Testing utilities for 'lifecycle' artifact"
-    legacyDisableKotlinStrictApiMode = true
 }
 
-android {
-    namespace "androidx.lifecycle.testing"
-}

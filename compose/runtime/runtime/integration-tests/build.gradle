@@ -14,27 +14,42 @@
  * limitations under the License.
  */
 
-import androidx.build.KmpPlatformsKt
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
 }
 
-def desktopEnabled = KmpPlatformsKt.enableDesktop(project)
-
 androidXMultiplatform {
-    android()
-    if (desktopEnabled) desktop()
+    androidLibrary {
+        namespace = "androidx.compose.runtime.integrationtests"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+
+        compileSdk = 35
+        aarMetadata.minCompileSdk = 35
+    }
 
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlib)
+                implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(projectOrArtifact(":compose:ui:ui"))
+                implementation(project(":compose:ui:ui"))
             }
         }
 
@@ -52,40 +67,30 @@ androidXMultiplatform {
             }
         }
 
-
         androidMain {
             dependsOn(jvmMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
-                api("androidx.annotation:annotation:1.1.0")
+                api("androidx.annotation:annotation:1.8.1")
 
                 implementation("androidx.core:core-ktx:1.1.0")
             }
         }
 
-        if (desktopEnabled) {
-            desktopMain {
-                dependsOn(jvmMain)
-                dependencies {
-                    api(libs.kotlinCoroutinesSwing)
-                }
-            }
-        }
-
         jvmTest {
+            dependsOn(commonTest)
             dependencies {
             }
         }
 
-        androidAndroidTest {
+        androidInstrumentedTest {
             dependsOn(jvmTest)
             dependencies {
-                implementation(projectOrArtifact(":compose:ui:ui"))
-                implementation(projectOrArtifact(":compose:material:material"))
-                implementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
-                implementation(projectOrArtifact(":compose:test-utils"))
-                // This line is the reason for issue with corrupted gradle sync, so commented it out
-                // implementation(androidxArtifact(":activity:activity-compose"))
+                implementation(project(":compose:ui:ui"))
+                implementation(project(":compose:material:material"))
+                implementation(project(":compose:ui:ui-test-junit4"))
+                implementation(project(":compose:test-utils"))
+                implementation(project(":activity:activity-compose"))
                 implementation(libs.testExtJunit)
                 implementation(libs.testRules)
                 implementation(libs.testRunner)
@@ -93,31 +98,24 @@ androidXMultiplatform {
             }
         }
 
-        androidTest {
+        androidUnitTest {
             dependsOn(jvmTest)
-        }
-
-        if (desktopEnabled) {
-            desktopTest {
-                dependsOn(jvmTest)
-            }
         }
     }
 }
 
-android {
-    namespace "androidx.compose.runtime.integrationtests"
-}
 
 tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
         incremental = false
-        freeCompilerArgs += "-Xcontext-receivers"
+        freeCompilerArgs += [
+            "-Xcontext-receivers",
+        ]
     }
 }
 
 public File findFile() {
-    project.file("src/androidAndroidTest/kotlin/androidx/compose/runtime/GroupSizeTests.kt")
+    project.file("src/androidInstrumentedTest/kotlin/androidx/compose/runtime/GroupSizeTests.kt")
 }
 
 class UpdateExpectedGroupSizes extends DefaultTask {
