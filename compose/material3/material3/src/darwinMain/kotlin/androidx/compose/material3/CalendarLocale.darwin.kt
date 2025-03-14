@@ -19,11 +19,13 @@ package androidx.compose.material3
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import platform.Foundation.NSLocale
-import platform.Foundation.currentLocale
+import platform.Foundation.preferredLanguages
 
 
 actual typealias CalendarLocale = NSLocale
 
 @Composable
 @ReadOnlyComposable
-internal actual fun defaultLocale(): CalendarLocale = NSLocale.currentLocale()
+internal actual fun defaultLocale(): CalendarLocale = NSLocale(
+    NSLocale.preferredLanguages.first() as String
+)
