@@ -281,10 +281,16 @@ private class TouchesGestureRecognizer(
         }
     }
 
+    private val activeGestureStates = listOf(
+        UIGestureRecognizerStatePossible,
+        UIGestureRecognizerStateBegan,
+        UIGestureRecognizerStateChanged
+    )
     override fun shouldRequireFailureOfGestureRecognizer(
         otherGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        return (otherGestureRecognizer is UIKitBackGestureRecognizer) ||
+        return (otherGestureRecognizer is UIKitBackGestureRecognizer &&
+            otherGestureRecognizer.state in activeGestureStates) ||
             super.shouldRequireFailureOfGestureRecognizer(otherGestureRecognizer)
     }
 
