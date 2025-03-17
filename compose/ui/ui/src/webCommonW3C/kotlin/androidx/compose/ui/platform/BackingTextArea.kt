@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
@@ -43,82 +44,67 @@ internal class BackingTextArea(
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
-    private var syncMode: EditSyncMode = EditSyncMode.FromHtml
-    private var freshCompositionEnd = false
-
-    private fun processEvent(evt: KeyboardEvent): Boolean {
-        // source element is currently in composition session (after "compositionstart" but before "compositionend")
-        if (evt.isComposing) return false
-        // Unidentified keys is what we get when we press key on a virtual keyboard
-        // TODO: In theory nothing stops us from passing Unidentified keys but this yet to be investigated:
-        // First, this way we will pass (and attempt to process) "dummy" KeyboardEvents that were designed not to have physical representation at all
-        // Second, we need more tests on keyboard in general before doing this anyways
-        if (evt.key == "Unidentified") return false
-        processKeyboardEvent(evt)
-        return true
-    }
+    private var editPhase: EditPhase = EditPhase.Default
 
     private fun initEvents(htmlInput: EventTarget) {
-        htmlInput.addEventListener("keydown", { evt ->
+        htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
 
-            if (freshCompositionEnd) return@addEventListener
-            if (evt.isComposing) return@addEventListener
-
-            syncMode = EditSyncMode.FromCompose
-            processKeyboardEvent(evt)
+            // this won't prevent other input-related events, in particular "compositionupdate"
+            // even if it was triggered via key press
             evt.preventDefault()
 
-            freshCompositionEnd = false
-        })
+            if (editPhase is EditPhase.CompositeMode) {
+                return@addEventListener
+            }
 
-        htmlInput.addEventListener("compositionstart", { evt ->
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-        })
+            editPhase = EditPhase.WaitingComposeActivity
 
-        htmlInput.addEventListener("compositionupdate", { evt ->
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-        })
-
-        htmlInput.addEventListener("compositionend", { evt ->
-            freshCompositionEnd = true
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-
-            evt.preventDefault()
-            syncMode = EditSyncMode.FromCompose
-            onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
+            val processed = processKeyboardEvent(evt)
+            if (!processed) {
+                editPhase = EditPhase.Default
+            }
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
             console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
 
-            if (syncMode is EditSyncMode.FromCompose) {
-                evt.preventDefault()
-                return@addEventListener
-            }
 
-            if (evt.inputType == "insertFromComposition") {
-//                evt.preventDefault()
-//                syncMode = EditSyncMode.FromCompose
-//                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
-            } else if (evt.inputType == "insertCompositionText") {
-                syncMode = EditSyncMode.FromHtml
-                onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
-            } else if (evt.inputType == "insertText") {
-                evt.preventDefault()
-                syncMode = EditSyncMode.FromCompose
-                onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
-            }
+            evt.preventDefault()
         })
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
-            console.log(evt.type, evt.inputType, evt.timeStamp, evt.data)
+            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+
+            evt.preventDefault()
+        })
+
+        htmlInput.addEventListener("compositionstart", {evt ->
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
+            onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+
+            editPhase  = EditPhase.CompositeMode
+        })
+
+        htmlInput.addEventListener("compositionupdate", {evt ->
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
+
+            onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
+            evt.preventDefault()
+        })
+
+        htmlInput.addEventListener("compositionend", {evt ->
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
+            evt.preventDefault()
+
+            editPhase = EditPhase.WaitingComposeActivity
+            onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
         })
     }
 
@@ -202,15 +188,14 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
-        println("update state $syncMode, ${textFieldValue.text}")
-        if (syncMode is EditSyncMode.FromHtml) return
-        try {
-            textArea.value = textFieldValue.text
-            textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+        if (editPhase != EditPhase.WaitingComposeActivity) return
 
-        } finally {
-            syncMode = EditSyncMode.FromHtml
-        }
+        println("updateState ${editPhase} ${textFieldValue.text}")
+
+        textArea.value = textFieldValue.text
+        textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+
+        editPhase = EditPhase.Default
     }
 
     fun dispose() {
@@ -218,7 +203,8 @@ internal class BackingTextArea(
     }
 }
 
-private sealed interface EditSyncMode {
-    data object FromCompose : EditSyncMode
-    data object FromHtml : EditSyncMode
+private sealed interface EditPhase {
+    data object Default : EditPhase
+    data object WaitingComposeActivity : EditPhase
+    data object CompositeMode: EditPhase
 }
