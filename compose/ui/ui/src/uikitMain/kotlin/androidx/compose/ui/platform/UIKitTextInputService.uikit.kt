@@ -40,7 +40,6 @@ import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
 import androidx.compose.ui.unit.toDpRect
@@ -52,12 +51,13 @@ import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
-    private val rootView: UIView,
+    private val view: UIView,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack?,
     private val onInputStarted: () -> Unit,
@@ -241,6 +241,14 @@ internal class UIKitTextInputService(
             decorationBoxBounds
         )
         updateTextLayoutResult(textLayoutResult)
+
+        val matrix = Matrix()
+        textFieldToRootTransform(matrix)
+        updateTextFrame(matrix.map(decorationBoxBounds))
+    }
+
+    fun updateTextFrame(rect: Rect) {
+        textUIView?.setFrame(rect.toDpRect(view.density).asCGRect())
     }
 
     fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
@@ -358,7 +366,7 @@ internal class UIKitTextInputService(
             updateView()
         }
         textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(rootView.density).asCGRect(),
+            targetRect = rect.toDpRect(view.density).asCGRect(),
             textActions = object : TextActions {
                 override val copy: (() -> Unit)? = onCopyRequested
                 override val cut: (() -> Unit)? = onCutRequested
@@ -386,17 +394,21 @@ internal class UIKitTextInputService(
             TextToolbarStatus.Hidden
 
     private fun attachIntermediateTextInputView() {
-        textUIView?.removeFromSuperview()
+        detachIntermediateTextInputView()
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
             it.onKeyboardPresses = onKeyboardPresses
-            rootView.embedSubview(it)
+            view.addSubview(it)
         }
     }
 
     private fun detachIntermediateTextInputView() {
         textUIView?.let { view ->
+            val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
+            // Set out-of-bounds non-empty frame to hide text keyboard focus frame
+            view.setFrame(outOfBoundsFrame)
+
             view.resetOnKeyboardPressesCallback()
             mainScope.launch {
                 view.removeFromSuperview()
@@ -412,12 +424,12 @@ internal class UIKitTextInputService(
         override fun beginFloatingCursor(offset: DpOffset) {
             val cursorPos = getCursorPos() ?: getState()?.selection?.start ?: return
             val cursorRect = textLayoutResult?.getCursorRect(cursorPos) ?: return
-            floatingCursorTranslation = cursorRect.center - offset.toOffset(rootView.density)
+            floatingCursorTranslation = cursorRect.center - offset.toOffset(view.density)
         }
 
         override fun updateFloatingCursor(offset: DpOffset) {
             val translation = floatingCursorTranslation ?: return
-            val offsetPx = offset.toOffset(rootView.density)
+            val offsetPx = offset.toOffset(view.density)
             val pos = textLayoutResult
                 ?.getOffsetForPosition(offsetPx + translation) ?: return
 

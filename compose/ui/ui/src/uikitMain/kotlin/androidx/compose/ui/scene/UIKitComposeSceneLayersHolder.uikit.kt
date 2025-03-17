@@ -18,6 +18,7 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.uikit.addLayoutConstraintsToMatch
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
@@ -122,8 +123,9 @@ internal class UIKitComposeSceneLayersHolder(
         val isFirstLayer = layers.isEmpty()
 
         layers.add(layer)
+        view.insertSubview(layer.interopContainerView, belowSubview = metalView)
+        layer.interopContainerView.addLayoutConstraintsToMatch(view)
         view.embedSubview(layer.view)
-        view.bringSubviewToFront(metalView)
 
         if (isFirstLayer) {
             // The content of previous layers drawn on the Metal view should be cleared and
