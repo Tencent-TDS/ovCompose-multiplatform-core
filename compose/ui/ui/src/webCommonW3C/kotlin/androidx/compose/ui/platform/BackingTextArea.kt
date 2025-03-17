@@ -47,6 +47,8 @@ internal class BackingTextArea(
     private var editState: EditState = EditState.Default
 
     private fun initEvents(htmlInput: EventTarget) {
+        var lastKeydownWasProcessed = false
+
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
@@ -70,8 +72,9 @@ internal class BackingTextArea(
 
             editState = EditState.WaitingComposeActivity
 
-            val processed = processKeyboardEvent(evt)
-            if (!processed) {
+            lastKeydownWasProcessed = processKeyboardEvent(evt)
+            println("PROCESSED $lastKeydownWasProcessed")
+            if (!lastKeydownWasProcessed) {
                 editState = EditState.Default
             }
         })
@@ -94,7 +97,9 @@ internal class BackingTextArea(
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
-            onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+            if (lastKeydownWasProcessed) {
+                onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+            }
 
             editState  = EditState.CompositeDialogueMode
         })
