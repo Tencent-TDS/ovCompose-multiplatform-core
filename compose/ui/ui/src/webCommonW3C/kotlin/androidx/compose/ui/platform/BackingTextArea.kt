@@ -39,10 +39,15 @@ internal interface ComposeCommandCommunicator {
 }
 
 
+internal interface DomInputStrategy {
+    val htmlInput: HTMLTextAreaElement
+    fun updateState(textFieldValue: TextFieldValue)
+}
+
 internal class DefaultDomInputStrategy(
-    internal val htmlInput: HTMLTextAreaElement,
+    override val htmlInput: HTMLTextAreaElement,
     private val composeSender: ComposeCommandCommunicator,
-) {
+) : DomInputStrategy {
     private var editState: EditState = EditState.Default
 
     init {
@@ -125,7 +130,7 @@ internal class DefaultDomInputStrategy(
         })
     }
 
-    fun updateState(textFieldValue: TextFieldValue) {
+    override fun updateState(textFieldValue: TextFieldValue) {
         if (editState != EditState.WaitingComposeActivity) return
 
         println("updateState $editState ${textFieldValue.text}")
@@ -135,39 +140,6 @@ internal class DefaultDomInputStrategy(
 
         editState = EditState.Default
     }
-
-    private fun createHtmlInput(): HTMLTextAreaElement {
-        val htmlInput = document.createElement("textarea") as HTMLTextAreaElement
-
-        htmlInput.setAttribute("autocorrect", "off")
-        htmlInput.setAttribute("autocomplete", "off")
-        htmlInput.setAttribute("autocapitalize", "off")
-        htmlInput.setAttribute("spellcheck", "false")
-
-
-        htmlInput.style.apply {
-            setProperty("position", "absolute")
-            setProperty("user-select", "none")
-            setProperty("forced-color-adjust", "none")
-            setProperty("white-space", "pre-wrap")
-            setProperty("align-content", "center")
-            setProperty("top", "0")
-            setProperty("left", "0")
-            setProperty("padding", "0")
-//            setProperty("opacity", "0")
-//            setProperty("color", "transparent")
-//            setProperty("background", "transparent")
-//            setProperty("caret-color", "transparent")
-//            setProperty("outline", "none")
-//            setProperty("border", "none")
-//            setProperty("resize", "none")
-//            setProperty("text-shadow", "none")
-        }
-
-        return htmlInput
-    }
-
-
 }
 
 /**
@@ -178,7 +150,7 @@ internal class DefaultDomInputStrategy(
 internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val inputStrategy: DefaultDomInputStrategy
+    private val inputStrategy: DomInputStrategy
 ) {
 
     private val textArea = inputStrategy.htmlInput
