@@ -44,26 +44,35 @@ internal class BackingTextArea(
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
-    private var editPhase: EditPhase = EditPhase.Default
+    private var editState: EditState = EditState.Default
 
     private fun initEvents(htmlInput: EventTarget) {
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
 
+            if (evt.repeat) {
+                editState = EditState.AccentDialogueMode
+                return@addEventListener
+            }
+
             // this won't prevent other input-related events, in particular "compositionupdate"
             // even if it was triggered via key press
             evt.preventDefault()
 
-            if (editPhase is EditPhase.CompositeMode) {
+            if (editState is EditState.AccentDialogueMode) {
                 return@addEventListener
             }
 
-            editPhase = EditPhase.WaitingComposeActivity
+            if (editState is EditState.CompositeDialogueMode) {
+                return@addEventListener
+            }
+
+            editState = EditState.WaitingComposeActivity
 
             val processed = processKeyboardEvent(evt)
             if (!processed) {
-                editPhase = EditPhase.Default
+                editState = EditState.Default
             }
         })
 
@@ -87,7 +96,7 @@ internal class BackingTextArea(
             console.log(evt.type, evt.timeStamp, evt.data)
             onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
 
-            editPhase  = EditPhase.CompositeMode
+            editState  = EditState.CompositeDialogueMode
         })
 
         htmlInput.addEventListener("compositionupdate", {evt ->
@@ -103,7 +112,7 @@ internal class BackingTextArea(
             console.log(evt.type, evt.timeStamp, evt.data)
             evt.preventDefault()
 
-            editPhase = EditPhase.WaitingComposeActivity
+            editState = EditState.WaitingComposeActivity
             onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
         })
     }
@@ -188,14 +197,14 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
-        if (editPhase != EditPhase.WaitingComposeActivity) return
+        if (editState != EditState.WaitingComposeActivity) return
 
-        println("updateState ${editPhase} ${textFieldValue.text}")
+        println("updateState ${editState} ${textFieldValue.text}")
 
         textArea.value = textFieldValue.text
         textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
 
-        editPhase = EditPhase.Default
+        editState = EditState.Default
     }
 
     fun dispose() {
@@ -203,8 +212,9 @@ internal class BackingTextArea(
     }
 }
 
-private sealed interface EditPhase {
-    data object Default : EditPhase
-    data object WaitingComposeActivity : EditPhase
-    data object CompositeMode: EditPhase
+private sealed interface EditState {
+    data object Default : EditState
+    data object WaitingComposeActivity : EditState
+    data object CompositeDialogueMode: EditState
+    data object AccentDialogueMode: EditState
 }
