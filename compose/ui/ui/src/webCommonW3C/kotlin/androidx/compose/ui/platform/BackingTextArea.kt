@@ -17,9 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.input.CommitTextCommand
-import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
@@ -31,7 +29,6 @@ import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.EventTarget
 import org.w3c.dom.events.KeyboardEvent
-import org.w3c.dom.events.KeyboardEventInit
 
 /**
  * The purpose of this entity is to isolate synchronization between a TextFieldValue
@@ -220,18 +217,6 @@ internal class BackingTextArea(
         textArea.remove()
     }
 }
-
-// TODO: reuse in tests
-private external interface KeyboardEventInitExtended : KeyboardEventInit {
-    var keyCode: Int?
-}
-
-@Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
-private fun KeyboardEventInit.withKeyCode(key: Key) =
-    (this as KeyboardEventInitExtended).apply {
-        this.keyCode = key.keyCode.toInt()
-    }
-
 
 private sealed interface EditSyncMode {
     data object FromCompose : EditSyncMode
