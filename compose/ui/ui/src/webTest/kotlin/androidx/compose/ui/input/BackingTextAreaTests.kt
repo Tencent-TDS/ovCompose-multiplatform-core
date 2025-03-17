@@ -41,8 +41,8 @@ class BackingTextAreaTests {
     fun disposeTest() {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = {},
             onImeActionPerformed = {},
+            onEditCommand = {},
             processKeyboardEvent = {}
         )
         var textArea = document.querySelector("textarea")
@@ -65,8 +65,8 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = {},
             onImeActionPerformed = {},
+            onEditCommand = {},
             processKeyboardEvent = { evt ->
                 processedKeys.add(evt.key)
             }
@@ -94,10 +94,10 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
+            onImeActionPerformed = {},
             onEditCommand = { command ->
                 lastEditCommand = command
             },
-            onImeActionPerformed = {},
             processKeyboardEvent = {}
         )
 
@@ -161,10 +161,10 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
+            onImeActionPerformed = {},
             onEditCommand = { command ->
                 lastEditCommand = command
             },
-            onImeActionPerformed = {},
             processKeyboardEvent = {}
         )
 

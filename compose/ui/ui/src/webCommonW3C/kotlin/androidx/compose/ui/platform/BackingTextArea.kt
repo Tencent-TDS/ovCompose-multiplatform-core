@@ -31,6 +31,15 @@ import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.EventTarget
 import org.w3c.dom.events.KeyboardEvent
 
+
+internal interface ComposeCommandSender {
+    fun sendEditCommand(commands: List<EditCommand>)
+    fun sendEditCommand(command: EditCommand) = sendEditCommand(listOf(command))
+
+    fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean
+}
+
+
 /**
  * The purpose of this entity is to isolate synchronization between a TextFieldValue
  * and the DOM HTMLTextAreaElement we are actually listening events on in order to show
@@ -38,9 +47,8 @@ import org.w3c.dom.events.KeyboardEvent
  */
 internal class BackingTextArea(
     private val imeOptions: ImeOptions,
-    private val onEditCommand: (List<EditCommand>) -> Unit,
     private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val processKeyboardEvent: (KeyboardEvent) -> Boolean
+    private val composeSender: ComposeCommandSender
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
@@ -72,7 +80,7 @@ internal class BackingTextArea(
 
             editState = EditState.WaitingComposeActivity
 
-            lastKeydownWasProcessed = processKeyboardEvent(evt)
+            lastKeydownWasProcessed = composeSender.sendKeyboardEvent(evt)
             println("PROCESSED $lastKeydownWasProcessed")
             if (!lastKeydownWasProcessed) {
                 editState = EditState.Default
@@ -98,7 +106,7 @@ internal class BackingTextArea(
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
             if (lastKeydownWasProcessed) {
-                onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
+                composeSender.sendEditCommand(DeleteSurroundingTextInCodePointsCommand(1, 0))
             }
 
             editState  = EditState.CompositeDialogueMode
@@ -108,7 +116,7 @@ internal class BackingTextArea(
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
 
-            onEditCommand(listOf(SetComposingTextCommand(evt.data!!, 1)))
+            composeSender.sendEditCommand(SetComposingTextCommand(evt.data, 1))
             evt.preventDefault()
         })
 
@@ -118,7 +126,7 @@ internal class BackingTextArea(
             evt.preventDefault()
 
             editState = EditState.WaitingComposeActivity
-            onEditCommand(listOf(CommitTextCommand(evt.data!!, 1)))
+            composeSender.sendEditCommand(CommitTextCommand(evt.data, 1))
         })
     }
 
@@ -204,7 +212,7 @@ internal class BackingTextArea(
     fun updateState(textFieldValue: TextFieldValue) {
         if (editState != EditState.WaitingComposeActivity) return
 
-        println("updateState ${editState} ${textFieldValue.text}")
+        println("updateState $editState ${textFieldValue.text}")
 
         textArea.value = textFieldValue.text
         textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
