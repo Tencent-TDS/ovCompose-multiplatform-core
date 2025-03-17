@@ -22,7 +22,11 @@ data class ArtifactRedirecting(
     val groupId: String,
     val defaultVersion: String,
     val targetNames: Set<String>,
-    val targetVersions: Map<String, String>
+
+    /**
+     * Versions for specific targets. If not specified, [defaultVersion] is used.
+     */
+    val targetVersions: Map<String, String> = emptyMap()
 ) {
     fun versionForTargetOrDefault(target: String): String {
         return targetVersions[target.lowercase()] ?: defaultVersion
