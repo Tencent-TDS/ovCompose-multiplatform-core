@@ -39,7 +39,7 @@ internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onEditCommand: (List<EditCommand>) -> Unit,
     private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val processKeyboardEvent: (KeyboardEvent) -> Unit
+    private val processKeyboardEvent: (KeyboardEvent) -> Boolean
 ) {
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
