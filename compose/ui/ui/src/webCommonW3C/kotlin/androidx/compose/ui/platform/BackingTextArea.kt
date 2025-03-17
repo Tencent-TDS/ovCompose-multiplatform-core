@@ -28,11 +28,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
-import org.w3c.dom.events.EventTarget
 import org.w3c.dom.events.KeyboardEvent
 
 
-internal interface ComposeCommandSender {
+internal interface ComposeCommandCommunicator {
     fun sendEditCommand(commands: List<EditCommand>)
     fun sendEditCommand(command: EditCommand) = sendEditCommand(listOf(command))
 
@@ -40,9 +39,9 @@ internal interface ComposeCommandSender {
 }
 
 
-internal class DomInputStrategy(
+internal class DefaultDomInputStrategy(
     internal val htmlInput: HTMLTextAreaElement,
-    private val composeSender: ComposeCommandSender,
+    private val composeSender: ComposeCommandCommunicator,
 ) {
     private var editState: EditState = EditState.Default
 
@@ -179,7 +178,7 @@ internal class DomInputStrategy(
 internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val inputStrategy: DomInputStrategy
+    private val inputStrategy: DefaultDomInputStrategy
 ) {
 
     private val textArea = inputStrategy.htmlInput
