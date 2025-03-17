@@ -40,21 +40,17 @@ internal interface ComposeCommandSender {
 }
 
 
-/**
- * The purpose of this entity is to isolate synchronization between a TextFieldValue
- * and the DOM HTMLTextAreaElement we are actually listening events on in order to show
- * the virtual keyboard.
- */
-internal class BackingTextArea(
-    private val imeOptions: ImeOptions,
-    private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val composeSender: ComposeCommandSender
+internal class DomInputStrategy(
+    internal val htmlInput: HTMLTextAreaElement,
+    private val composeSender: ComposeCommandSender,
 ) {
-    private val textArea: HTMLTextAreaElement = createHtmlInput()
-
     private var editState: EditState = EditState.Default
 
-    private fun initEvents(htmlInput: EventTarget) {
+    init {
+        initEvents()
+    }
+
+    private fun initEvents() {
         var lastKeydownWasProcessed = false
 
         htmlInput.addEventListener("keydown", {evt ->
@@ -130,6 +126,17 @@ internal class BackingTextArea(
         })
     }
 
+    fun updateState(textFieldValue: TextFieldValue) {
+        if (editState != EditState.WaitingComposeActivity) return
+
+        println("updateState $editState ${textFieldValue.text}")
+
+        htmlInput.value = textFieldValue.text
+        htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+
+        editState = EditState.Default
+    }
+
     private fun createHtmlInput(): HTMLTextAreaElement {
         val htmlInput = document.createElement("textarea") as HTMLTextAreaElement
 
@@ -138,33 +145,6 @@ internal class BackingTextArea(
         htmlInput.setAttribute("autocapitalize", "off")
         htmlInput.setAttribute("spellcheck", "false")
 
-        val inputMode = when (imeOptions.keyboardType) {
-            KeyboardType.Text -> "text"
-            KeyboardType.Ascii -> "text"
-            KeyboardType.Number -> "number"
-            KeyboardType.Phone -> "tel"
-            KeyboardType.Uri -> "url"
-            KeyboardType.Email -> "email"
-            KeyboardType.Password -> "password"
-            KeyboardType.NumberPassword -> "number"
-            KeyboardType.Decimal -> "decimal"
-            else -> "text"
-        }
-
-        val enterKeyHint = when (imeOptions.imeAction) {
-            ImeAction.Default -> "enter"
-            ImeAction.None -> "enter"
-            ImeAction.Done -> "done"
-            ImeAction.Go -> "go"
-            ImeAction.Next -> "next"
-            ImeAction.Previous -> "previous"
-            ImeAction.Search -> "search"
-            ImeAction.Send -> "send"
-            else -> "enter"
-        }
-
-        htmlInput.setAttribute("inputmode", inputMode)
-        htmlInput.setAttribute("enterkeyhint", enterKeyHint)
 
         htmlInput.style.apply {
             setProperty("position", "absolute")
@@ -185,10 +165,24 @@ internal class BackingTextArea(
 //            setProperty("text-shadow", "none")
         }
 
-        initEvents(htmlInput)
-
         return htmlInput
     }
+
+
+}
+
+/**
+ * The purpose of this entity is to isolate synchronization between a TextFieldValue
+ * and the DOM HTMLTextAreaElement we are actually listening events on in order to show
+ * the virtual keyboard.
+ */
+internal class BackingTextArea(
+    private val imeOptions: ImeOptions,
+    private val onImeActionPerformed: (ImeAction) -> Unit,
+    private val inputStrategy: DomInputStrategy
+) {
+
+    private val textArea = inputStrategy.htmlInput
 
     fun register() {
         document.body?.appendChild(textArea)
@@ -210,14 +204,7 @@ internal class BackingTextArea(
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
-        if (editState != EditState.WaitingComposeActivity) return
-
-        println("updateState $editState ${textFieldValue.text}")
-
-        textArea.value = textFieldValue.text
-        textArea.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
-
-        editState = EditState.Default
+        inputStrategy.updateState(textFieldValue)
     }
 
     fun dispose() {
@@ -230,4 +217,62 @@ private sealed interface EditState {
     data object WaitingComposeActivity : EditState
     data object CompositeDialogueMode: EditState
     data object AccentDialogueMode: EditState
+}
+
+internal fun ImeOptions.createDomElement(): HTMLTextAreaElement {
+    val htmlElement: HTMLTextAreaElement = document.createElement("textarea") as HTMLTextAreaElement
+
+    htmlElement.setAttribute("autocorrect", "off")
+    htmlElement.setAttribute("autocomplete", "off")
+    htmlElement.setAttribute("autocapitalize", "off")
+    htmlElement.setAttribute("spellcheck", "false")
+
+    val inputMode = when (keyboardType) {
+        KeyboardType.Text -> "text"
+        KeyboardType.Ascii -> "text"
+        KeyboardType.Number -> "number"
+        KeyboardType.Phone -> "tel"
+        KeyboardType.Uri -> "url"
+        KeyboardType.Email -> "email"
+        KeyboardType.Password -> "password"
+        KeyboardType.NumberPassword -> "number"
+        KeyboardType.Decimal -> "decimal"
+        else -> "text"
+    }
+
+    val enterKeyHint = when (imeAction) {
+        ImeAction.Default -> "enter"
+        ImeAction.None -> "enter"
+        ImeAction.Done -> "done"
+        ImeAction.Go -> "go"
+        ImeAction.Next -> "next"
+        ImeAction.Previous -> "previous"
+        ImeAction.Search -> "search"
+        ImeAction.Send -> "send"
+        else -> "enter"
+    }
+
+    htmlElement.setAttribute("inputmode", inputMode)
+    htmlElement.setAttribute("enterkeyhint", enterKeyHint)
+
+    htmlElement.style.apply {
+        setProperty("position", "absolute")
+        setProperty("user-select", "none")
+        setProperty("forced-color-adjust", "none")
+        setProperty("white-space", "pre-wrap")
+        setProperty("align-content", "center")
+        setProperty("top", "0")
+        setProperty("left", "0")
+        setProperty("padding", "0")
+//            setProperty("opacity", "0")
+//            setProperty("color", "transparent")
+//            setProperty("background", "transparent")
+//            setProperty("caret-color", "transparent")
+//            setProperty("outline", "none")
+//            setProperty("border", "none")
+//            setProperty("resize", "none")
+//            setProperty("text-shadow", "none")
+    }
+
+    return htmlElement
 }
