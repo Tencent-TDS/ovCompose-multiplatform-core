@@ -65,6 +65,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.native.runtime.GC
 import kotlin.native.runtime.NativeRuntimeApi
 import kotlin.test.assertNotNull
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
@@ -366,11 +367,13 @@ internal class ComposeHostingViewController(
     private fun animateSizeTransition(
         transitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
+        val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
+        if (duration == Duration.ZERO) return
+
         val displayLinkListener = DisplayLinkListener()
         val sizeTransitionScope = CoroutineScope(
             composeCoroutineContext + displayLinkListener.frameClock
         )
-        val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
         displayLinkListener.start()
 
         val animations = mediator?.prepareAndGetSizeTransitionAnimation()

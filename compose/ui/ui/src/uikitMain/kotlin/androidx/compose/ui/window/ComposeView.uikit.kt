@@ -147,13 +147,13 @@ internal class ComposeView(
         scope.launch {
             try {
                 animations()
-            } finally {
-                // Delay mitigates rendering glitches that can occur at the end of the animation.
                 delay(50)
                 isAnimating = false
+            } finally {
+                // Delay mitigates rendering glitches that can occur at the end of the animation.
                 updateLayout()
-                metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
-                metalView.redrawer.ongoingInteractionEventsCount++
+                metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = false
+                metalView.redrawer.ongoingInteractionEventsCount--
             }
         }
     }
