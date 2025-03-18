@@ -75,16 +75,12 @@ id _editInteraction;
                 self.isPossibleTouchDetected = NO;
             });
         } else {
-            if (self.isPossibleTouchDetected) {
+            if (self.isPossibleTouchDetected || contextMenuItemsChanged) {
+                [self hideEditMenu];
                 [self cancelPresentEditMenuInteraction];
                 [self schedulePresentEditMenuInteraction];
-            } else {
-                if (contextMenuItemsChanged) {
-                    [self.editInteraction reloadVisibleMenu];
-                }
-                if (positionChanged) {
-                    [self.editInteraction updateVisibleMenuPositionAnimated:NO];
-                }
+            } else if (positionChanged) {
+                [self.editInteraction updateVisibleMenuPositionAnimated:NO];
             }
         }
     } else {
