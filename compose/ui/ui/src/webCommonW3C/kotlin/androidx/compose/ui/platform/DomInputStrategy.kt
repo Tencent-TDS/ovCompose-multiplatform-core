@@ -124,11 +124,42 @@ internal class SafariDomInputStrategy(
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
 
             evt.preventDefault()
+
+            if (editState is EditState.AccentDialogueMode) {
+                return@addEventListener
+            }
+
+            if (editState is EditState.CompositeDialogueMode) {
+                return@addEventListener
+            }
+
+            editState = EditState.WaitingComposeActivity
+
+            val lastKeydownWasProcessed = composeSender.sendKeyboardEvent(evt)
+            println("PROCESSED $lastKeydownWasProcessed")
+            if (!lastKeydownWasProcessed) {
+                editState = EditState.Default
+            }
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
             console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+
+            if (editState is EditState.WaitingComposeActivity) return@addEventListener
+
+            if (evt.inputType == "insertFromComposition") {
+                evt.preventDefault()
+                editState = EditState.WaitingComposeActivity
+                composeSender.sendEditCommand(CommitTextCommand(evt.data!!, 1))
+            } else if (evt.inputType == "insertCompositionText") {
+                editState = EditState.Default
+                composeSender.sendEditCommand(SetComposingTextCommand(evt.data!!, 1))
+            } else if (evt.inputType == "insertText") {
+                evt.preventDefault()
+                editState = EditState.WaitingComposeActivity
+                composeSender.sendEditCommand(CommitTextCommand(evt.data!!, 1))
+            }
 
             evt.preventDefault()
         })
@@ -140,12 +171,14 @@ internal class SafariDomInputStrategy(
 
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
+            editState = EditState.CompositeDialogueMode
         })
 
         htmlInput.addEventListener("compositionupdate", {evt ->
         })
 
         htmlInput.addEventListener("compositionend", {evt ->
+            editState = EditState.Default
         })
     }
 }
