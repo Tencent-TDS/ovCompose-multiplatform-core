@@ -33,10 +33,6 @@ class JsPlatformClipboard : Clipboard {
     private val emptyClipboardItems = emptyArray<ClipboardItem>()
 
     override suspend fun getClipEntry(): ClipEntry? {
-        if (!isSecureContext()) {
-            println("Clipboard is not available in insecure contexts.")
-            return null
-        }
         val items = nativeClipboard.read().catch {
             // The most common reason is that the permission was denied
             println("Failed to read from Clipboard: $it")
@@ -50,10 +46,6 @@ class JsPlatformClipboard : Clipboard {
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-        if (!isSecureContext()) {
-            println("Clipboard is not available in insecure contexts.")
-            return
-        }
         if (clipEntry == null) {
             nativeClipboard.write(emptyClipboardItems()).await<Any?>()
             return
@@ -69,7 +61,11 @@ private fun getW3CClipboard(): W3CTemporaryClipboard =
     js("window.navigator.clipboard")
 
 internal actual fun createPlatformClipboard(): Clipboard {
-    return JsPlatformClipboard()
+    return if (isSecureContext()) {
+        JsPlatformClipboard()
+    } else {
+        DumbInsecureContextClipboard()
+    }
 }
 
 private fun isSecureContext(): Boolean =
@@ -128,4 +124,29 @@ external class W3CTemporaryClipboard {
 external interface ClipboardItem {
     val types: Array<String>
     fun getType(type: String): Promise<Blob>
+}
+
+/**
+ * This Clipboard implementation is dumb.
+ * It's created when window.isSecureContext != true.
+ * See https://developer.mozilla.org/en-US/docs/Web/API/Clipboard
+ */
+private class DumbInsecureContextClipboard : Clipboard {
+
+    override suspend fun getClipEntry(): ClipEntry? {
+        println("Clipboard is not available in insecure contexts.")
+        return null
+    }
+
+    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        println("Clipboard is not available in insecure contexts.")
+    }
+
+    private val browserClipboard by lazy {
+        println("Clipboard is not available in insecure contexts.")
+        getW3CClipboard()
+    }
+
+    override val nativeClipboard: NativeClipboard
+        get() = browserClipboard
 }
