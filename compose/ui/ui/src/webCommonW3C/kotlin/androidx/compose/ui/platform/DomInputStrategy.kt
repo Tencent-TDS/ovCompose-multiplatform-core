@@ -13,30 +13,26 @@ internal interface DomInputStrategy {
     fun updateState(textFieldValue: TextFieldValue)
 }
 
-internal abstract class StatefulDomInputStrategy : DomInputStrategy {
-    protected var editState: EditState = EditState.Default
+internal class DefaultDomInputStrategy(
+    override val htmlInput: HTMLTextAreaElement,
+    private val composeSender: ComposeCommandCommunicator,
+) : DomInputStrategy {
+
+    private var lastActualCompositionTimestamp: Int = 0
+    private var editState: EditState = EditState.Default
+
+
+    init {
+        initEvents()
+    }
 
     override fun updateState(textFieldValue: TextFieldValue) {
         if (editState != EditState.WaitingComposeActivity) return
-
-        println("updateState $editState ${textFieldValue.text}")
 
         htmlInput.value = textFieldValue.text
         htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
 
         editState = EditState.Default
-    }
-}
-
-internal class SafariDomInputStrategy(
-    override val htmlInput: HTMLTextAreaElement,
-    private val composeSender: ComposeCommandCommunicator,
-) : StatefulDomInputStrategy() {
-
-    private var lastActualCompositionTimestamp: Int = 0
-
-    init {
-        initEvents()
     }
 
     private fun initEvents() {
@@ -52,11 +48,15 @@ internal class SafariDomInputStrategy(
                 editState = EditState.CompositeDialogueMode
             }
 
-            if (editState is EditState.AccentDialogueMode) {
+            if (editState is EditState.CompositeDialogueMode) {
                 return@addEventListener
             }
 
-            if (editState is EditState.CompositeDialogueMode) {
+            if (evt.repeat) {
+                editState = EditState.AccentDialogueMode
+            }
+
+            if (editState is EditState.AccentDialogueMode) {
                 return@addEventListener
             }
 
