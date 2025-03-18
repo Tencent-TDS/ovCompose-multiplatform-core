@@ -121,9 +121,13 @@ internal class SafariDomInputStrategy(
     private fun initEvents() {
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
-            console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
+            console.log(evt.type, evt.timeStamp, evt.isComposing, editState, evt)
 
             evt.preventDefault()
+
+            if (evt.isComposing) {
+                editState = EditState.CompositeDialogueMode
+            }
 
             if (editState is EditState.AccentDialogueMode) {
                 return@addEventListener
@@ -166,7 +170,7 @@ internal class SafariDomInputStrategy(
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
-            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data, editState)
         })
 
         htmlInput.addEventListener("compositionstart", {evt ->
