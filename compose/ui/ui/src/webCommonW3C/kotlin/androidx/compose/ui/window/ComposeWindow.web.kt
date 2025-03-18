@@ -61,6 +61,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.coroutines.coroutineContext
+import kotlin.math.absoluteValue
 import kotlinx.browser.document
 import kotlinx.browser.window
 import kotlinx.coroutines.Dispatchers
@@ -475,12 +476,21 @@ internal class ComposeWindow(
         event: WheelEvent,
     ) {
         keyboardModeState = KeyboardModeState.Hardware
-        scene.sendPointerEvent(
+
+        val horizontalScroll = when {
+            event.deltaX.absoluteValue >= event.deltaY.absoluteValue -> event.deltaX
+            event.shiftKey -> event.deltaY
+            else -> 0f
+        }
+
+        val verticalScroll = if (horizontalScroll == 0f) event.deltaY else 0f
+
+        val result = scene.sendPointerEvent(
             eventType = PointerEventType.Scroll,
             position = event.offset,
             scrollDelta = Offset(
-                x = event.deltaX.toFloat(),
-                y = event.deltaY.toFloat()
+                x = horizontalScroll.toFloat(),
+                y = verticalScroll.toFloat()
             ),
             buttons = event.composeButtons,
             keyboardModifiers = PointerKeyboardModifiers(
@@ -492,6 +502,9 @@ internal class ComposeWindow(
             nativeEvent = event,
             button = event.composeButton,
         )
+
+        // TODO: anyMovementConsumed is always false
+        // if (result.anyMovementConsumed) event.preventDefault()
     }
 
     private val MouseEvent.offset get() = Offset(
