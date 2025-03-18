@@ -28,87 +28,6 @@ internal abstract class StatefulDomInputStrategy : DomInputStrategy {
     }
 }
 
-internal class DefaultDomInputStrategy(
-    override val htmlInput: HTMLTextAreaElement,
-    private val composeSender: ComposeCommandCommunicator,
-) : StatefulDomInputStrategy() {
-
-    init {
-        initEvents()
-    }
-
-    private fun initEvents() {
-        var lastKeydownWasProcessed = false
-
-        htmlInput.addEventListener("keydown", {evt ->
-            evt as KeyboardEvent
-            console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
-
-            if (evt.repeat) {
-                editState = EditState.AccentDialogueMode
-                return@addEventListener
-            }
-
-            // this won't prevent other input-related events, in particular "compositionupdate"
-            // even if it was triggered via key press
-            evt.preventDefault()
-
-            if (editState is EditState.AccentDialogueMode) {
-                return@addEventListener
-            }
-
-            if (editState is EditState.CompositeDialogueMode) {
-                return@addEventListener
-            }
-
-            editState = EditState.WaitingComposeActivity
-
-            lastKeydownWasProcessed = composeSender.sendKeyboardEvent(evt)
-            println("PROCESSED $lastKeydownWasProcessed")
-            if (!lastKeydownWasProcessed) {
-                editState = EditState.Default
-            }
-        })
-
-        htmlInput.addEventListener("beforeinput", { evt ->
-            evt as InputEvent
-            console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
-
-            evt.preventDefault()
-        })
-
-        htmlInput.addEventListener("input", { evt ->
-            evt as InputEvent
-            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
-        })
-
-        htmlInput.addEventListener("compositionstart", {evt ->
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-            if (lastKeydownWasProcessed) {
-                composeSender.sendEditCommand(DeleteSurroundingTextInCodePointsCommand(1, 0))
-            }
-
-            editState  = EditState.CompositeDialogueMode
-        })
-
-        htmlInput.addEventListener("compositionupdate", {evt ->
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-
-            composeSender.sendEditCommand(SetComposingTextCommand(evt.data, 1))
-        })
-
-        htmlInput.addEventListener("compositionend", {evt ->
-            evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
-
-            editState = EditState.WaitingComposeActivity
-            composeSender.sendEditCommand(CommitTextCommand(evt.data, 1))
-        })
-    }
-}
-
 internal class SafariDomInputStrategy(
     override val htmlInput: HTMLTextAreaElement,
     private val composeSender: ComposeCommandCommunicator,
@@ -121,8 +40,11 @@ internal class SafariDomInputStrategy(
     }
 
     private fun initEvents() {
+        var lastKeyboardEventIsDown = false
+
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
+            lastKeyboardEventIsDown = true
             console.log(evt.type, evt.timeStamp, "<=>", lastActualCompositionTimestamp, evt.isComposing, editState, evt)
 
             evt.preventDefault()
@@ -146,13 +68,22 @@ internal class SafariDomInputStrategy(
 
             editState = EditState.WaitingComposeActivity
 
-            val lastKeydownWasProcessed = composeSender.sendKeyboardEvent(evt)
-            println("PROCESSED $lastKeydownWasProcessed")
-            if (!lastKeydownWasProcessed) {
+            val processed = composeSender.sendKeyboardEvent(evt)
+            if (!processed) {
                 editState = EditState.Default
             }
 
             lastActualCompositionTimestamp = 0
+        })
+
+        htmlInput.addEventListener("keyup", { evt ->
+            lastKeyboardEventIsDown = false
+            evt as KeyboardEvent
+            console.log(evt.type, evt.timeStamp, evt.isComposing, editState, evt)
+            if (evt.isComposing) {
+                editState = EditState.CompositeDialogueMode
+            }
+
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
@@ -184,8 +115,12 @@ internal class SafariDomInputStrategy(
 
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
+            console.log(evt.type, evt.timeStamp, lastKeyboardEventIsDown, evt.data)
             editState = EditState.CompositeDialogueMode
+
+            if (lastKeyboardEventIsDown) {
+                composeSender.sendEditCommand(DeleteSurroundingTextInCodePointsCommand(1, 0))
+            }
         })
 
         htmlInput.addEventListener("compositionupdate", {evt ->
