@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import kotlin.js.Promise
+import kotlinx.browser.window
 import kotlinx.coroutines.await
 import org.w3c.files.Blob
 
@@ -32,6 +33,10 @@ class WasmPlatformClipboard : Clipboard {
     private val emptyClipboardItems = emptyArray<ClipboardItem>().toJsArray()
 
     override suspend fun getClipEntry(): ClipEntry? {
+        if (!isSecureContext().toBoolean()) {
+            println("Clipboard is not available in insecure contexts.")
+            return null
+        }
         val items = nativeClipboard.read().catch {
             // The most common reason is that the permission was denied
             println("Failed to read from Clipboard: $it")
@@ -45,6 +50,10 @@ class WasmPlatformClipboard : Clipboard {
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        if (!isSecureContext().toBoolean()) {
+            println("Clipboard is not available in insecure contexts.")
+            return
+        }
         if (clipEntry == null) {
             nativeClipboard.write(emptyClipboardItems()).await<JsAny>()
             return
@@ -73,6 +82,10 @@ constructor(val clipboardItems: JsArray<ClipboardItem>) {
 
     companion object {
         fun withPlainText(text: String): ClipEntry {
+            if (!isSecureContext().toBoolean()) {
+                println("ClipboardItem is not available in insecure contexts.")
+                return ClipEntry(invalidClipboardItems())
+            }
             return ClipEntry(createClipboardItemWithPlainText(text))
         }
     }
@@ -85,6 +98,13 @@ private fun createClipboardItemWithPlainText(text: String): JsArray<ClipboardIte
 // Can't truly clear the clipboard, so setting the empty text
 private fun emptyClipboardItems(): JsArray<ClipboardItem> =
     js("[new ClipboardItem({'text/plain': new Blob([''], { type: 'text/plain' })})]")
+
+private fun isSecureContext(): JsBoolean = js("window.isSecureContext")
+
+// We use it when we detect isSecureContext() != true,
+// because we can't call ClipboardItem constructor - it's undefined.
+private fun invalidClipboardItems(): JsArray<ClipboardItem> =
+    js("[]")
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API

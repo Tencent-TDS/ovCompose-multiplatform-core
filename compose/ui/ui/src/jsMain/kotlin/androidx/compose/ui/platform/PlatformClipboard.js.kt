@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import kotlin.js.Promise
+import kotlinx.browser.window
 import kotlinx.coroutines.await
 import org.w3c.files.Blob
 
@@ -32,6 +33,10 @@ class JsPlatformClipboard : Clipboard {
     private val emptyClipboardItems = emptyArray<ClipboardItem>()
 
     override suspend fun getClipEntry(): ClipEntry? {
+        if (!isSecureContext()) {
+            println("Clipboard is not available in insecure contexts.")
+            return null
+        }
         val items = nativeClipboard.read().catch {
             // The most common reason is that the permission was denied
             println("Failed to read from Clipboard: $it")
@@ -45,6 +50,10 @@ class JsPlatformClipboard : Clipboard {
     }
 
     override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        if (!isSecureContext()) {
+            println("Clipboard is not available in insecure contexts.")
+            return
+        }
         if (clipEntry == null) {
             nativeClipboard.write(emptyClipboardItems()).await<Any?>()
             return
@@ -63,6 +72,9 @@ internal actual fun createPlatformClipboard(): Clipboard {
     return JsPlatformClipboard()
 }
 
+private fun isSecureContext(): Boolean =
+    window.asDynamic().isSecureContext == true
+
 actual class ClipEntry
 @ExperimentalComposeUiApi
 constructor(val clipboardItems: Array<ClipboardItem>) {
@@ -73,6 +85,10 @@ constructor(val clipboardItems: Array<ClipboardItem>) {
 
     companion object {
         fun withPlainText(text: String): ClipEntry {
+            if (!isSecureContext()) {
+                println("ClipboardItem is not available in insecure contexts.")
+                return ClipEntry(emptyArray())
+            }
             return ClipEntry(createClipboardItemWithPlainText(text))
         }
     }
