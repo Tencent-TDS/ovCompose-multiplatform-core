@@ -74,15 +74,12 @@ internal class DefaultDomInputStrategy(
             evt as InputEvent
             console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
 
-
             evt.preventDefault()
         })
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
             console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
-
-            evt.preventDefault()
         })
 
         htmlInput.addEventListener("compositionstart", {evt ->
@@ -100,13 +97,11 @@ internal class DefaultDomInputStrategy(
             console.log(evt.type, evt.timeStamp, evt.data)
 
             composeSender.sendEditCommand(SetComposingTextCommand(evt.data, 1))
-            evt.preventDefault()
         })
 
         htmlInput.addEventListener("compositionend", {evt ->
             evt as CompositionEvent
             console.log(evt.type, evt.timeStamp, evt.data)
-            evt.preventDefault()
 
             editState = EditState.WaitingComposeActivity
             composeSender.sendEditCommand(CommitTextCommand(evt.data, 1))
