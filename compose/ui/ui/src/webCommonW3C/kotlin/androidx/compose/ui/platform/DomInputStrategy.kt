@@ -114,6 +114,8 @@ internal class SafariDomInputStrategy(
     private val composeSender: ComposeCommandCommunicator,
 ) : StatefulDomInputStrategy() {
 
+    private var lastActualCompositionTimestamp: Int = 0
+
     init {
         initEvents()
     }
@@ -121,9 +123,10 @@ internal class SafariDomInputStrategy(
     private fun initEvents() {
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
-            console.log(evt.type, evt.timeStamp, evt.isComposing, editState, evt)
+            console.log(evt.type, evt.timeStamp, "<=>", lastActualCompositionTimestamp, evt.isComposing, editState, evt)
 
             evt.preventDefault()
+
 
             if (evt.isComposing) {
                 editState = EditState.CompositeDialogueMode
@@ -137,6 +140,10 @@ internal class SafariDomInputStrategy(
                 return@addEventListener
             }
 
+            if ((evt.timeStamp.toInt() - lastActualCompositionTimestamp) <= 0) {
+                return@addEventListener
+            }
+
             editState = EditState.WaitingComposeActivity
 
             val lastKeydownWasProcessed = composeSender.sendKeyboardEvent(evt)
@@ -144,6 +151,8 @@ internal class SafariDomInputStrategy(
             if (!lastKeydownWasProcessed) {
                 editState = EditState.Default
             }
+
+            lastActualCompositionTimestamp = 0
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
@@ -170,19 +179,25 @@ internal class SafariDomInputStrategy(
 
         htmlInput.addEventListener("input", { evt ->
             evt as InputEvent
-            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data, editState)
+            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data, editState, evt.timeStamp)
         })
 
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
             editState = EditState.CompositeDialogueMode
         })
 
         htmlInput.addEventListener("compositionupdate", {evt ->
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
         })
 
         htmlInput.addEventListener("compositionend", {evt ->
+            evt as CompositionEvent
+            console.log(evt.type, evt.timeStamp, evt.data)
             editState = EditState.Default
+            lastActualCompositionTimestamp = evt.timeStamp.toInt()
         })
     }
 }
