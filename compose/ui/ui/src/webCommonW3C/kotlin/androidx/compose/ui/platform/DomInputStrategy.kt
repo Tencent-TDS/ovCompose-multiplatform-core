@@ -109,6 +109,47 @@ internal class DefaultDomInputStrategy(
     }
 }
 
+internal class SafariDomInputStrategy(
+    override val htmlInput: HTMLTextAreaElement,
+    private val composeSender: ComposeCommandCommunicator,
+) : StatefulDomInputStrategy() {
+
+    init {
+        initEvents()
+    }
+
+    private fun initEvents() {
+        htmlInput.addEventListener("keydown", {evt ->
+            evt as KeyboardEvent
+            console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
+
+            evt.preventDefault()
+        })
+
+        htmlInput.addEventListener("beforeinput", { evt ->
+            evt as InputEvent
+            console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+
+            evt.preventDefault()
+        })
+
+        htmlInput.addEventListener("input", { evt ->
+            evt as InputEvent
+            console.log("[input] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
+        })
+
+        htmlInput.addEventListener("compositionstart", {evt ->
+            evt as CompositionEvent
+        })
+
+        htmlInput.addEventListener("compositionupdate", {evt ->
+        })
+
+        htmlInput.addEventListener("compositionend", {evt ->
+        })
+    }
+}
+
 
 sealed interface EditState {
     data object Default : EditState

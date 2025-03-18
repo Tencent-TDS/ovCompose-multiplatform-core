@@ -48,7 +48,7 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
             BackingTextArea(
                 imeOptions = imeOptions,
                 onImeActionPerformed = onImeActionPerformed,
-                DefaultDomInputStrategy(
+                SafariDomInputStrategy(
                     imeOptions.createDomElement(),
                     object : ComposeCommandCommunicator {
                         override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
