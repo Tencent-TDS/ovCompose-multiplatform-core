@@ -13,11 +13,25 @@ internal interface DomInputStrategy {
     fun updateState(textFieldValue: TextFieldValue)
 }
 
+internal abstract class StatefulDomInputStrategy : DomInputStrategy {
+    protected var editState: EditState = EditState.Default
+
+    override fun updateState(textFieldValue: TextFieldValue) {
+        if (editState != EditState.WaitingComposeActivity) return
+
+        println("updateState $editState ${textFieldValue.text}")
+
+        htmlInput.value = textFieldValue.text
+        htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+
+        editState = EditState.Default
+    }
+}
+
 internal class DefaultDomInputStrategy(
     override val htmlInput: HTMLTextAreaElement,
     private val composeSender: ComposeCommandCommunicator,
-) : DomInputStrategy {
-    private var editState: EditState = EditState.Default
+) : StatefulDomInputStrategy() {
 
     init {
         initEvents()
@@ -98,21 +112,10 @@ internal class DefaultDomInputStrategy(
             composeSender.sendEditCommand(CommitTextCommand(evt.data, 1))
         })
     }
-
-    override fun updateState(textFieldValue: TextFieldValue) {
-        if (editState != EditState.WaitingComposeActivity) return
-
-        println("updateState $editState ${textFieldValue.text}")
-
-        htmlInput.value = textFieldValue.text
-        htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
-
-        editState = EditState.Default
-    }
 }
 
 
-private sealed interface EditState {
+sealed interface EditState {
     data object Default : EditState
     data object WaitingComposeActivity : EditState
     data object CompositeDialogueMode: EditState
