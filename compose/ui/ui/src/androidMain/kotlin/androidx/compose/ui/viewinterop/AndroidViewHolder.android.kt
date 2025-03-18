@@ -41,7 +41,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.internal.checkPrecondition
-import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Measurable
@@ -247,49 +246,18 @@ internal open class AndroidViewHolder(
 
     override fun onDeactivate() {
         reset()
-        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
-            if (!hasFocus()) {
-                removeAllViewsInLayout()
-                return
-            }
-
-            val focused = checkPreconditionNotNull(findFocus()) { "Couldn't find focused view" }
-
+        if (
+            @OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled &&
+                hasFocus() &&
+                isInTouchMode &&
+                SDK_INT > 28
+        ) {
+            // Removing a view that is focused results in focus being re-assigned to an existing
+            // view on screen. We don't want this behavior in touch mode.
             // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
-            if (isInTouchMode && SDK_INT > 28) {
-                focused.clearFocus()
-                removeAllViewsInLayout()
-                return
-            }
-
-            // When a focused View is removed, it will request a focus change. We'll give it a
-            // temporary View to focus on so that we don't do a recompose during applyChanges()
-            // while searching for a focusable View (e.g. in a LazyColumn)
-            val tempFocusable = View(context)
-            val rect = Rect(0, 0, focused.width, focused.height)
-            offsetDescendantRectToMyCoords(focused, rect)
-            addView(tempFocusable)
-
-            with(tempFocusable) {
-                isFocusable = true
-                isFocusableInTouchMode = true
-                nextFocusUpId = focused.nextFocusUpId
-                nextFocusDownId = focused.nextFocusDownId
-                nextFocusLeftId = focused.nextFocusLeftId
-                nextFocusRightId = focused.nextFocusRightId
-                nextFocusForwardId = focused.nextFocusForwardId
-                layout(rect.left, rect.top, rect.right, rect.bottom)
-                requestFocus()
-            }
-
-            removeViewsInLayout(0, childCount - 2)
-            post {
-                // Now we're ready to send focus to the next focusable item.
-                removeViewInLayout(tempFocusable)
-            }
-        } else {
-            removeAllViewsInLayout()
+            findFocus().clearFocus()
         }
+        removeAllViewsInLayout()
     }
 
     override fun onRelease() {
