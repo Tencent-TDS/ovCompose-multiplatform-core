@@ -13,7 +13,7 @@ internal interface DomInputStrategy {
     fun updateState(textFieldValue: TextFieldValue)
 }
 
-internal class DefaultDomInputStrategy(
+internal class CommonDomInputStrategy(
     override val htmlInput: HTMLTextAreaElement,
     private val composeSender: ComposeCommandCommunicator,
 ) : DomInputStrategy {
