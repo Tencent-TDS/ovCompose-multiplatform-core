@@ -229,7 +229,7 @@ internal class CupertinoOverscrollEffect(
             }
 
             CupertinoScrollSource.FLING -> {
-                // If unconsumedDelta is not Zero, [CupertinoFlingEffect] will cancel fling and
+                // If unconsumedDelta is not Zero, [CupertinoOverscrollEffect] will cancel fling and
                 // start spring animation instead
                 lastFlingUnconsumedDelta = unconsumedDelta
                 delta - unconsumedDelta
@@ -260,8 +260,13 @@ internal class CupertinoOverscrollEffect(
         val velocityConsumedByFling = performFling(availableFlingVelocity)
         val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
 
+        val unconsumedDelta = lastFlingUnconsumedDelta.toFloat()
+        if (unconsumedDelta == 0f && overscrollOffset == Offset.Zero) {
+            return
+        }
+
         playSpringAnimation(
-            lastFlingUnconsumedDelta.toFloat(),
+            unconsumedDelta,
             postFlingVelocity.toFloat(),
             CupertinoSpringAnimationReason.POSSIBLE_SPRING_IN_THE_END
         )
