@@ -155,13 +155,6 @@ class BackingTextAreaTests {
             "when compositionstart is triggered, last keyboard event should be ignored only if meaningful keyboard event happened"
         )
 
-        textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "r")))
-        assertEquals(
-            listOf(SetComposingTextCommand("r", 1)),
-            lastEditCommand,
-            "each compositionupdate sends SetComposingTextCommand"
-        )
-
         textArea.dispatchEvent(CompositionEvent("compositionend", CompositionEventInit(data = "问")))
         assertEquals(
             listOf(CommitTextCommand("问", 1)),

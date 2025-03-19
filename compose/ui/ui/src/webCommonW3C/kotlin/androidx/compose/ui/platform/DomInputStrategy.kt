@@ -47,7 +47,7 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
-            lastKeyboardEventIsDown = evt.key != "Dead"
+            lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
 
             if (editState is EditState.AccentDialogue) {
                 evt.preventDefault()
