@@ -20,6 +20,8 @@ package androidx.build.jetbrains
 
 import androidx.build.AndroidXExtension
 import androidx.build.multiplatformExtension
+import kotlinx.validation.ApiValidationExtension
+import kotlinx.validation.ExperimentalBCVApi
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -172,12 +174,16 @@ private fun enableArtifactRedirectionPublishing(project: Project) {
     }
 }
 
+@OptIn(ExperimentalBCVApi::class)
 private fun enableBinaryCompatibilityValidator(project: Project) {
     val androidXExtension = project.extensions.findByType(AndroidXExtension::class.java)
         ?: throw Exception("You have applied AndroidXComposePlugin without AndroidXPlugin")
     project.afterEvaluate {
         if (androidXExtension.shouldPublish()) {
             project.apply(plugin = "org.jetbrains.kotlinx.binary-compatibility-validator")
+            project.extensions.getByType(ApiValidationExtension::class.java).apply {
+                klib.enabled = true
+            }
         }
     }
 }
