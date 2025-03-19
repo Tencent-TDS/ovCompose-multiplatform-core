@@ -106,27 +106,31 @@ internal class CommonDomInputStrategy(
 
             if (editState is EditState.WaitingComposeActivity) return@addEventListener
 
-            if (evt.inputType == "insertCompositionText") {
-                editState = EditState.Default
-                composeSender.sendEditCommand(SetComposingTextCommand(evt.data!!, 1))
-            } else if (evt.inputType == "insertReplacementText") {
-                // happens in Safari when we choose something from the Accent Dialogue
-                editState = EditState.WaitingComposeActivity
-                composeSender.sendEditCommand(listOf(
-                    DeleteSurroundingTextInCodePointsCommand(1, 0),
-                    CommitTextCommand(evt.data!!, 1)
-                ))
-            } else if (evt.inputType == "insertText") {
-                evt.preventDefault()
-
-                val editCommands = mutableListOf<EditCommand>()
-                if (editState is EditState.AccentDialogue) {
-                    editCommands.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
+            when (evt.inputType) {
+                "insertCompositionText" -> {
+                    editState = EditState.Default
+                    composeSender.sendEditCommand(SetComposingTextCommand(evt.data!!, 1))
                 }
-                editCommands.add(CommitTextCommand(evt.data!!, 1))
+                "insertReplacementText" -> {
+                    // happens in Safari when we choose something from the Accent Dialogue
+                    editState = EditState.WaitingComposeActivity
+                    composeSender.sendEditCommand(listOf(
+                        DeleteSurroundingTextInCodePointsCommand(1, 0),
+                        CommitTextCommand(evt.data!!, 1)
+                    ))
+                }
+                "insertText" -> {
+                    evt.preventDefault()
 
-                editState = EditState.WaitingComposeActivity
-                composeSender.sendEditCommand(editCommands)
+                    val editCommands = mutableListOf<EditCommand>()
+                    if (editState is EditState.AccentDialogue) {
+                        editCommands.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
+                    }
+                    editCommands.add(CommitTextCommand(evt.data!!, 1))
+
+                    editState = EditState.WaitingComposeActivity
+                    composeSender.sendEditCommand(editCommands)
+                }
             }
 
             evt.preventDefault()
