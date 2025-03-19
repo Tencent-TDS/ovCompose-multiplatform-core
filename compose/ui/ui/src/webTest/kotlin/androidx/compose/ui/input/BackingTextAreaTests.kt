@@ -76,8 +76,12 @@ class BackingTextAreaTests {
                 }
 
                 override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
-                    processedKeys.add(keyboardEvent.key)
-                    return true
+                    if (keyboardEvent.key != "Unidentified") {
+                        processedKeys.add(keyboardEvent.key)
+                        return true
+                    }
+
+                    return false
                 }
             },
         )
