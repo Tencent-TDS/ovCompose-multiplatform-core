@@ -73,6 +73,7 @@ internal class ComposeView(
         onLayoutSubviews: () -> Unit = {}
     ) {
         this.metalView?.dispose()
+        this.metalView?.removeFromSuperview()
         this.metalView = metalView
 
         this.onDidMoveToWindow = onDidMoveToWindow
