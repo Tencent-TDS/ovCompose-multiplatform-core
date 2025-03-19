@@ -48,7 +48,7 @@ internal class CommonDomInputStrategy(
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
-            lastKeyboardEventIsDown = true
+            lastKeyboardEventIsDown = evt.key != "Dead"
 
             evt.preventDefault()
 
