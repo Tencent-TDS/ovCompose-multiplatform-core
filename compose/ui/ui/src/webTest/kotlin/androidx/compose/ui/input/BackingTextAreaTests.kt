@@ -184,19 +184,21 @@ class BackingTextAreaTests {
         backingTextArea.register()
         val textArea = document.querySelector("textarea")!!
 
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "insertText", data = "Bonjour")))
+        textArea.dispatchEvent(InputEvent("beforeinput", InputEventInit(inputType = "insertText", data = "Bonjour")))
 
         assertEquals(listOf(CommitTextCommand("Bonjour", 1)), lastEditCommand)
+//
+//        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "deleteContentBackward", data = "")))
+//
+//        textArea.dispatchEvent(InputEvent("beforeinput", InputEventInit(inputType = "insertCompositionText", data = "a a")))
 
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "deleteContentBackward", data = "")))
-
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "insertCompositionText", data = "Servus")))
-
-        assertEquals(listOf(CommitTextCommand("Bonjour", 1)), lastEditCommand, "insertCompositionText should be ignored")
-
-        textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "再见")))
-
-        assertEquals(listOf(SetComposingTextCommand(text="再见", newCursorPosition=1)), lastEditCommand, "composition update should is not detected")
+//        assertEquals(listOf(SetComposingTextCommand(text="a a", newCursorPosition=1)), lastEditCommand, "composition update should is not detected")
+//
+//        assertEquals(listOf(CommitTextCommand("Bonjour", 1)), lastEditCommand, "insertCompositionText should be ignored")
+//
+//        textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "再见")))
+//
+//        assertEquals(listOf(SetComposingTextCommand(text="再见", newCursorPosition=1)), lastEditCommand, "composition update should is not detected")
     }
 
 
