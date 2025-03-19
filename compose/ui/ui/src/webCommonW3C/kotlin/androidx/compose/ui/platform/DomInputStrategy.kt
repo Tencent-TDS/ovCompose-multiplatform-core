@@ -50,14 +50,14 @@ internal class CommonDomInputStrategy(
             console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
             lastKeyboardEventIsDown = evt.key != "Dead"
 
-            evt.preventDefault()
-
             if (editState is EditState.AccentDialogue) {
+                evt.preventDefault()
                 return@addEventListener
             }
 
             if (evt.repeat) {
                 editState = EditState.AccentDialogue
+                evt.preventDefault()
                 return@addEventListener
             }
 
@@ -66,6 +66,7 @@ internal class CommonDomInputStrategy(
             }
 
             if (editState is EditState.CompositeDialogue) {
+                evt.preventDefault()
                 return@addEventListener
             }
 
@@ -74,17 +75,21 @@ internal class CommonDomInputStrategy(
             }
 
             if (editState is EditState.AccentDialogue) {
+                evt.preventDefault()
                 return@addEventListener
             }
 
             if ((evt.timeStamp.toInt() - lastActualCompositionTimestamp) <= 0) {
+                evt.preventDefault()
                 return@addEventListener
             }
 
             editState = EditState.WaitingComposeActivity
 
             val processed = composeSender.sendKeyboardEvent(evt)
-            if (!processed) {
+            if (processed) {
+                evt.preventDefault()
+            } else {
                 editState = EditState.Default
             }
 
