@@ -43,8 +43,13 @@ internal interface ComposeCommandCommunicator {
 internal class BackingTextArea(
     private val imeOptions: ImeOptions,
     private val onImeActionPerformed: (ImeAction) -> Unit,
-    private val inputStrategy: DomInputStrategy
+    composeCommunicator : ComposeCommandCommunicator,
+
 ) {
+    private val inputStrategy: DomInputStrategy = CommonDomInputStrategy(
+        imeOptions.createDomElement(),
+        composeCommunicator
+    )
 
     private val textArea = inputStrategy.htmlInput
 

@@ -48,18 +48,15 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
             BackingTextArea(
                 imeOptions = imeOptions,
                 onImeActionPerformed = onImeActionPerformed,
-                CommonDomInputStrategy(
-                    imeOptions.createDomElement(),
-                    object : ComposeCommandCommunicator {
-                        override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
-                            return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
-                        }
-
-                        override fun sendEditCommand(commands: List<EditCommand>) {
-                            onEditCommand(commands)
-                        }
+                composeCommunicator = object : ComposeCommandCommunicator {
+                    override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                        return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
                     }
-                )
+
+                    override fun sendEditCommand(commands: List<EditCommand>) {
+                        onEditCommand(commands)
+                    }
+                }
             )
         backingTextArea?.register()
 
