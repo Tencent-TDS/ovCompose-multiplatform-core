@@ -2,6 +2,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
+import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import org.w3c.dom.HTMLTextAreaElement
@@ -38,25 +39,40 @@ internal class CommonDomInputStrategy(
     private fun initEvents() {
         var lastKeyboardEventIsDown = false
 
+        htmlInput.addEventListener("blur", {evt ->
+            // both accent dialogue and composition dialogue are lost when we switch windows
+            // but can be restored later on if we are back
+            editState = EditState.Default
+        })
+
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             lastKeyboardEventIsDown = true
 
             evt.preventDefault()
 
-            if (evt.isComposing) {
-                editState = EditState.CompositeDialogueMode
-            }
-
-            if (editState is EditState.CompositeDialogueMode) {
+            if (editState is EditState.AccentDialogue) {
                 return@addEventListener
             }
 
             if (evt.repeat) {
-                editState = EditState.AccentDialogueMode
+                editState = EditState.AccentDialogue
+                return@addEventListener
             }
 
-            if (editState is EditState.AccentDialogueMode) {
+            if (evt.isComposing) {
+                editState = EditState.CompositeDialogue
+            }
+
+            if (editState is EditState.CompositeDialogue) {
+                return@addEventListener
+            }
+
+            if (evt.repeat) {
+                editState = EditState.AccentDialogue
+            }
+
+            if (editState is EditState.AccentDialogue) {
                 return@addEventListener
             }
 
@@ -78,7 +94,7 @@ internal class CommonDomInputStrategy(
             lastKeyboardEventIsDown = false
             evt as KeyboardEvent
             if (evt.isComposing) {
-                editState = EditState.CompositeDialogueMode
+                editState = EditState.CompositeDialogue
             }
 
         })
@@ -93,8 +109,15 @@ internal class CommonDomInputStrategy(
                 composeSender.sendEditCommand(SetComposingTextCommand(evt.data!!, 1))
             } else if (evt.inputType == "insertText") {
                 evt.preventDefault()
+
+                val editCommands = mutableListOf<EditCommand>()
+                if (editState is EditState.AccentDialogue) {
+                    editCommands.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
+                }
+                editCommands.add(CommitTextCommand(evt.data!!, 1))
+
                 editState = EditState.WaitingComposeActivity
-                composeSender.sendEditCommand(CommitTextCommand(evt.data!!, 1))
+                composeSender.sendEditCommand(editCommands)
             }
 
             evt.preventDefault()
@@ -102,7 +125,7 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
-            editState = EditState.CompositeDialogueMode
+            editState = EditState.CompositeDialogue
 
             if (lastKeyboardEventIsDown) {
                 composeSender.sendEditCommand(DeleteSurroundingTextInCodePointsCommand(1, 0))
@@ -124,6 +147,6 @@ internal class CommonDomInputStrategy(
 sealed interface EditState {
     data object Default : EditState
     data object WaitingComposeActivity : EditState
-    data object CompositeDialogueMode: EditState
-    data object AccentDialogueMode: EditState
+    data object CompositeDialogue: EditState
+    data object AccentDialogue: EditState
 }
