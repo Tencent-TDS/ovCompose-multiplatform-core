@@ -52,7 +52,7 @@ androidXMultiplatform {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api(project(":annotation:annotation"))
             }
         }
 
