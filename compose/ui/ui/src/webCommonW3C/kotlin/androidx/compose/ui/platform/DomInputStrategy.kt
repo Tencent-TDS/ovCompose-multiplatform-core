@@ -109,6 +109,13 @@ internal class CommonDomInputStrategy(
             if (evt.inputType == "insertCompositionText") {
                 editState = EditState.Default
                 composeSender.sendEditCommand(SetComposingTextCommand(evt.data!!, 1))
+            } else if (evt.inputType == "insertReplacementText") {
+                // happens in Safari when we choose something from the Accent Dialogue
+                editState = EditState.WaitingComposeActivity
+                composeSender.sendEditCommand(listOf(
+                    DeleteSurroundingTextInCodePointsCommand(1, 0),
+                    CommitTextCommand(evt.data!!, 1)
+                ))
             } else if (evt.inputType == "insertText") {
                 evt.preventDefault()
 
