@@ -485,6 +485,7 @@ private class CupertinoOverscrollNode(
                 pointersDown++
             } else if (pointerEvent.type == PointerEventType.Release) {
                 pointersDown--
+                assert(pointersDown >= 0) { "pointersDown cannot be negative" }
             }
         }
     }
