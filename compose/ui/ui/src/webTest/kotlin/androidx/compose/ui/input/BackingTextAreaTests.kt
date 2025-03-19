@@ -20,6 +20,7 @@ import androidx.compose.ui.events.InputEvent
 import androidx.compose.ui.events.InputEventInit
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.platform.BackingTextArea
+import androidx.compose.ui.platform.ComposeCommandCommunicator
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -34,6 +35,7 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
+import org.w3c.dom.events.KeyboardEvent
 
 class BackingTextAreaTests {
 
@@ -42,8 +44,10 @@ class BackingTextAreaTests {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
             onImeActionPerformed = {},
-            onEditCommand = {},
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) { }
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean { return false }
+            },
         )
         var textArea = document.querySelector("textarea")
         assertNull(textArea)
@@ -66,10 +70,16 @@ class BackingTextAreaTests {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
             onImeActionPerformed = {},
-            onEditCommand = {},
-            processKeyboardEvent = { evt ->
-                processedKeys.add(evt.key)
-            }
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    TODO("Not yet implemented")
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    processedKeys.add(keyboardEvent.key)
+                    return true
+                }
+            },
         )
 
         backingTextArea.register()
@@ -95,10 +105,15 @@ class BackingTextAreaTests {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
             onImeActionPerformed = {},
-            onEditCommand = { command ->
-                lastEditCommand = command
-            },
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    lastEditCommand = commands
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    return true
+                }
+            }
         )
 
         backingTextArea.register()
@@ -162,10 +177,15 @@ class BackingTextAreaTests {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
             onImeActionPerformed = {},
-            onEditCommand = { command ->
-                lastEditCommand = command
-            },
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    lastEditCommand = commands
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    return true
+                }
+            }
         )
 
         backingTextArea.register()
@@ -199,8 +219,14 @@ class BackingTextAreaTests {
             onImeActionPerformed = { action ->
                 lastPerformedImeAction = action
             },
-            onEditCommand = { },
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    return true
+                }
+            }
         )
 
         backingTextArea.register()

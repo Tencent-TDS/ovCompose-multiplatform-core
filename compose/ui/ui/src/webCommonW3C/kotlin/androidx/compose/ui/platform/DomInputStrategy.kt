@@ -47,7 +47,6 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
-            console.log(evt.type, evt.timeStamp, evt.isComposing, evt)
             lastKeyboardEventIsDown = evt.key != "Dead"
 
             if (editState is EditState.AccentDialogue) {
@@ -107,7 +106,6 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
-            console.log("[binput] %c%s %c %s", "font-weight: bold", evt.inputType, "font-weight: normal", evt.data)
 
             if (editState is EditState.WaitingComposeActivity) return@addEventListener
 
@@ -143,7 +141,6 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("compositionstart", {evt ->
             evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
             editState = EditState.CompositeDialogue
 
             if (lastKeyboardEventIsDown) {
@@ -153,7 +150,6 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("compositionend", {evt ->
             evt as CompositionEvent
-            console.log(evt.type, evt.timeStamp, evt.data)
             lastActualCompositionTimestamp = evt.timeStamp.toInt()
 
             // in Safari we can rely on "insertFromComposition" input event but unfortunately it's not present in other browsers
