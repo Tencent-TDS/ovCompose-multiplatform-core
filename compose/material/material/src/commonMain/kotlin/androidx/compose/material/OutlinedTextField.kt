@@ -966,7 +966,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == LeadingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.substractConstraintSafely(
+                        remainingWidth.subtractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -976,7 +976,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == TrailingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.substractConstraintSafely(
+                        remainingWidth.subtractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -1008,11 +1008,11 @@ private class OutlinedTextFieldMeasurePolicy(
     }
 }
 
-private fun Int.substractConstraintSafely(from: Int): Int {
+private fun Int.subtractConstraintSafely(other: Int): Int {
     if (this == Constraints.Infinity) {
         return this
     }
-    return this - from
+    return (this - other).coerceAtLeast(0)
 }
 
 /**
