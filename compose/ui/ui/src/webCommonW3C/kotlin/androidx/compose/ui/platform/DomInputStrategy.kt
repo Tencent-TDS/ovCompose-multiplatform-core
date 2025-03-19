@@ -109,10 +109,6 @@ internal class CommonDomInputStrategy(
             }
         })
 
-        htmlInput.addEventListener("compositionupdate", {evt ->
-            evt as CompositionEvent
-        })
-
         htmlInput.addEventListener("compositionend", {evt ->
             evt as CompositionEvent
             lastActualCompositionTimestamp = evt.timeStamp.toInt()
