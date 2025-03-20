@@ -104,7 +104,7 @@ internal constructor(
             if (result.range.first > appendPos) {
                 uriRegex.append(Regex.escape(uri.substring(appendPos, result.range.first)))
             }
-            uriRegex.append(PATH_REGEX)
+            uriRegex.append(PATH_REGEX.pattern)
             appendPos = result.range.last + 1
             result = result.next()
         }
@@ -729,7 +729,7 @@ internal constructor(
         val uriRegex = StringBuilder("^")
         // append scheme pattern
         if (!SCHEME_PATTERN.containsMatchIn(uriPattern)) {
-            uriRegex.append(SCHEME_REGEX)
+            uriRegex.append(SCHEME_REGEX.pattern)
         }
         // extract beginning of uriPattern until it hits either a query(?), a framgment(#), or
         // end of uriPattern
