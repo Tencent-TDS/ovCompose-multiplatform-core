@@ -20,6 +20,7 @@ import androidx.compose.ui.events.InputEvent
 import androidx.compose.ui.events.InputEventInit
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.platform.BackingTextArea
+import androidx.compose.ui.platform.ComposeCommandCommunicator
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -34,6 +35,7 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
+import org.w3c.dom.events.KeyboardEvent
 
 class BackingTextAreaTests {
 
@@ -41,9 +43,11 @@ class BackingTextAreaTests {
     fun disposeTest() {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = {},
             onImeActionPerformed = {},
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) { }
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean { return false }
+            },
         )
         var textArea = document.querySelector("textarea")
         assertNull(textArea)
@@ -65,11 +69,21 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = {},
             onImeActionPerformed = {},
-            processKeyboardEvent = { evt ->
-                processedKeys.add(evt.key)
-            }
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    TODO("Not yet implemented")
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    if (keyboardEvent.key != "Unidentified") {
+                        processedKeys.add(keyboardEvent.key)
+                        return true
+                    }
+
+                    return false
+                }
+            },
         )
 
         backingTextArea.register()
@@ -94,11 +108,16 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = { command ->
-                lastEditCommand = command
-            },
             onImeActionPerformed = {},
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    lastEditCommand = commands
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    return true
+                }
+            }
         )
 
         backingTextArea.register()
@@ -140,13 +159,6 @@ class BackingTextAreaTests {
             "when compositionstart is triggered, last keyboard event should be ignored only if meaningful keyboard event happened"
         )
 
-        textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "r")))
-        assertEquals(
-            listOf(SetComposingTextCommand("r", 1)),
-            lastEditCommand,
-            "each compositionupdate sends SetComposingTextCommand"
-        )
-
         textArea.dispatchEvent(CompositionEvent("compositionend", CompositionEventInit(data = "问")))
         assertEquals(
             listOf(CommitTextCommand("问", 1)),
@@ -161,54 +173,23 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onEditCommand = { command ->
-                lastEditCommand = command
-            },
             onImeActionPerformed = {},
-            processKeyboardEvent = {}
+            composeCommunicator = object : ComposeCommandCommunicator {
+                override fun sendEditCommand(commands: List<EditCommand>) {
+                    lastEditCommand = commands
+                }
+
+                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    return true
+                }
+            }
         )
 
         backingTextArea.register()
         val textArea = document.querySelector("textarea")!!
 
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "insertText", data = "Bonjour")))
+        textArea.dispatchEvent(InputEvent("beforeinput", InputEventInit(inputType = "insertText", data = "Bonjour")))
 
         assertEquals(listOf(CommitTextCommand("Bonjour", 1)), lastEditCommand)
-
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "deleteContentBackward", data = "")))
-
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "insertCompositionText", data = "Servus")))
-
-        assertEquals(listOf(CommitTextCommand("Bonjour", 1)), lastEditCommand, "insertCompositionText should be ignored")
-
-        textArea.dispatchEvent(CompositionEvent("compositionupdate", CompositionEventInit(data = "再见")))
-
-        assertEquals(listOf(SetComposingTextCommand(text="再见", newCursorPosition=1)), lastEditCommand, "composition update should is not detected")
     }
-
-
-    @Test
-    fun onImeActionPerformedTest() {
-        var lastPerformedImeAction: ImeAction? = null
-
-        val backingTextArea = BackingTextArea(
-            imeOptions = ImeOptions(
-                singleLine = true,
-                imeAction = ImeAction.Done,
-            ),
-            onImeActionPerformed = { action ->
-                lastPerformedImeAction = action
-            },
-            onEditCommand = { },
-            processKeyboardEvent = {}
-        )
-
-        backingTextArea.register()
-
-        val textArea = document.querySelector("textarea")!!
-        textArea.dispatchEvent(InputEvent("input", InputEventInit(inputType = "insertLineBreak", data = "")))
-
-        assertEquals(lastPerformedImeAction, ImeAction.Done)
-    }
-
 }

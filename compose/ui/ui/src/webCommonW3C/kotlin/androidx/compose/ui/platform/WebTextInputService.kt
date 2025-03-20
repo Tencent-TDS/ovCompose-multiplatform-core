@@ -27,7 +27,7 @@ import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
+    fun processKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
@@ -47,9 +47,16 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         backingTextArea =
             BackingTextArea(
                 imeOptions = imeOptions,
-                onEditCommand = onEditCommand,
                 onImeActionPerformed = onImeActionPerformed,
-                processKeyboardEvent = this::processKeyboardEvent
+                composeCommunicator = object : ComposeCommandCommunicator {
+                    override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                        return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
+                    }
+
+                    override fun sendEditCommand(commands: List<EditCommand>) {
+                        onEditCommand(commands)
+                    }
+                }
             )
         backingTextArea?.register()
 
