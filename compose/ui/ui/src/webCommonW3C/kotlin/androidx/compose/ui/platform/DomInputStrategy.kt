@@ -161,7 +161,7 @@ internal class CommonDomInputStrategy(
 }
 
 
-sealed interface EditState {
+private sealed interface EditState {
     data object Default : EditState
     data object WaitingComposeActivity : EditState
     data object CompositeDialogue: EditState
