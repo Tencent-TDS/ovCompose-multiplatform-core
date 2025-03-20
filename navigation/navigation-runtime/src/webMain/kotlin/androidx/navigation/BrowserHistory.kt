@@ -168,17 +168,18 @@ private fun NavBackStackEntry.getRouteWithArgs(): String? {
 
     val routeWithFilledArgs = route.replace(argPlaceholder) { match ->
         val key = match.value.trim('{', '}')
-        nameToTypedValue[key]
+        val value = nameToTypedValue[key]
         //untyped args stored as strings
         //see: androidx.navigation.NavDeepLink.parseArgument
             ?: args.read { getStringOrNull(key) ?: "" }
+        encodeURIComponent(value)
     }
 
     return routeWithFilledArgs
 }
 
 private fun NavBackStackEntry.getRouteAsUrlFragment() =
-    getRouteWithArgs()?.let { r -> "#${encodeURIComponent(r)}" }.orEmpty()
+    getRouteWithArgs()?.let { r -> "#$r" }.orEmpty()
 
 private fun NavController.tryToNavigateToUrlFragment(localWindow: BrowserWindow) {
     val route = decodeURIComponent(localWindow.location.hash.substringAfter('#', ""))
