@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /** 4x4 matrix. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public final class Mat4f {
 
     public Mat4f(float[] m) {

@@ -310,7 +310,7 @@ class UnsafePolymorphicSerializer<T : Any> : KSerializer<T> {
     @Suppress("UNCHECKED_CAST")
     override fun serialize(encoder: Encoder, value: T) {
         encoder.encodeStructure(descriptor) {
-            val className = value::class.java.canonicalName!!
+            val className = value::class.java.name!!
             encodeStringElement(descriptor, index = 0, className)
             val serializer = value::class.serializer() as KSerializer<T>
             encodeSerializableElement(descriptor, index = 1, serializer, value)

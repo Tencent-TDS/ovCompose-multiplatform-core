@@ -52,11 +52,11 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.ActivityPose
-import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.MovableComponent
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PixelDimensions
 import androidx.xr.scenecore.Session
+import androidx.xr.scenecore.Space
 import androidx.xr.scenecore.samples.commontestview.DebugTextPanel
 
 class HeadLockedUiActivity : AppCompatActivity() {
@@ -79,7 +79,7 @@ class HeadLockedUiActivity : AppCompatActivity() {
         val mActivity = this
 
         // Set the main panel size and make the main panel movable.
-        mSession.mainPanelEntity.setPixelDimensions(PixelDimensions(width = 1500, height = 1100))
+        mSession.mainPanelEntity.setSizeInPixels(PixelDimensions(width = 1500, height = 1100))
         val movableComponent =
             MovableComponent.create(mSession, systemMovable = true, scaleInZ = false)
         val unused = mSession.mainPanelEntity.addComponent(movableComponent)
@@ -90,9 +90,9 @@ class HeadLockedUiActivity : AppCompatActivity() {
                 context = this,
                 session = mSession,
                 parent = mSession.activitySpace,
+                pixelDimensions = PixelDimensions(1500, 1000),
                 name = "DebugPanel",
                 pose = Pose(Vector3(0f, -0.6f, -0.05f)),
-                surfaceDimensionsPx = Dimensions(1500f, 1000f),
             )
 
         // Create the image panel.
@@ -103,8 +103,7 @@ class HeadLockedUiActivity : AppCompatActivity() {
             PanelEntity.create(
                 session = mSession,
                 view = mHeadLockedPanelView,
-                surfaceDimensionsPx = Dimensions(360f, 180f),
-                dimensions = Dimensions(0.1f, 0.1f, 0.1f),
+                pixelDimensions = PixelDimensions(360, 180),
                 name = "headLockedPanel",
                 pose = Pose(Vector3(0f, 0f, 0f)),
             )
@@ -117,7 +116,7 @@ class HeadLockedUiActivity : AppCompatActivity() {
         if (this.mProjectionSource != null) {
             // Since the panel is parented by the activitySpace, we need to inverse its scale
             // so that the panel stays at a fixed size in the view even when ActivitySpace scales.
-            this.mHeadLockedPanel.setScale(0.5f / mSession.activitySpace.getWorldSpaceScale())
+            this.mHeadLockedPanel.setScale(0.5f / mSession.activitySpace.getScale(Space.REAL_WORLD))
             this.mProjectionSource?.transformPoseTo(mUserForward, mSession.activitySpace)?.let {
                 this.mHeadLockedPanel.setPose(it)
                 if (mIsDebugPanelEnabled) updateDebugPanel(it)
@@ -133,11 +132,11 @@ class HeadLockedUiActivity : AppCompatActivity() {
         )
         mDebugPanel.view.setLine(
             "ActivitySpace WorldScale",
-            mSession.activitySpace.getWorldSpaceScale().toString(),
+            mSession.activitySpace.getScale(Space.REAL_WORLD).toString(),
         )
         mDebugPanel.view.setLine(
             "Head Locked Panel WorldScale",
-            this.mHeadLockedPanel.getWorldSpaceScale().toString(),
+            this.mHeadLockedPanel.getScale(Space.REAL_WORLD).toString(),
         )
         mDebugPanel.view.setLine(
             "Head ActivityPose",

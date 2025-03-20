@@ -22,8 +22,8 @@ final class <#A: kotlin/Any> androidx.navigation3/EntryClassProvider { // androi
         final fun <get-clazz>(): kotlin.reflect/KClass<#A> // androidx.navigation3/EntryClassProvider.clazz.<get-clazz>|<get-clazz>(){}[0]
     final val content // androidx.navigation3/EntryClassProvider.content|{}content[0]
         final fun <get-content>(): kotlin/Function1<#A, kotlin/Unit> // androidx.navigation3/EntryClassProvider.content.<get-content>|<get-content>(){}[0]
-    final val featureMap // androidx.navigation3/EntryClassProvider.featureMap|{}featureMap[0]
-        final fun <get-featureMap>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryClassProvider.featureMap.<get-featureMap>|<get-featureMap>(){}[0]
+    final val metadata // androidx.navigation3/EntryClassProvider.metadata|{}metadata[0]
+        final fun <get-metadata>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryClassProvider.metadata.<get-metadata>|<get-metadata>(){}[0]
 
     final fun component1(): kotlin.reflect/KClass<#A> // androidx.navigation3/EntryClassProvider.component1|component1(){}[0]
     final fun component2(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryClassProvider.component2|component2(){}[0]
@@ -39,10 +39,10 @@ final class <#A: kotlin/Any> androidx.navigation3/EntryProvider { // androidx.na
 
     final val content // androidx.navigation3/EntryProvider.content|{}content[0]
         final fun <get-content>(): kotlin/Function1<#A, kotlin/Unit> // androidx.navigation3/EntryProvider.content.<get-content>|<get-content>(){}[0]
-    final val featureMap // androidx.navigation3/EntryProvider.featureMap|{}featureMap[0]
-        final fun <get-featureMap>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryProvider.featureMap.<get-featureMap>|<get-featureMap>(){}[0]
     final val key // androidx.navigation3/EntryProvider.key|{}key[0]
         final fun <get-key>(): #A // androidx.navigation3/EntryProvider.key.<get-key>|<get-key>(){}[0]
+    final val metadata // androidx.navigation3/EntryProvider.metadata|{}metadata[0]
+        final fun <get-metadata>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryProvider.metadata.<get-metadata>|<get-metadata>(){}[0]
 
     final fun component1(): #A // androidx.navigation3/EntryProvider.component1|component1(){}[0]
     final fun component2(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/EntryProvider.component2|component2(){}[0]
@@ -66,10 +66,10 @@ open class <#A: kotlin/Any> androidx.navigation3/NavEntry { // androidx.navigati
 
     open val content // androidx.navigation3/NavEntry.content|{}content[0]
         open fun <get-content>(): kotlin/Function1<#A, kotlin/Unit> // androidx.navigation3/NavEntry.content.<get-content>|<get-content>(){}[0]
-    open val featureMap // androidx.navigation3/NavEntry.featureMap|{}featureMap[0]
-        open fun <get-featureMap>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/NavEntry.featureMap.<get-featureMap>|<get-featureMap>(){}[0]
     open val key // androidx.navigation3/NavEntry.key|{}key[0]
         open fun <get-key>(): #A // androidx.navigation3/NavEntry.key.<get-key>|<get-key>(){}[0]
+    open val metadata // androidx.navigation3/NavEntry.metadata|{}metadata[0]
+        open fun <get-metadata>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/NavEntry.metadata.<get-metadata>|<get-metadata>(){}[0]
 }
 
 open class <#A: kotlin/Any> androidx.navigation3/NavEntryWrapper : androidx.navigation3/NavEntry<#A> { // androidx.navigation3/NavEntryWrapper|null[0]
@@ -79,10 +79,10 @@ open class <#A: kotlin/Any> androidx.navigation3/NavEntryWrapper : androidx.navi
         final fun <get-navEntry>(): androidx.navigation3/NavEntry<#A> // androidx.navigation3/NavEntryWrapper.navEntry.<get-navEntry>|<get-navEntry>(){}[0]
     open val content // androidx.navigation3/NavEntryWrapper.content|{}content[0]
         open fun <get-content>(): kotlin/Function1<#A, kotlin/Unit> // androidx.navigation3/NavEntryWrapper.content.<get-content>|<get-content>(){}[0]
-    open val featureMap // androidx.navigation3/NavEntryWrapper.featureMap|{}featureMap[0]
-        open fun <get-featureMap>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/NavEntryWrapper.featureMap.<get-featureMap>|<get-featureMap>(){}[0]
     open val key // androidx.navigation3/NavEntryWrapper.key|{}key[0]
         open fun <get-key>(): #A // androidx.navigation3/NavEntryWrapper.key.<get-key>|<get-key>(){}[0]
+    open val metadata // androidx.navigation3/NavEntryWrapper.metadata|{}metadata[0]
+        open fun <get-metadata>(): kotlin.collections/Map<kotlin/String, kotlin/Any> // androidx.navigation3/NavEntryWrapper.metadata.<get-metadata>|<get-metadata>(){}[0]
 }
 
 final object androidx.navigation3/SaveableStateNavLocalProvider : androidx.navigation3/NavLocalProvider { // androidx.navigation3/SaveableStateNavLocalProvider|null[0]

@@ -18,6 +18,7 @@ package androidx.wear.compose.material3.lazy
 
 import androidx.annotation.FloatRange
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -82,18 +83,24 @@ public interface TransformationSpec {
      *
      * @param painter The painter to be transformed. This is the original [Painter] the component
      *   was trying to use.
-     * @param shape The shape of the item's background.
-     * @param border The border of the item's background.
+     * @param shape The shape of the item's container.
+     * @param border The border of the item's container.
      */
-    public fun TransformedPainterScope.createTransformedPainter(
+    public fun TransformedContainerPainterScope.createTransformedContainerPainter(
         painter: Painter,
         shape: Shape,
         border: BorderStroke?
     ): Painter
 }
 
+/** Convenience modifier to calculate transformed height using [TransformationSpec]. */
+public fun Modifier.transformedHeight(
+    scope: TransformingLazyColumnItemScope,
+    transformationSpec: TransformationSpec
+): Modifier = with(scope) { transformedHeight(transformationSpec::getTransformedHeight) }
+
 /** Provides additional information to the painter inside [TransformationSpec]. */
-public interface TransformedPainterScope {
+public interface TransformedContainerPainterScope {
     /** The progress of the scroll. */
     public val DrawScope.scrollProgress: TransformingLazyColumnItemScrollProgress
 

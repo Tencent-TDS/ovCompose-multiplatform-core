@@ -208,6 +208,10 @@ internal class TextElementStyle(
     val maxLines: Int = 1,
     @TextAlignment val alignment: Int = TEXT_ALIGN_CENTER,
     @TextOverflow val overflow: Int = TEXT_OVERFLOW_ELLIPSIZE,
+    // By default text is not important for accessibility in ProtoLayout. By setting this to true,
+    // the text will have its string content added as default content description into the modifier,
+    // which makes the text important for accessibility.
+    val importantForAccessibility: Boolean = false,
 )
 
 internal class IconStyle(

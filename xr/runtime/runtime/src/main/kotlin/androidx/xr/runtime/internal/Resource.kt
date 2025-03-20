@@ -29,3 +29,9 @@ import androidx.annotation.RestrictTo
 
 /** Interface for a glTF resource. This can be used for creating glTF entities. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface GltfModelResource : Resource {}
+
+/** Interface for a texture resource. This can be used alongside materials. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface TextureResource : Resource {}
+
+/** Interface for a material resource. This can be used to override materials on meshes. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface MaterialResource : Resource {}

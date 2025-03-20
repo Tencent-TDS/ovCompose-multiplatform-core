@@ -9,22 +9,27 @@ package androidx.activity {
   public final class BackEventCompat {
     ctor @RequiresApi(34) public BackEventCompat(android.window.BackEvent backEvent);
     ctor @VisibleForTesting public BackEventCompat(float touchX, float touchY, @FloatRange(from=0.0, to=1.0) float progress, int swipeEdge);
+    ctor @VisibleForTesting public BackEventCompat(float touchX, float touchY, @FloatRange(from=0.0, to=1.0) float progress, int swipeEdge, optional long frameTimeMillis);
+    method public long getFrameTimeMillis();
     method public float getProgress();
     method public int getSwipeEdge();
     method public float getTouchX();
     method public float getTouchY();
     method @RequiresApi(34) public android.window.BackEvent toBackEvent();
+    property public long frameTimeMillis;
     property @FloatRange(from=0.0, to=1.0) public float progress;
     property public int swipeEdge;
     property public float touchX;
     property public float touchY;
     field public static final androidx.activity.BackEventCompat.Companion Companion;
     field public static final int EDGE_LEFT = 0; // 0x0
+    field public static final int EDGE_NONE = 2; // 0x2
     field public static final int EDGE_RIGHT = 1; // 0x1
   }
 
   public static final class BackEventCompat.Companion {
     property public static int EDGE_LEFT;
+    property public static int EDGE_NONE;
     property public static int EDGE_RIGHT;
   }
 

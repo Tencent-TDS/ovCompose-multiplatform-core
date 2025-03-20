@@ -81,12 +81,9 @@
                 <type>0</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>diff_package_schemas_category</schemaCategory>
-            <schemaName>diffPackageInputSchemas</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>diff_package_schemas_category</schemaCategory>
+        <schemaName>diffPackageInputSchemas</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.AppFunctionWithInputFromDifferentPackage#functionWithDiffPackageInput</functionId>
     </appfunction>
 </appfunctions>

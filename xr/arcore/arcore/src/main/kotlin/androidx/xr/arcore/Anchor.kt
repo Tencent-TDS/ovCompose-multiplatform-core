@@ -43,7 +43,7 @@ internal constructor(
 ) : Updatable {
     public companion object {
         /**
-         * Creates an [Anchor] at the given [pose].
+         * Creates and attaches an [Anchor] at the given [pose].
          *
          * @param session the [Session] that is used to create the anchor.
          * @param pose the [Pose] that describes the location and orientation of the anchor.
@@ -74,8 +74,8 @@ internal constructor(
 
         /**
          * Loads an [Anchor] from local storage, using the given [uuid]. The anchor will attempt to
-         * be in the same physical location as the anchor that was previously persisted. The [uuid]
-         * should be the return value of a previous call to [persist].
+         * be attached in the same physical location as the anchor that was previously persisted.
+         * The [uuid] should be the return value of a previous call to [persist].
          */
         @JvmStatic
         public fun load(session: Session, uuid: UUID): AnchorCreateResult {

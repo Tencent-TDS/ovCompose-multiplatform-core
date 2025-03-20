@@ -347,4 +347,34 @@ public class WebSettingsCompatTest {
         WebSettingsCompat.setBackForwardCacheEnabled(settings, true);
         Assert.assertTrue(WebSettingsCompat.getBackForwardCacheEnabled(settings));
     }
+
+    @Test
+    public void testPaymentRequestSupport() {
+        WebkitUtils.checkFeature(WebViewFeature.PAYMENT_REQUEST);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertFalse("PaymentRequest API should be disabled by default.",
+                WebSettingsCompat.getPaymentRequestEnabled(settings));
+
+        WebSettingsCompat.setPaymentRequestEnabled(settings, true);
+        assertTrue(WebSettingsCompat.getPaymentRequestEnabled(settings));
+
+        // Reset to the default state to avoid leaking state to the other test cases.
+        WebSettingsCompat.setPaymentRequestEnabled(settings, false);
+    }
+
+    @Test
+    public void testPaymentRequestHasEnrolledInstrumentSupport() {
+        WebkitUtils.checkFeature(WebViewFeature.PAYMENT_REQUEST);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertTrue("PaymentRequest.hasEnrolledInstrument() should be enabled by default.",
+                WebSettingsCompat.getHasEnrolledInstrumentEnabled(settings));
+
+        WebSettingsCompat.setHasEnrolledInstrumentEnabled(settings, false);
+        assertFalse(WebSettingsCompat.getHasEnrolledInstrumentEnabled(settings));
+
+        // Reset to the default state to avoid leaking state to the other test cases.
+        WebSettingsCompat.setHasEnrolledInstrumentEnabled(settings, true);
+    }
 }

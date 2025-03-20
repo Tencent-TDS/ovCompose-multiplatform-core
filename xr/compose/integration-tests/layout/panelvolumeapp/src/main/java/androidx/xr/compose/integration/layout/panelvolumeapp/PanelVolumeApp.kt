@@ -51,6 +51,7 @@ import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.scale
+import androidx.xr.compose.subspace.layout.testTag
 import androidx.xr.compose.subspace.layout.width
 import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.scenecore.GltfModel
@@ -85,8 +86,11 @@ class PanelVolumeApp : ComponentActivity() {
 
         SpatialPanel(
             modifier =
-                SubspaceModifier.width(200.dp).height(200.dp).offset(y = panelYOffset).movable(),
-            name = "RootPanel",
+                SubspaceModifier.width(200.dp)
+                    .height(200.dp)
+                    .offset(y = panelYOffset)
+                    .movable()
+                    .testTag("RootPanel")
         ) {
             Box(
                 modifier = Modifier.background(Color.LightGray).fillMaxSize(),

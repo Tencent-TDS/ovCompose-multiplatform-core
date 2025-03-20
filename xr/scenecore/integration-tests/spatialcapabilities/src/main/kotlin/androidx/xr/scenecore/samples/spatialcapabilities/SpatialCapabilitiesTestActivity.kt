@@ -70,6 +70,7 @@ class SpatialCapabilitiesTestActivity : AppCompatActivity() {
             debugTextString.append(
                 "Bounds Changed event received: w=${bounds.width}, h=${bounds.height}, d=${bounds.depth}\n"
             )
+            isFsm = bounds.width == Float.POSITIVE_INFINITY
         }
     }
 

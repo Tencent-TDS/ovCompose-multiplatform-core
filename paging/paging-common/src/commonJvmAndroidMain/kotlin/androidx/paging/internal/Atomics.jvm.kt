@@ -23,4 +23,12 @@ internal actual typealias AtomicInt = java.util.concurrent.atomic.AtomicInteger
 
 internal actual typealias AtomicBoolean = java.util.concurrent.atomic.AtomicBoolean
 
-internal actual typealias CopyOnWriteArrayList<T> = java.util.concurrent.CopyOnWriteArrayList<T>
+internal actual class CopyOnWriteArrayList<T> : Iterable<T> {
+    private val delegate = java.util.concurrent.CopyOnWriteArrayList<T>()
+
+    actual fun add(value: T): Boolean = delegate.add(value)
+
+    actual fun remove(value: T): Boolean = delegate.remove(value)
+
+    actual override fun iterator(): Iterator<T> = delegate.iterator()
+}

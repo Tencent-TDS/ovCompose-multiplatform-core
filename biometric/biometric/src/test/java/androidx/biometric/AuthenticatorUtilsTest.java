@@ -206,6 +206,65 @@ public class AuthenticatorUtilsTest {
                 Authenticators.BIOMETRIC_WEAK | Authenticators.DEVICE_CREDENTIAL)).isTrue();
     }
 
+    @Test
+    public void testIsAtLeastStrength() {
+        assertThat(
+                AuthenticatorUtils.isAtLeastStrength(0, Authenticators.BIOMETRIC_WEAK)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.BIOMETRIC_WEAK,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.BIOMETRIC_STRONG,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.DEVICE_CREDENTIAL,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.DEVICE_CREDENTIAL,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_WEAK)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.DEVICE_CREDENTIAL
+                        | Authenticators.IDENTITY_CHECK, Authenticators.BIOMETRIC_WEAK)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.DEVICE_CREDENTIAL
+                        | Authenticators.IDENTITY_CHECK, Authenticators.BIOMETRIC_WEAK)).isTrue();
+
+
+        assertThat(
+                AuthenticatorUtils.isAtLeastStrength(0, Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.BIOMETRIC_WEAK,
+                Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.BIOMETRIC_STRONG,
+                Authenticators.BIOMETRIC_STRONG)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.DEVICE_CREDENTIAL,
+                Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.DEVICE_CREDENTIAL,
+                Authenticators.BIOMETRIC_STRONG)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_STRONG)).isTrue();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_WEAK | Authenticators.DEVICE_CREDENTIAL
+                        | Authenticators.IDENTITY_CHECK,
+                Authenticators.BIOMETRIC_STRONG)).isFalse();
+        assertThat(AuthenticatorUtils.isAtLeastStrength(
+                Authenticators.BIOMETRIC_STRONG | Authenticators.DEVICE_CREDENTIAL
+                        | Authenticators.IDENTITY_CHECK, Authenticators.BIOMETRIC_STRONG)).isTrue();
+    }
+
     @SuppressWarnings("deprecation")
     private static BiometricPrompt.PromptInfo createPromptInfo(
             @BiometricManager.AuthenticatorTypes int authenticators,

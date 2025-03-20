@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
@@ -40,215 +42,201 @@ import kotlin.math.ceil
  *
  * @sample androidx.wear.compose.material3.samples.ResponsiveTransformationSpecButtonSample
  */
-public sealed interface ResponsiveTransformationSpec : TransformationSpec
+public sealed interface ResponsiveTransformationSpec : TransformationSpec {
+    public companion object {
+        /**
+         * Default [TransformationSpec] for small screen size.
+         *
+         * This spec should be used in [rememberTransformationSpec] together with the specs for
+         * alternative screen sizes, so that in-between screen sizes can be supported using
+         * interpolation.
+         *
+         * @param screenSize The size of the small screen.
+         * @param minElementHeightFraction The minimum element height, as a ratio of the viewport
+         *   height, to use for determining the transition area height within the range
+         *   [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
+         *   item, this defines the start and end points for transitioning the item. Item heights
+         *   lower than [minElementHeightFraction] will be treated as if [minElementHeightFraction].
+         *   Must be smaller than or equal to [maxElementHeightFraction].
+         * @param maxElementHeightFraction The maximum element height, as a ratio of the viewport
+         *   height, to use for determining the transition area height within the range
+         *   [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
+         *   item, this defines the start and end points for transitioning the item. Item heights
+         *   higher than [maxElementHeightFraction] will be treated as if
+         *   [maxElementHeightFraction]. Must be greater than or equal to
+         *   [minElementHeightFraction].
+         * @param minTransitionAreaHeightFraction The lower bound of the range of heights for the
+         *   transition area, i.e. how tall the transition area is for items of height
+         *   [minElementHeightFraction] or shorter. Taller items will have taller transition areas,
+         *   up to [maxTransitionAreaHeightFraction]. This is defined as a fraction (value between
+         *   0f..1f) of the viewport height. Must be less than or equal to
+         *   [maxTransitionAreaHeightFraction]. Note that the transition area is the same for all
+         *   variables, but each variable can define a transformation zone inside it in which the
+         *   transformations will actually occur. See [TransformationVariableSpec].
+         * @param maxTransitionAreaHeightFraction The upper bound of the range of heights for the
+         *   transition area, i.e. how tall the transition area is for items of height
+         *   [maxElementHeightFraction] or taller. Shorter items will have shorter transition areas,
+         *   down to [minTransitionAreaHeightFraction]. This is defined as a fraction (value between
+         *   0f..1f) of the viewport height. Must be greater than or equal to
+         *   [minTransitionAreaHeightFraction]. Note that the transition area is the same for all
+         *   variables, but each variable can define a transformation zone inside it in which the
+         *   transformations will actually occur. See [TransformationVariableSpec].
+         * @param easing An interpolator to use to determine how to apply transformations as the
+         *   item transitions across the transformation zones.
+         * @param containerAlpha Configuration for how the container (background) of the item will
+         *   fade in/out.
+         * @param contentAlpha Configuration for how the content of the item will fade in/out.
+         * @param scale Configuration for scaling the whole item (container and content).
+         */
+        public fun smallScreen(
+            screenSize: Dp = ResponsiveTransformationSpecDefaults.SmallScreenSize,
+            @FloatRange(from = 0.0, to = 1.0) minElementHeightFraction: Float = 0.2f,
+            @FloatRange(from = 0.0, to = 1.0) maxElementHeightFraction: Float = 0.6f,
+            @FloatRange(from = 0.0, to = 1.0) minTransitionAreaHeightFraction: Float = 0.35f,
+            @FloatRange(from = 0.0, to = 1.0) maxTransitionAreaHeightFraction: Float = 0.55f,
+            easing: Easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f),
+            containerAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
+            contentAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
+            scale: TransformationVariableSpec = TransformationVariableSpec(0.7f),
+        ): ResponsiveTransformationSpec =
+            ResponsiveTransformationSpecImpl(
+                screenSize = screenSize,
+                minElementHeightFraction = minElementHeightFraction,
+                maxElementHeightFraction = maxElementHeightFraction,
+                minTransitionAreaHeightFraction = minTransitionAreaHeightFraction,
+                maxTransitionAreaHeightFraction = maxTransitionAreaHeightFraction,
+                easing = easing,
+                containerAlpha = containerAlpha,
+                contentAlpha = contentAlpha,
+                scale = scale,
+            )
+
+        /**
+         * Default [TransformationSpec] for large screen size.
+         *
+         * This spec should be used in [rememberTransformationSpec] together with the specs for
+         * alternative screen sizes, so that in-between screen sizes can be supported using
+         * interpolation.
+         *
+         * @param screenSize The screen size of the large watch.
+         * @param minElementHeightFraction The minimum element height, as a ratio of the viewport
+         *   height, to use for determining the transition area height within the range
+         *   [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
+         *   item, this defines the start and end points for transitioning the item. Item heights
+         *   lower than [minElementHeightFraction] will be treated as if [minElementHeightFraction].
+         *   Must be smaller than or equal to [maxElementHeightFraction].
+         * @param maxElementHeightFraction The maximum element height, as a ratio of the viewport
+         *   height, to use for determining the transition area height within the range
+         *   [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
+         *   item, this defines the start and end points for transitioning the item. Item heights
+         *   higher than [maxElementHeightFraction] will be treated as if
+         *   [maxElementHeightFraction]. Must be greater than or equal to
+         *   [minElementHeightFraction].
+         * @param minTransitionAreaHeightFraction The lower bound of the range of heights for the
+         *   transition area, i.e. how tall the transition area is for items of height
+         *   [minElementHeightFraction] or shorter. Taller items will have taller transition areas,
+         *   up to [maxTransitionAreaHeightFraction]. This is defined as a fraction (value between
+         *   0f..1f) of the viewport height. Must be less than or equal to
+         *   [maxTransitionAreaHeightFraction]. Note that the transition area is the same for all
+         *   variables, but each variable can define a transformation zone inside it in which the
+         *   transformations will actually occur. See [TransformationVariableSpec].
+         * @param maxTransitionAreaHeightFraction The upper bound of the range of heights for the
+         *   transition area, i.e. how tall the transition area is for items of height
+         *   [maxElementHeightFraction] or taller. Shorter items will have shorter transition areas,
+         *   down to [minTransitionAreaHeightFraction]. This is defined as a fraction (value between
+         *   0f..1f) of the viewport height. Must be greater than or equal to
+         *   [minTransitionAreaHeightFraction]. Note that the transition area is the same for all
+         *   variables, but each variable can define a transformation zone inside it in which the
+         *   transformations will actually occur. See [TransformationVariableSpec].
+         * @param easing An interpolator to use to determine how to apply transformations as the
+         *   item transitions across the transformation zones.
+         * @param containerAlpha Configuration for how the container (background) of the item will
+         *   fade in/out.
+         * @param contentAlpha Configuration for how the content of the item will fade in/out.
+         * @param scale Configuration for scaling the whole item (container and content).
+         */
+        public fun largeScreen(
+            screenSize: Dp = ResponsiveTransformationSpecDefaults.LargeScreenSize,
+            @FloatRange(from = 0.0, to = 1.0) minElementHeightFraction: Float = 0.15f,
+            @FloatRange(from = 0.0, to = 1.0) maxElementHeightFraction: Float = 0.45f,
+            @FloatRange(from = 0.0, to = 1.0) minTransitionAreaHeightFraction: Float = 0.4f,
+            @FloatRange(from = 0.0, to = 1.0) maxTransitionAreaHeightFraction: Float = 0.6f,
+            easing: Easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f),
+            containerAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
+            contentAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
+            scale: TransformationVariableSpec = TransformationVariableSpec(0.6f),
+        ): ResponsiveTransformationSpec =
+            ResponsiveTransformationSpecImpl(
+                screenSize = screenSize,
+                minElementHeightFraction = minElementHeightFraction,
+                maxElementHeightFraction = maxElementHeightFraction,
+                minTransitionAreaHeightFraction = minTransitionAreaHeightFraction,
+                maxTransitionAreaHeightFraction = maxTransitionAreaHeightFraction,
+                easing = easing,
+                containerAlpha = containerAlpha,
+                contentAlpha = contentAlpha,
+                scale = scale,
+            )
+    }
+}
 
 /** Contains the default values used by [ResponsiveTransformationSpec] */
 public object ResponsiveTransformationSpecDefaults {
     /** The default spec configuration point for the small screen size. */
-    public val SmallScreenSizeDp: Int = 192
+    public val SmallScreenSize: Dp = 192.dp
 
     /** The default spec configuration point for the large screen size. */
-    public val LargeScreenSizeDp: Int = 240
+    public val LargeScreenSize: Dp = 240.dp
 
-    /**
-     * Default [TransformationSpec] for small watch screen size [SmallScreenSizeDp].
-     *
-     * This spec should be used in [rememberResponsiveTransformationSpec] together with the specs
-     * for another screen sizes to support different watch sizes.
-     */
-    public fun smallScreenSpec(
-        /** The screen size of the small watch. */
-        screenSizeDp: Int = SmallScreenSizeDp,
-
-        /**
-         * The minimum element height, as a ratio of the viewport height, to use for determining the
-         * transition area height within the range
-         * [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
-         * item, this defines the start and end points for transitioning the item. Item heights
-         * lower than [minElementHeightFraction] will be treated as if [minElementHeightFraction].
-         * Must be smaller than or equal to [maxElementHeightFraction].
-         */
-        @FloatRange(from = 0.0, to = 1.0) minElementHeightFraction: Float = 0.2f,
-
-        /**
-         * The maximum element height, as a ratio of the viewport height, to use for determining the
-         * transition area height within the range
-         * [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
-         * item, this defines the start and end points for transitioning the item. Item heights
-         * higher than [maxElementHeightFraction] will be treated as if [maxElementHeightFraction].
-         * Must be greater than or equal to [minElementHeightFraction].
-         */
-        @FloatRange(from = 0.0, to = 1.0) maxElementHeightFraction: Float = 0.6f,
-
-        /**
-         * The lower bound of the range of heights for the transition area, i.e. how tall the
-         * transition area is for items of height [minElementHeightFraction] or shorter. Taller
-         * items will have taller transition areas, up to [maxTransitionAreaHeightFraction]. This is
-         * defined as a fraction (value between 0f..1f) of the viewport height. Must be less than or
-         * equal to [maxTransitionAreaHeightFraction].
-         *
-         * Note that the transition area is the same for all variables, but each variable can define
-         * a transformation zone inside it in which the transformations will actually occur. See
-         * [TransformationVariableSpec].
-         */
-        @FloatRange(from = 0.0, to = 1.0) minTransitionAreaHeightFraction: Float = 0.35f,
-
-        /**
-         * The upper bound of the range of heights for the transition area, i.e. how tall the
-         * transition area is for items of height [maxElementHeightFraction] or taller. Shorter
-         * items will have shorter transition areas, down to [minTransitionAreaHeightFraction]. This
-         * is defined as a fraction (value between 0f..1f) of the viewport height. Must be greater
-         * than or equal to [minTransitionAreaHeightFraction].
-         *
-         * Note that the transition area is the same for all variables, but each variable can define
-         * a transformation zone inside it in which the transformations will actually occur. See
-         * [TransformationVariableSpec].
-         */
-        @FloatRange(from = 0.0, to = 1.0) maxTransitionAreaHeightFraction: Float = 0.55f,
-
-        /**
-         * An interpolator to use to determine how to apply transformations as the item transitions
-         * across the transformation zones.
-         */
-        easing: Easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f),
-
-        /** Configuration for how the container (background) of the item will fade in/out. */
-        containerAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
-
-        /** Configuration for how the content of the item will fade in/out. */
-        contentAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
-
-        /** Configuration for scaling the whole item (container and content). */
-        scale: TransformationVariableSpec = TransformationVariableSpec(0.7f),
-    ): ResponsiveTransformationSpec =
-        ResponsiveTransformationSpecImpl(
-            screenSizeDp = screenSizeDp,
-            minElementHeightFraction = minElementHeightFraction,
-            maxElementHeightFraction = maxElementHeightFraction,
-            minTransitionAreaHeightFraction = minTransitionAreaHeightFraction,
-            maxTransitionAreaHeightFraction = maxTransitionAreaHeightFraction,
-            easing = easing,
-            containerAlpha = containerAlpha,
-            contentAlpha = contentAlpha,
-            scale = scale,
-        )
-
-    /**
-     * Default [TransformationSpec] for large watch screen size [LargeScreenSizeDp].
-     *
-     * This spec should be used in [rememberResponsiveTransformationSpec] together with the specs
-     * for another screen sizes to support different watch sizes.
-     */
-    public fun largeScreenSpec(
-        /** The screen size of the large watch. */
-        screenSizeDp: Int = LargeScreenSizeDp,
-
-        /**
-         * The minimum element height, as a ratio of the viewport height, to use for determining the
-         * transition area height within the range
-         * [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
-         * item, this defines the start and end points for transitioning the item. Item heights
-         * lower than [minElementHeightFraction] will be treated as if [minElementHeightFraction].
-         * Must be smaller than or equal to [maxElementHeightFraction].
-         */
-        @FloatRange(from = 0.0, to = 1.0) minElementHeightFraction: Float = 0.15f,
-
-        /**
-         * The maximum element height, as a ratio of the viewport height, to use for determining the
-         * transition area height within the range
-         * [minTransitionAreaHeightFraction]..[maxTransitionAreaHeightFraction]. Given a content
-         * item, this defines the start and end points for transitioning the item. Item heights
-         * higher than [maxElementHeightFraction] will be treated as if [maxElementHeightFraction].
-         * Must be greater than or equal to [minElementHeightFraction].
-         */
-        @FloatRange(from = 0.0, to = 1.0) maxElementHeightFraction: Float = 0.45f,
-
-        /**
-         * The lower bound of the range of heights for the transition area, i.e. how tall the
-         * transition area is for items of height [minElementHeightFraction] or shorter. Taller
-         * items will have taller transition areas, up to [maxTransitionAreaHeightFraction]. This is
-         * defined as a fraction (value between 0f..1f) of the viewport height. Must be less than or
-         * equal to [maxTransitionAreaHeightFraction].
-         *
-         * Note that the transition area is the same for all variables, but each variable can define
-         * a transformation zone inside it in which the transformations will actually occur. See
-         * [TransformationVariableSpec].
-         */
-        @FloatRange(from = 0.0, to = 1.0) minTransitionAreaHeightFraction: Float = 0.4f,
-
-        /**
-         * The upper bound of the range of heights for the transition area, i.e. how tall the
-         * transition area is for items of height [maxElementHeightFraction] or taller. Shorter
-         * items will have shorter transition areas, down to [minTransitionAreaHeightFraction]. This
-         * is defined as a fraction (value between 0f..1f) of the viewport height. Must be greater
-         * than or equal to [minTransitionAreaHeightFraction].
-         *
-         * Note that the transition area is the same for all variables, but each variable can define
-         * a transformation zone inside it in which the transformations will actually occur. See
-         * [TransformationVariableSpec].
-         */
-        @FloatRange(from = 0.0, to = 1.0) maxTransitionAreaHeightFraction: Float = 0.6f,
-
-        /**
-         * An interpolator to use to determine how to apply transformations as the item transitions
-         * across the transformation zones.
-         */
-        easing: Easing = CubicBezierEasing(0.3f, 0f, 0.7f, 1f),
-
-        /** Configuration for how the container (background) of the item will fade in/out. */
-        containerAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
-
-        /** Configuration for how the content of the item will fade in/out. */
-        contentAlpha: TransformationVariableSpec = TransformationVariableSpec(0.5f),
-
-        /** Configuration for scaling the whole item (container and content). */
-        scale: TransformationVariableSpec = TransformationVariableSpec(0.6f),
-    ): ResponsiveTransformationSpec =
-        ResponsiveTransformationSpecImpl(
-            screenSizeDp = screenSizeDp,
-            minElementHeightFraction = minElementHeightFraction,
-            maxElementHeightFraction = maxElementHeightFraction,
-            minTransitionAreaHeightFraction = minTransitionAreaHeightFraction,
-            maxTransitionAreaHeightFraction = maxTransitionAreaHeightFraction,
-            easing = easing,
-            containerAlpha = containerAlpha,
-            contentAlpha = contentAlpha,
-            scale = scale,
-        )
+    /** The default list of specs */
+    internal val Specs: List<ResponsiveTransformationSpecImpl> =
+        listOf(
+                ResponsiveTransformationSpec.smallScreen(),
+                ResponsiveTransformationSpec.largeScreen()
+            )
+            .map { it as ResponsiveTransformationSpecImpl }
 }
 
 /**
  * Computes and remembers the appropriate [TransformationSpec] for the current screen size, given
- * one or more [TransformationSpec]s for different screen sizes.
+ * one or more [ResponsiveTransformationSpec]s for different screen sizes.
  *
- * This shows use of the [ResponsiveTransformationSpec] which is a recommended [TransformationSpec]
- * for large-screen aware Wear apps:
+ * Example usage for [ResponsiveTransformationSpec], the recommended [TransformationSpec] for
+ * large-screen aware Wear apps:
  *
  * @sample androidx.wear.compose.material3.samples.ResponsiveTransformationSpecButtonSample
+ * @param specs The [ResponsiveTransformationSpec]s that should be used for different screen sizes.
  */
 @Composable
-public fun rememberResponsiveTransformationSpec(
+public fun rememberTransformationSpec(
     vararg specs: ResponsiveTransformationSpec
-): ResponsiveTransformationSpec {
-    val screenSizeDp = LocalConfiguration.current.screenHeightDp
-    val transformationSpecs =
-        if (specs.isEmpty()) {
-                listOf(
-                    ResponsiveTransformationSpecDefaults.smallScreenSpec(),
-                    ResponsiveTransformationSpecDefaults.largeScreenSpec()
-                )
+): TransformationSpec {
+    val screenSize = LocalConfiguration.current.screenHeightDp.dp
+    return remember(specs, screenSize) {
+        val transformationSpecs =
+            if (specs.isEmpty()) {
+                ResponsiveTransformationSpecDefaults.Specs
             } else {
-                specs.toList()
+                specs.map { it as ResponsiveTransformationSpecImpl }
             }
-            .map { it as ResponsiveTransformationSpecImpl }
 
-    return remember { responsiveTransformationSpec(screenSizeDp, transformationSpecs) }
+        responsiveTransformationSpec(screenSize, transformationSpecs)
+    }
+}
+
+/** Computes and remembers the appropriate [TransformationSpec] for the current screen size. */
+@Composable
+public fun rememberTransformationSpec(): TransformationSpec {
+    val screenSize = LocalConfiguration.current.screenHeightDp.dp
+    return remember(screenSize) {
+        responsiveTransformationSpec(screenSize, ResponsiveTransformationSpecDefaults.Specs)
+    }
 }
 
 /** This class contains all parameters needed to configure the transformations for a single item */
 internal class ResponsiveTransformationSpecImpl(
     /** The screen size of the watch. */
-    val screenSizeDp: Int,
+    val screenSize: Dp,
 
     /**
      * The minimum element height, as a ratio of the viewport height, to use for determining the
@@ -318,6 +306,38 @@ internal class ResponsiveTransformationSpecImpl(
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ResponsiveTransformationSpecImpl
+
+        if (minElementHeightFraction != other.minElementHeightFraction) return false
+        if (maxElementHeightFraction != other.maxElementHeightFraction) return false
+        if (minTransitionAreaHeightFraction != other.minTransitionAreaHeightFraction) return false
+        if (maxTransitionAreaHeightFraction != other.maxTransitionAreaHeightFraction) return false
+        if (easing != other.easing) return false
+        if (containerAlpha != other.containerAlpha) return false
+        if (contentAlpha != other.contentAlpha) return false
+        if (scale != other.scale) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = 1
+
+        result += result * minElementHeightFraction.hashCode()
+        result += result * maxElementHeightFraction.hashCode()
+        result += result * minTransitionAreaHeightFraction.hashCode()
+        result += result * maxTransitionAreaHeightFraction.hashCode()
+        result += result * easing.hashCode()
+        result += result * containerAlpha.hashCode()
+        result += result * contentAlpha.hashCode()
+        result += result * scale.hashCode()
+
+        return result
+    }
+
     override fun getTransformedHeight(
         measuredHeight: Int,
         scrollProgress: TransformingLazyColumnItemScrollProgress
@@ -361,7 +381,7 @@ internal class ResponsiveTransformationSpecImpl(
         }
     }
 
-    override fun TransformedPainterScope.createTransformedPainter(
+    override fun TransformedContainerPainterScope.createTransformedContainerPainter(
         painter: Painter,
         shape: Shape,
         border: BorderStroke?
@@ -386,7 +406,7 @@ private fun lerp(
     progress: Float
 ) =
     ResponsiveTransformationSpecImpl(
-        screenSizeDp = lerp(start.screenSizeDp, stop.screenSizeDp, progress),
+        screenSize = lerp(start.screenSize.value, stop.screenSize.value, progress).dp,
         minElementHeightFraction =
             lerp(start.minElementHeightFraction, stop.minElementHeightFraction, progress),
         maxElementHeightFraction =
@@ -416,26 +436,26 @@ private fun lerp(
  * more [ResponsiveTransformationSpecImpl]s for different screen sizes.
  */
 internal fun responsiveTransformationSpec(
-    screenSizeDp: Int,
+    screenSize: Dp,
     specs: List<ResponsiveTransformationSpecImpl>
 ): ResponsiveTransformationSpecImpl {
     require(specs.isNotEmpty()) { "Must provide at least one TransformationSpec" }
 
-    val sortedSpecs = specs.sortedBy { it.screenSizeDp }
+    val sortedSpecs = specs.sortedBy { it.screenSize }
 
-    if (screenSizeDp <= sortedSpecs.first().screenSizeDp) return sortedSpecs.first()
-    if (screenSizeDp >= sortedSpecs.last().screenSizeDp) return sortedSpecs.last()
+    if (screenSize <= sortedSpecs.first().screenSize) return sortedSpecs.first()
+    if (screenSize >= sortedSpecs.last().screenSize) return sortedSpecs.last()
 
     var ix = 1 // We checked and it's greater than the first element's screen size.
-    while (ix < sortedSpecs.size && screenSizeDp > sortedSpecs[ix].screenSizeDp) ix++
+    while (ix < sortedSpecs.size && screenSize > sortedSpecs[ix].screenSize) ix++
 
     return lerp(
         sortedSpecs[ix - 1],
         sortedSpecs[ix],
         inverseLerp(
-            sortedSpecs[ix - 1].screenSizeDp.toFloat(),
-            sortedSpecs[ix].screenSizeDp.toFloat(),
-            screenSizeDp.toFloat()
+            sortedSpecs[ix - 1].screenSize.value,
+            sortedSpecs[ix].screenSize.value,
+            screenSize.value
         )
     )
 }

@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * For all resumed top activities with this spatialstate callback set, this is called whenever the
@@ -25,7 +24,6 @@ import androidx.annotation.RestrictTo;
  * @deprecated Use SpatialState instead.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Deprecated
 public final class EnvironmentVisibilityChangeEvent
         implements com.android.extensions.xr.space.SpatialStateEvent {

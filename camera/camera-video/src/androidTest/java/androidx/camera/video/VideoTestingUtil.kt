@@ -74,13 +74,6 @@ fun assumeSuccessfulSurfaceProcessing() {
     )
 }
 
-fun assumeNotBrokenEmulator() {
-    assumeFalse(
-        "Skip tests for Emulator API 30 crashing issue",
-        Build.MODEL.contains("gphone") && Build.VERSION.SDK_INT == 30
-    )
-}
-
 fun getRotationNeeded(videoCapture: VideoCapture<Recorder>, cameraInfo: CameraInfo) =
     cameraInfo.getSensorRotationDegrees(videoCapture.targetRotation)
 

@@ -37,7 +37,11 @@ import kotlin.math.max
 @MainThread
 @Suppress("BanParcelableUsage")
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-internal class PaginationModel(val pageSpacingPx: Int, val numPages: Int) : Parcelable {
+internal class PaginationModel(
+    val pageSpacingPx: Int,
+    val numPages: Int,
+    val topPageMarginPx: Int = 0
+) : Parcelable {
 
     init {
         require(numPages >= 0) { "Empty PDF!" }
@@ -61,7 +65,7 @@ internal class PaginationModel(val pageSpacingPx: Int, val numPages: Int) : Parc
     private val pages = Array(numPages) { UNKNOWN_SIZE }
 
     /** The top position of each page known to this model */
-    private val pagePositions = IntArray(numPages) { -1 }.apply { this[0] = 0 }
+    private val pagePositions = IntArray(numPages) { -1 }.apply { this[0] = topPageMarginPx }
 
     /**
      * The estimated height of any page not known to this model, i.e. the average height of all

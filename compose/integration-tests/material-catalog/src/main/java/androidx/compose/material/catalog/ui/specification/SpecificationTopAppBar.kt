@@ -47,7 +47,7 @@ fun SpecificationTopAppBar(
         lerp(
             MaterialTheme.colorScheme.surface,
             MaterialTheme.colorScheme.surfaceColorAtElevation(elevation = 3.dp),
-            FastOutLinearInEasing.transform(scrollBehavior?.state?.overlappedFraction ?: 0f)
+            FastOutLinearInEasing.transform(scrollBehavior?.state?.overlappedFraction() ?: 0f)
         )
 
     val foregroundColors =

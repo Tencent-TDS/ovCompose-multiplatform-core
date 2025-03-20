@@ -87,7 +87,7 @@ public fun hasContentDescription(value: String): LayoutElementMatcher =
  */
 public fun hasContentDescription(pattern: Regex): LayoutElementMatcher =
     LayoutElementMatcher("Content description matches $pattern.") { element ->
-        pattern.matches(element.contentDescription?.value ?: "")
+        element.contentDescription?.value?.let { pattern.matches(it) } ?: false
     }
 
 /**

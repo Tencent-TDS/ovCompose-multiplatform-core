@@ -17,6 +17,7 @@
 package androidx.wear.compose.material3
 
 import androidx.annotation.FloatRange
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.AnimationVector2D
@@ -26,8 +27,20 @@ import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.animation.core.VectorizedFiniteAnimationSpec
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 /**
@@ -102,8 +115,6 @@ private class WrappedVectorizedAnimationSpec<V : AnimationVector>(
     val speedupFactor: Float,
     val startDelayNanos: Long = 0
 ) : VectorizedFiniteAnimationSpec<V> {
-    override val isInfinite: Boolean
-        get() = wrapped.isInfinite
 
     override fun getValueFromNanos(
         playTimeNanos: Long,
@@ -171,6 +182,61 @@ internal suspend fun animatedDelay(duration: Long, reduceMotionEnabled: Boolean)
     if (!reduceMotionEnabled) {
         delay(duration)
     }
+}
+
+/**
+ * Animated [Text] based component that on text change fades out the old value and then fades in the
+ * new value in one smooth animation.
+ */
+@Composable
+internal fun FadeLabel(
+    text: String,
+    animationSpec: FiniteAnimationSpec<Float>,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    style: TextStyle = LocalTextStyle.current,
+    maxLines: Int = LocalTextConfiguration.current.maxLines,
+    textAlign: TextAlign? = LocalTextConfiguration.current.textAlign,
+) {
+    var currentText by remember { mutableStateOf(text) }
+    var targetText by remember { mutableStateOf(text) }
+    val animatedAlpha = remember { Animatable(1f) }
+
+    LaunchedEffect(text) {
+        // Don't animate the first time the text is set
+        if (currentText.isEmpty() || currentText == text) {
+            currentText = text
+            return@LaunchedEffect
+        }
+
+        // If an animation is already running when a new animation is started, finish the animation
+        // quickly and then start the new animation
+        if (animatedAlpha.value != animatedAlpha.targetValue) {
+            animatedAlpha.animateTo(-1f, animationSpec.faster(200f)) {
+                if (animatedAlpha.value < 0f) {
+                    currentText = targetText
+                }
+            }
+            animatedAlpha.snapTo(1f)
+        }
+
+        targetText = text
+        animatedAlpha.animateTo(-1f, animationSpec) {
+            if (animatedAlpha.value < 0f) {
+                currentText = targetText
+            }
+        }
+        animatedAlpha.snapTo(1f)
+    }
+
+    Text(
+        text = currentText,
+        modifier = modifier.graphicsLayer { alpha = abs(animatedAlpha.value) },
+        color = color,
+        style = style,
+        maxLines = maxLines,
+        textAlign = textAlign
+    )
 }
 
 private const val MAX_WAIT_TIME_MILLIS = 1_000L

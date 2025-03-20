@@ -80,8 +80,6 @@ public fun ComponentActivity.setSubspaceContent(
             onDispose { session.mainPanelEntity.setHidden(false) }
         }
 
-        // TODO(b/354009078) Why does rendering content in full space mode break presubmits.
-
         // We need to emulate the composition locals that setContent provides
         CompositionLocalProvider(
             LocalConfiguration provides resources.configuration,

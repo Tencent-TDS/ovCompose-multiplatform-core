@@ -49,6 +49,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.fastCoerceIn
 import kotlin.math.PI
 import kotlin.math.abs
@@ -895,7 +896,11 @@ object ProgressIndicatorDefaults {
         with(drawScope) {
             val adjustedStopSize =
                 min(stopSize.toPx(), size.height) // Stop can't be bigger than track
-            val stopOffset = (size.height - adjustedStopSize) / 2 // Offset from end
+            // The limit to prevent excessive padding when dealing with large progress height.
+            // TODO b/401511176 - Consider adding a new token.
+            val maxStopOffset = StopIndicatorTrailingSpace.toPx()
+            // Offset from end.
+            val stopOffset = ((size.height - adjustedStopSize) / 2).fastCoerceAtMost(maxStopOffset)
             if (strokeCap == StrokeCap.Round) {
                 drawCircle(
                     color = color,
@@ -1026,6 +1031,8 @@ internal val LinearIndicatorWidth = 240.dp
 
 /*@VisibleForTesting*/
 internal val LinearIndicatorHeight = LinearProgressIndicatorTokens.Height
+
+internal val StopIndicatorTrailingSpace = 6.dp
 
 // CircularProgressIndicator Material specs
 // Diameter of the indicator circle

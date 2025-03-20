@@ -18,11 +18,11 @@ package androidx.xr.runtime.testing
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.internal.Hand as RuntimeHand
-import androidx.xr.runtime.internal.HandJointType
-import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.internal.TrackingState
+import java.nio.ByteBuffer
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class FakeRuntimeHand(
-    override var isActive: Boolean = false,
-    override var handJoints: Map<HandJointType, Pose> = emptyMap(),
+    override var trackingState: TrackingState = TrackingState.Paused,
+    override var handJointsBuffer: ByteBuffer = ByteBuffer.allocate(0),
 ) : RuntimeHand {}

@@ -27,12 +27,10 @@ import androidx.compose.ui.test.onChild
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.compose.testing.SubspaceTestingActivity
 import androidx.xr.compose.testing.TestSetup
-import kotlin.test.assertFailsWith
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,21 +56,10 @@ class SpatialElevationTest {
     }
 
     @Test
-    fun spatialElevation_dialog_throwsError() {
-        assertFailsWith<RuntimeException> {
-            composeTestRule.setContent {
-                TestSetup { SpatialElevation { Dialog(onDismissRequest = {}) { Text("Title") } } }
-            }
-        }
-    }
+    fun spatialElevation_popup_doesNotThrowError() {
+        composeTestRule.setContent { TestSetup { SpatialElevation { Popup { Text("Popup") } } } }
 
-    @Test
-    fun spatialElevation_popup_throwsError() {
-        assertFailsWith<RuntimeException> {
-            composeTestRule.setContent {
-                TestSetup { SpatialElevation { Popup { Text("Popup") } } }
-            }
-        }
+        composeTestRule.onNodeWithText("Popup").assertExists()
     }
 
     @Test

@@ -155,8 +155,8 @@ public fun UiDevice.onViewOrNull(
             pollIntervalMs = pollIntervalMs,
             rootNodeBlock = { windowRoots }
         )
-        .first()
-        .toUiObject2()
+        .firstOrNull()
+        ?.toUiObject2()
 
 /**
  * Performs a DFS on the accessibility tree starting from this node and returns all the nodes

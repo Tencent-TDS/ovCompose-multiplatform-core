@@ -53,6 +53,7 @@ package androidx.privacysandbox.ui.core {
     method public android.view.View getView();
     method public void notifyConfigurationChanged(android.content.res.Configuration configuration);
     method public void notifyResized(int width, int height);
+    method public void notifySessionRendered(java.util.Set<java.lang.String> supportedSignalOptions);
     method public void notifyUiChanged(android.os.Bundle uiContainerInfo);
     method public void notifyZOrderChanged(boolean isZOrderOnTop);
     property public abstract java.util.Set<java.lang.String> signalOptions;
@@ -63,6 +64,16 @@ package androidx.privacysandbox.ui.core {
     method public void onResizeRequested(int width, int height);
     method public void onSessionError(Throwable throwable);
     method public void onSessionOpened(androidx.privacysandbox.ui.core.SandboxedUiAdapter.Session session);
+  }
+
+  public final class SandboxedUiAdapterSignalOptions {
+    ctor public SandboxedUiAdapterSignalOptions();
+    field public static final androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions.Companion Companion;
+    field public static final String GEOMETRY = "geometry";
+  }
+
+  public static final class SandboxedUiAdapterSignalOptions.Companion {
+    property public static String GEOMETRY;
   }
 
   public final class SdkRuntimeUiLibVersions {
@@ -92,13 +103,17 @@ package androidx.privacysandbox.ui.core {
   }
 
   public final class SessionObserverContext {
-    ctor public SessionObserverContext(android.view.View? view);
+    ctor public SessionObserverContext(android.view.View? view, java.util.Set<java.lang.String> supportedSignalOptions);
+    method public java.util.Set<java.lang.String> getSupportedSignalOptions();
     method public android.view.View? getView();
+    property public java.util.Set<java.lang.String> supportedSignalOptions;
     property public android.view.View? view;
   }
 
-  public fun interface SessionObserverFactory {
+  public interface SessionObserverFactory {
     method public androidx.privacysandbox.ui.core.SessionObserver create();
+    method public default java.util.Set<java.lang.String> getSignalOptions();
+    property public default java.util.Set<java.lang.String> signalOptions;
   }
 
   @SuppressCompatibility @androidx.privacysandbox.ui.core.ExperimentalFeatures.SharedUiPresentationApi public interface SharedUiAdapter {

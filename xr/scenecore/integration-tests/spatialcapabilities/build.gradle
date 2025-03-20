@@ -22,6 +22,7 @@
  * modifying its settings.
  */
 
+import androidx.build.AndroidXConfig
 import androidx.build.ApkCopyHelperKt
 import androidx.build.SoftwareType
 
@@ -64,6 +65,8 @@ dependencies {
     implementation("androidx.activity:activity:1.9.3")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.core:core:1.9.0")
+
+    compileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
 }
 
 // Making this APK available via Android Build so the QA team can

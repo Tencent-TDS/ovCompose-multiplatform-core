@@ -32,6 +32,7 @@ import android.view.ViewTreeObserver;
 import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.view.animation.AnimationSet;
 
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.UiThread;
@@ -41,6 +42,7 @@ import androidx.collection.ArraySet;
 import androidx.vectordrawable.graphics.drawable.SeekableAnimatedVectorDrawable;
 import androidx.wear.protolayout.expression.PlatformDataKey;
 import androidx.wear.protolayout.expression.PlatformEventSources;
+import androidx.wear.protolayout.expression.ProtoLayoutExperimental;
 import androidx.wear.protolayout.expression.pipeline.BoundDynamicType;
 import androidx.wear.protolayout.expression.pipeline.DynamicTypeAnimator;
 import androidx.wear.protolayout.expression.pipeline.DynamicTypeBindingRequest;
@@ -106,7 +108,8 @@ public class ProtoLayoutDynamicDataPipeline {
     final @NonNull QuotaManager mAnimationQuotaManager;
     private final @NonNull DynamicTypeEvaluator mEvaluator;
     private final @NonNull PlatformTimeUpdateNotifierImpl mTimeNotifier;
-    private final @NonNull VisibilityStatusDataProvider mVisibilityStatusDataProvider;
+    private final @NonNull DynamicBoolPlatformDataProvider mVisibilityStatusDataProvider;
+    private final @NonNull DynamicBoolPlatformDataProvider mLayoutUpdatePendingDataProvider;
 
     /** Creates a {@link ProtoLayoutDynamicDataPipeline} without animation support. */
     @RestrictTo(Scope.LIBRARY_GROUP)
@@ -141,6 +144,7 @@ public class ProtoLayoutDynamicDataPipeline {
     }
 
     /** Creates a {@link ProtoLayoutDynamicDataPipeline}. */
+    @OptIn(markerClass = ProtoLayoutExperimental.class)
     private ProtoLayoutDynamicDataPipeline(
             @NonNull Map<PlatformDataProvider, Set<PlatformDataKey<?>>> platformDataProviders,
             @NonNull StateStore stateStore,
@@ -163,10 +167,20 @@ public class ProtoLayoutDynamicDataPipeline {
         // Platform visibility data.
         // Add additional provider for visibility status. It's not needed to come from external
         // callers, as this pipeline knows visibility status
-        mVisibilityStatusDataProvider = new VisibilityStatusDataProvider(mFullyVisible);
+        mVisibilityStatusDataProvider =
+                new DynamicBoolPlatformDataProvider(
+                        PlatformEventSources.Keys.LAYOUT_VISIBILITY, mFullyVisible);
         evaluatorConfigBuilder.addPlatformDataProvider(
                 mVisibilityStatusDataProvider,
                 ImmutableSet.of(PlatformEventSources.Keys.LAYOUT_VISIBILITY));
+
+        // Add an additional provider for Platform loading status.
+        mLayoutUpdatePendingDataProvider =
+                new DynamicBoolPlatformDataProvider(
+                        PlatformEventSources.Keys.LAYOUT_UPDATE_PENDING, /* initialValue= */ false);
+        evaluatorConfigBuilder.addPlatformDataProvider(
+                mLayoutUpdatePendingDataProvider,
+                ImmutableSet.of(PlatformEventSources.Keys.LAYOUT_UPDATE_PENDING));
 
         // Time data.
         this.mTimeNotifier = new PlatformTimeUpdateNotifierImpl();
@@ -227,6 +241,7 @@ public class ProtoLayoutDynamicDataPipeline {
     public void setUpdatesEnabled(boolean canUpdate) {
         mTimeNotifier.setUpdatesEnabled(canUpdate);
         mVisibilityStatusDataProvider.setUpdatesEnabled(canUpdate);
+        mLayoutUpdatePendingDataProvider.setUpdatesEnabled(canUpdate);
     }
 
     /** Closes existing gateways. */
@@ -1059,7 +1074,7 @@ public class ProtoLayoutDynamicDataPipeline {
         setAnimationVisibility(fullyVisible);
 
         // Send platform data on visibility.
-        this.mVisibilityStatusDataProvider.onVisibilityChanged(fullyVisible);
+        this.mVisibilityStatusDataProvider.setValue(fullyVisible);
 
         if (fullyVisible) {
             playAvdAnimations(Trigger.InnerCase.ON_VISIBLE_TRIGGER);
@@ -1075,6 +1090,16 @@ public class ProtoLayoutDynamicDataPipeline {
             stopAvdAnimations(Trigger.InnerCase.ON_VISIBLE_TRIGGER);
             resetAvdAnimations(Trigger.InnerCase.ON_VISIBLE_TRIGGER);
         }
+    }
+
+    /**
+     * Sets whether a new layout is pending. This is used to update the platform data binding to
+     * indicate that a new layout is pending.
+     */
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @UiThread
+    public void setLayoutUpdatePending(boolean isLayoutUpdatePending) {
+        this.mLayoutUpdatePendingDataProvider.setValue(isLayoutUpdatePending);
     }
 
     /**

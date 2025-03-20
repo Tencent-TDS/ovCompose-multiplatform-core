@@ -24,10 +24,6 @@ import static org.junit.Assert.assertThrows;
 
 import android.util.Log;
 
-import androidx.xr.extensions.environment.EnvironmentVisibilityState;
-import androidx.xr.extensions.environment.PassthroughVisibilityState;
-import androidx.xr.extensions.node.Mat4f;
-import androidx.xr.extensions.node.ReformEvent;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
@@ -38,7 +34,13 @@ import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
 import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
 import androidx.xr.scenecore.impl.perception.Plane;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakePassthroughVisibilityState;
+
+import com.android.extensions.xr.environment.EnvironmentVisibilityState;
+import com.android.extensions.xr.environment.PassthroughVisibilityState;
+import com.android.extensions.xr.environment.ShadowPassthroughVisibilityState;
+import com.android.extensions.xr.node.Mat4f;
+import com.android.extensions.xr.node.ReformEvent;
+import com.android.extensions.xr.space.ShadowSpatialCapabilities;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -173,27 +175,10 @@ public final class RuntimeUtilsTest {
         assertThat(RuntimeUtils.poseToPerceptionPose(pose)).isEqualTo(expectedPerceptionPose);
     }
 
-    private static final int CAPS_ALL = -1;
-    private static final int CAPS_NONE = -2;
-
-    private androidx.xr.extensions.space.SpatialCapabilities getCapabilities(int... caps) {
-        return new androidx.xr.extensions.space.SpatialCapabilities() {
-            @Override
-            public boolean get(int capQuery) {
-                for (int cap : caps) {
-                    if (cap == CAPS_ALL || cap == capQuery) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        };
-    }
-
     @Test
     public void convertSpatialCapabilities_noCapabilities() {
-        androidx.xr.extensions.space.SpatialCapabilities extensionCapabilities =
-                getCapabilities(CAPS_NONE);
+        com.android.extensions.xr.space.SpatialCapabilities extensionCapabilities =
+                ShadowSpatialCapabilities.create();
         SpatialCapabilities caps = RuntimeUtils.convertSpatialCapabilities(extensionCapabilities);
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_UI)).isFalse();
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT)).isFalse();
@@ -209,8 +194,8 @@ public final class RuntimeUtilsTest {
 
     @Test
     public void convertSpatialCapabilities_allCapabilities() {
-        androidx.xr.extensions.space.SpatialCapabilities extensionCapabilities =
-                getCapabilities(CAPS_ALL);
+        com.android.extensions.xr.space.SpatialCapabilities extensionCapabilities =
+                ShadowSpatialCapabilities.createAll();
         SpatialCapabilities caps = RuntimeUtils.convertSpatialCapabilities(extensionCapabilities);
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_UI)).isTrue();
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT)).isTrue();
@@ -228,8 +213,8 @@ public final class RuntimeUtilsTest {
     public void convertSpatialCapabilities_singleCapability() {
         // check conversions of a few different instances of the extensions SpatialCapabilities that
         // each have exactly one capability.
-        androidx.xr.extensions.space.SpatialCapabilities extensionCapabilities =
-                getCapabilities(
+        com.android.extensions.xr.space.SpatialCapabilities extensionCapabilities =
+                ShadowSpatialCapabilities.create(
                         androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_UI_CAPABLE);
         SpatialCapabilities caps = RuntimeUtils.convertSpatialCapabilities(extensionCapabilities);
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_UI)).isTrue();
@@ -244,7 +229,7 @@ public final class RuntimeUtilsTest {
                 .isFalse();
 
         extensionCapabilities =
-                getCapabilities(
+                ShadowSpatialCapabilities.create(
                         androidx.xr.extensions.space.SpatialCapabilities
                                 .SPATIAL_3D_CONTENTS_CAPABLE);
         caps = RuntimeUtils.convertSpatialCapabilities(extensionCapabilities);
@@ -260,7 +245,7 @@ public final class RuntimeUtilsTest {
                 .isFalse();
 
         extensionCapabilities =
-                getCapabilities(
+                ShadowSpatialCapabilities.create(
                         androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_AUDIO_CAPABLE);
         caps = RuntimeUtils.convertSpatialCapabilities(extensionCapabilities);
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_UI)).isFalse();
@@ -278,8 +263,8 @@ public final class RuntimeUtilsTest {
     @Test
     public void convertSpatialCapabilities_mixedCapabilities() {
         // Check conversions for a couple of different combinations of capabilities.
-        androidx.xr.extensions.space.SpatialCapabilities extensionCapabilities =
-                getCapabilities(
+        com.android.extensions.xr.space.SpatialCapabilities extensionCapabilities =
+                ShadowSpatialCapabilities.create(
                         androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_AUDIO_CAPABLE,
                         androidx.xr.extensions.space.SpatialCapabilities
                                 .SPATIAL_3D_CONTENTS_CAPABLE);
@@ -297,7 +282,7 @@ public final class RuntimeUtilsTest {
 
         extensionCapabilities =
                 extensionCapabilities =
-                        getCapabilities(
+                        ShadowSpatialCapabilities.create(
                                 androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_UI_CAPABLE,
                                 androidx.xr.extensions.space.SpatialCapabilities
                                         .PASSTHROUGH_CONTROL_CAPABLE,
@@ -339,41 +324,42 @@ public final class RuntimeUtilsTest {
     @Test
     public void getPassthroughOpacity_returnsZeroFromDisabledExtensionState() {
         PassthroughVisibilityState passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.DISABLED, 0.0f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.DISABLED, 0.0f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(0.0f);
 
         passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.DISABLED, 1.0f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.DISABLED, 1.0f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(0.0f);
     }
 
     @Test
     public void getPassthroughOpacity_convertsValidValuesFromExtensionState() {
         PassthroughVisibilityState passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.HOME, 0.5f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.HOME, 0.5f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(0.5f);
 
         passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.APP, 0.75f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.APP, 0.75f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(0.75f);
 
         passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.SYSTEM, 1.0f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.SYSTEM, 1.0f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(1.0f);
     }
 
     @Test
     public void getPassthroughOpacity_convertsInvalidValuesFromExtensionStateToOneAndLogsError() {
         PassthroughVisibilityState passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.HOME, 0.0f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.HOME, 0.0f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(1.0f);
 
         passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.APP, -0.0000001f);
+                ShadowPassthroughVisibilityState.create(
+                        PassthroughVisibilityState.APP, -0.0000001f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(1.0f);
 
         passthroughVisibilityState =
-                new FakePassthroughVisibilityState(PassthroughVisibilityState.SYSTEM, -1.0f);
+                ShadowPassthroughVisibilityState.create(PassthroughVisibilityState.SYSTEM, -1.0f);
         assertThat(RuntimeUtils.getPassthroughOpacity(passthroughVisibilityState)).isEqualTo(1.0f);
 
         expectedLogMessagesRule.expectLogMessagePattern(

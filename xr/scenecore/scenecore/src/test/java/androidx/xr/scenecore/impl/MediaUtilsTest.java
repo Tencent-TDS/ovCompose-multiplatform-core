@@ -22,13 +22,14 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import androidx.xr.extensions.media.PointSourceAttributes;
-import androidx.xr.extensions.media.SoundFieldAttributes;
-import androidx.xr.extensions.media.SpatializerExtensions;
-import androidx.xr.extensions.node.Node;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatializerConstants;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
+
+import com.android.extensions.xr.media.PointSourceAttributes;
+import com.android.extensions.xr.media.SoundFieldAttributes;
+import com.android.extensions.xr.media.SpatializerExtensions;
+import com.android.extensions.xr.node.Node;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +40,7 @@ public final class MediaUtilsTest {
 
     @Test
     public void convertPointSourceAttributes_returnsExtensionsAttributes() {
-        Node expected = new FakeXrExtensions().createNode();
+        Node expected = XrExtensionsProvider.getXrExtensions().createNode();
 
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(expected);

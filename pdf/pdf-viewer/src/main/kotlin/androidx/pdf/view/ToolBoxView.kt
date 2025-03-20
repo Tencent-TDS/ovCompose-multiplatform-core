@@ -45,6 +45,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     /** A callback to get the current page number. */
     private var onCurrentPageRequested: (() -> Int)? = null
 
+    /** Gives the visibility of the toolbox view from edit fab. */
+    public val toolboxVisibility: Int
+        get() = editButton.visibility
+
     init {
         inflate(context, R.layout.tool_box_view, this)
         editButton = findViewById(R.id.edit_fab)
@@ -92,6 +96,12 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     private fun handleEditFabClick() {
+        val document = pdfDocument ?: return
+
+        if (!AnnotationUtils.resolveAnnotationIntent(context, document.uri)) {
+            hideEditFabAndShowToast()
+            return
+        }
 
         pdfDocument?.let {
             try {

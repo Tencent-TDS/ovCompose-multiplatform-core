@@ -254,7 +254,14 @@ object ProfileInstallBroadcast {
     fun dropShaderCache(packageName: String): String? =
         benchmarkOperation(packageName, Operation.DropShaderCache)
 
-    data class SaveProfileResult(val processCount: Int, val error: String?)
+    data class SaveProfileResult(val processCount: Int, val error: String?) {
+        init {
+            require(error == null || processCount > 0) {
+                "Error only valid if processes are found running," +
+                    " error = $error, processCount = $processCount"
+            }
+        }
+    }
 
     @SuppressLint("BanThreadSleep")
     @RequiresApi(24)

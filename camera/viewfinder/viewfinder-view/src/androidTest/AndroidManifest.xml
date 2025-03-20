@@ -20,7 +20,7 @@
 
     <application>
         <activity
-            android:name="androidx.camera.viewfinder.FakeActivity"
+            android:name="androidx.camera.viewfinder.view.FakeActivity"
             android:exported="true"
             android:label="Fake Activity">
             <intent-filter>

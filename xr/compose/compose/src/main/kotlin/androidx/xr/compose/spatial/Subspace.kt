@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntSize
 import androidx.xr.compose.platform.LocalCoreEntity
@@ -178,14 +179,19 @@ private fun NestedSubspace(
     }
     var measuredSize by remember { mutableStateOf(IntVolumeSize.Zero) }
     var contentOffset by remember { mutableStateOf(Offset.Zero) }
-    val pose =
-        rememberCalculatePose(
-            contentOffset,
-            LocalView.current.size,
-            measuredSize.run { IntSize(width, height) },
-        )
+    val viewSize = LocalView.current.size
+    val density = LocalDensity.current
 
-    LaunchedEffect(pose) { subspaceRootContainer.setPose(pose) }
+    LaunchedEffect(measuredSize, contentOffset, viewSize, density) {
+        subspaceRootContainer.setPose(
+            calculatePose(
+                contentOffset,
+                viewSize,
+                measuredSize.run { IntSize(width, height) },
+                density
+            )
+        )
+    }
 
     Layout(modifier = Modifier.onGloballyPositioned { contentOffset = it.positionInRoot() }) {
         _,
@@ -216,6 +222,14 @@ private fun NestedSubspace(
                     )
                 layout(measuredSize.width, measuredSize.height, measuredSize.depth) {
                     placeables.forEach { it.place(Pose.Identity) }
+                    subspaceRootContainer.setPose(
+                        calculatePose(
+                            contentOffset,
+                            viewSize,
+                            measuredSize.run { IntSize(width, height) },
+                            density,
+                        )
+                    )
                 }
             }
         }

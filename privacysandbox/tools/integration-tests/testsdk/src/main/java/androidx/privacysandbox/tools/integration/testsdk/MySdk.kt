@@ -99,6 +99,8 @@ class TextViewAdImpl : TextViewAd {
 
         override fun notifyUiChanged(uiContainerInfo: Bundle) {}
 
+        override fun notifySessionRendered(supportedSignalOptions: Set<String>) {}
+
         override val signalOptions: Set<String> = setOf()
 
         override fun notifyResized(width: Int, height: Int) {}

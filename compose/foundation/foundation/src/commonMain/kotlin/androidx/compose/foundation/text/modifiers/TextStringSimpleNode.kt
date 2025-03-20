@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Constraints.Companion.fitPrioritizingWidth
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.trace
 import kotlin.jvm.JvmName
 
 /**
@@ -350,39 +351,41 @@ internal class TextStringSimpleNode(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        val layoutCache = getLayoutCacheForMeasure()
+        trace("TextStringSimpleNode::measure") {
+            val layoutCache = getLayoutCacheForMeasure()
 
-        val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
-        // ensure measure restarts when hasStaleResolvedFonts by reading in measure
-        layoutCache.observeFontChanges
-        val paragraph = layoutCache.paragraph!!
-        val layoutSize = layoutCache.layoutSize
+            val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
+            // ensure measure restarts when hasStaleResolvedFonts by reading in measure
+            layoutCache.observeFontChanges
+            val paragraph = layoutCache.paragraph!!
+            val layoutSize = layoutCache.layoutSize
 
-        if (didChangeLayout) {
-            invalidateLayer()
-            // Map<AlignmentLine, Int> required for use in public API `layout` below
-            @Suppress("PrimitiveInCollection") var cache = baselineCache
-            if (cache == null) {
-                cache = HashMap(2)
-                baselineCache = cache
+            if (didChangeLayout) {
+                invalidateLayer()
+                // Map<AlignmentLine, Int> required for use in public API `layout` below
+                @Suppress("PrimitiveInCollection") var cache = baselineCache
+                if (cache == null) {
+                    cache = HashMap(2)
+                    baselineCache = cache
+                }
+                cache[FirstBaseline] = paragraph.firstBaseline.fastRoundToInt()
+                cache[LastBaseline] = paragraph.lastBaseline.fastRoundToInt()
             }
-            cache[FirstBaseline] = paragraph.firstBaseline.fastRoundToInt()
-            cache[LastBaseline] = paragraph.lastBaseline.fastRoundToInt()
-        }
 
-        // then allow children to measure _inside_ our final box, with the above placeholders
-        val placeable =
-            measurable.measure(
-                fitPrioritizingWidth(
-                    minWidth = layoutSize.width,
-                    maxWidth = layoutSize.width,
-                    minHeight = layoutSize.height,
-                    maxHeight = layoutSize.height
+            // then allow children to measure _inside_ our final box, with the above placeholders
+            val placeable =
+                measurable.measure(
+                    fitPrioritizingWidth(
+                        minWidth = layoutSize.width,
+                        maxWidth = layoutSize.width,
+                        minHeight = layoutSize.height,
+                        maxHeight = layoutSize.height
+                    )
                 )
-            )
 
-        return layout(layoutSize.width, layoutSize.height, baselineCache!!) {
-            placeable.place(0, 0)
+            return layout(layoutSize.width, layoutSize.height, baselineCache!!) {
+                placeable.place(0, 0)
+            }
         }
     }
 

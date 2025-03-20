@@ -28,6 +28,7 @@ import androidx.pdf.R
 import androidx.pdf.content.PdfPageGotoLinkContent
 import androidx.pdf.content.PdfPageLinkContent
 import androidx.pdf.util.ExternalLinks
+import androidx.pdf.util.buildPageIndicatorLabel
 
 /**
  * Accessibility delegate for PdfView that provides a virtual view hierarchy for pages.
@@ -38,7 +39,7 @@ import androidx.pdf.util.ExternalLinks
 internal class AccessibilityPageHelper(
     private val pdfView: PdfView,
     private val pageLayoutManager: PageLayoutManager,
-    private val pageManager: PageManager
+    private val pageManager: PageManager,
 ) : ExploreByTouchHelper(pdfView) {
 
     private val gotoLinks: MutableMap<Int, LinkWrapper<PdfPageGotoLinkContent>> = mutableMapOf()
@@ -46,8 +47,33 @@ internal class AccessibilityPageHelper(
     private val totalPages = pdfView.pdfDocument?.pageCount ?: 0
     private var isLinksLoaded = false
 
+    private val fastScrollVerticalThumbDrawableId = FAST_SCROLLER_OFFSET + 1
+    private val fastScrollPageIndicatorBackgroundDrawableId = FAST_SCROLLER_OFFSET + 2
+
     public override fun getVirtualViewAt(x: Float, y: Float): Int {
         val visiblePages = pageLayoutManager.visiblePages.value
+
+        if (
+            pdfView.lastFastScrollerVisibility &&
+                pdfView.fastScroller?.isPointOnThumb(x, y, pdfView.width) == true
+        ) {
+            return fastScrollVerticalThumbDrawableId
+        }
+
+        if (
+            pdfView.lastFastScrollerVisibility &&
+                pdfView.fastScroller?.isPointOnIndicator(
+                    pdfView.context,
+                    pageLayoutManager.fullyVisiblePages.value,
+                    x,
+                    y,
+                    totalPages,
+                    pdfView.width,
+                    pdfView.scrollX,
+                ) == true
+        ) {
+            return fastScrollPageIndicatorBackgroundDrawableId
+        }
 
         val contentX = pdfView.toContentX(x).toInt()
         val contentY = pdfView.toContentY(y).toInt()
@@ -88,6 +114,10 @@ internal class AccessibilityPageHelper(
             addAll(visiblePages.pages.lower..visiblePages.pages.upper)
             addAll(gotoLinks.keys)
             addAll(urlLinks.keys)
+            if (isFastScrollerStateValid()) {
+                add(fastScrollVerticalThumbDrawableId)
+                add(fastScrollPageIndicatorBackgroundDrawableId)
+            }
         }
     }
 
@@ -98,6 +128,9 @@ internal class AccessibilityPageHelper(
         if (!isLinksLoaded) loadPageLinks()
 
         when {
+            virtualViewId == fastScrollVerticalThumbDrawableId -> populateFastScrollThumbNode(node)
+            virtualViewId == fastScrollPageIndicatorBackgroundDrawableId ->
+                populateFastScrollPageIndicatorNode(node)
             virtualViewId < totalPages -> populateNodeForPage(virtualViewId, node)
             else -> {
                 // Populate node for GoTo links and URL links
@@ -106,6 +139,55 @@ internal class AccessibilityPageHelper(
             }
         }
     }
+
+    private fun populateFastScrollThumbNode(node: AccessibilityNodeInfoCompat) {
+        if (!isFastScrollerStateValid()) {
+            node.contentDescription = ""
+            node.setBoundsInScreen(Rect())
+            node.isFocusable = false
+            return
+        }
+
+        val thumbBounds = pdfView.fastScroller?.getThumbScreenBounds() ?: Rect()
+        node.apply {
+            contentDescription = pdfView.context.getString(R.string.fast_scroller_thumb)
+            setBoundsInScreenFromBoundsInParent(node, thumbBounds)
+            isFocusable = pdfView.lastFastScrollerVisibility
+        }
+    }
+
+    private fun populateFastScrollPageIndicatorNode(node: AccessibilityNodeInfoCompat) {
+        if (!isFastScrollerStateValid()) {
+            node.contentDescription = ""
+            node.setBoundsInScreen(Rect())
+            node.isFocusable = false
+            return
+        }
+
+        val indicatorBounds = pdfView.fastScroller?.getIndicatorScreenBounds() ?: Rect()
+        val currentLabel =
+            buildPageIndicatorLabel(
+                pdfView.context,
+                pageLayoutManager.fullyVisiblePages.value,
+                totalPages,
+                R.string.desc_page_single,
+                R.string.desc_page_single
+            )
+        node.apply {
+            contentDescription = currentLabel
+            setBoundsInScreenFromBoundsInParent(node, indicatorBounds)
+            isFocusable = pdfView.lastFastScrollerVisibility
+        }
+    }
+
+    /**
+     * Checks and sets the AccessibilityNodeInfoCompat to an invalid state if the fast scroller
+     * state is invalid.
+     *
+     * @return True if the fast scroller state is valid, false otherwise.
+     */
+    private fun isFastScrollerStateValid(): Boolean =
+        pdfView.lastFastScrollerVisibility && pdfView.positionIsStable
 
     override fun onPerformActionForVirtualView(
         virtualViewId: Int,
@@ -249,6 +331,7 @@ internal class AccessibilityPageHelper(
     }
 
     companion object {
+        internal const val FAST_SCROLLER_OFFSET: Int = 1000001
 
         /**
          * Builds the content description for a page.

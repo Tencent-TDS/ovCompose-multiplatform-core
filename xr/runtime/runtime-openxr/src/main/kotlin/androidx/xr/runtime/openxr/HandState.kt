@@ -17,6 +17,7 @@
 package androidx.xr.runtime.openxr
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -27,12 +28,12 @@ import androidx.xr.runtime.math.Pose
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class HandState(
-    internal val isActive: Boolean = false,
+    internal val trackingState: TrackingState = TrackingState.Paused,
     internal val handJoints: List<Pose> = listOf(),
 ) {
     init {
-        require(isActive == false || handJoints.isNotEmpty()) {
-            "Hand joints cannot be empty if the hand is active."
+        require(trackingState != TrackingState.Tracking || handJoints.isNotEmpty()) {
+            "Hand joints cannot be empty if the hand is being tracked."
         }
     }
 }

@@ -34,10 +34,12 @@ import androidx.core.telecom.util.ExperimentalAppActions
 public interface ParticipantExtension {
     /**
      * Update all of the remote surfaces that the [Participant]s of this call have changed.
+     * Participants are displayed on the remote screen according to their order within the
+     * participants list, starting with the first element.
      *
      * @param newParticipants The new set of [Participant]s associated with this call.
      */
-    public suspend fun updateParticipants(newParticipants: Set<Participant>)
+    public suspend fun updateParticipants(newParticipants: List<Participant>)
 
     /**
      * Update all of the remote surfaces that the active participant associated with this call has

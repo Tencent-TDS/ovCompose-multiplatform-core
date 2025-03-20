@@ -18,6 +18,7 @@ package androidx.compose.material3
 
 import androidx.annotation.FloatRange
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -29,11 +30,8 @@ import androidx.compose.material3.tokens.ConnectedButtonGroupSmallTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.material3.tokens.ShapeTokens
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
@@ -51,7 +49,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastMapIndexed
 import androidx.compose.ui.util.fastMaxBy
 import androidx.compose.ui.util.fastRoundToInt
@@ -59,7 +56,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -101,57 +98,26 @@ fun ButtonGroup(
 ) {
     // TODO Load the motionScheme tokens from the component tokens file
     val defaultAnimationSpec = MotionSchemeKeyTokens.FastSpatial.value<Float>()
-    val anim = remember { Animatable(0f) }
-    val coroutineScope = rememberCoroutineScope()
-    var pressedIndex by remember { mutableIntStateOf(-1) }
     val scope = remember {
         object : ButtonGroupScope {
             override fun Modifier.weight(weight: Float, fill: Boolean): Modifier {
                 require(weight > 0.0) { "invalid weight $weight; must be greater than zero" }
                 return this.then(
-                    LayoutWeightElement(
+                    ButtonGroupElement(
                         // Coerce Float.POSITIVE_INFINITY to Float.MAX_VALUE to avoid errors
                         weight = weight.coerceAtMost(Float.MAX_VALUE),
                         fill = fill
                     )
                 )
             }
-        }
-    }
 
-    val interactionSourceFlow: MutableStateFlow<List<InteractionSource>> = remember {
-        MutableStateFlow(emptyList())
-    }
-
-    LaunchedEffect(Unit) {
-        interactionSourceFlow.collectLatest { sources ->
-            sources.fastForEachIndexed { index, interactionSource ->
-                launch {
-                    interactionSource.interactions.collectLatest { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                pressedIndex = index
-                                coroutineScope.launch {
-                                    anim.animateTo(
-                                        targetValue = expandedRatio,
-                                        animationSpec = defaultAnimationSpec
-                                    )
-                                }
-                            }
-                            is PressInteraction.Release,
-                            is PressInteraction.Cancel -> {
-                                coroutineScope.launch {
-                                    anim.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = defaultAnimationSpec
-                                    )
-                                    pressedIndex = -1
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            override fun Modifier.animateWidth(interactionSource: InteractionSource): Modifier =
+                this.then(
+                    EnlargeOnPressElement(
+                        interactionSource = interactionSource,
+                        animationSpec = defaultAnimationSpec
+                    )
+                )
         }
     }
 
@@ -159,21 +125,11 @@ fun ButtonGroup(
         remember(horizontalArrangement) {
             ButtonGroupMeasurePolicy(
                 horizontalArrangement = horizontalArrangement,
-                anim = anim,
-                pressedIndex = { pressedIndex }
+                expandedRatio = expandedRatio
             )
         }
 
-    Layout(
-        measurePolicy = measurePolicy,
-        modifier =
-            modifier.onChildrenInteractionSourceChange { interactionSource ->
-                if (interactionSourceFlow.value != interactionSource) {
-                    coroutineScope.launch { interactionSourceFlow.emit(interactionSource) }
-                }
-            },
-        content = { scope.content() }
-    )
+    Layout(measurePolicy = measurePolicy, modifier = modifier, content = { scope.content() })
 }
 
 /** Default values used by [ButtonGroup] */
@@ -279,8 +235,7 @@ object ButtonGroupDefaults {
 
 private class ButtonGroupMeasurePolicy(
     val horizontalArrangement: Arrangement.Horizontal,
-    val anim: Animatable<Float, AnimationVector1D>,
-    val pressedIndex: () -> Int,
+    val expandedRatio: Float
 ) : MeasurePolicy {
     override fun MeasureScope.measure(
         measurables: List<Measurable>,
@@ -295,6 +250,11 @@ private class ButtonGroupMeasurePolicy(
         val placeables: List<Placeable>
         val childrenMainAxisSize = IntArray(size)
         val childrenConstraints: Array<Constraints?> = arrayOfNulls(size)
+        val configs =
+            Array(measurables.size) {
+                measurables[it].parentData as? ButtonGroupParentData ?: ButtonGroupParentData()
+            }
+        val animatables = Array(measurables.size) { configs[it].pressedAnimatable }
 
         val mainAxisMin = constraints.minWidth
         val mainAxisMax = constraints.maxWidth
@@ -394,44 +354,33 @@ private class ButtonGroupMeasurePolicy(
             }
         }
 
-        val pressedIdx = pressedIndex.invoke()
-        if (pressedIdx == -1 || pressedIdx >= measurables.size) {
-            placeables =
-                measurables.fastMapIndexed { index, measurable ->
-                    measurable.measure(childrenConstraints[index] ?: constraints)
-                }
-        } else {
-            val adjacent = buildList {
-                measurables.getOrNull(pressedIdx - 1)?.let { add(it) }
-                measurables.getOrNull(pressedIdx + 1)?.let { add(it) }
-            }
+        val widths =
+            IntArray(measurables.size) { (childrenConstraints[it] ?: constraints).maxWidth }
 
-            val pressedMeasurable = measurables[pressedIdx]
-            val pressedWidth = (childrenConstraints[pressedIdx] ?: constraints).maxWidth
-            val additionFactor = anim.value
-            val subtractFactor =
-                if (pressedIdx == 0 || pressedIdx == size - 1) anim.value else anim.value / 2f
-
-            placeables =
-                measurables.fastMapIndexed { index, measurable ->
-                    val desiredWidth = (childrenConstraints[index] ?: constraints).maxWidth
-                    if (measurable == pressedMeasurable) {
-                        measurable.measure(
-                            Constraints.fixedWidth(
-                                (desiredWidth + (pressedWidth * additionFactor)).roundToInt()
-                            )
-                        )
-                    } else if (measurable in adjacent) {
-                        measurable.measure(
-                            Constraints.fixedWidth(
-                                (desiredWidth - (pressedWidth * subtractFactor)).roundToInt()
-                            )
-                        )
+        if (measurables.size > 1) {
+            for (index in measurables.indices) {
+                val growth = animatables[index].value * expandedRatio * widths[index]
+                if (index in 1 until measurables.lastIndex) {
+                    widths[index - 1] -= (growth / 2f).roundToInt()
+                    widths[index + 1] -= (growth / 2).roundToInt()
+                } else {
+                    if (index == 0) {
+                        widths[index + 1] -= growth.roundToInt()
                     } else {
-                        measurable.measure(childrenConstraints[index] ?: constraints)
+                        widths[index - 1] -= growth.roundToInt()
                     }
                 }
+
+                widths[index] += growth.roundToInt()
+            }
         }
+
+        placeables =
+            measurables.fastMapIndexed { index, placeable ->
+                placeable.measure(
+                    constraints.copy(minWidth = widths[index], maxWidth = widths[index])
+                )
+            }
 
         // Compute the row size and position the children.
         val mainAxisLayoutSize = max((fixedSpace + weightedSpace).coerceAtLeast(0), mainAxisMin)
@@ -476,28 +425,40 @@ interface ButtonGroupScope {
         @FloatRange(from = 0.0, fromInclusive = false) weight: Float,
         fill: Boolean = true
     ): Modifier
+
+    /**
+     * Specifies the interaction source to use with this item. This is used to listen to events and
+     * animate growing the pressed button and shrink the neighbor(s).
+     *
+     * @param interactionSource the [InteractionSource] that button group will observe.
+     */
+    fun Modifier.animateWidth(interactionSource: InteractionSource): Modifier
 }
 
 internal val IntrinsicMeasurable.buttonGroupParentData: ButtonGroupParentData?
     get() = parentData as? ButtonGroupParentData
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 internal val ButtonGroupParentData?.fill: Boolean
     get() = this?.fill ?: true
 
 internal val ButtonGroupParentData?.weight: Float
     get() = this?.weight ?: 0f
 
-internal data class ButtonGroupParentData(var weight: Float = 0f, var fill: Boolean = true)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal data class ButtonGroupParentData(
+    var weight: Float = 0f,
+    var fill: Boolean = true,
+    var pressedAnimatable: Animatable<Float, AnimationVector1D> = Animatable(0f)
+)
 
-internal class LayoutWeightElement(
-    val weight: Float,
-    val fill: Boolean,
-) : ModifierNodeElement<LayoutWeightNode>() {
-    override fun create(): LayoutWeightNode {
-        return LayoutWeightNode(weight, fill)
+internal class ButtonGroupElement(val weight: Float = 0f, val fill: Boolean = true) :
+    ModifierNodeElement<ButtonGroupNode>() {
+    override fun create(): ButtonGroupNode {
+        return ButtonGroupNode(weight, fill)
     }
 
-    override fun update(node: LayoutWeightNode) {
+    override fun update(node: ButtonGroupNode) {
         node.weight = weight
         node.fill = fill
     }
@@ -517,18 +478,99 @@ internal class LayoutWeightElement(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        val otherModifier = other as? LayoutWeightElement ?: return false
+        val otherModifier = other as? ButtonGroupElement ?: return false
         return weight == otherModifier.weight && fill == otherModifier.fill
     }
 }
 
-internal class LayoutWeightNode(
-    var weight: Float,
-    var fill: Boolean,
-) : ParentDataModifierNode, Modifier.Node() {
+internal class ButtonGroupNode(var weight: Float, var fill: Boolean) :
+    ParentDataModifierNode, Modifier.Node() {
     override fun Density.modifyParentData(parentData: Any?) =
         ((parentData as? ButtonGroupParentData) ?: ButtonGroupParentData()).also {
             it.weight = weight
             it.fill = fill
+        }
+}
+
+internal class EnlargeOnPressElement(
+    val interactionSource: InteractionSource,
+    val animationSpec: AnimationSpec<Float>,
+) : ModifierNodeElement<EnlargeOnPressNode>() {
+
+    override fun create(): EnlargeOnPressNode {
+        return EnlargeOnPressNode(interactionSource, animationSpec)
+    }
+
+    override fun update(node: EnlargeOnPressNode) {
+        if (node.interactionSource != interactionSource) {
+            node.interactionSource = interactionSource
+            node.launchCollectionJob()
+        }
+        node.animationSpec = animationSpec
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "EnlargeOnPressElement"
+        properties["interactionSource"] = interactionSource
+        properties["animationSpec"] = animationSpec
+    }
+
+    override fun hashCode() = interactionSource.hashCode() * 31 + animationSpec.hashCode()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        val otherModifier = other as? EnlargeOnPressNode ?: return false
+        return interactionSource == otherModifier.interactionSource &&
+            animationSpec == otherModifier.animationSpec
+    }
+}
+
+internal class EnlargeOnPressNode(
+    var interactionSource: InteractionSource,
+    var animationSpec: AnimationSpec<Float>
+) : ParentDataModifierNode, Modifier.Node() {
+    private val pressedAnimatable: Animatable<Float, AnimationVector1D> = Animatable(0f)
+
+    private var collectionJob: Job? = null
+
+    override fun onAttach() {
+        super.onAttach()
+
+        launchCollectionJob()
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        collectionJob = null
+    }
+
+    internal fun launchCollectionJob() {
+        collectionJob?.cancel()
+        collectionJob =
+            coroutineScope.launch {
+                launch {
+                    // Use collect here to ensure we don't lose any events.
+                    interactionSource.interactions.collectLatest { interaction ->
+                        when (interaction) {
+                            is PressInteraction.Press -> {
+                                coroutineScope.launch {
+                                    pressedAnimatable.animateTo(1f, animationSpec)
+                                }
+                            }
+                            is PressInteraction.Release,
+                            is PressInteraction.Cancel -> {
+                                coroutineScope.launch {
+                                    pressedAnimatable.animateTo(0f, animationSpec)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    }
+
+    override fun Density.modifyParentData(parentData: Any?) =
+        (parentData as? ButtonGroupParentData).let { prev ->
+            ButtonGroupParentData(prev.weight, prev.fill, pressedAnimatable)
         }
 }

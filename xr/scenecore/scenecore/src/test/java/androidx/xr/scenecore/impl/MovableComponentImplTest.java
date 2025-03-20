@@ -42,12 +42,9 @@ import android.view.ViewGroup.LayoutParams;
 
 import androidx.annotation.NonNull;
 import androidx.test.rule.GrantPermissionRule;
-import androidx.xr.extensions.node.Mat4f;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.Quatf;
+import androidx.xr.extensions.node.NodeTypeConverter;
 import androidx.xr.extensions.node.ReformEvent;
 import androidx.xr.extensions.node.ReformOptions;
-import androidx.xr.extensions.node.Vec3;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
@@ -64,6 +61,7 @@ import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.Anchor;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Plane;
@@ -71,10 +69,16 @@ import androidx.xr.scenecore.impl.perception.Plane.PlaneData;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
 import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNodeTransform;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeReformEvent;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Mat4f;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeTransform;
+import com.android.extensions.xr.node.Quatf;
+import com.android.extensions.xr.node.ShadowNodeTransform;
+import com.android.extensions.xr.node.ShadowReformEvent;
+import com.android.extensions.xr.node.Vec3;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
@@ -93,6 +97,8 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 
+import java.time.Duration;
+
 @RunWith(RobolectricTestRunner.class)
 public class MovableComponentImplTest {
     private final ActivityController<Activity> mActivityController =
@@ -100,7 +106,7 @@ public class MovableComponentImplTest {
     private final Activity mActivity = mActivityController.create().start().get();
     private final FakeScheduledExecutorService mFakeExecutor = new FakeScheduledExecutorService();
     private final PerceptionLibrary mPerceptionLibrary = mock(PerceptionLibrary.class);
-    private final FakeXrExtensions mFakeExtensions = new FakeXrExtensions();
+    private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final FakeImpressApi mFakeImpressApi = new FakeImpressApi();
     private final EntityManager mEntityManager = new EntityManager();
 
@@ -131,7 +137,7 @@ public class MovableComponentImplTest {
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mFakeImpressApi,
                         mEntityManager,
                         mPerceptionLibrary,
@@ -142,6 +148,10 @@ public class MovableComponentImplTest {
         mActivitySpaceNode = mActivitySpaceImpl.getNode();
         mPerceptionSpaceActivityPose =
                 (PerceptionSpaceActivityPoseImpl) mFakeRuntime.getPerceptionSpaceActivityPose();
+        // TODO: b/377554103 - Remove delay once the subscription API are synced with the node
+        // creation.
+        mFakeExecutor.simulateSleepExecutingAllTasks(
+                Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
     }
 
     @After
@@ -159,17 +169,17 @@ public class MovableComponentImplTest {
         Context displayContext = mActivity.createDisplayContext(display);
         View view = new View(displayContext);
         view.setLayoutParams(new LayoutParams(640, 480));
-        Node node = mFakeExtensions.createNode();
+        Node node = mXrExtensions.createNode();
 
         PanelEntityImpl panelEntity =
                 new PanelEntityImpl(
+                        displayContext,
                         node,
                         view,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mEntityManager,
                         new PixelDimensions(10, 10),
                         "panelShadow",
-                        displayContext,
                         mFakeExecutor);
         panelEntity.setParent(mActivitySpaceImpl);
         return panelEntity;
@@ -180,9 +190,9 @@ public class MovableComponentImplTest {
         Matrix4 scaleMatrix = Matrix4.fromScale(scale);
         Matrix4 scaledPoseMatrix = poseMatrix.times(scaleMatrix);
         Mat4f mat4f = new Mat4f(scaledPoseMatrix.getData());
-        FakeNodeTransform nodeTransformEvent = new FakeNodeTransform(mat4f);
+        NodeTransform nodeTransformEvent = ShadowNodeTransform.create(mat4f);
 
-        ((FakeNode) mActivitySpaceNode).sendTransformEvent(nodeTransformEvent);
+        new FakeNode(mActivitySpaceNode).sendTransformEvent(nodeTransformEvent);
         mFakeExecutor.runAll();
     }
 
@@ -203,7 +213,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -212,7 +222,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         assertThat(node.getReformOptions().getEnabledReform()).isEqualTo(ReformOptions.ALLOW_MOVE);
         assertThat(node.getReformOptions().getFlags())
@@ -231,7 +241,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -240,7 +250,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         assertThat(node.getReformOptions().getEnabledReform()).isEqualTo(ReformOptions.ALLOW_MOVE);
         assertThat(node.getReformOptions().getFlags())
@@ -259,7 +269,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -268,7 +278,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         assertThat(node.getReformOptions().getEnabledReform()).isEqualTo(ReformOptions.ALLOW_MOVE);
         assertThat(node.getReformOptions().getFlags())
@@ -287,7 +297,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -296,7 +306,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         assertThat(node.getReformOptions().getEnabledReform()).isEqualTo(ReformOptions.ALLOW_MOVE);
         assertThat(node.getReformOptions().getFlags())
@@ -316,7 +326,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -331,12 +341,16 @@ public class MovableComponentImplTest {
         entity.setPose(new Pose(new Vector3(1f, 1f, 1f), new Quaternion(0f, 0f, 0f, 1f)));
         entity.setScale(new Vector3(1f, 1f, 1f));
 
-        FakeNode node = (FakeNode) entity.getNode();
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setProposedPosition(new Vec3(2f, 2f, 2f));
-        reformEvent.setProposedOrientation(new Quatf(0.5f, 0.5f, 0.5f, 0.5f));
-        reformEvent.setProposedScale(new Vec3(1.2f, 1.2f, 1.2f));
+        FakeNode node = new FakeNode(entity.getNode());
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+        ShadowReformEvent shadowReformEvent = ShadowReformEvent.extract(realReformEvent);
+        shadowReformEvent.setProposedPosition(new Vec3(2f, 2f, 2f));
+        shadowReformEvent.setProposedOrientation(new Quatf(0.5f, 0.5f, 0.5f, 0.5f));
+        shadowReformEvent.setProposedScale(new Vec3(1.2f, 1.2f, 1.2f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -357,7 +371,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -370,12 +384,16 @@ public class MovableComponentImplTest {
         entity.setPose(new Pose(new Vector3(1f, 1f, 1f), new Quaternion(0f, 0f, 0f, 1f)));
         entity.setScale(new Vector3(1f, 1f, 1f));
 
-        FakeNode node = (FakeNode) entity.getNode();
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setProposedPosition(new Vec3(2f, 2f, 2f));
-        reformEvent.setProposedOrientation(new Quatf(0.5f, 0.5f, 0.5f, 0.5f));
-        reformEvent.setProposedScale(new Vec3(1.2f, 1.2f, 1.2f));
+        FakeNode node = new FakeNode(entity.getNode());
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+        ShadowReformEvent shadowReformEvent = ShadowReformEvent.extract(realReformEvent);
+        shadowReformEvent.setProposedPosition(new Vec3(2f, 2f, 2f));
+        shadowReformEvent.setProposedOrientation(new Quatf(0.5f, 0.5f, 0.5f, 0.5f));
+        shadowReformEvent.setProposedScale(new Vec3(1.2f, 1.2f, 1.2f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -396,7 +414,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -405,7 +423,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         movableComponent.setSize(new Dimensions(2f, 2f, 2f));
         assertThat(node.getReformOptions().getCurrentSize().x).isEqualTo(2f);
@@ -423,14 +441,14 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
                         mEntityManager,
                         mPanelShadowRenderer,
                         mFakeExecutor);
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
         // Default value for scaleWithDistanceMode is DEFAULT.
         assertThat(movableComponent.getScaleWithDistanceMode())
@@ -450,14 +468,14 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
                         mEntityManager,
                         mPanelShadowRenderer,
                         mFakeExecutor);
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         assertThat(entity.addComponent(movableComponent)).isTrue();
 
         movableComponent.setScaleWithDistanceMode(MovableComponent.ScaleWithDistanceMode.DMM);
@@ -478,7 +496,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -491,7 +509,7 @@ public class MovableComponentImplTest {
         movableComponent.addMoveEventListener(directExecutor(), mockMoveEventListener);
         assertThat(movableComponent.mReformEventConsumer).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) entity.getNode();
+        FakeNode node = new FakeNode(entity.getNode());
 
         assertThat(node.getReformOptions().getCurrentSize().x).isEqualTo(2f);
         assertThat(node.getReformOptions().getCurrentSize().y).isEqualTo(2f);
@@ -515,7 +533,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -524,7 +542,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) entity.getNode();
+        FakeNode node = new FakeNode(entity.getNode());
         MoveEventListener mockMoveEventListener = mock(MoveEventListener.class);
 
         movableComponent.addMoveEventListener(directExecutor(), mockMoveEventListener);
@@ -532,19 +550,27 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
         assertThat(entity.mReformEventConsumerMap).isNotEmpty();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_RESIZE);
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_RESIZE, /* state= */ 0, /* id= */ 0);
+
+        final ReformEvent resizeReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(resizeReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         verify(mockMoveEventListener, never()).onMoveEvent(any());
 
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+
+        final ReformEvent moveReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(() -> node.getReformOptions().getEventCallback().accept(moveReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         ArgumentCaptor<MoveEvent> moveEventCaptor = ArgumentCaptor.forClass(MoveEvent.class);
@@ -564,7 +590,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -573,7 +599,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         MoveEventListener mockMoveEventListener = mock(MoveEventListener.class);
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -581,8 +607,11 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -603,7 +632,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -611,15 +640,18 @@ public class MovableComponentImplTest {
                         mPanelShadowRenderer,
                         mFakeExecutor);
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         MoveEventListener mockMoveEventListener1 = mock(MoveEventListener.class);
         MoveEventListener mockMoveEventListener2 = mock(MoveEventListener.class);
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
         movableComponent.addMoveEventListener(executorService, mockMoveEventListener1);
         movableComponent.addMoveEventListener(executorService, mockMoveEventListener2);
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -642,7 +674,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -650,15 +682,18 @@ public class MovableComponentImplTest {
                         mPanelShadowRenderer,
                         mFakeExecutor);
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         MoveEventListener mockMoveEventListener1 = mock(MoveEventListener.class);
         MoveEventListener mockMoveEventListener2 = mock(MoveEventListener.class);
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
         movableComponent.addMoveEventListener(executorService, mockMoveEventListener1);
         movableComponent.addMoveEventListener(executorService, mockMoveEventListener2);
-        FakeReformEvent reformEvent = new FakeReformEvent();
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -693,7 +728,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -702,7 +737,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         MoveEventListener mockMoveEventListener = mock(MoveEventListener.class);
 
         movableComponent.addMoveEventListener(directExecutor(), mockMoveEventListener);
@@ -710,13 +745,7 @@ public class MovableComponentImplTest {
         assertThat(((AndroidXrEntity) entity).mReformEventConsumerMap).isNotEmpty();
 
         entity.removeComponent(movableComponent);
-        assertThat(node.getReformOptions().getEnabledReform() & ReformOptions.ALLOW_MOVE)
-                .isEqualTo(0);
-        assertThat(
-                        node.getReformOptions().getFlags()
-                                & (ReformOptions.FLAG_SCALE_WITH_DISTANCE
-                                        | ReformOptions.FLAG_ALLOW_SYSTEM_MOVEMENT))
-                .isEqualTo(0);
+        assertThat(node.getReformOptions()).isNull();
         assertThat(movableComponent.mReformEventConsumer).isNull();
         assertThat(((AndroidXrEntity) entity).mReformEventConsumerMap).isEmpty();
     }
@@ -732,7 +761,7 @@ public class MovableComponentImplTest {
                         /* anchorPlacement= */ ImmutableSet.of(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -776,7 +805,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -785,7 +814,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -795,13 +824,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -861,7 +894,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -870,7 +903,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -880,13 +913,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -940,7 +977,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -949,7 +986,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -960,13 +997,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1029,7 +1070,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1038,7 +1079,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1049,13 +1090,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1111,7 +1156,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1120,7 +1165,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1131,13 +1176,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane. This needs to be divided by the scale of the activity space.
-        reformEvent.setProposedPosition(new Vec3(.5f, .5f, .5f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(.5f, .5f, .5f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1192,7 +1241,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1201,7 +1250,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1213,13 +1262,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1279,7 +1332,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1288,7 +1341,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1300,15 +1353,20 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 2 + half the MIN_PLANE_ANCHOR_DISTANCE above the origin. So
         // it
         // would be right above the plane.
-        reformEvent.setProposedPosition(
-                new Vec3(1f, 3f + MovableComponentImpl.MIN_PLANE_ANCHOR_DISTANCE / 2f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent)
+                .setProposedPosition(
+                        new Vec3(1f, 3f + MovableComponentImpl.MIN_PLANE_ANCHOR_DISTANCE / 2f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1374,7 +1432,7 @@ public class MovableComponentImplTest {
                         anchorPlacementSet,
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1383,7 +1441,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1395,13 +1453,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1463,7 +1525,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1472,7 +1534,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1484,13 +1546,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane. This needs to be divided by the scale of the activity space.
-        reformEvent.setProposedPosition(new Vec3(.5f, .5f, .5f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(.5f, .5f, .5f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1534,7 +1600,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1543,7 +1609,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1554,10 +1620,12 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
 
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1593,7 +1661,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1602,7 +1670,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1613,10 +1681,12 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
 
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1664,7 +1734,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1673,7 +1743,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1684,10 +1754,12 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE, /* state= */ 0, /* id= */ 0);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
 
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1739,7 +1811,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1748,7 +1820,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1760,13 +1832,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 1f, 1f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1790,14 +1866,21 @@ public class MovableComponentImplTest {
         assertThat(moveEventListener.mLastMoveEvent.updatedParent).isInstanceOf(AnchorEntity.class);
         assertThat(moveEventListener.mLastMoveEvent.updatedParent).isEqualTo(entity.getParent());
 
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
+
         // Put the proposed position at 4 above the origin so it would be off the plane. It should
         // reset to the activity space pose and rotation.
-        reformEvent.setProposedPosition(new Vec3(1f, 4f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 4f, 1f));
+
+        final ReformEvent secondReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(secondReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         assertThat(executorService.hasNext()).isTrue();
@@ -1856,7 +1939,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1865,7 +1948,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1877,13 +1960,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane. This needs to be divided by the scale of the activity space.
-        reformEvent.setProposedPosition(new Vec3(.5f, .5f, .5f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(.5f, .5f, .5f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -1910,14 +1997,21 @@ public class MovableComponentImplTest {
         assertThat(moveEventListener.mLastMoveEvent.updatedParent).isEqualTo(entity.getParent());
         assertVector3(entity.getWorldSpaceScale(), entityScale.times(activityScale));
 
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
+
         // Put the proposed position at 4 above the activity space so it would be off the plane. It
         // should reset to the activity space pose and rotation.
-        reformEvent.setProposedPosition(new Vec3(1f, 4f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 4f, 1f));
+
+        final ReformEvent secondReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(secondReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         assertThat(executorService.hasNext()).isTrue();
@@ -1978,7 +2072,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -1987,7 +2081,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -1999,14 +2093,18 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1 above the origin. It would need to move up 1 unit to be on
         // the
         // plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 1.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -2030,14 +2128,21 @@ public class MovableComponentImplTest {
         assertThat(moveEventListener.mLastMoveEvent.updatedParent).isInstanceOf(AnchorEntity.class);
         assertThat(moveEventListener.mLastMoveEvent.updatedParent).isEqualTo(entity.getParent());
 
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
+
         // Put the proposed position at 4 above the origin so it would be off the plane. It should
         // reset to the activity space pose and rotation.
-        reformEvent.setProposedPosition(new Vec3(1f, 4f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 4f, 1f));
+
+        final ReformEvent secondReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(secondReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         assertThat(executorService.hasNext()).isTrue();
@@ -2091,7 +2196,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ true,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -2100,7 +2205,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -2112,13 +2217,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 1.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -2144,14 +2253,21 @@ public class MovableComponentImplTest {
         // Cache the anchor entity.
         Entity anchorEntity = moveEventListener.mLastMoveEvent.updatedParent;
 
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
+
         // Put the proposed position at 4 above the origin so it would be off the plane. It should
         // reset to the activity space pose and rotation.
-        reformEvent.setProposedPosition(new Vec3(1f, 4f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1f, 4f, 1f));
+
+        final ReformEvent secondReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(secondReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         assertThat(executorService.hasNext()).isTrue();
@@ -2209,7 +2325,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ true,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -2218,7 +2334,7 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
         TestMoveEventListener moveEventListener = new TestMoveEventListener();
         FakeScheduledExecutorService executorService = new FakeScheduledExecutorService();
 
@@ -2230,13 +2346,17 @@ public class MovableComponentImplTest {
         assertThat(node.getReformOptions().getEventCallback()).isNotNull();
         assertThat(node.getReformOptions().getEventExecutor()).isNotNull();
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Put the proposed position at 1  above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 1.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -2265,14 +2385,20 @@ public class MovableComponentImplTest {
         Entity child = createTestEntity();
         anchorEntity.addChild(child);
 
+        realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
+
         // Put the proposed position at 4 above the origin so it would be off the plane. It should
         // reset to the activity space pose and rotation.
-        reformEvent.setProposedPosition(new Vec3(1f, 4f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 4.0f, 1.0f));
+        final ReformEvent secondReformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
-                .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
+                .execute(
+                        () -> node.getReformOptions().getEventCallback().accept(secondReformEvent));
         assertThat(mFakeExecutor.hasNext()).isTrue();
         mFakeExecutor.runAll();
         assertThat(executorService.hasNext()).isTrue();
@@ -2326,7 +2452,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -2335,15 +2461,19 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 1 above the origin. so it would need to move up 1 unit to
         // be on the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 1.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -2389,7 +2519,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -2398,14 +2528,18 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_ONGOING,
+                        /* id= */ 0);
 
         // Put the proposed position at 5 above the origin. so it is far away from the plane.
-        reformEvent.setProposedPosition(new Vec3(1f, 5f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_ONGOING);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 5.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));
@@ -2447,7 +2581,7 @@ public class MovableComponentImplTest {
                         createAnyAnchorPlacement(),
                         /* shouldDisposeParentAnchor= */ false,
                         mPerceptionLibrary,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mActivitySpaceImpl,
                         mActivitySpaceRoot,
                         mPerceptionSpaceActivityPose,
@@ -2456,14 +2590,18 @@ public class MovableComponentImplTest {
                         mFakeExecutor);
         assertThat(movableComponent).isNotNull();
         assertThat(entity.addComponent(movableComponent)).isTrue();
-        FakeNode node = (FakeNode) ((AndroidXrEntity) entity).getNode();
+        FakeNode node = new FakeNode(((AndroidXrEntity) entity).getNode());
 
-        FakeReformEvent reformEvent = new FakeReformEvent();
+        com.android.extensions.xr.node.ReformEvent realReformEvent =
+                ShadowReformEvent.create(
+                        /* type= */ ReformEvent.REFORM_TYPE_MOVE,
+                        /* state= */ ReformEvent.REFORM_STATE_END,
+                        /* id= */ 0);
 
         // Set the reform state to end so that the plane shadow gets destroyed.
-        reformEvent.setProposedPosition(new Vec3(1f, 1f, 1f));
-        reformEvent.setType(ReformEvent.REFORM_TYPE_MOVE);
-        reformEvent.setState(ReformEvent.REFORM_STATE_END);
+        ShadowReformEvent.extract(realReformEvent).setProposedPosition(new Vec3(1.0f, 1.0f, 1.0f));
+
+        final ReformEvent reformEvent = NodeTypeConverter.toLibrary(realReformEvent);
         node.getReformOptions()
                 .getEventExecutor()
                 .execute(() -> node.getReformOptions().getEventCallback().accept(reformEvent));

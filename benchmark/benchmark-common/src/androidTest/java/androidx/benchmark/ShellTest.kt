@@ -39,6 +39,7 @@ import org.junit.runner.RunWith
 @SmallTest
 @RunWith(AndroidJUnit4::class)
 class ShellTest {
+
     @Before
     @After
     fun setup() {
@@ -530,6 +531,26 @@ class ShellTest {
         assertTrue(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.app:ui"))
         assertTrue(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.app"))
         assertFalse(Shell.fullProcessNameMatchesProcess("example.app:ui", "example.ap"))
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 36)
+    fun pgrepLF() {
+        val processPids = Shell.pgrepLF(Packages.TEST)
+        assertTrue(
+            processPids.any { it.processName == Packages.TEST },
+            "expected package name to be contained in output:\n${processPids.joinToString("\n")}"
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 23, maxSdkVersion = 35)
+    fun pgrepLFBelowApi36() {
+        val processPids = Shell.pgrepLF(Packages.TEST)
+        assertTrue(
+            processPids.any { it.processName == Packages.TEST },
+            "expected package name to be contained in output:\n${processPids.joinToString("\n")}"
+        )
     }
 
     private fun pidof(packageName: String): Int? {

@@ -59,8 +59,7 @@ fun <T : Any> ListDetailNavDisplay(
             Row {
                 var rightEntry: NavEntry<T>? = null
                 val leftEntry: NavEntry<T>?
-                val isSupportingPane =
-                    lastEntry.featureMap[IS_SUPPORTING_PANE]?.equals(true) ?: false
+                val isSupportingPane = lastEntry.metadata[IS_SUPPORTING_PANE]?.equals(true) ?: false
                 if (isSupportingPane) {
                     // Display the penultimate entry in the left pane
                     leftEntry = entries[entries.size - 2]

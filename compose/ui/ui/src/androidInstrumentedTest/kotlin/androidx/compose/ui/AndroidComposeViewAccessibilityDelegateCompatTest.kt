@@ -103,6 +103,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.ACTION_PASTE
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.RangeInfoCompat.RANGE_TYPE_FLOAT
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Correspondence
@@ -670,6 +671,7 @@ class AndroidComposeViewAccessibilityDelegateCompatTest {
         }
     }
 
+    @FlakyTest(bugId = 403310024)
     @Test
     fun testPopulateAccessibilityNodeInfoProperties_liveRegionUpdate() {
         // Arrange.

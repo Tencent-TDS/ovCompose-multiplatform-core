@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Bounds values in meters.
@@ -24,7 +23,6 @@ import androidx.annotation.RestrictTo;
  * @see androidx.xr.extensions.XrExtensions#getSpatialState
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Bounds {
 
     public Bounds(float width, float height, float depth) {

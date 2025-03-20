@@ -33,6 +33,7 @@ import androidx.annotation.WorkerThread
 import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.room.Room.LOG_TAG
 import androidx.room.concurrent.CloseBarrier
+import androidx.room.coroutines.runBlockingUninterruptible
 import androidx.room.driver.SupportSQLiteConnection
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
@@ -497,7 +498,7 @@ actual abstract class RoomDatabase {
     protected fun performClear(hasForeignKeys: Boolean, vararg tableNames: String) {
         assertNotMainThread()
         assertNotSuspendingTransaction()
-        runBlocking {
+        runBlockingUninterruptible {
             connectionManager.useConnection(isReadOnly = false) { connection ->
                 if (!connection.inTransaction()) {
                     invalidationTracker.sync()

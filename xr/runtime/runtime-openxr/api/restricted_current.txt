@@ -22,7 +22,7 @@ package androidx.xr.runtime.openxr {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HandState {
     ctor public HandState();
-    ctor public HandState(optional boolean isActive, optional java.util.List<androidx.xr.runtime.math.Pose> handJoints);
+    ctor public HandState(optional androidx.xr.runtime.internal.TrackingState trackingState, optional java.util.List<androidx.xr.runtime.math.Pose> handJoints);
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HitData {
@@ -55,11 +55,11 @@ package androidx.xr.runtime.openxr {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrHand implements androidx.xr.runtime.internal.Hand {
-    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
-    method public boolean isActive();
+    method public java.nio.ByteBuffer getHandJointsBuffer();
+    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
     method public void update(long xrTime);
-    property public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
-    property public boolean isActive;
+    property public java.nio.ByteBuffer handJointsBuffer;
+    property public androidx.xr.runtime.internal.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class OpenXrManager implements androidx.xr.runtime.internal.LifecycleManager {

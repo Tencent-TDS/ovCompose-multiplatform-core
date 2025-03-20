@@ -121,13 +121,13 @@ private fun AppFunctionData.unsafeGetSingleProperty(
 ): Any? {
     return when (type) {
         TYPE_INT -> {
-            TODO("Not implement yet - clarify AppFunctionData#getInt API")
+            getIntOrNull(key)
         }
         TYPE_LONG -> {
             getLongOrNull(key)
         }
         TYPE_FLOAT -> {
-            TODO("Not implement yet - clarify AppFunctionData#getFloat API")
+            getFloatOrNull(key)
         }
         TYPE_DOUBLE -> {
             getDoubleOrNull(key)
@@ -136,7 +136,7 @@ private fun AppFunctionData.unsafeGetSingleProperty(
             getBooleanOrNull(key)
         }
         TYPE_BYTES -> {
-            TODO("Not implement yet - clarify AppFunctionData#getBytes API")
+            throw IllegalStateException("Type of a single byte is not supported")
         }
         TYPE_STRING -> {
             getString(key)
@@ -156,13 +156,13 @@ private fun AppFunctionData.unsafeGetCollectionProperty(
 ): Any? {
     return when (type) {
         TYPE_INT -> {
-            TODO("Not implement yet - clarify AppFunctionData#getIntArray API")
+            getIntArray(key)
         }
         TYPE_LONG -> {
             getLongArray(key)
         }
         TYPE_FLOAT -> {
-            TODO("Not implement yet - clarify AppFunctionData#getFloatArray API")
+            getFloatArray(key)
         }
         TYPE_DOUBLE -> {
             getDoubleArray(key)
@@ -171,7 +171,7 @@ private fun AppFunctionData.unsafeGetCollectionProperty(
             getBooleanArray(key)
         }
         TYPE_BYTES -> {
-            TODO("Not implement yet - clarify AppFunctionData#getBytesArray API")
+            getByteArray(key)
         }
         TYPE_STRING -> {
             getStringList(key)

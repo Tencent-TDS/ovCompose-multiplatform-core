@@ -22,10 +22,9 @@ import android.os.CancellationSignal
 import android.os.IBinder
 import androidx.annotation.RestrictTo
 import androidx.core.os.OutcomeReceiverCompat
-import androidx.credentials.CreateCredentialRequest
 import androidx.credentials.CreateCredentialResponse
 import androidx.credentials.exceptions.CreateCredentialException
-import androidx.credentials.provider.CallingAppInfo
+import androidx.credentials.provider.ProviderCreateCredentialRequest
 import androidx.credentials.providerevents.internal.CredentialEventsProviderFactory
 
 /** Service to be extended by credential providers to receive credential updates and events */
@@ -47,8 +46,7 @@ public abstract class CredentialProviderEventsService : Service() {
      * Credential provider must extend this method in order to receive credential creation requests
      */
     public open fun onCreateCredentialRequest(
-        request: CreateCredentialRequest,
-        callingAppInfo: CallingAppInfo,
+        request: ProviderCreateCredentialRequest,
         cancellationSignal: CancellationSignal,
         callback: OutcomeReceiverCompat<CreateCredentialResponse, CreateCredentialException>
     ) {}

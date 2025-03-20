@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * {@link com.android.extensions.xr.media.PointSourceAttributes PointSourceAttributes} is used to
  * configure a sound be spatialized as a 3D point.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class PointSourceAttributes {
 
     PointSourceAttributes() {
@@ -47,7 +45,6 @@ public class PointSourceAttributes {
      * PointSourceAttributes}
      */
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static final class Builder {
 
         public Builder() {

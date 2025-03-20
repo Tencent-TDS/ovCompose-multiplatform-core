@@ -143,6 +143,9 @@ class RuleParserTests {
                         .setAnimationBackground(
                             EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
                         )
+                        .setOpenAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setCloseAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setChangeAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
                         .build()
                 )
                 .build()
@@ -186,6 +189,7 @@ class RuleParserTests {
             DividerAttributes.DraggableDividerAttributes.Builder()
                 .setWidthDp(1)
                 .setColor(expectedDividerColor.toInt())
+                .setDraggingToFullscreenAllowed(true)
                 .setDragRange(DividerAttributes.DragRange.SplitRatioDragRange(0.2f, 0.8f))
                 .build()
 
@@ -320,6 +324,9 @@ class RuleParserTests {
                                 application.resources.getColor(R.color.testColor, null)
                             )
                         )
+                        .setOpenAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setCloseAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setChangeAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
                         .build()
                 )
                 .build()

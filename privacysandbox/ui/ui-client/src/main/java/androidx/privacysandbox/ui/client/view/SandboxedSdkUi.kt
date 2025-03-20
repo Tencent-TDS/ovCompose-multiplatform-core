@@ -36,7 +36,7 @@ import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 fun SandboxedSdkUi(
     sandboxedUiAdapter: SandboxedUiAdapter,
     modifier: Modifier = Modifier,
-    providerUiOnTop: Boolean = true,
+    providerUiOnTop: Boolean = false,
     sandboxedSdkViewEventListener: SandboxedSdkViewEventListener? = null
 ) {
     AndroidView(

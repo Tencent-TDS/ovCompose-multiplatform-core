@@ -70,6 +70,10 @@ public class TrustedWebActivityIntentBuilder {
     /** Extra for the share data, see {@link #setShareParams}. */
     public static final String EXTRA_SHARE_DATA = "androidx.browser.trusted.extra.SHARE_DATA";
 
+    /** Extra for the opened files data, see {@link #setHandledFiles}. */
+    public static final String EXTRA_FILE_HANDLING_DATA =
+            "androidx.browser.trusted.extra.FILE_HANDLING_DATA";
+
     /** Extra for the {@link TrustedWebActivityDisplayMode}, see {@link #setDisplayMode}. */
     public static final String EXTRA_DISPLAY_MODE = "androidx.browser.trusted.extra.DISPLAY_MODE";
 
@@ -86,6 +90,13 @@ public class TrustedWebActivityIntentBuilder {
     public static final String EXTRA_ORIGINAL_LAUNCH_URL =
             "androidx.browser.trusted.extra.ORIGINAL_LAUNCH_URL";
 
+    /**
+     * If a TWA is being launched using Launch Handler API, its client mode value is provided,
+     * see {@link #setLaunchHandlerClientMode}.
+     */
+    public static final String EXTRA_LAUNCH_HANDLER_CLIENT_MODE =
+            "androidx.browser.trusted.extra.LAUNCH_HANDLER_CLIENT_MODE";
+
     private final @NonNull Uri mUri;
     private final CustomTabsIntent.@NonNull Builder mIntentBuilder = new CustomTabsIntent.Builder();
 
@@ -95,7 +106,12 @@ public class TrustedWebActivityIntentBuilder {
     private @Nullable ShareData mShareData;
     private @Nullable ShareTarget mShareTarget;
 
+    private @Nullable FileHandlingData mFileHandlingData;
+
     private @Nullable Uri mOriginalLaunchUrl;
+
+    @LaunchHandlerClientMode.ClientMode
+    private int mLaunchHandlerClientMode = LaunchHandlerClientMode.AUTO;
 
     private @NonNull TrustedWebActivityDisplayMode mDisplayMode =
             new TrustedWebActivityDisplayMode.DefaultMode();
@@ -248,6 +264,18 @@ public class TrustedWebActivityIntentBuilder {
     }
 
     /**
+     * Sets the parameters for delivering launch files to launch queue via a Trusted Web Activity.
+     *
+     * @param fileHandlingData A {@link FileHandlingData} object containing the data to be sent
+     * to browser launch queue.
+     */
+    public @NonNull TrustedWebActivityIntentBuilder setFileHandlingData(
+            @NonNull FileHandlingData fileHandlingData) {
+        mFileHandlingData = fileHandlingData;
+        return this;
+    }
+
+    /**
      * Sets a {@link TrustedWebActivityDisplayMode}. This can be used e.g. to enable immersive mode
      * (see {@link TrustedWebActivityDisplayMode.ImmersiveMode}. Not setting it means
      * {@link TrustedWebActivityDisplayMode.DefaultMode} will be used.
@@ -289,6 +317,17 @@ public class TrustedWebActivityIntentBuilder {
     }
 
     /**
+     * Sets the parameter for delivering Launch Handler API client mode via a Trusted Web Activity.
+     *
+     * @param launchHandlerClientMode A string describing the client mode.
+     */
+    public @NonNull TrustedWebActivityIntentBuilder setLaunchHandlerClientMode(
+            @LaunchHandlerClientMode.ClientMode int launchHandlerClientMode) {
+        mLaunchHandlerClientMode = launchHandlerClientMode;
+        return this;
+    }
+
+    /**
      * Builds an instance of {@link TrustedWebActivityIntent}.
      *
      * @param session The {@link CustomTabsSession} to use for launching a Trusted Web Activity.
@@ -318,12 +357,22 @@ public class TrustedWebActivityIntentBuilder {
                 sharedUris = mShareData.uris;
             }
         }
+        List<Uri> fileHandlingUris = Collections.emptyList();
+        if (mFileHandlingData != null) {
+            intent.putExtra(EXTRA_FILE_HANDLING_DATA, mFileHandlingData.toBundle());
+            if (mFileHandlingData.uris != null) {
+                fileHandlingUris = mFileHandlingData.uris;
+            }
+        }
         intent.putExtra(EXTRA_DISPLAY_MODE, mDisplayMode.toBundle());
         intent.putExtra(EXTRA_SCREEN_ORIENTATION, mScreenOrientation);
         if (mOriginalLaunchUrl != null) {
             intent.putExtra(EXTRA_ORIGINAL_LAUNCH_URL, mOriginalLaunchUrl);
         }
-        return new TrustedWebActivityIntent(intent, sharedUris);
+
+        intent.putExtra(EXTRA_LAUNCH_HANDLER_CLIENT_MODE, mLaunchHandlerClientMode);
+
+        return new TrustedWebActivityIntent(intent, sharedUris, fileHandlingUris);
     }
 
     /**

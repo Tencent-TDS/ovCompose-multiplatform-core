@@ -144,7 +144,7 @@ internal class SubspaceModifierNodeChain(private val subspaceLayoutNode: Subspac
             return wrappedMeasureBlock(constraints)
         }
         inMeasurePass = true
-        val placeable = layoutNode.coordinator.measure(constraints)
+        val placeable = layoutNode.requireCoordinator().measure(constraints)
         inMeasurePass = false
         return placeable
     }

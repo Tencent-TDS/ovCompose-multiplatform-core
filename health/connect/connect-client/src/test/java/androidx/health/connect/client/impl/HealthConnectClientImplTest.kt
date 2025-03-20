@@ -137,7 +137,9 @@ private val API_METHOD_LIST =
 
 @Suppress("GoodTime") // Safe to use in test setup
 @RunWith(AndroidJUnit4::class)
-@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@OptIn(
+    kotlinx.coroutines.ExperimentalCoroutinesApi::class,
+)
 class HealthConnectClientImplTest {
 
     private lateinit var healthConnectClient: HealthConnectClientImpl

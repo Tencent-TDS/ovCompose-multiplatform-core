@@ -16,6 +16,7 @@
 
 package androidx.pdf.search
 
+import android.os.DeadObjectException
 import androidx.annotation.RestrictTo
 import androidx.core.util.isNotEmpty
 import androidx.pdf.PdfDocument
@@ -88,9 +89,20 @@ public class SearchRepository(
         // to make [searchDocument] main-safe
         val searchResults =
             withContext(dispatcher) {
-                pdfDocument.searchDocument(query = query, pageRange = searchPageRange)
+                try {
+                    pdfDocument.searchDocument(query = query, pageRange = searchPageRange)
+                } catch (e: DeadObjectException) {
+                    // Ignore exception due to service disconnection. User will try again.
+                    return@withContext null
+                }
             }
 
+        if (searchResults == null) {
+            // An exception happened above because of service disconnection.
+            // Reset search so that user may try again.
+            _queryResults.update { NoQuery }
+            return
+        }
         val queryResults =
             if (searchResults.isNotEmpty()) {
                 /*

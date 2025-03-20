@@ -44,6 +44,6 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"Tambahkan"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"Sahkan"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"Ketepikan"</string>
-    <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"Buka pada telefon"</string>
-    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="7845336918219306426">"Ikon buka pada telefon"</string>
+    <string name="wear_m3c_open_on_phone" msgid="3200727397161392122">"Semak telefon anda"</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="5953380527505012363">"Semak ikon telefon anda"</string>
 </resources>

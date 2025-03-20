@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Handle to a node in the SpaceFlinger scene graph that can also host a 2D Panel or 3D subspace.
@@ -30,7 +29,6 @@ import androidx.annotation.RestrictTo;
  * system, i.e. +X points to the right, +Y up, and +Z points towards the camera.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Node implements android.os.Parcelable {
 
     Node() {
@@ -125,7 +123,7 @@ public class Node implements android.os.Parcelable {
         throw new RuntimeException("Stub!");
     }
 
-    /** A no-op override.  */
+    /** A no-op override. */
     public int describeContents() {
         throw new RuntimeException("Stub!");
     }

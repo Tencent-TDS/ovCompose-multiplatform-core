@@ -26,6 +26,10 @@ android {
     namespace = "androidx.browser"
 }
 
+android {
+    compileSdk = 36
+}
+
 dependencies {
     api(libs.jspecify)
     api("androidx.core:core:1.10.0")

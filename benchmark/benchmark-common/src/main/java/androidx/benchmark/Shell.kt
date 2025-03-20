@@ -500,7 +500,14 @@ object Shell {
     fun pgrepLF(pattern: String): List<ProcessPid> {
         // Note: we use the unsafe variant for performance, since this is a
         // common operation, and pgrep is stable after API 23 see [ShellBehaviorTest#pgrep]
-        return ShellImpl.executeCommandUnsafe("pgrep -l -f $pattern")
+        val apiSpecificArgs =
+            setOfNotNull(
+                    // aosp/3507001 -> needed to print full command line (so full package name)
+                    if (Build.VERSION.SDK_INT >= 36) "-a" else null
+                )
+                .joinToString(" ")
+
+        return ShellImpl.executeCommandUnsafe("pgrep -l -f $apiSpecificArgs $pattern")
             .split(Regex("\r?\n"))
             .filter { it.isNotEmpty() }
             .map {

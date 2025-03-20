@@ -230,8 +230,7 @@ fun Surface(
                         enabled = enabled,
                         onClick = onClick
                     )
-                    .childSemantics()
-                    .interactionSourceData(interactionSource),
+                    .childSemantics(),
             propagateMinConstraints = true
         ) {
             content()
@@ -338,8 +337,7 @@ fun Surface(
                         enabled = enabled,
                         onClick = onClick
                     )
-                    .childSemantics()
-                    .interactionSourceData(interactionSource),
+                    .childSemantics(),
             propagateMinConstraints = true
         ) {
             content()
@@ -446,8 +444,128 @@ fun Surface(
                         enabled = enabled,
                         onValueChange = onCheckedChange
                     )
-                    .childSemantics()
-                    .interactionSourceData(interactionSource),
+                    .childSemantics(),
+            propagateMinConstraints = true
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun Surface(
+    onClick: () -> Unit,
+    elevation: ComponentElevation?,
+    interactionSource: MutableInteractionSource,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = RectangleShape,
+    color: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = contentColorFor(color),
+    tonalElevation: Dp = 0.dp,
+    border: BorderStroke? = null,
+    content: @Composable () -> Unit
+) {
+    @Suppress("NAME_SHADOWING")
+    val shadowModifier =
+        if (elevation?.hasShadows == true) {
+            val shadowElevation =
+                elevation.shadowElevation(enabled = enabled, interactionSource = interactionSource)
+            val density = LocalDensity.current
+            Modifier.graphicsLayer {
+                this.shape = shape
+                clip = false
+                this.shadowElevation = with(density) { shadowElevation.value.toPx() }
+            }
+        } else {
+            Modifier
+        }
+
+    val absoluteElevation = LocalAbsoluteTonalElevation.current + tonalElevation
+    CompositionLocalProvider(
+        LocalContentColor provides contentColor,
+        LocalAbsoluteTonalElevation provides absoluteElevation
+    ) {
+        Box(
+            modifier =
+                modifier
+                    .minimumInteractiveComponentSize()
+                    .then(shadowModifier)
+                    .surface(
+                        shape = shape,
+                        backgroundColor = surfaceColorAtElevation(color, tonalElevation),
+                        border = border,
+                        shadowElevation = 0f
+                    )
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        enabled = enabled,
+                        onClick = onClick
+                    )
+                    .childSemantics(),
+            propagateMinConstraints = true
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+@NonRestartableComposable
+internal fun Surface(
+    selected: Boolean,
+    onClick: () -> Unit,
+    elevation: ComponentElevation?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = RectangleShape,
+    color: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = contentColorFor(color),
+    border: BorderStroke? = null,
+    interactionSource: MutableInteractionSource? = null,
+    content: @Composable () -> Unit
+) {
+    @Suppress("NAME_SHADOWING")
+    val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
+    val shadowModifier =
+        if (elevation?.hasShadows == true) {
+            val shadowElevation =
+                elevation.shadowElevation(enabled = enabled, interactionSource = interactionSource)
+            val density = LocalDensity.current
+            Modifier.graphicsLayer {
+                this.shape = shape
+                clip = false
+                this.shadowElevation = with(density) { shadowElevation.value.toPx() }
+            }
+        } else {
+            Modifier
+        }
+
+    CompositionLocalProvider(LocalContentColor provides contentColor) {
+        Box(
+            modifier =
+                modifier
+                    .minimumInteractiveComponentSize()
+                    .then(shadowModifier)
+                    .surface(
+                        shape = shape,
+                        backgroundColor =
+                            surfaceColorAtElevation(
+                                color = color,
+                                elevation = LocalAbsoluteTonalElevation.current
+                            ),
+                        border = border,
+                        shadowElevation = 0f
+                    )
+                    .selectable(
+                        selected = selected,
+                        interactionSource = interactionSource,
+                        indication = ripple(),
+                        enabled = enabled,
+                        onClick = onClick
+                    )
+                    .childSemantics(),
             propagateMinConstraints = true
         ) {
             content()

@@ -19,19 +19,19 @@ package androidx.appfunctions.internal
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.Executors
-import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 
 /** The Coroutine Dispatchers for AppFunction runtime infrastructure. */
 internal object Dispatchers {
     /** Android UI thread dispatcher. */
-    internal val Main: CoroutineContext by lazy {
+    internal val Main: CoroutineDispatcher by lazy {
         Handler(Looper.getMainLooper()).asCoroutineDispatcher()
     }
 
     /** AppFunction runtime worker thread dispatcher. */
-    internal val Worker: CoroutineContext by lazy {
+    internal val Worker: CoroutineDispatcher by lazy {
         Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     }
 }

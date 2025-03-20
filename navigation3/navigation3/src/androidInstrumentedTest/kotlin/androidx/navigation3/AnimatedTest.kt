@@ -133,7 +133,7 @@ class AnimatedTest {
                     second ->
                         NavEntry(
                             second,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(customDuration)),
                                     exit = fadeOut(tween(customDuration))
@@ -185,7 +185,7 @@ class AnimatedTest {
                     first ->
                         NavEntry(
                             first,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.popTransition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -244,7 +244,7 @@ class AnimatedTest {
                     first ->
                         NavEntry(
                             first,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.popTransition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -314,7 +314,7 @@ class AnimatedTest {
                     third ->
                         NavEntry(
                             third,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -371,7 +371,7 @@ class AnimatedTest {
                     third ->
                         NavEntry(
                             third,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -425,7 +425,7 @@ class AnimatedTest {
                     third ->
                         NavEntry(
                             third,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -548,7 +548,7 @@ class AnimatedTest {
                     fourth ->
                         NavEntry(
                             fourth,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -605,7 +605,7 @@ class AnimatedTest {
                     third ->
                         NavEntry(
                             third,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))
@@ -873,7 +873,7 @@ class AnimatedTest {
                     second ->
                         NavEntry(
                             second,
-                            featureMap =
+                            metadata =
                                 SinglePaneNavDisplay.transition(
                                     enter = fadeIn(tween(testDuration)),
                                     exit = fadeOut(tween(testDuration))

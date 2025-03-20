@@ -24,23 +24,35 @@ public class `$EntityWithValidPropertiesFactory` : AppFunctionSerializableFactor
       inputSerializableFactory.fromAppFunctionData(data)
     }
 
-    return EntityWithValidProperties(longParam, doubleParam, boolParam, stringParam, longArray, doubleArray, boolArray, stringList, inputSerializable, serializableList)
+    val resultEntityWithValidProperties = EntityWithValidProperties(longParam, doubleParam, boolParam, stringParam, longArray, doubleArray, boolArray, stringList, inputSerializable, serializableList)
+    return resultEntityWithValidProperties
   }
 
   override fun toAppFunctionData(appFunctionSerializable: EntityWithValidProperties): AppFunctionData {
+    val entityWithValidProperties_appFunctionSerializable = appFunctionSerializable
     val inputSerializableFactory = `$InputSerializableFactory`()
 
     val builder = AppFunctionData.Builder("com.testdata.EntityWithValidProperties")
-    builder.setLong("longParam", appFunctionSerializable.longParam)
-    builder.setDouble("doubleParam", appFunctionSerializable.doubleParam)
-    builder.setBoolean("boolParam", appFunctionSerializable.boolParam)
-    builder.setString("stringParam", appFunctionSerializable.stringParam)
-    builder.setLongArray("longArray", appFunctionSerializable.longArray)
-    builder.setDoubleArray("doubleArray", appFunctionSerializable.doubleArray)
-    builder.setBooleanArray("boolArray", appFunctionSerializable.boolArray)
-    builder.setStringList("stringList", appFunctionSerializable.stringList)
-    builder.setAppFunctionData("inputSerializable", inputSerializableFactory.toAppFunctionData(appFunctionSerializable.inputSerializable as InputSerializable))
-    builder.setAppFunctionDataList("serializableList", appFunctionSerializable.serializableList.map{ inputSerializable ->
+    val longParam = entityWithValidProperties_appFunctionSerializable.longParam
+    builder.setLong("longParam", longParam)
+    val doubleParam = entityWithValidProperties_appFunctionSerializable.doubleParam
+    builder.setDouble("doubleParam", doubleParam)
+    val boolParam = entityWithValidProperties_appFunctionSerializable.boolParam
+    builder.setBoolean("boolParam", boolParam)
+    val stringParam = entityWithValidProperties_appFunctionSerializable.stringParam
+    builder.setString("stringParam", stringParam)
+    val longArray = entityWithValidProperties_appFunctionSerializable.longArray
+    builder.setLongArray("longArray", longArray)
+    val doubleArray = entityWithValidProperties_appFunctionSerializable.doubleArray
+    builder.setDoubleArray("doubleArray", doubleArray)
+    val boolArray = entityWithValidProperties_appFunctionSerializable.boolArray
+    builder.setBooleanArray("boolArray", boolArray)
+    val stringList = entityWithValidProperties_appFunctionSerializable.stringList
+    builder.setStringList("stringList", stringList)
+    val inputSerializable = entityWithValidProperties_appFunctionSerializable.inputSerializable
+    builder.setAppFunctionData("inputSerializable", inputSerializableFactory.toAppFunctionData(inputSerializable))
+    val serializableList = entityWithValidProperties_appFunctionSerializable.serializableList
+    builder.setAppFunctionDataList("serializableList", serializableList.map{ inputSerializable ->
       inputSerializableFactory.toAppFunctionData(inputSerializable)
     })
 

@@ -18,24 +18,40 @@ package androidx.appfunctions
 
 import android.content.Context
 import android.os.Build
-import android.os.CancellationSignal
-import android.os.OutcomeReceiver
 import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
+import androidx.appfunctions.internal.AppFunctionManagerApi
+import androidx.appfunctions.internal.AppFunctionReader
+import androidx.appfunctions.internal.AppSearchAppFunctionReader
+import androidx.appfunctions.internal.ExtensionAppFunctionManagerApi
+import androidx.appfunctions.internal.TranslatorSelector
+import androidx.appfunctions.internal.TranslatorSelectorImpl
+import androidx.appfunctions.metadata.AppFunctionMetadata
+import androidx.appfunctions.metadata.AppFunctionSchemaMetadata
 import com.android.extensions.appfunctions.AppFunctionManager
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.Runnable
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Provides access to interact with App Functions. This is a backward-compatible wrapper for the
  * platform class [android.app.appfunctions.AppFunctionManager].
  */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-public class AppFunctionManagerCompat(private val context: Context) {
-    private val appFunctionManager: AppFunctionManager by lazy { AppFunctionManager(context) }
+public class AppFunctionManagerCompat
+internal constructor(
+    private val context: Context,
+    private val translatorSelector: TranslatorSelector,
+    private val appFunctionReader: AppFunctionReader,
+    private val appFunctionManagerApi: AppFunctionManagerApi
+) {
+    public constructor(
+        context: Context
+    ) : this(
+        context,
+        TranslatorSelectorImpl(),
+        AppSearchAppFunctionReader(context),
+        ExtensionAppFunctionManagerApi(context)
+    )
 
     /**
      * Checks whether the AppFunction feature is supported.
@@ -83,26 +99,7 @@ public class AppFunctionManagerCompat(private val context: Context) {
     @RequiresPermission(value = "android.permission.EXECUTE_APP_FUNCTIONS", conditional = true)
     public suspend fun isAppFunctionEnabled(packageName: String, functionId: String): Boolean {
         checkAppFunctionsFeatureSupported()
-        return suspendCancellableCoroutine { cont ->
-            appFunctionManager.isAppFunctionEnabled(
-                functionId,
-                packageName,
-                Runnable::run,
-                object : OutcomeReceiver<Boolean, Exception> {
-                    override fun onResult(result: Boolean?) {
-                        if (result == null) {
-                            cont.resumeWithException(IllegalStateException("Something went wrong"))
-                        } else {
-                            cont.resume(result)
-                        }
-                    }
-
-                    override fun onError(error: Exception) {
-                        cont.resumeWithException(error)
-                    }
-                }
-            )
-        }
+        return appFunctionManagerApi.isAppFunctionEnabled(functionId, packageName)
     }
 
     /**
@@ -120,25 +117,9 @@ public class AppFunctionManagerCompat(private val context: Context) {
     public suspend fun setAppFunctionEnabled(
         functionId: String,
         @EnabledState newEnabledState: Int
-    ): Unit {
+    ) {
         checkAppFunctionsFeatureSupported()
-        val platformExtensionEnabledState = convertToPlatformExtensionEnabledState(newEnabledState)
-        return suspendCancellableCoroutine { cont ->
-            appFunctionManager.setAppFunctionEnabled(
-                functionId,
-                platformExtensionEnabledState,
-                Runnable::run,
-                object : OutcomeReceiver<Void, Exception> {
-                    override fun onResult(result: Void?) {
-                        cont.resume(Unit)
-                    }
-
-                    override fun onError(error: Exception) {
-                        cont.resumeWithException(error)
-                    }
-                }
-            )
-        }
+        return appFunctionManagerApi.setAppFunctionEnabled(functionId, newEnabledState)
     }
 
     /**
@@ -156,56 +137,76 @@ public class AppFunctionManagerCompat(private val context: Context) {
         request: ExecuteAppFunctionRequest,
     ): ExecuteAppFunctionResponse {
         checkAppFunctionsFeatureSupported()
-        return suspendCancellableCoroutine { cont ->
-            val cancellationSignal = CancellationSignal()
-            cont.invokeOnCancellation { cancellationSignal.cancel() }
 
-            appFunctionManager.executeAppFunction(
-                request.toPlatformExtensionClass(),
-                Runnable::run,
-                cancellationSignal,
-                object :
-                    OutcomeReceiver<
-                        com.android.extensions.appfunctions.ExecuteAppFunctionResponse,
-                        com.android.extensions.appfunctions.AppFunctionException
-                    > {
-                    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-                    override fun onResult(
-                        result: com.android.extensions.appfunctions.ExecuteAppFunctionResponse
-                    ) {
-                        cont.resume(
-                            ExecuteAppFunctionResponse.Success.fromPlatformExtensionClass(result)
-                        )
-                    }
+        val schemaMetadata: AppFunctionSchemaMetadata? =
+            try {
+                appFunctionReader.getAppFunctionSchemaMetadata(
+                    functionId = request.functionIdentifier,
+                    packageName = request.targetPackageName
+                )
+            } catch (ex: AppFunctionFunctionNotFoundException) {
+                return ExecuteAppFunctionResponse.Error(ex)
+            } catch (ex: Exception) {
+                return ExecuteAppFunctionResponse.Error(
+                    AppFunctionSystemUnknownException(
+                        "Something went wrong when querying the app function from AppSearch: ${ex.message}"
+                    )
+                )
+            }
 
-                    override fun onError(
-                        error: com.android.extensions.appfunctions.AppFunctionException
-                    ) {
-                        val exception =
-                            fixAppFunctionExceptionErrorType(
-                                AppFunctionException.fromPlatformExtensionsClass(error)
-                            )
-                        cont.resume(ExecuteAppFunctionResponse.Error(exception))
-                    }
-                }
-            )
+        // Translate the request when necessary by looking into the target schema version.
+        val translator =
+            if (schemaMetadata?.version == LEGACY_SDK_GLOBAL_SCHEMA_VERSION) {
+                checkNotNull(translatorSelector.getTranslator(schemaMetadata))
+            } else {
+                null
+            }
+        val translatedRequest: ExecuteAppFunctionRequest =
+            if (translator != null) {
+                val functionParametersToExecute =
+                    translator.downgradeRequest(request.functionParameters)
+                request.copy(functionParameters = functionParametersToExecute)
+            } else {
+                request
+            }
+
+        val executeAppFunctionResponse = appFunctionManagerApi.executeAppFunction(translatedRequest)
+
+        // Translate the response back to what the agent app expects.
+        val successResponse =
+            executeAppFunctionResponse as? ExecuteAppFunctionResponse.Success
+                ?: return executeAppFunctionResponse
+        return if (translator != null) {
+            successResponse.copy(translator.upgradeResponse(successResponse.returnValue))
+        } else {
+            successResponse
         }
     }
 
-    private fun fixAppFunctionExceptionErrorType(
-        exception: AppFunctionException
-    ): AppFunctionException {
-        // TODO: Once fixed on the platform side, this behaviour should be done based on the SDK.
-        // Platform throws IllegalArgumentException when function not found during function
-        // execution and ends up being AppFunctionSystemUnknownException instead of
-        // AppFunctionFunctionNotFoundException.
-        if (
-            exception is AppFunctionSystemUnknownException &&
-                exception.errorMessage == "IllegalArgumentException: App function not found."
-        ) {
-            return AppFunctionFunctionNotFoundException("App function not found.")
-        }
-        return exception
+    /**
+     * Observes for available app functions metadata based on the provided filters.
+     *
+     * Allows discovering app functions that match the given [searchSpec] criteria and continuously
+     * emits updates when relevant metadata changes.
+     *
+     * Updates to [AppFunctionMetadata] can occur when the app defining the function is updated or
+     * when a function's enabled state changes.
+     *
+     * If multiple updates happen within a short duration, only the latest update might be emitted.
+     *
+     * @param searchSpec an [AppFunctionSearchSpec] instance specifying the filters for searching
+     *   the app function metadata.
+     * @return a flow that emits a list of [AppFunctionMetadata] matching the search criteria and
+     *   updated versions of this list when underlying data changes.
+     * @throws UnsupportedOperationException if AppFunction is not supported on this device.
+     */
+    @RequiresPermission(value = "android.permission.EXECUTE_APP_FUNCTIONS", conditional = true)
+    public fun observeAppFunctions(
+        searchSpec: AppFunctionSearchSpec
+    ): Flow<List<AppFunctionMetadata>> {
+        checkAppFunctionsFeatureSupported()
+
+        return appFunctionReader.searchAppFunctions(searchSpec)
     }
 
     private fun checkAppFunctionsFeatureSupported() {
@@ -214,21 +215,12 @@ public class AppFunctionManagerCompat(private val context: Context) {
         }
     }
 
-    private fun convertToPlatformExtensionEnabledState(@EnabledState enabledState: Int): Int {
-        return when (enabledState) {
-            APP_FUNCTION_STATE_DEFAULT -> AppFunctionManager.APP_FUNCTION_STATE_DEFAULT
-            APP_FUNCTION_STATE_ENABLED -> AppFunctionManager.APP_FUNCTION_STATE_ENABLED
-            APP_FUNCTION_STATE_DISABLED -> AppFunctionManager.APP_FUNCTION_STATE_DISABLED
-            else -> throw IllegalArgumentException("Unknown enabled state $enabledState")
-        }
-    }
-
     @IntDef(
         value =
             [APP_FUNCTION_STATE_DEFAULT, APP_FUNCTION_STATE_ENABLED, APP_FUNCTION_STATE_DISABLED]
     )
     @Retention(AnnotationRetention.SOURCE)
-    private annotation class EnabledState
+    internal annotation class EnabledState
 
     public companion object {
         /**
@@ -249,5 +241,8 @@ public class AppFunctionManagerCompat(private val context: Context) {
          */
         public const val APP_FUNCTION_STATE_DISABLED: Int =
             AppFunctionManager.APP_FUNCTION_STATE_DISABLED
+
+        /** The version shared across all schema defined in the legacy SDK. */
+        private const val LEGACY_SDK_GLOBAL_SCHEMA_VERSION = 1L
     }
 }

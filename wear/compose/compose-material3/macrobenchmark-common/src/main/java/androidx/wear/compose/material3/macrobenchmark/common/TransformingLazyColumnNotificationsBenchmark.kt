@@ -33,14 +33,15 @@ import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TitleCard
-import androidx.wear.compose.material3.lazy.rememberResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 
 val TransformingLazyColumnNotificationsBenchmark =
     object : MacrobenchmarkScreen {
         override val content: @Composable (BoxScope.() -> Unit)
             get() = {
                 val state = rememberTransformingLazyColumnState()
-                val transformationSpec = rememberResponsiveTransformationSpec()
+                val transformationSpec = rememberTransformationSpec()
                 AppScaffold {
                     ScreenScaffold(state) { contentPadding ->
                         TransformingLazyColumn(
@@ -52,10 +53,7 @@ val TransformingLazyColumnNotificationsBenchmark =
                             item {
                                 ListHeader(
                                     transformation = SurfaceTransformation(transformationSpec),
-                                    modifier =
-                                        Modifier.transformedHeight(
-                                            transformationSpec::getTransformedHeight
-                                        )
+                                    modifier = Modifier.transformedHeight(this, transformationSpec)
                                 ) {
                                     Text("Notifications")
                                 }
@@ -76,7 +74,8 @@ val TransformingLazyColumnNotificationsBenchmark =
                                         transformation = SurfaceTransformation(transformationSpec),
                                         modifier =
                                             Modifier.transformedHeight(
-                                                transformationSpec::getTransformedHeight
+                                                this@items,
+                                                transformationSpec
                                             )
                                     )
                                 }

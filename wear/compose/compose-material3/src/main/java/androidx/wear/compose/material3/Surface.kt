@@ -70,12 +70,15 @@ internal fun Modifier.surface(
     if (transformation != null && !LocalReduceMotion.current) {
         val backgroundPainter =
             remember(transformation, painter, shape, border) {
-                transformation.createBackgroundPainter(painter, shape, border)
+                transformation.createContainerPainter(painter, shape, border)
             }
 
         paintBackground(painter = backgroundPainter).graphicsLayer {
             this.shape = shape
-            with(transformation) { applyTransformation() }
+            with(transformation) {
+                applyContainerTransformation()
+                applyContentTransformation()
+            }
             clip = true
         }
     } else {

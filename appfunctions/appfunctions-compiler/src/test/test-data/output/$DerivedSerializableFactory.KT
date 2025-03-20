@@ -8,17 +8,21 @@ import javax.`annotation`.processing.Generated
 public class `$DerivedSerializableFactory` : AppFunctionSerializableFactory<DerivedSerializable> {
   override fun fromAppFunctionData(appFunctionData: AppFunctionData): DerivedSerializable {
 
-    val name = checkNotNull(appFunctionData.getString("name"))
+    val stringToOpen = checkNotNull(appFunctionData.getString("stringToOpen"))
     val age = checkNotNull(appFunctionData.getLongOrNull("age"))
 
-    return DerivedSerializable(name, age)
+    val resultDerivedSerializable = DerivedSerializable(stringToOpen, age)
+    return resultDerivedSerializable
   }
 
   override fun toAppFunctionData(appFunctionSerializable: DerivedSerializable): AppFunctionData {
+    val derivedSerializable_appFunctionSerializable = appFunctionSerializable
 
     val builder = AppFunctionData.Builder("com.testdata.DerivedSerializable")
-    builder.setString("name", appFunctionSerializable.name)
-    builder.setLong("age", appFunctionSerializable.age)
+    val stringToOpen = derivedSerializable_appFunctionSerializable.stringToOpen
+    builder.setString("stringToOpen", stringToOpen)
+    val age = derivedSerializable_appFunctionSerializable.age
+    builder.setLong("age", age)
 
     return builder.build()
   }

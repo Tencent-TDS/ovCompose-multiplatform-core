@@ -50,6 +50,8 @@ import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.scenecore.BasePanelEntity
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.getEntitiesOfType
+import com.android.extensions.xr.ShadowXrExtensions
+import com.android.extensions.xr.space.ShadowActivityPanel
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -181,8 +183,11 @@ class SpatialPanelTest {
         // instead of
         // being launched.
         val launchIntent =
-            composeTestRule.activity.extensions.activityPanelMap[composeTestRule.activity]
-                ?.launchIntent
+            ShadowActivityPanel.extract(
+                    ShadowXrExtensions.extract(composeTestRule.activity.extensions)
+                        .getActivityPanelForHost(composeTestRule.activity)
+                )
+                .launchIntent
 
         assertThat(launchIntent?.component?.className)
             .isEqualTo(SpatialPanelActivity::class.java.name)

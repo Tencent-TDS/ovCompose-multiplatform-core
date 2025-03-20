@@ -353,6 +353,15 @@ public interface Features {
     String SEARCH_EMBEDDING_MATCH_INFO = "SEARCH_EMBEDDING_MATCH_INFO";
 
     /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers {@link
+     * ActionAccumulator#create}.
+     */
+    // TODO(b/395157195): Update Javadoc and imports once ActionAccumulator class is available
+    // Due to lint checks, we cannot include the word "ACTION" in this value
+    @ExperimentalAppSearchApi
+    String SEARCH_AND_CLICK_ACCUMULATOR = "SEARCH_AND_CLICK_ACCUMULATOR";
+
+    /**
      * Returns whether a feature is supported at run-time. Feature support depends on the
      * feature in question, the AppSearch backend being used and the Android version of the
      * device.

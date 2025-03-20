@@ -37,3 +37,8 @@ internal actual fun isCopyKeyEvent(keyEvent: KeyEvent) =
  * Magnification is not supported on desktop.
  */
 internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modifier = this
+
+// TODO https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addSelectionContainerTextContextMenuComponents(
+    selectionManager: SelectionManager
+): Modifier = this

@@ -29,7 +29,7 @@ public interface PanelEntity : Entity {
      *
      * @param dimensions The [PixelDimensions] of the underlying surface to set.
      */
-    public var pixelDimensions: PixelDimensions
+    public var sizeInPixels: PixelDimensions
 
     /**
      * Sets a corner radius on all four corners of this PanelEntity.
@@ -44,6 +44,7 @@ public interface PanelEntity : Entity {
      * including parent scale.
      *
      * @return Vector3 scale applied to pixels within the Panel. (Z will be 0)
+     * @deprecated This method will be removed in a future release.
      */
     public val pixelDensity: Vector3
 
@@ -53,5 +54,5 @@ public interface PanelEntity : Entity {
      *
      * @return [Dimensions] size of this panel in meters. (Z will be 0)
      */
-    public val panelSize: Dimensions
+    public var panelSize: Dimensions
 }

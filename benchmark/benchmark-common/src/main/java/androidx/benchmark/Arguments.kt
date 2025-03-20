@@ -343,7 +343,10 @@ object Arguments {
             arguments.getBenchmarkArgument("throwOnMainThreadMeasureRepeated")?.toBoolean() ?: false
 
         killExistingPerfettoRecordings =
-            arguments.getString("killExistingPerfettoRecordings")?.toBoolean() ?: true
+            arguments.getBenchmarkArgument("killExistingPerfettoRecordings")?.toBoolean()
+                // below is a temporary workaround for compat, see b/399818365
+                ?: arguments.getString("killExistingPerfettoRecordings")?.toBoolean()
+                ?: true
 
         if (arguments.getString("orchestratorService") != null) {
             InstrumentationResults.scheduleIdeWarningOnNextReport(

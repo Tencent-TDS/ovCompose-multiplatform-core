@@ -47,6 +47,12 @@ final class FeaturesImpl implements Features {
             return false;
         }
         switch (feature) {
+            // Aliases for other features
+            case Features.SEARCH_AND_CLICK_ACCUMULATOR:
+                // Requires JoinSpec to create the Click schema. TakenAction API is optional as we
+                // can index search and click as regular documents if TakenActions aren't available.
+                return isFeatureSupported(Features.JOIN_SPEC_AND_QUALIFIED_ID);
+
             // Android T Features
             case Features.ADD_PERMISSIONS_AND_GET_VISIBILITY:
                 // fall through
@@ -117,18 +123,20 @@ final class FeaturesImpl implements Features {
                         || AppSearchVersionUtil.getAppSearchVersionCode(mContext)
                         >= AppSearchVersionUtil.APPSEARCH_M2024_11_VERSION_CODE;
 
-            // Pending Android B Features
+            // Android B Features
             case Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG:
-                // TODO(b/326656531) : Update when feature is ready in service-appsearch.
                 // fall through
+            case Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS:
+                // fall through
+            case Features.SEARCH_RESULT_PARENT_TYPES:
+                return AppSearchVersionUtil.isAtLeastB();
+
+            // Pending Android B Features
             case Features.SCHEMA_EMBEDDING_QUANTIZATION:
                 // TODO(b/359959345) : Update when feature is ready in service-appsearch.
                 // fall through
             case Features.SEARCH_SPEC_SEARCH_STRING_PARAMETERS:
                 // TODO(b/332620561) : Update when feature is ready in service-appsearch.
-                // fall through
-            case Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS:
-                // TODO(b/332642571) : Update when feature is ready in service-appsearch.
                 // fall through
             case Features.SEARCH_SPEC_ADD_FILTER_DOCUMENT_IDS:
                 // TODO(b/367464836) : Update when feature is ready in service-appsearch.
@@ -139,9 +147,6 @@ final class FeaturesImpl implements Features {
             case Features.SCHEMA_SCORABLE_PROPERTY_CONFIG:
                 // TODO(b/357105837) : Update when feature is ready in service-appsearch.
                 // fall through
-            case Features.SEARCH_RESULT_PARENT_TYPES:
-                // TODO(b/371610934) : Update when feature is ready in service-appsearch.
-                return false;
 
             // Beyond Android B Features
             case Features.SCHEMA_SET_DESCRIPTION:

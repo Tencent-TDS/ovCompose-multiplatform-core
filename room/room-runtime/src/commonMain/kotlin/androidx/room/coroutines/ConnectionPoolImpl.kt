@@ -16,14 +16,16 @@
 
 package androidx.room.coroutines
 
+import androidx.collection.CircularArray
 import androidx.room.TransactionScope
 import androidx.room.Transactor
 import androidx.room.Transactor.SQLiteTransactionType
 import androidx.room.concurrent.AtomicBoolean
-import androidx.room.concurrent.AtomicInt
+import androidx.room.concurrent.ReentrantLock
 import androidx.room.concurrent.ThreadLocal
 import androidx.room.concurrent.asContextElement
 import androidx.room.concurrent.currentThreadId
+import androidx.room.concurrent.withLock
 import androidx.room.util.SQLiteResultCode.SQLITE_BUSY
 import androidx.room.util.SQLiteResultCode.SQLITE_ERROR
 import androidx.room.util.SQLiteResultCode.SQLITE_MISUSE
@@ -38,8 +40,8 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -58,8 +60,8 @@ internal class ConnectionPoolImpl : ConnectionPool {
     // Amount of time to wait to acquire a connection before throwing, Android uses 30 seconds in
     // its pool, so we do too here, but IDK if that is a good number. This timeout is unrelated to
     // the busy handler.
-    // TODO: Allow configuration
-    private val timeout = 30.seconds
+    // TODO(b/404380974): Allow public configuration
+    internal var timeout = 30.seconds
 
     constructor(driver: SQLiteDriver, fileName: String) {
         this.driver = driver
@@ -126,12 +128,13 @@ internal class ConnectionPoolImpl : ConnectionPool {
         var exception: Throwable? = null
         var connection: PooledConnectionImpl? = null
         try {
+            val currentContext = coroutineContext
             val (acquiredConnection, acquireError) = pool.acquireWithTimeout()
             // Always try to create a wrapper even if an error occurs, so it can be recycled.
             connection =
                 acquiredConnection?.let {
                     PooledConnectionImpl(
-                        delegate = it.markAcquired(coroutineContext),
+                        delegate = it.markAcquired(currentContext),
                         isReadOnly = readers !== writers && isReadOnly
                     )
                 }
@@ -149,6 +152,7 @@ internal class ConnectionPoolImpl : ConnectionPool {
             try {
                 connection?.let { usedConnection ->
                     usedConnection.markRecycled()
+                    usedConnection.delegate.markReleased()
                     pool.recycle(usedConnection.delegate)
                 }
             } catch (error: Throwable) {
@@ -197,71 +201,73 @@ internal class ConnectionPoolImpl : ConnectionPool {
 }
 
 private class Pool(val capacity: Int, val connectionFactory: () -> SQLiteConnection) {
-    private val size = AtomicInt(0)
+    private val lock = ReentrantLock()
+    private var size = 0
+    private var isClosed = false
     private val connections = arrayOfNulls<ConnectionWithLock>(capacity)
-    private val channel =
-        Channel<ConnectionWithLock>(capacity = capacity, onUndeliveredElement = { recycle(it) })
+    private val connectionPermits = Semaphore(permits = capacity)
+    private val availableConnections = CircularArray<ConnectionWithLock>(capacity)
 
     suspend fun acquire(): ConnectionWithLock {
-        val receiveResult = channel.tryReceive()
-        return if (receiveResult.isSuccess) {
-            receiveResult.getOrThrow()
-        } else {
-            tryOpenNewConnection()
-            channel.receive()
+        connectionPermits.acquire()
+        try {
+            return lock.withLock {
+                if (isClosed) {
+                    throwSQLiteException(SQLITE_MISUSE, "Connection pool is closed")
+                }
+                if (availableConnections.isEmpty()) {
+                    tryOpenNewConnectionLocked()
+                }
+                availableConnections.popFirst()
+            }
+        } catch (ex: Throwable) {
+            connectionPermits.release()
+            throw ex
         }
     }
 
-    private fun tryOpenNewConnection() {
-        val currentSize = size.get()
-        if (currentSize >= capacity) {
+    private fun tryOpenNewConnectionLocked() {
+        if (size >= capacity) {
             // Capacity reached
             return
         }
-        if (size.compareAndSet(currentSize, currentSize + 1)) {
-            val newConnection = ConnectionWithLock(connectionFactory.invoke())
-            val sendResult = channel.trySend(newConnection)
-            if (sendResult.isSuccess) {
-                connections[currentSize] = newConnection
-            } else {
-                newConnection.close()
-                if (!sendResult.isClosed) {
-                    // Failed to send but channel is not closed, this means a race condition with
-                    // the size and capacity checks.
-                    error("Couldn't send a new connection for acquisition")
-                }
-            }
-        } else {
-            // Another thread went ahead and created a new connection, try again
-            tryOpenNewConnection()
-        }
+        val newConnection = ConnectionWithLock(connectionFactory.invoke())
+        connections[size++] = newConnection
+        availableConnections.addLast(newConnection)
     }
 
     fun recycle(connection: ConnectionWithLock) {
-        val sendResult = channel.trySend(connection)
-        if (!sendResult.isSuccess) {
-            connection.close()
-            if (!sendResult.isClosed) {
-                // Failed to send but channel is not closed. Likely a race condition...
-                // did open connections exceeded capacity? Maybe a `finally` block didn't run?
-                error("Couldn't recycle connection")
-            }
-        }
+        lock.withLock { availableConnections.addLast(connection) }
+        connectionPermits.release()
     }
 
     fun close() {
-        channel.close()
-        connections.forEach { it?.close() }
+        lock.withLock {
+            isClosed = true
+            connections.forEach { it?.close() }
+        }
     }
 
     /* Dumps debug information */
-    fun dump(builder: StringBuilder) {
-        builder.appendLine("\t" + super.toString() + " (capacity=$capacity)")
-        connections.forEachIndexed { index, connection ->
-            builder.appendLine("\t\t[${index + 1}] - ${connection?.toString()}")
-            connection?.dump(builder)
+    fun dump(builder: StringBuilder) =
+        lock.withLock {
+            val availableQueue = buildList {
+                for (i in 0 until availableConnections.size()) {
+                    add(availableConnections[i])
+                }
+            }
+            builder.append("\t" + super.toString() + " (")
+            builder.append("capacity=$capacity, ")
+            builder.append("permits=${connectionPermits.availablePermits}, ")
+            builder.append(
+                "queue=(size=${availableQueue.size})[${availableQueue.joinToString()}], "
+            )
+            builder.appendLine(")")
+            connections.forEachIndexed { index, connection ->
+                builder.appendLine("\t\t[${index + 1}] - ${connection?.toString()}")
+                connection?.dump(builder)
+            }
         }
-    }
 }
 
 private class ConnectionWithLock(
@@ -348,7 +354,6 @@ private class PooledConnectionImpl(
     }
 
     fun markRecycled() {
-        delegate.markReleased()
         if (_isRecycled.compareAndSet(expect = false, update = true)) {
             // Perform a rollback in case there is an active transaction so that the connection
             // is in a clean state when it is recycled. We don't know for sure if there is an

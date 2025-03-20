@@ -29,6 +29,8 @@ import androidx.xr.runtime.testing.FakePerceptionManager
 import androidx.xr.runtime.testing.FakeRuntimeAnchor
 import androidx.xr.runtime.testing.FakeRuntimeHand
 import com.google.common.truth.Truth.assertThat
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -46,6 +48,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class HandTest {
 
+    private val handJointBufferSize: Int = 728
+    private val tolerance = 1e-4f
     private lateinit var xrResourcesManager: XrResourcesManager
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var testScope: TestScope
@@ -54,7 +58,7 @@ class HandTest {
     @get:Rule
     val grantPermissionRule =
         GrantPermissionRule.grant(
-            "android.permission.SCENE_UNDERSTANDING",
+            "android.permission.SCENE_UNDERSTANDING_COARSE",
             "android.permission.HAND_TRACKING",
         )
 
@@ -77,19 +81,34 @@ class HandTest {
             runTest(testDispatcher) {
                 val perceptionManager = session.runtime.perceptionManager as FakePerceptionManager
                 check(Hand.left(session) != null)
-                check(Hand.left(session)!!.state.value.isActive == false)
+                check(Hand.left(session)!!.state.value.trackingState != TrackingState.Tracking)
                 check(Hand.left(session)!!.state.value.handJoints.isEmpty())
 
                 val leftRuntimeHand = perceptionManager.leftHand!! as FakeRuntimeHand
-                val leftHandPose =
-                    Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-                leftRuntimeHand.isActive = true
-                leftRuntimeHand.handJoints = mapOf(HandJointType.PALM to leftHandPose)
+                leftRuntimeHand.trackingState = TrackingState.Tracking
+                val expectedHandJoints: Map<HandJointType, Pose> =
+                    HandJointType.values().associate { joint ->
+                        val i = joint.ordinal.toFloat()
+                        joint to
+                            Pose(
+                                Vector3(i + 0.5f, i + 0.6f, i + 0.7f),
+                                Quaternion(i + 0.1f, i + 0.2f, i + 0.3f, i + 0.4f),
+                            )
+                    }
+                leftRuntimeHand.handJointsBuffer = generateTestBuffer(expectedHandJoints)
                 awaitNewCoreState(session, testScope)
 
-                assertThat(Hand.left(session)!!.state.value.isActive).isEqualTo(true)
-                assertThat(Hand.left(session)!!.state.value.handJoints)
-                    .containsEntry(HandJointType.PALM, leftHandPose)
+                assertThat(Hand.left(session)!!.state.value.trackingState)
+                    .isEqualTo(TrackingState.Tracking)
+                for (jointType in HandJointType.values()) {
+                    val leftHandJoints = Hand.left(session)!!.state.value.handJoints
+                    assertThat(leftHandJoints[jointType]!!.translation)
+                        .isEqualTo(expectedHandJoints[jointType]!!.translation)
+                    assertRotationEquals(
+                        leftHandJoints[jointType]!!.rotation,
+                        expectedHandJoints[jointType]!!.rotation,
+                    )
+                }
             }
         }
 
@@ -99,19 +118,34 @@ class HandTest {
             runTest(testDispatcher) {
                 val perceptionManager = session.runtime.perceptionManager as FakePerceptionManager
                 check(Hand.right(session) != null)
-                check(Hand.right(session)!!.state.value.isActive == false)
+                check(Hand.right(session)!!.state.value.trackingState != TrackingState.Tracking)
                 check(Hand.right(session)!!.state.value.handJoints.isEmpty())
 
                 val rightRuntimeHand = perceptionManager.rightHand!! as FakeRuntimeHand
-                val rightHandPose =
-                    Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-                rightRuntimeHand.isActive = true
-                rightRuntimeHand.handJoints = mapOf(HandJointType.PALM to rightHandPose)
+                rightRuntimeHand.trackingState = TrackingState.Tracking
+                val expectedHandJoints: Map<HandJointType, Pose> =
+                    HandJointType.values().associate { joint ->
+                        val i = joint.ordinal.toFloat()
+                        joint to
+                            Pose(
+                                Vector3(i + 0.5f, i + 0.6f, i + 0.7f),
+                                Quaternion(i + 0.1f, i + 0.2f, i + 0.3f, i + 0.4f),
+                            )
+                    }
+                rightRuntimeHand.handJointsBuffer = generateTestBuffer(expectedHandJoints)
                 awaitNewCoreState(session, testScope)
 
-                assertThat(Hand.right(session)!!.state.value.isActive).isEqualTo(true)
-                assertThat(Hand.right(session)!!.state.value.handJoints)
-                    .containsEntry(HandJointType.PALM, rightHandPose)
+                assertThat(Hand.right(session)!!.state.value.trackingState)
+                    .isEqualTo(TrackingState.Tracking)
+                for (jointType in HandJointType.values()) {
+                    val rightHandJoints = Hand.right(session)!!.state.value.handJoints
+                    assertThat(rightHandJoints[jointType]!!.translation)
+                        .isEqualTo(expectedHandJoints[jointType]!!.translation)
+                    assertRotationEquals(
+                        rightHandJoints[jointType]!!.rotation,
+                        expectedHandJoints[jointType]!!.rotation,
+                    )
+                }
             }
         }
 
@@ -119,16 +153,32 @@ class HandTest {
     fun update_stateMachesRuntimeHand() = runBlocking {
         val runtimeHand = FakeRuntimeHand()
         val underTest = Hand(runtimeHand)
-        check(underTest.state.value.isActive.equals(false))
+        check(underTest.state.value.trackingState != TrackingState.Tracking)
         check(underTest.state.value.handJoints.isEmpty())
 
-        runtimeHand.isActive = true
-        val pose = Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-        runtimeHand.handJoints = mapOf(HandJointType.PALM to pose)
+        runtimeHand.trackingState = TrackingState.Tracking
+        val expectedHandJoints: Map<HandJointType, Pose> =
+            HandJointType.values().associate { joint ->
+                val i = joint.ordinal.toFloat()
+                joint to
+                    Pose(
+                        Vector3(i + 0.5f, i + 0.6f, i + 0.7f),
+                        Quaternion(i + 0.1f, i + 0.2f, i + 0.3f, i + 0.4f),
+                    )
+            }
+        runtimeHand.handJointsBuffer = generateTestBuffer(expectedHandJoints)
         underTest.update()
 
-        assertThat(underTest.state.value.isActive).isEqualTo(true)
-        assertThat(underTest.state.value.handJoints).containsEntry(HandJointType.PALM, pose)
+        assertThat(underTest.state.value.trackingState).isEqualTo(TrackingState.Tracking)
+        for (jointType in HandJointType.values()) {
+            val handJoints = underTest.state.value.handJoints
+            assertThat(handJoints[jointType]!!.translation)
+                .isEqualTo(expectedHandJoints[jointType]!!.translation)
+            assertRotationEquals(
+                handJoints[jointType]!!.rotation,
+                expectedHandJoints[jointType]!!.rotation,
+            )
+        }
     }
 
     private fun createTestSessionAndRunTest(
@@ -151,5 +201,31 @@ class HandTest {
         session.resume()
         testScope.advanceUntilIdle()
         session.pause()
+    }
+
+    fun generateTestBuffer(handJoints: Map<HandJointType, Pose>): ByteBuffer {
+        val buffer = ByteBuffer.allocate(handJointBufferSize).order(ByteOrder.nativeOrder())
+
+        repeat(26) {
+            val handJointType = HandJointType.values()[it]
+            val handJointPose = handJoints[handJointType]!!
+            buffer.putFloat(handJointPose.rotation.x)
+            buffer.putFloat(handJointPose.rotation.y)
+            buffer.putFloat(handJointPose.rotation.z)
+            buffer.putFloat(handJointPose.rotation.w)
+            buffer.putFloat(handJointPose.translation.x)
+            buffer.putFloat(handJointPose.translation.y)
+            buffer.putFloat(handJointPose.translation.z)
+        }
+
+        buffer.flip()
+        return buffer
+    }
+
+    fun assertRotationEquals(actual: Quaternion, expected: Quaternion) {
+        assertThat(actual.x).isWithin(tolerance).of(expected.x)
+        assertThat(actual.y).isWithin(tolerance).of(expected.y)
+        assertThat(actual.z).isWithin(tolerance).of(expected.z)
+        assertThat(actual.w).isWithin(tolerance).of(expected.w)
     }
 }

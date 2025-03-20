@@ -19,16 +19,23 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.xr.runtime.math.Vector4
-import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource as RtMaterialResource
+import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource as RtMaterial
 import com.google.common.util.concurrent.ListenableFuture
+
+/** Represents a Material in SceneCore. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public open class Material(internal val material: RtMaterial?)
 
 /** A Material which implements a water effect. */
 // TODO(b/396201066): Add unit tests for this class if we end up making it public.
 @Suppress("NotCloseable")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class WaterMaterial
-internal constructor(public val material: RtMaterialResource, public val session: Session) {
+internal constructor(
+    internal val materialResource: RtMaterial,
+    internal val isAlphaMapVersion: Boolean,
+    internal val session: Session,
+) : Material(materialResource) {
 
     /**
      * Disposes the given water material resource.
@@ -43,7 +50,7 @@ internal constructor(public val material: RtMaterialResource, public val session
     // TODO(b/376277201): Provide Session.GltfModel.dispose().
     @MainThread
     public fun dispose() {
-        session.platformAdapter.destroyWaterMaterial(material)
+        session.platformAdapter.destroyWaterMaterial(materialResource)
     }
 
     /**
@@ -56,7 +63,7 @@ internal constructor(public val material: RtMaterialResource, public val session
      */
     @MainThread
     public fun setReflectionCube(reflectionCube: CubeMapTexture) {
-        session.platformAdapter.setReflectionCube(material, reflectionCube.texture)
+        session.platformAdapter.setReflectionCube(materialResource, reflectionCube.texture)
     }
 
     /**
@@ -69,7 +76,7 @@ internal constructor(public val material: RtMaterialResource, public val session
      */
     @MainThread
     public fun setNormalMap(normalMap: Texture) {
-        session.platformAdapter.setNormalMap(material, normalMap.texture)
+        session.platformAdapter.setNormalMap(materialResource, normalMap.texture)
     }
 
     /**
@@ -82,7 +89,7 @@ internal constructor(public val material: RtMaterialResource, public val session
      */
     @MainThread
     public fun setNormalTiling(normalTiling: Float) {
-        session.platformAdapter.setNormalTiling(material, normalTiling)
+        session.platformAdapter.setNormalTiling(materialResource, normalTiling)
     }
 
     /**
@@ -95,46 +102,87 @@ internal constructor(public val material: RtMaterialResource, public val session
      */
     @MainThread
     public fun setNormalSpeed(normalSpeed: Float) {
-        session.platformAdapter.setNormalSpeed(material, normalSpeed)
+        session.platformAdapter.setNormalSpeed(materialResource, normalSpeed)
     }
 
     /**
-     * Sets the alpha step U for the water material.
-     *
-     * This method must be called from the main thread.
-     * https://developer.android.com/guide/components/processes-and-threads
-     *
-     * @param alphaStepU The alpha step U.
-     */
-    @MainThread
-    public fun setAlphaStepU(alphaStepU: Vector4) {
-        session.platformAdapter.setAlphaStepU(material, alphaStepU)
-    }
-
-    /**
-     * Sets the alpha step V for the water material.
-     *
-     * This method must be called from the main thread.
-     * https://developer.android.com/guide/components/processes-and-threads
-     *
-     * @param alphaStepV The alpha step V.
-     */
-    @MainThread
-    public fun setAlphaStepV(alphaStepV: Vector4) {
-        session.platformAdapter.setAlphaStepV(material, alphaStepV)
-    }
-
-    /**
-     * Sets the alpha step multiplier for the water material.
+     * Sets the alpha step multiplier for the alpha map version of the water material.
      *
      * This method must be called from the main thread.
      * https://developer.android.com/guide/components/processes-and-threads
      *
      * @param alphaStepMultiplier The alpha step multiplier.
+     * @throws IllegalStateException if the water material is not the alpha map version.
      */
     @MainThread
     public fun setAlphaStepMultiplier(alphaStepMultiplier: Float) {
-        session.platformAdapter.setAlphaStepMultiplier(material, alphaStepMultiplier)
+        if (isAlphaMapVersion) {
+            session.platformAdapter.setAlphaStepMultiplier(materialResource, alphaStepMultiplier)
+        } else {
+            throw IllegalStateException(
+                "The alpha step multiplier can only be set for alpha map version of the water material."
+            )
+        }
+    }
+
+    /**
+     * Sets the alpha map for the alpha map version of the water material.
+     *
+     * This method must be called from the main thread.
+     * https://developer.android.com/guide/components/processes-and-threads
+     *
+     * @param alphaMap The alpha map.
+     * @throws IllegalStateException if the water material is not the alpha map version.
+     */
+    @MainThread
+    public fun setAlphaMap(alphaMap: Texture) {
+        if (isAlphaMapVersion) {
+            session.platformAdapter.setAlphaMap(materialResource, alphaMap.texture)
+        } else {
+            throw IllegalStateException(
+                "The alpha map can only be set for alpha map version of the water material."
+            )
+        }
+    }
+
+    /**
+     * Sets the normal z for the alpha map version of the water material.
+     *
+     * This method must be called from the main thread.
+     * https://developer.android.com/guide/components/processes-and-threads
+     *
+     * @param normalZ The normal z.
+     * @throws IllegalStateException if the water material is not the alpha map version.
+     */
+    @MainThread
+    public fun setNormalZ(normalZ: Float) {
+        if (isAlphaMapVersion) {
+            session.platformAdapter.setNormalZ(materialResource, normalZ)
+        } else {
+            throw IllegalStateException(
+                "The normal Z can only be set for alpha map version of the water material.."
+            )
+        }
+    }
+
+    /**
+     * Sets the normal boundary for the alpha map version of the water material.
+     *
+     * This method must be called from the main thread.
+     * https://developer.android.com/guide/components/processes-and-threads
+     *
+     * @param normalBoundary The normal boundary.
+     * @throws IllegalStateException if the water material is not the alpha map version.
+     */
+    @MainThread
+    public fun setNormalBoundary(normalBoundary: Float) {
+        if (isAlphaMapVersion) {
+            session.platformAdapter.setNormalBoundary(materialResource, normalBoundary)
+        } else {
+            throw IllegalStateException(
+                "The normal boundary can only be set for alpha map version of the water material."
+            )
+        }
     }
 
     public companion object {
@@ -145,10 +193,10 @@ internal constructor(public val material: RtMaterialResource, public val session
         @SuppressWarnings("RestrictTo")
         internal fun createAsync(
             platformAdapter: JxrPlatformAdapter,
-            transparent: Boolean,
+            isAlphaMapVersion: Boolean,
             session: Session,
         ): ListenableFuture<WaterMaterial> {
-            val materialResourceFuture = platformAdapter.createWaterMaterial(transparent)
+            val materialResourceFuture = platformAdapter.createWaterMaterial(isAlphaMapVersion)
             val materialFuture = ResolvableFuture.create<WaterMaterial>()
 
             // TODO: b/375070346 - remove this `!!` when we're sure the future is non-null.
@@ -156,7 +204,7 @@ internal constructor(public val material: RtMaterialResource, public val session
                 {
                     try {
                         val material = materialResourceFuture.get()
-                        materialFuture.set(WaterMaterial(material, session))
+                        materialFuture.set(WaterMaterial(material, isAlphaMapVersion, session))
                     } catch (e: Exception) {
                         if (e is InterruptedException) {
                             Thread.currentThread().interrupt()
@@ -176,17 +224,18 @@ internal constructor(public val material: RtMaterialResource, public val session
          * This method must be called from the main thread.
          * https://developer.android.com/guide/components/processes-and-threads
          *
-         * Currently, only URLs and relative paths from the android_assets/ directory are supported.
-         *
          * @param session The [Session] to use for loading the model.
-         * @param transparent If the water material should have transparency or not.
+         * @param isAlphaMapVersion If the water material should be the alpha map version or not.
          * @return a ListenableFuture<WaterMaterial>. Listeners will be called on the main thread if
          *   Runnable::run is supplied.
          */
         @MainThread
         @JvmStatic
-        public fun create(session: Session, transparent: Boolean): ListenableFuture<WaterMaterial> {
-            return WaterMaterial.createAsync(session.platformAdapter, transparent, session)
+        public fun create(
+            session: Session,
+            isAlphaMapVersion: Boolean,
+        ): ListenableFuture<WaterMaterial> {
+            return WaterMaterial.createAsync(session.platformAdapter, isAlphaMapVersion, session)
         }
     }
 }

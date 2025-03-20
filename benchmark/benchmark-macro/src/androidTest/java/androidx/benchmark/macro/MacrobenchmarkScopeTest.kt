@@ -20,6 +20,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.benchmark.DeviceInfo
 import androidx.benchmark.Shell
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -95,9 +96,12 @@ class MacrobenchmarkScopeTest {
         assertEquals(iterations, executions)
     }
 
-    @SdkSuppress(minSdkVersion = 24)
-    @Test
-    fun compile_speedProfile_withProfileFlushes() {
+    /**
+     * Verify that profile flushes happen when the target app is killed, with the lambda defining
+     * kill behavior
+     */
+    @RequiresApi(24)
+    fun verify_compile_speedProfile_withProfileFlushes(killProcess: (MacrobenchmarkScope) -> Unit) {
         if (DeviceInfo.isEmulator) {
             // Emulator API 30 does not have dex2oat (b/264938965)
             assumeTrue(Build.VERSION.SDK_INT != 30)
@@ -120,14 +124,33 @@ class MacrobenchmarkScopeTest {
             executions += 1
 
             // on first iter, kill doesn't kill anything, so profiles are not yet flushed
-            scope.killProcess()
-            assertEquals(executions != 1, scope.hasFlushedArtProfiles)
+            killProcess(scope)
+            assertEquals(
+                executions != 1,
+                scope.hasFlushedArtProfiles,
+                "execution nr $executions, flushed = ${scope.hasFlushedArtProfiles}"
+            )
 
             scope.pressHome()
             scope.startActivityAndWait()
         }
         assertEquals(MacrobenchmarkScope.KillMode.None, scope.killMode)
         assertEquals(warmupIterations, executions)
+    }
+
+    @SdkSuppress(minSdkVersion = 24)
+    @Test
+    fun compile_speedProfile_withProfileFlushes() {
+        verify_compile_speedProfile_withProfileFlushes { it.killProcess() }
+    }
+
+    @SdkSuppress(minSdkVersion = 24)
+    @Test
+    fun compile_speedProfile_withProfileFlushes_noBroadcast() {
+        assumeTrue(DeviceInfo.isRooted) // codepath only works with root
+        verify_compile_speedProfile_withProfileFlushes {
+            it.killProcessAndFlushArtProfiles(allowFlushWithBroadcast = false)
+        }
     }
 
     @SdkSuppress(minSdkVersion = 24)

@@ -18,11 +18,13 @@ package androidx.wear.compose.material3
 
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.test.filters.MediumTest
-import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec
 import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpecImpl
+import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.TransformationVariableSpec
-import androidx.wear.compose.material3.lazy.rememberResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.responsiveTransformationSpec
 import org.junit.Assert
 import org.junit.Rule
@@ -37,7 +39,7 @@ class ResponsiveTransformationSpecTest {
 
     private val SPEC1 =
         ResponsiveTransformationSpecImpl(
-            200,
+            200.dp,
             minElementHeightFraction = 0.01f,
             maxElementHeightFraction = 0.02f,
             minTransitionAreaHeightFraction = 0.03f,
@@ -65,7 +67,7 @@ class ResponsiveTransformationSpecTest {
 
     private val SPEC2 =
         ResponsiveTransformationSpecImpl(
-            220,
+            220.dp,
             minElementHeightFraction = 0.1f,
             maxElementHeightFraction = 0.2f,
             minTransitionAreaHeightFraction = 0.3f,
@@ -93,17 +95,17 @@ class ResponsiveTransformationSpecTest {
 
     private val SPECS = listOf(SPEC1, SPEC2)
 
-    @Test fun responsive_spec_coerced_to_min_screen_size() = check_responsive_spec(180, SPEC1)
+    @Test fun responsive_spec_coerced_to_min_screen_size() = check_responsive_spec(180.dp, SPEC1)
 
-    @Test fun responsive_spec_for_min_screen_size() = check_responsive_spec(200, SPEC1)
+    @Test fun responsive_spec_for_min_screen_size() = check_responsive_spec(200.dp, SPEC1)
 
-    @Test fun responsive_spec_for_max_screen_size() = check_responsive_spec(220, SPEC2)
+    @Test fun responsive_spec_for_max_screen_size() = check_responsive_spec(220.dp, SPEC2)
 
-    @Test fun responsive_spec_coerced_to_max_screen_size() = check_responsive_spec(221, SPEC2)
+    @Test fun responsive_spec_coerced_to_max_screen_size() = check_responsive_spec(221.dp, SPEC2)
 
     @Test
     fun responsive_spec_for_mid_screen_size() {
-        val spec = responsiveTransformationSpec(210, SPECS)
+        val spec = responsiveTransformationSpec(210.dp, SPECS)
 
         Assert.assertEquals(0.055f, spec.minElementHeightFraction, EPSILON)
         Assert.assertEquals(0.11f, spec.maxElementHeightFraction, EPSILON)
@@ -118,13 +120,13 @@ class ResponsiveTransformationSpecTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun responsive_with_no_spec() {
-        responsiveTransformationSpec(200, emptyList())
+        responsiveTransformationSpec(200.dp, emptyList())
     }
 
     @Test
     fun remember_responsive_with_default_specs() {
-        lateinit var spec: ResponsiveTransformationSpec
-        rule.setContent { spec = rememberResponsiveTransformationSpec() }
+        lateinit var spec: TransformationSpec
+        rule.setContent { spec = rememberTransformationSpec() }
         @Suppress("UNUSED_VARIABLE") val readBack = spec
     }
 
@@ -132,15 +134,15 @@ class ResponsiveTransformationSpecTest {
     fun responsive_with_one_spec() {
         val specs1 = listOf(SPEC1)
 
-        Assert.assertEquals(SPEC1, responsiveTransformationSpec(199, specs1))
-        Assert.assertEquals(SPEC1, responsiveTransformationSpec(200, specs1))
-        Assert.assertEquals(SPEC1, responsiveTransformationSpec(201, specs1))
+        Assert.assertEquals(SPEC1, responsiveTransformationSpec(199.dp, specs1))
+        Assert.assertEquals(SPEC1, responsiveTransformationSpec(200.dp, specs1))
+        Assert.assertEquals(SPEC1, responsiveTransformationSpec(201.dp, specs1))
     }
 
     @Test
     fun responsive_with_three_specs() {
         fun makeSpec(
-            screenSize: Int,
+            screenSize: Dp,
             minElementHeight: Float,
             maxElementHeight: Float,
             maxTransitionArea: Float
@@ -174,34 +176,34 @@ class ResponsiveTransformationSpecTest {
 
         val specs3 =
             listOf(
-                makeSpec(100, 0.01f, 0.02f, 0.04f),
-                makeSpec(200, 0.1f, 0.2f, 0.4f),
-                makeSpec(300, 0.5f, 0.6f, 0.7f),
+                makeSpec(100.dp, 0.01f, 0.02f, 0.04f),
+                makeSpec(200.dp, 0.1f, 0.2f, 0.4f),
+                makeSpec(300.dp, 0.5f, 0.6f, 0.7f),
             )
 
-        Assert.assertEquals(specs3.first(), responsiveTransformationSpec(100, specs3))
+        Assert.assertEquals(specs3.first(), responsiveTransformationSpec(100.dp, specs3))
         Assert.assertEquals(
             0.11f,
-            responsiveTransformationSpec(150, specs3).maxElementHeightFraction,
+            responsiveTransformationSpec(150.dp, specs3).maxElementHeightFraction,
             EPSILON
         )
         Assert.assertEquals(
             0.1f,
-            responsiveTransformationSpec(200, specs3).minElementHeightFraction,
+            responsiveTransformationSpec(200.dp, specs3).minElementHeightFraction,
             EPSILON
         )
         Assert.assertEquals(
             0.55f,
-            responsiveTransformationSpec(250, specs3).maxTransitionAreaHeightFraction,
+            responsiveTransformationSpec(250.dp, specs3).maxTransitionAreaHeightFraction,
             EPSILON
         )
-        Assert.assertEquals(specs3.last(), responsiveTransformationSpec(300, specs3))
+        Assert.assertEquals(specs3.last(), responsiveTransformationSpec(300.dp, specs3))
     }
 
     private val EPSILON = 1e-5f
 
     private fun check_responsive_spec(
-        screenSize: Int,
+        screenSize: Dp,
         expectedSpec: ResponsiveTransformationSpecImpl
     ) {
         val spec = responsiveTransformationSpec(screenSize, SPECS)

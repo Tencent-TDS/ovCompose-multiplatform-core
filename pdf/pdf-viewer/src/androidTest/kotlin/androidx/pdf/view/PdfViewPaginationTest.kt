@@ -22,6 +22,8 @@ import android.view.View
 import android.view.View.MeasureSpec
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import androidx.pdf.R
+import androidx.pdf.view.fastscroll.getDimensions
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -99,12 +101,18 @@ class PdfViewPaginationTest {
         setupPdfView(1000, 2000, pdfDocument)
 
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
+            var topPageMargin = 0
+
+            this.onActivity { activity ->
+                topPageMargin = activity.getDimensions(R.dimen.top_page_margin).toInt()
+            }
+
             pdfDocument.waitForLayout(untilPage = 3)
             Espresso.onView(withId(PDF_VIEW_ID))
                 .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 4)
 
             // Scroll until the viewport spans [500, 2500] vertically and expect to see pages [1, 4]
-            Espresso.onView(withId(PDF_VIEW_ID)).scrollByY(500)
+            Espresso.onView(withId(PDF_VIEW_ID)).scrollByY(500 + topPageMargin)
             pdfDocument.waitForLayout(untilPage = 4)
             Espresso.onView(withId(PDF_VIEW_ID))
                 .checkPagesAreVisible(firstVisiblePage = 1, visiblePages = 4)
@@ -115,9 +123,9 @@ class PdfViewPaginationTest {
 
     @Test
     fun testPageVisibility_onZoomChanged() = runTest {
-        // Layout at 100x500 initially, and expect to see pages [0, 5] at 100x80
+        // Layout at 100x550 initially, and expect to see pages [0, 5] at 100x80
         val pdfDocument = FakePdfDocument(List(10) { Point(100, 80) })
-        setupPdfView(100, 500, pdfDocument)
+        setupPdfView(100, 550, pdfDocument)
 
         with(ActivityScenario.launch(PdfViewTestActivity::class.java)) {
             pdfDocument.waitForLayout(untilPage = 5)

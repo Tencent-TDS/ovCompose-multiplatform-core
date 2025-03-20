@@ -26,8 +26,11 @@ import androidx.compose.foundation.gestures.stopScroll
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.internal.checkPrecondition
+import androidx.compose.foundation.lazy.grid.LazyGridState.Companion.Saver
 import androidx.compose.foundation.lazy.layout.AwaitFirstLayoutModifier
+import androidx.compose.foundation.lazy.layout.CacheWindowLogic
 import androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsInfo
+import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.compose.foundation.lazy.layout.LazyLayoutPinnedItemList
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
@@ -54,7 +57,6 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlin.ranges.IntRange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -107,6 +109,34 @@ fun rememberLazyGridState(
 }
 
 /**
+ * Creates a [LazyGridState] that is remembered across compositions.
+ *
+ * Changes to the provided initial values will **not** result in the state being recreated or
+ * changed in any way if it has already been created.
+ *
+ * @param cacheWindow specifies the size of the ahead and behind window to be used as per
+ *   [LazyLayoutCacheWindow].
+ * @param initialFirstVisibleItemIndex the initial value for [LazyGridState.firstVisibleItemIndex]
+ * @param initialFirstVisibleItemScrollOffset the initial value for
+ *   [LazyGridState.firstVisibleItemScrollOffset]
+ */
+@ExperimentalFoundationApi
+@Composable
+fun rememberLazyGridState(
+    cacheWindow: LazyLayoutCacheWindow,
+    initialFirstVisibleItemIndex: Int = 0,
+    initialFirstVisibleItemScrollOffset: Int = 0
+): LazyGridState {
+    return rememberSaveable(cacheWindow, saver = LazyGridState.saver(cacheWindow)) {
+        LazyGridState(
+            initialFirstVisibleItemIndex,
+            initialFirstVisibleItemScrollOffset,
+            LazyGridCacheWindowPrefetchStrategy(cacheWindow),
+        )
+    }
+}
+
+/**
  * A state object that can be hoisted to control and observe scrolling.
  *
  * In most cases, this will be created via [rememberLazyGridState].
@@ -124,8 +154,26 @@ class LazyGridState
 constructor(
     firstVisibleItemIndex: Int = 0,
     firstVisibleItemScrollOffset: Int = 0,
-    private val prefetchStrategy: LazyGridPrefetchStrategy = LazyGridPrefetchStrategy(),
+    internal val prefetchStrategy: LazyGridPrefetchStrategy = LazyGridPrefetchStrategy(),
 ) : ScrollableState {
+
+    /**
+     * @param cacheWindow specifies the size of the ahead and behind window to be used as per
+     *   [LazyLayoutCacheWindow].
+     * @param firstVisibleItemIndex the initial value for [LazyGridState.firstVisibleItemIndex]
+     * @param firstVisibleItemScrollOffset the initial value for
+     *   [LazyGridState.firstVisibleItemScrollOffset]
+     */
+    @ExperimentalFoundationApi
+    constructor(
+        cacheWindow: LazyLayoutCacheWindow,
+        firstVisibleItemIndex: Int = 0,
+        firstVisibleItemScrollOffset: Int = 0
+    ) : this(
+        firstVisibleItemIndex,
+        firstVisibleItemScrollOffset,
+        LazyGridCacheWindowPrefetchStrategy(cacheWindow)
+    )
 
     /**
      * @param firstVisibleItemIndex the initial value for [LazyGridState.firstVisibleItemIndex]
@@ -270,10 +318,21 @@ constructor(
             override fun scheduleLinePrefetch(
                 lineIndex: Int
             ): List<LazyLayoutPrefetchState.PrefetchHandle> {
+                return scheduleLinePrefetch(lineIndex, null)
+            }
+
+            @Suppress("PrimitiveInCollection")
+            override fun scheduleLinePrefetch(
+                lineIndex: Int,
+                onPrefetchFinished: ((List<Int>) -> Unit)?
+            ): List<LazyLayoutPrefetchState.PrefetchHandle> {
                 // Without read observation since this can be triggered from scroll - this will then
                 // cause us to recompose when the measure result changes. We don't care since the
                 // prefetch is best effort.
                 val prefetchHandles = mutableListOf<LazyLayoutPrefetchState.PrefetchHandle>()
+                val itemSizes: MutableList<Int>? =
+                    if (onPrefetchFinished == null) null else mutableListOf()
+
                 Snapshot.withoutReadObservation {
                     val layoutInfo =
                         if (hasLookaheadOccurred) {
@@ -282,13 +341,35 @@ constructor(
                             layoutInfoState.value
                         }
 
-                    layoutInfo?.let {
-                        it.prefetchInfoRetriever(lineIndex).fastForEach { lineInfo ->
+                    layoutInfo?.let { measureResult ->
+                        var completedCount = 1
+                        val itemsInLineInfo = measureResult.prefetchInfoRetriever(lineIndex)
+                        itemsInLineInfo.fastForEach { lineInfo ->
                             prefetchHandles.add(
                                 prefetchState.schedulePrecompositionAndPremeasure(
                                     lineInfo.first,
                                     lineInfo.second
-                                )
+                                ) {
+                                    var itemMainAxisItemSize = 0
+                                    repeat(placeablesCount) {
+                                        itemMainAxisItemSize +=
+                                            if (measureResult.orientation == Orientation.Vertical) {
+                                                getSize(it).height
+                                            } else {
+                                                getSize(it).width
+                                            }
+                                    }
+
+                                    itemSizes?.add(itemMainAxisItemSize)
+                                    // all items in this line were prefetched, report the size
+                                    if (completedCount == itemsInLineInfo.size) {
+                                        if (onPrefetchFinished != null && itemSizes != null) {
+                                            onPrefetchFinished.invoke(itemSizes)
+                                        }
+                                    } else {
+                                        completedCount++
+                                    }
+                                }
                             )
                         }
                     }
@@ -356,6 +437,9 @@ constructor(
         // this offset should be considered as a scroll, not the placement change.
         if (positionChanged) {
             itemAnimator.reset()
+            // we changed positions, cancel existing requests and wait for the next scroll to
+            // refill the window
+            (prefetchStrategy as? CacheWindowLogic)?.resetStrategy()
         }
         scrollPosition.requestPositionAndForgetLastKnownKey(index, scrollOffset)
         if (forceRemeasure) {
@@ -576,6 +660,23 @@ constructor(
                         firstVisibleItemIndex = it[0],
                         firstVisibleItemScrollOffset = it[1],
                         prefetchStrategy
+                    )
+                }
+            )
+
+        /**
+         * A [Saver] implementation for [LazyGridState] that handles setting a custom
+         * [LazyLayoutCacheWindow].
+         */
+        @ExperimentalFoundationApi
+        internal fun saver(cacheWindow: LazyLayoutCacheWindow): Saver<LazyGridState, *> =
+            listSaver(
+                save = { listOf(it.firstVisibleItemIndex, it.firstVisibleItemScrollOffset) },
+                restore = {
+                    LazyGridState(
+                        cacheWindow = cacheWindow,
+                        firstVisibleItemIndex = it[0],
+                        firstVisibleItemScrollOffset = it[1],
                     )
                 }
             )

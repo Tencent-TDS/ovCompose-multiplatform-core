@@ -49,7 +49,7 @@ class BaselineActivity : ComponentActivity() {
                                     state = pagerState
                                 )
                         ) { page ->
-                            AnimatedPage(page = page, pagerState = pagerState) {
+                            AnimatedPage(pageIndex = page, pagerState = pagerState) {
                                 ScreenScaffold {
                                     Box(
                                         modifier = Modifier.fillMaxSize(),

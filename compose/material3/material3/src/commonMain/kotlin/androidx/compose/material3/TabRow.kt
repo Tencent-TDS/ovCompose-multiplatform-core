@@ -542,17 +542,7 @@ private fun ScrollableTabRowImpl(
     divider: @Composable () -> Unit,
     tabs: @Composable () -> Unit
 ) {
-    Surface(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .wrapContentSize(align = Alignment.CenterStart)
-                .horizontalScroll(scrollState)
-                .selectableGroup()
-                .clipToBounds(),
-        color = containerColor,
-        contentColor = contentColor
-    ) {
+    Surface(modifier = modifier, color = containerColor, contentColor = contentColor) {
         val coroutineScope = rememberCoroutineScope()
         // TODO Load the motionScheme tokens from the component tokens file
         val scrollAnimationSpec = MotionSchemeKeyTokens.DefaultSpatial.value<Float>()
@@ -613,7 +603,13 @@ private fun ScrollableTabRowImpl(
                     tabs,
                     divider,
                     { scope.indicator() },
-                )
+                ),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .wrapContentSize(align = Alignment.CenterStart)
+                    .horizontalScroll(scrollState)
+                    .selectableGroup()
+                    .clipToBounds(),
         ) { (tabMeasurables, dividerMeasurables, indicatorMeasurables), constraints ->
             val padding = edgePadding.roundToPx()
             val tabCount = tabMeasurables.size

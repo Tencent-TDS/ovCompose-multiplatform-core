@@ -255,7 +255,7 @@ dependencies {
     docs(project(":navigation:navigation-fragment-ktx"))
     kmpDocs(project(":navigation:navigation-runtime"))
     docs(project(":navigation:navigation-runtime-ktx"))
-    docs(project(":navigation:navigation-testing"))
+    kmpDocs(project(":navigation:navigation-testing"))
     docs(project(":navigation:navigation-ui"))
     docs(project(":navigation:navigation-ui-ktx"))
     kmpDocs(project(":paging:paging-common"))
@@ -270,6 +270,7 @@ dependencies {
     kmpDocs(project(":paging:paging-testing"))
     docs(project(":palette:palette"))
     docs(project(":palette:palette-ktx"))
+    docs(project(":pdf:pdf-compose"))
     docs(project(":pdf:pdf-document-service"))
     docs(project(":pdf:pdf-viewer"))
     docs(project(":pdf:pdf-viewer-fragment"))
@@ -283,6 +284,7 @@ dependencies {
     docs(project(":privacysandbox:activity:activity-provider"))
     docs(project(":privacysandbox:ads:ads-adservices"))
     docs(project(":privacysandbox:ads:ads-adservices-java"))
+    docs(project(":privacysandbox:ondevicepersonalization:ondevicepersonalization-client"))
     docs(project(":privacysandbox:sdkruntime:sdkruntime-client"))
     docs(project(":privacysandbox:sdkruntime:sdkruntime-core"))
     docs(project(":privacysandbox:sdkruntime:sdkruntime-provider"))
@@ -419,7 +421,6 @@ dependencies {
     docs(project(":xr:runtime:runtime-testing"))
     docs(project(":xr:scenecore:scenecore"))
     docs(project(":xr:scenecore:scenecore-testing"))
-    docs(project(":xr:xr-stubs"))
 }
 afterEvaluate {
   tasks["docs"].doFirst {

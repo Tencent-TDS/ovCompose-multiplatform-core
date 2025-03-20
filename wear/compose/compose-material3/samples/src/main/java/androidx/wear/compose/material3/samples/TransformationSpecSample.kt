@@ -37,16 +37,17 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.ButtonGroup
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpecDefaults
+import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec
 import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.TransformationVariableSpec
-import androidx.wear.compose.material3.lazy.rememberResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 
 @Composable
 @Sampled
 @Preview
 fun CustomTransformationSpecSample() {
-    val transformationSpec = rememberResponsiveTransformationSpec()
+    val transformationSpec = rememberTransformationSpec()
     val morphingTransformationSpec =
         object : TransformationSpec by transformationSpec {
             override fun GraphicsLayerScope.applyContainerTransformation(
@@ -67,7 +68,7 @@ fun CustomTransformationSpecSample() {
                     onClick = {},
                     modifier =
                         Modifier.fillMaxWidth()
-                            .transformedHeight(morphingTransformationSpec::getTransformedHeight)
+                            .transformedHeight(this, morphingTransformationSpec)
                             .graphicsLayer {
                                 with(morphingTransformationSpec) {
                                     applyContainerTransformation(scrollProgress)
@@ -94,12 +95,12 @@ fun CustomTransformationSpecSample() {
 @Preview
 fun ResponsiveTransformationSpecButtonSample() {
     val transformationSpec =
-        rememberResponsiveTransformationSpec(
-            ResponsiveTransformationSpecDefaults.smallScreenSpec(
+        rememberTransformationSpec(
+            ResponsiveTransformationSpec.smallScreen(
                 // Makes the content disappear on the edges.
                 contentAlpha = TransformationVariableSpec(0f)
             ),
-            ResponsiveTransformationSpecDefaults.largeScreenSpec(
+            ResponsiveTransformationSpec.largeScreen(
                 // Makes the content disappear on the edges, but a bit more aggressively.
                 contentAlpha =
                     TransformationVariableSpec(0f, transformationZoneEnterFraction = 0.2f)
@@ -114,8 +115,7 @@ fun ResponsiveTransformationSpecButtonSample() {
                 Button(
                     onClick = {},
                     modifier =
-                        Modifier.fillMaxWidth()
-                            .transformedHeight(transformationSpec::getTransformedHeight),
+                        Modifier.fillMaxWidth().transformedHeight(this@items, transformationSpec),
                     transformation = SurfaceTransformation(transformationSpec),
                 ) {
                     Text("Item $index")
@@ -130,7 +130,7 @@ fun ResponsiveTransformationSpecButtonSample() {
 @Preview
 fun TransformationSpecButtonRowSample() {
     // Use the spec derived from default small and large screen specs.
-    val transformationSpec = rememberResponsiveTransformationSpec()
+    val transformationSpec = rememberTransformationSpec()
 
     TransformingLazyColumn(
         contentPadding = PaddingValues(20.dp),
@@ -149,7 +149,7 @@ fun TransformationSpecButtonRowSample() {
                                     applyContainerTransformation(scrollProgress)
                                 }
                             }
-                            .transformedHeight(transformationSpec::getTransformedHeight)
+                            .transformedHeight(this, transformationSpec)
                 ) {
                     Button(
                         onClick = {},

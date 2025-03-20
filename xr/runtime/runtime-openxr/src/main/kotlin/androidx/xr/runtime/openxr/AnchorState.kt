@@ -28,6 +28,7 @@ import androidx.xr.runtime.math.Pose
  *   is [TrackingState.Stopped].
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@Suppress("DataClassDefinition")
 public data class AnchorState(
     val trackingState: TrackingState = TrackingState.Paused,
     val pose: Pose? = Pose(),

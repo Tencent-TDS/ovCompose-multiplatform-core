@@ -17,6 +17,7 @@
 package androidx.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -63,11 +64,13 @@ fun ButtonGroupSample() {
                 Modifier.width(90.dp),
                 Modifier.weight(1f)
             )
+        val interactionSources = List(4) { MutableInteractionSource() }
         options.fastForEachIndexed { index, label ->
             ToggleButton(
                 checked = checked[index],
                 onCheckedChange = { checked[index] = it },
-                modifier = modifiers[index]
+                interactionSource = interactionSources[index],
+                modifier = modifiers[index].animateWidth(interactionSources[index])
             ) {
                 Text(label)
             }

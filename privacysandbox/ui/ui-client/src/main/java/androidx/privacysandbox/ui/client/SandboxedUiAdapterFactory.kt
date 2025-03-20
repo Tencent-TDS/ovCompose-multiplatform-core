@@ -25,7 +25,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Display
 import android.view.SurfaceControlViewHost
-import android.view.SurfaceView
 import android.view.View
 import android.window.SurfaceSyncGroup
 import androidx.annotation.RequiresApi
@@ -241,6 +240,8 @@ object SandboxedUiAdapterFactory {
                 targetClass.getMethod("notifyConfigurationChanged", Configuration::class.java)
             private val notifyUiChangedMethod =
                 targetClass.getMethod("notifyUiChanged", Bundle::class.java)
+            private val notifySessionRenderedMethod =
+                targetClass.getMethod("notifySessionRendered", Set::class.java)
             private val closeMethod = targetClass.getMethod("close")
 
             override val view: View
@@ -271,6 +272,10 @@ object SandboxedUiAdapterFactory {
 
             override fun notifyUiChanged(uiContainerInfo: Bundle) {
                 notifyUiChangedMethod.invoke(origSession, uiContainerInfo)
+            }
+
+            override fun notifySessionRendered(supportedSignalOptions: Set<String>) {
+                notifySessionRenderedMethod.invoke(origSession, supportedSignalOptions)
             }
 
             override fun close() {
@@ -315,18 +320,18 @@ object SandboxedUiAdapterFactory {
             val clientExecutor: Executor
         ) : IRemoteSessionClient.Stub() {
 
-            lateinit var surfaceView: SurfaceView
+            lateinit var contentView: ContentView
 
             override fun onRemoteSessionOpened(
                 surfacePackage: SurfaceControlViewHost.SurfacePackage,
                 remoteSessionController: IRemoteSessionController,
                 isZOrderOnTop: Boolean,
-                hasObservers: Boolean
+                signalOptions: List<String>
             ) {
-                surfaceView = SurfaceView(context)
-                surfaceView.setChildSurfacePackage(surfacePackage)
-                surfaceView.setZOrderOnTop(isZOrderOnTop)
-                surfaceView.addOnAttachStateChangeListener(
+                contentView = ContentView(context, remoteSessionController)
+                contentView.setChildSurfacePackage(surfacePackage)
+                contentView.setZOrderOnTop(isZOrderOnTop)
+                contentView.addOnAttachStateChangeListener(
                     object : View.OnAttachStateChangeListener {
 
                         private var hasViewBeenPreviouslyAttached = false
@@ -348,10 +353,10 @@ object SandboxedUiAdapterFactory {
                 clientExecutor.execute {
                     client.onSessionOpened(
                         SessionImpl(
-                            surfaceView,
+                            contentView,
                             remoteSessionController,
                             surfacePackage,
-                            hasObservers
+                            signalOptions.toSet()
                         )
                     )
                 }
@@ -369,28 +374,18 @@ object SandboxedUiAdapterFactory {
             }
 
             override fun onSessionUiFetched(surfacePackage: SurfaceControlViewHost.SurfacePackage) {
-                surfaceView.setChildSurfacePackage(surfacePackage)
+                contentView.setChildSurfacePackage(surfacePackage)
             }
         }
 
         private class SessionImpl(
-            val surfaceView: SurfaceView,
+            val contentView: ContentView,
             val remoteSessionController: IRemoteSessionController,
             val surfacePackage: SurfaceControlViewHost.SurfacePackage,
-            hasObservers: Boolean
+            override val signalOptions: Set<String>
         ) : SandboxedUiAdapter.Session {
 
-            override val view: View = surfaceView
-
-            // While there are no more refined signal options, just use hasObservers as a signal
-            // for whether to start measurement.
-            // TODO(b/341895747): Add structured signal options.
-            override val signalOptions =
-                if (hasObservers) {
-                    setOf("someOptions")
-                } else {
-                    setOf()
-                }
+            override val view: View = contentView
 
             override fun notifyConfigurationChanged(configuration: Configuration) {
                 tryToCallRemoteObject(remoteSessionController) {
@@ -400,10 +395,10 @@ object SandboxedUiAdapterFactory {
 
             override fun notifyResized(width: Int, height: Int) {
 
-                val parentView = surfaceView.parent as View
+                val parentView = contentView.parent as View
 
                 val clientResizeRunnable = Runnable {
-                    surfaceView.layout(
+                    contentView.layout(
                         /* left = */ parentView.paddingLeft,
                         /* top = */ parentView.paddingTop,
                         /* right = */ parentView.paddingLeft + width,
@@ -419,13 +414,13 @@ object SandboxedUiAdapterFactory {
 
                 val syncGroup = SurfaceSyncGroup("AppAndSdkViewsSurfaceSync")
 
-                syncGroup.add(surfaceView.rootSurfaceControl, clientResizeRunnable)
+                syncGroup.add(contentView.rootSurfaceControl, clientResizeRunnable)
                 syncGroup.add(surfacePackage, providerResizeRunnable)
                 syncGroup.markSyncReady()
             }
 
             override fun notifyZOrderChanged(isZOrderOnTop: Boolean) {
-                surfaceView.setZOrderOnTop(isZOrderOnTop)
+                contentView.setZOrderOnTop(isZOrderOnTop)
                 tryToCallRemoteObject(remoteSessionController) {
                     this.notifyZOrderChanged(isZOrderOnTop)
                 }
@@ -434,6 +429,12 @@ object SandboxedUiAdapterFactory {
             override fun notifyUiChanged(uiContainerInfo: Bundle) {
                 tryToCallRemoteObject(remoteSessionController) {
                     this.notifyUiChanged(uiContainerInfo)
+                }
+            }
+
+            override fun notifySessionRendered(supportedSignalOptions: Set<String>) {
+                tryToCallRemoteObject(remoteSessionController) {
+                    this.notifySessionRendered(supportedSignalOptions.toList())
                 }
             }
 

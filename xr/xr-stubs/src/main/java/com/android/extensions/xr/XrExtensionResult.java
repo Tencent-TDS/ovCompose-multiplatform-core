@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr;
 
-import androidx.annotation.RestrictTo;
 
 /** Represents a result of an asynchronous XR Extension call. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class XrExtensionResult {
 
     XrExtensionResult() {

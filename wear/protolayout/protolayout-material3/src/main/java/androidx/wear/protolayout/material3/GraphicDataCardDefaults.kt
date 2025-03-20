@@ -70,7 +70,7 @@ public object GraphicDataCardDefaults {
                 { it: LayoutElement? -> verticalElementBuilder.addContent(it!!) },
                 title
             )
-            .addElement(content, horizontalSpacer(style.titleToContentSpaceDp))
+            .addElement(content)
 
         // Side padding - start
         // Smaller padding should be applied to the graph side, and larger to the labels side.
@@ -241,16 +241,12 @@ public object GraphicDataCardDefaults {
 public class GraphicDataCardStyle
 internal constructor(
     internal val innerPadding: Padding,
-    @Dimension(unit = DP) internal val titleToContentSpaceDp: Int,
     @TypographyToken internal val titleTypography: Int,
     @TypographyToken internal val contentTypography: Int,
     @Dimension(unit = DP) internal val graphToTitleSpaceDp: Int,
     internal val sidePaddingWeight: Float,
 ) {
     public companion object {
-        /** The default smaller spacer width or height that should be between different elements. */
-        @Dimension(unit = DP) private const val SMALL_SPACE_DP: Int = 2
-
         private const val DEFAULT_VERTICAL_PADDING_DP = 8f
 
         /**
@@ -264,7 +260,6 @@ internal constructor(
                         top = DEFAULT_VERTICAL_PADDING_DP,
                         bottom = DEFAULT_VERTICAL_PADDING_DP
                     ),
-                titleToContentSpaceDp = SMALL_SPACE_DP,
                 titleTypography = Typography.DISPLAY_SMALL,
                 contentTypography = Typography.LABEL_SMALL,
                 graphToTitleSpaceDp = 6,
@@ -282,7 +277,6 @@ internal constructor(
                         top = DEFAULT_VERTICAL_PADDING_DP,
                         bottom = DEFAULT_VERTICAL_PADDING_DP
                     ),
-                titleToContentSpaceDp = 0,
                 titleTypography = Typography.DISPLAY_MEDIUM,
                 contentTypography = Typography.LABEL_MEDIUM,
                 graphToTitleSpaceDp = 8,

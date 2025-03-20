@@ -26,220 +26,25 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.wear.watchface.complications.data.ComplicationType
-import androidx.wear.watchface.complications.data.EmptyComplicationData
-import androidx.wear.watchface.complications.data.LongTextComplicationData
-import androidx.wear.watchface.complications.data.NotConfiguredComplicationData
-import androidx.wear.watchface.complications.data.PlainComplicationText
-import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import com.google.common.truth.Truth.assertThat
-import com.google.wear.services.complications.ComplicationData
-import java.time.Instant
 import kotlin.test.Test
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.suspendCancellableCoroutine
 import org.junit.After
-import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.runner.RunWith
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
-/** Tests for [WearSdkComplicationRequestListenerTest]. */
+/** Tests for [ComplicationDataSourceUpdateRequesterImpl]. */
 @RunWith(ComplicationsTestRunner::class)
-@Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-public class WearSdkComplicationRequestListenerTest {
-    @Test
-    fun onComplicationData_emptyDefaultData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationData(EmptyComplicationData())
-        }
-    }
-
-    @Test
-    fun onComplicationData_notConfiguredData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationData(NotConfiguredComplicationData())
-        }
-    }
-
-    @Test
-    fun onComplicationData_invalidComplicationData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationData(
-                ShortTextComplicationData.Builder(plainText("text"), plainText("description"))
-                    .build()
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationData_success() {
-        assertListenerThrows(RuntimeException::class.java) {
-            it.onComplicationData(
-                LongTextComplicationData.Builder(plainText("text"), plainText("description"))
-                    .build()
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_emptyDefaultData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(EmptyComplicationData(), listOf())
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_notConfiguredData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(NotConfiguredComplicationData(), listOf())
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_invalidComplicationData_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(
-                    ShortTextComplicationData.Builder(plainText("text"), plainText("description"))
-                        .build(),
-                    listOf()
-                )
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_notConfiguredComplicationDataEntry_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(
-                    LongTextComplicationData.Builder(
-                            plainText("longText"),
-                            plainText("description")
-                        )
-                        .build(),
-                    listOf(
-                        TimelineEntry(
-                            TimeInterval(Instant.MIN, Instant.MAX),
-                            NotConfiguredComplicationData()
-                        )
-                    )
-                )
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_emptyComplicationDataEntry_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(
-                    LongTextComplicationData.Builder(
-                            plainText("longText"),
-                            plainText("description")
-                        )
-                        .build(),
-                    listOf(
-                        TimelineEntry(
-                            TimeInterval(Instant.MIN, Instant.MAX),
-                            EmptyComplicationData()
-                        )
-                    )
-                )
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_invalidComplicationDataEntry_exception() {
-        assertListenerThrows(IllegalArgumentException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(
-                    LongTextComplicationData.Builder(
-                            plainText("longText"),
-                            plainText("description")
-                        )
-                        .build(),
-                    listOf(
-                        TimelineEntry(
-                            TimeInterval(Instant.MIN, Instant.MAX),
-                            ShortTextComplicationData.Builder(
-                                    plainText("text"),
-                                    plainText("description")
-                                )
-                                .build()
-                        )
-                    )
-                )
-            )
-        }
-    }
-
-    @Test
-    fun onComplicationDataTimeline_success() {
-        assertListenerThrows(RuntimeException::class.java) {
-            it.onComplicationDataTimeline(
-                ComplicationDataTimeline(
-                    LongTextComplicationData.Builder(
-                            plainText("longText"),
-                            plainText("description")
-                        )
-                        .build(),
-                    listOf(
-                        TimelineEntry(
-                            TimeInterval(Instant.MIN, Instant.MAX),
-                            LongTextComplicationData.Builder(
-                                    plainText("text"),
-                                    plainText("description")
-                                )
-                                .build()
-                        )
-                    )
-                )
-            )
-        }
-    }
-
-    private fun plainText(text: String) = PlainComplicationText.Builder(text).build()
-
-    private fun <T : Throwable> assertListenerThrows(
-        expectedThrowable: Class<T>,
-        block: (WearSdkComplicationRequestListener) -> Unit
-    ) {
-        assertThrows(expectedThrowable) {
-            runBlocking {
-                suspendCancellableCoroutine<Pair<Int, ComplicationData>> { continuation ->
-                    block(
-                        WearSdkComplicationRequestListener(
-                            1,
-                            ComplicationType.LONG_TEXT.toWireComplicationType(),
-                            continuation
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** Tests for [ComplicationDataSourceUpdateRequester]. */
-@RunWith(ComplicationsTestRunner::class)
-public class ComplicationDataSourceUpdateRequesterTest {
+class ComplicationDataSourceUpdateRequesterImplTest {
     private val context: Context = getApplicationContext()
 
+    private var requester: ComplicationDataSourceUpdateRequester? = null
     private val providerComponent = ComponentName("pkg1", "cls1")
     private var broadcastReceiver: UpdateBroadcastReceiver? = null
 
-    private var requester: ComplicationDataSourceUpdateRequester? = null
-
     @Before
-    public fun setup() {
+    fun setup() {
         requester = ComplicationDataSourceUpdateRequester.create(context, providerComponent)
         broadcastReceiver = UpdateBroadcastReceiver()
         context.registerReceiver(
@@ -253,13 +58,13 @@ public class ComplicationDataSourceUpdateRequesterTest {
     }
 
     @After
-    public fun tearDown() {
+    fun tearDown() {
         context.unregisterReceiver(broadcastReceiver)
         broadcastReceiver = null
     }
 
     @Test
-    public fun filterRequests_filtersOutNonMatchingComponents() {
+    fun filterRequests_filtersOutNonMatchingComponents() {
         fun fakeRequest(id: Int) = ComplicationRequest(id, ComplicationType.SHORT_TEXT, false)
         val requests =
             ArrayList<Pair<ComponentName, ComplicationRequest>>().apply {
@@ -281,7 +86,7 @@ public class ComplicationDataSourceUpdateRequesterTest {
     }
 
     @Test
-    public fun filterRequests_filtersOutNonMatchingInstanceIds() {
+    fun filterRequests_filtersOutNonMatchingInstanceIds() {
         fun fakeRequest(id: Int) = ComplicationRequest(id, ComplicationType.SHORT_TEXT, false)
         val requests =
             ArrayList<Pair<ComponentName, ComplicationRequest>>().apply {
@@ -306,9 +111,8 @@ public class ComplicationDataSourceUpdateRequesterTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    public fun requestUpdate_androidT_sendsBroadcast() {
+    fun requestUpdate_sendsBroadcast() {
         requester?.requestUpdate(0)
         ShadowLooper.idleMainLooper()
 
@@ -327,8 +131,7 @@ public class ComplicationDataSourceUpdateRequesterTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
-    public fun requestUpdateAll_androidT_sendsBroadcast() {
+    fun requestUpdateAll_sendsBroadcast() {
         requester?.requestUpdateAll()
         ShadowLooper.idleMainLooper()
 

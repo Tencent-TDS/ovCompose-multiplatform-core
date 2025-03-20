@@ -38,7 +38,10 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TitleCard
-import androidx.wear.compose.material3.lazy.rememberResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.TransformationVariableSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
+import androidx.wear.compose.material3.lazy.transformedHeight
 
 @Sampled
 @Preview
@@ -56,12 +59,12 @@ fun SurfaceTransformationOnCustomComponent() {
                 modifier
                     .fillMaxWidth()
                     .paint(
-                        transformation.createBackgroundPainter(
+                        transformation.createContainerPainter(
                             ColorPainter(color = Color.Gray),
                             shape = RoundedCornerShape(16.dp)
                         )
                     )
-                    .graphicsLayer { with(transformation) { applyTransformation() } }
+                    .graphicsLayer { with(transformation) { applyContainerTransformation() } }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(title)
@@ -69,7 +72,7 @@ fun SurfaceTransformationOnCustomComponent() {
         }
     }
 
-    val transformationSpec = rememberResponsiveTransformationSpec()
+    val transformationSpec = rememberTransformationSpec()
 
     TransformingLazyColumn {
         items(count = 100) {
@@ -77,7 +80,7 @@ fun SurfaceTransformationOnCustomComponent() {
                 "Message #$it",
                 "This is a body",
                 transformation = SurfaceTransformation(transformationSpec),
-                modifier = Modifier.transformedHeight(transformationSpec::getTransformedHeight),
+                modifier = Modifier.transformedHeight(this, transformationSpec),
             )
         }
     }
@@ -87,14 +90,25 @@ fun SurfaceTransformationOnCustomComponent() {
 @Preview
 @Composable
 fun SurfaceTransformationButtonSample() {
-    val transformationSpec = rememberResponsiveTransformationSpec()
+    val transformationSpec =
+        rememberTransformationSpec(
+            ResponsiveTransformationSpec.smallScreen(
+                contentAlpha =
+                    TransformationVariableSpec(
+                        0f,
+                        transformationZoneEnterFraction = 0.4f,
+                        transformationZoneExitFraction = 0.8f,
+                    ),
+                containerAlpha = TransformationVariableSpec(0.3f),
+            )
+        )
 
     TransformingLazyColumn {
         items(count = 100) {
             Button(
                 onClick = {},
                 transformation = SurfaceTransformation(transformationSpec),
-                modifier = Modifier.transformedHeight(transformationSpec::getTransformedHeight),
+                modifier = Modifier.transformedHeight(this, transformationSpec),
             ) {
                 Text("Button #$it")
             }
@@ -106,7 +120,7 @@ fun SurfaceTransformationButtonSample() {
 @Preview
 @Composable
 fun SurfaceTransformationCardSample() {
-    val transformationSpec = rememberResponsiveTransformationSpec()
+    val transformationSpec = rememberTransformationSpec()
     var expandedIndex by remember { mutableIntStateOf(-1) }
 
     TransformingLazyColumn {
@@ -116,7 +130,7 @@ fun SurfaceTransformationCardSample() {
                 title = { Text("Card #$it") },
                 subtitle = { Text("Subtitle #$it") },
                 transformation = SurfaceTransformation(transformationSpec),
-                modifier = Modifier.transformedHeight(transformationSpec::getTransformedHeight),
+                modifier = Modifier.transformedHeight(this, transformationSpec),
             ) {
                 if (it == expandedIndex) {
                     Text("Expanded content #$it")

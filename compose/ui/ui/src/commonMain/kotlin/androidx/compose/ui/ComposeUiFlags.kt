@@ -65,16 +65,6 @@ object ComposeUiFlags {
     @Suppress("MutableBareField") @JvmField var isRectTrackingEnabled: Boolean = true
 
     /**
-     * Selecting flag to enable the change new onPostFling nested scroll behavior for ongoing
-     * flings. If a nested scroll node is removed from the tree before sending the onPostFling
-     * callback, we will hold on to the next node in the tree so we have a handle to send the
-     * information after the fling finish/is cancelled.
-     */
-    @Suppress("MutableBareField")
-    @JvmField
-    var NewNestedScrollFlingDispatchingEnabled: Boolean = true
-
-    /**
      * With this flag on, the new semantic version of Autofill APIs will be enabled. Turning this
      * flag off will disable the new Semantic Autofill APIs, and the new refactored semantics.
      */
@@ -87,10 +77,24 @@ object ComposeUiFlags {
     @Suppress("MutableBareField") @JvmField var isViewFocusFixEnabled: Boolean = true
 
     /**
+     * When an embedded view that is focused is removed from the hierarchy, it triggers a
+     * requestFocus() which tries to re-assign focus before the previous composition is complete.
+     * This flag enables a fix for this issue.
+     */
+    @Suppress("MutableBareField") @JvmField var isRemoveFocusedViewFixEnabled: Boolean = true
+
+    /**
      * With this flag on, the new focus state management implementation is enabled. The new
      * implementation removes the focus state previously stored in each FocusTargetNode and instead
      * keeps track of the current active focus node centrally in FocusOwnerImpl. This change reduces
      * the cost of initializing the focus system.
      */
     @Suppress("MutableBareField") @JvmField var isTrackFocusEnabled: Boolean = true
+
+    /**
+     * Enable lower-level logging of input events where a cancellation event does not stop input
+     * events from finishing processing before the cancellation event. This is to track down why a
+     * certain build of CI is failing with this functionality enabled: b/399055247
+     */
+    @Suppress("MutableBareField") @JvmField var isHitPathTrackerLoggingEnabled: Boolean = false
 }

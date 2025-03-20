@@ -20,6 +20,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
@@ -33,6 +34,7 @@ import androidx.customview.poolingcontainer.isWithinPoolingContainer
 import androidx.customview.poolingcontainer.removePoolingContainerListener
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter.SessionClient
+import androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions
 import androidx.privacysandbox.ui.core.SessionData
 import kotlin.math.min
 
@@ -67,6 +69,9 @@ internal interface RefreshableSessionClient : SessionClient {
 
 class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) :
     ViewGroup(context, attrs) {
+    private companion object {
+        private const val TAG = "SandboxedSdkView"
+    }
 
     private val scrollChangedListener =
         ViewTreeObserver.OnScrollChangedListener { signalMeasurer?.maybeSendSignals() }
@@ -74,7 +79,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private var adapter: SandboxedUiAdapter? = null
     private var client: Client? = null
     private var clientSecondary: Client? = null
-    private var isZOrderOnTop = true
+    private var isZOrderOnTop = false
     private var contentView: View? = null
     private var refreshCallback: Consumer<Boolean>? = null
     private var requestedWidth = -1
@@ -86,7 +91,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private var viewContainingPoolingContainerListener: View? = null
     private var poolingContainerListener = PoolingContainerListener {}
     private var eventListener: SandboxedSdkViewEventListener? = null
-    private val frameCommitCallback = Runnable { eventListener?.onUiDisplayed() }
+    private val frameCommitCallback = Runnable { sendUiDisplayedEvents() }
     internal var signalMeasurer: SandboxedSdkViewSignalMeasurer? = null
     internal var isInComposeNode = false
 
@@ -114,9 +119,9 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
      * Sets the Z-ordering of the [SandboxedSdkView]'s surface, relative to its window.
      *
      * When [providerUiOnTop] is true, every [android.view.MotionEvent] on the [SandboxedSdkView]
-     * will be sent to the UI provider. When [providerUiOnTop] is false, every
-     * [android.view.MotionEvent] will be sent to the client. By default, motion events are sent to
-     * the UI provider.
+     * area will be sent to the UI provider. When [providerUiOnTop] is false, every
+     * [android.view.MotionEvent] will be sent to the client and will also be transferred to the UI
+     * provider. By default, [providerUiOnTop] is false.
      *
      * When [providerUiOnTop] is true, the UI provider's surface will be placed above the client's
      * window. In this case, none of the contents of the client's window beneath the provider's
@@ -485,8 +490,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                 view.switchClient()
                 view.refreshCallback?.accept(true)
             }
-            view.setContentView(session.view)
             this.session = session
+            view.setContentView(session.view)
             val width = pendingWidth
             val height = pendingHeight
             if ((width != null) && (height != null) && (width >= 0) && (height >= 0)) {
@@ -496,7 +501,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             pendingConfiguration = null
             pendingZOrderOnTop?.let { session.notifyZOrderChanged(it) }
             pendingZOrderOnTop = null
-            if (session.signalOptions.isNotEmpty()) {
+            if (session.signalOptions.contains(SandboxedUiAdapterSignalOptions.GEOMETRY)) {
                 view.signalMeasurer = SandboxedSdkViewSignalMeasurer(view, session)
             }
         }
@@ -505,6 +510,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             sandboxedSdkView?.let { view ->
                 if (this == view.clientSecondary) {
                     view.clientSecondary = null
+                    Log.w(TAG, "Secondary client session error: $throwable")
                     view.refreshCallback?.accept(false)
                 } else {
                     view.onClientClosedSession(throwable)
@@ -519,6 +525,10 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         override fun onSessionRefreshRequested(callback: Consumer<Boolean>) {
             sandboxedSdkView?.checkClientOpenSession(true, callback)
         }
+
+        fun notifySessionRendered() {
+            session?.notifySessionRendered(setOf(SandboxedUiAdapterSignalOptions.GEOMETRY))
+        }
     }
 
     private fun switchClient() {
@@ -528,6 +538,12 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         // close session with primary client
         this.client?.close()
         this.client = this.clientSecondary
+    }
+
+    // Called when the first frame is displayed after a new session is opened.
+    private fun sendUiDisplayedEvents() {
+        eventListener?.onUiDisplayed()
+        this.client?.notifySessionRendered()
     }
 
     /**

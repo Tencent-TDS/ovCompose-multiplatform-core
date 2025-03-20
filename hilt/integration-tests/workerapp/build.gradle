@@ -37,7 +37,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":activity:activity"))
+    implementation("androidx.activity:activity:1.10.1")
     implementation(project(":work:work-runtime-ktx"))
     implementation(project(":hilt:hilt-work"))
     ksp(project(":hilt:hilt-compiler"))
@@ -45,7 +45,7 @@ dependencies {
     implementation(libs.hiltAndroid)
     ksp(libs.hiltCompiler)
 
-    androidTestImplementation(project(":activity:activity"))
+    androidTestImplementation("androidx.activity:activity:1.10.1")
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)

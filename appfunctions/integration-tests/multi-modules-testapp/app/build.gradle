@@ -29,16 +29,22 @@ android {
             arg("appfunctions:aggregateAppFunctions", "true")
         }
     }
+    buildTypes {
+        // Release build is not used when running AndroidX Test. This is only used to
+        // manually examine the output APK.
+        release {
+            minifyEnabled = true
+            shrinkResources = true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
+        }
+    }
 }
-dependencies {
-    api(libs.kotlinStdlib)
-    api(libs.kotlinCoroutinesAndroid)
-    implementation(project(":appfunctions:appfunctions-common"))
-    implementation(project(":appfunctions:appfunctions-runtime"))
-    ksp(project(":appfunctions:appfunctions-compiler"))
-    implementation(project(":appfunctions:integration-tests:multi-modules-testapp:shared-library"))
-    implementation('androidx.concurrent:concurrent-futures-ktx:1.1.0')
 
+dependencies {
+    androidTestImplementation(libs.kotlinStdlib)
+    androidTestImplementation(libs.kotlinCoroutinesAndroid)
+    androidTestImplementation(project(":appfunctions:appfunctions-common"))
+    androidTestImplementation(project(":appfunctions:appfunctions-runtime"))
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.kotlinCoroutinesTest)
@@ -49,4 +55,6 @@ dependencies {
     androidTestImplementation("androidx.appsearch:appsearch:1.1.0-beta01")
     androidTestImplementation("androidx.appsearch:appsearch-platform-storage:1.1.0-beta01")
     androidTestImplementation('androidx.concurrent:concurrent-futures-ktx:1.1.0')
+    androidTestImplementation(project(":appfunctions:integration-tests:multi-modules-testapp:shared-library"))
+    kspAndroidTest(project(":appfunctions:appfunctions-compiler"))
 }

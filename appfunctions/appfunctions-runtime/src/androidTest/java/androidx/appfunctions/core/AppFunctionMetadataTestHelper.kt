@@ -19,8 +19,14 @@ package androidx.appfunctions.core
 import android.content.Context
 import android.os.Build
 import androidx.`annotation`.RequiresApi
+import androidx.appfunctions.core.AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT
 import androidx.appfunctions.`internal`.readAll
+import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
+import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.appfunctions.metadata.AppFunctionMetadataDocument
+import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionResponseMetadata
+import androidx.appfunctions.metadata.AppFunctionSchemaMetadata
 import androidx.appsearch.app.Features
 import androidx.appsearch.app.GlobalSearchSession
 import androidx.appsearch.app.SearchSpec
@@ -126,6 +132,134 @@ internal class AppFunctionMetadataTestHelper(private val context: Context) {
         const val NOTES_SCHEMA_PRINT = "androidx.appfunctions.test#notesSchema_print"
         const val MEDIA_SCHEMA_PRINT = "androidx.appfunctions.test#mediaSchema_print"
         const val MEDIA_SCHEMA2_PRINT = "androidx.appfunctions.test#mediaSchema2_print"
+    }
+
+    object FunctionMetadata {
+        val NO_SCHEMA_EXECUTION_SUCCEED =
+            AppFunctionMetadata(
+                id = FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = null,
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_STRING,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val NO_SCHEMA_ENABLED_BY_DEFAULT =
+            AppFunctionMetadata(
+                id = FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = null,
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val NO_SCHEMA_DISABLED_BY_DEFAULT =
+            AppFunctionMetadata(
+                id = FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = false,
+                schema = null,
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val MEDIA_SCHEMA2_PRINT =
+            AppFunctionMetadata(
+                id = FunctionIds.MEDIA_SCHEMA2_PRINT,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = AppFunctionSchemaMetadata(category = "media", name = "print", version = 2),
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val MEDIA_SCHEMA_PRINT =
+            AppFunctionMetadata(
+                id = FunctionIds.MEDIA_SCHEMA_PRINT,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = AppFunctionSchemaMetadata(category = "media", name = "print", version = 1),
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val NOTES_SCHEMA_PRINT =
+            AppFunctionMetadata(
+                id = FunctionIds.NOTES_SCHEMA_PRINT,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = AppFunctionSchemaMetadata(category = "notes", name = "print", version = 1),
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
+
+        val NO_SCHEMA_EXECUTION_FAIL =
+            AppFunctionMetadata(
+                id = FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
+                packageName = "androidx.appfunctions.runtime.test",
+                isEnabled = true,
+                schema = null,
+                parameters = emptyList(),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType =
+                            AppFunctionPrimitiveTypeMetadata(
+                                type = AppFunctionPrimitiveTypeMetadata.TYPE_UNIT,
+                                isNullable = false
+                            )
+                    ),
+                components = AppFunctionComponentsMetadata()
+            )
     }
 
     companion object {

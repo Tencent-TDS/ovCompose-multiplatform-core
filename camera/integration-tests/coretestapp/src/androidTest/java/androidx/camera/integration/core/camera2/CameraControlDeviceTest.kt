@@ -158,7 +158,7 @@ class CameraControlDeviceTest(
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun setTorchStrengthLevel_torchEnabled_futureCompletes() {
-        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+        assumeTrue(cameraProvider.getCameraInfo(cameraSelector).isTorchStrengthSupported)
 
         bindUseCases()
 
@@ -171,7 +171,7 @@ class CameraControlDeviceTest(
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun setTorchStrengthLevel_torchDisabled_futureCompletes() {
-        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+        assumeTrue(cameraProvider.getCameraInfo(cameraSelector).isTorchStrengthSupported)
 
         bindUseCases()
 
@@ -183,7 +183,7 @@ class CameraControlDeviceTest(
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun setTorchStrengthLevel_throwExceptionIfLessThanOne() {
-        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+        assumeTrue(cameraProvider.getCameraInfo(cameraSelector).isTorchStrengthSupported)
 
         bindUseCases()
 
@@ -202,7 +202,7 @@ class CameraControlDeviceTest(
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     fun setTorchStrengthLevel_throwExceptionIfLargerThanMax() {
-        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
+        assumeTrue(cameraProvider.getCameraInfo(cameraSelector).isTorchStrengthSupported)
 
         bindUseCases()
 
@@ -223,8 +223,6 @@ class CameraControlDeviceTest(
     @Test
     @SdkSuppress(maxSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM - 1)
     fun setTorchStrengthLevel_throwExceptionWhenApiNotMet() {
-        assumeTrue(CameraUtil.hasFlashUnitWithLensFacing(cameraSelector.lensFacing!!))
-
         bindUseCases()
 
         try {

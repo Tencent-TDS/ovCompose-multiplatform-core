@@ -25,24 +25,25 @@ package androidx.camera.featurecombinationquery {
   }
 
   public class SessionConfigurationCompat {
-    method public static androidx.camera.featurecombinationquery.SessionConfigurationCompat.Builder builder();
     method public java.util.List<android.hardware.camera2.params.OutputConfiguration!> getOutputConfigurations();
     method public androidx.camera.featurecombinationquery.SessionParametersCompat getSessionParameters();
   }
 
   public static final class SessionConfigurationCompat.Builder {
+    ctor public SessionConfigurationCompat.Builder();
     method public androidx.camera.featurecombinationquery.SessionConfigurationCompat.Builder addOutputConfiguration(android.hardware.camera2.params.OutputConfiguration);
+    method public androidx.camera.featurecombinationquery.SessionConfigurationCompat.Builder addOutputConfigurations(java.util.Collection<android.hardware.camera2.params.OutputConfiguration>);
     method public androidx.camera.featurecombinationquery.SessionConfigurationCompat build();
     method public androidx.camera.featurecombinationquery.SessionConfigurationCompat.Builder setSessionParameters(androidx.camera.featurecombinationquery.SessionParametersCompat);
   }
 
   public class SessionParametersCompat {
-    method public static androidx.camera.featurecombinationquery.SessionParametersCompat.Builder builder();
     method public <T> T? get(android.hardware.camera2.CaptureRequest.Key<T!>);
     method public java.util.Set<android.hardware.camera2.CaptureRequest.Key<? extends java.lang.Object!>!> getKeys();
   }
 
   public static final class SessionParametersCompat.Builder {
+    ctor public SessionParametersCompat.Builder();
     method public androidx.camera.featurecombinationquery.SessionParametersCompat build();
     method public <T> androidx.camera.featurecombinationquery.SessionParametersCompat.Builder set(android.hardware.camera2.CaptureRequest.Key<T!>, T);
   }

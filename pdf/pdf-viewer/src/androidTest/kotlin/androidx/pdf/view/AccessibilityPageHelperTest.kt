@@ -20,6 +20,8 @@ import android.graphics.RectF
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+import androidx.pdf.R
+import androidx.pdf.view.fastscroll.getDimensions
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.matcher.ViewMatchers.withId
@@ -71,6 +73,10 @@ class AccessibilityPageHelperTest {
     @After
     fun closeActivityScenario() {
         activityScenario.close()
+
+        // Reset the fast scroller visibility
+        pdfView.forcedFastScrollVisibility = true
+        pdfView.lastFastScrollerVisibility = false
     }
 
     @Test
@@ -80,6 +86,8 @@ class AccessibilityPageHelperTest {
                 "AccessibilityPageHelper must not be null."
             }
 
+        val topPageMargin = pdfView.context.getDimensions(R.dimen.top_page_margin)
+
         // Wait until layout completes for the required pages
         pdfDocument.waitForLayout(untilPage = 2)
 
@@ -88,7 +96,7 @@ class AccessibilityPageHelperTest {
             listOf(
                 Triple(25f, 25f, 0), // Maps to page 0
                 Triple(25f, 250f, 1), // Maps to page 1
-                Triple(0f, 0f, 0), // Maps to the very start of the first page
+                Triple(0f, topPageMargin, 0), // Maps to the very start of the first page
                 Triple(0f, 100f, 0), // Edge of the first page
                 Triple(110f, 25f, -1), // Outside valid page bounds
                 Triple(-10f, -10f, -1), // Outside viewport
@@ -117,9 +125,13 @@ class AccessibilityPageHelperTest {
         Espresso.onView(withId(PDF_VIEW_ID))
             .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 5)
 
+        // Enabling Fast Scroller Visibility
+        pdfView.forcedFastScrollVisibility = true
+        pdfView.lastFastScrollerVisibility = true
+
         val visiblePagesAndLinks = mutableListOf<Int>()
         accessibilityPageHelper.getVisibleVirtualViews(visiblePagesAndLinks)
-        assertThat(visiblePagesAndLinks).isEqualTo(listOf(0, 1, 2, 3, 4, 10, 11))
+        assertThat(visiblePagesAndLinks).isEqualTo(listOf(0, 1, 2, 3, 4, 10, 11, 1000002, 1000003))
     }
 
     @Test
@@ -156,14 +168,16 @@ class AccessibilityPageHelperTest {
                 "AccessibilityPageHelper must not be null."
             }
 
+        val topPageMargin = pdfView.context.getDimensions(R.dimen.top_page_margin)
+
         // Wait until layout completes for the required pages
         pdfDocument.waitForLayout(untilPage = 0)
 
         val testCases =
             listOf(
-                0 to RectF(0f, 0f, 100f, 200f),
-                10 to RectF(25f, 30f, 75f, 50f),
-                11 to RectF(25f, 60f, 75f, 80f)
+                0 to RectF(0f, topPageMargin, 100f, 200f + topPageMargin),
+                10 to RectF(25f, 30f + topPageMargin, 75f, 50f + topPageMargin),
+                11 to RectF(25f, 60f + topPageMargin, 75f, 80f + topPageMargin)
             )
 
         testCases.forEach { (virtualViewId, boundsInParent) ->
@@ -201,6 +215,70 @@ class AccessibilityPageHelperTest {
         virtualViewId = 7 // Page 8
         accessibilityPageHelper.onPopulateNodeForVirtualView(virtualViewId, node)
         verify(node).contentDescription = "Page 8" // Default value
+    }
+
+    @Test
+    fun onPopulateNodeForVirtualView_fastScrollerThumb() = runTest {
+        val accessibilityPageHelper =
+            requireNotNull(pdfView.accessibilityPageHelper) {
+                "AccessibilityPageHelper must not be null."
+            }
+
+        // Wait until layout completes for the required pages
+        pdfDocument.waitForLayout(untilPage = 0)
+
+        // Enabling Fast Scroller Visibility
+        pdfView.forcedFastScrollVisibility = true
+        pdfView.lastFastScrollerVisibility = true
+
+        val node = mock(AccessibilityNodeInfoCompat::class.java)
+        val thumbVirtualId = AccessibilityPageHelper.FAST_SCROLLER_OFFSET + 1
+        accessibilityPageHelper.onPopulateNodeForVirtualView(thumbVirtualId, node)
+        verify(node).contentDescription = "Scroll Bar"
+        verify(node).isFocusable = true
+    }
+
+    @Test
+    fun onPopulateNodeForVirtualView_fastScrollerPageIndicator() = runTest {
+        val accessibilityPageHelper =
+            requireNotNull(pdfView.accessibilityPageHelper) {
+                "AccessibilityPageHelper must not be null."
+            }
+
+        // Wait until layout completes for the required pages
+        pdfDocument.waitForLayout(untilPage = 0)
+
+        // Enabling Fast Scroller Visibility
+        pdfView.forcedFastScrollVisibility = true
+        pdfView.lastFastScrollerVisibility = true
+
+        val node = mock(AccessibilityNodeInfoCompat::class.java)
+        val pageIndicatorVirtualId = AccessibilityPageHelper.FAST_SCROLLER_OFFSET + 2
+        accessibilityPageHelper.onPopulateNodeForVirtualView(pageIndicatorVirtualId, node)
+        verify(node).isFocusable = true
+    }
+
+    @Test
+    fun getVisibleVirtualViews_fastScrollerElements() = runTest {
+        val accessibilityPageHelper =
+            requireNotNull(pdfView.accessibilityPageHelper) {
+                "AccessibilityPageHelper must not be null."
+            }
+
+        // Wait until layout completes for the required pages
+        pdfDocument.waitForLayout(untilPage = 4)
+        Espresso.onView(withId(PDF_VIEW_ID))
+            .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 5)
+
+        // Enabling Fast Scroller Visibility
+        pdfView.forcedFastScrollVisibility = true
+        pdfView.lastFastScrollerVisibility = true
+
+        val visibleViews = mutableListOf<Int>()
+        accessibilityPageHelper.getVisibleVirtualViews(visibleViews)
+
+        assertThat(visibleViews).contains(AccessibilityPageHelper.FAST_SCROLLER_OFFSET + 1)
+        assertThat(visibleViews).contains(AccessibilityPageHelper.FAST_SCROLLER_OFFSET + 2)
     }
 }
 

@@ -31,6 +31,7 @@ import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
 import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertNotNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -222,6 +223,24 @@ class SandboxedPdfDocumentTest {
             val selection = document.getSelectionBounds(pageNumber, start, stop)
 
             assertThat(selection == null).isTrue()
+        }
+    }
+
+    @RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
+    @Test
+    fun getSelectAllSelectionBounds() = runTest {
+        withDocument(PDF_DOCUMENT) { document ->
+            val pageNumber = 0
+
+            val selection = document.getSelectAllSelectionBounds(pageNumber)?.selectedTextContents
+            val expectedSelection = document.getPageContent(pageNumber)?.textContents
+
+            assertNotNull(selection)
+            assertNotNull(expectedSelection)
+            assertThat(selection?.size == expectedSelection?.size)
+            for (index: Int in 0..selection!!.size - 1) {
+                assertThat(selection[index].text == expectedSelection!![index].text).isTrue()
+            }
         }
     }
 

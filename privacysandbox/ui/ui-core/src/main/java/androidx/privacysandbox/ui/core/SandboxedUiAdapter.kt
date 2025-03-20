@@ -94,6 +94,20 @@ interface SandboxedUiAdapter {
         fun notifyUiChanged(uiContainerInfo: Bundle)
 
         /**
+         * Notifies that the session has been rendered inside the container hosting this session.
+         *
+         * [supportedSignalOptions] specifies the signal options which are supported by the host
+         * container.
+         *
+         * UI providers should add [SessionObserverFactory]s to receive this value rather than using
+         * this method directly. This API is used to notify the [SessionObserver]s associated with
+         * this session about the supported signal options for this session.
+         *
+         * @see [SandboxedUiAdapterSignalOptions]
+         */
+        fun notifySessionRendered(supportedSignalOptions: Set<String>)
+
+        /**
          * Close this session, indicating that the remote provider of content should dispose of
          * associated resources and that the [SessionClient] should not receive further callback
          * events.

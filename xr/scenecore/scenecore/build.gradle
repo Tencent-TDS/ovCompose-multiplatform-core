@@ -70,9 +70,10 @@ dependencies {
     androidTestImplementation("androidx.appcompat:appcompat:1.2.0")
     androidTestImplementation(project(":xr:scenecore:scenecore-testing"))
 
-    // For androidx.xr.extensions.
-    compileOnly(project(':xr:xr-stubs'))
-    testImplementation(project(':xr:xr-stubs'))
+    // For com.android.xr.extensions.
+    compileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
+    testCompileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
+    testImplementation(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.host.test.jar")))
 }
 
 android {

@@ -185,7 +185,10 @@ class ConfirmationScreenshotTest {
 
         onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertAgainstGolden(screenshotRule, testName.goldenIdentifier())
+            .assertAgainstGolden(
+                screenshotRule,
+                testName.goldenIdentifier(),
+            )
     }
 
     @Composable

@@ -27,7 +27,6 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -85,7 +84,7 @@ class SessionTest {
 
     @Test
     fun create_permissionNotGranted_returnsPermissionsNotGranted() {
-        val permission = "android.permission.SCENE_UNDERSTANDING"
+        val permission = "android.permission.SCENE_UNDERSTANDING_COARSE"
         shadowOf(activity).denyPermissions(permission)
 
         val result = Session.create(activity) as SessionCreatePermissionsNotGranted
@@ -126,7 +125,7 @@ class SessionTest {
     @Test
     fun resume_permissionNotGranted_returnsPermissionsNotGranted() {
         val underTest = (Session.create(activity) as SessionCreateSuccess).session
-        val permission = "android.permission.SCENE_UNDERSTANDING"
+        val permission = "android.permission.SCENE_UNDERSTANDING_COARSE"
         shadowOf(activity).denyPermissions(permission)
 
         val result = underTest.resume() as SessionResumePermissionsNotGranted

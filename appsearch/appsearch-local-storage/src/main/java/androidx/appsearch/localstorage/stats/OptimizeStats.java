@@ -19,7 +19,7 @@ package androidx.appsearch.localstorage.stats;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
-import androidx.core.util.Preconditions;
+import androidx.appsearch.stats.BaseStats;
 
 import org.jspecify.annotations.NonNull;
 
@@ -29,7 +29,7 @@ import org.jspecify.annotations.NonNull;
  * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public final class OptimizeStats {
+public final class OptimizeStats extends BaseStats {
     /**
      * The status code returned by {@link AppSearchResult#getResultCode()} for the call or
      * internal state.
@@ -64,7 +64,7 @@ public final class OptimizeStats {
     private final long mNativeTimeSinceLastOptimizeMillis;
 
     OptimizeStats(@NonNull Builder builder) {
-        Preconditions.checkNotNull(builder);
+        super(builder);
         mStatusCode = builder.mStatusCode;
         mTotalLatencyMillis = builder.mTotalLatencyMillis;
         mNativeLatencyMillis = builder.mNativeLatencyMillis;
@@ -139,7 +139,7 @@ public final class OptimizeStats {
     }
 
     /** Builder for {@link RemoveStats}. */
-    public static class Builder {
+    public static class Builder extends BaseStats.Builder<OptimizeStats.Builder> {
         /**
          * The status code returned by {@link AppSearchResult#getResultCode()} for the call or
          * internal state.
@@ -239,6 +239,7 @@ public final class OptimizeStats {
         }
 
         /** Creates a {@link OptimizeStats}. */
+        @Override
         public @NonNull OptimizeStats build() {
             return new OptimizeStats(/* builder= */ this);
         }

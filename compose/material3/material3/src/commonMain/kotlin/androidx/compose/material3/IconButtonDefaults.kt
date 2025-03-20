@@ -1065,12 +1065,11 @@ object IconButtonDefaults {
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     internal val Shapes.defaultIconButtonShapes: IconButtonShapes
-        @Composable
         get() {
             return defaultIconButtonShapesCached
                 ?: IconButtonShapes(
-                        shape = smallRoundShape,
-                        pressedShape = smallPressedShape,
+                        shape = fromToken(SmallIconButtonTokens.ContainerShapeRound),
+                        pressedShape = fromToken(SmallIconButtonTokens.PressedContainerShape),
                     )
                     .also { defaultIconButtonShapesCached = it }
         }
@@ -1109,13 +1108,12 @@ object IconButtonDefaults {
 
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     internal val Shapes.defaultIconToggleButtonShapes: IconToggleButtonShapes
-        @Composable
         get() {
             return defaultIconToggleButtonShapesCached
                 ?: IconToggleButtonShapes(
-                        shape = smallRoundShape,
-                        pressedShape = smallPressedShape,
-                        checkedShape = smallSelectedRoundShape
+                        shape = fromToken(SmallIconButtonTokens.ContainerShapeRound),
+                        pressedShape = fromToken(SmallIconButtonTokens.PressedContainerShape),
+                        checkedShape = fromToken(SmallIconButtonTokens.SelectedContainerShapeRound)
                     )
                     .also { defaultIconToggleButtonShapesCached = it }
         }

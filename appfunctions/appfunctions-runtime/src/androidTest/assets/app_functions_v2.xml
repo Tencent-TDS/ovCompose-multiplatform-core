@@ -68,12 +68,9 @@
         <id>androidx.appfunctions.test#notesSchema_print</id>
         <function_id>androidx.appfunctions.test#notesSchema_print</function_id>
         <enabled_by_default>true</enabled_by_default>
-        <schema>
-            <id>unused</id>
-            <schemaName>print</schemaName>
-            <schemaCategory>notes</schemaCategory>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaName>print</schemaName>
+        <schemaCategory>notes</schemaCategory>
+        <schemaVersion>1</schemaVersion>
         <response>
             <id>unused</id>
             <valueType>
@@ -90,12 +87,9 @@
         <id>androidx.appfunctions.test#mediaSchema_print</id>
         <function_id>androidx.appfunctions.test#mediaSchema_print</function_id>
         <enabled_by_default>true</enabled_by_default>
-        <schema>
-            <id>unused</id>
-            <schemaName>print</schemaName>
-            <schemaCategory>media</schemaCategory>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaName>print</schemaName>
+        <schemaCategory>media</schemaCategory>
+        <schemaVersion>1</schemaVersion>
         <response>
             <id>unused</id>
             <valueType>
@@ -112,12 +106,9 @@
         <id>androidx.appfunctions.test#mediaSchema2_print</id>
         <function_id>androidx.appfunctions.test#mediaSchema2_print</function_id>
         <enabled_by_default>true</enabled_by_default>
-        <schema>
-            <id>unused</id>
-            <schemaName>print</schemaName>
-            <schemaCategory>media</schemaCategory>
-            <schemaVersion>2</schemaVersion>
-        </schema>
+        <schemaName>print</schemaName>
+        <schemaCategory>media</schemaCategory>
+        <schemaVersion>2</schemaVersion>
         <response>
             <id>unused</id>
             <valueType>

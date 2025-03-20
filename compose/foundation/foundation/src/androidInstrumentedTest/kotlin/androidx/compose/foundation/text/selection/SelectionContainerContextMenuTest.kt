@@ -56,7 +56,7 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-class SelectionContainerContextMenuTest {
+open class SelectionContainerContextMenuTest {
     @get:Rule val rule = createComposeRule()
 
     private val textTag = "text"

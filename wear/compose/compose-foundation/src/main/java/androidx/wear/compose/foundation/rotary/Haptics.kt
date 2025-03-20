@@ -377,7 +377,8 @@ private fun isWear4(): Boolean = Build.VERSION.SDK_INT == Build.VERSION_CODES.TI
 
 private fun hasWearSDK(context: Context): Boolean =
     context.packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH) &&
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+        !"robolectric".equals(Build.FINGERPRINT, ignoreCase = true)
 
 private fun getWearPlatformMrNumber(context: Context): Int =
     Settings.Global.getString(context.contentResolver, WEAR_PLATFORM_MR_NUMBER)?.toIntOrNull() ?: 0

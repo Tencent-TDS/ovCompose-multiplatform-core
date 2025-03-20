@@ -27,11 +27,13 @@ import android.window.OnBackInvokedCallback;
 import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.NonNull;
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.NodeTransaction;
+import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeTransaction;
 
 import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
@@ -48,26 +50,81 @@ final class PanelEntityImpl extends BasePanelEntity implements PanelEntity {
     private final SurfaceControlViewHost mSurfaceControlViewHost;
 
     PanelEntityImpl(
+            @NonNull Context context,
             Node node,
             @NonNull View view,
             XrExtensions extensions,
             EntityManager entityManager,
             PixelDimensions surfaceDimensionsPx,
             @NonNull String name,
-            @SuppressWarnings("ContextFirst") @NonNull Context context,
             ScheduledExecutorService executor) {
         super(node, extensions, entityManager, executor);
-        SurfaceControlViewHost surfaceControlViewHost =
+        mSurfaceControlViewHost =
                 new SurfaceControlViewHost(
                         context, Objects.requireNonNull(context.getDisplay()), new Binder());
-        surfaceControlViewHost.setView(view, surfaceDimensionsPx.width, surfaceDimensionsPx.height);
+        setupSurfaceControlViewHostAndCornerRadius(view, surfaceDimensionsPx, name);
+        setDefaultOnBackInvokedCallback(view);
+    }
+
+    PanelEntityImpl(
+            @NonNull Context context,
+            Node node,
+            @NonNull View view,
+            XrExtensions extensions,
+            EntityManager entityManager,
+            Dimensions surfaceDimensions,
+            @NonNull String name,
+            ScheduledExecutorService executor) {
+        super(node, extensions, entityManager, executor);
+        float unscaledPixelDensity = getDefaultPixelDensity();
+        PixelDimensions surfaceDimensionsPx =
+                new PixelDimensions(
+                        (int) (surfaceDimensions.width * unscaledPixelDensity),
+                        (int) (surfaceDimensions.height * unscaledPixelDensity));
+        mSurfaceControlViewHost =
+                new SurfaceControlViewHost(
+                        context, Objects.requireNonNull(context.getDisplay()), new Binder());
+        setupSurfaceControlViewHostAndCornerRadius(view, surfaceDimensionsPx, name);
+        setDefaultOnBackInvokedCallback(view);
+    }
+
+    // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
+    private void setupSurfaceControlViewHostAndCornerRadius(
+            @NonNull View view,
+            @NonNull PixelDimensions surfaceDimensionsPx,
+            @NonNull String name) {
+        mSurfaceControlViewHost.setView(
+                view, surfaceDimensionsPx.width, surfaceDimensionsPx.height);
+
+        SurfacePackage surfacePackage =
+                Objects.requireNonNull(mSurfaceControlViewHost.getSurfacePackage());
+
+        // We need to manually inform our base class of the pixelDimensions, even though the
+        // Extensions
+        // are initialized in the factory method. (ext.setWindowBounds, etc)
+        super.setSizeInPixels(surfaceDimensionsPx);
+        float cornerRadius = getDefaultCornerRadiusInMeters();
+        try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
+            transaction
+                    .setName(mNode, name)
+                    .setSurfacePackage(mNode, surfacePackage)
+                    .setWindowBounds(
+                            surfacePackage, surfaceDimensionsPx.width, surfaceDimensionsPx.height)
+                    .setVisibility(mNode, true)
+                    .setCornerRadius(mNode, cornerRadius)
+                    .apply();
+        } finally {
+            surfacePackage.release();
+        }
+        super.setCornerRadiusValue(cornerRadius);
+    }
+
+    @SuppressWarnings("deprecation") // TODO: b/398052385 - Replace deprecate onBackPressed.
+    private void setDefaultOnBackInvokedCallback(View view) {
         OnBackInvokedCallback onBackInvokedCallback =
-                new OnBackInvokedCallback() {
-                    @Override
-                    public void onBackInvoked() {
-                        if (view.getContext() instanceof Activity) {
-                            ((Activity) view.getContext()).onBackPressed();
-                        }
+                () -> {
+                    if (view.getContext() instanceof Activity) {
+                        ((Activity) view.getContext()).onBackPressed();
                     }
                 };
         OnBackInvokedDispatcher backDispatcher = view.findOnBackInvokedDispatcher();
@@ -75,38 +132,11 @@ final class PanelEntityImpl extends BasePanelEntity implements PanelEntity {
             backDispatcher.registerOnBackInvokedCallback(
                     OnBackInvokedDispatcher.PRIORITY_DEFAULT, onBackInvokedCallback);
         }
-
-        SurfacePackage surfacePackage =
-                Objects.requireNonNull(surfaceControlViewHost.getSurfacePackage());
-
-        // We need to manually inform our base class of the pixelDimensions, even though the
-        // Extensions
-        // are initialized in the factory method. (ext.setWindowBounds, etc)
-        super.setPixelDimensions(surfaceDimensionsPx);
-        float cornerRadius = getDefaultCornerRadiusInMeters();
-        try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
-            transaction
-                    .setName(node, name)
-                    .setSurfacePackage(node, surfacePackage)
-                    .setWindowBounds(
-                            surfacePackage, surfaceDimensionsPx.width, surfaceDimensionsPx.height)
-                    .setVisibility(node, true)
-                    .setCornerRadius(node, cornerRadius)
-                    .apply();
-        }
-
-        // TODO (b/392642541): Handle surfacePackage release in the case where there is an exception
-        // on
-        // the NodeTransaction.
-        surfacePackage.release();
-        super.setCornerRadiusValue(cornerRadius);
-        mSurfaceControlViewHost = surfaceControlViewHost;
     }
 
-    // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
     @Override
-    public void setPixelDimensions(PixelDimensions dimensions) {
-        super.setPixelDimensions(dimensions);
+    public void setSizeInPixels(@NonNull PixelDimensions dimensions) {
+        super.setSizeInPixels(dimensions);
 
         SurfacePackage surfacePackage =
                 Objects.requireNonNull(mSurfaceControlViewHost.getSurfacePackage());

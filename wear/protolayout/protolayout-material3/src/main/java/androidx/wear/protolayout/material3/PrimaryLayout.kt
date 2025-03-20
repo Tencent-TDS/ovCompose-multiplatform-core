@@ -43,7 +43,6 @@ import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.BOTTOM_SLOT_OTH
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.BOTTOM_SLOT_OTHER_MARGIN_SIDE_PERCENTAGE
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.BOTTOM_SLOT_OTHER_MARGIN_TOP_DP
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.FOOTER_LABEL_SLOT_MARGIN_SIDE_PERCENTAGE
-import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.FOOTER_LABEL_TO_BOTTOM_SLOT_SPACER_HEIGHT_DP
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.HEADER_ICON_SIZE_DP
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.HEADER_ICON_TITLE_SPACER_HEIGHT_LARGE_DP
 import androidx.wear.protolayout.material3.PrimaryLayoutDefaults.HEADER_ICON_TITLE_SPACER_HEIGHT_SMALL_DP
@@ -104,16 +103,22 @@ import kotlin.math.ceil
  * @param titleSlot The app title in the top slot, just below the icon. This should be one line of
  *   [text] with [Typography.TITLE_SMALL] typography, describing the main purpose of this layout.
  *   Title is an optional slot which can be omitted to make space for other elements. Defaults to
- *   [ColorScheme.onBackground] color.
+ *   [ColorScheme.onBackground] color. When this [titleSlot] is [text], it is considered as
+ *   important for accessibility by default, which can be overridden by adding
+ *   [LayoutModifier.clearSemantics] into the [text] modifier.
  * @param bottomSlot The content for bottom slot in this layout, that will be anchored to the bottom
  *   edge of the screen. This should be either a small non tappable content such as Text with
  *   optional label for it or tappable main action with [textEdgeButton] or [iconEdgeButton] which
  *   is designed to have its bottom following the screen's curvature. This bottom slot is optional,
- *   if unset the main content will expand more towards the edge of the screen.
+ *   if unset the main content will expand more towards the edge of the screen. When this
+ *   [bottomSlot] is [text], it is considered as important for accessibility by default, which can
+ *   be overridden by adding [LayoutModifier.clearSemantics] into the [text] modifiers.
  * @param labelForBottomSlot The label displayed just above the [bottomSlot]. Default will be one
  *   line of [text] with [Typography.TITLE_SMALL] typography, [ColorScheme.onSurface] color that
  *   should contain additional description of this layout. When the [bottomSlot] is not provided or
- *   it an edge button, the given label will be ignored.
+ *   it an edge button, the given label will be ignored. When this [labelForBottomSlot] is [text],
+ *   it is considered as important for accessibility by default, which can be overridden by adding
+ *   [LayoutModifier.clearSemantics] into the [text] modifiers.
  * @param onClick The clickable action for whole layout. If any area (outside of other added
  *   tappable components) is clicked, it will fire the associated action.
  * @param margins The customized outer margin that will be applied as following:
@@ -176,7 +181,8 @@ public fun MaterialScope.primaryLayoutWithOverrideIcon(
                     defaultTextElementStyle =
                         TextElementStyle(
                             typography = Typography.TITLE_SMALL,
-                            color = theme.colorScheme.onSurface
+                            color = theme.colorScheme.onSurface,
+                            importantForAccessibility = true
                         )
                 )
                 .labelForBottomSlot()
@@ -201,7 +207,8 @@ public fun MaterialScope.primaryLayoutWithOverrideIcon(
                                 defaultTextElementStyle =
                                     TextElementStyle(
                                         typography = Typography.TITLE_SMALL,
-                                        color = theme.colorScheme.onBackground
+                                        color = theme.colorScheme.onBackground,
+                                        importantForAccessibility = true
                                     )
                             )
                             .titleSlot()
@@ -218,6 +225,7 @@ public fun MaterialScope.primaryLayoutWithOverrideIcon(
                         TextElementStyle(
                             typography = Typography.TITLE_MEDIUM,
                             color = theme.colorScheme.onBackground,
+                            importantForAccessibility = true
                         )
                 )
                 .bottomSlot()
@@ -381,15 +389,13 @@ private fun MaterialScope.getFooterContent(
         )
 
         labelSlot?.apply {
-            otherBottomSlot
-                .addContent(
-                    generateLabelContent(
-                        (FOOTER_LABEL_SLOT_MARGIN_SIDE_PERCENTAGE *
-                                deviceConfiguration.screenWidthDp)
-                            .dp
-                    )
+            otherBottomSlot.addContent(
+                generateLabelContent(
+                    (FOOTER_LABEL_SLOT_MARGIN_SIDE_PERCENTAGE * deviceConfiguration.screenWidthDp)
+                        .dp
                 )
-                .addContent(horizontalSpacer(FOOTER_LABEL_TO_BOTTOM_SLOT_SPACER_HEIGHT_DP))
+            )
+            // vertical spacing between the label slot and bottom slot is zero
         }
 
         footer.addContent(
@@ -467,8 +473,6 @@ internal object PrimaryLayoutDefaults {
     internal const val BOTTOM_SLOT_OTHER_MARGIN_BOTTOM_PERCENTAGE = 5.2f
 
     internal const val BOTTOM_SLOT_OTHER_MARGIN_SIDE_PERCENTAGE = 26f / 100
-
-    @Dimension(DP) internal const val FOOTER_LABEL_TO_BOTTOM_SLOT_SPACER_HEIGHT_DP = 2
 
     internal const val FOOTER_LABEL_SLOT_MARGIN_SIDE_PERCENTAGE = 16.64f / 100
 }

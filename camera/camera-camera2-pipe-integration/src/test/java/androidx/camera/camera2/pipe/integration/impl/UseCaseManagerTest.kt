@@ -29,13 +29,13 @@ import android.hardware.camera2.CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE
 import android.hardware.camera2.CaptureRequest.CONTROL_CAPTURE_INTENT
 import android.hardware.camera2.params.DynamicRangeProfiles
 import android.hardware.camera2.params.SessionConfiguration.SESSION_HIGH_SPEED
-import android.os.Build
 import android.util.Range
 import android.util.Size
 import androidx.camera.camera2.pipe.CameraGraph.OperatingMode.Companion.HIGH_SPEED
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraStream
+import androidx.camera.camera2.pipe.OutputStream.DynamicRangeProfile
 import androidx.camera.camera2.pipe.RequestTemplate
 import androidx.camera.camera2.pipe.integration.adapter.BlockingTestDeferrableSurface
 import androidx.camera.camera2.pipe.integration.adapter.CameraCoordinatorAdapter
@@ -104,7 +104,7 @@ import org.robolectric.shadows.StreamConfigurationMapBuilder
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricCameraPipeTestRunner::class)
-@Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
+@Config(minSdk = 21)
 class UseCaseManagerTest {
     private val supportedSizes = arrayOf(Size(640, 480))
     private val streamConfigurationMap =
@@ -596,6 +596,137 @@ class UseCaseManagerTest {
             .isEqualTo(mapOf(CONTROL_CAPTURE_INTENT to CONTROL_CAPTURE_INTENT_PREVIEW))
     }
 
+    @Config(maxSdk = 32)
+    @Test
+    fun createCameraGraphConfig_underTiramisu_notSetDynamicRangeToGraphConfig() = runTest {
+        // Arrange
+        initializeUseCaseThreads(this)
+        val useCaseManager = createUseCaseManager()
+        val previewDeferrableSurface = createTestDeferrableSurface(Preview::class.java)
+        val outputConfig =
+            SessionConfig.OutputConfig.builder(previewDeferrableSurface)
+                .setDynamicRange(DynamicRange.SDR)
+                .build()
+        val fakeUseCase =
+            FakeUseCase().apply {
+                updateSessionConfigForTesting(
+                    SessionConfig.Builder()
+                        .setTemplateType(TEMPLATE_PREVIEW)
+                        .addOutputConfig(outputConfig)
+                        .build()
+                )
+            }
+        val sessionConfigAdapter = SessionConfigAdapter(setOf(fakeUseCase))
+        val streamConfigMap = mutableMapOf<CameraStream.Config, DeferrableSurface>()
+
+        // Act
+        val graphConfig =
+            useCaseManager.createCameraGraphConfig(
+                sessionConfigAdapter,
+                streamConfigMap,
+            )
+
+        // Assert
+        assertThat(graphConfig.streams.size).isEqualTo(1)
+        val streamConfig = graphConfig.streams[0]
+        assertThat(streamConfig.outputs.size).isEqualTo(1)
+        val dynamicRangeProfile = streamConfig.outputs[0].dynamicRangeProfile
+        assertThat(dynamicRangeProfile).isEqualTo(null)
+    }
+
+    @Config(minSdk = 33)
+    @Test
+    fun createCameraGraphConfig_propagateDynamicRangeSdrToGraphConfig() = runTest {
+        // Arrange
+        initializeUseCaseThreads(this)
+        val useCaseManager = createUseCaseManager()
+        val previewDeferrableSurface = createTestDeferrableSurface(Preview::class.java)
+        val outputConfig =
+            SessionConfig.OutputConfig.builder(previewDeferrableSurface)
+                .setDynamicRange(DynamicRange.SDR)
+                .build()
+        val fakeUseCase =
+            FakeUseCase().apply {
+                updateSessionConfigForTesting(
+                    SessionConfig.Builder()
+                        .setTemplateType(TEMPLATE_PREVIEW)
+                        .addOutputConfig(outputConfig)
+                        .build()
+                )
+            }
+        val sessionConfigAdapter = SessionConfigAdapter(setOf(fakeUseCase))
+        val streamConfigMap = mutableMapOf<CameraStream.Config, DeferrableSurface>()
+
+        // Act
+        val graphConfig =
+            useCaseManager.createCameraGraphConfig(
+                sessionConfigAdapter,
+                streamConfigMap,
+            )
+
+        // Assert
+        assertThat(graphConfig.streams.size).isEqualTo(1)
+        val streamConfig = graphConfig.streams[0]
+        assertThat(streamConfig.outputs.size).isEqualTo(1)
+        val dynamicRangeProfile = streamConfig.outputs[0].dynamicRangeProfile
+        assertThat(dynamicRangeProfile).isEqualTo(DynamicRangeProfile.STANDARD)
+    }
+
+    @Config(minSdk = 33)
+    @Test
+    fun createCameraGraphConfig_propagateDynamicRangeHlg10ToGraphConfig() = runTest {
+        // Arrange
+        initializeUseCaseThreads(this)
+        val useCaseManager =
+            createUseCaseManager(
+                characteristicsMap =
+                    mapOf(
+                        CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP to
+                            streamConfigurationMap,
+                        CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES to
+                            intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT),
+                        REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES to
+                            DynamicRangeProfiles(
+                                longArrayOf(
+                                    DynamicRangeProfiles.HLG10,
+                                    DynamicRangeProfiles.HLG10,
+                                    0L
+                                )
+                            )
+                    )
+            )
+        val previewDeferrableSurface = createTestDeferrableSurface(Preview::class.java)
+        val outputConfig =
+            SessionConfig.OutputConfig.builder(previewDeferrableSurface)
+                .setDynamicRange(DynamicRange.HLG_10_BIT)
+                .build()
+        val fakeUseCase =
+            FakeUseCase().apply {
+                updateSessionConfigForTesting(
+                    SessionConfig.Builder()
+                        .setTemplateType(TEMPLATE_PREVIEW)
+                        .addOutputConfig(outputConfig)
+                        .build()
+                )
+            }
+        val sessionConfigAdapter = SessionConfigAdapter(setOf(fakeUseCase))
+        val streamConfigMap = mutableMapOf<CameraStream.Config, DeferrableSurface>()
+
+        // Act
+        val graphConfig =
+            useCaseManager.createCameraGraphConfig(
+                sessionConfigAdapter,
+                streamConfigMap,
+            )
+
+        // Assert
+        assertThat(graphConfig.streams.size).isEqualTo(1)
+        val streamConfig = graphConfig.streams[0]
+        assertThat(streamConfig.outputs.size).isEqualTo(1)
+        val dynamicRangeProfile = streamConfig.outputs[0].dynamicRangeProfile
+        assertThat(dynamicRangeProfile).isEqualTo(DynamicRangeProfile.HLG10)
+    }
+
     @Test
     fun createCameraGraphConfig_setTargetFpsRange() = runTest {
         // Arrange
@@ -663,7 +794,7 @@ class UseCaseManagerTest {
     }
 
     @Test
-    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Config(minSdk = 35)
     fun enableLowLightBoost_whenFpsRangeExceed30() = runTest {
         // Arrange
         initializeUseCaseThreads(this)
@@ -694,7 +825,7 @@ class UseCaseManagerTest {
     }
 
     @Test
-    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    @Config(minSdk = 35)
     fun enableLowLightBoost_when10BitIsOn() = runTest {
         // Arrange
         initializeUseCaseThreads(this)

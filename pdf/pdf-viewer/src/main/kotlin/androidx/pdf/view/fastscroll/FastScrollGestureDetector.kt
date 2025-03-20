@@ -17,6 +17,7 @@
 package androidx.pdf.view.fastscroll
 
 import android.view.MotionEvent
+import android.view.ViewParent
 
 /**
  * Handles touch events related to the fast scroll functionality.
@@ -45,7 +46,7 @@ internal class FastScrollGestureDetector(
      * @param viewWidth Width of the view in pixels.
      * @return True if the event was handled as a fast scroll gesture, false otherwise.
      */
-    fun handleEvent(event: MotionEvent, viewWidth: Int): Boolean {
+    fun handleEvent(event: MotionEvent, parent: ViewParent?, viewWidth: Int): Boolean {
         if (event.actionMasked == MotionEvent.ACTION_DOWN) {
             if (isPointWithinVisibleBounds(event, viewWidth)) {
                 trackingFastScrollGesture = true
@@ -57,6 +58,7 @@ internal class FastScrollGestureDetector(
             if (event.actionMasked == MotionEvent.ACTION_MOVE) {
                 gestureHandler.onFastScrollDetected(event.y)
             } else if (event.actionMasked == MotionEvent.ACTION_UP) {
+                parent?.requestDisallowInterceptTouchEvent(false)
                 trackingFastScrollGesture = false
             }
             return true
@@ -86,9 +88,9 @@ internal class FastScrollGestureDetector(
         /**
          * Called when a fast scroll gesture is detected.
          *
-         * @param scrollY The vertical scroll position in pixels indicated by the fast scroll
+         * @param eventY The vertical scroll position in pixels indicated by the fast scroll
          *   gesture.
          */
-        fun onFastScrollDetected(scrollY: Float)
+        fun onFastScrollDetected(eventY: Float)
     }
 }

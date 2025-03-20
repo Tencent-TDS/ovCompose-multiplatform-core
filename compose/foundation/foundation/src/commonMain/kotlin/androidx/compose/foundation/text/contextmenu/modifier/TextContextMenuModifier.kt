@@ -121,7 +121,7 @@ private class FilterTextContextMenuDataComponentsElement(
 
 private data object TextContextMenuDataTraverseKey
 
-private class AddTextContextMenuDataComponentsNode(
+internal class AddTextContextMenuDataComponentsNode(
     var builder: TextContextMenuBuilderScope.() -> Unit,
 ) : Modifier.Node(), TraversableNode {
     override val traverseKey: Any

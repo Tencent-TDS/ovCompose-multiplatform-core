@@ -60,11 +60,10 @@
     {
       "coordinates": {
         "type": "module",
-        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-android",
+        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
         "resolvedVersion": "1.7.3"
       },
-      "fromConfiguration": "api",
-      "toConfiguration": "runtimeOnly"
+      "toConfiguration": "androidTestImplementation"
     },
     {
       "coordinates": {
@@ -87,7 +86,21 @@
         "type": "project",
         "identifier": ":wear:watchface:watchface-complications"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications"
+      },
       "toConfiguration": "api"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications"
+      },
+      "toConfiguration": "testImplementation"
     }
   ]
 }

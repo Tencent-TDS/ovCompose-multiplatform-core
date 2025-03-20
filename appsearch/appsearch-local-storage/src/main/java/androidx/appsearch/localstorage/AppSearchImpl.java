@@ -207,6 +207,7 @@ public final class AppSearchImpl implements Closeable {
     @GuardedBy("mReadWriteLock")
     @VisibleForTesting
     final IcingSearchEngineInterface mIcingSearchEngineLocked;
+    private final boolean mIsVMEnabled;
 
     @GuardedBy("mReadWriteLock")
     private final SchemaCache mSchemaCacheLocked = new SchemaCache();
@@ -337,8 +338,10 @@ public final class AppSearchImpl implements Closeable {
                         TAG,
                         "Constructing IcingSearchEngine, response",
                         ObjectsCompat.hashCode(mIcingSearchEngineLocked));
+                mIsVMEnabled = false;
             } else {
                 mIcingSearchEngineLocked = icingSearchEngine;
+                mIsVMEnabled = true;
             }
 
             // The core initialization procedure. If any part of this fails, we bail into
@@ -357,7 +360,8 @@ public final class AppSearchImpl implements Closeable {
                             .setStatusCode(
                                     statusProtoToResultCode(initializeResultProto.getStatus()))
                             // TODO(b/173532925) how to get DeSyncs value
-                            .setHasDeSync(false);
+                            .setHasDeSync(false)
+                            .setLaunchVMEnabled(mIsVMEnabled);
                     AppSearchLoggerHelper.copyNativeStats(
                             initializeResultProto.getInitializeStats(), initStatsBuilder);
                 }
@@ -565,7 +569,8 @@ public final class AppSearchImpl implements Closeable {
             if (setSchemaStatsBuilder != null) {
                 setSchemaStatsBuilder.setJavaLockAcquisitionLatencyMillis(
                         (int) (SystemClock.elapsedRealtime()
-                                - javaLockAcquisitionLatencyStartMillis));
+                                - javaLockAcquisitionLatencyStartMillis))
+                        .setLaunchVMEnabled(mIsVMEnabled);
             }
             if (mObserverManager.isPackageObserved(packageName)) {
                 return doSetSchemaWithChangeNotificationLocked(
@@ -1056,6 +1061,9 @@ public final class AppSearchImpl implements Closeable {
      * @param sendChangeNotifications Whether to dispatch
      *                                {@link androidx.appsearch.observer.DocumentChangeInfo}
      *                                messages to observers for this change.
+     * @param persistType             The persist type used to call PersistToDisk inside Icing at
+     *                                the end of the Put request. If UNKNOWN, PersistToDisk will not
+     *                                be called. See also {@link #persistToDisk(PersistType.Code)}.
      * @throws AppSearchException on IcingSearchEngine error.
      */
     public void batchPutDocuments(
@@ -1064,7 +1072,8 @@ public final class AppSearchImpl implements Closeable {
             @NonNull List<GenericDocument> documents,
             AppSearchBatchResult.@Nullable Builder<String, Void> batchResultBuilder,
             boolean sendChangeNotifications,
-            @Nullable AppSearchLogger logger) {
+            @Nullable AppSearchLogger logger,
+            PersistType.@NonNull Code persistType) throws AppSearchException {
         // All the stats we want to print. This may not be necessary,
         // but just to keep the behavior same as before.
         // Use list instead of map as same id can appear more than once.
@@ -1077,11 +1086,19 @@ public final class AppSearchImpl implements Closeable {
             throwIfClosedLocked();
 
             String prefix = createPrefix(packageName, databaseName);
-            PutDocumentRequest.Builder requestProtoBuilder = PutDocumentRequest.newBuilder();
+            List<PutDocumentRequest.Builder> requestBuilderList = new ArrayList<>();
+            // This is to make sure the batching size is at least getMaxDocumentSizeBytes.
+            // Otherwise one valid size doc may not fit into a batch.
+            int maxBufferedBytes = Integer.max(mConfig.getMaxByteLimitForBatchPut(),
+                    mConfig.getMaxDocumentSizeBytes());
+            int currentTotalBytes = 0;
+            PutDocumentRequest.Builder currentBatchBuilder =
+                    PutDocumentRequest.newBuilder().setPersistType(PersistType.Code.UNKNOWN);
             for (int i = 0; i < documents.size(); ++i) {
                 String docId = documents.get(i).getId();
                 PutDocumentStats.Builder pStatsBuilder =
-                        new PutDocumentStats.Builder(packageName, databaseName);
+                        new PutDocumentStats.Builder(packageName, databaseName)
+                                .setLaunchVMEnabled(mIsVMEnabled);
                 // Previously we always log even if we reach the limit. To keep the behavior
                 // same as before, we will save all the stats created.
                 allStatsList.add(pStatsBuilder);
@@ -1094,8 +1111,8 @@ public final class AppSearchImpl implements Closeable {
                     // Generate Document Proto
                     generateDocumentProtoStartTimeMillis = SystemClock.elapsedRealtime();
                     DocumentProto.Builder documentBuilder =
-                            GenericDocumentToProtoConverter.toDocumentProto(
-                                    documents.get(i)).toBuilder();
+                            GenericDocumentToProtoConverter.toDocumentProto(documents.get(i))
+                                    .toBuilder();
                     generateDocumentProtoEndTimeMillis = SystemClock.elapsedRealtime();
 
                     // Rewrite Document Type
@@ -1105,11 +1122,27 @@ public final class AppSearchImpl implements Closeable {
                     DocumentProto finalDocument = documentBuilder.build();
 
                     // Check limits
-                    enforceLimitConfigLocked(
-                            packageName, docId, finalDocument.getSerializedSize());
+                    int serializedSizeBytes = finalDocument.getSerializedSize();
+                    enforceLimitConfigLocked(packageName, docId, serializedSizeBytes);
 
-                    requestProtoBuilder.addDocuments(finalDocument);
+                    // to see if we want to finish the current batch and build a PutRequestProto.
+                    // based on how we calculate maxBufferedBytes, serializedSizeBytes is guaranteed
+                    // to be smaller or same as maxBufferedBytes.
+                    if (serializedSizeBytes > maxBufferedBytes - currentTotalBytes) {
+                        // Time to finish the current batch.
+                        requestBuilderList.add(currentBatchBuilder);
+
+                        // reset everything for next batch
+                        currentBatchBuilder =
+                                PutDocumentRequest.newBuilder().setPersistType(
+                                        PersistType.Code.UNKNOWN);
+                        currentTotalBytes = 0;
+                    }
+
+                    currentTotalBytes += serializedSizeBytes;
+                    currentBatchBuilder.addDocuments(finalDocument);
                     statsNotFilteredOut.add(pStatsBuilder);
+
                 } catch (Throwable t) {
                     if (batchResultBuilder != null) {
                         batchResultBuilder.setResult(docId, throwableToFailedResult(t));
@@ -1122,86 +1155,116 @@ public final class AppSearchImpl implements Closeable {
 
                     pStatsBuilder
                             .setGenerateDocumentProtoLatencyMillis(
-                                    (int) (generateDocumentProtoEndTimeMillis
-                                            - generateDocumentProtoStartTimeMillis))
+                                    (int)
+                                            (generateDocumentProtoEndTimeMillis
+                                                    - generateDocumentProtoStartTimeMillis))
                             .setRewriteDocumentTypesLatencyMillis(
-                                    (int) (rewriteDocumentTypeEndTimeMillis
-                                            - rewriteDocumentTypeStartTimeMillis));
+                                    (int)
+                                            (rewriteDocumentTypeEndTimeMillis
+                                                    - rewriteDocumentTypeStartTimeMillis));
                 }
             }
 
+            // We have to "flush" the last batch. Since this is the last batch, we set the
+            // persistType passed in here.
+            requestBuilderList.add(currentBatchBuilder.setPersistType(persistType));
+
             // Put documents
-            PutDocumentRequest requestProto = requestProtoBuilder.build();
-            LogUtil.piiTrace(TAG, "batchPutDocument, request",
-                    requestProto.getDocumentsCount() + " docs", requestProto);
-            BatchPutResultProto batchPutResultProto = mIcingSearchEngineLocked.batchPut(
-                    requestProto);
-            // TODO(b/394875109) We can provide a better debug information for fast trace here.
-            LogUtil.piiTrace(
-                    TAG, "batchPutDocument",
-                    /* fastTraceObj= */ null, batchPutResultProto);
+            int statsIndex = 0;
+            for (int requestIndex = 0; requestIndex < requestBuilderList.size(); ++requestIndex) {
+                PutDocumentRequest requestProto = requestBuilderList.get(requestIndex).build();
+                LogUtil.piiTrace(
+                        TAG,
+                        "batchPutDocument, request",
+                        requestProto.getDocumentsCount(),
+                        requestProto);
+                BatchPutResultProto batchPutResultProto =
+                        mIcingSearchEngineLocked.batchPut(requestProto);
+                // TODO(b/394875109) We can provide a better debug information for fast trace here.
+                LogUtil.piiTrace(
+                        TAG, "batchPutDocument",
+                        /* fastTraceObj= */ null,
+                        batchPutResultProto);
 
-            List<PutResultProto> putResultProtoList = batchPutResultProto.getPutResultProtosList();
-            for (int i = 0; i < putResultProtoList.size(); ++i) {
-                PutResultProto putResultProto = putResultProtoList.get(i);
-                String docId = putResultProto.getUri();
-                try {
-                    PutDocumentStats.Builder pStatsBuilder = statsNotFilteredOut.get(i);
-                    pStatsBuilder
-                            .setStatusCode(statusProtoToResultCode(putResultProto.getStatus()));
-                    AppSearchLoggerHelper.copyNativeStats(putResultProto.getPutDocumentStats(),
-                            pStatsBuilder);
+                List<PutResultProto> putResultProtoList =
+                        batchPutResultProto.getPutResultProtosList();
+                for (int i = 0; i < putResultProtoList.size(); ++i, ++statsIndex) {
+                    PutResultProto putResultProto = putResultProtoList.get(i);
+                    String docId = putResultProto.getUri();
+                    try {
+                        if (statsIndex <= statsNotFilteredOut.size()) {
+                            PutDocumentStats.Builder pStatsBuilder =
+                                    statsNotFilteredOut.get(statsIndex);
+                            pStatsBuilder.setStatusCode(
+                                    statusProtoToResultCode(putResultProto.getStatus()));
+                            AppSearchLoggerHelper.copyNativeStats(
+                                    putResultProto.getPutDocumentStats(), pStatsBuilder);
+                        } else {
+                            // since it is just stats, we just log the debug message if
+                            // something goes wrong.
+                            LogUtil.piiTrace(TAG, "batchPutDocument",
+                                    "index out of boundary for stats",
+                                    statsNotFilteredOut);
+                        }
 
-                    // If it is a failure, it will throw and the catch section will
-                    // set generated result
-                    checkSuccess(putResultProto.getStatus());
-                    if (batchResultBuilder != null) {
-                        batchResultBuilder.setSuccess(docId, /*value=*/ null);
-                    }
+                        // If it is a failure, it will throw and the catch section will
+                        // set generated result
+                        checkSuccess(putResultProto.getStatus());
+                        if (batchResultBuilder != null) {
+                            batchResultBuilder.setSuccess(docId, /* value= */ null);
+                        }
 
-                    // Don't need to check the index here, as request doc list size should
-                    // definitely be bigger than response doc list size.
-                    DocumentProto documentProto = requestProto.getDocuments(i);
-                    if (!docId.equals(documentProto.getUri())) {
-                        // This shouldn't happen if native code implemented correctly.
-                        // Have a check here just in case something unexpected happens.
-                        Log.w(TAG, "id mismatch between request and response for batchPut");
-                        continue;
-                    }
+                        // Don't need to check the index here, as request doc list size should
+                        // definitely be bigger than response doc list size.
+                        DocumentProto documentProto = requestProto.getDocuments(i);
+                        if (!docId.equals(documentProto.getUri())) {
+                            // This shouldn't happen if native code implemented correctly.
+                            // Have a check here just in case something unexpected happens.
+                            Log.w(TAG, "id mismatch between request and response for batchPut");
+                            continue;
+                        }
 
-                    // Only update caches if the document is successfully put to Icing.
-                    // Prefixed namespace needed here.
-                    mNamespaceCacheLocked.addToDocumentNamespaceMap(prefix,
-                            documentProto.getNamespace());
-                    if (!Flags.enableDocumentLimiterReplaceTracking()
-                            || !putResultProto.getWasReplacement()) {
-                        // If the document was a replacement, then there is no need to report it
-                        // because the number of documents has not changed. We only need to report
-                        // "true" additions to the DocumentLimiter.
-                        // Although a replacement document will consume a document id,
-                        // the limit is only intended to apply to "living" documents.
-                        // It is the responsibility of AppSearch's optimization task to reclaim
-                        // space when needed.
-                        mDocumentLimiterLocked.reportDocumentAdded(
-                                packageName,
-                                () -> getRawStorageInfoProto().getDocumentStorageInfo()
-                                        .getNamespaceStorageInfoList());
+                        // Only update caches if the document is successfully put to Icing.
+                        // Prefixed namespace needed here.
+                        mNamespaceCacheLocked.addToDocumentNamespaceMap(
+                                prefix, documentProto.getNamespace());
+                        if (!Flags.enableDocumentLimiterReplaceTracking()
+                                || !putResultProto.getWasReplacement()) {
+                            // If the document was a replacement, then there is no need to report it
+                            // because the number of documents has not changed. We only need to
+                            // report "true" additions to the DocumentLimiter.
+                            // Although a replacement document will consume a document id,
+                            // the limit is only intended to apply to "living" documents.
+                            // It is the responsibility of AppSearch's optimization task to reclaim
+                            // space when needed.
+                            mDocumentLimiterLocked.reportDocumentAdded(
+                                    packageName,
+                                    () ->
+                                            getRawStorageInfoProto()
+                                                    .getDocumentStorageInfo()
+                                                    .getNamespaceStorageInfoList());
+                        }
+                        // Prepare notifications
+                        if (sendChangeNotifications) {
+                            mObserverManager.onDocumentChange(
+                                    packageName,
+                                    databaseName,
+                                    PrefixUtil.removePrefix(documentProto.getNamespace()),
+                                    PrefixUtil.removePrefix(documentProto.getSchema()),
+                                    documentProto.getUri(),
+                                    mDocumentVisibilityStoreLocked,
+                                    mVisibilityCheckerLocked);
+                        }
+                    } catch (Throwable t) {
+                        if (batchResultBuilder != null) {
+                            batchResultBuilder.setResult(docId, throwableToFailedResult(t));
+                        }
                     }
-                    // Prepare notifications
-                    if (sendChangeNotifications) {
-                        mObserverManager.onDocumentChange(
-                                packageName,
-                                databaseName,
-                                PrefixUtil.removePrefix(documentProto.getNamespace()),
-                                PrefixUtil.removePrefix(documentProto.getSchema()),
-                                documentProto.getUri(),
-                                mDocumentVisibilityStoreLocked,
-                                mVisibilityCheckerLocked);
-                    }
-                } catch (Throwable t) {
-                    if (batchResultBuilder != null) {
-                        batchResultBuilder.setResult(docId, throwableToFailedResult(t));
-                    }
+                }
+                // As we only set "not unknown" persistType for the last request,
+                // this should ONLY be checked for last request.
+                if (requestProto.getPersistType() != PersistType.Code.UNKNOWN) {
+                    checkSuccess(batchPutResultProto.getPersistToDiskResultProto().getStatus());
                 }
             }
         } finally {
@@ -1248,7 +1311,8 @@ public final class AppSearchImpl implements Closeable {
             throws AppSearchException {
         PutDocumentStats.Builder pStatsBuilder = null;
         if (logger != null) {
-            pStatsBuilder = new PutDocumentStats.Builder(packageName, databaseName);
+            pStatsBuilder = new PutDocumentStats.Builder(packageName, databaseName)
+                    .setLaunchVMEnabled(mIsVMEnabled);
         }
         long totalStartTimeMillis = SystemClock.elapsedRealtime();
 
@@ -1715,7 +1779,7 @@ public final class AppSearchImpl implements Closeable {
             File blobFile = new File(mBlobFilesDir, blobProto.getFileName());
             return ParcelFileDescriptor.open(blobFile, mode);
         } else {
-            return ParcelFileDescriptor.fromFd(blobProto.getFileDescriptor());
+            return ParcelFileDescriptor.adoptFd(blobProto.getFileDescriptor());
         }
     }
 
@@ -1923,7 +1987,8 @@ public final class AppSearchImpl implements Closeable {
             sStatsBuilder =
                     new SearchStats.Builder(SearchStats.VISIBILITY_SCOPE_LOCAL, packageName)
                             .setDatabase(databaseName)
-                            .setSearchSourceLogTag(searchSpec.getSearchSourceLogTag());
+                            .setSearchSourceLogTag(searchSpec.getSearchSourceLogTag())
+                            .setLaunchVMEnabled(mIsVMEnabled);
         }
 
         long javaLockAcquisitionLatencyStartMillis = SystemClock.elapsedRealtime();
@@ -1999,7 +2064,8 @@ public final class AppSearchImpl implements Closeable {
                     new SearchStats.Builder(
                             SearchStats.VISIBILITY_SCOPE_GLOBAL,
                             callerAccess.getCallingPackageName())
-                            .setSearchSourceLogTag(searchSpec.getSearchSourceLogTag());
+                            .setSearchSourceLogTag(searchSpec.getSearchSourceLogTag())
+                            .setLaunchVMEnabled(mIsVMEnabled);
         }
 
         long javaLockAcquisitionLatencyStartMillis = SystemClock.elapsedRealtime();
@@ -2262,7 +2328,8 @@ public final class AppSearchImpl implements Closeable {
             if (sStatsBuilder != null) {
                 sStatsBuilder.setJavaLockAcquisitionLatencyMillis(
                         (int) (SystemClock.elapsedRealtime()
-                                - javaLockAcquisitionLatencyStartMillis));
+                                - javaLockAcquisitionLatencyStartMillis))
+                        .setLaunchVMEnabled(mIsVMEnabled);
             }
             throwIfClosedLocked();
 
@@ -2438,7 +2505,8 @@ public final class AppSearchImpl implements Closeable {
 
             if (removeStatsBuilder != null) {
                 removeStatsBuilder.setStatusCode(statusProtoToResultCode(
-                        deleteResultProto.getStatus()));
+                        deleteResultProto.getStatus()))
+                        .setLaunchVMEnabled(mIsVMEnabled);
                 AppSearchLoggerHelper.copyNativeStats(deleteResultProto.getDeleteStats(),
                         removeStatsBuilder);
             }
@@ -2545,7 +2613,8 @@ public final class AppSearchImpl implements Closeable {
             mReadWriteLock.writeLock().unlock();
             if (removeStatsBuilder != null) {
                 removeStatsBuilder.setTotalLatencyMillis(
-                        (int) (SystemClock.elapsedRealtime() - totalLatencyStartTimeMillis));
+                        (int) (SystemClock.elapsedRealtime() - totalLatencyStartTimeMillis))
+                        .setLaunchVMEnabled(mIsVMEnabled);
             }
         }
     }
@@ -2629,35 +2698,33 @@ public final class AppSearchImpl implements Closeable {
         }
     }
 
-    /** Estimates the storage usage info for a specific package. */
+    /** Estimates the total storage usage info data size for a specific set of packages. */
     @ExperimentalAppSearchApi
-    public @NonNull StorageInfo getStorageInfoForPackage(@NonNull String packageName)
+    public @NonNull StorageInfo getStorageInfoForPackages(@NonNull Set<String> packageNames)
             throws AppSearchException {
         mReadWriteLock.readLock().lock();
         try {
             throwIfClosedLocked();
 
             StorageInfo.Builder storageInfoBuilder = new StorageInfo.Builder();
-            if (Flags.enableBlobStore()) {
-                StorageInfoProto storageInfoProto = getRawStorageInfoProto();
-                // read blob storage info and set to storageInfoBuilder
-                getBlobStorageInfoForPrefix(storageInfoProto, packageName, storageInfoBuilder);
-                // read document storage info and set to storageInfoBuilder
-                Set<String> wantedPrefixedDocumentNamespaces = mNamespaceCacheLocked
-                        .getAllPrefixedDocumentNamespaceForPackage(packageName);
-                if (!wantedPrefixedDocumentNamespaces.isEmpty()) {
-                    getDocumentStorageInfoForNamespaces(storageInfoProto,
-                            wantedPrefixedDocumentNamespaces, storageInfoBuilder);
-                }
-            } else {
-                // blob flag off, only read document storage info and set to storageInfoBuilder if
-                // the database exists.
-                Set<String> wantedPrefixedDocumentNamespaces = mNamespaceCacheLocked
-                        .getAllPrefixedDocumentNamespaceForPackage(packageName);
-                if (!wantedPrefixedDocumentNamespaces.isEmpty()) {
-                    getDocumentStorageInfoForNamespaces(getRawStorageInfoProto(),
-                            wantedPrefixedDocumentNamespaces, storageInfoBuilder);
-                }
+            // read document storage info and set to storageInfoBuilder
+            Set<String> wantedPrefixedDocumentNamespaces =
+                    mNamespaceCacheLocked.getAllPrefixedDocumentNamespaceForPackages(packageNames);
+            Set<String> wantedPrefixedBlobNamespaces =
+                    mNamespaceCacheLocked.getAllPrefixedBlobNamespaceForPackages(packageNames);
+            if (wantedPrefixedDocumentNamespaces.isEmpty()
+                    && wantedPrefixedBlobNamespaces.isEmpty()) {
+                return storageInfoBuilder.build();
+            }
+            StorageInfoProto storageInfoProto = getRawStorageInfoProto();
+
+            if (Flags.enableBlobStore() && !wantedPrefixedBlobNamespaces.isEmpty()) {
+                getBlobStorageInfoForNamespaces(
+                        storageInfoProto, wantedPrefixedBlobNamespaces, storageInfoBuilder);
+            }
+            if (!wantedPrefixedDocumentNamespaces.isEmpty()) {
+                getDocumentStorageInfoForNamespaces(
+                        storageInfoProto, wantedPrefixedDocumentNamespaces, storageInfoBuilder);
             }
             return storageInfoBuilder.build();
         } finally {
@@ -2815,6 +2882,36 @@ public final class AppSearchImpl implements Closeable {
             @NonNull StorageInfoProto storageInfoProto,
             @NonNull String prefix,
             StorageInfo.@NonNull Builder storageInfoBuilder) {
+        Set<String> prefixedNamespaces = new ArraySet<>();
+        List<NamespaceBlobStorageInfoProto> blobStorageInfoProtos =
+                storageInfoProto.getNamespaceBlobStorageInfoList();
+        for (int i = 0; i < blobStorageInfoProtos.size(); i++) {
+            String prefixedNamespace = blobStorageInfoProtos.get(i).getNamespace();
+            if (prefixedNamespace.startsWith(prefix)) {
+                prefixedNamespaces.add(prefixedNamespace);
+            }
+        }
+        getBlobStorageInfoForNamespaces(storageInfoProto, prefixedNamespaces, storageInfoBuilder);
+    }
+
+    /**
+     * Extracts and returns blob storage information from {@link StorageInfoProto} based on prefixed
+     * namespaces.
+     *
+     * @param storageInfoProto   The source {@link StorageInfoProto} containing blob storage
+     *                           information to be analyzed.
+     * @param prefixedNamespaces A set of prefixed namespaces that the blob storage information will
+     *                           be filtered against. Only namespaces in this set will be
+     *                           included in the analysis.
+     * @param storageInfoBuilder The {@link StorageInfo.Builder} used to and build the resulting
+     *                           {@link StorageInfo}. This builder will be modified with
+     *                           calculated values.
+     */
+    @ExperimentalAppSearchApi
+    private void getBlobStorageInfoForNamespaces(
+            @NonNull StorageInfoProto storageInfoProto,
+            @NonNull Set<String> prefixedNamespaces,
+            StorageInfo.@NonNull Builder storageInfoBuilder) {
         if (storageInfoProto.getNamespaceBlobStorageInfoCount() == 0) {
             return;
         }
@@ -2824,7 +2921,7 @@ public final class AppSearchImpl implements Closeable {
         int blobCount = 0;
         for (int i = 0; i < blobStorageInfoProtos.size(); i++) {
             NamespaceBlobStorageInfoProto blobStorageInfoProto = blobStorageInfoProtos.get(i);
-            if (blobStorageInfoProto.getNamespace().startsWith(prefix)) {
+            if (prefixedNamespaces.contains(blobStorageInfoProto.getNamespace())) {
                 if (Flags.enableAppSearchManageBlobFiles()) {
                     List<String> blobFileNames = blobStorageInfoProto.getBlobFileNamesList();
                     for (int j = 0; j < blobFileNames.size(); j++) {
@@ -2838,8 +2935,7 @@ public final class AppSearchImpl implements Closeable {
                 }
             }
         }
-        storageInfoBuilder.setBlobsCount(blobCount)
-                .setBlobsSizeBytes(blobSizeBytes);
+        storageInfoBuilder.setBlobsCount(blobCount).setBlobsSizeBytes(blobSizeBytes);
     }
 
     /**
@@ -3394,7 +3490,8 @@ public final class AppSearchImpl implements Closeable {
                     TAG,
                     "optimize, response", optimizeResultProto.getStatus(), optimizeResultProto);
             if (builder != null) {
-                builder.setStatusCode(statusProtoToResultCode(optimizeResultProto.getStatus()));
+                builder.setStatusCode(statusProtoToResultCode(optimizeResultProto.getStatus()))
+                        .setLaunchVMEnabled(mIsVMEnabled);
                 AppSearchLoggerHelper.copyNativeStats(optimizeResultProto.getOptimizeStats(),
                         builder);
             }

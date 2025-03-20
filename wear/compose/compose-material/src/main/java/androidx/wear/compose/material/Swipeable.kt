@@ -642,6 +642,7 @@ public interface ThresholdConfig {
  */
 @Immutable
 @ExperimentalWearMaterialApi
+@Suppress("DataClassDefinition")
 public data class FixedThreshold(private val offset: Dp) : ThresholdConfig {
     override fun Density.computeThreshold(fromValue: Float, toValue: Float): Float {
         return fromValue + offset.toPx() * sign(toValue - fromValue)
@@ -655,6 +656,7 @@ public data class FixedThreshold(private val offset: Dp) : ThresholdConfig {
  */
 @Immutable
 @ExperimentalWearMaterialApi
+@Suppress("DataClassDefinition")
 public data class FractionalThreshold(
     @FloatRange(from = 0.0, to = 1.0) private val fraction: Float
 ) : ThresholdConfig {

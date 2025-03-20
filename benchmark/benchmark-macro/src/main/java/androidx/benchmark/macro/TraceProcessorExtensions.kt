@@ -38,7 +38,6 @@ import androidx.benchmark.traceprocessor.ServerLifecycleManager
 import androidx.benchmark.traceprocessor.TraceProcessor
 import java.io.IOException
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 @RequiresApi(24)
 private object Api24Impl {
@@ -153,13 +152,14 @@ fun <T> TraceProcessor.Companion.runSingleSessionServer(
  * The server is stopped after the block is complete.
  *
  * @sample androidx.benchmark.samples.traceProcessorRunServerSimple
- * @param timeout waiting for the server to start. If less or equal to zero uses 60 seconds
+ * @param timeout maximum duration for waiting for operations like loading the server, or querying a
+ *   trace.
  * @param block Command to execute using trace processor
  */
 @JvmOverloads
 @ExperimentalTraceProcessorApi
 fun <T> TraceProcessor.Companion.runServer(
-    timeout: Duration = 60.seconds,
+    timeout: Duration = DEFAULT_TIMEOUT,
     block: TraceProcessor.() -> T
 ): T = startServer(timeout).use { block(it.traceProcessor) }
 
@@ -167,12 +167,15 @@ fun <T> TraceProcessor.Companion.runServer(
  * Starts a Perfetto TraceProcessor shell server in http mode.
  *
  * @sample androidx.benchmark.samples.traceProcessorStartServerSimple
- * @param timeout waiting for the server to start. If less or equal to zero uses 60 seconds
+ * @param timeout maximum duration for waiting for operations like loading the server, or querying a
+ *   trace.
  */
 @JvmOverloads
 @ExperimentalTraceProcessorApi
 @CheckResult
-fun TraceProcessor.Companion.startServer(timeout: Duration = 60.seconds): TraceProcessor.Handle =
+fun TraceProcessor.Companion.startServer(
+    timeout: Duration = DEFAULT_TIMEOUT
+): TraceProcessor.Handle =
     startServer(
         ShellServerLifecycleManager(),
         eventCallback =
@@ -186,8 +189,8 @@ fun TraceProcessor.Companion.startServer(timeout: Duration = 60.seconds): TraceP
                         InstrumentationResults.instrumentationReport {
                             val label =
                                 "Trace with processing error: ${
-                                    throwable.message?.take(50)?.trim()
-                                }..."
+                                throwable.message?.take(50)?.trim()
+                            }..."
                             reportSummaryToIde(
                                 profilerResults =
                                     listOf(

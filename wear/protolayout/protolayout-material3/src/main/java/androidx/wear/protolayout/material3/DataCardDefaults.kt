@@ -128,7 +128,7 @@ internal constructor(
         @Dimension(unit = DP) private const val SMALL_SPACE_DP: Int = 2
 
         /** The default no spacing width or height that should be between different elements. */
-        @Dimension(unit = DP) private const val EMPTY_SPACE_DP: Int = 2
+        @Dimension(unit = DP) private const val EMPTY_SPACE_DP: Int = 0
 
         @Dimension(unit = DP) private const val ICON_SIZE_SMALL_DP: Int = 26
 
@@ -196,7 +196,9 @@ internal constructor(
                 titleTypography = Typography.DISPLAY_MEDIUM,
                 contentTypography = Typography.BODY_SMALL,
                 secondaryLabelTypography = Typography.BODY_MEDIUM,
-                iconSize = ICON_SIZE_LARGE_DP
+                iconSize = ICON_SIZE_LARGE_DP,
+                iconToTextSpaceDp = DEFAULT_SPACE_DP,
+                secondaryLabelToTextSpaceDp = DEFAULT_SPACE_DP
             )
 
         /**
@@ -207,7 +209,7 @@ internal constructor(
         public fun smallCompactDataCardStyle(): DataCardStyle =
             DataCardStyle(
                 innerPadding = padding(horizontal = PADDING_LARGE_DP, vertical = PADDING_SMALL_DP),
-                titleToContentSpaceDp = DEFAULT_SPACE_DP,
+                titleToContentSpaceDp = EMPTY_SPACE_DP,
                 titleTypography = Typography.NUMERAL_MEDIUM,
                 contentTypography = Typography.LABEL_MEDIUM,
                 secondaryLabelTypography = Typography.BODY_MEDIUM,

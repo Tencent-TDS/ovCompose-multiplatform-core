@@ -19,19 +19,15 @@ package androidx.compose.material3
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.interaction.FocusInteraction
-import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -56,7 +52,6 @@ import androidx.compose.material3.tokens.FabSmallTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.material3.tokens.TypographyKeyTokens
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -170,7 +165,7 @@ private fun FloatingActionButton(
         color = containerColor,
         contentColor = contentColor,
         tonalElevation = elevation.tonalElevation(),
-        shadowElevation = elevation.shadowElevation(interactionSource = interactionSource).value,
+        elevation = elevation,
         interactionSource = interactionSource
     ) {
         ProvideContentColorTextStyle(contentColor = contentColor, textStyle = textStyle) {
@@ -1071,7 +1066,7 @@ object FloatingActionButtonDefaults {
         hoveredElevation: Dp = FabPrimaryContainerTokens.HoveredContainerElevation,
     ): FloatingActionButtonElevation =
         FloatingActionButtonElevation(
-            defaultElevation = defaultElevation,
+            elevation = defaultElevation,
             pressedElevation = pressedElevation,
             focusedElevation = focusedElevation,
             hoveredElevation = hoveredElevation,
@@ -1095,7 +1090,7 @@ object FloatingActionButtonDefaults {
         hoveredElevation: Dp = ElevationTokens.Level2,
     ): FloatingActionButtonElevation =
         FloatingActionButtonElevation(
-            defaultElevation = defaultElevation,
+            elevation = defaultElevation,
             pressedElevation = pressedElevation,
             focusedElevation = focusedElevation,
             hoveredElevation = hoveredElevation,
@@ -1275,155 +1270,42 @@ internal class FabVisibleNode(
  * [FloatingActionButton] and [ExtendedFloatingActionButton].
  */
 @Stable
-open class FloatingActionButtonElevation
-internal constructor(
-    private val defaultElevation: Dp,
-    private val pressedElevation: Dp,
-    private val focusedElevation: Dp,
-    private val hoveredElevation: Dp,
-) {
+open class FloatingActionButtonElevation(
+    override val elevation: Dp,
+    override val pressedElevation: Dp,
+    override val focusedElevation: Dp,
+    override val hoveredElevation: Dp,
+) : ComponentElevation {
+
+    /** FAB does not support these interaction states, return default values here */
+    override val disabledElevation: Dp
+        get() = elevation
+
+    /** FAB does not support these interaction states, return default values here */
+    override val draggedElevation: Dp
+        get() = elevation
+
     @Composable
     internal fun shadowElevation(interactionSource: InteractionSource): State<Dp> {
         return animateElevation(interactionSource = interactionSource)
     }
 
     internal fun tonalElevation(): Dp {
-        return defaultElevation
+        return elevation
     }
 
     @Composable
     private fun animateElevation(interactionSource: InteractionSource): State<Dp> {
-        val animatable =
-            remember(interactionSource) {
-                FloatingActionButtonElevationAnimatable(
-                    defaultElevation = defaultElevation,
-                    pressedElevation = pressedElevation,
-                    hoveredElevation = hoveredElevation,
-                    focusedElevation = focusedElevation
-                )
-            }
-
-        LaunchedEffect(this) {
-            animatable.updateElevation(
-                defaultElevation = defaultElevation,
-                pressedElevation = pressedElevation,
-                hoveredElevation = hoveredElevation,
-                focusedElevation = focusedElevation
-            )
-        }
-
-        LaunchedEffect(interactionSource) {
-            val interactions = mutableListOf<Interaction>()
-            interactionSource.interactions.collect { interaction ->
-                when (interaction) {
-                    is HoverInteraction.Enter -> {
-                        interactions.add(interaction)
-                    }
-                    is HoverInteraction.Exit -> {
-                        interactions.remove(interaction.enter)
-                    }
-                    is FocusInteraction.Focus -> {
-                        interactions.add(interaction)
-                    }
-                    is FocusInteraction.Unfocus -> {
-                        interactions.remove(interaction.focus)
-                    }
-                    is PressInteraction.Press -> {
-                        interactions.add(interaction)
-                    }
-                    is PressInteraction.Release -> {
-                        interactions.remove(interaction.press)
-                    }
-                    is PressInteraction.Cancel -> {
-                        interactions.remove(interaction.press)
-                    }
-                }
-                val targetInteraction = interactions.lastOrNull()
-                launch { animatable.animateElevation(to = targetInteraction) }
-            }
-        }
-
-        return animatable.asState()
+        return animateElevation(true, interactionSource)
     }
 
     override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || other !is FloatingActionButtonElevation) return false
-
-        if (defaultElevation != other.defaultElevation) return false
-        if (pressedElevation != other.pressedElevation) return false
-        if (focusedElevation != other.focusedElevation) return false
-        return hoveredElevation == other.hoveredElevation
+        return ComponentElevation.equals(this, other)
     }
 
     override fun hashCode(): Int {
-        var result = defaultElevation.hashCode()
-        result = 31 * result + pressedElevation.hashCode()
-        result = 31 * result + focusedElevation.hashCode()
-        result = 31 * result + hoveredElevation.hashCode()
-        return result
+        return ComponentElevation.hashCode(this)
     }
-}
-
-private class FloatingActionButtonElevationAnimatable(
-    private var defaultElevation: Dp,
-    private var pressedElevation: Dp,
-    private var hoveredElevation: Dp,
-    private var focusedElevation: Dp
-) {
-    private val animatable = Animatable(defaultElevation, Dp.VectorConverter)
-
-    private var lastTargetInteraction: Interaction? = null
-    private var targetInteraction: Interaction? = null
-
-    private fun Interaction?.calculateTarget(): Dp {
-        return when (this) {
-            is PressInteraction.Press -> pressedElevation
-            is HoverInteraction.Enter -> hoveredElevation
-            is FocusInteraction.Focus -> focusedElevation
-            else -> defaultElevation
-        }
-    }
-
-    suspend fun updateElevation(
-        defaultElevation: Dp,
-        pressedElevation: Dp,
-        hoveredElevation: Dp,
-        focusedElevation: Dp
-    ) {
-        this.defaultElevation = defaultElevation
-        this.pressedElevation = pressedElevation
-        this.hoveredElevation = hoveredElevation
-        this.focusedElevation = focusedElevation
-        snapElevation()
-    }
-
-    private suspend fun snapElevation() {
-        val target = targetInteraction.calculateTarget()
-        if (animatable.targetValue != target) {
-            try {
-                animatable.snapTo(target)
-            } finally {
-                lastTargetInteraction = targetInteraction
-            }
-        }
-    }
-
-    suspend fun animateElevation(to: Interaction?) {
-        val target = to.calculateTarget()
-        // Update the interaction even if the values are the same, for when we change to another
-        // interaction later
-        targetInteraction = to
-        try {
-            if (animatable.targetValue != target) {
-                animatable.animateElevation(target = target, from = lastTargetInteraction, to = to)
-            }
-        } finally {
-            lastTargetInteraction = to
-        }
-    }
-
-    fun asState(): State<Dp> = animatable.asState()
 }
 
 private val SmallExtendedFabMinimumWidth = ExtendedFabSmallTokens.ContainerHeight

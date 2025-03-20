@@ -60,15 +60,6 @@
             type="appfn:AppFunctionDataTypeMetadataDocument" />
     </xs:documentType>
 
-    <!-- Definition for AppFunctionSchemaMetadataDocument -->
-    <xs:documentType name="AppFunctionSchemaMetadataDocument">
-        <xs:element name="schemaName" cardinality="2" indexingType="1" tokenizerType="2"
-            type="xs:string" />
-        <xs:element name="schemaVersion" cardinality="2" indexingType="1" type="xs:long" />
-        <xs:element name="schemaCategory" cardinality="2" indexingType="1" tokenizerType="2"
-            type="xs:string" />
-    </xs:documentType>
-
     <!-- Definition for AppFunctionResponseMetadataDocument -->
     <xs:documentType name="AppFunctionResponseMetadataDocument">
         <xs:element name="isNullable" cardinality="2" type="xs:boolean" />
@@ -103,8 +94,6 @@
             type="xs:string" />
         <!-- End of legacy properties.-->
 
-        <xs:element name="schema" cardinality="2"
-            shouldIndexNestedProperties="true" type="appfn:AppFunctionSchemaMetadataDocument" />
         <xs:element name="description" cardinality="2" type="xs:string" />
         <xs:element name="parameters" cardinality="1"
             type="appfn:AppFunctionParameterMetadataDocument" />

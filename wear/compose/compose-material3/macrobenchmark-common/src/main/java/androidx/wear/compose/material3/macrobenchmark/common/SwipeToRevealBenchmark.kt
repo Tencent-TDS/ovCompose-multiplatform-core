@@ -43,7 +43,8 @@ object SwipeToRevealBenchmark : MacrobenchmarkScreen {
     override val content: @Composable (BoxScope.() -> Unit)
         get() = {
             SwipeToReveal(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth().semantics { contentDescription = CONTENT_DESCRIPTION },
                 // Use the double action anchor width when revealing two actions
                 revealState =
                     rememberRevealState(
@@ -74,7 +75,6 @@ object SwipeToRevealBenchmark : MacrobenchmarkScreen {
                 Button(
                     modifier =
                         Modifier.fillMaxWidth().semantics {
-                            contentDescription = CONTENT_DESCRIPTION
                             // Use custom actions to make the primary and secondary actions
                             // accessible
                             customActions =

@@ -101,10 +101,10 @@ public fun LayoutModifier.exitTransition(transition: ExitTransition): LayoutModi
 internal class BaseEnterTransitionElement(
     val fadeIn: FadeInTransition? = null,
     val slideIn: SlideInTransition? = null,
-) : LayoutModifier.Element {
+) : BaseProtoLayoutModifiersElement<EnterTransition.Builder> {
     @SuppressLint("ProtoLayoutMinSchema")
-    fun mergeTo(initial: EnterTransition.Builder?): EnterTransition.Builder =
-        (initial ?: EnterTransition.Builder()).apply {
+    override fun mergeTo(initialBuilder: EnterTransition.Builder?): EnterTransition.Builder =
+        (initialBuilder ?: EnterTransition.Builder()).apply {
             if (fadeIn != null) setFadeIn(fadeIn)
             if (slideIn != null) setSlideIn(slideIn)
         }
@@ -115,10 +115,10 @@ internal class BaseEnterTransitionElement(
 internal class BaseExitTransitionElement(
     val fadeOut: FadeOutTransition? = null,
     val slideOut: SlideOutTransition? = null,
-) : LayoutModifier.Element {
+) : BaseProtoLayoutModifiersElement<ExitTransition.Builder> {
     @SuppressLint("ProtoLayoutMinSchema")
-    fun mergeTo(initial: ExitTransition.Builder?): ExitTransition.Builder =
-        (initial ?: ExitTransition.Builder()).apply {
+    override fun mergeTo(initialBuilder: ExitTransition.Builder?): ExitTransition.Builder =
+        (initialBuilder ?: ExitTransition.Builder()).apply {
             if (fadeOut != null) setFadeOut(fadeOut)
             if (slideOut != null) setSlideOut(slideOut)
         }

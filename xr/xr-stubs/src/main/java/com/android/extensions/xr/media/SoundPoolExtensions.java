@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Provides spatial audio extensions on the framework {@link android.media.SoundPool SoundPool}
  * class.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SoundPoolExtensions {
 
     SoundPoolExtensions() {

@@ -60,8 +60,7 @@ class ExecuteAppFunctionResponseTest {
         val response =
             ExecuteAppFunctionResponse.Success.fromPlatformExtensionClass(platformResponse)
 
-        assertThat((response as ExecuteAppFunctionResponse.Success).returnValue.genericDocument)
-            .isEqualTo(appFunctionData.genericDocument)
+        assertThat(response.returnValue.genericDocument).isEqualTo(appFunctionData.genericDocument)
         assertThat(response.returnValue.extras.isEmpty).isTrue()
     }
 

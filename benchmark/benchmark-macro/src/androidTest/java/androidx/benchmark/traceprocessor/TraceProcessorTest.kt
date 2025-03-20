@@ -35,7 +35,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-import kotlin.time.Duration.Companion.milliseconds
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
@@ -305,38 +304,6 @@ class TraceProcessorTest {
         assertTrue(!isRunning())
 
         TraceProcessor.runServer {
-            // Check server is running
-            assertTrue(isRunning())
-        }
-
-        // Check server is not running
-        assertTrue(!isRunning())
-    }
-
-    @Test
-    fun runServerWithNegativeTimeoutShouldStartAndStopServer() {
-        assumeTrue(isAbiSupported())
-
-        // Check server is not running
-        assertTrue(!isRunning())
-
-        TraceProcessor.runServer((-1).milliseconds) {
-            // Check server is running
-            assertTrue(isRunning())
-        }
-
-        // Check server is not running
-        assertTrue(!isRunning())
-    }
-
-    @Test
-    fun runServerWithZeroTimeoutShouldStartAndStopServer() {
-        assumeTrue(isAbiSupported())
-
-        // Check server is not running
-        assertTrue(!isRunning())
-
-        TraceProcessor.runServer((0).milliseconds) {
             // Check server is running
             assertTrue(isRunning())
         }

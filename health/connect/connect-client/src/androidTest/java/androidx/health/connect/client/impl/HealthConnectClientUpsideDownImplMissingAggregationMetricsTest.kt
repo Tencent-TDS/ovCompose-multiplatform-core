@@ -370,13 +370,14 @@ class HealthConnectClientUpsideDownImplMissingAggregationMetricsTest {
     fun aggregateGroupByDuration_onlySupportedMetrics() = runTest {
         healthConnectClient.insertRecords(
             listOf(
-                HeartRateRecord(
+                NutritionRecord(
                     startTime = START_TIME,
-                    endTime = START_TIME + 5.minutes,
                     startZoneOffset = ZoneOffset.UTC,
+                    endTime = START_TIME + 1.minutes,
                     endZoneOffset = ZoneOffset.UTC,
                     metadata = Metadata.manualEntry(),
-                    samples = listOf(HeartRateRecord.Sample(START_TIME, 80))
+                    transFat = 0.5.grams,
+                    energy = 100.kilocalories,
                 ),
                 NutritionRecord(
                     startTime = START_TIME + 5.minutes,
@@ -426,8 +427,8 @@ class HealthConnectClientUpsideDownImplMissingAggregationMetricsTest {
                     zoneOffset = ZoneOffset.UTC,
                     result =
                         AggregationResult(
-                            longValues = mapOf(HeartRateRecord.BPM_AVG.metricKey to 80),
-                            doubleValues = emptyMap(),
+                            longValues = emptyMap(),
+                            doubleValues = mapOf(NutritionRecord.ENERGY_TOTAL.metricKey to 100.0),
                             dataOrigins = emptySet()
                         )
                 ),
@@ -455,7 +456,7 @@ class HealthConnectClientUpsideDownImplMissingAggregationMetricsTest {
                             doubleValues = emptyMap(),
                             dataOrigins = emptySet()
                         )
-                ),
+                )
             )
     }
 

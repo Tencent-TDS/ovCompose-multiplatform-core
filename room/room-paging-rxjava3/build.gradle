@@ -63,6 +63,3 @@ android {
     namespace = "androidx.room.paging.rxjava3"
 }
 
-ksp {
-    useKsp2 = true
-}

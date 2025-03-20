@@ -16,9 +16,12 @@
 
 package androidx.room.coroutines
 
+import androidx.kruth.ThrowableSubject
 import androidx.kruth.assertThat
+import androidx.kruth.assertThrows
 import androidx.room.PooledConnection
 import androidx.room.Transactor
+import androidx.room.concurrent.AtomicBoolean
 import androidx.room.concurrent.AtomicInt
 import androidx.room.deferredTransaction
 import androidx.room.exclusiveTransaction
@@ -31,10 +34,10 @@ import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.execSQL
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
-import kotlin.test.Ignore
 import kotlin.test.Test
-import kotlin.test.assertFailsWith
 import kotlin.test.fail
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,6 +45,7 @@ import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -73,30 +77,24 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfReaders = 1,
                 maxNumOfWriters = 1
             )
-        fun assertMsg(ex: SQLiteException) {
-            assertThat(ex.message)
+        fun ThrowableSubject<SQLiteException>.assertMsg() {
+            hasMessageThat()
                 .isEqualTo("Error code: 8, message: attempt to write a readonly database")
         }
         pool.useReaderConnection { connection ->
-            assertMsg(
-                assertFailsWith<SQLiteException> {
+            assertThrows<SQLiteException> {
                     connection.execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
                 }
-            )
-            assertMsg(
-                assertFailsWith<SQLiteException> { connection.execSQL("CREATE TABLE Foo (id)") }
-            )
+                .assertMsg()
+            assertThrows<SQLiteException> { connection.execSQL("CREATE TABLE Foo (id)") }
+                .assertMsg()
             // Yup, temp tables even though local to a connection are considered write operations.
-            assertMsg(
-                assertFailsWith<SQLiteException> {
-                    connection.execSQL("CREATE TEMP TABLE TempFoo (id)")
-                }
-            )
-            assertMsg(
-                assertFailsWith<SQLiteException> { connection.execSQL("PRAGMA user_version = 100") }
-            )
-            assertMsg(assertFailsWith<SQLiteException> { connection.exclusiveTransaction {} })
-            assertMsg(assertFailsWith<SQLiteException> { connection.immediateTransaction {} })
+            assertThrows<SQLiteException> { connection.execSQL("CREATE TEMP TABLE TempFoo (id)") }
+                .assertMsg()
+            assertThrows<SQLiteException> { connection.execSQL("PRAGMA user_version = 100") }
+                .assertMsg()
+            assertThrows<SQLiteException> { connection.exclusiveTransaction {} }.assertMsg()
+            assertThrows<SQLiteException> { connection.immediateTransaction {} }.assertMsg()
         }
         pool.close()
     }
@@ -224,11 +222,49 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         pool.useReaderConnection {
-            assertThat(assertFailsWith<SQLiteException> { pool.useWriterConnection {} }.message)
+            assertThrows<SQLiteException> { pool.useWriterConnection {} }
+                .hasMessageThat()
                 .isEqualTo(
                     "Error code: 1, message: Cannot upgrade connection from reader to writer"
                 )
         }
+        pool.close()
+    }
+
+    @Test
+    fun failureToOpenConnection() = runTest {
+        val actualDriver = setupDriver()
+        val driver =
+            object : SQLiteDriver {
+                private val throwIntermediateError = AtomicBoolean(true)
+
+                override fun open(fileName: String): SQLiteConnection {
+                    if (throwIntermediateError.compareAndSet(true, false)) {
+                        throw SQLiteException("Intermediate Error")
+                    }
+                    return actualDriver.open(fileName)
+                }
+            }
+        val pool =
+            newConnectionPool(
+                driver = driver,
+                fileName = fileName,
+                maxNumOfReaders = 1,
+                maxNumOfWriters = 1
+            )
+        assertThrows<SQLiteException> { pool.useWriterConnection {} }
+            .hasMessageThat()
+            .isEqualTo("Intermediate Error")
+
+        pool.useWriterConnection { it.execSQL("PRAGMA user_version = 5") }
+        val result =
+            pool.useReaderConnection {
+                it.usePrepared("PRAGMA user_version") {
+                    it.step()
+                    it.getLong(0)
+                }
+            }
+        assertThat(result).isEqualTo(5)
         pool.close()
     }
 
@@ -244,12 +280,8 @@ abstract class BaseConnectionPoolTest {
             )
         var leakedConnection: PooledConnection? = null
         pool.useReaderConnection { leakedConnection = it }
-        assertThat(
-                assertFailsWith<SQLiteException> {
-                        leakedConnection!!.usePrepared("SELECT * FROM Pet") {}
-                    }
-                    .message
-            )
+        assertThrows<SQLiteException> { leakedConnection!!.usePrepared("SELECT * FROM Pet") {} }
+            .hasMessageThat()
             .isEqualTo("Error code: 21, message: Connection is recycled")
         pool.close()
     }
@@ -268,7 +300,8 @@ abstract class BaseConnectionPoolTest {
         pool.useReaderConnection { connection ->
             connection.usePrepared("SELECT * FROM Pet") { leakedRawStatement = it }
         }
-        assertThat(assertFailsWith<SQLiteException> { leakedRawStatement!!.step() }.message)
+        assertThrows<SQLiteException> { leakedRawStatement!!.step() }
+            .hasMessageThat()
             .isEqualTo("Error code: 21, message: Statement is recycled")
         pool.close()
     }
@@ -284,7 +317,8 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         pool.close()
-        assertThat(assertFailsWith<SQLiteException> { pool.useWriterConnection {} }.message)
+        assertThrows<SQLiteException> { pool.useWriterConnection {} }
+            .hasMessageThat()
             .isEqualTo("Error code: 21, message: Connection pool is closed")
     }
 
@@ -315,12 +349,8 @@ abstract class BaseConnectionPoolTest {
             )
         pool.useReaderConnection { connection ->
             launch(singleThreadContext) {
-                    assertThat(
-                            assertFailsWith<SQLiteException> {
-                                    connection.usePrepared("SELECT * FROM Pet") {}
-                                }
-                                .message
-                        )
+                    assertThrows<SQLiteException> { connection.usePrepared("SELECT * FROM Pet") {} }
+                        .hasMessageThat()
                         .isEqualTo(
                             "Error code: 21, message: Attempted to use connection on a different coroutine"
                         )
@@ -350,12 +380,10 @@ abstract class BaseConnectionPoolTest {
                     delay(20)
                 }
                 withContext(leakedContext!!) {
-                    assertThat(
-                            assertFailsWith<SQLiteException> {
-                                    leakedConnection!!.usePrepared("SELECT * FROM Pet") {}
-                                }
-                                .message
-                        )
+                    assertThrows<SQLiteException> {
+                            leakedConnection!!.usePrepared("SELECT * FROM Pet") {}
+                        }
+                        .hasMessageThat()
                         .isEqualTo(
                             "Error code: 21, message: Attempted to use connection on a different coroutine"
                         )
@@ -386,31 +414,32 @@ abstract class BaseConnectionPoolTest {
                 val expectedErrorMsg =
                     "Error code: 21, message: Attempted to use statement on a different thread"
                 runBlocking(singleThreadContext) {
-                    assertThat(assertFailsWith<SQLiteException> { statement.step() }.message)
+                    assertThrows<SQLiteException> { statement.step() }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(
-                            assertFailsWith<SQLiteException> { statement.getColumnCount() }.message
-                        )
+                    assertThrows<SQLiteException> { statement.getColumnCount() }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(
-                            assertFailsWith<SQLiteException> { statement.getColumnName(0) }.message
-                        )
+                    assertThrows<SQLiteException> { statement.getColumnName(0) }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(assertFailsWith<SQLiteException> { statement.isNull(0) }.message)
+                    assertThrows<SQLiteException> { statement.isNull(0) }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(assertFailsWith<SQLiteException> { statement.getLong(0) }.message)
+                    assertThrows<SQLiteException> { statement.getLong(0) }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(assertFailsWith<SQLiteException> { statement.getText(0) }.message)
+                    assertThrows<SQLiteException> { statement.getText(0) }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(
-                            assertFailsWith<SQLiteException> { statement.bindText(0, "") }.message
-                        )
+                    assertThrows<SQLiteException> { statement.bindText(0, "") }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(
-                            assertFailsWith<SQLiteException> { statement.bindLong(0, 0L) }.message
-                        )
+                    assertThrows<SQLiteException> { statement.bindLong(0, 0L) }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
-                    assertThat(assertFailsWith<SQLiteException> { statement.close() }.message)
+                    assertThrows<SQLiteException> { statement.close() }
+                        .hasMessageThat()
                         .isEqualTo(expectedErrorMsg)
                 }
             }
@@ -443,7 +472,7 @@ abstract class BaseConnectionPoolTest {
                     }
                 }
                 launch(multiThreadContext) {
-                    assertFailsWith<TimeoutCancellationException> {
+                    assertThrows<TimeoutCancellationException> {
                         withTimeout(200) {
                             delay(50) // to let statement above be used first
                             connection.usePrepared("SELECT * FROM Pet") {
@@ -606,12 +635,10 @@ abstract class BaseConnectionPoolTest {
                 val job =
                     launch(testContext) {
                         coroutineStartedMutex.unlock()
-                        assertThat(
-                                assertFailsWith<SQLiteException> {
-                                        pool.useReaderConnection { acquiredSecondConnection = true }
-                                    }
-                                    .message
-                            )
+                        assertThrows<SQLiteException> {
+                                pool.useReaderConnection { acquiredSecondConnection = true }
+                            }
+                            .hasMessageThat()
                             .contains(
                                 "Error code: 5, message: Timed out attempting to acquire a " +
                                     "reader connection"
@@ -629,6 +656,115 @@ abstract class BaseConnectionPoolTest {
     }
 
     @Test
+    fun timeoutCoroutineAndRetryUsingConnection() = runTest {
+        val multiThreadContext = newFixedThreadPoolContext(2, "Test-Threads")
+        val driver = setupDriver()
+        val pool =
+            newConnectionPool(
+                driver = driver,
+                fileName = fileName,
+                maxNumOfReaders = 1,
+                maxNumOfWriters = 1
+            )
+        check(pool is ConnectionPoolImpl)
+        pool.timeout = 100.milliseconds
+
+        val barrier = CompletableDeferred<Unit>()
+        val busyJob = launch(multiThreadContext) { pool.useReaderConnection { barrier.await() } }
+
+        val timeoutJob =
+            launch(multiThreadContext) {
+                assertThrows<SQLiteException> { pool.useReaderConnection {} }
+                    .hasMessageThat()
+                    .contains(
+                        "Error code: 5, message: Timed out attempting to acquire a reader connection"
+                    )
+            }
+
+        timeoutJob.join()
+        barrier.complete(Unit)
+        busyJob.join()
+
+        pool.useReaderConnection {
+            // Can use connection after a timeout
+        }
+
+        pool.close()
+        multiThreadContext.close()
+    }
+
+    @Test
+    fun timeoutCoroutineWithResource() = runBlocking {
+        val openedConnections = AtomicInt(0)
+        val driver =
+            object : SQLiteDriver {
+                override fun open(fileName: String): SQLiteConnection {
+                    openedConnections.incrementAndGet()
+                    return object : SQLiteConnection {
+                        override fun prepare(sql: String): SQLiteStatement {
+                            return FakeSQLiteStatement()
+                        }
+
+                        override fun close() {}
+                    }
+                }
+            }
+        val pool =
+            newConnectionPool(
+                driver = driver,
+                fileName = fileName,
+                maxNumOfReaders = 100,
+                maxNumOfWriters = 1
+            )
+
+        // prime the pool with connections
+        val barriers = List(100) { CompletableDeferred<Unit>() }
+        val latch = CompletableDeferred<Unit>()
+        repeat(100) { i ->
+            launch(Dispatchers.IO) {
+                pool.useReaderConnection {
+                    barriers[i].complete(Unit)
+                    latch.await()
+                }
+            }
+        }
+        barriers.awaitAll()
+        latch.complete(Unit)
+        assertThat(openedConnections.get()).isEqualTo(100)
+
+        // create a lot of coroutines, some timeout some don't, validating we are using withTimeout
+        // with resources correctly as recommended in
+        // https://kotlinlang.org/docs/cancellation-and-timeouts.html#asynchronous-timeout-and-resources
+        check(pool is ConnectionPoolImpl)
+        pool.timeout = 20.milliseconds
+        coroutineScope {
+            repeat(10_000) {
+                launch(Dispatchers.IO) {
+                    try {
+                        pool.useReaderConnection { delay(10) }
+                    } catch (_: SQLiteException) {
+                        // Timeout
+                    }
+                }
+            }
+        }
+
+        // at the end of various acquire with timeouts all 100 connections should be back in the
+        // pool along with the permits
+        pool.timeout = 0.milliseconds
+        assertThrows<SQLiteException> { pool.useReaderConnection {} }
+            .hasMessageThat()
+            .apply {
+                contains(
+                    "Error code: 5, message: Timed out attempting to acquire a reader connection"
+                )
+                contains("capacity=100, permits=100, queue=(size=100)[")
+            }
+
+        pool.close()
+    }
+
+    @Test
     fun timeoutWhileUsingConnection() = runTest {
         val driver = setupDriver()
         val pool =
@@ -638,7 +774,7 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfReaders = 1,
                 maxNumOfWriters = 1
             )
-        assertFailsWith<TimeoutCancellationException> {
+        assertThrows<TimeoutCancellationException> {
             pool.useWriterConnection {
                 withTimeout(0) { fail("withTimeout body should never run") }
             }
@@ -662,12 +798,8 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfReaders = 1,
                 maxNumOfWriters = 1
             )
-        assertThat(
-                assertFailsWith<IllegalStateException> {
-                        pool.useWriterConnection { error("BOOM") }
-                    }
-                    .message
-            )
+        assertThrows<IllegalStateException> { pool.useWriterConnection { error("BOOM") } }
+            .hasMessageThat()
             .isEqualTo("BOOM")
         pool.useWriterConnection { connection ->
             connection.usePrepared("SELECT COUNT(*) FROM Pet") {
@@ -678,7 +810,6 @@ abstract class BaseConnectionPoolTest {
         pool.close()
     }
 
-    @Ignore // b/322386871
     @Test
     fun closeUnusedConnections() = runTest {
         class CloseAwareConnection(val actual: SQLiteConnection) : SQLiteConnection by actual {
@@ -707,21 +838,24 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         val multiThreadContext = newFixedThreadPoolContext(4, "Test-Threads")
-        val jobs = mutableListOf<Job>()
-        val barrier = Mutex(locked = true)
-        repeat(4) {
-            val job =
-                launch(multiThreadContext) { pool.useReaderConnection { barrier.withLock {} } }
-            jobs.add(job)
-        }
-        while (connectionArrCount.get() < 4) {
-            delay(100)
-        }
-        barrier.unlock()
+        val useLatches = List(4) { CompletableDeferred<Unit>() }
+        val barrier = CompletableDeferred<Unit>()
+        val jobs =
+            List(4) { i ->
+                launch(multiThreadContext) {
+                    pool.useReaderConnection {
+                        useLatches[i].complete(Unit)
+                        barrier.await()
+                    }
+                }
+            }
+        useLatches.awaitAll()
+        barrier.complete(Unit)
         jobs.joinAll()
         pool.close()
         multiThreadContext.close()
         // 4 readers are expected to have been opened
+        assertThat(connectionArrCount.get()).isEqualTo(4)
         assertThat(connectionsArr.filterNotNull().size).isEqualTo(4)
         connectionsArr.forEach { assertThat(checkNotNull(it).isClosed).isTrue() }
     }
@@ -790,7 +924,7 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         pool.useWriterConnection { connection ->
-            assertFailsWith<TestingRollbackException> {
+            assertThrows<TestingRollbackException> {
                 connection.exclusiveTransaction {
                     execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
                     usePrepared("SELECT * FROM Pet WHERE id = 100") {
@@ -943,7 +1077,7 @@ abstract class BaseConnectionPoolTest {
         pool.useWriterConnection { connection ->
             connection.exclusiveTransaction {
                 execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
-                assertFailsWith<TestingRollbackException> {
+                assertThrows<TestingRollbackException> {
                     pool.useWriterConnection { reusedConnection ->
                         reusedConnection.exclusiveTransaction {
                             execSQL("INSERT INTO Pet (id, name) VALUES (101, 'Tom')")
@@ -1081,16 +1215,14 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         pool.useWriterConnection { connection ->
-            assertThat(
-                    assertFailsWith<SQLiteException> {
-                            connection.exclusiveTransaction {
-                                execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
-                                execSQL("ROLLBACK TRANSACTION")
-                                rollback(Unit)
-                            }
-                        }
-                        .message
-                )
+            assertThrows<SQLiteException> {
+                    connection.exclusiveTransaction {
+                        execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
+                        execSQL("ROLLBACK TRANSACTION")
+                        rollback(Unit)
+                    }
+                }
+                .hasMessageThat()
                 .isEqualTo("Error code: 1, message: cannot rollback - no transaction is active")
             connection.usePrepared("SELECT * FROM Pet WHERE id = 100") {
                 assertThat(it.step()).isFalse()
@@ -1110,15 +1242,13 @@ abstract class BaseConnectionPoolTest {
                 maxNumOfWriters = 1
             )
         pool.useWriterConnection { connection ->
-            assertThat(
-                    assertFailsWith<SQLiteException> {
-                            connection.exclusiveTransaction {
-                                execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
-                                execSQL("END TRANSACTION")
-                            }
-                        }
-                        .message
-                )
+            assertThrows<SQLiteException> {
+                    connection.exclusiveTransaction {
+                        execSQL("INSERT INTO Pet (id, name) VALUES (100, 'Pelusa')")
+                        execSQL("END TRANSACTION")
+                    }
+                }
+                .hasMessageThat()
                 .isEqualTo("Error code: 1, message: cannot commit - no transaction is active")
             connection.usePrepared("SELECT * FROM Pet WHERE id = 100") {
                 assertThat(it.step()).isTrue()
@@ -1212,3 +1342,39 @@ internal suspend fun <R> ConnectionPool.useReaderConnection(block: suspend (Tran
 
 internal suspend fun <R> ConnectionPool.useWriterConnection(block: suspend (Transactor) -> R): R =
     this.useConnection(isReadOnly = false, block)
+
+private class FakeSQLiteStatement : SQLiteStatement {
+    override fun bindBlob(index: Int, value: ByteArray) {}
+
+    override fun bindDouble(index: Int, value: Double) {}
+
+    override fun bindLong(index: Int, value: Long) {}
+
+    override fun bindText(index: Int, value: String) {}
+
+    override fun bindNull(index: Int) {}
+
+    override fun getBlob(index: Int): ByteArray = byteArrayOf()
+
+    override fun getDouble(index: Int): Double = 0.0
+
+    override fun getLong(index: Int): Long = 0L
+
+    override fun getText(index: Int): String = ""
+
+    override fun isNull(index: Int): Boolean = false
+
+    override fun getColumnCount(): Int = 0
+
+    override fun getColumnName(index: Int): String = ""
+
+    override fun getColumnType(index: Int): Int = 0
+
+    override fun step(): Boolean = false
+
+    override fun reset() {}
+
+    override fun clearBindings() {}
+
+    override fun close() {}
+}

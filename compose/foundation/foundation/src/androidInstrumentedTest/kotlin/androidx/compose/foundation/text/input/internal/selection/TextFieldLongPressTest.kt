@@ -150,9 +150,12 @@ class TextFieldLongPressTest : FocusedWindowTest {
     @Test
     fun longPressOnEmptyRegion_showsTextToolbar() {
         val state = TextFieldState("abc")
-        var showMenuCalled = 0
+        var toolbarShown = false
         val textToolbar =
-            FakeTextToolbar(onShowMenu = { _, _, _, _, _, _ -> showMenuCalled++ }, onHideMenu = {})
+            FakeTextToolbar(
+                onShowMenu = { _, _, _, _, _, _ -> toolbarShown = true },
+                onHideMenu = { toolbarShown = false }
+            )
         val clipboard = FakeClipboard("hello")
         rule.setTextFieldTestContent {
             CompositionLocalProvider(
@@ -171,7 +174,7 @@ class TextFieldLongPressTest : FocusedWindowTest {
             longClick(Offset(fontSize.toPx() * 5, fontSize.toPx() / 2))
         }
 
-        rule.runOnIdle { assertThat(showMenuCalled).isEqualTo(1) }
+        rule.runOnIdle { assertThat(toolbarShown).isTrue() }
     }
 
     @Test

@@ -61,7 +61,7 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-class TextFieldContextMenuTest : FocusedWindowTest {
+open class TextFieldContextMenuTest : FocusedWindowTest {
     @get:Rule val rule = createComposeRule()
 
     private val textFieldTag = "BTF"

@@ -132,14 +132,16 @@ package androidx.compose.ui {
   }
 
   @SuppressCompatibility @androidx.compose.ui.ExperimentalComposeUiApi public final class ComposeUiFlags {
-    property public boolean NewNestedScrollFlingDispatchingEnabled;
+    property public boolean isHitPathTrackerLoggingEnabled;
     property public boolean isRectTrackingEnabled;
+    property public boolean isRemoveFocusedViewFixEnabled;
     property public boolean isSemanticAutofillEnabled;
     property public boolean isTrackFocusEnabled;
     property public boolean isViewFocusFixEnabled;
     field public static final androidx.compose.ui.ComposeUiFlags INSTANCE;
-    field public static boolean NewNestedScrollFlingDispatchingEnabled;
+    field public static boolean isHitPathTrackerLoggingEnabled;
     field public static boolean isRectTrackingEnabled;
+    field public static boolean isRemoveFocusedViewFixEnabled;
     field public static boolean isSemanticAutofillEnabled;
     field public static boolean isTrackFocusEnabled;
     field public static boolean isViewFocusFixEnabled;
@@ -231,7 +233,7 @@ package androidx.compose.ui.autofill {
   }
 
   public final class AutofillModifierKt {
-    method public static androidx.compose.ui.Modifier autofillContentType(androidx.compose.ui.Modifier, androidx.compose.ui.autofill.ContentType contentType);
+    method public static androidx.compose.ui.Modifier contentType(androidx.compose.ui.Modifier, androidx.compose.ui.autofill.ContentType contentType);
   }
 
   @Deprecated public final class AutofillNode {
@@ -2820,7 +2822,16 @@ package androidx.compose.ui.layout {
     ctor public SubcomposeLayoutState();
     ctor public SubcomposeLayoutState(androidx.compose.ui.layout.SubcomposeSlotReusePolicy slotReusePolicy);
     ctor @Deprecated public SubcomposeLayoutState(int maxSlotsToRetainForReuse);
+    method public androidx.compose.ui.layout.SubcomposeLayoutState.PausedPrecomposition createPausedPrecomposition(Object? slotId, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method public androidx.compose.ui.layout.SubcomposeLayoutState.PrecomposedSlotHandle precompose(Object? slotId, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+  }
+
+  public static sealed interface SubcomposeLayoutState.PausedPrecomposition {
+    method public androidx.compose.ui.layout.SubcomposeLayoutState.PrecomposedSlotHandle apply();
+    method public void cancel();
+    method public boolean isComplete();
+    method public boolean resume(androidx.compose.runtime.ShouldPauseCallback shouldPause);
+    property public abstract boolean isComplete;
   }
 
   public static interface SubcomposeLayoutState.PrecomposedSlotHandle {
@@ -2845,6 +2856,7 @@ package androidx.compose.ui.layout {
     method public void clear();
     method public boolean contains(Object? element);
     method public boolean containsAll(java.util.Collection<? extends java.lang.Object?> elements);
+    method public inline void fastForEach(kotlin.jvm.functions.Function1<java.lang.Object?,kotlin.Unit> block);
     method public void forEach(kotlin.jvm.functions.Function1<java.lang.Object?,kotlin.Unit> block);
     method public int getSize();
     method public boolean isEmpty();

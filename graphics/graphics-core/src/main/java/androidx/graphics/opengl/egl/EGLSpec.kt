@@ -557,6 +557,7 @@ class EGLException(val error: Int, val msg: String = "") : RuntimeException() {
  * @param major Major version of the EGL implementation
  * @param minor Minor version of the EGL implementation
  */
+@Suppress("DataClassDefinition")
 data class EGLVersion(val major: Int, val minor: Int) {
 
     override fun toString(): String {

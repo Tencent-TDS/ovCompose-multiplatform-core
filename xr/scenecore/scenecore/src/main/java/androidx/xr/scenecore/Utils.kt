@@ -82,6 +82,16 @@ internal fun Int.toRtPlaneSemantic(): JxrPlatformAdapter.PlaneSemantic {
     }
 }
 
+/** Extension function that converts [Space] value to [JxrPlatformAdapter.Space] value. */
+internal fun Int.toRtSpace(): Int {
+    return when (this) {
+        Space.PARENT -> JxrPlatformAdapter.Space.PARENT
+        Space.ACTIVITY -> JxrPlatformAdapter.Space.ACTIVITY
+        Space.REAL_WORLD -> JxrPlatformAdapter.Space.REAL_WORLD
+        else -> error("Unknown Space Value: $this")
+    }
+}
+
 /** Extension function that converts a [RtMoveEvent] to a [MoveEvent]. */
 internal fun RtMoveEvent.toMoveEvent(entityManager: EntityManager): MoveEvent {
 

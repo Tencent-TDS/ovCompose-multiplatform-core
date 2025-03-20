@@ -27,6 +27,7 @@ import androidx.annotation.RestrictTo
  * @param depth Depth.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@Suppress("DataClassDefinition")
 public data class Dimensions(
     public val width: Float = 0f,
     public val height: Float = 0f,
@@ -44,6 +45,7 @@ public data class Dimensions(
  * @param height Integer Height.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@Suppress("DataClassDefinition")
 public data class PixelDimensions(public val width: Int = 0, public val height: Int = 0) {
     override fun toString(): String {
         return super.toString() + ": w $width x h $height"

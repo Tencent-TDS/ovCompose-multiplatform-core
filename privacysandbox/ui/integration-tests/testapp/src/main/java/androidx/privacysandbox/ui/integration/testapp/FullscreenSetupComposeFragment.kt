@@ -41,7 +41,7 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.privacysandbox.activity.client.createSdkActivityLauncher
+import androidx.privacysandbox.activity.client.createManagedSdkActivityLauncher
 import androidx.privacysandbox.activity.client.toLauncherInfo
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.BackNavigation
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.ScreenOrientation
@@ -175,7 +175,7 @@ class FullscreenSetupComposeFragment : BaseFragment() {
                 else -> BackNavigation.ENABLED
             }
 
-        val activityLauncher = requireActivity().createSdkActivityLauncher({ true })
+        val activityLauncher = requireActivity().createManagedSdkActivityLauncher({ true })
         getSdkApi()
             .launchFullscreenAd(
                 activityLauncher.toLauncherInfo(),

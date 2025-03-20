@@ -17,14 +17,17 @@
 package androidx.xr.scenecore.samples.activitypanel
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.xr.scenecore.samples.commontestview.DebugTextLinearView
 import java.util.Timer
 import java.util.TimerTask
 
-var counter = 0
-
 class CounterActivity : AppCompatActivity() {
+    var counter = 0
+    private val TAG = "CounterActivity"
+    private val timer = Timer()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -32,17 +35,24 @@ class CounterActivity : AppCompatActivity() {
         view.setName("Secondary Counter Activity")
         setContentView(view)
 
-        // Create a timer to update the counter every second
-        val timer = Timer()
+        // Schedule a timer to update the counter every second
+        Log.i(TAG, "Counter Activity timer scheduled")
         timer.schedule(createTimerTask(view), 0, 1000)
     }
-}
 
-// Timer task that increments a counter and updates the view.
-fun createTimerTask(view: DebugTextLinearView) =
-    object : TimerTask() {
-        override fun run() {
-            counter++
-            view.setLine("counter", counter.toString())
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.i(TAG, "Counter Activity onDestroy called")
+        timer.cancel()
+        timer.purge()
     }
+
+    // Timer task that increments a counter and updates the view.
+    private fun createTimerTask(view: DebugTextLinearView) =
+        object : TimerTask() {
+            override fun run() {
+                counter++
+                view.setLine("counter", counter.toString())
+            }
+        }
+}

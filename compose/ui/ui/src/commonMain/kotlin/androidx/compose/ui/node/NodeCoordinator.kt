@@ -401,7 +401,7 @@ internal abstract class NodeCoordinator(
         }
         this.zIndex = zIndex
         if (!isPlacingForAlignment) {
-            captureRulers(measureResult)
+            captureRulersIfNeeded(measureResult)
         }
     }
 

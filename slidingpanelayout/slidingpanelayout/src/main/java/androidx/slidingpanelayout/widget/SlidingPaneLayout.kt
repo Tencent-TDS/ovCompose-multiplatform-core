@@ -27,6 +27,7 @@ import android.os.Parcel
 import android.os.Parcelable
 import android.os.Parcelable.ClassLoaderCreator
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.MeasureSpec
@@ -75,7 +76,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapNotNull
@@ -201,17 +201,6 @@ private class FoldBoundsCalculator {
         return true
     }
 }
-
-/**
- * Pulls the string interpolation and exception throwing bytecode out of the inlined
- * [spLayoutParams] property at each call site
- */
-private fun layoutParamsError(childView: View, layoutParams: LayoutParams?): Nothing {
-    error("SlidingPaneLayout child $childView had unexpected LayoutParams $layoutParams")
-}
-
-private inline val View.spLayoutParams: SlidingPaneLayout.LayoutParams
-    get() = layoutParams as SlidingPaneLayout.LayoutParams
 
 /**
  * SlidingPaneLayout provides a horizontal, multi-pane layout for use at the top level of a UI. A
@@ -1854,7 +1843,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
     }
 
     override fun generateLayoutParams(p: ViewGroup.LayoutParams?): ViewGroup.LayoutParams {
-        return if (p is MarginLayoutParams) LayoutParams(p) else LayoutParams(p)
+        return if (p is MarginLayoutParams) {
+            SlidingPaneLayout.LayoutParams(p)
+        } else if (p == null) {
+            generateDefaultLayoutParams()
+        } else {
+            SlidingPaneLayout.LayoutParams(p)
+        }
     }
 
     override fun checkLayoutParams(p: ViewGroup.LayoutParams?): Boolean {
@@ -2148,23 +2143,25 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
 
             node.contentDescription = getDividerContentDescription()
 
-            if (!dividerAtLeftEdge) {
-                node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
-                if (isLayoutRtl) {
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
-                } else {
-                    // In LTR layout, scroll backward goes to left
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
+            if (dividerHasA11yFocus) {
+                if (!dividerAtLeftEdge) {
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
+                    if (isLayoutRtl) {
+                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
+                    } else {
+                        // In LTR layout, scroll backward goes to left
+                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
+                    }
                 }
-            }
 
-            if (!dividerAtRightEdge) {
-                node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
-                if (isLayoutRtl) {
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
-                } else {
-                    // In LTR layout, scroll forward goes to right
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
+                if (!dividerAtRightEdge) {
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
+                    if (isLayoutRtl) {
+                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
+                    } else {
+                        // In LTR layout, scroll forward goes to right
+                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
+                    }
                 }
             }
 
@@ -2324,6 +2321,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
         contentDescription: String? = null,
         contentChangeType: Int = AccessibilityEvent.CONTENT_CHANGE_TYPE_UNDEFINED
     ) {
+        // Early return if accessibility is not enabled.
+        if (!accessibilityManager.isEnabled && !isAccessibilityEnabledForTesting) {
+            return
+        }
         parent?.requestSendAccessibilityEvent(
             this,
             @Suppress("DEPRECATION")
@@ -3076,4 +3077,16 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                 }
             }
     }
+
+    private inline val View.spLayoutParams: SlidingPaneLayout.LayoutParams
+        get() {
+            val layoutParams = this.layoutParams
+            return if (!checkLayoutParams(layoutParams)) {
+                Log.w(TAG, "Unexpected child: $this had unexpected LayoutParams: $layoutParams ")
+                generateLayoutParams(layoutParams)
+            } else {
+                layoutParams
+            }
+                as SlidingPaneLayout.LayoutParams
+        }
 }

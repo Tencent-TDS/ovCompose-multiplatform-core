@@ -117,7 +117,9 @@ class AppFunctionMetadataTest {
             AppFunctionMetadataDocument(
                 id = id,
                 isEnabledByDefault = isEnabledByDefault,
-                schema = schemaMetadata.toAppFunctionSchemaMetadataDocument(),
+                schemaName = schemaMetadata.name,
+                schemaCategory = schemaMetadata.category,
+                schemaVersion = schemaMetadata.version,
                 parameters = parameters.map { it.toAppFunctionParameterMetadataDocument() },
                 response = response.toAppFunctionResponseMetadataDocument(),
                 components = components.toAppFunctionComponentsMetadataDocument()

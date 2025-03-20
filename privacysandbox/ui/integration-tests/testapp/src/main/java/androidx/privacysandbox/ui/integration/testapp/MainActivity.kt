@@ -40,10 +40,12 @@ import androidx.privacysandbox.sdkruntime.client.SdkSandboxManagerCompat
 import androidx.privacysandbox.sdkruntime.client.SdkSandboxProcessDeathCallbackCompat
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
 import androidx.privacysandbox.ui.integration.inappmediateeadaptersdk.InAppMediateeAdapter
+import androidx.privacysandbox.ui.integration.sdkproviderutils.ILoadSdkCallback
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdFormat
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.AdType
 import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.Companion.MediationOption
 import androidx.privacysandbox.ui.integration.testapp.util.DisabledItemsArrayAdapter
+import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApi
 import androidx.privacysandbox.ui.integration.testsdkprovider.ISdkApiFactory
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -64,6 +66,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adTypeDropDownMenu: Spinner
     private lateinit var adFormatDropDownMenu: Spinner
     private lateinit var titleBar: TextView
+    private lateinit var sdkApi: ISdkApi
+
+    fun getSdkApi(): ISdkApi {
+        return sdkApi
+    }
 
     @AdFormat
     private val adFormat
@@ -97,7 +104,7 @@ class MainActivity : AppCompatActivity() {
         titleBar = findViewById(R.id.title_bar)
         drawerLayout = findViewById(R.id.drawer)
         navigationView = findViewById(R.id.navigation_view)
-        zOrderToggleButton = findViewById(R.id.zorder_below_switch)
+        zOrderToggleButton = findViewById(R.id.zorder_above_switch)
         composeToggleButton = findViewById(R.id.compose_switch)
         viewabilityToggleButton = findViewById(R.id.display_viewability_switch)
         triggerSandboxDeathButton = findViewById(R.id.trigger_sandbox_death)
@@ -125,7 +132,7 @@ class MainActivity : AppCompatActivity() {
                 if (loadedSdk == null) {
                     loadedSdk = sdkSandboxManager.loadSdk(SDK_NAME, Bundle())
                     sdkSandboxManager.loadSdk(MEDIATEE_SDK_NAME, Bundle())
-                    val sdkApi =
+                    sdkApi =
                         ISdkApiFactory.wrapToISdkApi(
                             checkNotNull(loadedSdk.getInterface()) { "Cannot find Sdk Service!" }
                         )
@@ -140,6 +147,10 @@ class MainActivity : AppCompatActivity() {
                     val fragment = fragmentOptions.getFragment()
                     fragment.handleOptionsFromIntent(fragmentOptions)
                     switchContentFragment(fragment, "Automated CUJ")
+                    val loadSdkCallback = extras.getBinder(FragmentOptions.LOAD_SDK_COMPLETE)
+                    if (loadSdkCallback != null) {
+                        (loadSdkCallback as ILoadSdkCallback).onSdksLoaded()
+                    }
                 } else {
                     switchContentFragment(ResizeFragment(), "Resize CUJ")
                 }
@@ -164,7 +175,10 @@ class MainActivity : AppCompatActivity() {
         override fun onSdkSandboxDied() {
             runOnUiThread {
                 Log.i(TAG, "Sandbox died")
-                Toast.makeText(applicationContext, "Sandbox died", Toast.LENGTH_LONG).show()
+                // The if condition makes sure that the toast is not displayed in automated tests.
+                if (currentFragment !is BaseHiddenFragment) {
+                    Toast.makeText(applicationContext, "Sandbox died", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -250,7 +264,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initializeZOrderToggleButton() {
         zOrderToggleButton.setOnCheckedChangeListener { _, isChecked ->
-            BaseFragment.isZOrderBelowToggleChecked = isChecked
+            BaseFragment.isZOrderAboveToggleChecked = isChecked
         }
     }
 
@@ -430,8 +444,8 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "TestSandboxClient"
 
         /** Name of the SDK to be loaded. */
-        private const val SDK_NAME = "androidx.privacysandbox.ui.integration.testsdkproviderwrapper"
-        private const val MEDIATEE_SDK_NAME =
+        const val SDK_NAME = "androidx.privacysandbox.ui.integration.testsdkproviderwrapper"
+        const val MEDIATEE_SDK_NAME =
             "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
     }
 }

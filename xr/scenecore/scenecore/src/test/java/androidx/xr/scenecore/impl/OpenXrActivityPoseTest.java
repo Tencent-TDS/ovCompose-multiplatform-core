@@ -22,20 +22,24 @@ import static androidx.xr.runtime.testing.math.MathAssertions.assertVector3;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import android.app.Activity;
+
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
 import androidx.xr.scenecore.common.BaseActivityPose;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.Fov;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.impl.perception.ViewProjection;
 import androidx.xr.scenecore.impl.perception.ViewProjections;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeGltfModelToken;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.asset.FakeGltfModelToken;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +47,7 @@ import org.junit.runner.RunWith;
 import org.robolectric.ParameterizedRobolectricTestRunner;
 import org.robolectric.ParameterizedRobolectricTestRunner.Parameter;
 import org.robolectric.ParameterizedRobolectricTestRunner.Parameters;
+import org.robolectric.Robolectric;
 
 import java.util.Arrays;
 import java.util.List;
@@ -51,17 +56,19 @@ import java.util.List;
 @RunWith(ParameterizedRobolectricTestRunner.class)
 public final class OpenXrActivityPoseTest {
     private final AndroidXrEntity mActivitySpaceRoot = mock(AndroidXrEntity.class);
-    private final FakeXrExtensions mFakeExtensions = new FakeXrExtensions();
+    private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final PerceptionLibrary mPerceptionLibrary = mock(PerceptionLibrary.class);
     private final Session mSession = mock(Session.class);
     private final FakeScheduledExecutorService mExecutor = new FakeScheduledExecutorService();
     private final EntityManager mEntityManager = new EntityManager();
+    private final Activity mActivity =
+            Robolectric.buildActivity(Activity.class).create().start().get();
     private final ActivitySpaceImpl mActivitySpace =
             new ActivitySpaceImpl(
-                    mFakeExtensions.createNode(),
-                    mFakeExtensions,
+                    mXrExtensions.createNode(),
+                    mXrExtensions,
                     mEntityManager,
-                    () -> mFakeExtensions.fakeSpatialState,
+                    () -> mXrExtensions.getSpatialState(mActivity),
                     mExecutor);
 
     enum OpenXrActivityPoseType {
@@ -152,8 +159,7 @@ public final class OpenXrActivityPoseTest {
     private GltfEntityImpl createGltfEntity() {
         FakeGltfModelToken modelToken = new FakeGltfModelToken("model");
         GltfModelResourceImpl model = new GltfModelResourceImpl(modelToken);
-        return new GltfEntityImpl(
-                model, mActivitySpace, mFakeExtensions, mEntityManager, mExecutor);
+        return new GltfEntityImpl(model, mActivitySpace, mXrExtensions, mEntityManager, mExecutor);
     }
 
     @Test

@@ -18,13 +18,10 @@ package com.android.extensions.xr;
 
 import android.content.Intent;
 
-import androidx.annotation.RestrictTo;
-
 /**
  * The main extensions class that creates or provides instances of various XR Extensions components.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class XrExtensions {
 
     public XrExtensions() {
@@ -551,7 +548,8 @@ public class XrExtensions {
      * Synchronously returns the OpenXR reference space type.
      *
      * @return the OpenXR reference space type used as world space for the shared scene.
-     * @see <a href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#spaces-reference-spaces">
+     * @see <a
+     *     href="https://registry.khronos.org/OpenXR/specs/1.1/html/xrspec.html#spaces-reference-spaces">
      *     OpenXR specs</a>
      */
     public int getOpenXrWorldReferenceSpaceType() {
@@ -664,7 +662,6 @@ public class XrExtensions {
      * @deprecated JXR Core doesn't need this anymore as it does the same with Split Engine.
      */
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @Deprecated
     public class SceneViewerResult {
 

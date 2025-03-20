@@ -23,13 +23,16 @@ import static org.mockito.Mockito.when;
 
 import android.media.SoundPool;
 
-import androidx.xr.extensions.node.Node;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.SoundPoolExtensionsWrapper;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatializerConstants;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeSoundPoolExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeSpatialAudioExtensions;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.media.ShadowSoundPoolExtensions;
+import com.android.extensions.xr.media.SoundPoolExtensions;
+import com.android.extensions.xr.media.XrSpatialAudioExtensions;
+import com.android.extensions.xr.node.Node;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,22 +48,22 @@ public final class SoundPoolExtensionsWrapperImplTest {
     private static final int TEST_LOOP = 0;
     private static final float TEST_RATE = 0F;
 
-    FakeXrExtensions mFakeXrExtensions;
-    FakeSpatialAudioExtensions mFakeSpatialAudioExtensions;
-    FakeSoundPoolExtensions mFakeSoundPoolExtensions;
+    XrExtensions mXrExtensions;
+    XrSpatialAudioExtensions mSpatialAudioExtensions;
+    SoundPoolExtensions mSoundPoolExtensions;
 
     @Before
     public void setUp() {
-        mFakeXrExtensions = new FakeXrExtensions();
-        mFakeSpatialAudioExtensions = mFakeXrExtensions.fakeSpatialAudioExtensions;
-        mFakeSoundPoolExtensions = mFakeSpatialAudioExtensions.soundPoolExtensions;
+        mXrExtensions = XrExtensionsProvider.getXrExtensions();
+        mSpatialAudioExtensions = mXrExtensions.getXrSpatialAudioExtensions();
+        mSoundPoolExtensions = mSpatialAudioExtensions.getSoundPoolExtensions();
     }
 
     @Test
     public void playWithPointSource_callsExtensionsPlayWithPointSource() {
         int expected = 123;
 
-        Node fakeNode = new FakeXrExtensions().createNode();
+        Node fakeNode = mXrExtensions.createNode();
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(fakeNode);
         JxrPlatformAdapter.PointSourceAttributes rtAttributes =
@@ -68,9 +71,10 @@ public final class SoundPoolExtensionsWrapperImplTest {
 
         SoundPool soundPool = new SoundPool.Builder().build();
 
-        mFakeSoundPoolExtensions.setPlayAsPointSourceResult(expected);
+        ShadowSoundPoolExtensions.extract(mSoundPoolExtensions)
+                .setPlayAsPointSourceResult(expected);
         SoundPoolExtensionsWrapper wrapper =
-                new SoundPoolExtensionsWrapperImpl(mFakeSoundPoolExtensions);
+                new SoundPoolExtensionsWrapperImpl(mSoundPoolExtensions);
         int actual =
                 wrapper.play(
                         soundPool,
@@ -90,9 +94,9 @@ public final class SoundPoolExtensionsWrapperImplTest {
 
         SoundPool soundPool = new SoundPool.Builder().build();
 
-        mFakeSoundPoolExtensions.setPlayAsSoundFieldResult(expected);
+        ShadowSoundPoolExtensions.extract(mSoundPoolExtensions).setPlayAsSoundFieldResult(expected);
         SoundPoolExtensionsWrapper wrapper =
-                new SoundPoolExtensionsWrapperImpl(mFakeSoundPoolExtensions);
+                new SoundPoolExtensionsWrapperImpl(mSoundPoolExtensions);
         JxrPlatformAdapter.SoundFieldAttributes attributes =
                 new JxrPlatformAdapter.SoundFieldAttributes(
                         JxrPlatformAdapter.SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
@@ -115,9 +119,9 @@ public final class SoundPoolExtensionsWrapperImplTest {
         int expected = SpatializerConstants.SOURCE_TYPE_SOUND_FIELD;
         SoundPool soundPool = new SoundPool.Builder().build();
 
-        mFakeSoundPoolExtensions.setSourceType(expected);
+        ShadowSoundPoolExtensions.extract(mSoundPoolExtensions).setSourceType(expected);
         SoundPoolExtensionsWrapper wrapper =
-                new SoundPoolExtensionsWrapperImpl(mFakeSoundPoolExtensions);
+                new SoundPoolExtensionsWrapperImpl(mSoundPoolExtensions);
         int actualSourceType = wrapper.getSpatialSourceType(soundPool, /* streamId= */ 0);
         assertThat(actualSourceType).isEqualTo(SpatializerConstants.SOURCE_TYPE_SOUND_FIELD);
     }

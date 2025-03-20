@@ -163,7 +163,7 @@ abstract class BaseFragment : Fragment() {
     }
 
     open fun handleDrawerStateChange(isDrawerOpen: Boolean) {
-        providerUiOnTop = !isDrawerOpen && !isZOrderBelowToggleChecked
+        providerUiOnTop = !isDrawerOpen && isZOrderAboveToggleChecked
         getSandboxedSdkViews().forEach { it.orderProviderUiAboveClientUi(providerUiOnTop) }
     }
 
@@ -192,7 +192,7 @@ abstract class BaseFragment : Fragment() {
         private const val MEDIATEE_SDK_NAME =
             "androidx.privacysandbox.ui.integration.mediateesdkproviderwrapper"
         const val TAG = "TestSandboxClient"
-        var isZOrderBelowToggleChecked = false
+        var isZOrderAboveToggleChecked = false
         @AdFormat var currentAdFormat = AdFormat.BANNER_AD
         @AdType var currentAdType = AdType.BASIC_NON_WEBVIEW
         @MediationOption var currentMediationOption = MediationOption.NON_MEDIATED

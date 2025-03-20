@@ -136,6 +136,11 @@ public class AppSearchConfigImpl implements AppSearchConfig {
     }
 
     @Override
+    public int getMaxByteLimitForBatchPut() {
+        return mLimitConfig.getMaxByteLimitForBatchPut();
+    }
+
+    @Override
     public int getPerPackageDocumentCountLimit() {
         return mLimitConfig.getPerPackageDocumentCountLimit();
     }

@@ -22,7 +22,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions
-import androidx.activity.result.registerForActivityResult
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.xr.runtime.Session
@@ -35,25 +34,17 @@ import androidx.xr.runtime.SessionResumeSuccess
  * Observer class to manage the lifecycle of the Jetpack XR Runtime Session based on the lifecycle
  * owner (activity).
  */
-class SessionLifecycleHelper(
-    internal val onCreateCallback: (Session) -> Unit,
-    internal val onResumeCallback: (() -> Unit)? = null,
-    internal val beforePauseCallback: (() -> Unit)? = null,
-) : DefaultLifecycleObserver {
+class SessionLifecycleHelper(val activity: ComponentActivity) : DefaultLifecycleObserver {
 
     internal lateinit var session: Session
-    internal lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
 
-    override fun onCreate(owner: LifecycleOwner) {
-        // Sessions can only be instantiated with an instance of [ComponentActivity].
-        check(owner is ComponentActivity) { "owner is not an instance of ComponentActivity" }
+    init {
+        registerRequestPermissionLauncher(activity)
 
-        registerRequestPermissionLauncher(owner)
-
-        when (val result = Session.create(owner)) {
+        when (val result = Session.create(activity)) {
             is SessionCreateSuccess -> {
                 session = result.session
-                onCreateCallback.invoke(session)
             }
             is SessionCreatePermissionsNotGranted -> {
                 requestPermissionLauncher.launch(result.permissions.toTypedArray())
@@ -66,9 +57,7 @@ class SessionLifecycleHelper(
             return
         }
         when (val result = session.resume()) {
-            is SessionResumeSuccess -> {
-                onResumeCallback?.invoke()
-            }
+            is SessionResumeSuccess -> {}
             is SessionResumePermissionsNotGranted -> {
                 requestPermissionLauncher.launch(result.permissions.toTypedArray())
             }
@@ -82,7 +71,6 @@ class SessionLifecycleHelper(
         if (!this::session.isInitialized) {
             return
         }
-        beforePauseCallback?.invoke()
         session.pause()
     }
 
@@ -113,11 +101,11 @@ class SessionLifecycleHelper(
             }
     }
 
-    private fun <F> showErrorMessage(error: F) {
-        Log.e(TAG, error.toString())
-    }
-
     companion object {
         private val TAG = this::class.simpleName
+    }
+
+    private fun <F> showErrorMessage(error: F) {
+        Log.e(TAG, error.toString())
     }
 }

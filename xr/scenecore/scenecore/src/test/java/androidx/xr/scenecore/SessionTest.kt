@@ -19,9 +19,12 @@
 package androidx.xr.scenecore
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Rect
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
+import androidx.xr.runtime.math.Pose
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.Futures
@@ -117,27 +120,26 @@ class SessionTest {
         val view = TextView(activity)
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mock())
-        val unused =
-            PanelEntity.create(
-                session,
-                view,
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test",
-            )
+        val unused = PanelEntity.create(session, view, PixelDimensions(720, 480), "test")
 
         verify(mockPlatformAdapter)
-            .createPanelEntity(any(), any(), any(), any(), any(), any(), any())
+            .createPanelEntity(
+                any<Context>(),
+                any<Pose>(),
+                any<View>(),
+                any<JxrPlatformAdapter.PixelDimensions>(),
+                any<String>(),
+                any<JxrPlatformAdapter.Entity>(),
+            )
     }
 
     @Test
@@ -227,25 +229,17 @@ class SessionTest {
         val mockPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mockPanelEntity)
         whenever(mockPanelEntity.addComponent(any())).thenReturn(true)
-        val panelEntity =
-            PanelEntity.create(
-                session,
-                view,
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test",
-            )
+        val panelEntity = PanelEntity.create(session, view, PixelDimensions(720, 480), "test")
         assertThat(panelEntity.addComponent(interactableComponent)).isTrue()
 
         verify(mockPlatformAdapter).createInteractableComponent(any(), anyOrNull())
@@ -261,25 +255,17 @@ class SessionTest {
         val mockRtPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mockRtPanelEntity)
         whenever(mockRtPanelEntity.addComponent(any())).thenReturn(true)
-        val panelEntity =
-            PanelEntity.create(
-                session,
-                view,
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test",
-            )
+        val panelEntity = PanelEntity.create(session, view, PixelDimensions(720, 480), "test")
         assertThat(panelEntity.addComponent(movableComponent)).isTrue()
 
         verify(mockPlatformAdapter).createMovableComponent(any(), any(), any(), any())
@@ -295,25 +281,17 @@ class SessionTest {
         whenever(mockRtPanelEntity.getSize()).thenReturn(JxrPlatformAdapter.Dimensions(1f, 1f, 1f))
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mockRtPanelEntity)
         whenever(mockRtPanelEntity.addComponent(any())).thenReturn(true)
-        val panelEntity =
-            PanelEntity.create(
-                session,
-                view,
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test",
-            )
+        val panelEntity = PanelEntity.create(session, view, PixelDimensions(720, 480), "test")
         assertThat(panelEntity.addComponent(resizableComponent)).isTrue()
 
         verify(mockPlatformAdapter).createResizableComponent(any(), any())
@@ -351,26 +329,19 @@ class SessionTest {
         val mockActivityPanelEntity = mock<JxrPlatformAdapter.ActivityPanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mockPanelEntity1)
         whenever(mockPlatformAdapter.createActivityPanelEntity(any(), any(), any(), any(), any()))
             .thenReturn(mockActivityPanelEntity)
         val panelEntity =
-            PanelEntity.create(
-                session,
-                TextView(activity),
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test1",
-            )
+            PanelEntity.create(session, TextView(activity), PixelDimensions(720, 480), "test1")
         val activityPanelEntity = ActivityPanelEntity.create(session, Rect(0, 0, 640, 480), "test2")
 
         assertThat(session.getEntitiesOfType(PanelEntity::class.java))
@@ -382,26 +353,19 @@ class SessionTest {
         val mockPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any(),
-                    any()
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
                 )
             )
             .thenReturn(mockPanelEntity)
         whenever(mockPlatformAdapter.createAnchorEntity(any(), any(), any(), any()))
             .thenReturn(mockAnchorEntity)
         val panelEntity =
-            PanelEntity.create(
-                session,
-                TextView(activity),
-                Dimensions(720f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
-                "test1",
-            )
+            PanelEntity.create(session, TextView(activity), PixelDimensions(720, 480), "test1")
         val anchorEntity =
             AnchorEntity.create(session, Dimensions(), PlaneType.ANY, PlaneSemantic.ANY)
 

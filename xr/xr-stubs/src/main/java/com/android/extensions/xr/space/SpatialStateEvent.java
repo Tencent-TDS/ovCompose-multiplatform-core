@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Base class for spatial state change events.
@@ -25,6 +24,5 @@ import androidx.annotation.RestrictTo;
  * @deprecated Use SpatialState instead.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Deprecated
 public interface SpatialStateEvent {}

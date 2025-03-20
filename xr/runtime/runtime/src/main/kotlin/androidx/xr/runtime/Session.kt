@@ -20,6 +20,9 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.annotation.RestrictTo
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.xr.runtime.internal.Runtime
 import androidx.xr.runtime.internal.RuntimeFactory
 import java.util.ServiceLoader
@@ -55,12 +58,12 @@ internal constructor(
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public val coroutineScope: CoroutineScope,
     private val activity: Activity,
-) {
+) : LifecycleOwner {
     public companion object {
         /**
          * Creates a new [Session].
          *
-         * Creating a session requires the `android.permission.SCENE_UNDERSTANDING` and
+         * Creating a session requires the `android.permission.SCENE_UNDERSTANDING_COARSE` and
          * `android.permission.HAND_TRACKING` permissions to be granted.
          *
          * @param activity the [Activity] that owns the session.
@@ -92,28 +95,26 @@ internal constructor(
             }
             val session =
                 Session(runtime, stateExtenders, CoroutineScope(coroutineDispatcher), activity)
+
+            session.lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+
             return SessionCreateSuccess(session)
         }
 
         // TODO(b/392919087): Move the Hand Tracking permission to another place.
         internal val SESSION_PERMISSIONS: List<String> =
-            listOf("android.permission.SCENE_UNDERSTANDING", "android.permission.HAND_TRACKING")
+            listOf(SCENE_UNDERSTANDING_COARSE, HAND_TRACKING)
     }
 
-    /** The state of the runtime. */
-    private enum class RuntimeState {
-        INITIALIZED,
-        RESUMED,
-        PAUSED,
-        STOPPED,
-    }
+    private val lifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
+
+    override public val lifecycle: Lifecycle = lifecycleRegistry
 
     private val _state = MutableStateFlow<CoreState>(CoreState(TimeSource.Monotonic.markNow()))
 
     /** A [StateFlow] of the current state. */
     public val state: StateFlow<CoreState> = _state.asStateFlow()
 
-    private var runtimeState: RuntimeState = RuntimeState.INITIALIZED
     private var updateJob: Job? = null
 
     /**
@@ -125,7 +126,9 @@ internal constructor(
      * @throws IllegalStateException if the session has been destroyed.
      */
     public fun configure(): SessionConfigureResult {
-        check(runtimeState != RuntimeState.STOPPED) { "Session has been destroyed." }
+        check(lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            "Session has been destroyed."
+        }
         runtime.lifecycleManager.configure()
         return SessionConfigureSuccess()
     }
@@ -133,7 +136,7 @@ internal constructor(
     /**
      * Starts or resumes the session.
      *
-     * Resuming a session requires the `android.permission.SCENE_UNDERSTANDING` and
+     * Resuming a session requires the `android.permission.SCENE_UNDERSTANDING_COARSE` and
      * `android.permission.HAND_TRACKING` permissions to be granted.
      *
      * @return the result of the operation. Can be [SessionResumeSuccess] if the session was
@@ -142,16 +145,17 @@ internal constructor(
      * @throws IllegalStateException if the session has been destroyed.
      */
     public fun resume(): SessionResumeResult {
-        check(runtimeState != RuntimeState.STOPPED) { "Session has been destroyed." }
-
-        if (runtimeState != RuntimeState.RESUMED) {
+        check(lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            "Session has been destroyed."
+        }
+        if (lifecycleRegistry.currentState != Lifecycle.State.RESUMED) {
             val missingPermissions = activity.selectMissing(SESSION_PERMISSIONS)
             if (missingPermissions.isNotEmpty()) {
                 return SessionResumePermissionsNotGranted(missingPermissions)
             }
 
             runtime.lifecycleManager.resume()
-            runtimeState = RuntimeState.RESUMED
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
             updateJob = coroutineScope.launch { updateLoop() }
         }
 
@@ -167,11 +171,13 @@ internal constructor(
      * @throws IllegalStateException if the session has been destroyed.
      */
     public fun pause() {
-        check(runtimeState != RuntimeState.STOPPED) { "Session has been destroyed." }
+        check(lifecycleRegistry.currentState != Lifecycle.State.DESTROYED) {
+            "Session has been destroyed."
+        }
 
-        if (runtimeState == RuntimeState.RESUMED) {
+        if (lifecycleRegistry.currentState == Lifecycle.State.RESUMED) {
+            lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
             runtime.lifecycleManager.pause()
-            runtimeState = RuntimeState.PAUSED
             updateJob?.cancel()
             updateJob = null
         }
@@ -185,19 +191,18 @@ internal constructor(
      * an active session will first call [pause].
      */
     public fun destroy() {
-        if (runtimeState == RuntimeState.STOPPED) {
+        if (lifecycleRegistry.currentState == Lifecycle.State.DESTROYED) {
             return
-        } else if (runtimeState == RuntimeState.RESUMED) {
+        } else if (lifecycleRegistry.currentState == Lifecycle.State.RESUMED) {
             pause()
         }
-
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         runtime.lifecycleManager.stop()
         coroutineScope.cancel()
-        runtimeState = RuntimeState.STOPPED
     }
 
     private suspend fun updateLoop() {
-        while (runtimeState == RuntimeState.RESUMED) {
+        while (lifecycleRegistry.currentState == Lifecycle.State.RESUMED) {
             update()
         }
     }

@@ -136,13 +136,9 @@ public data class CompileTimeAppFunctionMetadata(
         return AppFunctionMetadataDocument(
             id = id,
             isEnabledByDefault = isEnabledByDefault,
-            schema =
-                if (schema != null) {
-                    val functionSchemaMetadata = checkNotNull(schema)
-                    functionSchemaMetadata.toAppFunctionSchemaMetadataDocument()
-                } else {
-                    null
-                },
+            schemaName = schema?.name,
+            schemaCategory = schema?.category,
+            schemaVersion = schema?.version,
             parameters = parameters.map { it.toAppFunctionParameterMetadataDocument() },
             response = response.toAppFunctionResponseMetadataDocument(),
             components = components.toAppFunctionComponentsMetadataDocument()
@@ -164,8 +160,12 @@ public data class AppFunctionMetadataDocument(
      * as it could be modified at runtime.
      */
     @Document.BooleanProperty(name = "enabledByDefault") public val isEnabledByDefault: Boolean,
-    /** The predefined schema of the AppFunction. */
-    @Document.DocumentProperty public val schema: AppFunctionSchemaMetadataDocument?,
+    /** The category of the schema, used to group related schemas. */
+    @Document.StringProperty public val schemaCategory: String?,
+    /** The unique name of the schema within its category. */
+    @Document.StringProperty public val schemaName: String?,
+    /** The version of the schema. This is used to track the changes to the schema over time. */
+    @Document.LongProperty public val schemaVersion: Long?,
     // Below properties are nullable as they won't be populated in the underlying GD created by
     // legacy AppSearch indexer.
     /** The parameters of the AppFunction. */

@@ -47,6 +47,6 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"Aumenta"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"Conferma"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"Ignora"</string>
-    <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"Su smartph."</string>
-    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="7845336918219306426">"Icona Apri su smartphone"</string>
+    <string name="wear_m3c_open_on_phone" msgid="3200727397161392122">"Vedi smartp."</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="5953380527505012363">"Icona Vedi smartphone"</string>
 </resources>

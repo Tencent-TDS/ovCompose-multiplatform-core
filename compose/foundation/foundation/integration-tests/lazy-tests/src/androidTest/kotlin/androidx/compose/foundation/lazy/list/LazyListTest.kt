@@ -2481,6 +2481,37 @@ class LazyListTest(orientation: Orientation) : BaseLazyListTestWithOrientation(o
     }
 
     @Test
+    fun triggerBackScrollAndVerifyNoScrollDeltaBetweenTwoPasses() {
+        val lazyState = LazyListState()
+        rule.setContent {
+            val list = (0..10).toList()
+            LookaheadScope {
+                CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                    LazyColumnOrRow(state = lazyState, modifier = Modifier.size(500.dp)) {
+                        items(list.size, key = { i -> i }) {
+                            val color = if (it % 2 == 0) Color.Red else Color.Blue
+                            Box(
+                                modifier =
+                                    Modifier.padding(vertical = 6.dp)
+                                        .size(100.dp)
+                                        .background(color = color),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        lazyState.requestScrollToItem(10)
+        repeat(5) {
+            rule.mainClock.advanceTimeByFrame()
+            assertEquals(0f, lazyState.scrollDeltaBetweenPasses)
+            rule.waitForIdle()
+        }
+    }
+
+    @Test
     fun resizeLazyList() {
         val lookaheadPositions = mutableMapOf<Int, Offset>()
         val postLookaheadPositions = mutableMapOf<Int, Offset>()

@@ -370,7 +370,10 @@ class SearchSessionImpl implements AppSearchSession {
                     documents,
                     resultBuilder,
                     /*sendChangeNotifications=*/ true,
-                    mLogger);
+                    mLogger,
+                    // PersistToDisk is not necessary to call here, since it will be called in
+                    // the next batch put request below.
+                    PersistType.Code.UNKNOWN);
 
             // TakenAction documents.
             mAppSearchImpl.batchPutDocuments(
@@ -379,10 +382,10 @@ class SearchSessionImpl implements AppSearchSession {
                     takenActions,
                     resultBuilder,
                     /*sendChangeNotifications=*/ true,
-                    mLogger);
+                    mLogger,
+                    // Persist the newly written data.
+                    mAppSearchImpl.getConfig().getLightweightPersistType());
 
-            // Now that the batch has been written. Persist the newly written data.
-            mAppSearchImpl.persistToDisk(mAppSearchImpl.getConfig().getLightweightPersistType());
             mIsMutated = true;
 
             // Schedule a task to dispatch change notifications. See requirements for where the

@@ -64,6 +64,3 @@ android {
     namespace = "androidx.room.paging.guava"
 }
 
-ksp {
-    useKsp2 = true
-}

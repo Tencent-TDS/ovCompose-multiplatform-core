@@ -701,11 +701,7 @@ public class BiometricFragment extends Fragment {
     @VisibleForTesting
     void onAuthenticationError(int errorCode, @Nullable CharSequence errorMessage) {
         // Ensure we're only sending publicly defined errors.
-        final int knownErrorCode =
-                ErrorUtils.isKnownError(errorCode) ? (
-                        errorCode == BiometricPrompt.ERROR_NOT_ENABLED_FOR_APPS
-                                ? BiometricPrompt.ERROR_HW_UNAVAILABLE : errorCode)
-                        : BiometricPrompt.ERROR_VENDOR;
+        final int knownErrorCode = ErrorUtils.toKnownErrorCode(errorCode);
 
         final Context context = getContext();
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && ErrorUtils.isLockoutError(
@@ -1211,6 +1207,8 @@ public class BiometricFragment extends Fragment {
          * @param allowedAuthenticators A bit field representing allowed authenticator types.
          */
         @DoNotInline
+        // This is expected because AndroidX and framework annotation are not identical
+        @SuppressWarnings("WrongConstant")
         static void setAllowedAuthenticators(
                 android.hardware.biometrics.BiometricPrompt.@NonNull Builder builder,
                 @BiometricManager.AuthenticatorTypes int allowedAuthenticators) {

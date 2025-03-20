@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Defines the panel in XR scene to support embedding activities within a host activity.
@@ -25,7 +24,6 @@ import androidx.annotation.RestrictTo;
  * com.android.extensions.xr.space.ActivityPanel ActivityPanel} will also be destroyed.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ActivityPanel {
 
     ActivityPanel() {

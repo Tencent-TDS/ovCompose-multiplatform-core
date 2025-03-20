@@ -30,7 +30,9 @@ import android.webkit.WebView;
 
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.webkit.Navigation;
 import androidx.webkit.OutcomeReceiverCompat;
+import androidx.webkit.Page;
 import androidx.webkit.PrerenderOperationCallback;
 import androidx.webkit.Profile;
 import androidx.webkit.ProfileStore;
@@ -44,6 +46,7 @@ import androidx.webkit.TracingConfig;
 import androidx.webkit.TracingController;
 import androidx.webkit.WebMessageCompat;
 import androidx.webkit.WebMessagePortCompat;
+import androidx.webkit.WebNavigationClient;
 import androidx.webkit.WebResourceErrorCompat;
 import androidx.webkit.WebResourceRequestCompat;
 import androidx.webkit.WebViewClientCompat;
@@ -112,7 +115,7 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(
-     * java.util.List, ValueCallback)}, plumbing through the deprecated boundary interface.
+     *java.util.List, ValueCallback)}, plumbing through the deprecated boundary interface.
      *
      * <p>Don't use this value directly. This exists only so
      * {@link WebViewFeatureInternal#isSupported(String)} supports the <b>deprecated</b> public
@@ -128,7 +131,7 @@ public class WebViewFeatureInternal {
 
     /**
      * This feature covers {@link androidx.webkit.WebViewCompat#setSafeBrowsingWhitelist(
-     * java.util.List, ValueCallback)}, plumbing through the new boundary interface.
+     *java.util.List, ValueCallback)}, plumbing through the new boundary interface.
      *
      * <p>Don't use this value directly. This exists only so
      * {@link WebViewFeatureInternal#isSupported(String)} supports the <b>deprecated</b> public
@@ -434,6 +437,7 @@ public class WebViewFeatureInternal {
     public static final ApiFeature.T ALGORITHMIC_DARKENING =
             new ApiFeature.T(WebViewFeature.ALGORITHMIC_DARKENING, Features.ALGORITHMIC_DARKENING) {
                 private final Pattern mVersionPattern = Pattern.compile("\\A\\d+");
+
                 @Override
                 public boolean isSupportedByWebView() {
                     boolean supported = super.isSupportedByWebView();
@@ -550,7 +554,6 @@ public class WebViewFeatureInternal {
      * This feature covers
      * {@link androidx.webkit.WebSettingsCompat#setUserAgentMetadata(WebSettings, androidx.webkit.UserAgentMetadata)} and
      * {@link androidx.webkit.WebSettingsCompat#getUserAgentMetadata(WebSettings)}.
-     *
      */
     public static final ApiFeature.NoFramework USER_AGENT_METADATA =
             new ApiFeature.NoFramework(WebViewFeature.USER_AGENT_METADATA,
@@ -714,6 +717,34 @@ public class WebViewFeatureInternal {
             new ApiFeature.NoFramework(WebViewFeature.SAVE_STATE,
                     Features.SAVE_STATE);
 
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers {@link WebNavigationClient} and all methods within.
+     * This feature covers basic methods in {@link Navigation}.
+     * This feature covers basic version of {@link Page}.
+     */
+    public static final ApiFeature.NoFramework NAVIGATION_CALLBACK_BASIC =
+            new ApiFeature.NoFramework(WebViewFeature.NAVIGATION_CALLBACK_BASIC,
+                    Features.WEB_VIEW_NAVIGATION_CLIENT_BASIC_USAGE);
+
+    /**
+     * Feature for {@link WebViewFeature#isFeatureSupported(String)}.
+     * This feature covers {@link WebViewCompat#setShouldCacheProvider(boolean)}.
+     */
+    public static final ApiFeature.NoFramework CACHE_PROVIDER =
+            new ApiFeature.NoFramework(WebViewFeature.CACHE_PROVIDER,
+                    Features.PROVIDER_WEAKLY_REF_WEBVIEW);
+    /**
+     * Feature for {@link WebSettingsFeature#isFeatureSupported(String)}.
+     * This feature covers {@link WebSettingsCompat#setPaymentRequestEnabled(boolean)},
+     * {@link WebSettingsCompat#getPaymentRequestEnabled()},
+     * {@link WebSettingsCompat#setHasEnrolledInstrumentEnabled(boolean)}, and
+     * {@link WebSettingsCompat#getHasEnrolledInstrumentEnabled()}.
+     */
+    public static final ApiFeature.NoFramework PAYMENT_REQUEST =
+            new ApiFeature.NoFramework(WebViewFeature.PAYMENT_REQUEST,
+                    Features.PAYMENT_REQUEST);
+
     // --- Add new feature constants above this line ---
 
     private WebViewFeatureInternal() {
@@ -743,7 +774,7 @@ public class WebViewFeatureInternal {
      * defined in {@code internalFeatures}.
      *
      * @throws RuntimeException if {@code publicFeatureValue} is not matched in
-     *      {@code internalFeatures}
+     *                          {@code internalFeatures}
      */
     @VisibleForTesting
     public static <T extends ConditionallySupportedFeature> boolean isSupported(
@@ -769,7 +800,7 @@ public class WebViewFeatureInternal {
      * defined in {@code internalFeatures}.
      *
      * @throws RuntimeException if {@code publicFeatureValue} is not matched in
-     *      {@code internalFeatures}
+     *                          {@code internalFeatures}
      */
     @VisibleForTesting
     public static boolean isStartupFeatureSupported(

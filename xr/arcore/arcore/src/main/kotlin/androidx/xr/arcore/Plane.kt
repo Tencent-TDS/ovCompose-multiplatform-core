@@ -64,7 +64,8 @@ internal constructor(
      * @property centerPose The pose of the center of the detected plane.
      * @property extents The dimensions of the detected plane.
      * @property subsumedBy If this plane has been subsumed, returns the plane this plane was merged
-     *   into.
+     *   into. If the subsuming plane is also subsumed by another plane, this plane will continue to
+     *   be subsumed by the former.
      * @property vertices The 2D vertices of a convex polygon approximating the detected plane.
      */
     public class State(

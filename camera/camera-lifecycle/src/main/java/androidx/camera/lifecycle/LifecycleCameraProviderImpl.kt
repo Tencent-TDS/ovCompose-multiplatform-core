@@ -21,6 +21,7 @@ import android.content.pm.PackageManager.FEATURE_CAMERA_CONCURRENT
 import android.util.Range
 import androidx.annotation.GuardedBy
 import androidx.annotation.MainThread
+import androidx.annotation.VisibleForTesting
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraEffect
 import androidx.camera.core.CameraFilter
@@ -68,12 +69,14 @@ import java.util.Objects.requireNonNull
 /** Implementation of the [LifecycleCameraProvider] interface. */
 internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
     private val lock = Any()
-    @GuardedBy("mLock") private var cameraXConfigProvider: CameraXConfig.Provider? = null
+    @VisibleForTesting
+    @GuardedBy("mLock")
+    internal var cameraXConfigProvider: CameraXConfig.Provider? = null
     @GuardedBy("mLock") private var cameraXInitializeFuture: ListenableFuture<Void>? = null
     @GuardedBy("mLock") private var cameraXShutdownFuture = Futures.immediateFuture<Void>(null)
     private val lifecycleCameraRepository = LifecycleCameraRepository.getInstance()
     private var cameraX: CameraX? = null
-    private var context: Context? = null
+    @VisibleForTesting internal var context: Context? = null
     @GuardedBy("mLock")
     private val cameraInfoMap: MutableMap<CameraUseCaseAdapter.CameraId, AdapterCameraInfo> =
         HashMap()
@@ -106,7 +109,7 @@ internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
                     }
 
                     override fun onFailure(t: Throwable) {
-                        shutdownAsync()
+                        shutdownAsync(clearConfigProvider = false)
                     }
                 },
                 CameraXExecutors.directExecutor()
@@ -137,7 +140,7 @@ internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
             }
         }
 
-    internal fun shutdownAsync(): ListenableFuture<Void> {
+    internal fun shutdownAsync(clearConfigProvider: Boolean = true): ListenableFuture<Void> {
         Threads.runOnMainSync {
             unbindAll()
             lifecycleCameraRepository.removeLifecycleCameras(lifecycleCameraKeys)
@@ -151,7 +154,9 @@ internal class LifecycleCameraProviderImpl : LifecycleCameraProvider {
             if (cameraX != null) cameraX!!.shutdown() else Futures.immediateFuture<Void>(null)
 
         synchronized(lock) {
-            cameraXConfigProvider = null
+            if (clearConfigProvider) {
+                cameraXConfigProvider = null
+            }
             cameraXInitializeFuture = null
             cameraXShutdownFuture = shutdownFuture
             cameraInfoMap.clear()

@@ -36,11 +36,21 @@ internal fun rememberCalculatePose(
 ): Pose {
     val density = LocalDensity.current
     return remember(contentOffset, parentViewSize, contentSize, zDepth) {
-        val meterPosition =
-            contentOffset.toMeterPosition(parentViewSize, contentSize, density) +
-                MeterPosition(z = zDepth.meters)
-        Pose(translation = meterPosition.toVector3())
+        calculatePose(contentOffset, parentViewSize, contentSize, density, zDepth)
     }
+}
+
+internal fun calculatePose(
+    contentOffset: Offset,
+    parentViewSize: IntSize,
+    contentSize: IntSize,
+    density: Density,
+    zDepth: Float = 0f,
+): Pose {
+    val meterPosition =
+        contentOffset.toMeterPosition(parentViewSize, contentSize, density) +
+            MeterPosition(z = zDepth.meters)
+    return Pose(translation = meterPosition.toVector3())
 }
 
 /**

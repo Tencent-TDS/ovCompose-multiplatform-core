@@ -34,9 +34,9 @@ dependencies {
     api(libs.kotlinStdlib)
 
     implementation("androidx.annotation:annotation:1.8.1")
-    implementation(project(":core:core"))
-    implementation(project(":media:media"))
+    implementation("androidx.core:core:1.15.0")
 
+    androidTestImplementation(libs.junit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     implementation(libs.truth)

@@ -18,12 +18,16 @@ package androidx.xr.compose.subspace
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisallowComposableCalls
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalDensity
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.disposableValueOf
 import androidx.xr.compose.platform.getValue
 import androidx.xr.compose.subspace.layout.CoreContentlessEntity
+import androidx.xr.compose.subspace.layout.CoreMainPanelEntity
 import androidx.xr.compose.subspace.layout.CorePanelEntity
+import androidx.xr.compose.subspace.layout.SpatialShape
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.Session
@@ -33,8 +37,9 @@ import androidx.xr.scenecore.Session
  * composition.
  */
 @Composable
-internal inline fun rememberCoreContentlessEntity(
-    crossinline entityFactory: @DisallowComposableCalls Session.() -> Entity
+@PublishedApi
+internal fun rememberCoreContentlessEntity(
+    entityFactory: @DisallowComposableCalls Session.() -> Entity
 ): CoreContentlessEntity {
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
     val coreEntity by remember {
@@ -47,15 +52,50 @@ internal inline fun rememberCoreContentlessEntity(
 @Composable
 internal inline fun rememberCorePanelEntity(
     crossinline onCoreEntityCreated: @DisallowComposableCalls (CorePanelEntity) -> Unit = {},
+    shape: SpatialShape = SpatialPanelDefaults.shape,
     crossinline entityFactory: @DisallowComposableCalls Session.() -> PanelEntity,
 ): CorePanelEntity {
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
+    val density = LocalDensity.current
     val coreEntity by remember {
         disposableValueOf(
-            CorePanelEntity(session, session.entityFactory()).also(onCoreEntityCreated)
+            CorePanelEntity(session.entityFactory(), density)
+                .also { it.shape = shape }
+                .also(onCoreEntityCreated)
         ) {
             it.dispose()
         }
     }
+    LaunchedEffect(shape) { coreEntity.shape = shape }
     return coreEntity
+}
+
+/**
+ * Creates a [CoreMainPanelEntity] that is automatically disposed of when it leaves the composition.
+ */
+@Composable
+internal fun rememberCoreMainPanelEntity(
+    shape: SpatialShape = SpatialPanelDefaults.shape
+): CoreMainPanelEntity {
+    val session = checkNotNull(LocalSession.current) { "session must be initialized" }
+    val density = LocalDensity.current
+    val coreEntity by remember {
+        disposableValueOf(CoreMainPanelEntity(session, density).also { it.shape = shape }) {
+            it.dispose()
+        }
+    }
+    LaunchedEffect(shape) { coreEntity.shape = shape }
+    return coreEntity
+}
+
+private var entityNamePart: Int = 0
+
+/**
+ * Creates a unique debugging name for an [Entity].
+ *
+ * @param name A context-specific name for the [Entity].
+ */
+@PublishedApi
+internal fun entityName(name: String): String {
+    return "$name-${entityNamePart++}"
 }

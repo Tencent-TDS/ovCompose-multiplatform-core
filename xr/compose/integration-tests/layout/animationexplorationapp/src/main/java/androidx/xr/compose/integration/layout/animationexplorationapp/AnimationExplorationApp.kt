@@ -50,6 +50,7 @@ import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.subspace.layout.alpha
 import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.scale
+import androidx.xr.compose.subspace.layout.testTag
 import androidx.xr.compose.subspace.layout.width
 import kotlinx.coroutines.launch
 
@@ -97,8 +98,8 @@ class AnimationExplorationApp : ComponentActivity() {
                         modifier =
                             SubspaceModifier.width(desiredWidth)
                                 .height(desiredHeight)
-                                .alpha(animatedAlpha.value),
-                        name = "FadeInPanel",
+                                .alpha(animatedAlpha.value)
+                                .testTag("FadeInPanel")
                     ) {
                         PanelContent(
                             "Faded in content",

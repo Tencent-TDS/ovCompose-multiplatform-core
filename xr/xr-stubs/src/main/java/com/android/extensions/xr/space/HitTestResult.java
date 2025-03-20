@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Hit test result.
@@ -24,7 +23,6 @@ import androidx.annotation.RestrictTo;
  * @see androidx.xr.extensions.XrExtensions#hitTest
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class HitTestResult {
 
     HitTestResult() {
@@ -66,7 +64,6 @@ public class HitTestResult {
     public static final int SURFACE_UNKNOWN = 0; // 0x0
 
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static final class Builder {
 
         public Builder(

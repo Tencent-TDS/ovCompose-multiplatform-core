@@ -16,6 +16,8 @@
 
 package androidx.xr.scenecore.testing;
 
+import static java.util.Objects.requireNonNull;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
@@ -27,7 +29,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.view.AttachedSurfaceControl;
-import android.view.SurfaceControlViewHost;
+import android.view.SurfaceControl;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -38,6 +40,8 @@ import androidx.xr.extensions.Config;
 import androidx.xr.extensions.Consumer;
 import androidx.xr.extensions.XrExtensionResult;
 import androidx.xr.extensions.XrExtensions;
+import androidx.xr.extensions.XrExtensionsProvider;
+import androidx.xr.extensions.asset.TokenConverter;
 import androidx.xr.extensions.environment.EnvironmentVisibilityState;
 import androidx.xr.extensions.environment.PassthroughVisibilityState;
 import androidx.xr.extensions.media.AudioTrackExtensions;
@@ -48,15 +52,13 @@ import androidx.xr.extensions.media.SoundPoolExtensions;
 import androidx.xr.extensions.media.SpatializerExtensions;
 import androidx.xr.extensions.media.XrSpatialAudioExtensions;
 import androidx.xr.extensions.node.InputEvent;
-import androidx.xr.extensions.node.Mat4f;
 import androidx.xr.extensions.node.Node;
 import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.extensions.node.NodeTransform;
-import androidx.xr.extensions.node.Quatf;
+import androidx.xr.extensions.node.NodeTypeConverter;
 import androidx.xr.extensions.node.ReformEvent;
 import androidx.xr.extensions.node.ReformOptions;
 import androidx.xr.extensions.node.Vec3;
-import androidx.xr.extensions.passthrough.PassthroughState;
 import androidx.xr.extensions.space.ActivityPanel;
 import androidx.xr.extensions.space.ActivityPanelLaunchParameters;
 import androidx.xr.extensions.space.Bounds;
@@ -65,6 +67,10 @@ import androidx.xr.extensions.space.SpatialCapabilities;
 import androidx.xr.extensions.space.SpatialState;
 import androidx.xr.extensions.splitengine.SplitEngineBridge;
 import androidx.xr.extensions.subspace.Subspace;
+
+import com.android.extensions.xr.asset.FakeGltfModelToken;
+import com.android.extensions.xr.node.NodeRepository;
+import com.android.extensions.xr.node.ShadowNode;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 
@@ -90,17 +96,31 @@ public class FakeXrExtensions implements XrExtensions {
             "This function is not implemented yet in FakeXrExtensions.  Please add an"
                     + " implementation if support is desired for testing.";
 
+    // Because there are many tests which are written to use the FakeXrExtensions (and associated
+    // classes) interface to minimize the scope of changes FakeXrExtensions will defer to
+    // XrExtensionsProvider which when used in a host test will use the fake implementation of the
+    // com.android.extensions.xr classes. FakeXrExtensions is thus a thin androidx.xr.extensions
+    // wrapper around the com.android.extensions.xr fake classes. Once all tests are migrated to use
+    // the com.android.extensions.xr types this fake can be removed.
+    // TODO: b/399893709 - Remove FakeXrExtensions once tests are migrated to use the real
+    // XrExtensionsProvider.
+    @NonNull private final XrExtensions extensions = XrExtensionsProvider.getXrExtensions();
+
+    @NonNull private final NodeRepository mNodeRepository = NodeRepository.getInstance();
+
     @NonNull public final List<FakeNode> createdNodes = new ArrayList<>();
 
     @NonNull public final List<FakeGltfModelToken> createdGltfModelTokens = new ArrayList<>();
 
-    @NonNull public final List<FakeEnvironmentToken> createdEnvironmentTokens = new ArrayList<>();
+    @NonNull
+    public final List<androidx.xr.extensions.asset.EnvironmentToken> createdEnvironmentTokens =
+            new ArrayList<>();
 
     @NonNull public final Map<Activity, FakeActivityPanel> activityPanelMap = new HashMap<>();
 
     FakeNode mFakeTaskNode = null;
-    FakeNode mFakeEnvironmentNode = null;
-    FakeNode mFakeNodeForMainWindow = null;
+    Node mEnvironmentNode = null;
+    Node mNodeForMainWindow = null;
 
     // TODO: b/370033054 - fakeSpatialState should be updated according to some fake extensions
     // calls
@@ -118,40 +138,39 @@ public class FakeXrExtensions implements XrExtensions {
 
     float mPreferredAspectRatioHsm = 0.0f;
     int mOpenXrWorldSpaceType = 0;
-    FakeNodeTransaction mLastFakeNodeTransaction = null;
+    NodeTransaction mLastFakeNodeTransaction = null;
 
     @NonNull
     public final FakeSpatialAudioExtensions fakeSpatialAudioExtensions =
             new FakeSpatialAudioExtensions();
 
     @Nullable
-    public FakeNode getFakeEnvironmentNode() {
-        return mFakeEnvironmentNode;
+    public Node getFakeEnvironmentNode() {
+        return mEnvironmentNode;
     }
 
     @Nullable
-    public FakeNode getFakeNodeForMainWindow() {
-        return mFakeNodeForMainWindow;
+    public Node getFakeNodeForMainWindow() {
+        return mNodeForMainWindow;
     }
 
     @Override
     public int getApiVersion() {
-        // The API surface is aligned with the initial XRU release.
-        return 1;
+        return extensions.getApiVersion();
     }
 
     @Override
     @NonNull
     public Node createNode() {
-        FakeNode node = new FakeNode();
-        createdNodes.add(node);
+        Node node = extensions.createNode();
+        createdNodes.add(new FakeNode(node));
         return node;
     }
 
     @Override
     @NonNull
     public NodeTransaction createNodeTransaction() {
-        mLastFakeNodeTransaction = new FakeNodeTransaction();
+        mLastFakeNodeTransaction = extensions.createNodeTransaction();
         return mLastFakeNodeTransaction;
     }
 
@@ -164,7 +183,7 @@ public class FakeXrExtensions implements XrExtensions {
     @Override
     @NonNull
     public Config getConfig() {
-        return new FakeConfig();
+        return extensions.getConfig();
     }
 
     @NonNull
@@ -284,11 +303,10 @@ public class FakeXrExtensions implements XrExtensions {
             @NonNull Node windowNode,
             @NonNull Consumer<XrExtensionResult> callback,
             @NonNull Executor executor) {
-        mFakeTaskNode = (FakeNode) sceneNode;
+        mFakeTaskNode = new FakeNode(sceneNode);
         mFakeTaskNode.mName = "taskNode";
 
-        mFakeNodeForMainWindow = (FakeNode) windowNode;
-        mFakeNodeForMainWindow.mName = "nodeForMainWindow";
+        mNodeForMainWindow = windowNode;
 
         executor.execute(() -> callback.accept(createAsyncResult()));
     }
@@ -299,7 +317,7 @@ public class FakeXrExtensions implements XrExtensions {
             @NonNull Consumer<XrExtensionResult> callback,
             @NonNull Executor executor) {
         mFakeTaskNode = null;
-        mFakeNodeForMainWindow = null;
+        mNodeForMainWindow = null;
 
         executor.execute(() -> callback.accept(createAsyncResult()));
     }
@@ -315,8 +333,7 @@ public class FakeXrExtensions implements XrExtensions {
             @NonNull Node environmentNode,
             @NonNull Consumer<XrExtensionResult> callback,
             @NonNull Executor executor) {
-        mFakeEnvironmentNode = (FakeNode) environmentNode;
-        mFakeEnvironmentNode.mName = "environmentNode";
+        mEnvironmentNode = environmentNode;
 
         executor.execute(() -> callback.accept(createAsyncResult()));
     }
@@ -326,7 +343,7 @@ public class FakeXrExtensions implements XrExtensions {
             @NonNull Activity activity,
             @NonNull Consumer<XrExtensionResult> callback,
             @NonNull Executor executor) {
-        mFakeEnvironmentNode = null;
+        mEnvironmentNode = null;
 
         executor.execute(() -> callback.accept(createAsyncResult()));
     }
@@ -348,7 +365,7 @@ public class FakeXrExtensions implements XrExtensions {
                     @Nullable String url) {
         FakeGltfModelToken modelToken = new FakeGltfModelToken(url);
         createdGltfModelTokens.add(modelToken);
-        return CompletableFuture.completedFuture(modelToken);
+        return CompletableFuture.completedFuture(TokenConverter.toLibrary(modelToken));
     }
 
     /**
@@ -360,18 +377,19 @@ public class FakeXrExtensions implements XrExtensions {
     @Override
     @NonNull
     @Deprecated
-    //  public ListenableFuture</* @Nullable */ EnvironmentToken>
-    // loadEnvironment(
     public CompletableFuture</* @Nullable */ androidx.xr.extensions.asset.EnvironmentToken>
             loadEnvironment(
                     @Nullable InputStream asset,
                     int regionSizeBytes,
                     int regionOffsetBytes,
                     @Nullable String url) {
-        FakeEnvironmentToken imageToken = new FakeEnvironmentToken(url);
-        createdEnvironmentTokens.add(imageToken);
-        //    return immediateFuture(imageToken);
-        return CompletableFuture.completedFuture(imageToken);
+        CompletableFuture<androidx.xr.extensions.asset.EnvironmentToken> future =
+                extensions.loadEnvironment(asset, regionSizeBytes, regionOffsetBytes, url);
+        return future.thenApply(
+                imageToken -> {
+                    createdEnvironmentTokens.add(imageToken);
+                    return imageToken;
+                });
     }
 
     /**
@@ -423,12 +441,13 @@ public class FakeXrExtensions implements XrExtensions {
     @Deprecated
     public FakeNode testGetNodeWithGltfToken(
             @NonNull androidx.xr.extensions.asset.GltfModelToken token) {
-        for (FakeNode node : createdNodes) {
-            if (node.mGltfModel != null && node.mGltfModel.equals(token)) {
-                return node;
-            }
-        }
-        return null;
+        com.android.extensions.xr.node.Node node =
+                mNodeRepository.findNode(
+                        (NodeRepository.NodeMetadata metadata) ->
+                                TokenConverter.toFramework(token)
+                                        .equals(metadata.getGltfModelToken()));
+
+        return (node != null) ? new FakeNode(node) : null;
     }
 
     /**
@@ -440,12 +459,13 @@ public class FakeXrExtensions implements XrExtensions {
     @Deprecated
     public FakeNode testGetNodeWithEnvironmentToken(
             @NonNull androidx.xr.extensions.asset.EnvironmentToken token) {
-        for (FakeNode node : createdNodes) {
-            if (node.mEnvironment != null && node.mEnvironment.equals(token)) {
-                return node;
-            }
-        }
-        return null;
+        com.android.extensions.xr.node.Node node =
+                mNodeRepository.findNode(
+                        (NodeRepository.NodeMetadata metadata) ->
+                                TokenConverter.toFramework(token)
+                                        .equals(metadata.getEnvironmentToken()));
+
+        return (node != null) ? new FakeNode(node) : null;
     }
 
     @Override
@@ -467,7 +487,7 @@ public class FakeXrExtensions implements XrExtensions {
     @NonNull
     public ReformOptions createReformOptions(
             @NonNull Consumer<ReformEvent> callback, @NonNull Executor executor) {
-        return new FakeReformOptions(callback, executor);
+        return extensions.createReformOptions(callback, executor);
     }
 
     @Override
@@ -546,16 +566,6 @@ public class FakeXrExtensions implements XrExtensions {
         FULL_SPACE
     }
 
-    /** Fake implementation of Extensions Config. */
-    public static class FakeConfig implements Config {
-        public static final float DEFAULT_PIXELS_PER_METER = 1f;
-
-        @Override
-        public float defaultPixelsPerMeter(float density) {
-            return DEFAULT_PIXELS_PER_METER;
-        }
-    }
-
     /** A fake implementation of Closeable. */
     @SuppressWarnings("NotCloseable")
     public static class FakeCloseable implements Closeable {
@@ -574,97 +584,106 @@ public class FakeXrExtensions implements XrExtensions {
     /** A fake implementation of the XR extensions Node. */
     @SuppressWarnings("ParcelCreator")
     public static final class FakeNode implements Node {
-        FakeNode mParent = null;
-        float mXPosition = 0.0f;
-        float mYPosition = 0.0f;
-        float mZPosition = 0.0f;
-        float mXOrientation = 0.0f;
-        float mYOrientation = 0.0f;
-        float mZOrientation = 0.0f;
-        float mWOrientation = 1.0f;
-        float mXScale = 1.0f;
-        float mYScale = 1.0f;
-        float mZScale = 1.0f;
-        float mCornerRadius = 0.0f;
-        boolean mIsVisible = false;
-        float mAlpha = 1.0f;
-        androidx.xr.extensions.asset.GltfModelToken mGltfModel = null;
-        IBinder mAnchorId = null;
+        /**
+         * A shadow of {@link com.android.extensions.xr.node.Node} which has additional methods for
+         * testing.
+         */
+        public final ShadowNode shadowNode;
+
+        /** The actual node returned from XrExtensions.createNode(). */
+        public final com.android.extensions.xr.node.Node realNode;
+
+        /**
+         * The {@link androidx.xr.extensions.node.Node} wrapper of the {@link realNode}.
+         *
+         * <p>This node is an adapter, it converts a {@link com.android.extensions.xr.node.Node} so
+         * it can be passed into the {@link androidx.xr.extensions} set of APIs.
+         */
+        public final Node node;
+
+        @NonNull private final NodeRepository nodeRepository = NodeRepository.getInstance();
+
         String mName = null;
-        float mPassthroughOpacity = 1.0f;
-        @PassthroughState.Mode int mPassthroughMode = 0;
-        SurfaceControlViewHost.SurfacePackage mSurfacePackage = null;
-        androidx.xr.extensions.asset.EnvironmentToken mEnvironment = null;
-        Consumer<InputEvent> mListener = null;
-        Consumer<NodeTransform> mTransformListener = null;
-        Consumer<Integer> mPointerCaptureStateCallback = null;
 
-        Executor mExecutor = null;
-        ReformOptions mReformOptions;
-        Executor mTransformExecutor = null;
+        public FakeNode(@NonNull com.android.extensions.xr.node.Node node) {
+            requireNonNull(node);
+            realNode = node;
+            shadowNode = ShadowNode.extract(node);
+            this.node = NodeTypeConverter.toLibrary(node);
+        }
 
-        private FakeNode() {}
+        public FakeNode(@NonNull Node node) {
+            requireNonNull(node);
+            realNode = NodeTypeConverter.toFramework(node);
+            shadowNode = ShadowNode.extract(realNode);
+            this.node = node;
+        }
 
         @Override
         public void listenForInput(
                 @NonNull Consumer<InputEvent> listener, @NonNull Executor executor) {
-            mListener = listener;
-            mExecutor = executor;
+            node.listenForInput(listener, executor);
         }
 
         @Override
         public void stopListeningForInput() {
-            mListener = null;
-            mExecutor = null;
+            node.stopListeningForInput();
         }
 
         @Override
-        public void setNonPointerFocusTarget(@NonNull AttachedSurfaceControl focusTarget) {}
+        public void setNonPointerFocusTarget(@NonNull AttachedSurfaceControl focusTarget) {
+            node.setNonPointerFocusTarget(focusTarget);
+        }
 
         @Override
         public void requestPointerCapture(
                 @NonNull Consumer<Integer> stateCallback, @NonNull Executor executor) {
-            mPointerCaptureStateCallback = stateCallback;
+            node.requestPointerCapture(stateCallback, executor);
         }
 
         @Override
         public void stopPointerCapture() {
-            mPointerCaptureStateCallback = null;
+            node.stopPointerCapture();
         }
 
         /**
          * Fires the InputEvent callback with the given event. It is invoked on the executor
          * provided in listenForInput.
          */
-        public void sendInputEvent(@NonNull InputEvent event) {
-            mExecutor.execute(() -> mListener.accept(event));
+        public void sendInputEvent(@NonNull com.android.extensions.xr.node.InputEvent event) {
+            shadowNode
+                    .getInputExecutor()
+                    .execute(() -> shadowNode.getInputListener().accept(event));
         }
 
         /**
          * Fires the nodeTransform callback with the given transform. It is invoked on the executor
          * provided in listenForInput.
          */
-        public void sendTransformEvent(@NonNull FakeNodeTransform nodeTransform) {
-            mTransformExecutor.execute(() -> mTransformListener.accept(nodeTransform));
+        public void sendTransformEvent(
+                @NonNull com.android.extensions.xr.node.NodeTransform nodeTransform) {
+            shadowNode
+                    .getTransformExecutor()
+                    .execute(() -> shadowNode.getTransformListener().accept(nodeTransform));
         }
 
         @Override
         @NonNull
         public Closeable subscribeToTransform(
                 @NonNull Consumer<NodeTransform> transformCallback, @NonNull Executor executor) {
-            mTransformListener = transformCallback;
-            mTransformExecutor = executor;
-            return new FakeCloseable();
+            return node.subscribeToTransform(transformCallback, executor);
         }
 
         @Nullable
-        public Consumer<NodeTransform> getTransformListener() {
-            return mTransformListener;
+        public com.android.extensions.xr.function.Consumer<
+                        com.android.extensions.xr.node.NodeTransform>
+                getTransformListener() {
+            return shadowNode.getTransformListener();
         }
 
         @Nullable
         public Executor getTransformExecutor() {
-            return mTransformExecutor;
+            return shadowNode.getTransformExecutor();
         }
 
         @Override
@@ -676,48 +695,48 @@ public class FakeXrExtensions implements XrExtensions {
         }
 
         @Nullable
-        public FakeNode getParent() {
-            return mParent;
+        public Node getParent() {
+            return NodeTypeConverter.toLibrary(nodeRepository.getParent(realNode));
         }
 
         public float getXPosition() {
-            return mXPosition;
+            return nodeRepository.getPosition(realNode).x;
         }
 
         public float getYPosition() {
-            return mYPosition;
+            return nodeRepository.getPosition(realNode).y;
         }
 
         public float getZPosition() {
-            return mZPosition;
+            return nodeRepository.getPosition(realNode).z;
         }
 
         public float getXOrientation() {
-            return mXOrientation;
+            return nodeRepository.getOrientation(realNode).x;
         }
 
         public float getYOrientation() {
-            return mYOrientation;
+            return nodeRepository.getOrientation(realNode).y;
         }
 
         public float getZOrientation() {
-            return mZOrientation;
+            return nodeRepository.getOrientation(realNode).z;
         }
 
         public float getWOrientation() {
-            return mWOrientation;
+            return nodeRepository.getOrientation(realNode).w;
         }
 
         public float getCornerRadius() {
-            return mCornerRadius;
+            return nodeRepository.getCornerRadius(realNode);
         }
 
         public boolean isVisible() {
-            return mIsVisible;
+            return nodeRepository.isVisible(realNode);
         }
 
         public float getAlpha() {
-            return mAlpha;
+            return nodeRepository.getAlpha(realNode);
         }
 
         /**
@@ -726,22 +745,22 @@ public class FakeXrExtensions implements XrExtensions {
         @Nullable
         @Deprecated
         public androidx.xr.extensions.asset.GltfModelToken getGltfModel() {
-            return mGltfModel;
+            return TokenConverter.toLibrary(nodeRepository.getGltfModelToken(realNode));
         }
 
         @Nullable
         public IBinder getAnchorId() {
-            return mAnchorId;
+            return nodeRepository.getAnchorId(realNode);
         }
 
         @Nullable
         public String getName() {
-            return mName;
+            return nodeRepository.getName(realNode);
         }
 
         @Nullable
-        public SurfaceControlViewHost.SurfacePackage getSurfacePackage() {
-            return mSurfacePackage;
+        public SurfaceControl getSurfaceControl() {
+            return nodeRepository.getSurfaceControl(realNode);
         }
 
         /**
@@ -750,261 +769,43 @@ public class FakeXrExtensions implements XrExtensions {
         @Nullable
         @Deprecated
         public androidx.xr.extensions.asset.EnvironmentToken getEnvironment() {
-            return mEnvironment;
+            return TokenConverter.toLibrary(nodeRepository.getEnvironmentToken(realNode));
         }
 
         @Nullable
-        public Consumer<InputEvent> getListener() {
-            return mListener;
+        public com.android.extensions.xr.function.Consumer<
+                        com.android.extensions.xr.node.InputEvent>
+                getListener() {
+            return shadowNode.getInputListener();
         }
 
         @Nullable
         public Consumer<Integer> getPointerCaptureStateCallback() {
-            return mPointerCaptureStateCallback;
+            com.android.extensions.xr.function.Consumer<Integer> callback =
+                    shadowNode.getPointerCaptureStateCallback();
+
+            if (callback == null) {
+                return null;
+            }
+
+            return callback::accept;
         }
 
         @Nullable
         public Executor getExecutor() {
-            return mExecutor;
+            return shadowNode.getInputExecutor();
         }
 
         @Nullable
         public ReformOptions getReformOptions() {
-            return mReformOptions;
-        }
-    }
+            com.android.extensions.xr.node.ReformOptions options =
+                    nodeRepository.getReformOptions(realNode);
 
-    /**
-     * A fake implementation of the XR extensions Node transaction.
-     *
-     * <p>All modifications happen immediately and not when the transaction is applied.
-     */
-    @SuppressWarnings("NotCloseable")
-    public static class FakeNodeTransaction implements NodeTransaction {
-        FakeNode mLastFakeNode = null;
-        boolean mApplied = false;
+            if (options == null) {
+                return null;
+            }
 
-        private FakeNodeTransaction() {}
-
-        @Override
-        @NonNull
-        public NodeTransaction setParent(@NonNull Node node, @Nullable Node parent) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mParent = (FakeNode) parent;
-            return this;
-        }
-
-        /**
-         * @deprecated This method is no longer supported.
-         */
-        @Override
-        @NonNull
-        @Deprecated
-        public NodeTransaction setEnvironment(
-                @NonNull Node node, @Nullable androidx.xr.extensions.asset.EnvironmentToken token) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mEnvironment = token;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setPosition(@NonNull Node node, float x, float y, float z) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mXPosition = x;
-            ((FakeNode) node).mYPosition = y;
-            ((FakeNode) node).mZPosition = z;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setOrientation(
-                @NonNull Node node, float x, float y, float z, float w) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mXOrientation = x;
-            ((FakeNode) node).mYOrientation = y;
-            ((FakeNode) node).mZOrientation = z;
-            ((FakeNode) node).mWOrientation = w;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        // TODO(b/354731545): Cover this with an AndroidXREntity test
-        public NodeTransaction setScale(@NonNull Node node, float sx, float sy, float sz) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mXScale = sx;
-            ((FakeNode) node).mYScale = sy;
-            ((FakeNode) node).mZScale = sz;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setVisibility(@NonNull Node node, boolean isVisible) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mIsVisible = isVisible;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setAlpha(@NonNull Node node, float value) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mAlpha = value;
-            return this;
-        }
-
-        /**
-         * @deprecated This method is no longer supported.
-         */
-        @Override
-        @NonNull
-        @Deprecated
-        public NodeTransaction setGltfModel(
-                @NonNull Node node,
-                @NonNull androidx.xr.extensions.asset.GltfModelToken gltfModelToken) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mGltfModel = gltfModelToken;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setName(@NonNull Node node, @NonNull String name) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mName = name;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setPassthroughState(
-                @NonNull Node node,
-                float passthroughOpacity,
-                @PassthroughState.Mode int passthroughMode) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mPassthroughOpacity = passthroughOpacity;
-            ((FakeNode) node).mPassthroughMode = passthroughMode;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setSurfacePackage(
-                @Nullable Node node,
-                @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mSurfacePackage = surfacePackage;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setWindowBounds(
-                @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage,
-                int widthPx,
-                int heightPx) {
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setAnchorId(@NonNull Node node, @Nullable IBinder anchorId) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mAnchorId = anchorId;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction enableReform(@NonNull Node node, @NonNull ReformOptions options) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mReformOptions = options;
-            ((FakeReformOptions) options).mOptionsApplied = true;
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setReformSize(@NonNull Node node, @NonNull Vec3 reformSize) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mReformOptions.setCurrentSize(reformSize);
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction disableReform(@NonNull Node node) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mReformOptions = new FakeReformOptions(null, null);
-            return this;
-        }
-
-        @Override
-        @NonNull
-        public NodeTransaction setCornerRadius(@NonNull Node node, float cornerRadius) {
-            mLastFakeNode = (FakeNode) node;
-            ((FakeNode) node).mCornerRadius = cornerRadius;
-            return this;
-        }
-
-        @Override
-        public void apply() {
-            mApplied = true;
-        }
-
-        @Override
-        public void close() {}
-    }
-
-    /** A fake implementation of the XR extensions NodeTransform. */
-    public static class FakeNodeTransform implements NodeTransform {
-        Mat4f mTransform;
-
-        public FakeNodeTransform(@NonNull Mat4f transform) {
-            mTransform = transform;
-        }
-
-        @Override
-        @NonNull
-        public Mat4f getTransform() {
-            return mTransform;
-        }
-
-        @Override
-        public long getTimestamp() {
-            return 0;
-        }
-    }
-
-    /** A fake implementation of the XR extensions GltfModelToken. */
-    public static class FakeGltfModelToken implements androidx.xr.extensions.asset.GltfModelToken {
-        String mUrl;
-
-        public FakeGltfModelToken(@NonNull String url) {
-            mUrl = url;
-        }
-
-        @NonNull
-        public String getUrl() {
-            return mUrl;
-        }
-    }
-
-    /** A fake implementation of the XR extensions EnvironmentToken. */
-    public static class FakeEnvironmentToken
-            implements androidx.xr.extensions.asset.EnvironmentToken {
-        String mUrl;
-
-        public FakeEnvironmentToken(@NonNull String url) {
-            this.mUrl = url;
-        }
-
-        @NonNull
-        public String getUrl() {
-            return mUrl;
+            return NodeTypeConverter.toLibrary(options);
         }
     }
 
@@ -1108,396 +909,6 @@ public class FakeXrExtensions implements XrExtensions {
 
         public boolean isDeleted() {
             return mIsDeleted;
-        }
-    }
-
-    /** Fake input event. */
-    public static class FakeInputEvent implements InputEvent {
-        int mSource;
-        int mPointerType;
-        long mTimestamp;
-        Vec3 mOrigin;
-        Vec3 mDirection;
-        FakeHitInfo mHitInfo;
-        FakeHitInfo mSecondaryHitInfo;
-        int mDispatchFlags;
-        int mAction;
-
-        @Override
-        public int getSource() {
-            return mSource;
-        }
-
-        @Override
-        public int getPointerType() {
-            return mPointerType;
-        }
-
-        @Override
-        public long getTimestamp() {
-            return mTimestamp;
-        }
-
-        @Override
-        @NonNull
-        public Vec3 getOrigin() {
-            return mOrigin;
-        }
-
-        @Override
-        @NonNull
-        public Vec3 getDirection() {
-            return mDirection;
-        }
-
-        @Override
-        @Nullable
-        public HitInfo getHitInfo() {
-            return mHitInfo;
-        }
-
-        @Override
-        @Nullable
-        public HitInfo getSecondaryHitInfo() {
-            return mSecondaryHitInfo;
-        }
-
-        @Override
-        public int getDispatchFlags() {
-            return mDispatchFlags;
-        }
-
-        @Override
-        public int getAction() {
-            return mAction;
-        }
-
-        public void setDispatchFlags(int dispatchFlags) {
-            mDispatchFlags = dispatchFlags;
-        }
-
-        public void setOrigin(@NonNull Vec3 origin) {
-            mOrigin = origin;
-        }
-
-        public void setDirection(@NonNull Vec3 direction) {
-            mDirection = direction;
-        }
-
-        public void setFakeHitInfo(@NonNull FakeHitInfo hitInfo) {
-            mHitInfo = hitInfo;
-        }
-
-        public void setTimestamp(long timestamp) {
-            mTimestamp = timestamp;
-        }
-
-        /** Fake hit info. */
-        public static class FakeHitInfo implements InputEvent.HitInfo {
-            int mSubspaceImpressNodeId;
-            Node mInputNode;
-            Vec3 mHitPosition;
-            Mat4f mTransform;
-
-            @Override
-            public int getSubspaceImpressNodeId() {
-                return mSubspaceImpressNodeId;
-            }
-
-            @Override
-            @NonNull
-            public Node getInputNode() {
-                return mInputNode;
-            }
-
-            @Override
-            @Nullable
-            public Vec3 getHitPosition() {
-                return mHitPosition;
-            }
-
-            @Override
-            @NonNull
-            public Mat4f getTransform() {
-                return mTransform;
-            }
-
-            public void setSubspaceImpressNodeId(int subspaceImpressNodeId) {
-                mSubspaceImpressNodeId = subspaceImpressNodeId;
-            }
-
-            public void setInputNode(@NonNull Node inputNode) {
-                mInputNode = inputNode;
-            }
-
-            public void setHitPosition(@Nullable Vec3 hitPosition) {
-                mHitPosition = hitPosition;
-            }
-
-            public void setTransform(@NonNull Mat4f transform) {
-                mTransform = transform;
-            }
-        }
-    }
-
-    /** Fake ReformOptions. */
-    public static class FakeReformOptions implements ReformOptions {
-
-        int mEnabledReforms;
-        int mReformFlags;
-        int mScaleWithDistanceMode = SCALE_WITH_DISTANCE_MODE_DEFAULT;
-        Vec3 mCurrentSize;
-        Vec3 mMinimumSize;
-        Vec3 mMaximumSize;
-        float mFixedAspectRatio;
-        boolean mForceShowResizeOverlay;
-        Consumer<ReformEvent> mConsumer;
-        Executor mExecutor;
-
-        boolean mOptionsApplied = true;
-
-        FakeReformOptions(Consumer<ReformEvent> consumer, Executor executor) {
-            this.mConsumer = consumer;
-            this.mExecutor = executor;
-        }
-
-        @Override
-        public int getEnabledReform() {
-            return mEnabledReforms;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setEnabledReform(int i) {
-            mEnabledReforms = i;
-            return this;
-        }
-
-        @Override
-        public int getFlags() {
-            return mReformFlags;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setFlags(int i) {
-            mOptionsApplied = false;
-            mReformFlags = i;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getCurrentSize() {
-            return mCurrentSize;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setCurrentSize(@NonNull Vec3 vec3) {
-            mOptionsApplied = false;
-            mCurrentSize = vec3;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getMinimumSize() {
-            return mMinimumSize;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setMinimumSize(@NonNull Vec3 vec3) {
-            mOptionsApplied = false;
-            mMinimumSize = vec3;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getMaximumSize() {
-            return mMaximumSize;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setMaximumSize(@NonNull Vec3 vec3) {
-            mOptionsApplied = false;
-            mMaximumSize = vec3;
-            return this;
-        }
-
-        @Override
-        public float getFixedAspectRatio() {
-            return mFixedAspectRatio;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setFixedAspectRatio(float fixedAspectRatio) {
-            mFixedAspectRatio = fixedAspectRatio;
-            return this;
-        }
-
-        @Override
-        @SuppressWarnings("GetterSetterNames")
-        public boolean getForceShowResizeOverlay() {
-            return mForceShowResizeOverlay;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setForceShowResizeOverlay(boolean show) {
-            mForceShowResizeOverlay = show;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public Consumer<ReformEvent> getEventCallback() {
-            return mConsumer;
-        }
-
-        @Override
-        @NonNull
-        @SuppressLint("InvalidNullabilityOverride")
-        public ReformOptions setEventCallback(@NonNull Consumer<ReformEvent> consumer) {
-            mConsumer = consumer;
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public Executor getEventExecutor() {
-            return mExecutor;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setEventExecutor(@NonNull Executor executor) {
-            mExecutor = executor;
-            return this;
-        }
-
-        @Override
-        public int getScaleWithDistanceMode() {
-            return mScaleWithDistanceMode;
-        }
-
-        @Override
-        @NonNull
-        public ReformOptions setScaleWithDistanceMode(int scaleWithDistanceMode) {
-            mScaleWithDistanceMode = scaleWithDistanceMode;
-            return this;
-        }
-    }
-
-    /** Fake ReformEvent. */
-    public static class FakeReformEvent implements ReformEvent {
-
-        int mType;
-        int mState;
-        int mId;
-        Vec3 mOrigin = new Vec3(0f, 0f, 0f);
-        Vec3 mInitialRayOrigin = mOrigin;
-        Vec3 mProposedPosition = mOrigin;
-        Vec3 mOnes = new Vec3(1f, 1f, 1f);
-        Vec3 mInitialRayDirection = mOnes;
-        Vec3 mProposedScale = mOnes;
-        Vec3 mProposedSize = mOnes;
-        Vec3 mTwos = new Vec3(2f, 2f, 2f);
-        Vec3 mCurrentRayOrigin = mTwos;
-        Vec3 mThrees = new Vec3(3f, 3f, 3f);
-        Vec3 mCurrentRayDirection = mThrees;
-        Quatf mIdentity = new Quatf(0f, 0f, 0f, 1f);
-        Quatf mProposedOrientation = mIdentity;
-
-        public void setType(int type) {
-            mType = type;
-        }
-
-        public void setState(int state) {
-            mState = state;
-        }
-
-        public void setProposedPosition(@NonNull Vec3 proposedPosition) {
-            mProposedPosition = proposedPosition;
-        }
-
-        public void setProposedScale(@NonNull Vec3 proposedScale) {
-            mProposedScale = proposedScale;
-        }
-
-        public void setProposedOrientation(@NonNull Quatf proposedOrientation) {
-            mProposedOrientation = proposedOrientation;
-        }
-
-        public void setProposedSize(@NonNull Vec3 proposedSize) {
-            mProposedSize = proposedSize;
-        }
-
-        @Override
-        public int getType() {
-            return mType;
-        }
-
-        @Override
-        public int getState() {
-            return mState;
-        }
-
-        @Override
-        public int getId() {
-            return mId;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getInitialRayOrigin() {
-            return mInitialRayOrigin;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getInitialRayDirection() {
-            return mInitialRayDirection;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getCurrentRayOrigin() {
-            return mCurrentRayOrigin;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getCurrentRayDirection() {
-            return mCurrentRayDirection;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getProposedPosition() {
-            return mProposedPosition;
-        }
-
-        @NonNull
-        @Override
-        public Quatf getProposedOrientation() {
-            return mProposedOrientation;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getProposedScale() {
-            return mProposedScale;
-        }
-
-        @NonNull
-        @Override
-        public Vec3 getProposedSize() {
-            return mProposedSize;
         }
     }
 

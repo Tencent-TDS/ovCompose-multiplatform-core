@@ -121,6 +121,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sign
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -1534,7 +1535,18 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                         scrollableAncestor?.unmergedConfig?.getOrNull(SemanticsActions.ScrollBy)
                 }
                 if (scrollableAncestor == null) {
-                    return false
+                    // there's no scrollable ancestor in the Compose hierarchy, let
+                    // AndroidComposeView handle it
+                    val rect =
+                        node.boundsInRoot.run {
+                            android.graphics.Rect(
+                                floor(left).toInt(),
+                                floor(top).toInt(),
+                                ceil(right).roundToInt(),
+                                ceil(bottom).roundToInt()
+                            )
+                        }
+                    return view.requestRectangleOnScreen(rect)
                 }
 
                 // TalkBack expects the minimum amount of movement to fully reveal the node.
@@ -1573,7 +1585,7 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                 // And adjust for reversing properties
                 if (yScrollState?.reverseScrolling == true) dy = -dy
 
-                return scrollAction?.action?.invoke(dx, dy) ?: false
+                return scrollAction?.action?.invoke(dx, dy) == true
             }
             // TODO: handling for other system actions
             else -> {

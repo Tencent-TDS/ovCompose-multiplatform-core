@@ -18,6 +18,10 @@ package androidx.xr.runtime.internal
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Quaternion
+import androidx.xr.runtime.math.Vector3
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 /** Represents the type of hand joint. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -90,9 +94,47 @@ public enum class HandJointType {
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface Hand {
 
-    /** The value describing if the hand is active. */
-    public val isActive: Boolean
+    public companion object {
+        /**
+         * Parses the hand joint data from the buffer.
+         *
+         * @param trackingState the current [TrackingState] of the hand.
+         * @param handJointsBuffer the [ByteBuffer] containing the pose of each joint in the hand.
+         * @return a map of [HandJointType] to [Pose] representing the current pose of each joint in
+         *   the hand.
+         */
+        @JvmStatic
+        public fun parseHandJoint(
+            trackingState: TrackingState,
+            handJointsBuffer: ByteBuffer,
+        ): Map<HandJointType, Pose> {
+            if (trackingState != TrackingState.Tracking) {
+                return emptyMap()
+            }
+            val buffer = handJointsBuffer.duplicate().order(ByteOrder.nativeOrder())
+            val jointCount = HandJointType.values().size
+            val poses = mutableListOf<Pose>()
+            repeat(jointCount) {
+                val qx = buffer.float
+                val qy = buffer.float
+                val qz = buffer.float
+                val qw = buffer.float
+                val px = buffer.float
+                val py = buffer.float
+                val pz = buffer.float
+                poses.add(Pose(Vector3(px, py, pz), Quaternion(qx, qy, qz, qw)))
+            }
+            return HandJointType.values().zip(poses).toMap()
+        }
+    }
+
+    /** The current [TrackingState] of the hand's data. */
+    public val trackingState: TrackingState
+
+    /** The value describing the data of the hand, including trackingState and handJoints' poses. */
+    public val handJointsBuffer: ByteBuffer
 
     /** The value describing the poses of the hand joints. */
     public val handJoints: Map<HandJointType, Pose>
+        get() = parseHandJoint(trackingState, handJointsBuffer)
 }

@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
+import androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions
 import androidx.privacysandbox.ui.core.SessionObserver
 import androidx.privacysandbox.ui.core.SessionObserverContext
 import androidx.privacysandbox.ui.core.SessionObserverFactory
@@ -43,6 +44,9 @@ class ViewabilityHandler {
 
         private class SessionObserverFactoryImpl(val drawViewability: Boolean) :
             SessionObserverFactory {
+
+            override val signalOptions: Set<String> =
+                setOf(SandboxedUiAdapterSignalOptions.GEOMETRY)
 
             override fun create(): SessionObserver {
                 return SessionObserverImpl()

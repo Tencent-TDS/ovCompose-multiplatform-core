@@ -39,6 +39,7 @@ import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraStream
 import androidx.camera.camera2.pipe.InputStream
 import androidx.camera.camera2.pipe.OutputStream
+import androidx.camera.camera2.pipe.OutputStream.DynamicRangeProfile
 import androidx.camera.camera2.pipe.RequestTemplate
 import androidx.camera.camera2.pipe.StreamFormat
 import androidx.camera.camera2.pipe.compat.CameraPipeKeys
@@ -47,6 +48,7 @@ import androidx.camera.camera2.pipe.integration.adapter.CameraStateAdapter
 import androidx.camera.camera2.pipe.integration.adapter.SessionConfigAdapter
 import androidx.camera.camera2.pipe.integration.adapter.SupportedSurfaceCombination
 import androidx.camera.camera2.pipe.integration.adapter.ZslControl
+import androidx.camera.camera2.pipe.integration.compat.DynamicRangeProfilesCompat
 import androidx.camera.camera2.pipe.integration.compat.quirk.CameraQuirks
 import androidx.camera.camera2.pipe.integration.compat.quirk.CaptureSessionStuckQuirk
 import androidx.camera.camera2.pipe.integration.compat.quirk.CloseCameraDeviceOnCameraGraphCloseQuirk
@@ -63,6 +65,7 @@ import androidx.camera.camera2.pipe.integration.config.CameraScope
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraComponent
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraConfig
 import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
+import androidx.camera.camera2.pipe.integration.internal.DynamicRangeConversions.dynamicRangeToFirstSupportedProfile
 import androidx.camera.camera2.pipe.integration.internal.DynamicRangeResolver
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraControl
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
@@ -985,9 +988,12 @@ constructor(
                     val deferrableSurface = outputConfig.surface
                     val physicalCameraId =
                         physicalCameraIdForAllStreams ?: outputConfig.physicalCameraId
+                    val dynamicRange = outputConfig.dynamicRange
                     val mirrorMode = outputConfig.mirrorMode
                     val outputStreamConfig =
                         OutputStream.Config.create(
+                            dynamicRangeProfile =
+                                dynamicRange.toDynamicRangeProfiles(cameraMetadata),
                             size = deferrableSurface.prescribedSize,
                             format = StreamFormat(deferrableSurface.prescribedStreamFormat),
                             camera =
@@ -1205,6 +1211,37 @@ constructor(
                 finalizeSessionOnCloseBehavior = shouldFinalizeSessionOnCloseBehavior,
                 enableRestartDelays = true,
             )
+        }
+
+        private fun DynamicRange.toDynamicRangeProfiles(
+            cameraMetadata: CameraMetadata?
+        ): DynamicRangeProfile? {
+            var dynamicRangeProfile: DynamicRangeProfile? = null
+
+            if (Build.VERSION.SDK_INT >= 33) {
+                dynamicRangeProfile = DynamicRangeProfile.STANDARD
+
+                val dynamicRangeProfilesCompat =
+                    cameraMetadata?.let { metadata ->
+                        DynamicRangeProfilesCompat.fromCameraMetaData(metadata)
+                    }
+                val supportedProfiles = dynamicRangeProfilesCompat?.toDynamicRangeProfiles()
+
+                if (supportedProfiles != null) {
+                    val firstSupportedProfile =
+                        dynamicRangeToFirstSupportedProfile(this, supportedProfiles)
+                    if (firstSupportedProfile != null) {
+                        dynamicRangeProfile = DynamicRangeProfile(firstSupportedProfile)
+                    } else {
+                        Log.error {
+                            "Requested dynamic range is not supported. Defaulting to STANDARD" +
+                                " dynamic range profile.\nRequested dynamic range:\n $this"
+                        }
+                    }
+                }
+            }
+
+            return dynamicRangeProfile
         }
     }
 }

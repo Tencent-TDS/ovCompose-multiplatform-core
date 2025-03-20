@@ -27,12 +27,12 @@ import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Ray
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.AnchorPlacement
-import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.MovableComponent
 import androidx.xr.scenecore.MoveListener
 import androidx.xr.scenecore.PanelEntity
 import androidx.xr.scenecore.PermissionHelper
+import androidx.xr.scenecore.PixelDimensions
 import androidx.xr.scenecore.PlaneSemantic
 import androidx.xr.scenecore.PlaneType
 import androidx.xr.scenecore.Session
@@ -83,8 +83,7 @@ class MovableActivity : AppCompatActivity() {
             PanelEntity.create(
                 session,
                 stationaryPanelContentView,
-                Dimensions(640f, 480f),
-                Dimensions(0.1f, 0.1f, 0.1f),
+                PixelDimensions(640, 480),
                 "stationaryPanel",
                 Pose(Vector3(1f, 0f, 0f)),
             )
@@ -96,8 +95,7 @@ class MovableActivity : AppCompatActivity() {
             PanelEntity.create(
                 session,
                 movablePanelContentView,
-                Dimensions(640f, 880f),
-                Dimensions(0.1f, 0.1f, 0.1f),
+                PixelDimensions(640, 880),
                 "panel",
                 Pose(Vector3(0f, 0f, 0.1f)),
             )

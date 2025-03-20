@@ -4,31 +4,21 @@
         <components>
             <dataTypes>
                 <dataTypeMetadata>
-                    <id>unused</id>
-                    <isNullable>true</isNullable>
-                    <objectQualifiedName>com.testdata.StringBaseSerializable</objectQualifiedName>
-                    <properties>
-                        <dataTypeMetadata>
-                            <id>unused</id>
-                            <isNullable>false</isNullable>
-                            <type>8</type>
-                        </dataTypeMetadata>
-                        <id>unused</id>
-                        <name>name</name>
-                    </properties>
-                    <required>name</required>
-                    <type>3</type>
-                </dataTypeMetadata>
-                <id>unused</id>
-                <name>com.testdata.StringBaseSerializable</name>
-            </dataTypes>
-            <dataTypes>
-                <dataTypeMetadata>
                     <allOf>
-                        <dataTypeReference>com.testdata.StringBaseSerializable</dataTypeReference>
                         <id>unused</id>
                         <isNullable>true</isNullable>
-                        <type>11</type>
+                        <objectQualifiedName>com.testdata.AppFunctionOpenable</objectQualifiedName>
+                        <properties>
+                            <dataTypeMetadata>
+                                <id>unused</id>
+                                <isNullable>false</isNullable>
+                                <type>8</type>
+                            </dataTypeMetadata>
+                            <id>unused</id>
+                            <name>stringToOpen</name>
+                        </properties>
+                        <required>stringToOpen</required>
+                        <type>3</type>
                     </allOf>
                     <allOf>
                         <id>unused</id>
@@ -89,31 +79,21 @@
         <components>
             <dataTypes>
                 <dataTypeMetadata>
-                    <id>unused</id>
-                    <isNullable>true</isNullable>
-                    <objectQualifiedName>com.testdata.StringBaseSerializable</objectQualifiedName>
-                    <properties>
-                        <dataTypeMetadata>
-                            <id>unused</id>
-                            <isNullable>false</isNullable>
-                            <type>8</type>
-                        </dataTypeMetadata>
-                        <id>unused</id>
-                        <name>name</name>
-                    </properties>
-                    <required>name</required>
-                    <type>3</type>
-                </dataTypeMetadata>
-                <id>unused</id>
-                <name>com.testdata.StringBaseSerializable</name>
-            </dataTypes>
-            <dataTypes>
-                <dataTypeMetadata>
                     <allOf>
-                        <dataTypeReference>com.testdata.StringBaseSerializable</dataTypeReference>
                         <id>unused</id>
                         <isNullable>true</isNullable>
-                        <type>11</type>
+                        <objectQualifiedName>com.testdata.AppFunctionOpenable</objectQualifiedName>
+                        <properties>
+                            <dataTypeMetadata>
+                                <id>unused</id>
+                                <isNullable>false</isNullable>
+                                <type>8</type>
+                            </dataTypeMetadata>
+                            <id>unused</id>
+                            <name>stringToOpen</name>
+                        </properties>
+                        <required>stringToOpen</required>
+                        <type>3</type>
                     </allOf>
                     <allOf>
                         <id>unused</id>
@@ -174,31 +154,21 @@
         <components>
             <dataTypes>
                 <dataTypeMetadata>
-                    <id>unused</id>
-                    <isNullable>true</isNullable>
-                    <objectQualifiedName>com.testdata.StringBaseSerializable</objectQualifiedName>
-                    <properties>
-                        <dataTypeMetadata>
-                            <id>unused</id>
-                            <isNullable>false</isNullable>
-                            <type>8</type>
-                        </dataTypeMetadata>
-                        <id>unused</id>
-                        <name>name</name>
-                    </properties>
-                    <required>name</required>
-                    <type>3</type>
-                </dataTypeMetadata>
-                <id>unused</id>
-                <name>com.testdata.StringBaseSerializable</name>
-            </dataTypes>
-            <dataTypes>
-                <dataTypeMetadata>
                     <allOf>
-                        <dataTypeReference>com.testdata.StringBaseSerializable</dataTypeReference>
                         <id>unused</id>
                         <isNullable>true</isNullable>
-                        <type>11</type>
+                        <objectQualifiedName>com.testdata.AppFunctionOpenable</objectQualifiedName>
+                        <properties>
+                            <dataTypeMetadata>
+                                <id>unused</id>
+                                <isNullable>false</isNullable>
+                                <type>8</type>
+                            </dataTypeMetadata>
+                            <id>unused</id>
+                            <name>stringToOpen</name>
+                        </properties>
+                        <required>stringToOpen</required>
+                        <type>3</type>
                     </allOf>
                     <allOf>
                         <id>unused</id>
@@ -264,31 +234,21 @@
         <components>
             <dataTypes>
                 <dataTypeMetadata>
-                    <id>unused</id>
-                    <isNullable>true</isNullable>
-                    <objectQualifiedName>com.testdata.StringBaseSerializable</objectQualifiedName>
-                    <properties>
-                        <dataTypeMetadata>
-                            <id>unused</id>
-                            <isNullable>false</isNullable>
-                            <type>8</type>
-                        </dataTypeMetadata>
-                        <id>unused</id>
-                        <name>name</name>
-                    </properties>
-                    <required>name</required>
-                    <type>3</type>
-                </dataTypeMetadata>
-                <id>unused</id>
-                <name>com.testdata.StringBaseSerializable</name>
-            </dataTypes>
-            <dataTypes>
-                <dataTypeMetadata>
                     <allOf>
-                        <dataTypeReference>com.testdata.StringBaseSerializable</dataTypeReference>
                         <id>unused</id>
                         <isNullable>true</isNullable>
-                        <type>11</type>
+                        <objectQualifiedName>com.testdata.AppFunctionOpenable</objectQualifiedName>
+                        <properties>
+                            <dataTypeMetadata>
+                                <id>unused</id>
+                                <isNullable>false</isNullable>
+                                <type>8</type>
+                            </dataTypeMetadata>
+                            <id>unused</id>
+                            <name>stringToOpen</name>
+                        </properties>
+                        <required>stringToOpen</required>
+                        <type>3</type>
                     </allOf>
                     <allOf>
                         <id>unused</id>

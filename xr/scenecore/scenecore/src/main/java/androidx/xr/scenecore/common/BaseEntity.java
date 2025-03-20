@@ -25,6 +25,8 @@ import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.Component;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
+import androidx.xr.scenecore.JxrPlatformAdapter.Space;
+import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,12 +81,12 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
             Log.e("RealityCoreRuntime", "Cannot set non-BaseEntity as a parent of a BaseEntity");
             return;
         }
-        if (this.mParent != null) {
-            this.mParent.removeChildInternal(this);
+        if (mParent != null) {
+            mParent.removeChildInternal(this);
         }
-        this.mParent = (BaseEntity) parent;
-        if (this.mParent != null) {
-            this.mParent.addChildInternal(this);
+        mParent = (BaseEntity) parent;
+        if (mParent != null) {
+            mParent.addChildInternal(this);
         }
     }
 
@@ -102,13 +104,13 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
 
     @Override
     @NonNull
-    public Pose getPose() {
+    public Pose getPose(@SpaceValue int relativeTo) {
         return mPose;
     }
 
     @Override
-    public void setPose(@NonNull Pose pose) {
-        this.mPose = pose;
+    public void setPose(@NonNull Pose pose, @SpaceValue int relativeTo) {
+        mPose = pose;
     }
 
     @Override
@@ -123,38 +125,76 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
         return mParent.getActivitySpacePose()
                 .compose(
                         new Pose(
-                                this.mPose.getTranslation().times(mParent.getWorldSpaceScale()),
-                                this.mPose.getRotation()));
+                                mPose.getTranslation().times(mParent.getWorldSpaceScale()),
+                                mPose.getRotation()));
     }
 
     @Override
     @NonNull
-    public Vector3 getScale() {
-        return mScale;
+    public Vector3 getScale(@SpaceValue int relativeTo) {
+        switch (relativeTo) {
+            case Space.PARENT:
+                return mScale;
+            case Space.ACTIVITY:
+                return getActivitySpaceScale();
+            case Space.REAL_WORLD:
+                return getWorldSpaceScale();
+            default:
+                throw new IllegalArgumentException("Unsupported relativeTo value: " + relativeTo);
+        }
     }
 
     @Override
-    public void setScale(@NonNull Vector3 scale) {
-        this.mScale = scale;
+    public void setScale(@NonNull Vector3 scale, @SpaceValue int relativeTo) {
+        switch (relativeTo) {
+            case Space.PARENT:
+                mScale = scale;
+                break;
+            case Space.ACTIVITY:
+                mScale = scale.div(getActivitySpaceScale());
+                break;
+            case Space.REAL_WORLD:
+                mScale = scale.div(getWorldSpaceScale());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported relativeTo value: " + relativeTo);
+        }
     }
 
     // Purely sets the value of the scale.
     protected final void setScaleInternal(@NonNull Vector3 scale) {
-        this.mScale = scale;
+        mScale = scale;
     }
 
     @Override
-    public float getAlpha() {
-        return mAlpha;
+    public float getAlpha(@SpaceValue int relativeTo) {
+        switch (relativeTo) {
+            case Space.PARENT:
+                return mAlpha;
+            case Space.ACTIVITY:
+            case Space.REAL_WORLD:
+                return getActivitySpaceAlpha();
+            default:
+                throw new IllegalArgumentException("Unsupported relativeTo value: " + relativeTo);
+        }
     }
 
     @Override
-    public void setAlpha(float alpha) {
-        this.mAlpha = alpha;
+    public void setAlpha(float alpha, @SpaceValue int relativeTo) {
+        switch (relativeTo) {
+            case Space.PARENT:
+                mAlpha = alpha;
+                break;
+            case Space.ACTIVITY:
+            case Space.REAL_WORLD:
+                mAlpha = alpha / getActivitySpaceAlpha();
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported relativeTo value: " + relativeTo);
+        }
     }
 
-    @Override
-    public float getActivitySpaceAlpha() {
+    private float getActivitySpaceAlpha() {
         if (mParent == null) {
             return mAlpha;
         }
@@ -167,7 +207,7 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
         if (mParent == null) {
             throw new IllegalStateException("Cannot get scale in WorldSpace with a null parent");
         }
-        return mParent.getWorldSpaceScale().times(this.mScale);
+        return mParent.getWorldSpaceScale().times(mScale);
     }
 
     @Override
@@ -176,7 +216,7 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
         if (mParent == null) {
             throw new IllegalStateException("Cannot get scale in ActivitySpace with a null parent");
         }
-        return mParent.getActivitySpaceScale().times(this.mScale);
+        return mParent.getActivitySpaceScale().times(mScale);
     }
 
     @Override
@@ -189,7 +229,7 @@ public abstract class BaseEntity extends BaseActivityPose implements Entity {
 
     @Override
     public void setHidden(boolean hidden) {
-        this.mHidden = hidden;
+        mHidden = hidden;
     }
 
     @Override

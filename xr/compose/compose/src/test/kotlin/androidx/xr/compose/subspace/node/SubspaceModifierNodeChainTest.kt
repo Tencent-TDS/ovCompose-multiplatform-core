@@ -29,8 +29,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.xr.compose.subspace.SpatialPanel
-import androidx.xr.compose.subspace.layout.CoreEntity
 import androidx.xr.compose.subspace.layout.CoreEntityNode
+import androidx.xr.compose.subspace.layout.CoreEntityScope
 import androidx.xr.compose.subspace.layout.SubspaceModifier
 import androidx.xr.compose.testing.SubspaceTestingActivity
 import androidx.xr.compose.testing.setSubspaceContent
@@ -112,7 +112,7 @@ class SubspaceModifierNodeChainTest {
         // This is used to track the number of times the node is reused.
         private var internalCount = 0
 
-        override fun modifyCoreEntity(coreEntity: CoreEntity) {
+        override fun CoreEntityScope.modifyCoreEntity() {
             nodeCount = ++internalCount
         }
     }

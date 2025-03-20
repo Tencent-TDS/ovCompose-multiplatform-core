@@ -20,7 +20,6 @@ import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.xr.compose.subspace.layout.SubspaceLayout
 import androidx.xr.compose.subspace.layout.SubspaceModifier
-import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.runtime.math.Pose
 import androidx.xr.scenecore.ContentlessEntity
 import androidx.xr.scenecore.Entity
@@ -32,56 +31,28 @@ import androidx.xr.scenecore.Entity
  * attach child Jetpack XR Entities to it.
  *
  * @param modifier SubspaceModifiers to apply to the Volume.
- * @param name A name associated with this Volume entity, useful for debugging.
  * @param onVolumeEntity A lambda function that will be invoked when the [Entity] becomes available.
  */
 @Composable
 @SubspaceComposable
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public fun Volume(
-    modifier: SubspaceModifier = SubspaceModifier,
-    name: String = defaultVolumeName(),
-    onVolumeEntity: (Entity) -> Unit,
-) {
+public fun Volume(modifier: SubspaceModifier = SubspaceModifier, onVolumeEntity: (Entity) -> Unit) {
     val defaultWidthPx = 400
     val defaultHeightPx = 400
     val defaultDepthPx = 400
 
     SubspaceLayout(
         modifier = modifier,
-        name = name,
         coreEntity =
             rememberCoreContentlessEntity {
-                ContentlessEntity.create(this, name = name, pose = Pose.Identity)
+                ContentlessEntity.create(this, name = entityName("Volume"), pose = Pose.Identity)
                     .apply(onVolumeEntity)
             },
-    ) { measurables, constraints ->
+    ) { _, constraints ->
         val initialWidth = defaultWidthPx.coerceIn(constraints.minWidth, constraints.maxWidth)
         val initialHeight = defaultHeightPx.coerceIn(constraints.minHeight, constraints.maxHeight)
         val initialDepth = defaultDepthPx.coerceIn(constraints.minDepth, constraints.maxDepth)
 
-        val placeables = measurables.map { it.measure(constraints) }
-
-        val maxSize =
-            placeables.fold(IntVolumeSize(initialWidth, initialHeight, initialDepth)) {
-                currentMax,
-                placeable ->
-                IntVolumeSize(
-                    width = maxOf(currentMax.width, placeable.measuredWidth),
-                    height = maxOf(currentMax.height, placeable.measuredHeight),
-                    depth = maxOf(currentMax.depth, placeable.measuredDepth),
-                )
-            }
-
-        // Reserve space in the original composition
-        layout(maxSize.width, maxSize.height, maxSize.depth) {
-            placeables.forEach { it.place(Pose()) }
-        }
+        layout(initialWidth, initialHeight, initialDepth) {}
     }
-}
-
-private var volumeNamePart: Int = 0
-
-private fun defaultVolumeName(): String {
-    return "Volume-${volumeNamePart++}"
 }

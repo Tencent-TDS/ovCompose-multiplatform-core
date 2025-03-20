@@ -25,15 +25,17 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
 import androidx.wear.compose.material3.lazy.TransformationSpec
-import androidx.wear.compose.material3.lazy.TransformedPainterScope
+import androidx.wear.compose.material3.lazy.TransformedContainerPainterScope
 
 /**
- * Object to be used to apply different transformation to the content and the background of the
- * composable.
+ * Object to be used to apply different transformation to the content and the container (i.e. the
+ * background) of the composable.
  *
- * This interface allows you to customize the appearance of a surface by modifying the background
- * painter and applying visual transformations to the content. This is useful for creating custom
- * effects like scaling, rotation, or applying shaders.
+ * This interface allows you to customize the appearance of a surface by modifying the container
+ * painter and applying visual transformations to the content. In this context, a surface is a
+ * container composable that displays content (which could use other Composables such as Icon, Text
+ * or Button) as well as a background typically drawn using a painter. This is useful for creating
+ * custom effects like scaling, rotation, or applying shaders.
  *
  * Example usage with the [Button]:
  *
@@ -51,27 +53,35 @@ public interface SurfaceTransformation {
     /**
      * Returns a new painter to be used instead of [painter] which should react on a transformation.
      *
-     * This allows the transformation to modify the background painter based on properties like the
+     * This allows the transformation to modify the container painter based on properties like the
      * shape or border. For example, a transformation might apply a gradient that follows the shape
      * of the surface.
      *
      * @param painter The original painter.
      * @param shape The shape of the content to be used for clipping.
-     * @param border The border to be applied to the background.
+     * @param border The border to be applied to the container.
      */
-    public fun createBackgroundPainter(
+    public fun createContainerPainter(
         painter: Painter,
         shape: Shape,
         border: BorderStroke? = null
     ): Painter
 
     /**
-     * Visual transformations to be applied to the item.
+     * Visual transformations to be applied to the container of the item.
      *
      * This function is called within a [GraphicsLayerScope], allowing you to use properties like
      * `scaleX`, `scaleY`, `rotationZ`, `alpha`, and others to transform the content.
      */
-    public fun GraphicsLayerScope.applyTransformation()
+    public fun GraphicsLayerScope.applyContainerTransformation()
+
+    /**
+     * Visual transformations to be applied to the content of the item.
+     *
+     * This function is called within a [GraphicsLayerScope], allowing you to use properties like
+     * `scaleX`, `scaleY`, `rotationZ`, `alpha`, and others to transform the content.
+     */
+    public fun GraphicsLayerScope.applyContentTransformation()
 }
 
 /**
@@ -88,26 +98,25 @@ public fun TransformingLazyColumnItemScope.SurfaceTransformation(
 private class SurfaceTransformationImpl(
     private val spec: TransformationSpec,
     private val scope: TransformingLazyColumnItemScope
-) : SurfaceTransformation, TransformedPainterScope {
+) : SurfaceTransformation, TransformedContainerPainterScope {
     override val DrawScope.scrollProgress: TransformingLazyColumnItemScrollProgress
         get() = with(scope) { scrollProgress }
 
     override val DrawScope.itemHeight: Float
         get() = this@itemHeight.size.height
 
-    override fun createBackgroundPainter(
+    override fun createContainerPainter(
         painter: Painter,
         shape: Shape,
         border: BorderStroke?
-    ): Painter = with(spec) { createTransformedPainter(painter, shape, border) }
+    ): Painter = with(spec) { createTransformedContainerPainter(painter, shape, border) }
 
-    override fun GraphicsLayerScope.applyTransformation() {
-        with(scope) {
-            with(spec) {
-                applyContainerTransformation(scrollProgress)
-                applyContentTransformation(scrollProgress)
-            }
-        }
+    override fun GraphicsLayerScope.applyContainerTransformation() {
+        with(scope) { with(spec) { applyContainerTransformation(scrollProgress) } }
+    }
+
+    override fun GraphicsLayerScope.applyContentTransformation() {
+        with(scope) { with(spec) { applyContentTransformation(scrollProgress) } }
     }
 
     override fun hashCode(): Int = 31 * spec.hashCode() + scope.hashCode()

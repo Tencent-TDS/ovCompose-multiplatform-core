@@ -79,7 +79,7 @@ internal object AppCardDefaults {
                 if (headerBuilder.isEmpty) null else headerSlot.build()
             )
             .addElement(title, horizontalSpacer(style.headerToTitleSpaceDp))
-            .addElement(content, horizontalSpacer(style.titleToContentSpaceDp))
+            .addElement(content)
 
         return verticalElementBuilder.build()
     }
@@ -92,7 +92,6 @@ internal constructor(
     @Dimension(unit = DP) internal val labelToTimeSpaceDp: Int,
     @Dimension(unit = DP) internal val labelToAvatarSpaceDp: Int,
     @Dimension(unit = DP) internal val headerToTitleSpaceDp: Int,
-    @Dimension(unit = DP) internal val titleToContentSpaceDp: Int,
     @TypographyToken internal val titleTypography: Int,
     @TypographyToken internal val contentTypography: Int,
     @TypographyToken internal val labelTypography: Int,
@@ -122,7 +121,6 @@ internal constructor(
                 labelToTimeSpaceDp = DEFAULT_SPACE_DP,
                 labelToAvatarSpaceDp = DEFAULT_SPACE_DP,
                 avatarSize = 16,
-                titleToContentSpaceDp = 0,
                 headerToTitleSpaceDp = SMALL_SPACE_DP,
                 titleTypography = Typography.LABEL_SMALL,
                 contentTypography = Typography.BODY_SMALL,
@@ -146,7 +144,6 @@ internal constructor(
                 labelToTimeSpaceDp = DEFAULT_SPACE_DP,
                 labelToAvatarSpaceDp = DEFAULT_SPACE_DP,
                 avatarSize = 16,
-                titleToContentSpaceDp = SMALL_SPACE_DP,
                 headerToTitleSpaceDp = SMALL_SPACE_DP,
                 titleTypography = Typography.LABEL_MEDIUM,
                 contentTypography = Typography.LABEL_SMALL,
@@ -170,7 +167,6 @@ internal constructor(
                 labelToTimeSpaceDp = DEFAULT_SPACE_DP,
                 labelToAvatarSpaceDp = DEFAULT_SPACE_DP,
                 avatarSize = 18,
-                titleToContentSpaceDp = DEFAULT_SPACE_DP,
                 headerToTitleSpaceDp = DEFAULT_SPACE_DP,
                 titleTypography = Typography.TITLE_MEDIUM,
                 contentTypography = Typography.LABEL_SMALL,

@@ -16,7 +16,7 @@ plugins {
 dependencies {
     api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
-    api(project(":core:core"))
+    api("androidx.core:core:1.16.0-rc01")
     implementation("androidx.collection:collection:1.4.2")
     compileOnly("androidx.fragment:fragment:1.7.0")
     compileOnly("androidx.appcompat:appcompat:1.0.1")

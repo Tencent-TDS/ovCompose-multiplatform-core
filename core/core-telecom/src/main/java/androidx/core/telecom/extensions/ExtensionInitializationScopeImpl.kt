@@ -67,7 +67,7 @@ internal class ExtensionInitializationScopeImpl(
     }
 
     override fun addParticipantExtension(
-        initialParticipants: Set<Participant>,
+        initialParticipants: List<Participant>,
         initialActiveParticipant: Participant?
     ): ParticipantExtension {
         val participant = ParticipantExtensionImpl(initialParticipants, initialActiveParticipant)

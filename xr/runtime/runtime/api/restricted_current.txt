@@ -3,24 +3,61 @@ package androidx.xr.runtime {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class CoreState {
     ctor public CoreState(kotlin.time.ComparableTimeMark timeMark);
-    method public kotlin.time.ComparableTimeMark component1();
-    method public androidx.xr.runtime.CoreState copy(kotlin.time.ComparableTimeMark timeMark);
     method public kotlin.time.ComparableTimeMark getTimeMark();
     property public kotlin.time.ComparableTimeMark timeMark;
   }
 
-  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class Session {
+  public final class ManifestFeature {
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FEATURE_XR_API_OPENXR;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FEATURE_XR_API_SPATIAL;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FEATURE_XR_INPUT_CONTROLLER;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FEATURE_XR_INPUT_EYE_TRACKING;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FEATURE_XR_INPUT_HAND_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FEATURE_XR_API_OPENXR;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FEATURE_XR_API_SPATIAL;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FEATURE_XR_INPUT_CONTROLLER;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FEATURE_XR_INPUT_EYE_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FEATURE_XR_INPUT_HAND_TRACKING;
+  }
+
+  public final class ManifestPermission {
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String EYE_TRACKING_COARSE;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String EYE_TRACKING_FINE;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String FACE_TRACKING;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String HAND_TRACKING;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String HEAD_TRACKING;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String SCENE_UNDERSTANDING_COARSE;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String SCENE_UNDERSTANDING_FINE;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String EYE_TRACKING_COARSE;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String EYE_TRACKING_FINE;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String FACE_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String HAND_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String HEAD_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String SCENE_UNDERSTANDING_COARSE;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String SCENE_UNDERSTANDING_FINE;
+  }
+
+  public final class ManifestPermissionGroup {
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String XR_TRACKING;
+    property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static String XR_TRACKING_SENSITIVE;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String XR_TRACKING;
+    field @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public static final String XR_TRACKING_SENSITIVE;
+  }
+
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class Session implements androidx.lifecycle.LifecycleOwner {
     method public androidx.xr.runtime.SessionConfigureResult configure();
     method public static androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity);
     method public static androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity, optional kotlinx.coroutines.CoroutineDispatcher coroutineDispatcher);
     method public void destroy();
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public kotlinx.coroutines.CoroutineScope getCoroutineScope();
+    method public androidx.lifecycle.Lifecycle getLifecycle();
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public androidx.xr.runtime.internal.Runtime getRuntime();
     method public kotlinx.coroutines.flow.StateFlow<androidx.xr.runtime.CoreState> getState();
     method @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public java.util.List<androidx.xr.runtime.StateExtender> getStateExtenders();
     method public void pause();
     method public androidx.xr.runtime.SessionResumeResult resume();
     property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public kotlinx.coroutines.CoroutineScope coroutineScope;
+    property public androidx.lifecycle.Lifecycle lifecycle;
     property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public androidx.xr.runtime.internal.Runtime runtime;
     property public kotlinx.coroutines.flow.StateFlow<androidx.xr.runtime.CoreState> state;
     property @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public java.util.List<androidx.xr.runtime.StateExtender> stateExtenders;
@@ -238,34 +275,37 @@ package androidx.xr.runtime.internal {
     method public void addInputEventListener(java.util.concurrent.Executor executor, androidx.xr.runtime.internal.InputEventListener listener);
     method public void dispose();
     method public float getActivitySpaceAlpha();
-    method public float getAlpha();
+    method public default float getAlpha();
+    method public float getAlpha(int relativeTo);
     method public java.util.List<androidx.xr.runtime.internal.Entity> getChildren();
     method public String getContentDescription();
     method public androidx.xr.runtime.internal.Entity? getParent();
-    method public androidx.xr.runtime.math.Pose getPose();
-    method public androidx.xr.runtime.math.Vector3 getScale();
+    method public default androidx.xr.runtime.math.Pose getPose();
+    method public androidx.xr.runtime.math.Pose getPose(int relativeTo);
+    method public default androidx.xr.runtime.math.Vector3 getScale();
+    method public androidx.xr.runtime.math.Vector3 getScale(int relativeTo);
     method public androidx.xr.runtime.internal.Dimensions getSize();
     method public boolean isHidden();
     method public boolean isHidden(boolean includeParents);
     method public void removeAllComponents();
     method public void removeComponent(androidx.xr.runtime.internal.Component component);
     method public void removeInputEventListener(androidx.xr.runtime.internal.InputEventListener listener);
-    method public void setAlpha(float);
+    method public default void setAlpha(float alpha);
+    method public void setAlpha(float alpha, int relativeTo);
     method public void setChildren(java.util.List<? extends androidx.xr.runtime.internal.Entity>);
     method public void setContentDescription(String);
     method public void setHidden(boolean);
     method public void setParent(androidx.xr.runtime.internal.Entity?);
-    method public void setPose(androidx.xr.runtime.math.Pose);
-    method public void setScale(androidx.xr.runtime.math.Vector3);
+    method public default void setPose(androidx.xr.runtime.math.Pose pose);
+    method public void setPose(androidx.xr.runtime.math.Pose pose, int relativeTo);
+    method public default void setScale(androidx.xr.runtime.math.Vector3 scale);
+    method public void setScale(androidx.xr.runtime.math.Vector3 scale, int relativeTo);
     method public void setSize(androidx.xr.runtime.internal.Dimensions);
     property public abstract float activitySpaceAlpha;
-    property public abstract float alpha;
     property public abstract java.util.List<androidx.xr.runtime.internal.Entity> children;
     property public abstract String contentDescription;
     property public abstract boolean isHidden;
     property public abstract androidx.xr.runtime.internal.Entity? parent;
-    property public abstract androidx.xr.runtime.math.Pose pose;
-    property public abstract androidx.xr.runtime.math.Vector3 scale;
     property public abstract androidx.xr.runtime.internal.Dimensions size;
   }
 
@@ -283,10 +323,18 @@ package androidx.xr.runtime.internal {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface Hand {
-    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
-    method public boolean isActive();
-    property public abstract java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
-    property public abstract boolean isActive;
+    method public default java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
+    method public java.nio.ByteBuffer getHandJointsBuffer();
+    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
+    method public static java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> parseHandJoint(androidx.xr.runtime.internal.TrackingState trackingState, java.nio.ByteBuffer handJointsBuffer);
+    property public default java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
+    property public abstract java.nio.ByteBuffer handJointsBuffer;
+    property public abstract androidx.xr.runtime.internal.TrackingState trackingState;
+    field public static final androidx.xr.runtime.internal.Hand.Companion Companion;
+  }
+
+  public static final class Hand.Companion {
+    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> parseHandJoint(androidx.xr.runtime.internal.TrackingState trackingState, java.nio.ByteBuffer handJointsBuffer);
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public enum HandJointType {
@@ -406,6 +454,7 @@ package androidx.xr.runtime.internal {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface JxrPlatformAdapter {
     method public void addSpatialCapabilitiesListener(java.util.concurrent.Executor callbackExecutor, kotlin.jvm.functions.Function1<? super androidx.xr.runtime.internal.SpatialCapabilities,kotlin.Unit> listener);
+    method public androidx.xr.runtime.internal.TextureResource? borrowReflectionTexture();
     method public androidx.xr.runtime.internal.ActivityPanelEntity createActivityPanelEntity(androidx.xr.runtime.math.Pose pose, androidx.xr.runtime.internal.PixelDimensions windowBoundsPx, String name, android.app.Activity hostActivity, androidx.xr.runtime.internal.Entity parent);
     method public androidx.xr.runtime.internal.AnchorEntity createAnchorEntity(androidx.xr.runtime.internal.Anchor anchor);
     method public androidx.xr.runtime.internal.AnchorEntity createAnchorEntity(androidx.xr.runtime.internal.Dimensions bounds, androidx.xr.runtime.internal.PlaneType planeType, androidx.xr.runtime.internal.PlaneSemantic planeSemantic, java.time.Duration searchTimeout);
@@ -415,11 +464,15 @@ package androidx.xr.runtime.internal {
     method public androidx.xr.runtime.internal.InteractableComponent createInteractableComponent(java.util.concurrent.Executor executor, androidx.xr.runtime.internal.InputEventListener listener);
     method public androidx.xr.runtime.internal.LoggingEntity createLoggingEntity(androidx.xr.runtime.math.Pose pose);
     method public androidx.xr.runtime.internal.MovableComponent createMovableComponent(boolean systemMovable, boolean scaleInZ, java.util.Set<? extends androidx.xr.runtime.internal.AnchorPlacement> anchorPlacement, boolean shouldDisposeParentAnchor);
-    method public androidx.xr.runtime.internal.PanelEntity createPanelEntity(androidx.xr.runtime.math.Pose pose, android.view.View view, androidx.xr.runtime.internal.PixelDimensions surfaceDimensionsPx, androidx.xr.runtime.internal.Dimensions dimensions, String name, android.content.Context context, androidx.xr.runtime.internal.Entity parent);
+    method public androidx.xr.runtime.internal.PanelEntity createPanelEntity(android.content.Context context, androidx.xr.runtime.math.Pose pose, android.view.View view, androidx.xr.runtime.internal.Dimensions dimensions, String name, androidx.xr.runtime.internal.Entity parent);
+    method public androidx.xr.runtime.internal.PanelEntity createPanelEntity(android.content.Context context, androidx.xr.runtime.math.Pose pose, android.view.View view, androidx.xr.runtime.internal.PixelDimensions pixelDimensions, String name, androidx.xr.runtime.internal.Entity parent);
     method public androidx.xr.runtime.internal.AnchorEntity createPersistedAnchorEntity(java.util.UUID uuid, java.time.Duration searchTimeout);
     method public void createPointerCaptureComponent(java.util.concurrent.Executor executor, androidx.xr.runtime.internal.PointerCaptureComponent.StateListener stateListener, androidx.xr.runtime.internal.InputEventListener inputListener);
     method public void createResizableComponent(androidx.xr.runtime.internal.Dimensions minimumSize, androidx.xr.runtime.internal.Dimensions maximumSize);
     method public androidx.xr.runtime.internal.SurfaceEntity createSurfaceEntity(int stereoMode, androidx.xr.runtime.internal.SurfaceEntity.CanvasShape canvasShape, androidx.xr.runtime.math.Pose pose, androidx.xr.runtime.internal.Entity parentEntity);
+    method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.MaterialResource> createWaterMaterial(boolean isAlphaMapVersion);
+    method public void destroyTexture(androidx.xr.runtime.internal.TextureResource texture);
+    method public void destroyWaterMaterial(androidx.xr.runtime.internal.MaterialResource material);
     method public void dispose();
     method public androidx.xr.runtime.internal.ActivitySpace getActivitySpace();
     method public androidx.xr.runtime.internal.Entity getActivitySpaceRootImpl();
@@ -435,12 +488,22 @@ package androidx.xr.runtime.internal {
     method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.ExrImageResource> loadExrImageByAssetName(String assetName);
     method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.GltfModelResource> loadGltfByAssetName(String assetName);
     method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.GltfModelResource> loadGltfByAssetNameSplitEngine(String assetName);
+    method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.GltfModelResource> loadGltfByByteArray(java.util.List<java.lang.Byte> assetData, String assetKey);
+    method public com.google.common.util.concurrent.ListenableFuture<androidx.xr.runtime.internal.TextureResource>? loadTexture(String assetName, androidx.xr.runtime.internal.TextureSampler sampler);
     method public void removeSpatialCapabilitiesListener(kotlin.jvm.functions.Function1<? super androidx.xr.runtime.internal.SpatialCapabilities,kotlin.Unit> listener);
     method public void requestFullSpaceMode();
     method public void requestHomeSpaceMode();
+    method public void setAlphaMap(androidx.xr.runtime.internal.MaterialResource material, androidx.xr.runtime.internal.TextureResource alphaMap);
+    method public void setAlphaStepMultiplier(androidx.xr.runtime.internal.MaterialResource material, float alphaStepMultiplier);
     method public android.os.Bundle setFullSpaceMode(android.os.Bundle bundle);
     method public android.os.Bundle setFullSpaceModeWithEnvironmentInherited(android.os.Bundle bundle);
+    method public void setNormalBoundary(androidx.xr.runtime.internal.MaterialResource material, float normalBoundary);
+    method public void setNormalMap(androidx.xr.runtime.internal.MaterialResource material, androidx.xr.runtime.internal.TextureResource normalMap);
+    method public void setNormalSpeed(androidx.xr.runtime.internal.MaterialResource material, float normalSpeed);
+    method public void setNormalTiling(androidx.xr.runtime.internal.MaterialResource material, float normalTiling);
+    method public void setNormalZ(androidx.xr.runtime.internal.MaterialResource material, float normalZ);
     method public void setPreferredAspectRatio(android.app.Activity activity, float preferredRatio);
+    method public void setReflectionCube(androidx.xr.runtime.internal.MaterialResource material, androidx.xr.runtime.internal.TextureResource reflectionCube);
     method public void startRenderer();
     method public void stopRenderer();
     property public abstract androidx.xr.runtime.internal.ActivitySpace activitySpace;
@@ -466,6 +529,9 @@ package androidx.xr.runtime.internal {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface LoggingEntity extends androidx.xr.runtime.internal.Entity {
+  }
+
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface MaterialResource extends androidx.xr.runtime.internal.Resource {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface MediaPlayerExtensionsWrapper {
@@ -526,13 +592,14 @@ package androidx.xr.runtime.internal {
     method public float getCornerRadius();
     method public androidx.xr.runtime.internal.Dimensions getPanelSize();
     method public androidx.xr.runtime.math.Vector3 getPixelDensity();
-    method public androidx.xr.runtime.internal.PixelDimensions getPixelDimensions();
+    method public androidx.xr.runtime.internal.PixelDimensions getSizeInPixels();
     method public void setCornerRadius(float);
-    method public void setPixelDimensions(androidx.xr.runtime.internal.PixelDimensions);
+    method public void setPanelSize(androidx.xr.runtime.internal.Dimensions);
+    method public void setSizeInPixels(androidx.xr.runtime.internal.PixelDimensions);
     property public abstract float cornerRadius;
     property public abstract androidx.xr.runtime.internal.Dimensions panelSize;
     property public abstract androidx.xr.runtime.math.Vector3 pixelDensity;
-    property public abstract androidx.xr.runtime.internal.PixelDimensions pixelDimensions;
+    property public abstract androidx.xr.runtime.internal.PixelDimensions sizeInPixels;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface PerceptionManager {
@@ -709,18 +776,14 @@ package androidx.xr.runtime.internal {
     method public void play(android.media.SoundPool soundPool, int soundId, androidx.xr.runtime.internal.SoundFieldAttributes attributes, float volume, int priority, int loop, float rate);
   }
 
-  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface Space extends androidx.xr.runtime.internal.Trackable {
-  }
-
-  public static final class Space.Type {
-    field public static final androidx.xr.runtime.internal.Space.Type.Companion Companion;
-    field public static final androidx.xr.runtime.internal.Space.Type Local;
-    field public static final androidx.xr.runtime.internal.Space.Type LocalFloor;
-  }
-
-  public static final class Space.Type.Companion {
-    property public androidx.xr.runtime.internal.Space.Type Local;
-    property public androidx.xr.runtime.internal.Space.Type LocalFloor;
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class Space {
+    property public static int ACTIVITY;
+    property public static int PARENT;
+    property public static int REAL_WORLD;
+    field public static final int ACTIVITY = 1; // 0x1
+    field public static final androidx.xr.runtime.internal.Space INSTANCE;
+    field public static final int PARENT = 0; // 0x0
+    field public static final int REAL_WORLD = 2; // 0x2
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class SpatialCapabilities {
@@ -814,7 +877,7 @@ package androidx.xr.runtime.internal {
   }
 
   public static final class SpatialEnvironment.SpatialEnvironmentPreference {
-    ctor public SpatialEnvironment.SpatialEnvironmentPreference(androidx.xr.runtime.internal.GltfModelResource? geometry, androidx.xr.runtime.internal.ExrImageResource? skybox);
+    ctor public SpatialEnvironment.SpatialEnvironmentPreference(androidx.xr.runtime.internal.ExrImageResource? skybox, androidx.xr.runtime.internal.GltfModelResource? geometry, androidx.xr.runtime.internal.MaterialResource? geometryMaterial, String? geometryMeshName, String? geometryAnimationName);
     method public androidx.xr.runtime.internal.GltfModelResource? getGeometry();
     method public androidx.xr.runtime.internal.ExrImageResource? getSkybox();
     property public androidx.xr.runtime.internal.GltfModelResource? geometry;
@@ -923,6 +986,71 @@ package androidx.xr.runtime.internal {
 
   public static fun interface SystemSpaceEntity.OnSpaceUpdatedListener {
     method public void onSpaceUpdated();
+  }
+
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface TextureResource extends androidx.xr.runtime.internal.Resource {
+  }
+
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class TextureSampler {
+    ctor public TextureSampler(@androidx.xr.runtime.internal.TextureSampler.WrapMode int wrapModeS, @androidx.xr.runtime.internal.TextureSampler.WrapMode int wrapModeT, @androidx.xr.runtime.internal.TextureSampler.WrapMode int wrapModeR, @androidx.xr.runtime.internal.TextureSampler.WrapMode int minFilter, @androidx.xr.runtime.internal.TextureSampler.WrapMode int magFilter, @androidx.xr.runtime.internal.TextureSampler.WrapMode int compareMode, @androidx.xr.runtime.internal.TextureSampler.WrapMode int compareFunc, @androidx.xr.runtime.internal.TextureSampler.WrapMode int anisotropyLog2);
+    method public int getAnisotropyLog2();
+    method public int getCompareFunc();
+    method public int getCompareMode();
+    method public int getMagFilter();
+    method public int getMinFilter();
+    method public int getWrapModeR();
+    method public int getWrapModeS();
+    method public int getWrapModeT();
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int anisotropyLog2;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int compareFunc;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int compareMode;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int magFilter;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int minFilter;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int wrapModeR;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int wrapModeS;
+    property @androidx.xr.runtime.internal.TextureSampler.WrapMode public int wrapModeT;
+    field public static final int CLAMP_TO_EDGE = 0; // 0x0
+    field public static final int COMPARE_TO_TEXTURE = 1; // 0x1
+    field public static final androidx.xr.runtime.internal.TextureSampler.Companion Companion;
+    field public static final int LINEAR = 1; // 0x1
+    field public static final int LINEAR_MIPMAP_LINEAR = 5; // 0x5
+    field public static final int LINEAR_MIPMAP_NEAREST = 3; // 0x3
+    field public static final int MAG_LINEAR = 1; // 0x1
+    field public static final int MAG_NEAREST = 0; // 0x0
+    field public static final int MIRRORED_REPEAT = 2; // 0x2
+    field public static final int NEAREST = 0; // 0x0
+    field public static final int NEAREST_MIPMAP_LINEAR = 4; // 0x4
+    field public static final int NEAREST_MIPMAP_NEAREST = 2; // 0x2
+    field public static final int NONE = 0; // 0x0
+    field public static final int REPEAT = 1; // 0x1
+  }
+
+  public static final class TextureSampler.Companion {
+    property public static int CLAMP_TO_EDGE;
+    property public static int COMPARE_TO_TEXTURE;
+    property public static int LINEAR;
+    property public static int LINEAR_MIPMAP_LINEAR;
+    property public static int LINEAR_MIPMAP_NEAREST;
+    property public static int MAG_LINEAR;
+    property public static int MAG_NEAREST;
+    property public static int MIRRORED_REPEAT;
+    property public static int NEAREST;
+    property public static int NEAREST_MIPMAP_LINEAR;
+    property public static int NEAREST_MIPMAP_NEAREST;
+    property public static int NONE;
+    property public static int REPEAT;
+  }
+
+  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) public static @interface TextureSampler.CompareMode {
+  }
+
+  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) public static @interface TextureSampler.MagFilter {
+  }
+
+  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) public static @interface TextureSampler.MinFilter {
+  }
+
+  @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME) public static @interface TextureSampler.WrapMode {
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public interface Trackable {

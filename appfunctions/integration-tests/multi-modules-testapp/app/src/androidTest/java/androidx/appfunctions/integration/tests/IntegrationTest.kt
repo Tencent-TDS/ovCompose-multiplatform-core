@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package androidx.appfunction.integration.tests
+package androidx.appfunctions.integration.tests
 
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.AppFunctionFunctionNotFoundException
@@ -22,29 +22,44 @@ import androidx.appfunctions.AppFunctionInvalidArgumentException
 import androidx.appfunctions.AppFunctionManagerCompat
 import androidx.appfunctions.ExecuteAppFunctionRequest
 import androidx.appfunctions.ExecuteAppFunctionResponse
-import androidx.appfunctions.integration.testapp.CreateNoteParams
-import androidx.appfunctions.integration.testapp.Note
-import androidx.appfunctions.integration.tests.AppSearchMetadataHelper
+import androidx.appfunctions.integration.testapp.library.TestFunctions2Ids
 import androidx.appfunctions.integration.tests.TestUtil.doBlocking
 import androidx.appfunctions.integration.tests.TestUtil.retryAssert
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertIs
+import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
 @LargeTest
 class IntegrationTest {
-    private val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
-    private val appFunctionManager = AppFunctionManagerCompat(targetContext)
+    private val targetContext = InstrumentationRegistry.getInstrumentation().context
+    private val appFunctionManager =
+        AppFunctionManagerCompat(InstrumentationRegistry.getInstrumentation().targetContext)
+    private val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
 
     @Before
     fun setup() = doBlocking {
         assumeTrue(appFunctionManager.isSupported())
-
+        uiAutomation.apply {
+            // This is needed because the test is running under the UID of
+            // "androidx.appfunctions.integration.testapp",
+            // while the app functions are defined under
+            // "androidx.appfunctions.integration.testapp.test"
+            adoptShellPermissionIdentity("android.permission.EXECUTE_APP_FUNCTIONS")
+            executeShellCommand(
+                "device_config put appsearch max_allowed_app_function_doc_size_in_bytes $TEST_APP_FUNCTION_DOC_SIZE_LIMIT"
+            )
+        }
         awaitAppFunctionsIndexed(FUNCTION_IDS)
+    }
+
+    @After
+    fun tearDown() {
+        uiAutomation.dropShellPermissionIdentity()
     }
 
     @Test
@@ -54,7 +69,7 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        "androidx.appfunctions.integration.testapp.TestFunctions#add",
+                        TestFunctionsIds.ADD_ID,
                         AppFunctionData.Builder("").setLong("num1", 1).setLong("num2", 2).build()
                     )
             )
@@ -75,7 +90,7 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        VOID_FUNCTION_ID,
+                        TestFunctionsIds.VOID_FUNCTION_ID,
                         AppFunctionData.Builder("").build()
                     )
             )
@@ -92,7 +107,7 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        IS_CREATED_BY_FACTORY_FUNCTION_ID,
+                        TestFactoryIds.IS_CREATED_BY_FACTORY_ID,
                         AppFunctionData.Builder("").build()
                     )
             )
@@ -115,7 +130,7 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        CONCAT_FUNCTION_ID,
+                        TestFunctions2Ids.CONCAT_ID,
                         AppFunctionData.Builder("")
                             .setString("str1", "log")
                             .setString("str2", "cat")
@@ -156,7 +171,7 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        "androidx.appfunctions.integration.testapp.TestFunctions#doThrow",
+                        TestFunctionsIds.DO_THROW_ID,
                         AppFunctionData.Builder("").build()
                     )
             )
@@ -174,13 +189,17 @@ class IntegrationTest {
                 request =
                     ExecuteAppFunctionRequest(
                         targetContext.packageName,
-                        CREATE_NOTE_FUNCTION_ID,
+                        TestFunctionsIds.CREATE_NOTE_ID,
                         AppFunctionData.Builder("")
                             .setAppFunctionData(
                                 "createNoteParams",
                                 AppFunctionData.serialize(
                                     CreateNoteParams(
                                         title = "Test Title",
+                                        content = listOf("1", "2"),
+                                        owner = Owner("test"),
+                                        attachments =
+                                            listOf(Attachment("Uri1", Attachment("nested")))
                                     ),
                                     CreateNoteParams::class.java
                                 )
@@ -193,6 +212,9 @@ class IntegrationTest {
         val expectedNote =
             Note(
                 title = "Test Title",
+                content = listOf("1", "2"),
+                owner = Owner("test"),
+                attachments = listOf(Attachment("Uri1", Attachment("nested")))
             )
         assertThat(
                 successResponse.returnValue
@@ -210,28 +232,16 @@ class IntegrationTest {
     }
 
     private companion object {
-        // AppFunctions that are defined in the top-level module.
-        const val APP_FUNCTION_ID = "androidx.appfunctions.integration.testapp.TestFunctions#add"
-        const val DO_THROW_FUNCTION_ID =
-            "androidx.appfunctions.integration.testapp.TestFunctions#doThrow"
-        const val VOID_FUNCTION_ID =
-            "androidx.appfunctions.integration.testapp.TestFunctions#voidFunction"
-        const val CREATE_NOTE_FUNCTION_ID =
-            "androidx.appfunctions.integration.testapp.TestFunctions#createNote"
-        const val IS_CREATED_BY_FACTORY_FUNCTION_ID =
-            "androidx.appfunctions.integration.testapp.TestFactory#isCreatedByFactory"
+        const val TEST_APP_FUNCTION_DOC_SIZE_LIMIT = 512 * 1024 // 512kb
 
-        // AppFunctions that are defined in a library module.
-        const val CONCAT_FUNCTION_ID =
-            "androidx.appfunctions.integration.testapp.library.TestFunctions2#concat"
         val FUNCTION_IDS =
             setOf(
-                APP_FUNCTION_ID,
-                DO_THROW_FUNCTION_ID,
-                VOID_FUNCTION_ID,
-                CREATE_NOTE_FUNCTION_ID,
-                IS_CREATED_BY_FACTORY_FUNCTION_ID,
-                CONCAT_FUNCTION_ID
+                TestFunctionsIds.ADD_ID,
+                TestFunctionsIds.DO_THROW_ID,
+                TestFunctionsIds.VOID_FUNCTION_ID,
+                TestFunctionsIds.CREATE_NOTE_ID,
+                TestFactoryIds.IS_CREATED_BY_FACTORY_ID,
+                TestFunctions2Ids.CONCAT_ID
             )
     }
 }

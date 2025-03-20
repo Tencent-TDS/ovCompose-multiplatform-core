@@ -62,4 +62,9 @@
     <string name="error_cannot_open_pdf" msgid="2361919778558145071">"Отварање PDF фајла није успело"</string>
     <string name="cannot_edit_pdf" msgid="7677598370087228978">"Овај PDF не може да се измени"</string>
     <string name="clipboard_label" msgid="8943155331324944981">"Садржај је копиран из PDF-а"</string>
+    <string name="fast_scroller_thumb" msgid="6712048991132846541">"Трака за скроловање"</string>
+    <!-- no translation found for service_disconnect_error_message (7077247973576767455) -->
+    <skip />
+    <!-- no translation found for pdf_view_error_message (1228656072516996088) -->
+    <skip />
 </resources>

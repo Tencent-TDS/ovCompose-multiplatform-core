@@ -402,6 +402,7 @@ fun lerp(start: DpSize, stop: DpSize, fraction: Float): DpSize =
 
 /** A four dimensional bounds using [Dp] for units */
 @Immutable
+@Suppress("DataClassDefinition")
 data class DpRect(
     @Stable val left: Dp,
     @Stable val top: Dp,

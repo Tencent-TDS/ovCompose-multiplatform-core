@@ -22,6 +22,7 @@
  * modifying its settings.
  */
 
+import androidx.build.AndroidXConfig
 import androidx.build.SoftwareType
 import androidx.build.KotlinTarget
 
@@ -40,6 +41,7 @@ dependencies {
     implementation("androidx.annotation:annotation:1.8.1")
     implementation("androidx.savedstate:savedstate:1.2.1")
     implementation("androidx.activity:activity:1.9.3")
+    implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-common:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
 
@@ -61,6 +63,10 @@ dependencies {
     testImplementation("androidx.compose.ui:ui-test:1.7.5")
     testImplementation("androidx.compose.ui:ui-test-junit4:1.7.5")
     testImplementation(project(":xr:compose:compose-testing"))
+
+    compileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
+    testCompileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
+    testImplementation(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.host.test.jar")))
 }
 
 android {

@@ -70,17 +70,16 @@
     {
       "coordinates": {
         "type": "module",
-        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-android",
+        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
         "resolvedVersion": "1.7.3"
       },
-      "fromConfiguration": "implementation",
-      "toConfiguration": "runtimeOnly"
+      "toConfiguration": "implementation"
     },
     {
       "coordinates": {
         "type": "module",
-        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
-        "resolvedVersion": "1.7.3"
+        "identifier": "com.google.guava:listenablefuture",
+        "resolvedVersion": "1.0"
       },
       "toConfiguration": "implementation"
     }

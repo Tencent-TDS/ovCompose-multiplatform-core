@@ -21,6 +21,8 @@ import androidx.collection.LongObjectMap
 import androidx.collection.emptyLongObjectMap
 import androidx.collection.mutableLongIntMapOf
 import androidx.collection.mutableLongObjectMapOf
+import androidx.compose.foundation.ComposeFoundationFlags
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitAllPointersUpWithSlopDetection
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -157,6 +159,7 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
                     }
                 }
                 .then(if (shouldShowMagnifier) Modifier.selectionMagnifier(this) else Modifier)
+                .addContextMenuComponents()
 
     private var previousPosition: Offset? = null
 
@@ -745,6 +748,12 @@ internal class SelectionManager(private val selectionRegistrar: SelectionRegistr
             override fun onCancel() = done()
         }
 
+    @OptIn(ExperimentalFoundationApi::class)
+    private fun Modifier.addContextMenuComponents(): Modifier =
+        if (ComposeFoundationFlags.isNewContextMenuEnabled)
+            addSelectionContainerTextContextMenuComponents(this@SelectionManager)
+        else this
+
     /** Clear the selection on up event that isn't a drag-end. */
     private fun Modifier.onClearSelectionRequested(block: () -> Unit): Modifier =
         pointerInput(Unit) {
@@ -950,6 +959,10 @@ internal fun merge(lhs: Selection?, rhs: Selection?): Selection? {
 internal expect fun isCopyKeyEvent(keyEvent: KeyEvent): Boolean
 
 internal expect fun Modifier.selectionMagnifier(manager: SelectionManager): Modifier
+
+internal expect fun Modifier.addSelectionContainerTextContextMenuComponents(
+    selectionManager: SelectionManager
+): Modifier
 
 private val invertedInfiniteRect =
     Rect(

@@ -20,15 +20,6 @@
     {
       "coordinates": {
         "type": "module",
-        "identifier": "androidx.test:runner",
-        "resolvedVersion": "1.7.0-alpha01"
-      },
-      "fromConfiguration": "testImplementation",
-      "toConfiguration": "testRuntimeOnly"
-    },
-    {
-      "coordinates": {
-        "type": "module",
         "identifier": "junit:junit",
         "resolvedVersion": "4.13.2"
       },
@@ -79,6 +70,13 @@
         "identifier": ":wear:watchface:watchface-style"
       },
       "toConfiguration": "implementation"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-style"
+      },
+      "toConfiguration": "testImplementation"
     }
   ]
 }

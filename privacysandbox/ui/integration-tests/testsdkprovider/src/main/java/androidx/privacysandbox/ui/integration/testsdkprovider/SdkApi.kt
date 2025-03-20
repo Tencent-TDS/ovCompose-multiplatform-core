@@ -26,6 +26,7 @@ import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCo
 import androidx.privacysandbox.ui.core.DelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.ExperimentalFeatures
 import androidx.privacysandbox.ui.integration.mediateesdkprovider.IMediateeSdkApiFactory
+import androidx.privacysandbox.ui.integration.sdkproviderutils.IAutomatedTestCallbackProxy
 import androidx.privacysandbox.ui.integration.sdkproviderutils.NativeAdGenerator
 import androidx.privacysandbox.ui.integration.sdkproviderutils.PlayerViewProvider
 import androidx.privacysandbox.ui.integration.sdkproviderutils.PlayerViewabilityHandler
@@ -58,27 +59,25 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
         waitInsideOnDraw: Boolean,
         drawViewability: Boolean
     ): Bundle {
-        when (mediationOption) {
-            MediationOption.NON_MEDIATED -> {
-                return when (adFormat) {
-                    AdFormat.BANNER_AD -> loadBannerAd(adType, waitInsideOnDraw, drawViewability)
-                    AdFormat.NATIVE_AD -> loadNativeAd(adType)
-                    else -> Bundle()
-                }
-            }
-            MediationOption.SDK_RUNTIME_MEDIATEE,
-            MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY,
-            MediationOption.IN_APP_MEDIATEE,
-            MediationOption.REFRESHABLE_MEDIATION ->
-                return loadMediatedTestAd(
-                    adFormat,
-                    adType,
-                    mediationOption,
-                    waitInsideOnDraw,
-                    drawViewability
-                )
-            else -> return Bundle()
-        }
+        return loadAdInternal(adFormat, adType, mediationOption, waitInsideOnDraw, drawViewability)
+    }
+
+    override suspend fun loadBannerAdForAutomatedTests(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean,
+        automatedTestCallback: IAutomatedTestCallback
+    ): Bundle {
+        return loadAdInternal(
+            adFormat,
+            adType,
+            mediationOption,
+            waitInsideOnDraw,
+            drawViewability,
+            AutomatedTestCallbackProxy(automatedTestCallback)
+        )
     }
 
     /**
@@ -124,11 +123,16 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
         @AdType adType: Int,
         waitInsideOnDraw: Boolean,
         drawViewability: Boolean,
+        automatedTestCallbackProxy: IAutomatedTestCallbackProxy? = null
     ): Bundle {
         val adapter: AbstractSandboxedUiAdapter =
             when (adType) {
                 AdType.BASIC_NON_WEBVIEW -> {
-                    loadNonWebViewBannerAd("Simple Ad", waitInsideOnDraw)
+                    loadNonWebViewBannerAd(
+                        "Simple Ad",
+                        waitInsideOnDraw,
+                        automatedTestCallbackProxy
+                    )
                 }
                 AdType.BASIC_WEBVIEW -> {
                     loadWebViewBannerAd()
@@ -138,7 +142,11 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
                 }
                 AdType.NON_WEBVIEW_VIDEO -> loadVideoAd()
                 else -> {
-                    loadNonWebViewBannerAd("Ad type not present", waitInsideOnDraw)
+                    loadNonWebViewBannerAd(
+                        "Ad type not present",
+                        waitInsideOnDraw,
+                        automatedTestCallbackProxy
+                    )
                 }
             }.also { ViewabilityHandler.addObserverFactoryToAdapter(it, drawViewability) }
         return adapter.toCoreLibInfo(sdkContext)
@@ -196,6 +204,50 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
         Process.killProcess(Process.myPid())
     }
 
+    private suspend fun loadAdInternal(
+        @AdFormat adFormat: Int,
+        @AdType adType: Int,
+        @MediationOption mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean,
+        automatedTestCallbackProxy: IAutomatedTestCallbackProxy? = null
+    ): Bundle {
+        when (mediationOption) {
+            MediationOption.NON_MEDIATED -> {
+                return when (adFormat) {
+                    AdFormat.BANNER_AD ->
+                        loadBannerAd(
+                            adType,
+                            waitInsideOnDraw,
+                            drawViewability,
+                            automatedTestCallbackProxy
+                        )
+                    AdFormat.NATIVE_AD -> loadNativeAd(adType)
+                    else -> Bundle()
+                }
+            }
+            MediationOption.SDK_RUNTIME_MEDIATEE,
+            MediationOption.SDK_RUNTIME_MEDIATEE_WITH_OVERLAY,
+            MediationOption.IN_APP_MEDIATEE,
+            MediationOption.REFRESHABLE_MEDIATION ->
+                return loadMediatedTestAd(
+                    adFormat,
+                    adType,
+                    mediationOption,
+                    waitInsideOnDraw,
+                    drawViewability
+                )
+            else -> return Bundle()
+        }
+    }
+
+    private class AutomatedTestCallbackProxy(val automatedTestCallback: IAutomatedTestCallback) :
+        IAutomatedTestCallbackProxy {
+        override fun onResizeOccurred(width: Int, height: Int) {
+            automatedTestCallback.onResizeOccurred(width, height)
+        }
+    }
+
     private fun loadWebViewBannerAd(): AbstractSandboxedUiAdapter {
         return testAdapters.WebViewBannerAd()
     }
@@ -206,9 +258,10 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
 
     private fun loadNonWebViewBannerAd(
         text: String,
-        waitInsideOnDraw: Boolean
+        waitInsideOnDraw: Boolean,
+        automatedTestCallbackProxy: IAutomatedTestCallbackProxy? = null
     ): AbstractSandboxedUiAdapter {
-        return testAdapters.TestBannerAd(text, waitInsideOnDraw)
+        return testAdapters.TestBannerAd(text, waitInsideOnDraw, automatedTestCallbackProxy)
     }
 
     private fun loadVideoAd(): AbstractSandboxedUiAdapter {

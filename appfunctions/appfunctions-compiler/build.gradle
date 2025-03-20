@@ -32,7 +32,7 @@ plugins {
 }
 
 androidx.configureAarAsJarForConfiguration("testImplementation")
-androidx.configureAarAsJarForConfiguration("implementation")
+androidx.configureAarAsJarForConfiguration("api")
 
 dependencies {
     api(libs.kotlinStdlib)
@@ -45,7 +45,7 @@ dependencies {
     })
 
     // Added for reusing AppFunctionMetadata classes.
-    implementationAarAsJar(project(":appfunctions:appfunctions-common"))
+    apiAarAsJar(project(":appfunctions:appfunctions-common"))
 
     testImplementationAarAsJar(project(":appfunctions:appfunctions-common"))
     testImplementationAarAsJar(project(":appfunctions:appfunctions-runtime"))

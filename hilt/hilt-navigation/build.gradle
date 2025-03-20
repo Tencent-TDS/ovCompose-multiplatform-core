@@ -54,6 +54,3 @@ android {
     namespace = "androidx.hilt.navigation"
 }
 
-ksp {
-    useKsp2 = true
-}

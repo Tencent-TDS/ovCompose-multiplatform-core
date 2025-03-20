@@ -21,6 +21,7 @@ import android.graphics.Point
 import android.graphics.PointF
 import android.view.MotionEvent
 import android.view.ViewConfiguration
+import android.view.ViewParent
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.TimeUnit
@@ -28,6 +29,7 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.ArgumentCaptor
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.eq
@@ -410,6 +412,59 @@ class GestureTrackerTest {
         // And that we never detected a zoom / quick scale
         verify(gestureHandlerSpy, never()).onScale(any())
         verify(gestureHandlerSpy, times(2)).onScrollTouchUp()
+
+        verifyNoMoreInteractions(gestureHandlerSpy)
+    }
+
+    @Test
+    fun testDragX_nonNullViewParent_contentAtEdge_onScrollInterceptDisallowed() {
+        val disallowInterceptCaptor = ArgumentCaptor.forClass(Boolean::class.java)
+        val viewParentSpy = mock<ViewParent>().apply { requestDisallowInterceptTouchEvent(true) }
+
+        for (event in
+            oneFingerDrag(
+                start = PointF(50f, 50f),
+                velocity = Point(ViewConfiguration.get(context).scaledMinimumFlingVelocity / 2, 0)
+            )) {
+            gestureTracker.feed(event, viewParentSpy, contentAtEdge = true)
+        }
+
+        verify(gestureHandlerSpy).onGestureStart()
+        verify(gestureHandlerSpy, atLeastOnce()).onScroll(any(), any(), any(), any())
+        verify(viewParentSpy, atLeastOnce())
+            .requestDisallowInterceptTouchEvent(disallowInterceptCaptor.capture())
+        assertThat(disallowInterceptCaptor.value).isFalse()
+
+        verify(gestureHandlerSpy).onGestureEnd(eq(GestureTracker.Gesture.DRAG_X))
+        assertThat(gestureTracker.matches(GestureTracker.Gesture.DRAG_X)).isTrue()
+        assertThat(disallowInterceptCaptor.value).isFalse()
+        verify(gestureHandlerSpy, times(1)).onScrollTouchUp()
+
+        verifyNoMoreInteractions(gestureHandlerSpy)
+    }
+
+    @Test
+    fun testDragX_nonNullViewParent_contentNotAtEdge_onScrollInterceptAllowed() {
+        val disallowInterceptCaptor = ArgumentCaptor.forClass(Boolean::class.java)
+        val viewParentSpy = mock<ViewParent>().apply { requestDisallowInterceptTouchEvent(true) }
+
+        for (event in
+            oneFingerDrag(
+                start = PointF(50f, 50f),
+                velocity = Point(ViewConfiguration.get(context).scaledMinimumFlingVelocity / 2, 0)
+            )) {
+            gestureTracker.feed(event, viewParentSpy, contentAtEdge = false)
+        }
+
+        verify(gestureHandlerSpy).onGestureStart()
+        verify(gestureHandlerSpy, atLeastOnce()).onScroll(any(), any(), any(), any())
+        verify(viewParentSpy, atLeastOnce())
+            .requestDisallowInterceptTouchEvent(disallowInterceptCaptor.capture())
+        assertThat(disallowInterceptCaptor.value).isTrue()
+
+        verify(gestureHandlerSpy).onGestureEnd(eq(GestureTracker.Gesture.DRAG_X))
+        assertThat(gestureTracker.matches(GestureTracker.Gesture.DRAG_X)).isTrue()
+        verify(gestureHandlerSpy, times(1)).onScrollTouchUp()
 
         verifyNoMoreInteractions(gestureHandlerSpy)
     }

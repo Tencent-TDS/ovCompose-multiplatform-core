@@ -25,6 +25,7 @@ import androidx.pdf.PdfDocument
 import androidx.pdf.content.PdfPageTextContent
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import org.junit.Before
@@ -70,6 +71,8 @@ class PageTest {
 
     private lateinit var page: Page
 
+    private val errorFlow = MutableSharedFlow<Throwable>()
+
     private fun createPage(isTouchExplorationEnabled: Boolean): Page {
         return Page(
             0,
@@ -79,7 +82,8 @@ class PageTest {
             MAX_BITMAP_SIZE,
             isTouchExplorationEnabled = isTouchExplorationEnabled,
             invalidationTracker,
-            onPageTextReady
+            onPageTextReady,
+            errorFlow
         )
     }
 

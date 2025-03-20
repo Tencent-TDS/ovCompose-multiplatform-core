@@ -48,7 +48,7 @@ androidXMultiplatform {
                 implementation(libs.espressoCore)
                 implementation(libs.junit)
                 implementation(libs.truth)
-                implementation(project(":core:core-ktx"))
+                implementation("androidx.core:core-ktx:1.15.0")
                 implementation(project(":test:screenshot:screenshot"))
             }
         }

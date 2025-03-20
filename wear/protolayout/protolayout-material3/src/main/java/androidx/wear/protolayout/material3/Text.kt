@@ -27,6 +27,7 @@ import androidx.wear.protolayout.layout.basicText
 import androidx.wear.protolayout.material3.Typography.TypographyToken
 import androidx.wear.protolayout.material3.Versions.hasTextOverflowEllipsizeSupport
 import androidx.wear.protolayout.modifiers.LayoutModifier
+import androidx.wear.protolayout.modifiers.contentDescription
 import androidx.wear.protolayout.types.LayoutColor
 import androidx.wear.protolayout.types.LayoutString
 
@@ -36,8 +37,15 @@ import androidx.wear.protolayout.types.LayoutString
  * There are pre-defined typography styles that can be obtained from Materials token system in
  * [Typography].
  *
+ * This text, when added to the `titleSlot`, `bottomSlot` and `labelForBottomSlot` in
+ * [primaryLayout], is considered as important for accessibility automatically and gets read out by
+ * the screen reader even without content description provided in the [modifier]. This behavior can
+ * be removed with [LayoutModifier.clearSemantics] if not desired. In all other places, this text is
+ * considered as not important for accessibility by default unless content description is
+ * specifically provided in the [modifier].
+ *
  * @param text The text content for this component.
- * @param modifiers Modifiers to set to this element.
+ * @param modifier Modifiers to set to this element.
  * @param typography The typography from [Typography] to be applied to this text. This will have
  *   predefined default value specified by each components that uses this text, to achieve the
  *   recommended look. If using some of `Typography.NUMERAL_` styles and the provided text is
@@ -62,7 +70,7 @@ import androidx.wear.protolayout.types.LayoutString
 @Suppress("DEPRECATION") // Intentionally using deprecated fallback for old renderer
 public fun MaterialScope.text(
     text: LayoutString,
-    modifiers: LayoutModifier = LayoutModifier,
+    modifier: LayoutModifier = LayoutModifier,
     @TypographyToken typography: Int = defaultTextElementStyle.typography,
     color: LayoutColor = defaultTextElementStyle.color,
     italic: Boolean = defaultTextElementStyle.italic,
@@ -99,6 +107,14 @@ public fun MaterialScope.text(
             } else {
                 overflow
             },
-        modifier = modifiers,
+        modifier =
+            // Text by default is not important for accessibility. In M3 spec, text in primaryLayout
+            // tileSlot, bottomSlot and labelForBottomSlot should be important for accessibility by
+            // default.
+            if (defaultTextElementStyle.importantForAccessibility) {
+                LayoutModifier.contentDescription(text.staticValue, text.dynamicValue) then modifier
+            } else {
+                modifier
+            },
         lineHeight = theme.getLineHeight(typography).value,
     )

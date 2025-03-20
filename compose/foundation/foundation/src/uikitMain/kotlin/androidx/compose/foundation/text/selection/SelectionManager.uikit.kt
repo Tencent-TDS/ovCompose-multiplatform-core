@@ -57,3 +57,8 @@ internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modi
         )
     }
 }
+
+// TODO https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addSelectionContainerTextContextMenuComponents(
+    selectionManager: SelectionManager
+): Modifier = this

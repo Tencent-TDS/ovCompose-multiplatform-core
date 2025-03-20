@@ -374,7 +374,7 @@ class ButtonScreenshotTest {
 
     private fun morphingSurfaceTransformation(heightProportion: Float, contentAlpha: Float = 1f) =
         object : SurfaceTransformation {
-            override fun createBackgroundPainter(
+            override fun createContainerPainter(
                 painter: Painter,
                 shape: Shape,
                 border: BorderStroke?
@@ -398,8 +398,11 @@ class ButtonScreenshotTest {
                     }
                 }
 
-            override fun GraphicsLayerScope.applyTransformation() {
+            override fun GraphicsLayerScope.applyContentTransformation() {
                 alpha = contentAlpha
+            }
+
+            override fun GraphicsLayerScope.applyContainerTransformation() {
                 clip = true
                 val shape = this.shape
                 this.shape =

@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Provides spatial audio extensions on the framework {@link
  * com.android.extensions.xr.media.AudioManagerExtensions AudioManagerExtensions} class.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class AudioManagerExtensions {
 
     AudioManagerExtensions() {

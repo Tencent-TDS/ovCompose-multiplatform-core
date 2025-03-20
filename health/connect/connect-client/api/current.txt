@@ -5,6 +5,10 @@ package androidx.health.connect.client {
     method public suspend Object? aggregate(androidx.health.connect.client.request.AggregateRequest request, kotlin.coroutines.Continuation<? super androidx.health.connect.client.aggregate.AggregationResult>);
     method public suspend Object? aggregateGroupByDuration(androidx.health.connect.client.request.AggregateGroupByDurationRequest request, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration>>);
     method public suspend Object? aggregateGroupByPeriod(androidx.health.connect.client.request.AggregateGroupByPeriodRequest request, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod>>);
+    method @SuppressCompatibility @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA") @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? createMedicalDataSource(androidx.health.connect.client.request.CreateMedicalDataSourceRequest request, kotlin.coroutines.Continuation<? super androidx.health.connect.client.records.MedicalDataSource>);
+    method @SuppressCompatibility @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA") @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? deleteMedicalDataSourceWithData(String id, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+    method @SuppressCompatibility @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA") @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? deleteMedicalResources(androidx.health.connect.client.request.DeleteMedicalResourcesRequest request, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+    method @SuppressCompatibility @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA") @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? deleteMedicalResources(java.util.List<androidx.health.connect.client.records.MedicalResourceId> ids, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? deleteRecords(kotlin.reflect.KClass<? extends androidx.health.connect.client.records.Record> recordType, androidx.health.connect.client.time.TimeRangeFilter timeRangeFilter, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? deleteRecords(kotlin.reflect.KClass<? extends androidx.health.connect.client.records.Record> recordType, java.util.List<java.lang.String> recordIdsList, java.util.List<java.lang.String> clientRecordIdsList, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? getChanges(String changesToken, kotlin.coroutines.Continuation<? super androidx.health.connect.client.response.ChangesResponse>);
@@ -13,15 +17,20 @@ package androidx.health.connect.client {
     method public static android.content.Intent getHealthConnectManageDataIntent(android.content.Context context);
     method public static android.content.Intent getHealthConnectManageDataIntent(android.content.Context context, optional String providerPackageName);
     method public static String getHealthConnectSettingsAction();
+    method @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? getMedicalDataSources(androidx.health.connect.client.request.GetMedicalDataSourcesRequest request, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.records.MedicalDataSource>>);
+    method @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? getMedicalDataSources(java.util.List<java.lang.String> ids, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.records.MedicalDataSource>>);
     method public static androidx.health.connect.client.HealthConnectClient getOrCreate(android.content.Context context);
     method public static androidx.health.connect.client.HealthConnectClient getOrCreate(android.content.Context context, optional String providerPackageName);
     method public androidx.health.connect.client.PermissionController getPermissionController();
     method public static int getSdkStatus(android.content.Context context);
     method public static int getSdkStatus(android.content.Context context, optional String providerPackageName);
     method public suspend Object? insertRecords(java.util.List<? extends androidx.health.connect.client.records.Record> records, kotlin.coroutines.Continuation<? super androidx.health.connect.client.response.InsertRecordsResponse>);
+    method @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? readMedicalResources(androidx.health.connect.client.request.ReadMedicalResourcesRequest request, kotlin.coroutines.Continuation<? super androidx.health.connect.client.response.ReadMedicalResourcesResponse>);
+    method @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? readMedicalResources(java.util.List<androidx.health.connect.client.records.MedicalResourceId> ids, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.records.MedicalResource>>);
     method public suspend <T extends androidx.health.connect.client.records.Record> Object? readRecord(kotlin.reflect.KClass<T> recordType, String recordId, kotlin.coroutines.Continuation<? super androidx.health.connect.client.response.ReadRecordResponse<T>>);
     method public suspend <T extends androidx.health.connect.client.records.Record> Object? readRecords(androidx.health.connect.client.request.ReadRecordsRequest<T> request, kotlin.coroutines.Continuation<? super androidx.health.connect.client.response.ReadRecordsResponse<T>>);
     method public suspend Object? updateRecords(java.util.List<? extends androidx.health.connect.client.records.Record> records, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+    method @SuppressCompatibility @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA") @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public default suspend Object? upsertMedicalResources(java.util.List<androidx.health.connect.client.request.UpsertMedicalResourceRequest> requests, kotlin.coroutines.Continuation<? super java.util.List<androidx.health.connect.client.records.MedicalResource>>);
     property public default androidx.health.connect.client.HealthConnectFeatures features;
     property public abstract androidx.health.connect.client.PermissionController permissionController;
     field public static final androidx.health.connect.client.HealthConnectClient.Companion Companion;
@@ -56,6 +65,7 @@ package androidx.health.connect.client {
   public interface HealthConnectFeatures {
     method public int getFeatureStatus(int feature);
     field public static final androidx.health.connect.client.HealthConnectFeatures.Companion Companion;
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final int FEATURE_PERSONAL_HEALTH_RECORD = 6; // 0x6
     field public static final int FEATURE_PLANNED_EXERCISE = 3; // 0x3
     field public static final int FEATURE_READ_HEALTH_DATA_HISTORY = 4; // 0x4
     field public static final int FEATURE_READ_HEALTH_DATA_IN_BACKGROUND = 1; // 0x1
@@ -65,12 +75,14 @@ package androidx.health.connect.client {
   }
 
   public static final class HealthConnectFeatures.Companion {
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static int FEATURE_PERSONAL_HEALTH_RECORD;
     property public static int FEATURE_PLANNED_EXERCISE;
     property public static int FEATURE_READ_HEALTH_DATA_HISTORY;
     property public static int FEATURE_READ_HEALTH_DATA_IN_BACKGROUND;
     property public static int FEATURE_SKIN_TEMPERATURE;
     property public static int FEATURE_STATUS_AVAILABLE;
     property public static int FEATURE_STATUS_UNAVAILABLE;
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final int FEATURE_PERSONAL_HEALTH_RECORD = 6; // 0x6
     field public static final int FEATURE_PLANNED_EXERCISE = 3; // 0x3
     field public static final int FEATURE_READ_HEALTH_DATA_HISTORY = 4; // 0x4
     field public static final int FEATURE_READ_HEALTH_DATA_IN_BACKGROUND = 1; // 0x1
@@ -162,6 +174,13 @@ package androidx.health.connect.client.contracts {
 
 }
 
+package androidx.health.connect.client.feature {
+
+  @SuppressCompatibility @kotlin.RequiresOptIn(message="This is a part of the Personal Health Record experimental Health Connect APIs and could change in the future.") @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) public @interface ExperimentalPersonalHealthRecordApi {
+  }
+
+}
+
 package androidx.health.connect.client.permission {
 
   public final class HealthPermission {
@@ -170,7 +189,20 @@ package androidx.health.connect.client.permission {
     field public static final androidx.health.connect.client.permission.HealthPermission.Companion Companion;
     field public static final String PERMISSION_READ_HEALTH_DATA_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY";
     field public static final String PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES = "android.permission.health.READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_CONDITIONS = "android.permission.health.READ_MEDICAL_DATA_CONDITIONS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS = "android.permission.health.READ_MEDICAL_DATA_LABORATORY_RESULTS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_MEDICATIONS = "android.permission.health.READ_MEDICAL_DATA_MEDICATIONS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_PERSONAL_DETAILS = "android.permission.health.READ_MEDICAL_DATA_PERSONAL_DETAILS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_PRACTITIONER_DETAILS = "android.permission.health.READ_MEDICAL_DATA_PRACTITIONER_DETAILS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_PREGNANCY = "android.permission.health.READ_MEDICAL_DATA_PREGNANCY";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_PROCEDURES = "android.permission.health.READ_MEDICAL_DATA_PROCEDURES";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_SOCIAL_HISTORY = "android.permission.health.READ_MEDICAL_DATA_SOCIAL_HISTORY";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_VACCINES = "android.permission.health.READ_MEDICAL_DATA_VACCINES";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_VISITS = "android.permission.health.READ_MEDICAL_DATA_VISITS";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS = "android.permission.health.READ_MEDICAL_DATA_VITAL_SIGNS";
     field public static final String PERMISSION_WRITE_EXERCISE_ROUTE = "android.permission.health.WRITE_EXERCISE_ROUTE";
+    field @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static final String PERMISSION_WRITE_MEDICAL_DATA = "android.permission.health.WRITE_MEDICAL_DATA";
   }
 
   public static final class HealthPermission.Companion {
@@ -180,7 +212,20 @@ package androidx.health.connect.client.permission {
     method public String getWritePermission(kotlin.reflect.KClass<? extends androidx.health.connect.client.records.Record> recordType);
     property public static String PERMISSION_READ_HEALTH_DATA_HISTORY;
     property public static String PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_ALLERGIES_INTOLERANCES;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_CONDITIONS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_LABORATORY_RESULTS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_MEDICATIONS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_PERSONAL_DETAILS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_PRACTITIONER_DETAILS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_PREGNANCY;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_PROCEDURES;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_SOCIAL_HISTORY;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_VACCINES;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_VISITS;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_READ_MEDICAL_DATA_VITAL_SIGNS;
     property public static String PERMISSION_WRITE_EXERCISE_ROUTE;
+    property @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public static String PERMISSION_WRITE_MEDICAL_DATA;
   }
 
 }
@@ -1012,6 +1057,66 @@ package androidx.health.connect.client.records {
     property public static int EXERCISE_TYPE_YOGA;
   }
 
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class FhirResource {
+    ctor public FhirResource(int type, String id, String data);
+    method public String getData();
+    method public String getId();
+    method public int getType();
+    property public String data;
+    property public String id;
+    property public int type;
+    field public static final androidx.health.connect.client.records.FhirResource.Companion Companion;
+    field public static final int FHIR_RESOURCE_TYPE_ALLERGY_INTOLERANCE = 2; // 0x2
+    field public static final int FHIR_RESOURCE_TYPE_CONDITION = 4; // 0x4
+    field public static final int FHIR_RESOURCE_TYPE_ENCOUNTER = 12; // 0xc
+    field public static final int FHIR_RESOURCE_TYPE_IMMUNIZATION = 1; // 0x1
+    field public static final int FHIR_RESOURCE_TYPE_LOCATION = 13; // 0xd
+    field public static final int FHIR_RESOURCE_TYPE_MEDICATION = 6; // 0x6
+    field public static final int FHIR_RESOURCE_TYPE_MEDICATION_REQUEST = 7; // 0x7
+    field public static final int FHIR_RESOURCE_TYPE_MEDICATION_STATEMENT = 8; // 0x8
+    field public static final int FHIR_RESOURCE_TYPE_OBSERVATION = 3; // 0x3
+    field public static final int FHIR_RESOURCE_TYPE_ORGANIZATION = 14; // 0xe
+    field public static final int FHIR_RESOURCE_TYPE_PATIENT = 9; // 0x9
+    field public static final int FHIR_RESOURCE_TYPE_PRACTITIONER = 10; // 0xa
+    field public static final int FHIR_RESOURCE_TYPE_PRACTITIONER_ROLE = 11; // 0xb
+    field public static final int FHIR_RESOURCE_TYPE_PROCEDURE = 5; // 0x5
+  }
+
+  public static final class FhirResource.Companion {
+    property public static int FHIR_RESOURCE_TYPE_ALLERGY_INTOLERANCE;
+    property public static int FHIR_RESOURCE_TYPE_CONDITION;
+    property public static int FHIR_RESOURCE_TYPE_ENCOUNTER;
+    property public static int FHIR_RESOURCE_TYPE_IMMUNIZATION;
+    property public static int FHIR_RESOURCE_TYPE_LOCATION;
+    property public static int FHIR_RESOURCE_TYPE_MEDICATION;
+    property public static int FHIR_RESOURCE_TYPE_MEDICATION_REQUEST;
+    property public static int FHIR_RESOURCE_TYPE_MEDICATION_STATEMENT;
+    property public static int FHIR_RESOURCE_TYPE_OBSERVATION;
+    property public static int FHIR_RESOURCE_TYPE_ORGANIZATION;
+    property public static int FHIR_RESOURCE_TYPE_PATIENT;
+    property public static int FHIR_RESOURCE_TYPE_PRACTITIONER;
+    property public static int FHIR_RESOURCE_TYPE_PRACTITIONER_ROLE;
+    property public static int FHIR_RESOURCE_TYPE_PROCEDURE;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class FhirVersion implements java.lang.Comparable<androidx.health.connect.client.records.FhirVersion> {
+    ctor public FhirVersion(int major, int minor, int patch);
+    method public int compareTo(androidx.health.connect.client.records.FhirVersion other);
+    method public int getMajor();
+    method public int getMinor();
+    method public int getPatch();
+    method public boolean isSupportedFhirVersion();
+    method public static androidx.health.connect.client.records.FhirVersion parseFhirVersion(String fhirVersionString);
+    property public int major;
+    property public int minor;
+    property public int patch;
+    field public static final androidx.health.connect.client.records.FhirVersion.Companion Companion;
+  }
+
+  public static final class FhirVersion.Companion {
+    method public androidx.health.connect.client.records.FhirVersion parseFhirVersion(String fhirVersionString);
+  }
+
   public final class FloorsClimbedRecord implements androidx.health.connect.client.records.Record {
     ctor public FloorsClimbedRecord(java.time.Instant startTime, java.time.ZoneOffset? startZoneOffset, java.time.Instant endTime, java.time.ZoneOffset? endZoneOffset, double floors, androidx.health.connect.client.records.metadata.Metadata metadata);
     method public java.time.Instant getEndTime();
@@ -1160,6 +1265,80 @@ package androidx.health.connect.client.records {
     field public static final int MEAL_TYPE_LUNCH = 2; // 0x2
     field public static final int MEAL_TYPE_SNACK = 4; // 0x4
     field public static final int MEAL_TYPE_UNKNOWN = 0; // 0x0
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class MedicalDataSource {
+    ctor public MedicalDataSource(String id, String packageName, android.net.Uri fhirBaseUri, String displayName, androidx.health.connect.client.records.FhirVersion fhirVersion, java.time.Instant? lastDataUpdateTime);
+    method public String getDisplayName();
+    method public android.net.Uri getFhirBaseUri();
+    method public androidx.health.connect.client.records.FhirVersion getFhirVersion();
+    method public String getId();
+    method public java.time.Instant? getLastDataUpdateTime();
+    method public String getPackageName();
+    property public String displayName;
+    property public android.net.Uri fhirBaseUri;
+    property public androidx.health.connect.client.records.FhirVersion fhirVersion;
+    property public String id;
+    property public java.time.Instant? lastDataUpdateTime;
+    property public String packageName;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class MedicalResource {
+    ctor public MedicalResource(int type, androidx.health.connect.client.records.MedicalResourceId id, String dataSourceId, androidx.health.connect.client.records.FhirVersion fhirVersion, androidx.health.connect.client.records.FhirResource fhirResource);
+    method public String getDataSourceId();
+    method public androidx.health.connect.client.records.FhirResource getFhirResource();
+    method public androidx.health.connect.client.records.FhirVersion getFhirVersion();
+    method public androidx.health.connect.client.records.MedicalResourceId getId();
+    method public int getType();
+    property public String dataSourceId;
+    property public androidx.health.connect.client.records.FhirResource fhirResource;
+    property public androidx.health.connect.client.records.FhirVersion fhirVersion;
+    property public androidx.health.connect.client.records.MedicalResourceId id;
+    property public int type;
+    field public static final androidx.health.connect.client.records.MedicalResource.Companion Companion;
+    field public static final int MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES = 2; // 0x2
+    field public static final int MEDICAL_RESOURCE_TYPE_CONDITIONS = 7; // 0x7
+    field public static final int MEDICAL_RESOURCE_TYPE_LABORATORY_RESULTS = 6; // 0x6
+    field public static final int MEDICAL_RESOURCE_TYPE_MEDICATIONS = 9; // 0x9
+    field public static final int MEDICAL_RESOURCE_TYPE_PERSONAL_DETAILS = 10; // 0xa
+    field public static final int MEDICAL_RESOURCE_TYPE_PRACTITIONER_DETAILS = 11; // 0xb
+    field public static final int MEDICAL_RESOURCE_TYPE_PREGNANCY = 3; // 0x3
+    field public static final int MEDICAL_RESOURCE_TYPE_PROCEDURES = 8; // 0x8
+    field public static final int MEDICAL_RESOURCE_TYPE_SOCIAL_HISTORY = 4; // 0x4
+    field public static final int MEDICAL_RESOURCE_TYPE_VACCINES = 1; // 0x1
+    field public static final int MEDICAL_RESOURCE_TYPE_VISITS = 12; // 0xc
+    field public static final int MEDICAL_RESOURCE_TYPE_VITAL_SIGNS = 5; // 0x5
+  }
+
+  public static final class MedicalResource.Companion {
+    property public static int MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES;
+    property public static int MEDICAL_RESOURCE_TYPE_CONDITIONS;
+    property public static int MEDICAL_RESOURCE_TYPE_LABORATORY_RESULTS;
+    property public static int MEDICAL_RESOURCE_TYPE_MEDICATIONS;
+    property public static int MEDICAL_RESOURCE_TYPE_PERSONAL_DETAILS;
+    property public static int MEDICAL_RESOURCE_TYPE_PRACTITIONER_DETAILS;
+    property public static int MEDICAL_RESOURCE_TYPE_PREGNANCY;
+    property public static int MEDICAL_RESOURCE_TYPE_PROCEDURES;
+    property public static int MEDICAL_RESOURCE_TYPE_SOCIAL_HISTORY;
+    property public static int MEDICAL_RESOURCE_TYPE_VACCINES;
+    property public static int MEDICAL_RESOURCE_TYPE_VISITS;
+    property public static int MEDICAL_RESOURCE_TYPE_VITAL_SIGNS;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class MedicalResourceId {
+    ctor public MedicalResourceId(String dataSourceId, int fhirResourceType, String fhirResourceId);
+    method public static androidx.health.connect.client.records.MedicalResourceId fromFhirReference(String dataSourceId, String fhirReference);
+    method public String getDataSourceId();
+    method public String getFhirResourceId();
+    method public int getFhirResourceType();
+    property public String dataSourceId;
+    property public String fhirResourceId;
+    property public int fhirResourceType;
+    field public static final androidx.health.connect.client.records.MedicalResourceId.Companion Companion;
+  }
+
+  public static final class MedicalResourceId.Companion {
+    method public androidx.health.connect.client.records.MedicalResourceId fromFhirReference(String dataSourceId, String fhirReference);
   }
 
   public final class MenstruationFlowRecord implements androidx.health.connect.client.records.Record {
@@ -2015,12 +2194,72 @@ package androidx.health.connect.client.request {
     ctor public ChangesTokenRequest(java.util.Set<? extends kotlin.reflect.KClass<? extends androidx.health.connect.client.records.Record>> recordTypes, optional java.util.Set<androidx.health.connect.client.records.metadata.DataOrigin> dataOriginFilters);
   }
 
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class CreateMedicalDataSourceRequest {
+    ctor public CreateMedicalDataSourceRequest(android.net.Uri fhirBaseUri, String displayName, androidx.health.connect.client.records.FhirVersion fhirVersion);
+    method public String getDisplayName();
+    method public android.net.Uri getFhirBaseUri();
+    method public androidx.health.connect.client.records.FhirVersion getFhirVersion();
+    property public String displayName;
+    property public android.net.Uri fhirBaseUri;
+    property public androidx.health.connect.client.records.FhirVersion fhirVersion;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class DeleteMedicalResourcesRequest {
+    ctor public DeleteMedicalResourcesRequest();
+    ctor public DeleteMedicalResourcesRequest(optional java.util.Set<java.lang.String> dataSourceIds, optional java.util.Set<java.lang.Integer> medicalResourceTypes);
+    method public java.util.Set<java.lang.String> getDataSourceIds();
+    method public java.util.Set<java.lang.Integer> getMedicalResourceTypes();
+    property public java.util.Set<java.lang.String> dataSourceIds;
+    property public java.util.Set<java.lang.Integer> medicalResourceTypes;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class GetMedicalDataSourcesRequest {
+    ctor public GetMedicalDataSourcesRequest(java.util.List<java.lang.String> packageNames);
+    method public java.util.List<java.lang.String> getPackageNames();
+    property public java.util.List<java.lang.String> packageNames;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class ReadMedicalResourcesInitialRequest extends androidx.health.connect.client.request.ReadMedicalResourcesRequest {
+    ctor public ReadMedicalResourcesInitialRequest(int medicalResourceType, java.util.Set<java.lang.String> medicalDataSourceIds, optional int pageSize);
+    method public java.util.Set<java.lang.String> getMedicalDataSourceIds();
+    method public int getMedicalResourceType();
+    property public java.util.Set<java.lang.String> medicalDataSourceIds;
+    property public int medicalResourceType;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class ReadMedicalResourcesPageRequest extends androidx.health.connect.client.request.ReadMedicalResourcesRequest {
+    ctor public ReadMedicalResourcesPageRequest(String pageToken, optional int pageSize);
+    method public String getPageToken();
+    property public String pageToken;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public abstract class ReadMedicalResourcesRequest {
+    method public final int getPageSize();
+    property public final int pageSize;
+    field public static final androidx.health.connect.client.request.ReadMedicalResourcesRequest.Companion Companion;
+    field public static final int DEFAULT_PAGE_SIZE = 1000; // 0x3e8
+  }
+
+  public static final class ReadMedicalResourcesRequest.Companion {
+    property public static int DEFAULT_PAGE_SIZE;
+  }
+
   public final class ReadRecordsRequest<T extends androidx.health.connect.client.records.Record> {
     ctor public ReadRecordsRequest(kotlin.reflect.KClass<T> recordType, androidx.health.connect.client.time.TimeRangeFilter timeRangeFilter, optional java.util.Set<androidx.health.connect.client.records.metadata.DataOrigin> dataOriginFilter, optional boolean ascendingOrder, optional int pageSize, optional String? pageToken);
   }
 
   public final class ReadRecordsRequestKt {
     method public static inline <reified T extends androidx.health.connect.client.records.Record> androidx.health.connect.client.request.ReadRecordsRequest<T> ReadRecordsRequest(androidx.health.connect.client.time.TimeRangeFilter timeRangeFilter, optional java.util.Set<androidx.health.connect.client.records.metadata.DataOrigin> dataOriginFilter, optional boolean ascendingOrder, optional int pageSize, optional String? pageToken);
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class UpsertMedicalResourceRequest {
+    ctor public UpsertMedicalResourceRequest(String dataSourceId, androidx.health.connect.client.records.FhirVersion fhirVersion, String data);
+    method public String getData();
+    method public String getDataSourceId();
+    method public androidx.health.connect.client.records.FhirVersion getFhirVersion();
+    property public String data;
+    property public String dataSourceId;
+    property public androidx.health.connect.client.records.FhirVersion fhirVersion;
   }
 
 }
@@ -2041,6 +2280,16 @@ package androidx.health.connect.client.response {
   public final class InsertRecordsResponse {
     method public java.util.List<java.lang.String> getRecordIdsList();
     property public java.util.List<java.lang.String> recordIdsList;
+  }
+
+  @SuppressCompatibility @androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi public final class ReadMedicalResourcesResponse {
+    ctor public ReadMedicalResourcesResponse(java.util.List<androidx.health.connect.client.records.MedicalResource> medicalResources, String? nextPageToken, int remainingCount);
+    method public java.util.List<androidx.health.connect.client.records.MedicalResource> getMedicalResources();
+    method public String? getNextPageToken();
+    method public int getRemainingCount();
+    property public java.util.List<androidx.health.connect.client.records.MedicalResource> medicalResources;
+    property public String? nextPageToken;
+    property public int remainingCount;
   }
 
   public final class ReadRecordResponse<T extends androidx.health.connect.client.records.Record> {

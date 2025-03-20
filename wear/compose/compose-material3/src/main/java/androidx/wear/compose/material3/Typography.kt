@@ -335,12 +335,16 @@ internal val DefaultLineHeightStyle =
         trim = LineHeightStyle.Trim.None,
     )
 
-/** Returns theme default [TextStyle] with default [PlatformTextStyle]. */
+/**
+ * Returns theme default [TextStyle] with default [PlatformTextStyle]. Text styles are proportional
+ * by default but can be made tabular using copy(fontFeatureSettings = "tnum").
+ */
 internal val DefaultTextStyle =
     TextStyle.Default.copy(
         platformStyle = PlatformTextStyle(includeFontPadding = DefaultIncludeFontPadding),
         lineHeightStyle = DefaultLineHeightStyle,
         textMotion = TextMotion.Animated,
+        fontFeatureSettings = "pnum",
     )
 
 /** Helper function for typography tokens. */

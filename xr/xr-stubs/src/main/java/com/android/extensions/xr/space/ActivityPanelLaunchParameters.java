@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Defines the launch parameters when creating an {@link
  * com.android.extensions.xr.space.ActivityPanel ActivityPanel}.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public final class ActivityPanelLaunchParameters {
 
     /**

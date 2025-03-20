@@ -78,11 +78,6 @@ class AppFunctionSerializableProcessorTest {
         )
         compilationTestHelper.assertSuccessWithSourceContent(
             report = report,
-            expectGeneratedSourceFileName = "\$StringBaseSerializableFactory.kt",
-            goldenFileName = "\$StringBaseSerializableFactory.KT"
-        )
-        compilationTestHelper.assertSuccessWithSourceContent(
-            report = report,
             expectGeneratedSourceFileName = "\$LongBaseSerializableFactory.kt",
             goldenFileName = "\$LongBaseSerializableFactory.KT"
         )
@@ -113,7 +108,7 @@ class AppFunctionSerializableProcessorTest {
     }
 
     @Test
-    fun testProcessor_badlyInheritedProperties_success() {
+    fun testProcessor_badlyInheritedSerializableProperties_success() {
         val report =
             compilationTestHelper.compileAll(
                 sourceFileNames = listOf("SubClassRenamedPropertySerializable.KT")
@@ -121,7 +116,20 @@ class AppFunctionSerializableProcessorTest {
 
         compilationTestHelper.assertErrorWithMessage(
             report,
-            "App parameters in @AppFunctionSerializable supertypes must be present in subtype"
+            "All parameters in @AppFunctionSerializable supertypes must be present in subtype"
+        )
+    }
+
+    @Test
+    fun testProcessor_badlyInheritedCapabilityProperties_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("SubClassRenamedCapabilityProperty.KT")
+            )
+
+        compilationTestHelper.assertErrorWithMessage(
+            report,
+            "All Properties in @AppFunctionSchemaCapability supertypes must be present in subtype"
         )
     }
 
@@ -193,6 +201,43 @@ class AppFunctionSerializableProcessorTest {
         compilationTestHelper.assertErrorWithMessage(
             report,
             "AppFunctionSerializable properties must be one of the following types:\n"
+        )
+    }
+
+    @Test
+    fun testProcessor_validAppFunctionSerializableFactory_succeeds() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("AppFunctionLocalDateTime.KT")
+            )
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$LocalDateTimeFactory.kt",
+            goldenFileName = "\$LocalDateTimeFactory.KT"
+        )
+    }
+
+    @Test
+    fun testProcessor_serializableProxyMissingToMethod_fails() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("SerializableProxyMissingToMethod.KT")
+            )
+        compilationTestHelper.assertErrorWithMessage(
+            report,
+            "Class must have exactly one member function: toLocalDateTime"
+        )
+    }
+
+    @Test
+    fun testProcessor_serializableProxyMissingFromMethod_fails() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("SerializableProxyMissingFromMethod.KT")
+            )
+        compilationTestHelper.assertErrorWithMessage(
+            report,
+            "Companion Class must have exactly one member function: fromLocalDateTime"
         )
     }
 }

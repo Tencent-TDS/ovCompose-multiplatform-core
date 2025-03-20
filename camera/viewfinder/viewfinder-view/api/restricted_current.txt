@@ -1,11 +1,11 @@
 // Signature format: 4.0
-package androidx.camera.viewfinder {
+package androidx.camera.viewfinder.view {
 
-  public final class CameraViewfinder extends android.widget.FrameLayout {
-    ctor @UiThread public CameraViewfinder(android.content.Context);
-    ctor @UiThread public CameraViewfinder(android.content.Context, android.util.AttributeSet?);
-    ctor @UiThread public CameraViewfinder(android.content.Context, android.util.AttributeSet?, int);
-    ctor @UiThread public CameraViewfinder(android.content.Context, android.util.AttributeSet?, int, int);
+  public final class ViewfinderView extends android.widget.FrameLayout {
+    ctor @UiThread public ViewfinderView(android.content.Context);
+    ctor @UiThread public ViewfinderView(android.content.Context, android.util.AttributeSet?);
+    ctor @UiThread public ViewfinderView(android.content.Context, android.util.AttributeSet?, int);
+    ctor @UiThread public ViewfinderView(android.content.Context, android.util.AttributeSet?, int, int);
     method @UiThread public android.graphics.Bitmap? getBitmap();
     method @UiThread public androidx.camera.viewfinder.core.ScaleType getScaleType();
     method @UiThread public androidx.camera.viewfinder.core.ImplementationMode getSurfaceImplementationMode();
@@ -16,8 +16,8 @@ package androidx.camera.viewfinder {
     method @UiThread public void setTransformationInfo(androidx.camera.viewfinder.core.TransformationInfo);
   }
 
-  public final class CameraViewfinderExtKt {
-    method public static suspend Object? requestSurfaceSession(androidx.camera.viewfinder.CameraViewfinder, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, kotlin.coroutines.Continuation<? super androidx.camera.viewfinder.core.ViewfinderSurfaceSession>);
+  public final class ViewfinderViewExtKt {
+    method public static suspend Object? requestSurfaceSession(androidx.camera.viewfinder.view.ViewfinderView, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, kotlin.coroutines.Continuation<? super androidx.camera.viewfinder.core.ViewfinderSurfaceSession>);
   }
 
 }

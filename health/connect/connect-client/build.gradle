@@ -49,7 +49,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinCoroutinesTest)
-    androidTestImplementation(libs.testRules)
     testImplementation(libs.mockitoCore4)
     testImplementation(libs.robolectric)
     testImplementation(libs.testExtJunit)
@@ -57,14 +56,16 @@ dependencies {
     testImplementation(libs.espressoCore)
     testImplementation(libs.espressoIntents)
     testImplementation(libs.kotlinReflect)
+    testImplementation(libs.guavaTestlib)
 
+    androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.kotlinCoroutinesTest)
     androidTestImplementation(libs.kotlinReflect)
     androidTestImplementation(libs.kotlinTest)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
-    testImplementation(libs.guavaTestlib)
+    androidTestImplementation(libs.guavaTestlib)
 }
 
 android {
@@ -79,7 +80,7 @@ android {
     }
     testOptions.unitTests.includeAndroidResources = true
     namespace = "androidx.health.connect.client"
-    compileSdk = 35
+    compileSdk = 36
 }
 
 androidx {

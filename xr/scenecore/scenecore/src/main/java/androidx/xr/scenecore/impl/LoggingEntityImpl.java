@@ -21,10 +21,10 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
 import androidx.xr.scenecore.JxrPlatformAdapter.LoggingEntity;
+import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
 import androidx.xr.scenecore.common.BaseEntity;
 
 import java.util.List;
@@ -41,15 +41,20 @@ class LoggingEntityImpl extends BaseEntity implements LoggingEntity {
 
     @NonNull
     @Override
-    public Pose getPose() {
-        Log.i(TAG, "Getting Logging Entity pose: " + super.getPose());
-        return super.getPose();
+    public Pose getPose(@SpaceValue int relativeTo) {
+        Log.i(
+                TAG,
+                "Getting Logging Entity pose: "
+                        + super.getPose(relativeTo)
+                        + " relativeTo: "
+                        + relativeTo);
+        return super.getPose(relativeTo);
     }
 
     @Override
-    public void setPose(@NonNull Pose pose) {
-        Log.i(TAG, "Setting Logging Entity pose to: " + pose);
-        super.setPose(pose);
+    public void setPose(@NonNull Pose pose, @SpaceValue int relativeTo) {
+        Log.i(TAG, "Setting Logging Entity pose to: " + pose + " relativeTo: " + relativeTo);
+        super.setPose(pose, relativeTo);
     }
 
     @NonNull
@@ -104,11 +109,6 @@ class LoggingEntityImpl extends BaseEntity implements LoggingEntity {
     public List<Entity> getChildren() {
         Log.i(TAG, "Getting Logging Entity children: " + super.getChildren());
         return super.getChildren();
-    }
-
-    @Override
-    public void setSize(@NonNull Dimensions dimensions) {
-        Log.i(TAG, "Set size to " + dimensions);
     }
 
     @Override

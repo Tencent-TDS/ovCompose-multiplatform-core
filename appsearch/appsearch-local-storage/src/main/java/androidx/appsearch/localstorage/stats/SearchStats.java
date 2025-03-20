@@ -21,6 +21,7 @@ import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
 import androidx.appsearch.app.AppSearchSchema.StringPropertyConfig.JoinableValueType;
 import androidx.appsearch.app.SearchSpec;
+import androidx.appsearch.stats.BaseStats;
 import androidx.core.util.Preconditions;
 
 import org.jspecify.annotations.NonNull;
@@ -36,7 +37,7 @@ import java.lang.annotation.RetentionPolicy;
  * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public final class SearchStats {
+public final class SearchStats extends BaseStats {
     /** Types of Visibility scopes available for search. */
     @IntDef(value = {
             // Searches apps' own documents.
@@ -140,7 +141,7 @@ public final class SearchStats {
     private final @Nullable String mSearchSourceLogTag;
 
     SearchStats(@NonNull Builder builder) {
-        Preconditions.checkNotNull(builder);
+        super(builder);
         mPackageName = builder.mPackageName;
         mDatabase = builder.mDatabase;
         mStatusCode = builder.mStatusCode;
@@ -348,7 +349,7 @@ public final class SearchStats {
     }
 
     /** Builder for {@link SearchStats} */
-    public static class Builder {
+    public static class Builder extends BaseStats.Builder<SearchStats.Builder> {
         final @NonNull String mPackageName;
         @Nullable String mDatabase;
         @AppSearchResult.ResultCode
@@ -618,6 +619,7 @@ public final class SearchStats {
          * Constructs a new {@link SearchStats} from the contents of this
          * {@link SearchStats.Builder}.
          */
+        @Override
         public @NonNull SearchStats build() {
             if (mDatabase == null) {
                 Preconditions.checkState(mVisibilityScope != SearchStats.VISIBILITY_SCOPE_LOCAL,

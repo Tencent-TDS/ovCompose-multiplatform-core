@@ -75,7 +75,6 @@ class PdfViewZoomStateTest {
             onView(withId(PDF_VIEW_ID)).check { view, noViewFoundException ->
                 view ?: throw noViewFoundException
                 val pdfView = view as PdfView
-                assertThat(pdfView.isInitialZoomDone).isTrue()
                 assertThat(pdfView.zoom).isWithin(0.01f).of(1.0f)
             }
         }
@@ -113,7 +112,6 @@ class PdfViewZoomStateTest {
                 (savedScrollPosition.x * savedZoom - pdfView.viewportWidth / 2f).toInt(),
                 (savedScrollPosition.y * savedZoom - pdfView.viewportHeight / 2f).toInt()
             )
-            pdfView.isInitialZoomDone = true
         }
 
         activityScenario.recreate()

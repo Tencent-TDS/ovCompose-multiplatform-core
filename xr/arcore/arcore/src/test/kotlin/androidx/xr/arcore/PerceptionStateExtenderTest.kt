@@ -30,6 +30,8 @@ import androidx.xr.runtime.testing.FakeRuntimeFactory
 import androidx.xr.runtime.testing.FakeRuntimeHand
 import androidx.xr.runtime.testing.FakeRuntimePlane
 import com.google.common.truth.Truth.assertThat
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlin.test.assertFailsWith
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TestTimeSource
@@ -42,6 +44,8 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class PerceptionStateExtenderTest {
 
+    private val handJointBufferSize: Int = 728
+    private val tolerance = 1e-4f
     private lateinit var fakeRuntime: FakeRuntime
     private lateinit var timeSource: TestTimeSource
     private lateinit var underTest: PerceptionStateExtender
@@ -139,31 +143,59 @@ class PerceptionStateExtenderTest {
         underTest.extend(coreState)
         check(coreState.perceptionState!!.leftHand != null)
         check(coreState.perceptionState!!.rightHand != null)
-        check(coreState.perceptionState!!.leftHand!!.state.value.isActive == false)
+        check(
+            coreState.perceptionState!!.leftHand!!.state.value.trackingState !=
+                TrackingState.Tracking
+        )
         check(coreState.perceptionState!!.leftHand!!.state.value.handJoints.isEmpty())
-        check(coreState.perceptionState!!.rightHand!!.state.value.isActive == false)
+        check(
+            coreState.perceptionState!!.rightHand!!.state.value.trackingState !=
+                TrackingState.Tracking
+        )
         check(coreState.perceptionState!!.rightHand!!.state.value.handJoints.isEmpty())
 
         // act
         timeSource += 10.milliseconds
+        val handJoints: Map<HandJointType, Pose> =
+            HandJointType.values().associate { joint ->
+                val i = joint.ordinal.toFloat()
+                joint to
+                    Pose(
+                        Vector3(i + 0.5f, i + 0.6f, i + 0.7f),
+                        Quaternion(i + 0.1f, i + 0.2f, i + 0.3f, i + 0.4f),
+                    )
+            }
+
         val leftRuntimeHand = fakeRuntime.perceptionManager.leftHand!! as FakeRuntimeHand
         val rightRuntimeHand = fakeRuntime.perceptionManager.rightHand!! as FakeRuntimeHand
-        val leftHandPose = Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-        val rightHandPose = Pose(Vector3(3.0f, 2.0f, 1.0f), Quaternion(4.0f, 3.0f, 2.0f, 1.0f))
-        leftRuntimeHand.isActive = true
-        leftRuntimeHand.handJoints = mapOf(HandJointType.PALM to leftHandPose)
-        rightRuntimeHand.isActive = true
-        rightRuntimeHand.handJoints = mapOf(HandJointType.PALM to rightHandPose)
+        leftRuntimeHand.trackingState = TrackingState.Tracking
+        leftRuntimeHand.handJointsBuffer = generateTestBuffer(handJoints)
+        rightRuntimeHand.trackingState = TrackingState.Tracking
+        rightRuntimeHand.handJointsBuffer = generateTestBuffer(handJoints)
         val coreState2 = CoreState(timeSource.markNow())
         underTest.extend(coreState2)
 
         // assert
-        assertThat(coreState2.perceptionState!!.leftHand!!.state.value.isActive).isEqualTo(true)
-        assertThat(coreState2.perceptionState!!.leftHand!!.state.value.handJoints)
-            .containsEntry(HandJointType.PALM, leftHandPose)
-        assertThat(coreState2.perceptionState!!.rightHand!!.state.value.isActive).isEqualTo(true)
-        assertThat(coreState2.perceptionState!!.rightHand!!.state.value.handJoints)
-            .containsEntry(HandJointType.PALM, rightHandPose)
+        assertThat(coreState2.perceptionState!!.leftHand!!.state.value.trackingState)
+            .isEqualTo(TrackingState.Tracking)
+        assertThat(coreState2.perceptionState!!.rightHand!!.state.value.trackingState)
+            .isEqualTo(TrackingState.Tracking)
+        for (jointType in HandJointType.values()) {
+            val leftHandJoints = coreState2.perceptionState!!.leftHand!!.state.value.handJoints
+            val rightHandJoints = coreState2.perceptionState!!.rightHand!!.state.value.handJoints
+            assertThat(leftHandJoints[jointType]!!.translation)
+                .isEqualTo(handJoints[jointType]!!.translation)
+            assertRotationEquals(
+                leftHandJoints[jointType]!!.rotation,
+                handJoints[jointType]!!.rotation
+            )
+            assertThat(rightHandJoints[jointType]!!.translation)
+                .isEqualTo(handJoints[jointType]!!.translation)
+            assertRotationEquals(
+                rightHandJoints[jointType]!!.rotation,
+                handJoints[jointType]!!.rotation
+            )
+        }
     }
 
     @Test
@@ -210,5 +242,31 @@ class PerceptionStateExtenderTest {
             else ->
                 throw IllegalArgumentException("Unsupported trackable type: ${trackable.javaClass}")
         }
+    }
+
+    fun generateTestBuffer(handJoints: Map<HandJointType, Pose>): ByteBuffer {
+        val buffer = ByteBuffer.allocate(handJointBufferSize).order(ByteOrder.nativeOrder())
+
+        repeat(26) {
+            val handJointType = HandJointType.values()[it]
+            val handJointPose = handJoints[handJointType]!!
+            buffer.putFloat(handJointPose.rotation.x)
+            buffer.putFloat(handJointPose.rotation.y)
+            buffer.putFloat(handJointPose.rotation.z)
+            buffer.putFloat(handJointPose.rotation.w)
+            buffer.putFloat(handJointPose.translation.x)
+            buffer.putFloat(handJointPose.translation.y)
+            buffer.putFloat(handJointPose.translation.z)
+        }
+
+        buffer.flip()
+        return buffer
+    }
+
+    fun assertRotationEquals(actual: Quaternion, expected: Quaternion) {
+        assertThat(actual.x).isWithin(tolerance).of(expected.x)
+        assertThat(actual.y).isWithin(tolerance).of(expected.y)
+        assertThat(actual.z).isWithin(tolerance).of(expected.z)
+        assertThat(actual.w).isWithin(tolerance).of(expected.w)
     }
 }

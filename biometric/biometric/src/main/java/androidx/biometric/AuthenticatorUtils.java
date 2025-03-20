@@ -206,4 +206,29 @@ class AuthenticatorUtils {
     static boolean isWeakBiometricAllowed(@BiometricManager.AuthenticatorTypes int authenticators) {
         return (authenticators & Authenticators.BIOMETRIC_WEAK) == Authenticators.BIOMETRIC_WEAK;
     }
+
+    /**
+     * @param sensorStrength    the strength of the sensor
+     * @param requestedStrength the strength that it must meet
+     * @return true only if the sensor is at least as strong as the requested strength
+     */
+    @SuppressWarnings("WrongConstant")
+    public static boolean isAtLeastStrength(@BiometricManager.AuthenticatorTypes int sensorStrength,
+            @BiometricManager.AuthenticatorTypes int requestedStrength) {
+        // Clear out any bits that are not reserved for biometric
+        sensorStrength &= Authenticators.BIOMETRIC_MIN_STRENGTH;
+
+        // If the authenticator contains bits outside of the requested strength, it is too weak.
+        if ((sensorStrength & ~requestedStrength) != 0) {
+            return false;
+        }
+
+        for (int i = Authenticators.BIOMETRIC_MAX_STRENGTH;
+                i <= requestedStrength; i = (i << 1) | 1) {
+            if (i == sensorStrength) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

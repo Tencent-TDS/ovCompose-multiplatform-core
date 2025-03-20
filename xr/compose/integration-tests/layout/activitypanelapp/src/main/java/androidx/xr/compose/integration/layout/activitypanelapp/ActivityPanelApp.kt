@@ -33,6 +33,7 @@ import androidx.xr.compose.subspace.layout.height
 import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.resizable
+import androidx.xr.compose.subspace.layout.testTag
 import androidx.xr.compose.subspace.layout.width
 import androidx.xr.compose.unit.DpVolumeSize
 
@@ -67,8 +68,8 @@ class ActivityPanelApp : ComponentActivity() {
                     SubspaceModifier.width(panelWidth)
                         .height(panelHeight)
                         .movable()
-                        .resizable(minimumSize = minimumSize),
-                name = "AnotherActivityPanel",
+                        .resizable(minimumSize = minimumSize)
+                        .testTag("AnotherActivityPanel"),
                 intent = Intent(this@ActivityPanelApp, AnotherActivity::class.java),
             )
             SpatialLayoutSpacer(modifier = SubspaceModifier.height(20.dp))
@@ -78,8 +79,8 @@ class ActivityPanelApp : ComponentActivity() {
                         SubspaceModifier.width(panelWidth)
                             .height(panelHeight)
                             .movable()
-                            .resizable(minimumSize = minimumSize),
-                    name = "BaseActivityPanel",
+                            .resizable(minimumSize = minimumSize)
+                            .testTag("BaseActivityPanel"),
                     intent =
                         Intent(this@ActivityPanelApp, BaseActivity::class.java)
                             .putExtra("activityName", "Activity $i"),
@@ -98,8 +99,8 @@ class ActivityPanelApp : ComponentActivity() {
                         SubspaceModifier.width(panelWidth)
                             .height(panelHeight)
                             .movable()
-                            .resizable(minimumSize = minimumSize),
-                    name = "BaseActivityPanel",
+                            .resizable(minimumSize = minimumSize)
+                            .testTag("BaseActivityPanel"),
                 )
                 SpatialLayoutSpacer(modifier = SubspaceModifier.height(20.dp))
             }

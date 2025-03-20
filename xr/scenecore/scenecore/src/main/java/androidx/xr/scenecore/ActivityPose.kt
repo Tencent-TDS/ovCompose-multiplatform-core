@@ -52,7 +52,7 @@ public interface ActivityPose {
  * ActivityPose.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public sealed class BaseActivityPose<out RtActivityPoseType : JxrPlatformAdapter.ActivityPose>(
+public abstract class BaseActivityPose<out RtActivityPoseType : JxrPlatformAdapter.ActivityPose>(
     internal val rtActivityPose: RtActivityPoseType
 ) : ActivityPose {
     private companion object {

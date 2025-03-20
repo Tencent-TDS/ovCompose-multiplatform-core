@@ -17,12 +17,13 @@
 package androidx.xr.scenecore.impl;
 
 import androidx.annotation.RestrictTo;
-import androidx.xr.extensions.media.PointSourceAttributes;
-import androidx.xr.extensions.media.SoundFieldAttributes;
-import androidx.xr.extensions.media.SpatializerExtensions;
-import androidx.xr.extensions.node.Node;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatializerConstants;
+
+import com.android.extensions.xr.media.PointSourceAttributes;
+import com.android.extensions.xr.media.SoundFieldAttributes;
+import com.android.extensions.xr.media.SpatializerExtensions;
+import com.android.extensions.xr.node.Node;
 
 /** Utils for the runtime media class conversions. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -46,7 +47,6 @@ public class MediaUtils {
                 .build();
     }
 
-    @SpatializerExtensions.AmbisonicsOrder
     static int convertAmbisonicsOrderToExtensions(
             @SpatializerConstants.AmbisonicsOrder int ambisonicsOrder) {
         switch (ambisonicsOrder) {
@@ -63,8 +63,7 @@ public class MediaUtils {
     }
 
     @SpatializerConstants.SourceType
-    static int convertExtensionsToSourceType(
-            @SpatializerExtensions.SourceType int extensionsSourceType) {
+    static int convertExtensionsToSourceType(int extensionsSourceType) {
         switch (extensionsSourceType) {
             case SpatializerExtensions.SOURCE_TYPE_BYPASS:
                 return SpatializerConstants.SOURCE_TYPE_BYPASS;

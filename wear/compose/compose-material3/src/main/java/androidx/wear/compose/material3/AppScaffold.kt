@@ -43,7 +43,8 @@ import androidx.compose.ui.graphics.graphicsLayer
  * @param timeText The default time (and potentially status message) to display at the top middle of
  *   the screen in this app. When [AppScaffold] is used in combination with [ScreenScaffold], the
  *   time text will be scrolled away and shown/hidden according to the scroll state of the screen.
- * @param backgroundColor The background color of the app drawn behind the [content].
+ * @param containerColor The container color of the app drawn behind the [content], i.e. the color
+ *   of the background behind the content.
  * @param contentColor The content color for the application [content].
  * @param content The main content for this application.
  */
@@ -51,8 +52,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 public fun AppScaffold(
     modifier: Modifier = Modifier,
     timeText: @Composable () -> Unit = { TimeText() },
-    backgroundColor: Color = MaterialTheme.colorScheme.background,
-    contentColor: Color = contentColorFor(backgroundColor),
+    containerColor: Color = MaterialTheme.colorScheme.background,
+    contentColor: Color = contentColorFor(containerColor),
     content: @Composable BoxScope.() -> Unit,
 ) {
     CompositionLocalProvider(
@@ -61,7 +62,7 @@ public fun AppScaffold(
         LocalContentColor provides contentColor
     ) {
         val scaffoldState = LocalScaffoldState.current
-        Box(Modifier.fillMaxSize().background(backgroundColor)) {
+        Box(Modifier.fillMaxSize().background(containerColor)) {
             Box(
                 modifier =
                     modifier.fillMaxSize().graphicsLayer {

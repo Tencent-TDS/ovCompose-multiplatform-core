@@ -101,7 +101,7 @@ class PagerScaffoldTest {
         create_pager_scaffold_and_swipe_one_page(
             orientation = Orientation.Horizontal,
             pageIndicatorColor = pageIndicatorColor,
-            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimation
+            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimationSpec
         )
 
         wait_for_page_indicator_timeout_and_assert_page_indicator_visibility(
@@ -118,7 +118,7 @@ class PagerScaffoldTest {
         create_pager_scaffold_and_swipe_one_page(
             orientation = Orientation.Vertical,
             pageIndicatorColor = pageIndicatorColor,
-            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimation
+            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimationSpec
         )
 
         wait_for_page_indicator_timeout_and_assert_page_indicator_visibility(
@@ -213,7 +213,7 @@ class PagerScaffoldTest {
                     flingBehavior =
                         PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
                 ) { page ->
-                    AnimatedPage(page = page, pagerState = pagerState) {
+                    AnimatedPage(pageIndex = page, pagerState = pagerState) {
                         ScreenScaffold {
                             Column(
                                 modifier = Modifier.fillMaxSize(),
@@ -253,7 +253,7 @@ class PagerScaffoldTest {
                     flingBehavior =
                         PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
                 ) { page ->
-                    AnimatedPage(page = page, pagerState = pagerState) {
+                    AnimatedPage(pageIndex = page, pagerState = pagerState) {
                         ScreenScaffold {
                             Column(
                                 modifier = Modifier.fillMaxSize(),

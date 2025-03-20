@@ -18,12 +18,14 @@ package androidx.webkit.internal;
 
 import androidx.webkit.OutcomeReceiverCompat;
 import androidx.webkit.PrefetchException;
+import androidx.webkit.PrefetchNetworkException;
 
+import org.chromium.support_lib_boundary.PrefetchOperationCallbackBoundaryInterface;
+import org.chromium.support_lib_boundary.util.BoundaryInterfaceReflectionUtil;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 
 public class PrefetchOperationCallbackAdapter {
 
@@ -35,11 +37,26 @@ public class PrefetchOperationCallbackAdapter {
      */
     public static @NonNull /* PrefetchOperationCallback */ InvocationHandler buildInvocationHandler(
             @NonNull OutcomeReceiverCompat<@Nullable Void, @NonNull PrefetchException> callback) {
-        return new InvocationHandler() {
-            @Override
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                return null;
-            }
-        };
+        PrefetchOperationCallbackBoundaryInterface operationCallback =
+                new PrefetchOperationCallbackBoundaryInterface() {
+                    @Override
+                    public void onSuccess() {
+                        callback.onResult(null);
+                    }
+
+                    @Override
+                    public void onFailure(@PrefetchExceptionTypeBoundaryInterface int type,
+                            @NonNull String message, int networkErrorCode) {
+                        if (type == PrefetchExceptionTypeBoundaryInterface.NETWORK) {
+                            callback.onError(
+                                    new PrefetchNetworkException(message, networkErrorCode));
+                        } else {
+                            callback.onError(new PrefetchException(message));
+                        }
+                    }
+                };
+
+        return BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
+                operationCallback);
     }
 }

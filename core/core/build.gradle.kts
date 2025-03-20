@@ -16,7 +16,6 @@ plugins {
 }
 
 dependencies {
-    api(libs.jspecify)
     // Atomically versioned.
     constraints {
         implementation(project(":core:core-ktx"))
@@ -27,17 +26,32 @@ dependencies {
     api("androidx.annotation:annotation-experimental:1.4.1")
     api("androidx.lifecycle:lifecycle-runtime:2.6.2")
     api("androidx.versionedparcelable:versionedparcelable:1.1.1")
-    api("androidx.core:core-viewtree:1.0.0-beta01")
+    api("androidx.core:core-viewtree:1.0.0")
+    api("androidx.lifecycle:lifecycle-common:2.6.2")
+
+    api(libs.guavaListenableFuture)
+    api(libs.jspecify)
+    api(libs.kotlinCoroutinesCore)
+    api(libs.kotlinStdlib)
+
     implementation("androidx.collection:collection:1.4.2")
     implementation("androidx.concurrent:concurrent-futures:1.0.0")
     implementation("androidx.interpolator:interpolator:1.0.0")
     implementation("androidx.tracing:tracing:1.2.0")
 
-    api(libs.kotlinStdlib)
-
     // We don't ship this as a public artifact, so it must remain a project-type dependency.
     annotationProcessor(project(":versionedparcelable:versionedparcelable-compiler"))
 
+    androidTestImplementation("androidx.activity:activity:1.0.0")
+    androidTestImplementation("androidx.appcompat:appcompat:1.1.0")
+    androidTestImplementation(project(":lifecycle:lifecycle-common"))
+    androidTestImplementation("androidx.lifecycle:lifecycle-runtime-testing:2.6.2")
+    androidTestImplementation(project(":internal-testutils-runtime"))
+    androidTestImplementation(project(":internal-testutils-lifecycle"))
+    androidTestImplementation(project(":internal-testutils-fonts"))
+    androidTestImplementation(project(":internal-testutils-mockito"))
+
+    androidTestImplementation("org.hamcrest:hamcrest-library:1.3")
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.testExtJunit)
@@ -48,21 +62,21 @@ dependencies {
     androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.mockitoCore)
     androidTestImplementation(libs.testUiautomator)
-    androidTestImplementation(libs.opentest4j)
-
-    androidTestImplementation("androidx.lifecycle:lifecycle-runtime-testing:2.6.2")
+    androidTestImplementation(libs.findbugs)
+    androidTestImplementation(libs.guavaAndroid)
+    androidTestImplementation(libs.hamcrestCore)
+    androidTestImplementation(libs.kotlinCoroutinesCore)
+    androidTestImplementation(libs.testMonitor)
 
     // Including both dexmakers allows support for all API levels plus final mocking support on
     // API 28+. The implementation is swapped based on the finality of the mock type. This
     // delegation is handled manually inside androidx.core.util.mockito.CustomMockMaker.
     androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(libs.dexmakerMockitoInline)
-    androidTestImplementation("androidx.appcompat:appcompat:1.1.0")
-    androidTestImplementation(project(":internal-testutils-runtime"))
-    androidTestImplementation(project(":internal-testutils-lifecycle"))
-    androidTestImplementation(project(":internal-testutils-fonts"))
-    androidTestImplementation(project(":internal-testutils-mockito"))
 
+    testImplementation("org.robolectric:annotations:4.14")
+    testImplementation("org.robolectric:shadowapi:4.14")
+    testImplementation("org.robolectric:shadows-framework:4.14")
     testImplementation(libs.junit)
     testImplementation(libs.testExtJunit)
     testImplementation(libs.testCore)

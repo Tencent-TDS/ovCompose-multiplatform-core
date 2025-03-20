@@ -68,7 +68,10 @@ fun PickVisualMediaRequest(
  * @param maxItems limit the number of selectable items when using [PickMultipleVisualMedia]
  * @param isOrderedSelection whether the user can control the order of selected media when using
  *   [PickMultipleVisualMedia] (defaults to false)
- * @param defaultTab the tab to initially open in the picker (defaults to [DefaultTab.PhotosTab])
+ * @param defaultTab the tab to initially open the picker in (defaults to [DefaultTab.PhotosTab]).
+ *   Note that the support for this parameter was added in API level 35 / R ext 12 and applies the
+ *   default behavior for older versions. Also see
+ *   [android.provider.MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB]
  * @return a PickVisualMediaRequest that contains the given input
  */
 @Suppress("MissingJvmstatic")
@@ -90,12 +93,17 @@ fun PickVisualMediaRequest(
  * [androidx.activity.result.contract.ActivityResultContracts.PickMultipleVisualMedia] or
  * [androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia] Activity Contract.
  *
- * @param accentColor color long to customize picker accent color
+ * @param accentColor color long to customize picker accent color. Note that the support for this
+ *   parameter was added in API level 35 / R ext 12 and applies the default behavior for older
+ *   versions. Also see [android.provider.MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR]
  * @param mediaType type to go into the PickVisualMediaRequest
  * @param maxItems limit the number of selectable items when using [PickMultipleVisualMedia]
  * @param isOrderedSelection whether the user can control the order of selected media when using
  *   [PickMultipleVisualMedia] (defaults to false)
- * @param defaultTab the tab to initially open in the picker (defaults to [DefaultTab.PhotosTab])
+ * @param defaultTab the tab to initially open the picker in (defaults to [DefaultTab.PhotosTab]).
+ *   Note that the support for this parameter was added in API level 35 / R ext 12 and applies the
+ *   default behavior for older versions. Also see
+ *   [android.provider.MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB]
  * @return a PickVisualMediaRequest that contains the given input
  */
 @Suppress("MissingJvmstatic")
@@ -260,11 +268,12 @@ class PickVisualMediaRequest internal constructor() {
          * Set the default tab for the [PickVisualMediaRequest].
          *
          * The default tab is used to open the preferred view inside the photo picker at first such
-         * as, e.g. [DefaultTab.PhotosTab], [DefaultTab.AlbumsTab]. This parameter might be not
-         * supported by the underlying photo picker implementation.
+         * as, e.g. [DefaultTab.PhotosTab], [DefaultTab.AlbumsTab]. This feature was added in API
+         * level 35 / R ext 12 and applies the default behavior for older versions.
          *
-         * @param defaultTab the tab to launch the picker in
+         * @param defaultTab the tab to launch the picker in (defaults to [DefaultTab.PhotosTab])
          * @return This builder.
+         * @see android.provider.MediaStore.EXTRA_PICK_IMAGES_LAUNCH_TAB
          */
         fun setDefaultTab(defaultTab: DefaultTab): Builder {
             this.defaultTab = defaultTab
@@ -274,11 +283,12 @@ class PickVisualMediaRequest internal constructor() {
         /**
          * Set the accent color for the [PickVisualMediaRequest].
          *
-         * The accent color is used to change the main color in the photo picker. This parameter
-         * might be not supported by the underlying photo picker implementation.
+         * The accent color is used to change the main color in the photo picker. This feature was
+         * added in API level 35 / R ext 12 and applies the default behavior for older versions.
          *
          * @param accentColor color long to apply as accent to the main color in the picker
          * @return This builder.
+         * @see android.provider.MediaStore.EXTRA_PICK_IMAGES_ACCENT_COLOR
          */
         fun setAccentColor(accentColor: Long): Builder {
             this.accentColor = accentColor

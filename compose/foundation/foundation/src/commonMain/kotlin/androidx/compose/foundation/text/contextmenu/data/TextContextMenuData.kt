@@ -69,7 +69,8 @@ internal constructor(
     val leadingIcon: PlatformIcon? = null,
     val onClick: TextContextMenuSession.() -> Unit,
 ) : TextContextMenuComponent(key) {
-    override fun toString(): String = "TextContextMenuItem(key=\"$key\", label=\"$label\")"
+    override fun toString(): String =
+        "TextContextMenuItem(key=$key, label=\"$label\", leadingIcon=$leadingIcon)"
 }
 
 /** A platform-specific icon type used in a [TextContextMenuItem]. */
@@ -82,4 +83,23 @@ internal expect class PlatformIcon
 internal interface TextContextMenuSession {
     /** Closes the text context menu. */
     fun close()
+}
+
+/** Contains the `object`s used as keys for the compose provided context menu items. */
+// TODO(grantapher-cm-api-publicize) Make object public
+internal object TextContextMenuKeys {
+    /** Key for the context menu "Cut" item. */
+    data object CutKey
+
+    /** Key for the context menu "Copy" item. */
+    data object CopyKey
+
+    /** Key for the context menu "Paste" item. */
+    data object PasteKey
+
+    /** Key for the context menu "Select All" item. */
+    data object SelectAllKey
+
+    /** Key for the context menu "Autofill" item. */
+    data object AutofillKey
 }

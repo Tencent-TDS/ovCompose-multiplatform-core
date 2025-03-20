@@ -2356,8 +2356,6 @@ class VideoCaptureTest {
                 QUALITY_LOW to PROFILES_720P,
             )
 
-        // TODO(b/278168212): Only SDR is checked by now. The default value of DynamicRange in
-        //  VideoCapture is SDR.
         private val FULL_QUALITY_VIDEO_CAPABILITIES =
             createFakeVideoCapabilities(mapOf(DynamicRange.SDR to FULL_QUALITY_PROFILES_MAP))
 

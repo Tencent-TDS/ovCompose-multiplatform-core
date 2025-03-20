@@ -100,6 +100,26 @@ interface LazyGridPrefetchScope {
      * @param lineIndex index of the row or column to prefetch
      */
     fun scheduleLinePrefetch(lineIndex: Int): List<LazyLayoutPrefetchState.PrefetchHandle>
+
+    /**
+     * Schedules a prefetch for the given line index. Requests are executed in the order they're
+     * requested. If a requested prefetch is no longer necessary (for example, due to changing
+     * scroll direction), the request should be canceled via
+     * [LazyLayoutPrefetchState.PrefetchHandle.cancel].
+     *
+     * See [PrefetchScheduler].
+     *
+     * @param lineIndex index of the row or column to prefetch
+     * @param onPrefetchFinished A callback that will be invoked when the prefetching of this line
+     *   is completed. This means precomposition and premeasuring. If the request is canceled before
+     *   either phases can complete, or before all items in this line have been prepared, this
+     *   callback won't be invoked. The main axis size in pixels of the prefetched items are
+     *   available as a parameter of this callback.
+     */
+    fun scheduleLinePrefetch(
+        lineIndex: Int,
+        onPrefetchFinished: ((List<Int>) -> Unit)?
+    ): List<LazyLayoutPrefetchState.PrefetchHandle> = scheduleLinePrefetch(lineIndex)
 }
 
 /**

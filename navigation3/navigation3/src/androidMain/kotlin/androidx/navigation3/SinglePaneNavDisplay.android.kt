@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 /** Object that indicates the features that can be handled by the [SinglePaneNavDisplay] */
 public object SinglePaneNavDisplay {
     /**
-     * Function to be called on the [NavEntry.featureMap] to notify the [SinglePaneNavDisplay] that
+     * Function to be called on the [NavEntry.metadata] to notify the [SinglePaneNavDisplay] that
      * the content should be animated using the provided transitions.
      */
     public fun transition(enter: EnterTransition?, exit: ExitTransition?): Map<String, Any> =
@@ -63,7 +63,7 @@ public object SinglePaneNavDisplay {
         else mapOf(ENTER_TRANSITION_KEY to enter, EXIT_TRANSITION_KEY to exit)
 
     /**
-     * Function to be called on the [NavEntry.featureMap] to notify the [SinglePaneNavDisplay] that,
+     * Function to be called on the [NavEntry.metadata] to notify the [SinglePaneNavDisplay] that,
      * when popping from backstack, the content should be animated using the provided transitions.
      */
     public fun popTransition(enter: EnterTransition?, exit: ExitTransition?): Map<String, Any> =
@@ -89,16 +89,16 @@ public object SinglePaneNavDisplay {
  * @param contentAlignment The [Alignment] of the [AnimatedContent]
  * @param enterTransition Default [EnterTransition] when navigating to [NavEntry]s. Can be
  *   overridden individually for each [NavEntry] by passing in the entry's transitions through
- *   [NavEntry.featureMap].
+ *   [NavEntry.metadata].
  * @param exitTransition Default [ExitTransition] when navigating to [NavEntry]s. Can be overridden
  *   individually for each [NavEntry] by passing in the entry's transitions through
- *   [NavEntry.featureMap].
+ *   [NavEntry.metadata].
  * @param popEnterTransition Default [EnterTransition] when popping [NavEntry]s. Can be overridden
  *   individually for each [NavEntry] by passing in the entry's transitions through
- *   [NavEntry.featureMap].
+ *   [NavEntry.metadata].
  * @param popExitTransition Default [ExitTransition] when popping [NavEntry]s. Can be overridden
  *   individually for each [NavEntry] by passing in the entry's transitions through
- *   [NavEntry.featureMap].
+ *   [NavEntry.metadata].
  * @param onBack a callback for handling system back presses
  * @param entryProvider lambda used to construct each possible [NavEntry]
  * @sample androidx.navigation3.samples.BaseNav
@@ -187,15 +187,15 @@ public fun <T : Any> SinglePaneNavDisplay(
         // NavDisplay
         val finalEnterTransition =
             if (isPop) {
-                entry.featureMap[POP_ENTER_TRANSITION_KEY] as? EnterTransition ?: popEnterTransition
+                entry.metadata[POP_ENTER_TRANSITION_KEY] as? EnterTransition ?: popEnterTransition
             } else {
-                entry.featureMap[ENTER_TRANSITION_KEY] as? EnterTransition ?: enterTransition
+                entry.metadata[ENTER_TRANSITION_KEY] as? EnterTransition ?: enterTransition
             }
         val finalExitTransition =
             if (isPop) {
-                entry.featureMap[POP_EXIT_TRANSITION_KEY] as? ExitTransition ?: popExitTransition
+                entry.metadata[POP_EXIT_TRANSITION_KEY] as? ExitTransition ?: popExitTransition
             } else {
-                entry.featureMap[EXIT_TRANSITION_KEY] as? ExitTransition ?: exitTransition
+                entry.metadata[EXIT_TRANSITION_KEY] as? ExitTransition ?: exitTransition
             }
 
         if (inPredictiveBack) {

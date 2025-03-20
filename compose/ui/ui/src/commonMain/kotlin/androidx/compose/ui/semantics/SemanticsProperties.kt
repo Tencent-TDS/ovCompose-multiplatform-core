@@ -1215,7 +1215,7 @@ fun SemanticsPropertyReceiver.scrollToIndex(label: String? = null, action: (Int)
 /**
  * Action to autofill a TextField.
  *
- * Expected to be used in conjunction with contentType and contentDataType properties.
+ * Expected to be used in conjunction with [contentType] and [contentDataType] properties.
  *
  * @param label Optional label for this action.
  * @param action Action to be performed when the [SemanticsActions.OnAutofillText] is called.

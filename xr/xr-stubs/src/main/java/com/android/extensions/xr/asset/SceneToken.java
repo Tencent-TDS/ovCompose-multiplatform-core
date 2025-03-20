@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.asset;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Token of a scene cached in the SpaceFlinger.
@@ -31,6 +30,5 @@ import androidx.annotation.RestrictTo;
  * @deprecated JXR Core doesn't need this anymore as it does the same with Split Engine.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Deprecated
 public interface SceneToken extends com.android.extensions.xr.asset.AssetToken {}

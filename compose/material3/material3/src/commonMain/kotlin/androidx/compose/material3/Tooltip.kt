@@ -505,7 +505,7 @@ object TooltipDefaults {
         "Deprecated in favor of rememberTooltipPositionProvider API.",
         replaceWith =
             ReplaceWith("rememberTooltipPositionProvider(spacingBetweenTooltipAndAnchor)"),
-        level = DeprecationLevel.HIDDEN
+        level = DeprecationLevel.WARNING
     )
     @Composable
     fun rememberPlainTooltipPositionProvider(
@@ -544,7 +544,7 @@ object TooltipDefaults {
         "Deprecated in favor of rememberTooltipPositionProvider API.",
         replaceWith =
             ReplaceWith("rememberTooltipPositionProvider(spacingBetweenTooltipAndAnchor)"),
-        level = DeprecationLevel.HIDDEN
+        level = DeprecationLevel.WARNING
     )
     @Composable
     fun rememberRichTooltipPositionProvider(

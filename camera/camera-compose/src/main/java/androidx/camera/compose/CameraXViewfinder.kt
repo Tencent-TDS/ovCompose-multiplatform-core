@@ -33,7 +33,9 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CoroutineScope
@@ -72,13 +74,20 @@ import kotlinx.coroutines.withContext
  * @param coordinateTransformer The [MutableCoordinateTransformer] used to map offsets of this
  *   viewfinder to the source coordinates of the data being provided to the surface that fulfills
  *   [surfaceRequest]
+ * @param alignment Optional alignment parameter used to place the camera feed in the given bounds
+ *   of the [CameraXViewfinder]. Defaults to [Alignment.Center].
+ * @param contentScale Optional scale parameter used to determine the aspect ratio scaling to be
+ *   used to fit the camera feed in the bounds of the [CameraXViewfinder]. Defaults to
+ *   [ContentScale.Crop].
  */
 @Composable
 public fun CameraXViewfinder(
     surfaceRequest: SurfaceRequest,
     modifier: Modifier = Modifier,
     implementationMode: ImplementationMode = ImplementationMode.EXTERNAL,
-    coordinateTransformer: MutableCoordinateTransformer? = null
+    coordinateTransformer: MutableCoordinateTransformer? = null,
+    alignment: Alignment = Alignment.Center,
+    contentScale: ContentScale = ContentScale.Crop,
 ) {
     val currentImplementationMode by rememberUpdatedState(implementationMode)
 
@@ -163,7 +172,9 @@ public fun CameraXViewfinder(
             surfaceRequest = viewFinderSurfaceRequest,
             transformationInfo = args.transformationInfo,
             modifier = modifier.fillMaxSize(),
-            coordinateTransformer = coordinateTransformer
+            coordinateTransformer = coordinateTransformer,
+            alignment = alignment,
+            contentScale = contentScale
         ) {
             onSurfaceSession {
                 // If we're providing a surface, we must wait for the source to be

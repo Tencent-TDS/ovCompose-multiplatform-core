@@ -18,7 +18,6 @@ package androidx.camera.viewfinder.core.impl
 
 import android.graphics.Matrix
 import android.graphics.RectF
-import android.util.LayoutDirection
 import android.util.Size
 import android.util.SizeF
 import android.view.Surface
@@ -64,6 +63,24 @@ object Transformations {
         transformationInfo: TransformationInfo,
         layoutDirection: Int,
         scaleType: ScaleType
+    ) =
+        getSurfaceToViewfinderMatrix(
+            viewfinderSize = viewfinderSize,
+            surfaceResolution = surfaceResolution,
+            transformationInfo = transformationInfo,
+            layoutDirection = layoutDirection,
+            contentScale = scaleType.contentScale,
+            alignment = scaleType.alignment
+        )
+
+    @JvmStatic
+    fun getSurfaceToViewfinderMatrix(
+        viewfinderSize: Size,
+        surfaceResolution: Size,
+        transformationInfo: TransformationInfo,
+        layoutDirection: Int,
+        contentScale: ContentScale,
+        alignment: Alignment
     ): Matrix {
         val rotatedViewportSize = transformationInfo.rotatedViewportFor(surfaceResolution)
         // Get the target of the mapping, the coordinates of the crop rect in view finder.
@@ -80,7 +97,8 @@ object Transformations {
                     rotatedViewportSize = rotatedViewportSize,
                     viewfinderSize = viewfinderSize,
                     layoutDirection = layoutDirection,
-                    scaleType = scaleType
+                    contentScale = contentScale,
+                    alignment = alignment
                 )
             }
 
@@ -103,32 +121,33 @@ object Transformations {
         rotatedViewportSize: SizeF,
         viewfinderSize: Size,
         layoutDirection: Int,
-        scaleType: ScaleType
+        contentScale: ContentScale,
+        alignment: Alignment,
     ): RectF {
-        val viewfinderRect =
-            RectF(0f, 0f, viewfinderSize.width.toFloat(), viewfinderSize.height.toFloat())
-        val rotatedViewportRect =
-            RectF(0f, 0f, rotatedViewportSize.width, rotatedViewportSize.height)
-        val matrix = Matrix()
-        setMatrixRectToRect(matrix, rotatedViewportRect, viewfinderRect, scaleType)
-        matrix.mapRect(rotatedViewportRect)
-        return if (layoutDirection == LayoutDirection.RTL) {
-            return flipHorizontally(rotatedViewportRect, viewfinderSize.width / 2f)
-        } else {
-            rotatedViewportRect
-        }
+        val matrix =
+            Matrix().apply {
+                setTransform(
+                    source = rotatedViewportSize,
+                    destination = viewfinderSize,
+                    layoutDirection = layoutDirection,
+                    contentScale = contentScale,
+                    alignment = alignment
+                )
+            }
+        return RectF(
+                0f,
+                0f,
+                rotatedViewportSize.width.toFloat(),
+                rotatedViewportSize.height.toFloat()
+            )
+            .also(matrix::mapRect)
     }
 
     internal fun isViewportAspectRatioMatchViewfinder(
         rotatedViewportSize: SizeF,
         viewfinderSize: Size
     ): Boolean =
-        isAspectRatioMatchingWithRoundingError(
-            viewfinderSize.toSizeF(),
-            true,
-            rotatedViewportSize,
-            false
-        )
+        isAspectRatioMatchingWithRoundingError(rotatedViewportSize, false, viewfinderSize, true)
 
     /**
      * Gets the transform from one {@link Rect} to another with rotation degrees.
@@ -163,41 +182,23 @@ object Transformations {
             else -> throw IllegalArgumentException("Invalid rotation degrees: $rotationDegrees")
         }
 
-    private fun setMatrixRectToRect(
-        matrix: Matrix,
-        source: RectF,
-        destination: RectF,
-        scaleType: ScaleType
+    private fun Matrix.setTransform(
+        source: SizeF,
+        destination: Size,
+        layoutDirection: Int,
+        contentScale: ContentScale,
+        alignment: Alignment,
     ) {
-        val matrixScaleType =
-            when (scaleType) {
-                ScaleType.FIT_CENTER,
-                ScaleType.FILL_CENTER -> Matrix.ScaleToFit.CENTER
-                ScaleType.FIT_END,
-                ScaleType.FILL_END -> Matrix.ScaleToFit.END
-                ScaleType.FIT_START,
-                ScaleType.FILL_START -> Matrix.ScaleToFit.START
-            }
+        contentScale.computeScaleFactor(source, destination.toSizeF()).let { scaleFactor ->
+            this@setTransform.setScale(scaleFactor.scaleX, scaleFactor.scaleY)
 
-        val isFitType =
-            scaleType in setOf(ScaleType.FIT_CENTER, ScaleType.FIT_END, ScaleType.FIT_START)
-        if (isFitType) {
-            matrix.setRectToRect(source, destination, matrixScaleType)
-        } else {
-            // android.graphics.Matrix doesn't support fill scale types. The workaround is
-            // mapping inversely from destination to source, then invert the matrix.
-            matrix.setRectToRect(destination, source, matrixScaleType)
-            matrix.invert(matrix)
+            val scaledSource =
+                SizeF(source.width * scaleFactor.scaleX, source.height * scaleFactor.scaleY)
+            alignment.align(scaledSource, destination.toSizeF(), layoutDirection).let { offset ->
+                this@setTransform.postTranslate(offset.x, offset.y)
+            }
         }
     }
-
-    private fun flipHorizontally(original: RectF, flipLineX: Float): RectF =
-        RectF(
-            flipLineX + flipLineX - original.right,
-            original.top,
-            flipLineX + flipLineX - original.left,
-            original.bottom
-        )
 
     /**
      * Checks if aspect ratio matches while tolerating rounding error.
@@ -218,7 +219,7 @@ object Transformations {
     private fun isAspectRatioMatchingWithRoundingError(
         size1: SizeF,
         isAccurate1: Boolean,
-        size2: SizeF,
+        size2: Size,
         isAccurate2: Boolean
     ): Boolean {
         // The crop rect coordinates are rounded values. Each value is at most .5 away from their
@@ -237,7 +238,7 @@ object Transformations {
         val ratio2UpperBound: Float
         val ratio2LowerBound: Float
         if (isAccurate2) {
-            ratio2UpperBound = size2.width / size2.height
+            ratio2UpperBound = size2.width.toFloat() / size2.height
             ratio2LowerBound = ratio2UpperBound
         } else {
             ratio2UpperBound = (size2.width + 1f) / (size2.height - 1f)
@@ -270,4 +271,66 @@ object Transformations {
                 SizeF(it.width(), it.height())
             }
         }
+}
+
+/**
+ * Transform from one rectangle to another.
+ *
+ * Modeled after Compose's `ContentScale` class, but using Android classes since this module does
+ * not depend on Compose.
+ */
+interface ContentScale {
+    fun computeScaleFactor(srcSize: SizeF, dstSize: SizeF): ScaleFactorF
+}
+
+/**
+ * Transform for how one rectangle is placed in a space.
+ *
+ * Modeled after Compose's `Alignment` class, but using Android classes since this module does not
+ * depend on Compose. This also uses float types rather than integer types in order to allow for
+ * sub-pixel placement.
+ */
+interface Alignment {
+    fun align(size: SizeF, space: SizeF, layoutDirection: Int): OffsetF
+}
+
+fun ScaleFactorF(scaleX: Float, scaleY: Float) = ScaleFactorF(packFloats(scaleX, scaleY))
+
+@JvmInline
+value class ScaleFactorF(private val packedScales: Long) {
+    val scaleX: Float
+        get() = unpackFloat1(packedScales)
+
+    val scaleY: Float
+        get() = unpackFloat2(packedScales)
+}
+
+fun OffsetF(x: Float, y: Float) = OffsetF(packFloats(x, y))
+
+@JvmInline
+value class OffsetF(private val packedOffsets: Long) {
+    val x: Float
+        get() = unpackFloat1(packedOffsets)
+
+    val y: Float
+        get() = unpackFloat2(packedOffsets)
+}
+
+private fun floatFromBits(bits: Int): Float = java.lang.Float.intBitsToFloat(bits)
+
+/** Packs two Float values into one Long value for use in inline classes. */
+private fun packFloats(val1: Float, val2: Float): Long {
+    val v1 = val1.toRawBits().toLong()
+    val v2 = val2.toRawBits().toLong()
+    return (v1 shl 32) or (v2 and 0xFFFFFFFF)
+}
+
+/** Unpacks the first Float value in [packFloats] from its returned Long. */
+private fun unpackFloat1(value: Long): Float {
+    return floatFromBits((value shr 32).toInt())
+}
+
+/** Unpacks the second Float value in [packFloats] from its returned Long. */
+private fun unpackFloat2(value: Long): Float {
+    return floatFromBits((value and 0xFFFFFFFF).toInt())
 }

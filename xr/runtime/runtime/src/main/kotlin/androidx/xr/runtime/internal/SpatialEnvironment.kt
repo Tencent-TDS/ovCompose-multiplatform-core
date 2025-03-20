@@ -165,16 +165,29 @@ public interface SpatialEnvironment {
      *   If null, there will be no geometry.
      * @param skybox the preferred skybox for the environment based on a pre-loaded EXR Image. If
      *   null, it will be all black.
+     * @param geometryMaterial the material to override a given mesh in the geometry. If null, the
+     *   material will not override any mesh.
+     * @param geometryMeshName the name of the mesh to override with the material. If null, the
+     *   material will not override any mesh.
+     * @param geometryAnimationName the name of the animation to play on the geometry. If null, the
+     *   geometry will not play any animation. Note that the animation will be played in loop.
      */
     public class SpatialEnvironmentPreference(
-        public val geometry: GltfModelResource?,
         public val skybox: ExrImageResource?,
+        public val geometry: GltfModelResource?,
+        internal val geometryMaterial: MaterialResource?,
+        internal val geometryMeshName: String?,
+        internal val geometryAnimationName: String?,
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is SpatialEnvironmentPreference) return false
 
-            return skybox == other.skybox && geometry == other.geometry
+            return skybox == other.skybox &&
+                geometry == other.geometry &&
+                geometryMaterial == other.geometryMaterial &&
+                geometryMeshName == other.geometryMeshName &&
+                geometryAnimationName == other.geometryAnimationName
         }
 
         override fun hashCode(): Int {

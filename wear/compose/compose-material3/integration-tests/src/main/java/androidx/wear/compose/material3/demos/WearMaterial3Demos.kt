@@ -214,6 +214,7 @@ val WearMaterial3Demos =
                         ComposableDemo("Scaling Morphing Effect Sample") {
                             TransformingLazyColumnScalingMorphingEffectSample()
                         },
+                        ComposableDemo("Surface Transformation") { SurfaceTransformationDemo() },
                         ComposableDemo("TLC Buttons") { TransformingLazyColumnButtons() },
                         ComposableDemo("TLC Cards") { TransformingLazyColumnCards() },
                         ComposableDemo("Animation Demo") { TransformingLazyColumnScrollingSample() }

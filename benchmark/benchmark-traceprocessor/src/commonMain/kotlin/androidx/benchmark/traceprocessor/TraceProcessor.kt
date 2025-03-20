@@ -54,12 +54,15 @@ import perfetto.protos.TraceMetrics
  */
 public class TraceProcessor
 @Suppress("ExecutorRegistration") // purely synchronous
+@JvmOverloads
 @ExperimentalTraceProcessorApi
 constructor(
     private val serverLifecycleManager: ServerLifecycleManager,
     private val tracer: Tracer = Tracer(),
     private val eventCallback: EventCallback = EventCallback.Noop,
+    @Suppress("ListenerLast") private val timeout: Duration = DEFAULT_TIMEOUT,
 ) {
+
     public open class Tracer {
         public open fun beginTraceSection(label: String) {}
 
@@ -90,7 +93,10 @@ constructor(
     }
 
     public companion object {
-        private val SERVER_START_TIMEOUT_MS = 60.seconds
+        @get:RestrictTo(LIBRARY_GROUP)
+        @RestrictTo(LIBRARY_GROUP)
+        @get:JvmStatic
+        public val DEFAULT_TIMEOUT: Duration = 120.seconds
 
         /**
          * Starts a Perfetto trace processor shell server in http mode, and returns a [Handle] which
@@ -100,7 +106,8 @@ constructor(
          * @param serverLifecycleManager controls starting and stopping the TraceProcessor process.
          * @param eventCallback callback for events such as trace load failure.
          * @param tracer used to trace begin and end of significant events within this managed run.
-         * @param timeout waiting for the server to start. If less or equal to zero use 60 seconds
+         * @param timeout maximum duration for waiting for operations like loading the server, or
+         *   querying a trace.
          */
         @Suppress(
             "ExecutorRegistration", // purely synchronous
@@ -113,19 +120,16 @@ constructor(
             serverLifecycleManager: ServerLifecycleManager,
             eventCallback: EventCallback,
             @Suppress("ListenerLast") tracer: Tracer,
-            @Suppress("ListenerLast") timeout: Duration = SERVER_START_TIMEOUT_MS,
+            @Suppress("ListenerLast") timeout: Duration = DEFAULT_TIMEOUT,
         ): Handle {
             tracer.trace("TraceProcessor#startServer") {
-                var actualTimeout = timeout
-                if (actualTimeout <= Duration.ZERO) {
-                    actualTimeout = SERVER_START_TIMEOUT_MS
-                }
                 return Handle(
                     TraceProcessor(
                             eventCallback = eventCallback,
-                            serverLifecycleManager = serverLifecycleManager
+                            serverLifecycleManager = serverLifecycleManager,
+                            timeout = timeout,
                         )
-                        .startServerImpl(actualTimeout)
+                        .startServerImpl()
                 )
             }
         }
@@ -138,7 +142,8 @@ constructor(
          * @param serverLifecycleManager controls starting and stopping the TraceProcessor process.
          * @param eventCallback callback for events such as trace load failure.
          * @param tracer used to trace begin and end of significant events within this managed run.
-         * @param timeout waiting for the server to start. If less or equal to zero use 60 seconds
+         * @param timeout maximum duration for waiting for operations like loading the server, or
+         *   querying a trace.
          * @param block Command to execute using trace processor
          */
         @Suppress(
@@ -151,7 +156,7 @@ constructor(
             serverLifecycleManager: ServerLifecycleManager,
             eventCallback: EventCallback,
             @Suppress("ListenerLast") tracer: Tracer,
-            @Suppress("ListenerLast") timeout: Duration = SERVER_START_TIMEOUT_MS,
+            @Suppress("ListenerLast") timeout: Duration = DEFAULT_TIMEOUT,
             @Suppress("ListenerLast") block: TraceProcessor.() -> T
         ): T =
             tracer.trace("TraceProcessor#runServer") {
@@ -432,13 +437,13 @@ constructor(
 
     @OptIn(ExperimentalTraceProcessorApi::class)
     private val traceProcessorHttpServer: TraceProcessorHttpServer =
-        TraceProcessorHttpServer(serverLifecycleManager)
+        TraceProcessorHttpServer(serverLifecycleManager, timeout)
     private var traceLoaded = false
 
-    private fun startServerImpl(timeout: Duration): TraceProcessor =
+    private fun startServerImpl(): TraceProcessor =
         tracer.trace("TraceProcessor#startServer") {
-            println("startserver($timeout)")
-            traceProcessorHttpServer.startServer(timeout)
+            println("startserver")
+            traceProcessorHttpServer.startServer()
             return@trace this
         }
 

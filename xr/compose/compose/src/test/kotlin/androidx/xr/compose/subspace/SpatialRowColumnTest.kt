@@ -344,7 +344,10 @@ class SpatialRowColumnTest {
     @Test
     fun spatialRowColumn_negativeCurvatureIsIgnored() {
         composeTestRule.setSubspaceContent {
-            SpatialRow(SubspaceModifier.testTag("row1").width(500.dp), curveRadius = -100.dp) {
+            SpatialCurvedRow(
+                SubspaceModifier.testTag("row1").width(500.dp),
+                curveRadius = -100.dp
+            ) {
                 SpatialColumn(SubspaceModifier.testTag("column1").width(250.dp)) {
                     SpatialPanel { Text(text = "Column 1") }
                 }
@@ -371,7 +374,7 @@ class SpatialRowColumnTest {
     @Test
     fun spatialRowColumn_zeroCurvatureIsIgnored() {
         composeTestRule.setSubspaceContent {
-            SpatialRow(SubspaceModifier.testTag("row1").width(500.dp), curveRadius = 0.dp) {
+            SpatialCurvedRow(SubspaceModifier.testTag("row1").width(500.dp), curveRadius = 0.dp) {
                 SpatialColumn(SubspaceModifier.testTag("column1").width(250.dp)) {
                     SpatialPanel { Text(text = "Column 1") }
                 }
@@ -399,7 +402,7 @@ class SpatialRowColumnTest {
     @Test
     fun spatialRowColumn_positiveCurvatureCreatesCurvature() {
         composeTestRule.setSubspaceContent {
-            SpatialRow(SubspaceModifier.testTag("row1").width(500.dp), curveRadius = 100.dp) {
+            SpatialCurvedRow(SubspaceModifier.testTag("row1").width(500.dp), curveRadius = 100.dp) {
                 SpatialColumn(SubspaceModifier.testTag("column1").width(250.dp)) {
                     SpatialPanel { Text(text = "Column 1") }
                 }
@@ -427,7 +430,7 @@ class SpatialRowColumnTest {
     @Test
     fun spatialRowColumn_zOffsetIsRespected() {
         composeTestRule.setSubspaceContent {
-            SpatialRow(
+            SpatialCurvedRow(
                 SubspaceModifier.testTag("row1").width(500.dp).offset(0.dp, 0.dp, -50.dp),
                 curveRadius = 100.dp,
             ) {

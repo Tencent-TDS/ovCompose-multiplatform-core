@@ -21,9 +21,13 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.HorizontalAlignmentLine
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -35,6 +39,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.util.fastRoundToInt
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -81,8 +87,13 @@ internal object MinimumInteractiveModifier : ModifierNodeElement<MinimumInteract
     override fun equals(other: Any?) = (other === this)
 }
 
+@Suppress("PrimitiveInCollection")
 internal class MinimumInteractiveModifierNode :
     Modifier.Node(), CompositionLocalConsumerModifierNode, LayoutModifierNode {
+
+    private var alignmentLinesCache: MutableMap<AlignmentLine, Int>? = null
+
+    @Suppress("PrimitiveInCollection")
     override fun MeasureScope.measure(
         measurable: Measurable,
         constraints: Constraints
@@ -106,13 +117,67 @@ internal class MinimumInteractiveModifierNode :
                 placeable.height
             }
 
-        return layout(width, height) {
+        updateAlignmentLines(enforcement, sizePx, placeable)
+
+        return layout(
+            width = width,
+            height = height,
+            alignmentLines = alignmentLinesCache ?: emptyMap()
+        ) {
             val centerX = ((width - placeable.width) / 2f).roundToInt()
             val centerY = ((height - placeable.height) / 2f).roundToInt()
             placeable.place(centerX, centerY)
         }
     }
+
+    /**
+     * Updates the alignment lines cache based on the enforcement of minimum interactive size and
+     * the measured size of the placeable.
+     *
+     * If the enforced minimum size (`sizePx`) is larger than the placeable's width or height, it
+     * calculates the necessary alignment offsets and adds them to the cache. If the minimum size is
+     * not enforced or is smaller than the placeable's dimensions, it sets the alignment lines to
+     * [AlignmentLine.Unspecified] to clear any previously set values.
+     *
+     * @param enforcement A boolean indicating whether the minimum interactive size is enforced.
+     * @param sizePx The minimum size in pixels that should be enforced.
+     * @param placeable The [Placeable] object representing the measured component.
+     */
+    private fun updateAlignmentLines(enforcement: Boolean, sizePx: Int, placeable: Placeable) {
+        if (enforcement && sizePx > placeable.width) {
+            // If the required size is larger than the placeable width, set the
+            // MinimumInteractiveLeftAlignmentLine to indicate the amount of pixels that were added
+            // to the left.
+            val cache = getAlignmentLinesCache()
+            cache[MinimumInteractiveLeftAlignmentLine] =
+                ((sizePx - placeable.width) / 2f).fastRoundToInt()
+        } else if (alignmentLinesCache != null) {
+            alignmentLinesCache!![MinimumInteractiveLeftAlignmentLine] = AlignmentLine.Unspecified
+        }
+        if (enforcement && sizePx > placeable.height) {
+            // If the required size is larger than the placeable height, set the
+            // MinimumInteractiveTopAlignmentLine to indicate the amount of pixels that were added
+            // to the top.
+            val cache = getAlignmentLinesCache()
+            cache[MinimumInteractiveTopAlignmentLine] =
+                ((sizePx - placeable.height) / 2f).fastRoundToInt()
+        } else if (alignmentLinesCache != null) {
+            alignmentLinesCache!![MinimumInteractiveTopAlignmentLine] = AlignmentLine.Unspecified
+        }
+    }
+
+    /**
+     * Returns a [MutableMap] that will act as a cache of alignment lines.
+     *
+     * In case it is null, it will be initialized and assigned to the [alignmentLinesCache].
+     */
+    private fun getAlignmentLinesCache(): MutableMap<AlignmentLine, Int> =
+        alignmentLinesCache
+            ?: LinkedHashMap<AlignmentLine, Int>(2).also { alignmentLinesCache = it }
 }
+
+internal val MinimumInteractiveTopAlignmentLine = HorizontalAlignmentLine(::min)
+internal val MinimumInteractiveLeftAlignmentLine = VerticalAlignmentLine(::min)
 
 /**
  * CompositionLocal that configures whether Material components that have a visual size that is

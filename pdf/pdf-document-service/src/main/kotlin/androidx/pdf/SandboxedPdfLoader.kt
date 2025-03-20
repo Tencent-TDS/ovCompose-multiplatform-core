@@ -76,19 +76,32 @@ public class SandboxedPdfLoader(
                 )
         val pfd = openFileDescriptor(uri)
         val status = PdfLoadingStatus.values()[binder.openPdfDocument(pfd, password)]
+
+        if (status != PdfLoadingStatus.SUCCESS) {
+            handlePdfLoadingError(pfd, status)
+        }
+
+        return SandboxedPdfDocument(
+            uri,
+            connection,
+            password,
+            pfd,
+            dispatcher,
+            binder.numPages(),
+            binder.isPdfLinearized(),
+            binder.getFormType()
+        )
+    }
+
+    private fun handlePdfLoadingError(
+        pfd: ParcelFileDescriptor,
+        status: PdfLoadingStatus
+    ): Exception {
+        // The PdfDocument is not created in case of any error, so close the file descriptor
+        // here only to release resources and prevent leaks.
+        pfd.close()
+
         when (status) {
-            PdfLoadingStatus.SUCCESS -> {
-                return SandboxedPdfDocument(
-                    uri,
-                    connection,
-                    password,
-                    pfd,
-                    dispatcher,
-                    binder.numPages(),
-                    binder.isPdfLinearized(),
-                    binder.getFormType()
-                )
-            }
             PdfLoadingStatus.WRONG_PASSWORD -> throw PdfPasswordException("Incorrect password")
             PdfLoadingStatus.PDF_ERROR -> throw IOException("Unable to process the PDF document")
             PdfLoadingStatus.LOADING_ERROR -> throw RuntimeException("Loading failed")

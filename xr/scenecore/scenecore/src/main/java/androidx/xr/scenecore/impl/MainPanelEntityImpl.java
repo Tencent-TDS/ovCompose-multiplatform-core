@@ -19,13 +19,14 @@ package androidx.xr.scenecore.impl;
 import android.app.Activity;
 import android.graphics.Rect;
 
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.NodeTransaction;
-import androidx.xr.runtime.math.Vector3;
+import androidx.annotation.NonNull;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeTransaction;
 
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -34,7 +35,6 @@ import java.util.concurrent.ScheduledExecutorService;
  * node. The content of this PanelEntity is assumed to have been previously defined and associated
  * with the Window Leash Node.
  */
-@SuppressWarnings("deprecation") // TODO(b/373435470): Remove
 final class MainPanelEntityImpl extends BasePanelEntity implements PanelEntity {
     Activity mRuntimeActivity;
 
@@ -52,7 +52,7 @@ final class MainPanelEntityImpl extends BasePanelEntity implements PanelEntity {
         //   Note that this requires MinAPI 30.
         // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
         Rect bounds = getBoundsFromWindowManager();
-        super.setPixelDimensions(new PixelDimensions(bounds.width(), bounds.height()));
+        super.setSizeInPixels(new PixelDimensions(bounds.width(), bounds.height()));
         float cornerRadius = getDefaultCornerRadiusInMeters();
         try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
             transaction.setCornerRadius(node, cornerRadius).apply();
@@ -64,18 +64,19 @@ final class MainPanelEntityImpl extends BasePanelEntity implements PanelEntity {
         return mRuntimeActivity.getWindowManager().getCurrentWindowMetrics().getBounds();
     }
 
+    @NonNull
     @Override
     public Dimensions getSize() {
         // The main panel bounds can change in HSM without JXRCore. Always read the bounds from the
         // WindowManager.
         Rect bounds = getBoundsFromWindowManager();
-        Vector3 pixelDensity = getPixelDensity();
-        return new Dimensions(
-                bounds.width() / pixelDensity.getX(), bounds.height() / pixelDensity.getY(), 0);
+        float pixelDensity = getDefaultPixelDensity();
+        return new Dimensions(bounds.width() / pixelDensity, bounds.height() / pixelDensity, 0);
     }
 
+    @NonNull
     @Override
-    public PixelDimensions getPixelDimensions() {
+    public PixelDimensions getSizeInPixels() {
         // The main panel bounds can change in HSM without JXRCore. Always read the bounds from the
         // WindowManager.
         Rect bounds = getBoundsFromWindowManager();
@@ -83,11 +84,11 @@ final class MainPanelEntityImpl extends BasePanelEntity implements PanelEntity {
     }
 
     @Override
-    public void setPixelDimensions(PixelDimensions dimensions) {
+    public void setSizeInPixels(@NonNull PixelDimensions dimensions) {
         // TODO: b/376126162 - Consider calling setPixelDimensions() either when setMainWindowSize's
         // callback is called, or when the next spatial state callback with the expected size is
         // called.
-        super.setPixelDimensions(dimensions);
+        super.setSizeInPixels(dimensions);
         // TODO: b/376934871 - Check async results.
         mExtensions.setMainWindowSize(
                 mRuntimeActivity,

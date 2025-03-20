@@ -23,6 +23,12 @@ import androidx.appfunctions.core.AppFunctionMetadataTestHelper
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -236,4 +242,306 @@ class AppFunctionManagerCompatTest {
         assertThat((response as ExecuteAppFunctionResponse.Error).error)
             .isInstanceOf(AppFunctionInvalidArgumentException::class.java)
     }
+
+    @Test
+    fun observeAppFunctions_emptyPackagesListInSearchSpec_noResults() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(packageNames = emptySet())
+
+            assertThat(appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first())
+                .isEmpty()
+        }
+
+    @Test
+    fun observeAppFunctions_emptySchemaNameInSearchSpec_noResults() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(schemaName = "")
+
+            assertThat(appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first())
+                .isEmpty()
+        }
+
+    @Test
+    fun observeAppFunctions_emptySchemaCategoryInSearchSpec_noResults() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(schemaCategory = "")
+
+            assertThat(appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first())
+                .isEmpty()
+        }
+
+    @Test
+    fun observeAppFunctions_packageListNotSetInSpec_returnsAllAppFunctions() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec()
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            // TODO: Populate other fields for legacy indexer.
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
+                )
+            // Only check for all fields when dynamic indexer is enabled.
+            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
+            assertThat(appFunctions)
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_SUCCEED,
+                )
+        }
+
+    // TODO(b/397396289) - Test package filter with multiple app installs.
+    @Test
+    fun observeAppFunctions_packageListSetInSpec_returnsAppFunctionsInPackage() =
+        runBlocking<Unit> {
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(packageNames = setOf(context.packageName))
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            // TODO: Populate other fields for legacy indexer.
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
+                )
+            // Only check for all fields when dynamic indexer is enabled.
+            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
+            assertThat(appFunctions)
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_SUCCEED,
+                )
+        }
+
+    @Test
+    fun observeAppFunctions_schemaNameInSpec_returnsMatchingAppFunctions() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(schemaName = "print")
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            // TODO: Populate other fields for legacy indexer.
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT
+                )
+            assertThat(appFunctions.map { it.schema })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT.schema,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NOTES_SCHEMA_PRINT.schema,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT.schema,
+                )
+            // Only check for all fields when dynamic indexer is enabled.
+            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
+            assertThat(appFunctions)
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT,
+                )
+        }
+
+    @Test
+    fun observeAppFunctions_schemaCategoryInSpec_returnsMatchingAppFunctions() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(schemaCategory = "media")
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            // TODO: Populate other fields for legacy indexer.
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT
+                )
+            assertThat(appFunctions.map { it.schema })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT.schema,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT.schema,
+                )
+            // Only check for all fields when dynamic indexer is enabled.
+            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
+            assertThat(appFunctions)
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT
+                )
+        }
+
+    @Test
+    fun observeAppFunctions_minSchemaVersionInSpec_returnsAppFunctionsWithSchemaVersionGreaterThanMin() =
+        runBlocking<Unit> {
+            val searchFunctionSpec = AppFunctionSearchSpec(minSchemaVersion = 2)
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            // TODO: Populate other fields for legacy indexer.
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT)
+            assertThat(appFunctions.map { it.schema })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT.schema
+                )
+            // Only check for all fields when dynamic indexer is enabled.
+            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
+            assertThat(appFunctions)
+                .containsExactly(AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT)
+        }
+
+    @Test
+    fun observeAppFunctions_isDisabledInRuntime_returnsIsEnabledFalse() =
+        runBlocking<Unit> {
+            val functionIdToTest =
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT
+            val searchFunctionSpec = AppFunctionSearchSpec()
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                functionIdToTest,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_DISABLED
+            )
+
+            val appFunctionMetadata =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first().single {
+                    it.id == functionIdToTest
+                }
+
+            assertThat(appFunctionMetadata.isEnabled).isFalse()
+        }
+
+    @Test
+    fun observeAppFunctions_isEnabledInRuntime_returnsIsEnabledTrue() =
+        runBlocking<Unit> {
+            val functionIdToTest =
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT
+            val searchFunctionSpec = AppFunctionSearchSpec()
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                functionIdToTest,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_ENABLED
+            )
+
+            val appFunctionMetadata =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first().single {
+                    it.id == functionIdToTest
+                }
+
+            assertThat(appFunctionMetadata.isEnabled).isTrue()
+        }
+
+    // TODO(b/397396289): Add test to check we don't trigger updates for unrelated changes.
+    @Test
+    fun observeAppFunctions_observeDocumentChanges_returnsListWithUpdatedValue() =
+        runBlocking<Unit> {
+            val functionIdToTest =
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(packageNames = setOf(context.packageName))
+            val appFunctionSearchFlow =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec)
+            val emittedValues =
+                appFunctionSearchFlow.shareIn(
+                    scope = CoroutineScope(Dispatchers.Default),
+                    started = SharingStarted.Eagerly,
+                    replay = 10,
+                )
+            emittedValues.first() // Allow emitting initial value and registering callback.
+
+            // Modify the runtime document.
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                functionIdToTest,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_DISABLED
+            )
+
+            // Collect in a separate scope to avoid deadlock within the testcase.
+            runBlocking(Dispatchers.Default) { emittedValues.take(2).collect {} }
+            assertThat(emittedValues.replayCache).hasSize(2)
+            // Assert first result to be default value.
+            assertThat(
+                    emittedValues.replayCache[0]
+                        .single {
+                            it.id ==
+                                AppFunctionMetadataTestHelper.FunctionIds
+                                    .NO_SCHEMA_ENABLED_BY_DEFAULT
+                        }
+                        .isEnabled
+                )
+                .isEqualTo(
+                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_ENABLED_BY_DEFAULT
+                        .isEnabled
+                )
+            // Assert next update has updated value.
+            assertThat(
+                    emittedValues.replayCache[1]
+                        .single {
+                            it.id ==
+                                AppFunctionMetadataTestHelper.FunctionIds
+                                    .NO_SCHEMA_ENABLED_BY_DEFAULT
+                        }
+                        .isEnabled
+                )
+                .isFalse()
+        }
+
+    @Test
+    fun observeAppFunctions_multipleUpdates_returnsUpdatesAfterDebouncing() =
+        runBlocking<Unit> {
+            val functionIdToTest =
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(packageNames = setOf(context.packageName))
+            val appFunctionSearchFlow =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec)
+            val emittedValues =
+                appFunctionSearchFlow.shareIn(
+                    scope = CoroutineScope(Dispatchers.Default),
+                    started = SharingStarted.Eagerly,
+                    replay = 10,
+                )
+            emittedValues.first() // Allow emitting initial value and registering callback.
+
+            // Modify the runtime document twice.
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                functionIdToTest,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_DISABLED
+            )
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                functionIdToTest,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_ENABLED
+            )
+
+            // Collect in a separate scope to avoid deadlock within the testcase.
+            runBlocking(Dispatchers.Default) { emittedValues.take(2).collect {} }
+            // Only 2 updates are emitted.
+            assertThat(emittedValues.replayCache).hasSize(2)
+            assertThat(emittedValues.replayCache[1].single { it.id == functionIdToTest }.isEnabled)
+                .isTrue()
+        }
 }

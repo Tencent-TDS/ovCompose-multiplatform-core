@@ -51,7 +51,7 @@ package androidx.privacysandbox.sdkruntime.core {
     method public final void attachContext(android.content.Context context);
     method public void beforeUnloadSdk();
     method public final android.content.Context? getContext();
-    method public abstract android.view.View getView(android.content.Context windowContext, android.os.Bundle params, int width, int height);
+    method @Deprecated public android.view.View getView(android.content.Context windowContext, android.os.Bundle params, int width, int height);
     method @kotlin.jvm.Throws(exceptionClasses=LoadSdkCompatException::class) public abstract androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat onLoadSdk(android.os.Bundle params) throws androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException;
     property public final android.content.Context? context;
   }

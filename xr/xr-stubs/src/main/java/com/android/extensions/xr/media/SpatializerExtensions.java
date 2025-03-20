@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /** Extensions of the existing {@link Spatializer} class. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SpatializerExtensions {
 
     SpatializerExtensions() {
