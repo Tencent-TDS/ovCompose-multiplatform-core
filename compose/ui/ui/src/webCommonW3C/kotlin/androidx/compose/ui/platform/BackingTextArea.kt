@@ -41,10 +41,8 @@ internal interface ComposeCommandCommunicator {
  * the virtual keyboard.
  */
 internal class BackingTextArea(
-    private val imeOptions: ImeOptions,
-    private val onImeActionPerformed: (ImeAction) -> Unit,
+    imeOptions: ImeOptions,
     composeCommunicator : ComposeCommandCommunicator,
-
 ) {
     private val inputStrategy: DomInputStrategy = CommonDomInputStrategy(
         imeOptions.createDomElement(),
