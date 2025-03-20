@@ -201,8 +201,9 @@ internal class ComposeWindow(
                 return Offset(offsetX, offsetY)
             }
 
-            override fun processKeyboardEvent(keyboardEvent: KeyboardEvent) {
-                this@ComposeWindow.processKeyboardEvent(keyboardEvent)
+            override fun processKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                //this@ComposeWindow.processKeyboardEvent(keyboardEvent)
+                return scene.sendKeyEvent(keyboardEvent.toComposeEvent())
             }
         }
 
