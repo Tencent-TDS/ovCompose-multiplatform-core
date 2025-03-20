@@ -43,7 +43,6 @@ class BackingTextAreaTests {
     fun disposeTest() {
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onImeActionPerformed = {},
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) { }
                 override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean { return false }
@@ -69,7 +68,6 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onImeActionPerformed = {},
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
                     TODO("Not yet implemented")
@@ -108,7 +106,6 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onImeActionPerformed = {},
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
                     lastEditCommand = commands
@@ -173,7 +170,6 @@ class BackingTextAreaTests {
 
         val backingTextArea = BackingTextArea(
             imeOptions = ImeOptions.Default,
-            onImeActionPerformed = {},
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
                     lastEditCommand = commands

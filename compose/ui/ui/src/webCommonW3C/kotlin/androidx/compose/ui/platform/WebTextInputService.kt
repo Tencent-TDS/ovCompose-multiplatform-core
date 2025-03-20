@@ -47,7 +47,6 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         backingTextArea =
             BackingTextArea(
                 imeOptions = imeOptions,
-                onImeActionPerformed = onImeActionPerformed,
                 composeCommunicator = object : ComposeCommandCommunicator {
                     override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
                         return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
