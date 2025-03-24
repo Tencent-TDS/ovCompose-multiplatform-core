@@ -21,6 +21,7 @@ import androidx.compose.foundation.gestures.awaitPress
 import androidx.compose.foundation.gestures.detectTapAndPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.text.Handle
 import androidx.compose.foundation.text.TextDragObserver
 import androidx.compose.foundation.text.determineCursorDesiredOffset
 import androidx.compose.foundation.text.input.TextFieldCharSequence
@@ -301,6 +302,7 @@ private class UIKitTextFieldTextDragObserver(
             dragTotalDistance = Offset.Zero
             textFieldSelectionState.directDragGestureInitiator = InputType.None
             requestFocus()
+            textFieldSelectionState.clearHandleDragging()
         }
     }
 
@@ -334,6 +336,7 @@ private class UIKitTextFieldTextDragObserver(
             )
         }
         textFieldSelectionState.showCursorHandle = true
+        textFieldSelectionState.updateHandleDragging(Handle.Cursor, startPoint)
     }
 
     override fun onDrag(delta: Offset) {
@@ -352,5 +355,6 @@ private class UIKitTextFieldTextDragObserver(
         textFieldSelectionState.placeCursorAtNearestOffset(
             textFieldSelectionState.textLayoutState.fromDecorationToTextLayout(coercedOffset)
         )
+        textFieldSelectionState.updateHandleDragging(Handle.Cursor, currentDragPosition)
     }
 }
