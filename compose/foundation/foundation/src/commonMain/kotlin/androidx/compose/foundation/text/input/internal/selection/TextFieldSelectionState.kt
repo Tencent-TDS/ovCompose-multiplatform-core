@@ -109,13 +109,19 @@ internal class TextFieldSelectionState(
     val textFieldState: TransformedTextFieldState,
     val textLayoutState: TextLayoutState,
     private var density: Density,
-    var enabled: Boolean,
-    var readOnly: Boolean,
+    enabled: Boolean,
+    readOnly: Boolean,
     var isFocused: Boolean,
     private var isPassword: Boolean,
 ) {
+    var enabled: Boolean = enabled
+        private set
+
+    var readOnly: Boolean = readOnly
+        private set
+
     /** [HapticFeedback] handle to perform haptic feedback. */
-    internal var hapticFeedBack: HapticFeedback? = null
+    var hapticFeedBack: HapticFeedback? = null
 
     /** A handler to trigger the [TextToolbar] to be shown or hidden */
     private var textToolbarHandler: TextToolbarHandler? = null
