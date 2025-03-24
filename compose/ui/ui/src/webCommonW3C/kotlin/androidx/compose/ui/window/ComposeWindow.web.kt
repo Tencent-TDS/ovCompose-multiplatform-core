@@ -417,7 +417,19 @@ internal class ComposeWindow(
             "touchend", "touchcancel" -> PointerEventType.Release
             else -> PointerEventType.Unknown
         }
-        val pointers = event.changedTouches.asList().map { touch ->
+
+        /**
+         * We use both targetTouches and changedTouches:
+         * - targetTouches is empty when a last pointer is released, but changedTouches won't be empty;
+         * - changedTouches contains only a Touch of a changed pointer, but compose needs all pointers,
+         *   therefore we take targetTouches in this case;
+         */
+        val touches = if (event.targetTouches.length > event.changedTouches.length) {
+            event.targetTouches.asList()
+        } else {
+            event.changedTouches.asList()
+        }
+        val pointers = touches.map { touch ->
             ComposeScenePointer(
                 id = PointerId(touch.identifier.toLong()),
                 position = Offset(
