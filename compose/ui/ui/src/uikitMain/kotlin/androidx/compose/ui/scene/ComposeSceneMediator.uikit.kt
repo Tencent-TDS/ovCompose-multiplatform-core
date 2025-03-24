@@ -628,6 +628,7 @@ internal class ComposeSceneMediator(
         userInputView.dispose()
 
         view.removeFromSuperview()
+        userInputView.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
