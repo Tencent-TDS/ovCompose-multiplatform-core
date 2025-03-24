@@ -49,9 +49,17 @@ internal fun TextFieldSelectionState.contextMenuBuilder(
     }
 }
 
+/** Runs platform-specific text tap gestures logic. */
 internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
     selectionState: TextFieldSelectionState,
     interactionSource: MutableInteractionSource?,
     requestFocus: () -> Unit,
     showKeyboard: () -> Unit
 ) = defaultDetectTextFieldTapGestures(selectionState, interactionSource, requestFocus, showKeyboard)
+
+/** Runs platform-specific text selection gestures logic. */
+internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
+    selectionState: TextFieldSelectionState,
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+) = defaultTextFieldSelectionGestures(mouseSelectionObserver, textDragObserver)
