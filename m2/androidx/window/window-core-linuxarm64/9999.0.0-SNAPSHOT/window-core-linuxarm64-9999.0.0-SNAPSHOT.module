@@ -1,0 +1,86 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../window-core/9999.0.0-SNAPSHOT/window-core-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.window",
+    "module": "window-core",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "linuxArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "linux_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "window-core-linuxArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "window-core-linuxarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 20230,
+          "sha512": "099e8803aeff5bd4f7772c10cf4289833b14b10d62f28a4a3311a6c72c19351597c636716c01f67da9f9a9d930f3bdbf3d3bcb0c6a0452d860b58d96b1114ba6",
+          "sha256": "1263b7bafa482ec58fb379ec6625ba400168b8ad2976b7992decedb20054445c",
+          "sha1": "dec0212248cadfcb4058ec65a97778114b143195",
+          "md5": "7fd5af065b1cb2e5786f4f399c84234d"
+        }
+      ]
+    },
+    {
+      "name": "linuxArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "linux_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "window-core-linuxarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "window-core-linuxarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 8804,
+          "sha512": "ae70222feba801a749b9c9498250c034d6ef44bfabc2edbce34503b0492fe6c7a2f2c0c0a62071cffc7b3aaa48dacbebcb44bf12a96375d60a61c7c58ee68ce5",
+          "sha256": "7f12a1dfe66bf3f3d0f68395b1f749377e533cdd245dffa3465e07d5acc0536e",
+          "sha1": "37942415b980a2d51e646603b246932976db31b8",
+          "md5": "07828aa7ba8527c29503ee6042e34503"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-util/9999.0.0-SNAPSHOT/ui-util-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-util",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-util-js-9999.0.0-SNAPSHOT.klib",
+          "size": 36089,
+          "sha512": "250ab9224b388b700536443f494e962faca6a9d36f9e88eabda549899f6afd11784d34eb615392c4d9a198e02b4695f5771c6d8599a72355d819f7c08a87c066",
+          "sha256": "fc26ea4459408670c44ea91fef9fc903a76f436dbf82dc9211c52202eaacdd2a",
+          "sha1": "b381b0dd5984932b7d04421d2bdc6fe28e689a0c",
+          "md5": "e2dfa89365751d814c8496cb9aa7017e"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-util-js-9999.0.0-SNAPSHOT.klib",
+          "size": 36089,
+          "sha512": "250ab9224b388b700536443f494e962faca6a9d36f9e88eabda549899f6afd11784d34eb615392c4d9a198e02b4695f5771c6d8599a72355d819f7c08a87c066",
+          "sha256": "fc26ea4459408670c44ea91fef9fc903a76f436dbf82dc9211c52202eaacdd2a",
+          "sha1": "b381b0dd5984932b7d04421d2bdc6fe28e689a0c",
+          "md5": "e2dfa89365751d814c8496cb9aa7017e"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "ui-util-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-util-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 14373,
+          "sha512": "8c9c9f40db00cfb1145364527bf25990f262107fa621ec9fa4acbc93b7fb1084c3845d7bcba06d75f0644be7d9c3c95b17cb3e714bebb575b0eb794bed3ec421",
+          "sha256": "a455de50c3509e572f39571d5fa5f2a82c1ae35afe1979f2a774830a671a7eaf",
+          "sha1": "c744471e16d9603875322ec9eb3caabf229c4c4d",
+          "md5": "26e2eb7471381538d4328a32226f2312"
+        }
+      ]
+    }
+  ]
+}

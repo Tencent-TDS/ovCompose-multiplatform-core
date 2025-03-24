@@ -1,0 +1,200 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material3-common/9999.0.0-SNAPSHOT/material3-common-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.common",
+    "module": "material3-common",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "macosX64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-macosX64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "material3-common-macosx64-9999.0.0-SNAPSHOT.klib",
+          "size": 60538,
+          "sha512": "bda2a027747bd532d6ec6c9efd62e30adcdbf6e63da37c2cd72a49ceefcaf3f53dde766cddb9347172d52a75bd11cd4bd39a4896c16701e3549c6b9de3f02b03",
+          "sha256": "67d864834962514a5f60e82df4f08a8994103d72911b9cde489a10d3571ea02e",
+          "sha1": "9443d56ffb0d38787096d7d304f18fa1c271c46c",
+          "md5": "737dfeb72f882932a9f756eb41056c7c"
+        }
+      ]
+    },
+    {
+      "name": "macosX64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "material3-common-macosx64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material3-common-macosx64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 13005,
+          "sha512": "99ed063856fc2b7254876045ee3a8e0b7407c88eabe85f2f21fb44f6dd9f0a401915fc8b70abfc89823649bda0737a4015d25ce8172b750d307bce833b05ea95",
+          "sha256": "7842a9d647e6451d03d453659bf1e1aba0fe277b10050df6f12d6b39ffc387c2",
+          "sha1": "909eaf307ed189314eba6016de78e477d3ea3a9d",
+          "md5": "59651f5adf2f61fce266e9655d89f04a"
+        }
+      ]
+    },
+    {
+      "name": "macosX64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "macos_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-graphics",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-text",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material3-common-macosx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "material3-common-macosx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 4901,
+          "sha512": "c04b4bc4e3b3c08a87912da82cd2d887d8664d1beb3ffd729033a128f585a6d9375d6720cc3e0e141addbd57940311740d380a52c920099b30fe70029a5effe8",
+          "sha256": "01ee8c4bf1a7109ae4efe0754150b8a0f7b2ea507c7d47cade63b2370f2a7cb2",
+          "sha1": "57f9b9b8d128fd59a2722c5ba36c381ecd2724ca",
+          "md5": "8c16ee207046524c8ab827a95405e7bb"
+        }
+      ]
+    }
+  ]
+}

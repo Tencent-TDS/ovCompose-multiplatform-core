@@ -1,0 +1,198 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-viewmodel-savedstate/9999.0.0-SNAPSHOT/lifecycle-viewmodel-savedstate-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-viewmodel-savedstate",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT.klib",
+          "size": 43166,
+          "sha512": "796d3d8b81bc32e2c0be43ef8733e8b57b1aefa7005e07f4310171b6a37edeb05068e4665fac7ddc19be32ea0d96f93db61523d03216308610c7c5a3cb466ada",
+          "sha256": "126ece00e6eef2610e15a1984999ab094ae96dc6708ff14c76145a4b5cf2a267",
+          "sha1": "3a443dc688c2e418796fdb619317f155a8a48172",
+          "md5": "f133629cf87ef779cc7fde9c21d04307"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT.klib",
+          "size": 43166,
+          "sha512": "796d3d8b81bc32e2c0be43ef8733e8b57b1aefa7005e07f4310171b6a37edeb05068e4665fac7ddc19be32ea0d96f93db61523d03216308610c7c5a3cb466ada",
+          "sha256": "126ece00e6eef2610e15a1984999ab094ae96dc6708ff14c76145a4b5cf2a267",
+          "sha1": "3a443dc688c2e418796fdb619317f155a8a48172",
+          "md5": "f133629cf87ef779cc7fde9c21d04307"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-viewmodel-savedstate-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 19783,
+          "sha512": "a48fde5e13635d3b20b8035776adda646036125565b07c0d5ca8998ac6ad174d14a27c3bb4e89d803cb91060bee708f89354ab4c6ec1fd3de59a2b1f6d50ad43",
+          "sha256": "a1d8561a2ec4a07e41d350b1e65787116d18fdf279036bc5da7981cb7e6aaec5",
+          "sha1": "49fe401d2b5bb92d7a040cf534100d220ace34e6",
+          "md5": "51ed84674b252ff25cc4e153787b2333"
+        }
+      ]
+    }
+  ]
+}

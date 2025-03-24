@@ -1,0 +1,144 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-util/9999.0.0-SNAPSHOT/ui-util-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-util",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "uikitArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-uikit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-uikitArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-util-uikitarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 37314,
+          "sha512": "a7f4e05751ff0ca231f6259cb4419695bad107387e7ea3790f15285071443af1890f3be64798d57f81f3b9945602587d4f3dfcafef3cd5a828beb39a9f98d9c4",
+          "sha256": "d1137bc90d437f73cd151017ea6543c80d6f830bb47c29391e8863684807bbed",
+          "sha1": "925a967309a59e9fc7918073d0667f42b07af7a0",
+          "md5": "ffe32d95159163f4d9e5d851ddebb05c"
+        }
+      ]
+    },
+    {
+      "name": "uikitArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-util-uikitarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-util-uikitarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 14648,
+          "sha512": "43015ab983c36734b7f3fc9e1f7b125b9979b47ed069bd654c2b2aa919e7b3a67f8a76be561cb538cbeed9ecae5cd54144963536abfda916c429af37c1c3744f",
+          "sha256": "fc6bcd66a433ee15880d3ca01b9d1f88439c06b0a42f8eb86441bf2ff26e2277",
+          "sha1": "42960252e5f13128e59070211d9bcbbbc91583a6",
+          "md5": "362ecc38d8950a5d703231574aba488d"
+        }
+      ]
+    },
+    {
+      "name": "uikitArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-uikit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-uikitarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "ui-util-uikitarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 8148,
+          "sha512": "b22bc01b6108b4c5fbe6a5e7d2eecfd58711ca9a72bce35d9cdd3c595c26cc2516f8fd90f5a0e6248665aaa14384a0ec531b6d54b7039ecc52fc44b7ae6ffbe6",
+          "sha256": "97dcc69944ab5ae0b358709a6dc1035ca9aaa66078ec5d57d4b8c3b93f3e7800",
+          "sha1": "8eb4ff122dbb67047f23dd585fc0262b619d5bca",
+          "md5": "ffe0d01bab0384722b03a43da87b0327"
+        }
+      ]
+    }
+  ]
+}

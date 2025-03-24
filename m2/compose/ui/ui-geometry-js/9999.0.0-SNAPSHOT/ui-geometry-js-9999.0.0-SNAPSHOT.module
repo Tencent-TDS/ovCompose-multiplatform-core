@@ -1,0 +1,129 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-geometry/9999.0.0-SNAPSHOT/ui-geometry-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-geometry",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-geometry-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-geometry-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61526,
+          "sha512": "f4ad49f822c77019c5c745dfab009860dd6d583534e1ac077eb8591682386fe357549f589ddae22caab2e16cd9cb46d1d6cde5b0ba90692f64b2e5b4c94e69b5",
+          "sha256": "c1ca5ebe69adb04ba872d9fff42f54db6131a908fe2ad429f215cf0d98746983",
+          "sha1": "cb8d111451f0a4d4ffadb42fd656b4676e7815af",
+          "md5": "88b0780967aa5dc78ceb05314a129370"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-geometry-js-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-geometry-js-9999.0.0-SNAPSHOT.klib",
+          "size": 61526,
+          "sha512": "f4ad49f822c77019c5c745dfab009860dd6d583534e1ac077eb8591682386fe357549f589ddae22caab2e16cd9cb46d1d6cde5b0ba90692f64b2e5b4c94e69b5",
+          "sha256": "c1ca5ebe69adb04ba872d9fff42f54db6131a908fe2ad429f215cf0d98746983",
+          "sha1": "cb8d111451f0a4d4ffadb42fd656b4676e7815af",
+          "md5": "88b0780967aa5dc78ceb05314a129370"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "ui-geometry-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-geometry-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 21661,
+          "sha512": "4863e18ae85127f20426ce9c273675971b4a5a446dc13d914462342a376e4f96d570c43d88983e53b724be6db19c860b121e8cab70b12d765f1f52ce5bc5d35c",
+          "sha256": "31f71d7c6afd770bc7be12defed5bf7347e2ec37c88f3be05d65b1c2e4495a94",
+          "sha1": "3d3abd5627ffe20c6230b85b36817e0e738bc3ef",
+          "md5": "764f1ac46b4f9ea3403a167436bc1cdf"
+        }
+      ]
+    }
+  ]
+}

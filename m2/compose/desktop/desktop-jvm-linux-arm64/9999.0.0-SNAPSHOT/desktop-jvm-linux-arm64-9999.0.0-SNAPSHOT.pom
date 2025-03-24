@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.jetbrains.compose.desktop</groupId>
+  <artifactId>desktop-jvm-linux-arm64</artifactId>
+  <version>9999.0.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>Compose Desktop</name>
+  <url>https://github.com/JetBrains/compose-jb</url>
+  <inceptionYear>2020</inceptionYear>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <developers>
+    <developer>
+      <name>The Android Open Source Project</name>
+    </developer>
+  </developers>
+  <scm>
+    <connection>scm:git:https://android.googlesource.com/platform/frameworks/support</connection>
+    <url>https://cs.android.com/androidx/platform/frameworks/support</url>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains.compose.desktop</groupId>
+      <artifactId>desktop</artifactId>
+      <version>9999.0.0-SNAPSHOT</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.skiko</groupId>
+      <artifactId>skiko-awt-runtime-linux-arm64</artifactId>
+      <version>0.9.3</version>
+      <scope>runtime</scope>
+    </dependency>
+  </dependencies>
+</project>

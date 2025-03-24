@@ -1,0 +1,113 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material-navigation/9999.0.0-SNAPSHOT/material-navigation-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material",
+    "module": "material-navigation",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "material-navigation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material-navigation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 41933,
+          "sha512": "607a6e6ee910b263e098d0a8537ebb3f7b99d72a9f3e3f447a83c1c0ad90195b739900017d20bfda229ec7086802a56a27b41c956ae1299af1a38fb192d6b477",
+          "sha256": "c72aabddab5f94ff5a3f7c5b613cb9b97d4363fee88789f014927fe8ffa04af1",
+          "sha1": "64707c95dccf361124d7d4cc68319bad175348c9",
+          "md5": "bde4de6c5eebe5dc8e14e370fdb431cf"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.navigation",
+          "module": "navigation-compose",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material",
+          "module": "material",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material-navigation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material-navigation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 41933,
+          "sha512": "607a6e6ee910b263e098d0a8537ebb3f7b99d72a9f3e3f447a83c1c0ad90195b739900017d20bfda229ec7086802a56a27b41c956ae1299af1a38fb192d6b477",
+          "sha256": "c72aabddab5f94ff5a3f7c5b613cb9b97d4363fee88789f014927fe8ffa04af1",
+          "sha1": "64707c95dccf361124d7d4cc68319bad175348c9",
+          "md5": "bde4de6c5eebe5dc8e14e370fdb431cf"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "material-navigation-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material-navigation-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 11570,
+          "sha512": "397c1283b60ee70cc0326f711f726846f08495ae5793358a0f6bfe4747cbd78d81025e247e4018912858e4782e10445ed81186f7da6068c83f17fb091023b303",
+          "sha256": "d9bea1972c3ec3db40a1bc2e410f1696ce9a42db21675fa9b07a606bae2bf933",
+          "sha1": "cc6aec6958b041ee1508926435024ed0626759b6",
+          "md5": "d8cef57940affed31e74476e20d72aa6"
+        }
+      ]
+    }
+  ]
+}

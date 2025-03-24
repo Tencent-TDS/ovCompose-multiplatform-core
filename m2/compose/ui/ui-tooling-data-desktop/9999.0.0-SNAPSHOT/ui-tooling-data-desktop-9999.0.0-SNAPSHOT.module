@@ -1,0 +1,129 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-tooling-data/9999.0.0-SNAPSHOT/ui-tooling-data-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-tooling-data",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 39197,
+          "sha512": "e42e58c380b667ac21942ee89c67f7f654c4849c6668116ccee224fda73a037760a7ecf51e6bc5688904dd466bcdc3d077dbdbd7418a839d30b4ac5447e7babc",
+          "sha256": "75ff0610c6854f3fbeb16c88f1f39ff7a0711d3aa04b2243f81833af2890eb90",
+          "sha1": "11ce304d0e6cec55bbde5568b710208ffa5266e1",
+          "md5": "e78a0f3056b72d1e82c5aaafe2eea76f"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 39197,
+          "sha512": "e42e58c380b667ac21942ee89c67f7f654c4849c6668116ccee224fda73a037760a7ecf51e6bc5688904dd466bcdc3d077dbdbd7418a839d30b4ac5447e7babc",
+          "sha256": "75ff0610c6854f3fbeb16c88f1f39ff7a0711d3aa04b2243f81833af2890eb90",
+          "sha1": "11ce304d0e6cec55bbde5568b710208ffa5266e1",
+          "md5": "e78a0f3056b72d1e82c5aaafe2eea76f"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-tooling-data-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 9122,
+          "sha512": "2ccddf9594f1da105aac5b53b953ebdb263199214e9ba070bd30353e269614f628c50f2a361cb50a356587d215bf56ce7edf8613acb386a78c9898d67a0b7cf0",
+          "sha256": "b23632e594132724f2d9fb3951f5b61da5536db78e19b5c2f53d9f7f3b1f1879",
+          "sha1": "ba96dee537ea78af3ebd18444a85b30707f06a61",
+          "md5": "844d37e152cd0428e0408db95fc84161"
+        }
+      ]
+    }
+  ]
+}

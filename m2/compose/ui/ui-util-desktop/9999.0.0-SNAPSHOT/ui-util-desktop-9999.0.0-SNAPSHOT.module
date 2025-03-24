@@ -1,0 +1,106 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-util/9999.0.0-SNAPSHOT/ui-util-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-util",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-util-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-util-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 17217,
+          "sha512": "3be41766e83c365738b2042eeb34edcae9c412f46a0f347be6389502e0fa3d7cb887b50227ecdd9135a93b95bf0dc6a62ba38535865d6254149e31300fc1d1ce",
+          "sha256": "cdd9f33872710c14df7550dadbfc91d55ad9a3b7134431c2af8eb42f757e17af",
+          "sha1": "a2a36b3d81ea69a736a49bf0a53723d5daa59c62",
+          "md5": "957e59fd1e86acb5a58bbfedc6afbcbc"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "ui-util-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 17217,
+          "sha512": "3be41766e83c365738b2042eeb34edcae9c412f46a0f347be6389502e0fa3d7cb887b50227ecdd9135a93b95bf0dc6a62ba38535865d6254149e31300fc1d1ce",
+          "sha256": "cdd9f33872710c14df7550dadbfc91d55ad9a3b7134431c2af8eb42f757e17af",
+          "sha1": "a2a36b3d81ea69a736a49bf0a53723d5daa59c62",
+          "md5": "957e59fd1e86acb5a58bbfedc6afbcbc"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "ui-util-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-util-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 14446,
+          "sha512": "d45d2985a9b77465ee3c1280c99e7a2c2cfae610862fd8440d79356a36665056c704a044500defdc349d83a2ce6003eb4ec0e9b0277c39e7c896e97cd06f9f41",
+          "sha256": "6fc5775947c8e06e0321fbb5e68a64ddaa668650d7a2119ae5f05a1309356496",
+          "sha1": "c07fe6d8423ab99fe9d6ac9ea6e69a3822f07134",
+          "md5": "b9221e8d7bb51002d10a61ef644d018a"
+        }
+      ]
+    }
+  ]
+}

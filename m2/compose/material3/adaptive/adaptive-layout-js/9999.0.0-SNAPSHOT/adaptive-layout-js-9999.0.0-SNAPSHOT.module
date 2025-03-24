@@ -1,0 +1,206 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../adaptive-layout/9999.0.0-SNAPSHOT/adaptive-layout-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.adaptive",
+    "module": "adaptive-layout",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-layout-js-9999.0.0-SNAPSHOT.klib",
+          "url": "adaptive-layout-js-9999.0.0-SNAPSHOT.klib",
+          "size": 315282,
+          "sha512": "05d920c1c4b272d91c38001f0a168f10a7cad1b56698fa0f8aa5c16a2a4df8770b4382aac404007f980559908fe169532958d7d0aa01a62e01bbd37f7ffb2a64",
+          "sha256": "a3d9ce87f3093ac9896d9fdc24c5a316379d03f0574e8a001e1520081f8eaf6e",
+          "sha1": "7d6d46e788ac8772edaccac451f393867827305b",
+          "md5": "eb6bb1bef942d71245935856b266676b"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.window",
+          "module": "window-core",
+          "version": {
+            "requires": "1.3.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-layout-js-9999.0.0-SNAPSHOT.klib",
+          "url": "adaptive-layout-js-9999.0.0-SNAPSHOT.klib",
+          "size": 315282,
+          "sha512": "05d920c1c4b272d91c38001f0a168f10a7cad1b56698fa0f8aa5c16a2a4df8770b4382aac404007f980559908fe169532958d7d0aa01a62e01bbd37f7ffb2a64",
+          "sha256": "a3d9ce87f3093ac9896d9fdc24c5a316379d03f0574e8a001e1520081f8eaf6e",
+          "sha1": "7d6d46e788ac8772edaccac451f393867827305b",
+          "md5": "eb6bb1bef942d71245935856b266676b"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "adaptive-layout-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "adaptive-layout-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 67690,
+          "sha512": "a3a26b7176171a3aee54e1fdecd74b8b51394e91acb431f0c204b7b4f667ff5a7a336bbc3ae971581fa69e9dc969a94df1b6ab2dfea7b68c68e63625fd85983a",
+          "sha256": "f91c00c419e6763aed576a4f9d4ebb8152706efe2dc466731bc8e802c2093aa4",
+          "sha1": "bdc5619524d2642a09e156c84cf92f6fede9c946",
+          "md5": "db48961e60485e2fe98d470b2e07ae08"
+        }
+      ]
+    }
+  ]
+}

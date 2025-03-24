@@ -1,0 +1,136 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../runtime-saveable/9999.0.0-SNAPSHOT/runtime-saveable-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.runtime",
+    "module": "runtime-saveable",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "runtime-saveable-js-9999.0.0-SNAPSHOT.klib",
+          "url": "runtime-saveable-js-9999.0.0-SNAPSHOT.klib",
+          "size": 43101,
+          "sha512": "9dea473cde252fe8e2c5ed2033eadb318778cb7543ecd1ba8516856287b77fd34253dcdc5e5688088a23d3631a20c94facad9fa85ebcd2e9891728f4326e27fe",
+          "sha256": "3ab363e1960d34b51192db8361aff748d885b56ec9b20d4440c138583a2706b1",
+          "sha1": "6d827c3b42faaa1833b706ab16eb3877861925ab",
+          "md5": "4c0a78121f04486618184a5bad86ad47"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "runtime-saveable-js-9999.0.0-SNAPSHOT.klib",
+          "url": "runtime-saveable-js-9999.0.0-SNAPSHOT.klib",
+          "size": 43101,
+          "sha512": "9dea473cde252fe8e2c5ed2033eadb318778cb7543ecd1ba8516856287b77fd34253dcdc5e5688088a23d3631a20c94facad9fa85ebcd2e9891728f4326e27fe",
+          "sha256": "3ab363e1960d34b51192db8361aff748d885b56ec9b20d4440c138583a2706b1",
+          "sha1": "6d827c3b42faaa1833b706ab16eb3877861925ab",
+          "md5": "4c0a78121f04486618184a5bad86ad47"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "runtime-saveable-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "runtime-saveable-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 12013,
+          "sha512": "97d30d044f01360b23a10746fde84f0a21f4073edd6c2576f34688b03ac4cfb132db95114dc89c515428a510210394c309ac1ff57cbf0e3bd4e6b936242b03bb",
+          "sha256": "19100adb91d288c7663d83ab606adbd53b932660018f3f1292c524c0e28f8388",
+          "sha1": "f687818f0b8b0754424a40c9d559c1a505b1a0fe",
+          "md5": "20389945decb9015500e36e7eb7af677"
+        }
+      ]
+    }
+  ]
+}

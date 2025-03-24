@@ -1,0 +1,214 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-graphics/9999.0.0-SNAPSHOT/ui-graphics-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-graphics",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "uikitX64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-graphics-uikitX64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-graphics-uikitx64-9999.0.0-SNAPSHOT.klib",
+          "size": 659313,
+          "sha512": "e607e70b669cfcd850e952e6624f2c081bb406ab86f23919a48a038084957a74b45ec516e7969c085ccd436f4e62f14162cb708c0ff552d98404bae7e06f3dbf",
+          "sha256": "af8b64a068efc24250001532c4ea693f1062c2faec4a4ab6cedf9ffdcac0480d",
+          "sha1": "35528231e76c37f179d4dd6f6ed4ab8c31093449",
+          "md5": "6ce393d2a3e3607cbf720ad19425faff"
+        }
+      ]
+    },
+    {
+      "name": "uikitX64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-graphics-uikitx64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-graphics-uikitx64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 224261,
+          "sha512": "45064788dd3a5b0a838a8b7b5ab01c3f8a434ad8412aac6f85d999b04ac4bbdff0260e02d3b1ce74784dffb666c20d3a6bfaa0f7804dc9fce7ac302dfee84504",
+          "sha256": "722e565b51b59f87a401262c0d40f86257141a2c8a811e59b11770b63ce51bc8",
+          "sha1": "5c09fe342582303c35a1bc3eea4d2cf484f52528",
+          "md5": "5fe02b16545f4911a968efb170e3ef88"
+        }
+      ]
+    },
+    {
+      "name": "uikitX64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_x64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-unit",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.skiko",
+          "module": "skiko",
+          "version": {
+            "requires": "0.9.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-graphics-uikitx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "ui-graphics-uikitx64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 4297,
+          "sha512": "e28cc17acccc0eb1eeffa49fd5b31dc6a57d6974dcae0c46f89d95905801cdf2fa1eb2ab399a636d920c7ff8455e0ea025e2d380156ec3231580dc1fd9d00877",
+          "sha256": "214c5bbcfa801a70b89e1243c9ab5b384ecb32aab242b9e4e9323fda689431bb",
+          "sha1": "a8644641975aa3f647d2f4db66efbecc0c599a8b",
+          "md5": "d5d68e55cdaf0e62d712f88261fc938e"
+        }
+      ]
+    }
+  ]
+}

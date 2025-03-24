@@ -1,0 +1,170 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../savedstate/9999.0.0-SNAPSHOT/savedstate-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.savedstate",
+    "module": "savedstate",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 77059,
+          "sha512": "1034882ccadb9729f4b94056b7a057e16777c5cb6f7e98606b1e86e2b281a29bb4f58cd4df25921a2ee4ac45b155303c23f04bb3337d0abe8b1f1d5cf3dd595e",
+          "sha256": "e3dbd855c710966487e75988e87f3dbeba23eb4211589afef6990921b5401d9b",
+          "sha1": "ec488f46c36c77cb92f47bce2901a0c5f91b1077",
+          "md5": "4898999f158bd2576248b40d755e93c0"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "savedstate-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 77059,
+          "sha512": "1034882ccadb9729f4b94056b7a057e16777c5cb6f7e98606b1e86e2b281a29bb4f58cd4df25921a2ee4ac45b155303c23f04bb3337d0abe8b1f1d5cf3dd595e",
+          "sha256": "e3dbd855c710966487e75988e87f3dbeba23eb4211589afef6990921b5401d9b",
+          "sha1": "ec488f46c36c77cb92f47bce2901a0c5f91b1077",
+          "md5": "4898999f158bd2576248b40d755e93c0"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "savedstate-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "savedstate-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 39210,
+          "sha512": "66a1a1be1eeaa83f4f439f492f0fc16a998179df63c65f540926dc6da13c2e6c33ed5c3b135240e26eda950bd422009063e4c7131f367c7934c970b2f4228634",
+          "sha256": "5b82a6640aac60fab30a15f71565a5e761f46d87e820c75d9a80f4e0daa5bce3",
+          "sha1": "69109b4849623b50dec7dc0b02222a429ad40a16",
+          "md5": "1ee1d5dbb60396a0d3bb5bd05625d70e"
+        }
+      ]
+    }
+  ]
+}

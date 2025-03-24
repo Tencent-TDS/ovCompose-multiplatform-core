@@ -1,0 +1,150 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material-ripple/9999.0.0-SNAPSHOT/material-ripple-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material",
+    "module": "material-ripple",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material-ripple-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material-ripple-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 57761,
+          "sha512": "58b31a8cca93d4d0f61b699225a3727bb5a99c11956c2efa80494a12cb20d05f9f4326a924065d65e02f46824f82c6a9585e82648cf4e8441dedcdf8964c0b8f",
+          "sha256": "fecf30683f735d3c9fcafc295595f6ed1bb3bb0252e72c085b8109c5d4d69e03",
+          "sha1": "1b7120a2b2b31d2f8825e3c0daf0ce9ffce57296",
+          "md5": "1c4ed54c0be36c382616967d685c4026"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material-ripple-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "material-ripple-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 57761,
+          "sha512": "58b31a8cca93d4d0f61b699225a3727bb5a99c11956c2efa80494a12cb20d05f9f4326a924065d65e02f46824f82c6a9585e82648cf4e8441dedcdf8964c0b8f",
+          "sha256": "fecf30683f735d3c9fcafc295595f6ed1bb3bb0252e72c085b8109c5d4d69e03",
+          "sha1": "1b7120a2b2b31d2f8825e3c0daf0ce9ffce57296",
+          "md5": "1c4ed54c0be36c382616967d685c4026"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "material-ripple-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material-ripple-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 15155,
+          "sha512": "25bfb0749142341f01286e8d73b3c7f13484c99a4371f71c1dbbc1255d93965c9f0ce79dba7a9d2b2ec3df3ee74282e5017da2dde5e8528caa5c393d1622faa2",
+          "sha256": "0a7c4f2293831fcfe52f3f294000cb338f9d8ec18499ca3e6adf3c5f3d391180",
+          "sha1": "72e0376dbad6b3fbb014c5368599840f23399c05",
+          "md5": "5af7b1c99bd53c2c30d0ed1aca8d872f"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-common/9999.0.0-SNAPSHOT/lifecycle-common-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-common",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-common-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-common-js-9999.0.0-SNAPSHOT.klib",
+          "size": 22596,
+          "sha512": "08184925a09c1ad25002334fed25ae9ad2c550a1ab517eaf0f86ed57fe0c9d245d26165ac4dc1d307024ca4660d2150275706b17bcdd3dbf1f45c7c898cf60e8",
+          "sha256": "58a86fdefc22da35ecd2c33aa35883e431d5ce3bd47f77d4632b944136c1d03b",
+          "sha1": "daa1e80ba69b6e9b1ba235cf526e8480f743c7f3",
+          "md5": "3a1b49df467ec76c1f98b761f1ea45bc"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "atomicfu",
+          "version": {
+            "requires": "0.23.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-common-js-9999.0.0-SNAPSHOT.klib",
+          "url": "lifecycle-common-js-9999.0.0-SNAPSHOT.klib",
+          "size": 22596,
+          "sha512": "08184925a09c1ad25002334fed25ae9ad2c550a1ab517eaf0f86ed57fe0c9d245d26165ac4dc1d307024ca4660d2150275706b17bcdd3dbf1f45c7c898cf60e8",
+          "sha256": "58a86fdefc22da35ecd2c33aa35883e431d5ce3bd47f77d4632b944136c1d03b",
+          "sha1": "daa1e80ba69b6e9b1ba235cf526e8480f743c7f3",
+          "md5": "3a1b49df467ec76c1f98b761f1ea45bc"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "lifecycle-common-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-common-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 11665,
+          "sha512": "3864839220d94775f4d86aff51de908a38ca7fb236e2ed4e307d5826c4dc953ce52152c624b00b792a509d7191665dd71263bf93226a2274db7b00e5c3e3de5c",
+          "sha256": "6727ef61af9b1f6ef365576aac7699b86c3b3ec226b2a32c972c825cc05472f8",
+          "sha1": "825d6fa5060790cb1a7bfdd4bbdb9b05c5a7087f",
+          "md5": "24363d391ae4e5ecf6dd3fd6faf000e1"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../adaptive-navigation/9999.0.0-SNAPSHOT/adaptive-navigation-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material3.adaptive",
+    "module": "adaptive-navigation",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 28674,
+          "sha512": "13ca6816f392e525478e525f55cbb5d780553c0af302fba9815dee554b056da3a34f9369ed54b6465c8b6a705db7d4c513ac51dee8bbec11b3addf666fa6c350",
+          "sha256": "18b6d3d14fe2430268589013edc2eef1cf95905ec7658e2f726052945ae811ce",
+          "sha1": "443d36739177c8c7ae39f1835774ec6d61a38d91",
+          "md5": "ccbb21fcc10604ad9cb2b1f86e508b6d"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material3.adaptive",
+          "module": "adaptive-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 28674,
+          "sha512": "13ca6816f392e525478e525f55cbb5d780553c0af302fba9815dee554b056da3a34f9369ed54b6465c8b6a705db7d4c513ac51dee8bbec11b3addf666fa6c350",
+          "sha256": "18b6d3d14fe2430268589013edc2eef1cf95905ec7658e2f726052945ae811ce",
+          "sha1": "443d36739177c8c7ae39f1835774ec6d61a38d91",
+          "md5": "ccbb21fcc10604ad9cb2b1f86e508b6d"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "adaptive-navigation-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 6825,
+          "sha512": "2e80868b2283118d306c78cc32f04e37e0fe2fdd01baa9eb5ded769e13a00ae1a7d938bbccbac97ecaa64244e81efa1b22848bb02a9220b200027b8627e7afd6",
+          "sha256": "d5e7ffdb3747e465629a8143991a1dbf94e989e7ca3e5041903d24053a203235",
+          "sha1": "973557ed783ee8b55dc5418e41629a8eccb55b16",
+          "md5": "49eecdac2a5b77e212d5869b348a2ab2"
+        }
+      ]
+    }
+  ]
+}

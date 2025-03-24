@@ -1,0 +1,130 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../window-core/9999.0.0-SNAPSHOT/window-core-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.window",
+    "module": "window-core",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "macosArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "window-core-macosArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "window-core-macosarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 20222,
+          "sha512": "3608718ac06885e06dfd7de6939cd24e59b46e88ef658c4ada3057048d303cf8ee3ff61e79a25bd18c210824a5ac1ce02a92987b7904e849702516b0bb996e26",
+          "sha256": "dee8db683839a40da4538c68dd018481789ed026183e80dbd2593db4bb35b0b1",
+          "sha1": "54b1deea9603005844f8dd5ef4e123b36297b5f1",
+          "md5": "a54f94ae7e9e88ced6d3c08c9873497c"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "window-core-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "window-core-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 8804,
+          "sha512": "ae70222feba801a749b9c9498250c034d6ef44bfabc2edbce34503b0492fe6c7a2f2c0c0a62071cffc7b3aaa48dacbebcb44bf12a96375d60a61c7c58ee68ce5",
+          "sha256": "7f12a1dfe66bf3f3d0f68395b1f749377e533cdd245dffa3465e07d5acc0536e",
+          "sha1": "37942415b980a2d51e646603b246932976db31b8",
+          "md5": "07828aa7ba8527c29503ee6042e34503"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "window-core-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "window-core-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 261,
+          "sha512": "1487e5a20c9e4d74f298e07c42e96a61be11b7a768c3fbc199ee138cd68e1fc2267d1cfe3f11f288acc05df755315344d052cc5f6f751f126ab4fe1caa5125ea",
+          "sha256": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3",
+          "sha1": "2ad14aed781c4a73ed4dbb421966d408a0a06686",
+          "md5": "f43436d6bec321290f6af228ad602604"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../material-navigation/9999.0.0-SNAPSHOT/material-navigation-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.material",
+    "module": "material-navigation",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "material-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "material-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 53486,
+          "sha512": "b33f4238912c18c2029936a7edea7863d792c147b9ae2ebe02c564ebc289b5e95f77b72db5a205fa3b450c1c1c2ad348e77c5973351e9bf6abc6d1a7bb31eec8",
+          "sha256": "f3db35854aa2ccd423d718eb974f74aad986048be5cc8f9f3d4716d45a703db9",
+          "sha1": "19dbad42e7932c548d8088cc59204fbc003e1948",
+          "md5": "dc12fe65481c28b893b25cc0f7a159bf"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.navigation",
+          "module": "navigation-compose",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.material",
+          "module": "material",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "material-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "material-navigation-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 53486,
+          "sha512": "b33f4238912c18c2029936a7edea7863d792c147b9ae2ebe02c564ebc289b5e95f77b72db5a205fa3b450c1c1c2ad348e77c5973351e9bf6abc6d1a7bb31eec8",
+          "sha256": "f3db35854aa2ccd423d718eb974f74aad986048be5cc8f9f3d4716d45a703db9",
+          "sha1": "19dbad42e7932c548d8088cc59204fbc003e1948",
+          "md5": "dc12fe65481c28b893b25cc0f7a159bf"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "material-navigation-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "material-navigation-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 11570,
+          "sha512": "397c1283b60ee70cc0326f711f726846f08495ae5793358a0f6bfe4747cbd78d81025e247e4018912858e4782e10445ed81186f7da6068c83f17fb091023b303",
+          "sha256": "d9bea1972c3ec3db40a1bc2e410f1696ce9a42db21675fa9b07a606bae2bf933",
+          "sha1": "cc6aec6958b041ee1508926435024ed0626759b6",
+          "md5": "d8cef57940affed31e74476e20d72aa6"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../animation/9999.0.0-SNAPSHOT/animation-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.animation",
+    "module": "animation",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "wasmJsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "animation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 362690,
+          "sha512": "be685ff9d1ad6052e492a50bc6f45fa888e76a04df497d43e0811411295bb5c11b222b1cdb845805c475459fc16a902d5101e7e6c5561eb4fcbfb04dd27b1d2f",
+          "sha256": "a816d1d9a7184782edb63de2e6a42be8648d7947ebeedaf30b5d4e488ef21af7",
+          "sha1": "dc95909cb81de6b90d535029d3b8fabb39af9ac0",
+          "md5": "49c7ddfd6f2177447451ecbeed08b4fa"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation-core",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "url": "animation-wasm-js-9999.0.0-SNAPSHOT.klib",
+          "size": 362690,
+          "sha512": "be685ff9d1ad6052e492a50bc6f45fa888e76a04df497d43e0811411295bb5c11b222b1cdb845805c475459fc16a902d5101e7e6c5561eb4fcbfb04dd27b1d2f",
+          "sha256": "a816d1d9a7184782edb63de2e6a42be8648d7947ebeedaf30b5d4e488ef21af7",
+          "sha1": "dc95909cb81de6b90d535029d3b8fabb39af9ac0",
+          "md5": "49c7ddfd6f2177447451ecbeed08b4fa"
+        }
+      ]
+    },
+    {
+      "name": "wasmJsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.platform.type": "wasm",
+        "org.jetbrains.kotlin.wasm.target": "js"
+      },
+      "files": [
+        {
+          "name": "animation-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "animation-wasm-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 77217,
+          "sha512": "f9cf27d062f98c32e84555a0b818e9fa347a33f13480f9d7fd0c8f61281229e89ae132c0be20b96b42aed1c05bebb70845e869aee95ab551660f909fdbbae2b8",
+          "sha256": "4e240ffe300f856770b4ec9895e9266fa2a4519f69a7aebe48ada5e398818aac",
+          "sha1": "885a1a43df6802ede4a07dfb7a8aa01796c73fd2",
+          "md5": "cfe540989efae83f1c1561349dc30bb6"
+        }
+      ]
+    }
+  ]
+}

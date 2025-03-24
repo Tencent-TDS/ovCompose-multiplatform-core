@@ -1,0 +1,135 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../navigation-common/9999.0.0-SNAPSHOT/navigation-common-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.navigation",
+    "module": "navigation-common",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "linuxArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "linux_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.9.1"
+          }
+        },
+        {
+          "group": "androidx.collection",
+          "module": "collection",
+          "version": {
+            "requires": "1.5.0-beta01"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-viewmodel-savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.savedstate",
+          "module": "savedstate",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-core",
+          "version": {
+            "requires": "1.7.3"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "navigation-common-linuxArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "navigation-common-linuxarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 314334,
+          "sha512": "42bd7a66f0cef2ba25a36f75471e55354271d90b4432b7fb4cbf07cc3667524f8bddaa43136817e70a39fcf5ec44c12e1152725413069762b725fe55e799cd67",
+          "sha256": "2949f091113542cdc5e77b457cb01accb23900689a4b152348edfe67d1420d4b",
+          "sha1": "c95306bfb9e6ee9f577fc326a7a209cc3881742b",
+          "md5": "692b8abc26e18dc5dfe73cf4013250b2"
+        }
+      ]
+    },
+    {
+      "name": "linuxArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "linux_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "navigation-common-linuxarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "navigation-common-linuxarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 102523,
+          "sha512": "47be829986b1e5255e66bc6ee498351e79d9043e8cdedee329327735572a9bef2f5cbf4b46426a4e518754cf958fd11a7e22fa78e7cdff6f4eaf5aa3157623e9",
+          "sha256": "b3aadea9f19b2b95ce46e4face25d5ea95ad387b260380ee8714093587c667d6",
+          "sha1": "09fd738556344ad49e7b64b261bc2a889d330d1b",
+          "md5": "96f8baf6fe8b16139dc68c74fd561a97"
+        }
+      ]
+    }
+  ]
+}

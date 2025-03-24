@@ -1,0 +1,130 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-util/9999.0.0-SNAPSHOT/ui-util-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-util",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "macosArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-macosArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-util-macosarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 36307,
+          "sha512": "e1d6d2e582665e6845b7b119b8e8bab278796f6dcebc6ea91d048e8d503dbecd97bc54ffcbdb4daeae10af7da1cf03afebe4ead5bc4a8044fe251d106c5473b3",
+          "sha256": "79767bccdaf483d2e3bba8fc4ddc951b137ecac782dbfd26a50bdfa2d2f12b44",
+          "sha1": "3a4c5137556bc4a9f0861c8452205e4517cd2797",
+          "md5": "95d42d93af3bfc6fe857081417931fbf"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-util-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-util-macosarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 14401,
+          "sha512": "e20e6cb8f5660d8d193986e8cfd7be913d029da676c23c5152c75aa008cf20177698d183f7894077542e1e1b0ed51da51cf7ff0e2c51b90ba470b1a25c9336d5",
+          "sha256": "e53aa79a12a0d69b16e556be957872646ee8e48e766e3c1812a44d3930b69b4f",
+          "sha1": "0f9cb93f5244fa557fc8cacd19a967522a99fcab",
+          "md5": "4806352e1e5b6492893e4d5a6a77c505"
+        }
+      ]
+    },
+    {
+      "name": "macosArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "macos_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "ui-util-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "ui-util-macosarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 8148,
+          "sha512": "b22bc01b6108b4c5fbe6a5e7d2eecfd58711ca9a72bce35d9cdd3c595c26cc2516f8fd90f5a0e6248665aaa14384a0ec531b6d54b7039ecc52fc44b7ae6ffbe6",
+          "sha256": "97dcc69944ab5ae0b358709a6dc1035ca9aaa66078ec5d57d4b8c3b93f3e7800",
+          "sha1": "8eb4ff122dbb67047f23dd585fc0262b619d5bca",
+          "md5": "ffe0d01bab0384722b03a43da87b0327"
+        }
+      ]
+    }
+  ]
+}

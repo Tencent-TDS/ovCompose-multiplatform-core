@@ -1,0 +1,142 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../collection/9999.0.0-SNAPSHOT/collection-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.collection-internal",
+    "module": "collection",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.collection",
+          "module": "collection",
+          "version": {
+            "requires": "1.5.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "collection-js-9999.0.0-SNAPSHOT.klib",
+          "url": "collection-js-9999.0.0-SNAPSHOT.klib",
+          "size": 2642,
+          "sha512": "a19167cf32ce65d2adb0f0a584c92691ec2d780dd8f6f63f124bf8f1fad55e89634470100cd47c1419a869191f0d63b8ee0e8ece830e3b3b89c7dd7931ba2a8f",
+          "sha256": "260e029ebe73ee09c91562a9dd527de5d1ad698936e210465707057a7c70547c",
+          "sha1": "568ca1c9b3313e81b2ea8791def47a94da9472be",
+          "md5": "c2bcfbd7649b077283c43f2c6516e820"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.collection",
+          "module": "collection",
+          "version": {
+            "requires": "1.5.0"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "collection-js-9999.0.0-SNAPSHOT.klib",
+          "url": "collection-js-9999.0.0-SNAPSHOT.klib",
+          "size": 2642,
+          "sha512": "a19167cf32ce65d2adb0f0a584c92691ec2d780dd8f6f63f124bf8f1fad55e89634470100cd47c1419a869191f0d63b8ee0e8ece830e3b3b89c7dd7931ba2a8f",
+          "sha256": "260e029ebe73ee09c91562a9dd527de5d1ad698936e210465707057a7c70547c",
+          "sha1": "568ca1c9b3313e81b2ea8791def47a94da9472be",
+          "md5": "c2bcfbd7649b077283c43f2c6516e820"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "collection-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "collection-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 1171,
+          "sha512": "f6200d6e0580d15451a168a5d9ab1bb80156255cae938d5c0f4ce8a3801ffc7e3f808789c60628f5dc86c729461444e7abc2c8216563b2398c21b32bd0a05630",
+          "sha256": "c2b0ebd60ccb311adc4649d7053ea0ab7d695a33260be1ac4165ff80d9e903e0",
+          "sha1": "50095a3e0735cce54c69528d58031607900c51d6",
+          "md5": "55ac8ea0d217afee0764372661886e0e"
+        }
+      ]
+    }
+  ]
+}

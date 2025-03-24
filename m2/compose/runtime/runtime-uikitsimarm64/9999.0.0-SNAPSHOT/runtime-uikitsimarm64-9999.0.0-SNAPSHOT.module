@@ -1,0 +1,172 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../runtime/9999.0.0-SNAPSHOT/runtime-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.runtime",
+    "module": "runtime",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "uikitSimArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "atomicfu",
+          "version": {
+            "requires": "0.23.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "runtime-uikitSimArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "runtime-uikitsimarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 1688664,
+          "sha512": "78ecb68154228ec0b4ecf66de011d1502d195c4661f9a81a682f51dd96425c9e2ad8bddc2183c4315332282c6eb92451015e52abd4d9841e922f54828bb70a70",
+          "sha256": "d3bf2e7d59c03f541dc6c6f59539ed788aa5374868aa642204d926c71444c434",
+          "sha1": "b9254f542d11ef0527f86a90f093ef669c502eee",
+          "md5": "21c2f0cb268b33df8646dd24a14e9f87"
+        }
+      ]
+    },
+    {
+      "name": "uikitSimArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "runtime-uikitsimarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "runtime-uikitsimarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 417369,
+          "sha512": "4c00ad302685ae0df0ba624fcde8ebdd0308a6a7de7848060075419efe0637e787a8232f6a669679893c7695b03aabdc4568d6e420e3c5fcc54d03688d9edaca",
+          "sha256": "8effa734aa03028058db72c41f2fa2fcd88a8c4d8cade2634b22bfa1bc775ef8",
+          "sha1": "70b545c731c04bdaec0cd0e5da90e7b14c3fcec2",
+          "md5": "240016b04c1a2ca087b7bab178d23b5b"
+        }
+      ]
+    },
+    {
+      "name": "uikitSimArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_simulator_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "atomicfu",
+          "version": {
+            "requires": "0.23.2"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-coroutines-core",
+          "version": {
+            "requires": "1.8.0"
+          }
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "runtime-uikitsimarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "runtime-uikitsimarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 4315,
+          "sha512": "b9ec79663054613f6829edcd4de1f88738d3e9df2f3f7bb137c5106c07bbda68e33fcd0b6851a3308b2c2365c702a955017b3603b694ed3f25cb1359fce21e3e",
+          "sha256": "ad577250f3f7e22e53a5a9cf8e3e9bc62faebcd441eea8d3fa2fa26ee313dbad",
+          "sha1": "9ead923f28b4c693e8912926938d9626f4c6fc75",
+          "md5": "8f4117964e71a46e5b329c9c9ac0c3a8"
+        }
+      ]
+    }
+  ]
+}

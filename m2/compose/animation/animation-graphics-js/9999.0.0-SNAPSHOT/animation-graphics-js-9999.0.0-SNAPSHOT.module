@@ -1,0 +1,199 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../animation-graphics/9999.0.0-SNAPSHOT/animation-graphics-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.animation",
+    "module": "animation-graphics",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "jsApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-graphics-js-9999.0.0-SNAPSHOT.klib",
+          "url": "animation-graphics-js-9999.0.0-SNAPSHOT.klib",
+          "size": 68593,
+          "sha512": "7f52df0d9e4edfbd26fa0a851ed99f05c9a8bc2b9188447812eb78c3aea102104d672662b9ed180efbfffb4fae2b01efab847b288ae363e28c71c6dc91d7339b",
+          "sha256": "3f32f05330a5afc4108eba9623fc372eccdd113bd5cc6e573388995058166942",
+          "sha1": "b4a4a65948b333be7f110e4a4c8ad71eb8a30060",
+          "md5": "c37f5e84bea3bbfe666c1e36afec59e2"
+        }
+      ]
+    },
+    {
+      "name": "jsRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.compose.animation",
+          "module": "animation",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.collection-internal",
+          "module": "collection",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.foundation",
+          "module": "foundation-layout",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-geometry",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.ui",
+          "module": "ui-util",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-dom-api-compat",
+          "version": {
+            "requires": "2.1.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "animation-graphics-js-9999.0.0-SNAPSHOT.klib",
+          "url": "animation-graphics-js-9999.0.0-SNAPSHOT.klib",
+          "size": 68593,
+          "sha512": "7f52df0d9e4edfbd26fa0a851ed99f05c9a8bc2b9188447812eb78c3aea102104d672662b9ed180efbfffb4fae2b01efab847b288ae363e28c71c6dc91d7339b",
+          "sha256": "3f32f05330a5afc4108eba9623fc372eccdd113bd5cc6e573388995058166942",
+          "sha1": "b4a4a65948b333be7f110e4a4c8ad71eb8a30060",
+          "md5": "c37f5e84bea3bbfe666c1e36afec59e2"
+        }
+      ]
+    },
+    {
+      "name": "jsSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.js.compiler": "ir",
+        "org.jetbrains.kotlin.platform.type": "js"
+      },
+      "files": [
+        {
+          "name": "animation-graphics-js-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "animation-graphics-js-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 9787,
+          "sha512": "5f8cc60aa07f2d9c7a9d97ffae91d936a69d1a100fca72d1e07e023465c37339e2762fba6aed7339c74d13045d329eb3162f7f343dc1b61096c07ac0fc273382",
+          "sha256": "7fdcd209650e49c7f5a5637d34eb0bf1cadd8f4eeecfbdbbf20745be12fe2ac2",
+          "sha1": "2a09afeddc6e36375a393d40af9b9d055023df1c",
+          "md5": "9f36e4a658f8998ac33ccb22d3cfdd83"
+        }
+      ]
+    }
+  ]
+}

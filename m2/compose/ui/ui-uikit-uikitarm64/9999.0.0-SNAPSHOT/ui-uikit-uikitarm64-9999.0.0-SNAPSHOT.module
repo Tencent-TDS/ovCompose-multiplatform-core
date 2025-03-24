@@ -1,0 +1,95 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../ui-uikit/9999.0.0-SNAPSHOT/ui-uikit-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.ui",
+    "module": "ui-uikit",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "uikitArm64ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-uikit-uikitArm64Main-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT.klib",
+          "size": 38986,
+          "sha512": "86b0bae17eab4193842baf4b18c56defd4e65366d3599d29765ff5afa3caf490b109865a7a87afa2d3c338de98776a35bfc1b1e51ca3e32d89140d772166d8dc",
+          "sha256": "9773cd17a1b6efaa52b1500150e033ef7939fd8b0419b53d79600439791872f4",
+          "sha1": "fa76157c43571143f349ae2ad17a29fa555c6525",
+          "md5": "2a1ff1cc153829e17d662a27bfb26334"
+        },
+        {
+          "name": "ui-uikit-uikitArm64Cinterop-utilsMain-9999.0.0-SNAPSHOT.klib",
+          "url": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT-cinterop-utils.klib",
+          "size": 16858,
+          "sha512": "6bdfb057410fd8cc017bca4338dc72a56a30af28425df258e74b4d9a32c56fdb1e54faa87ec3f038bc8a6fa0865decb920f5e80c2c5e3851d3a8dbd7fb56001f",
+          "sha256": "d3399a749a39cbe358aeed1a65adc11a30bb9cebefca0b97cbfd922f4d052a51",
+          "sha1": "ad55e91e7fe5f57a5e50fe14dd13f316985e4914",
+          "md5": "5011e283728fbf4d78d94ef493ebe69f"
+        }
+      ]
+    },
+    {
+      "name": "uikitArm64SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 1490,
+          "sha512": "d6dc3e7f01c622f0ea48c15b68dd3bd723a920b41f0b1cc815a262f8c90d27005f8dce99adc3b3ccf4812250ef7e74cf35479950fdf71a195a45d93ba5acbdb3",
+          "sha256": "b786874f6ed58f0ba4b5a0c2e47b7361c73b1aaab5f7eb1d608a026944a86265",
+          "sha1": "aba8ee840667a30a5ec3805304797479188efcc4",
+          "md5": "740df642ae42cb3d618bbb1f1d5693f3"
+        }
+      ]
+    },
+    {
+      "name": "uikitArm64MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "ios_arm64",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "ui-uikit-uikitarm64-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 30084,
+          "sha512": "21a0a1b61147020a6a2b93e839142a2f62cd48cbb0339d5cc4fb2f155e6503277b72e1d025f2edf0103edb4bc582f6f9463d2967a81d11d16686718919be6391",
+          "sha256": "c803ce0ce443b7ef840d1c0fee0fa28a7020300d9db9e7dba443ae9f8183e0cb",
+          "sha1": "74af7b7c6dd240ee6877d261427339776df860dc",
+          "md5": "f9175b3a92357a5a0d819ea8881ccc24"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../lifecycle-runtime-compose/9999.0.0-SNAPSHOT/lifecycle-runtime-compose-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.androidx.lifecycle",
+    "module": "lifecycle-runtime-compose",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "desktopApiElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.7.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 62028,
+          "sha512": "7848107a452ab82f6b046aa00645c87f6e7875e121aebf5e96fadf7c92d94df2ffb2a78149798894bae1a86ea7072aff69eb093a555ffb8a55938dbc9d4d1a7c",
+          "sha256": "d284a13d10c29b8fe93ea5c39413cb8d7406532ba0f13760f7c5ce3aae977b84",
+          "sha1": "c7a74d2151039a5f24fff01ac311618ee13448bd",
+          "md5": "8c547015b06dc0e1d5d93454c5a7528d"
+        }
+      ]
+    },
+    {
+      "name": "desktopRuntimeElements-published",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-common",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.androidx.lifecycle",
+          "module": "lifecycle-runtime",
+          "version": {
+            "requires": "9999.0.0-SNAPSHOT"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.annotation-internal",
+          "module": "annotation",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.compose.runtime",
+          "module": "runtime",
+          "version": {
+            "requires": "1.7.1"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib"
+        }
+      ],
+      "dependencyConstraints": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "2.1.10"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "url": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT.jar",
+          "size": 62028,
+          "sha512": "7848107a452ab82f6b046aa00645c87f6e7875e121aebf5e96fadf7c92d94df2ffb2a78149798894bae1a86ea7072aff69eb093a555ffb8a55938dbc9d4d1a7c",
+          "sha256": "d284a13d10c29b8fe93ea5c39413cb8d7406532ba0f13760f7c5ce3aae977b84",
+          "sha1": "c7a74d2151039a5f24fff01ac311618ee13448bd",
+          "md5": "8c547015b06dc0e1d5d93454c5a7528d"
+        }
+      ]
+    },
+    {
+      "name": "desktopSourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "files": [
+        {
+          "name": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "lifecycle-runtime-compose-desktop-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 10368,
+          "sha512": "e1f6646c0262ad83f8196dcad09b97d1da215457fb53518097b34c0d9a606f885ef261b2483eb52c8ad9cc5ab8e2254fac4b3880010266b983c86a8a3510177d",
+          "sha256": "ab9a6a2fb0f1b26072828db764e896b66bcd98feb21ace6cc4939c0bbf4a82e8",
+          "sha1": "4be835c6a3c8d641203febced033ffdd51b9a856",
+          "md5": "444a0e79a7cf9bb918ac1317a184595f"
+        }
+      ]
+    }
+  ]
+}

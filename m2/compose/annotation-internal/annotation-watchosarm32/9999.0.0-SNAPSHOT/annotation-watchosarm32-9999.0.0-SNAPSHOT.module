@@ -1,0 +1,104 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "url": "../../annotation/9999.0.0-SNAPSHOT/annotation-9999.0.0-SNAPSHOT.module",
+    "group": "org.jetbrains.compose.annotation-internal",
+    "module": "annotation",
+    "version": "9999.0.0-SNAPSHOT",
+    "attributes": {
+      "org.gradle.status": "integration"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.2"
+    }
+  },
+  "variants": [
+    {
+      "name": "watchosArm32ApiElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-api",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.9.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "annotation-watchosArm32Main-9999.0.0-SNAPSHOT.klib",
+          "url": "annotation-watchosarm32-9999.0.0-SNAPSHOT.klib",
+          "size": 3020,
+          "sha512": "4f4b15fb0131510ea68329ac1f7b495dbcbd6d4c5158a603c8f0ea94bd1707082c1c5803acf6b796f7fe367ccc670a79356fe8bca1d09ba670bfc51ff70808f5",
+          "sha256": "65a231b59a1dcadeccaf3efb97f3982710a233498ee84f9e825d885ed6c85420",
+          "sha1": "374e13887e7d22695efe22cf5506a5ed78162262",
+          "md5": "cd5ba4ec3082504e3237f23a74c79cf7"
+        }
+      ]
+    },
+    {
+      "name": "watchosArm32SourcesElements-published",
+      "attributes": {
+        "org.gradle.category": "documentation",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.docstype": "sources",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-runtime",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "files": [
+        {
+          "name": "annotation-watchosarm32-9999.0.0-SNAPSHOT-sources.jar",
+          "url": "annotation-watchosarm32-9999.0.0-SNAPSHOT-sources.jar",
+          "size": 1171,
+          "sha512": "f6200d6e0580d15451a168a5d9ab1bb80156255cae938d5c0f4ce8a3801ffc7e3f808789c60628f5dc86c729461444e7abc2c8216563b2398c21b32bd0a05630",
+          "sha256": "c2b0ebd60ccb311adc4649d7053ea0ab7d695a33260be1ac4165ff80d9e903e0",
+          "sha1": "50095a3e0735cce54c69528d58031607900c51d6",
+          "md5": "55ac8ea0d217afee0764372661886e0e"
+        }
+      ]
+    },
+    {
+      "name": "watchosArm32MetadataElements-published",
+      "attributes": {
+        "artifactType": "org.jetbrains.kotlin.klib",
+        "org.gradle.category": "library",
+        "org.gradle.jvm.environment": "non-jvm",
+        "org.gradle.usage": "kotlin-metadata",
+        "org.jetbrains.kotlin.native.target": "watchos_arm32",
+        "org.jetbrains.kotlin.platform.type": "native"
+      },
+      "dependencies": [
+        {
+          "group": "androidx.annotation",
+          "module": "annotation",
+          "version": {
+            "requires": "1.9.1"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "annotation-watchosarm32-9999.0.0-SNAPSHOT-metadata.jar",
+          "url": "annotation-watchosarm32-9999.0.0-SNAPSHOT-metadata.jar",
+          "size": 261,
+          "sha512": "1487e5a20c9e4d74f298e07c42e96a61be11b7a768c3fbc199ee138cd68e1fc2267d1cfe3f11f288acc05df755315344d052cc5f6f751f126ab4fe1caa5125ea",
+          "sha256": "c6deada2fac53b8ea6523dbda77597b128006674616f140f04df23264c6d1aa3",
+          "sha1": "2ad14aed781c4a73ed4dbb421966d408a0a06686",
+          "md5": "f43436d6bec321290f6af228ad602604"
+        }
+      ]
+    }
+  ]
+}
