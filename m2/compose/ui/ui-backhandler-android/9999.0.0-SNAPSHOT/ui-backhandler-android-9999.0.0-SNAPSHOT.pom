@@ -67,49 +67,49 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>androidx.compose.runtime</groupId>
+      <artifactId>runtime-android</artifactId>
+      <version>1.8.0-beta02</version>
+      <scope>runtime</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>kotlin-stdlib-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>kotlin-test-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>kotlin-test-annotations-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>androidx.compose.ui</groupId>
+      <artifactId>ui-util-android</artifactId>
+      <version>1.8.0-beta02</version>
+      <scope>runtime</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>kotlin-stdlib-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>kotlin-test-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>kotlin-test-annotations-common</artifactId>
+          <groupId>org.jetbrains.kotlin</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>androidx.lifecycle</groupId>
       <artifactId>lifecycle-runtime-compose-android</artifactId>
       <version>2.8.5</version>
-      <scope>runtime</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>kotlin-stdlib-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>kotlin-test-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>kotlin-test-annotations-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.jetbrains.compose.runtime</groupId>
-      <artifactId>runtime-android</artifactId>
-      <version>9999.0.0-SNAPSHOT</version>
-      <scope>runtime</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>kotlin-stdlib-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>kotlin-test-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>kotlin-test-annotations-common</artifactId>
-          <groupId>org.jetbrains.kotlin</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.jetbrains.compose.ui</groupId>
-      <artifactId>ui-util-android</artifactId>
-      <version>9999.0.0-SNAPSHOT</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
