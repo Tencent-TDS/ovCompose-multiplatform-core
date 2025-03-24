@@ -1003,7 +1003,7 @@ internal class AccessibilityMediator(
             beforeBeyondBoundsChildren: ArrayList<SemanticsNode>,
             afterBeyondBoundsChildren: ArrayList<SemanticsNode>
         ) {
-            node.children.fastForEach { child ->
+            node.replacedChildren.fastForEach { child ->
                 if (child.isValid) {
                     if (nodes.contains(child.id)) {
                         semanticsChildren.add(child)
