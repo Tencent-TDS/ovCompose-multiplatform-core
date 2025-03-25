@@ -53,6 +53,7 @@ private const val BACK_GESTURE_VELOCITY = 100
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal class UIKitBackGestureDispatcher(
+    private val enableBackGesture: Boolean,
     density: Density,
     getTopLeftOffsetInWindow: () -> IntOffset
 ) : BackGestureDispatcher() {
@@ -83,16 +84,18 @@ internal class UIKitBackGestureDispatcher(
     }
 
     fun onDidMoveToWindow(window: UIWindow?, composeRootView: UIView) {
-        if (window == null) {
-            removeGestureListeners()
-        } else {
-            var view: UIView = composeRootView
-            while (view.superview != window) {
-                view = requireNotNull(view.superview) {
-                    "Window is not null, but superview is null for ${view.debugDescription}"
+        if (enableBackGesture) {
+            if (window == null) {
+                removeGestureListeners()
+            } else {
+                var view: UIView = composeRootView
+                while (view.superview != window) {
+                    view = requireNotNull(view.superview) {
+                        "Window is not null, but superview is null for ${view.debugDescription}"
+                    }
                 }
+                addGestureListeners(view)
             }
-            addGestureListeners(view)
         }
     }
 

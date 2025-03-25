@@ -121,6 +121,7 @@ internal class ComposeHostingViewController(
     )
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        enableBackGesture = configuration.enableBackGesture,
         density = rootView.density,
         getTopLeftOffsetInWindow = { IntOffset.Zero } //full screen
     )
@@ -416,7 +417,8 @@ internal class ComposeHostingViewController(
                     focusStack = if (focusable) focusStack else null,
                     windowContext = windowContext,
                     compositionContext = compositionContext,
-                    coroutineContext = composeCoroutineContext
+                    coroutineContext = composeCoroutineContext,
+                    enableBackGesture = configuration.enableBackGesture,
                 )
 
                 attachLayer(layer)
