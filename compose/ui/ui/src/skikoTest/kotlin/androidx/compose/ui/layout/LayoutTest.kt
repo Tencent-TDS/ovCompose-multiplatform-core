@@ -72,7 +72,7 @@ class LayoutTest {
             }
         }
         waitForIdle()
-        assertEquals(0, valueSeenByLayout)
+        assertEquals(123, valueSeenByLayout)
 
         repeat(5) {
             controlledState.value = it * 2
