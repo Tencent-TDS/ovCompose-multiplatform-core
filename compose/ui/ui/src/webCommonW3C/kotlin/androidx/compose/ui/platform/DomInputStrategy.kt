@@ -23,6 +23,7 @@ internal class CommonDomInputStrategy(
     private var lastActualCompositionTimestamp: Int = 0
     private var editState: EditState = EditState.Default
 
+    private var lastMeaningfulUpdate = TextFieldValue("")
 
     init {
         initEvents()
@@ -31,8 +32,14 @@ internal class CommonDomInputStrategy(
     override fun updateState(textFieldValue: TextFieldValue) {
         if (editState != EditState.WaitingComposeActivity) return
 
-        htmlInput.value = textFieldValue.text
-        htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+        if (lastMeaningfulUpdate.text != textFieldValue.text) {
+            htmlInput.value = textFieldValue.text
+        }
+        if (lastMeaningfulUpdate.selection != textFieldValue.selection) {
+            htmlInput.setSelectionRange(textFieldValue.selection.start, textFieldValue.selection.end)
+        }
+
+        lastMeaningfulUpdate = textFieldValue
 
         editState = EditState.Default
     }
