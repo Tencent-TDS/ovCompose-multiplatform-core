@@ -59,11 +59,15 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         )
         val newValue = editProcessor.apply(commands)
 
-        state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
+            // Update text
+            replace(0, length, newValue.text)
+
+            // Update selection
             val selection = newValue.selection
             setSelectionCoerced(selection.start, selection.end)
 
+            // Update composition
             val composition = newValue.composition
             if (composition == null) {
                 commitComposition()
