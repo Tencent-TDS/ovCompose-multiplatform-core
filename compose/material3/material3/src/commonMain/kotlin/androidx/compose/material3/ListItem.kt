@@ -721,9 +721,9 @@ private fun verticalPadding(listItemType: ListItemType): Dp =
         else -> ListItemVerticalPadding
     }
 
-private fun Int.subtractConstraintSafely(other: Int): Int {
+private fun Int.subtractConstraintSafely(n: Int): Int {
     if (this == Constraints.Infinity) {
         return this
     }
-    return (this - other).coerceAtLeast(0)
+    return this - n
 }

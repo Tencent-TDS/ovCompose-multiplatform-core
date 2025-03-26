@@ -914,7 +914,7 @@ private class TextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == LeadingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -924,7 +924,7 @@ private class TextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == TrailingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -956,11 +956,11 @@ private class TextFieldMeasurePolicy(
     }
 }
 
-private fun Int.subtractConstraintSafely(other: Int): Int {
+private fun Int.substractConstraintSafely(from: Int): Int {
     if (this == Constraints.Infinity) {
         return this
     }
-    return (this - other).coerceAtLeast(0)
+    return this - from
 }
 
 private fun calculateWidth(

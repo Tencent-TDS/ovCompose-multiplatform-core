@@ -854,7 +854,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == LeadingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -864,7 +864,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == TrailingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -881,7 +881,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 ?.let {
                     val height = intrinsicMeasurer(it, remainingWidth)
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     height
@@ -892,7 +892,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 ?.let {
                     val height = intrinsicMeasurer(it, remainingWidth)
                     remainingWidth =
-                        remainingWidth.subtractConstraintSafely(
+                        remainingWidth.substractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     height
@@ -928,11 +928,11 @@ private class OutlinedTextFieldMeasurePolicy(
     }
 }
 
-private fun Int.subtractConstraintSafely(other: Int): Int {
+private fun Int.substractConstraintSafely(from: Int): Int {
     if (this == Constraints.Infinity) {
         return this
     }
-    return (this - other).coerceAtLeast(0)
+    return this - from
 }
 
 /**
