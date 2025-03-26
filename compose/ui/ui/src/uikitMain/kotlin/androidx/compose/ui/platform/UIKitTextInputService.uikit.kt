@@ -299,6 +299,7 @@ internal class UIKitTextInputService(
 
     private fun sendEditCommand(vararg commands: EditCommand) {
         _tempCurrentInputSession?.apply(commands.toList())
+
         editCommandsBatch.addAll(commands)
         flushEditCommandsIfNeeded()
     }
