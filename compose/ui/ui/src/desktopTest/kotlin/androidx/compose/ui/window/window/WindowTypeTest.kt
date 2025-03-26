@@ -16,12 +16,18 @@
 
 package androidx.compose.ui.window.window
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer.ChangeList
 import androidx.compose.ui.sendInputEvent
 import androidx.compose.ui.sendKeyEvent
 import androidx.compose.ui.sendKeyTypedEvent
 import androidx.compose.ui.text.TextRange
 import java.awt.event.KeyEvent.KEY_PRESSED
 import java.awt.event.KeyEvent.KEY_RELEASED
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import org.junit.experimental.theories.Theories
 import org.junit.experimental.theories.Theory
 import org.junit.runner.RunWith
@@ -676,5 +682,68 @@ class WindowTypeTest : BaseWindowTextFieldTest() {
         window.sendKeyTypedEvent(Char(8))
         window.sendKeyEvent(8, Char(8), KEY_RELEASED)
         assertStateEquals("", selection = TextRange(0), composition = null)
+    }
+
+    // Verifies that each typed character and character replaced by the input service is reported
+    // (to `inputTransformation`) as a change in the last character only.
+    // The behavior of `SecureTextField` with `TextObfuscationMode.RevealLastTyped` depends on this,
+    // but since we don't have direct access to `visualText`, we're checking the correctness of the
+    // changes, which `TextObfuscationMode.RevealLastTyped` depends on.
+    @OptIn(ExperimentalFoundationApi::class)
+    @Test
+    fun changesVisibleInInputTransformation() = runTextFieldTest(
+        textFieldKind = TextField2,
+        name = "Changes, Chinese, macOS"
+    ) {
+        var lastChanges: ChangeList? = null
+        inputTransformation = InputTransformation {
+            lastChanges = changes
+        }
+
+        awaitIdle()
+
+        // c
+        window.sendInputEvent("c", 0)
+        window.sendKeyEvent(67, 'c', KEY_RELEASED)
+        assertStateEquals("c", selection = TextRange(1), composition = TextRange(0, 1))
+        lastChanges.let {
+            assertNotNull(it)
+            assertEquals(1, it.changeCount)
+            assertEquals(TextRange(0, 1), it.getRange(0))
+            assertEquals(TextRange(0, 0), it.getOriginalRange(0))
+        }
+
+        // space
+        window.sendInputEvent("才", 1)
+        window.sendKeyEvent(32, ' ', KEY_RELEASED)
+        assertStateEquals("才", selection = TextRange(1), composition = null)
+        lastChanges.let {
+            assertNotNull(it)
+            assertEquals(1, it.changeCount)
+            assertEquals(TextRange(0, 1), it.getRange(0))
+            assertEquals(TextRange(0, 1), it.getOriginalRange(0))
+        }
+
+        // c
+        window.sendInputEvent("c", 0)
+        window.sendKeyEvent(67, 'c', KEY_RELEASED)
+        assertStateEquals("才c", selection = TextRange(2), composition = TextRange(1, 2))
+        lastChanges.let {
+            assertNotNull(it)
+            assertEquals(1, it.changeCount)
+            assertEquals(TextRange(1, 2), it.getRange(0))
+            assertEquals(TextRange(1, 1), it.getOriginalRange(0))
+        }
+
+        // space
+        window.sendInputEvent("才", 1)
+        window.sendKeyEvent(32, ' ', KEY_RELEASED)
+        assertStateEquals("才才", selection = TextRange(2), composition = null)
+        lastChanges.let {
+            assertNotNull(it)
+            assertEquals(1, it.changeCount)
+            assertEquals(TextRange(1, 2), it.getRange(0))
+            assertEquals(TextRange(1, 2), it.getOriginalRange(0))
+        }
     }
 }
