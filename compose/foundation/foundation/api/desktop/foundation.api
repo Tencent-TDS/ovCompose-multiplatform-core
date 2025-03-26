@@ -1919,22 +1919,6 @@ public final class androidx/compose/foundation/shape/RoundedCornerShapeKt {
 	public static final fun getCircleShape ()Landroidx/compose/foundation/shape/RoundedCornerShape;
 }
 
-public abstract interface class androidx/compose/foundation/text/AutoSize {
-	public static final field Companion Landroidx/compose/foundation/text/AutoSize$Companion;
-}
-
-public final class androidx/compose/foundation/text/AutoSize$Companion {
-	public final fun StepBased-vU-0ePk (JJJ)Landroidx/compose/foundation/text/TextAutoSize;
-	public static synthetic fun StepBased-vU-0ePk$default (Landroidx/compose/foundation/text/AutoSize$Companion;JJJILjava/lang/Object;)Landroidx/compose/foundation/text/TextAutoSize;
-}
-
-public final class androidx/compose/foundation/text/AutoSizeDefaults {
-	public static final field $stable I
-	public static final field INSTANCE Landroidx/compose/foundation/text/AutoSizeDefaults;
-	public final fun getMaxFontSize-XSAIIZE ()J
-	public final fun getMinFontSize-XSAIIZE ()J
-}
-
 public final class androidx/compose/foundation/text/AutofillHighlightKt {
 	public static final fun getLocalAutofillHighlightColor ()Landroidx/compose/runtime/ProvidableCompositionLocal;
 }
