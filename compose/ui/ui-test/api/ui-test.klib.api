@@ -143,8 +143,6 @@ sealed interface androidx.compose.ui.test/ComposeUiTest : androidx.compose.ui.te
 
     abstract fun <#A1: kotlin/Any?> runOnIdle(kotlin/Function0<#A1>): #A1 // androidx.compose.ui.test/ComposeUiTest.runOnIdle|runOnIdle(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
     abstract fun <#A1: kotlin/Any?> runOnUiThread(kotlin/Function0<#A1>): #A1 // androidx.compose.ui.test/ComposeUiTest.runOnUiThread|runOnUiThread(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
-    abstract fun disableAccessibilityChecks() // androidx.compose.ui.test/ComposeUiTest.disableAccessibilityChecks|disableAccessibilityChecks(){}[0]
-    abstract fun enableAccessibilityChecks() // androidx.compose.ui.test/ComposeUiTest.enableAccessibilityChecks|enableAccessibilityChecks(){}[0]
     abstract fun setContent(kotlin/Function2<androidx.compose.runtime/Composer, kotlin/Int, kotlin/Unit>) // androidx.compose.ui.test/ComposeUiTest.setContent|setContent(kotlin.Function2<androidx.compose.runtime.Composer,kotlin.Int,kotlin.Unit>){}[0]
     abstract fun waitForIdle() // androidx.compose.ui.test/ComposeUiTest.waitForIdle|waitForIdle(){}[0]
     abstract fun waitUntil(kotlin/String? = ..., kotlin/Long = ..., kotlin/Function0<kotlin/Boolean>) // androidx.compose.ui.test/ComposeUiTest.waitUntil|waitUntil(kotlin.String?;kotlin.Long;kotlin.Function0<kotlin.Boolean>){}[0]
@@ -299,8 +297,6 @@ open class androidx.compose.ui.test/SkikoComposeUiTest : androidx.compose.ui.tes
     open fun <#A1: kotlin/Any?> runOnIdle(kotlin/Function0<#A1>): #A1 // androidx.compose.ui.test/SkikoComposeUiTest.runOnIdle|runOnIdle(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
     open fun <#A1: kotlin/Any?> runOnUiThread(kotlin/Function0<#A1>): #A1 // androidx.compose.ui.test/SkikoComposeUiTest.runOnUiThread|runOnUiThread(kotlin.Function0<0:0>){0§<kotlin.Any?>}[0]
     open fun areAllResourcesIdle(): kotlin/Boolean // androidx.compose.ui.test/SkikoComposeUiTest.areAllResourcesIdle|areAllResourcesIdle(){}[0]
-    open fun disableAccessibilityChecks() // androidx.compose.ui.test/SkikoComposeUiTest.disableAccessibilityChecks|disableAccessibilityChecks(){}[0]
-    open fun enableAccessibilityChecks() // androidx.compose.ui.test/SkikoComposeUiTest.enableAccessibilityChecks|enableAccessibilityChecks(){}[0]
     open fun onAllNodes(androidx.compose.ui.test/SemanticsMatcher, kotlin/Boolean): androidx.compose.ui.test/SemanticsNodeInteractionCollection // androidx.compose.ui.test/SkikoComposeUiTest.onAllNodes|onAllNodes(androidx.compose.ui.test.SemanticsMatcher;kotlin.Boolean){}[0]
     open fun onNode(androidx.compose.ui.test/SemanticsMatcher, kotlin/Boolean): androidx.compose.ui.test/SemanticsNodeInteraction // androidx.compose.ui.test/SkikoComposeUiTest.onNode|onNode(androidx.compose.ui.test.SemanticsMatcher;kotlin.Boolean){}[0]
     open fun setContent(kotlin/Function2<androidx.compose.runtime/Composer, kotlin/Int, kotlin/Unit>) // androidx.compose.ui.test/SkikoComposeUiTest.setContent|setContent(kotlin.Function2<androidx.compose.runtime.Composer,kotlin.Int,kotlin.Unit>){}[0]
