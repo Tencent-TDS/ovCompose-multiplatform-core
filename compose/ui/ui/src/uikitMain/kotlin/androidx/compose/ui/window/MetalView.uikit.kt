@@ -124,7 +124,7 @@ internal class MetalView(
         }
 
         if (needsSynchronousDraw) {
-            redrawer.drawSynchronously()
+            redrawer.draw(waitUntilCompletion = true)
 
             needsSynchronousDraw = false
         }

@@ -59,6 +59,7 @@ import platform.UIKit.UIScrollTypeMaskAll
 import platform.UIKit.UIScrollView
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
+import platform.UIKit.endEditing
 import platform.UIKit.setState
 
 /**
@@ -587,6 +588,7 @@ internal class UserInputView(
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
+        endEditing(force = true)
         removeGestureRecognizer(touchesGestureRecognizer)
         touchesGestureRecognizer.dispose()
         scrollGestureRecognizer?.let {
