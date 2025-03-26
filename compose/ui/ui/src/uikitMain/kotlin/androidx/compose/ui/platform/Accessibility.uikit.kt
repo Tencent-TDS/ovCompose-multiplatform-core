@@ -55,6 +55,7 @@ import kotlin.time.measureTime
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
+import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +77,7 @@ import platform.CoreGraphics.CGRectGetMinX
 import platform.CoreGraphics.CGRectGetMinY
 import platform.CoreGraphics.CGRectIntersectsRect
 import platform.CoreGraphics.CGRectIsEmpty
+import platform.CoreGraphics.CGRectZero
 import platform.UIKit.NSStringFromCGRect
 import platform.UIKit.UIAccessibilityContainerType
 import platform.UIKit.UIAccessibilityContainerTypeNone
@@ -632,7 +634,8 @@ private class AccessibilityElement(
 
     override fun focusItemContainer(): UIFocusItemContainerProtocol = this
 
-    override fun frame(): CValue<CGRect> = accessibilityFrame()
+    var focusFrame: CValue<CGRect> = CGRectZero.readValue()
+    override fun frame(): CValue<CGRect> = focusFrame
 
     override fun parentFocusEnvironment(): UIFocusEnvironmentProtocol? =
         accessibilityContainer as? UIFocusEnvironmentProtocol
@@ -884,6 +887,10 @@ internal class AccessibilityMediator(
         return view.convertRect(rect.toDpRect(view.density).asCGRect(), toView = null)
     }
 
+    private fun convertToRootViewCGRect(rect: Rect): CValue<CGRect> {
+        return rect.toDpRect(view.density).asCGRect()
+    }
+
     fun notifyScrollCompleted(
         scrollResult: AccessibilityScrollEventResult,
         delay: Long,
@@ -961,6 +968,7 @@ internal class AccessibilityMediator(
         if (!CGRectEqualToRect(accessibilityFrame, element.accessibilityFrame)) {
             element.setAccessibilityFrame(accessibilityFrame)
         }
+        element.focusFrame = convertToRootViewCGRect(frame)
         return element
     }
 
@@ -995,7 +1003,7 @@ internal class AccessibilityMediator(
             beforeBeyondBoundsChildren: ArrayList<SemanticsNode>,
             afterBeyondBoundsChildren: ArrayList<SemanticsNode>
         ) {
-            node.children.fastForEach { child ->
+            node.replacedChildren.fastForEach { child ->
                 if (child.isValid) {
                     if (nodes.contains(child.id)) {
                         semanticsChildren.add(child)

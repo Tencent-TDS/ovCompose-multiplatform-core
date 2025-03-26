@@ -31,7 +31,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api(project(":annotation:annotation"))
                 api(projectOrArtifact(":lifecycle:lifecycle-common"))
                 api(libs.kotlinCoroutinesCore)
                 api(libs.kotlinSerializationCore)

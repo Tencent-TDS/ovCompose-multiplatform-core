@@ -76,6 +76,8 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
+    val interopContainerView = UIKitTransparentContainerView()
+
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
         density = view.density,
         getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
@@ -83,6 +85,7 @@ internal class UIKitComposeSceneLayer(
 
     private val mediator = ComposeSceneMediator(
         parentView = view,
+        interopContainerView = interopContainerView,
         onFocusBehavior = onFocusBehavior,
         focusStack = focusStack,
         windowContext = windowContext,
@@ -159,6 +162,7 @@ internal class UIKitComposeSceneLayer(
         mediator.dispose()
         view.removeFromSuperview()
         view.dispose()
+        interopContainerView.removeFromSuperview()
     }
 
     @Composable

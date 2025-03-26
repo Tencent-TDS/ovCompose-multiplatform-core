@@ -57,20 +57,22 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             value = state.untransformedText.toTextFieldValue(),
             textInputSession = null
         )
-
         val newValue = editProcessor.apply(commands)
 
-        state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
-            val untransformedSelection = state.mapFromTransformed(newValue.selection)
-            setSelectionCoerced(untransformedSelection.start, untransformedSelection.end)
+            // Update text
+            replace(0, length, newValue.text)
 
+            // Update selection
+            val selection = newValue.selection
+            setSelectionCoerced(selection.start, selection.end)
+
+            // Update composition
             val composition = newValue.composition
             if (composition == null) {
                 commitComposition()
             } else {
-                val untransformedComposition = state.mapFromTransformed(composition)
-                setComposition(untransformedComposition.start, untransformedComposition.end)
+                setComposition(composition.start, composition.end)
             }
         }
     }

@@ -24,8 +24,8 @@ import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIEvent
 import platform.UIKit.UIView
 
-internal class ComposeSceneMediatorView(
-    var onLayoutSubviews: () -> Unit
+internal class UIKitTransparentContainerView(
+    var onLayoutSubviews: () -> Unit = {}
 ) : UIView(CGRectZero.readValue()) {
     private var onAppeared: (() -> Unit)? = null
 

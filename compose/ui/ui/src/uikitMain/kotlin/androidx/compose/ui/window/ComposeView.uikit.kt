@@ -22,7 +22,6 @@ import kotlinx.cinterop.CValue
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectEqualToRect
@@ -73,6 +72,7 @@ internal class ComposeView(
         onLayoutSubviews: () -> Unit = {}
     ) {
         this.metalView?.dispose()
+        this.metalView?.removeFromSuperview()
         this.metalView = metalView
 
         this.onDidMoveToWindow = onDidMoveToWindow
@@ -148,12 +148,11 @@ internal class ComposeView(
             try {
                 animations()
             } finally {
-                // Delay mitigates rendering glitches that can occur at the end of the animation.
-                delay(50)
                 isAnimating = false
                 updateLayout()
-                metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = true
-                metalView.redrawer.ongoingInteractionEventsCount++
+                metalView.layoutIfNeeded()
+                metalView.redrawer.isForcedToPresentWithTransactionEveryFrame = false
+                metalView.redrawer.ongoingInteractionEventsCount--
             }
         }
     }
