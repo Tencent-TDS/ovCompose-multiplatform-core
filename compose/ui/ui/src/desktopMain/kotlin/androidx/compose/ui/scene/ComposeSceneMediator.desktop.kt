@@ -24,10 +24,10 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
+import androidx.compose.ui.awt.DebouncingEdtExecutor
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.SwingInteropViewGroup
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
-import androidx.compose.ui.awt.runOnEDTThread
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -359,6 +359,8 @@ internal class ComposeSceneMediator(
         getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
     )
 
+    private val composeInvalidationExecutor = DebouncingEdtExecutor()
+
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
         // it must be set to correct value before adding to the hierarchy to handle cases
@@ -553,7 +555,7 @@ internal class ComposeSceneMediator(
         }
     }
 
-    fun onComposeInvalidation() = runOnEDTThread {
+    fun onComposeInvalidation() = composeInvalidationExecutor.runOrScheduleDebounced {
         catchExceptions {
             if (isDisposed) return@catchExceptions
             skiaLayerComponent.onComposeInvalidation()
