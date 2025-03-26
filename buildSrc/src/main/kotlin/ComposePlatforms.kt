@@ -3,7 +3,9 @@
  * Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE.txt file.
  */
 
+import androidx.build.jetbrains.artifactRedirection
 import java.util.*
+import org.gradle.api.Project
 
 /**
  * The name or alternative names can be used in gradle.properties of the modules (in arbitrary case).
@@ -140,3 +142,6 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
         }
     }
 }
+
+fun Project.hasRedirection(platform: ComposePlatforms) =
+    platform.matchesAnyIgnoringCase(artifactRedirection()?.targetNames.orEmpty())

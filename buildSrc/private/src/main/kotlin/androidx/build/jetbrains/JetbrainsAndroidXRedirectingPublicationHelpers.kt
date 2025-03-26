@@ -194,7 +194,7 @@ internal fun Project.originalToRedirectedDependency(
             .values
             .mapNotNull { project.findProject(it) }
             .flatMap { project ->
-                val redirecting = project.artifactRedirecting()
+                val redirecting = project.artifactRedirection() ?: return@flatMap emptyList()
                 redirecting.targetNames.filter { it.isNotEmpty() }.map {
                     val group = project.group.toString()
                     val name = project.name.toString()

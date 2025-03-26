@@ -1,5 +1,5 @@
-import androidx.build.jetbrains.ArtifactRedirecting
-import androidx.build.jetbrains.artifactRedirecting
+import androidx.build.jetbrains.ArtifactRedirection
+import androidx.build.jetbrains.artifactRedirection
 
 buildscript {
     repositories {
@@ -44,7 +44,6 @@ val libraryToComponents = mapOf(
         ComposeComponent(
             path = ":compose:ui:ui-backhandler",
             supportedPlatforms = ComposePlatforms.SKIKO_SUPPORT,
-            neverRedirect = true
         ),
         ComposeComponent(":compose:ui:ui-graphics"),
         ComposeComponent(":compose:ui:ui-test"),
@@ -258,28 +257,32 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
 fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
 
-// ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
-// or just ./gradlew printAllArtifactRedirectingVersions
-val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
+// ./gradlew printAllArtifactRedirectionVersions -PfilterProjectPath=lifecycle
+// or just ./gradlew printAllArtifactRedirectionVersions
+tasks.register("printAllArtifactRedirectionVersions") {
     val filter = project.properties["filterProjectPath"] as? String ?: ""
     doLast {
         val map = libraryToComponents.values.flatten().filter { it.path.contains(filter) }
             .joinToString("\n\n", prefix = "\n") {
             val p = rootProject.findProject(it.path)!!
-            it.path + " --> \n" + p.artifactRedirecting().prettyText()
+            it.path + " --> \n" + (p.artifactRedirection().prettyText())
         }
 
         println(map)
     }
 }
 
-fun ArtifactRedirecting.prettyText(): String {
-    val allLines = arrayOf(
-        "redirectGroupId = ${this.groupId}",
-        "redirectDefaultVersion = ${this.defaultVersion}",
-        "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
-        "redirectTargetVersions = ${this.targetVersions}"
-    )
+fun ArtifactRedirection?.prettyText(): String {
+    val allLines = if (this != null) {
+        arrayOf(
+            "redirectGroupId = ${this.groupId}",
+            "redirectDefaultVersion = ${this.defaultVersion}",
+            "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
+            "redirectTargetVersions = ${this.targetVersions}"
+        )
+    } else {
+        arrayOf("disabled")
+    }
 
     return allLines.joinToString("") { " ".repeat(3) + "$it\n" }
 }
