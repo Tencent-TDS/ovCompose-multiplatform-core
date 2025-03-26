@@ -181,7 +181,7 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
-// TODO deprecated, kept for CI compatibility, remove after Compose Multiplatform 1.9 is released
+// TODO deprecated, kept for CI compatibility, remove after Compose Multiplatform 1.8.0 is released
 tasks.register("checkDesktop") {
     dependsOn(allTasksWith(name = "desktopTest"))
     dependsOn(":collection:collection:jvmTest")
