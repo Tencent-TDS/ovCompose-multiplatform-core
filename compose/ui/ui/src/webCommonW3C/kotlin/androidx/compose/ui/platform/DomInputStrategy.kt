@@ -61,14 +61,12 @@ internal class CommonDomInputStrategy(
             evt as KeyboardEvent
             lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
 
-            if (editState is EditState.AccentDialogue) {
-                evt.preventDefault()
+            if (evt.repeat) {
+                editState = EditState.AccentMenu
                 return@addEventListener
             }
 
-            if (evt.repeat) {
-                editState = EditState.AccentDialogue
-                evt.preventDefault()
+            if (editState is EditState.AccentMenu) {
                 return@addEventListener
             }
 
@@ -77,15 +75,6 @@ internal class CommonDomInputStrategy(
             }
 
             if (editState is EditState.CompositeDialogue) {
-                evt.preventDefault()
-                return@addEventListener
-            }
-
-            if (evt.repeat) {
-                editState = EditState.AccentDialogue
-            }
-
-            if (editState is EditState.AccentDialogue) {
                 evt.preventDefault()
                 return@addEventListener
             }
@@ -138,7 +127,7 @@ internal class CommonDomInputStrategy(
                     evt.preventDefault()
 
                     val editCommands = mutableListOf<EditCommand>()
-                    if (editState is EditState.AccentDialogue) {
+                    if (editState is EditState.AccentMenu) {
                         editCommands.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
                     }
                     editCommands.add(CommitTextCommand(evt.data!!, 1))
@@ -176,7 +165,7 @@ private sealed interface EditState {
     data object Default : EditState
     data object WaitingComposeActivity : EditState
     data object CompositeDialogue: EditState
-    data object AccentDialogue: EditState
+    data object AccentMenu: EditState
 }
 
 private external class InputEvent : Event {
