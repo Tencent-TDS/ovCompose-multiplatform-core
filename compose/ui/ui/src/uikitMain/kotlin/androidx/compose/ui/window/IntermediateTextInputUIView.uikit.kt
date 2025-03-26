@@ -158,7 +158,6 @@ internal class IntermediateTextInputUIView(
      * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
      */
     override fun deleteBackward() {
-        println("IntermediateTextInputUIView.deleteBackward")
         input?.deleteBackward()
     }
 
