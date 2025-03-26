@@ -28,6 +28,7 @@ import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
@@ -478,11 +479,13 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
          */
         override fun deleteBackward() {
-            // Before this function calls, iOS changes selection in setSelectedTextRange.
-            // All needed characters should be already selected, and we can just remove them.
-            sendEditCommand(
-                CommitTextCommand("", 0)
-            )
+            val deleteCommand =
+                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
+                    DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
+                } else {
+                    CommitTextCommand("", 0)
+                }
+            sendEditCommand(deleteCommand)
         }
 
         /**
