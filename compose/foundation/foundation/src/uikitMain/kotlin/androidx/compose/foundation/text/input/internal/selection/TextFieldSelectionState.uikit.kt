@@ -131,8 +131,13 @@ private fun TextFieldSelectionState.placeCursorAtDesiredOffset(offset: Offset): 
     // Second step: adjust proposed cursor position as iOS does
     val previousIndex = layoutResult.getOffsetForPosition(handleDragPosition)
     val currentText = textFieldState.untransformedText.text as String
-    val index =
+    val index = if (textFieldState.untransformedText != textFieldState.visualText) {
+        // BTF1 on iOS doesn't apply custom cursor positioning in case of any transformation,
+        // so BTF2 should handle cursor positioning the same
+        proposedIndex
+    } else {
         determineCursorDesiredOffset(proposedIndex, previousIndex, layoutResult, currentText)
+    }
 
     // Third step: if a transformation is applied, determine if the proposed cursor position
     // would be in a range where the cursor is not allowed to be. If so, push it to the
