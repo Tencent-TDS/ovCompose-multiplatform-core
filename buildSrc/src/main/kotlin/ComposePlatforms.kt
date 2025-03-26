@@ -52,61 +52,66 @@ enum class ComposePlatforms(vararg val alternativeNames: String) {
 
     companion object {
         val JVM_BASED = EnumSet.of(
-            ComposePlatforms.Desktop,
-            ComposePlatforms.AndroidDebug,
-            ComposePlatforms.AndroidRelease
+            Desktop,
+            AndroidDebug,
+            AndroidRelease
         )
 
         val UI_KIT = EnumSet.of(
-            ComposePlatforms.UikitX64,
-            ComposePlatforms.UikitArm64,
-            ComposePlatforms.UikitSimArm64
+            UikitX64,
+            UikitArm64,
+            UikitSimArm64
         )
 
         val IOS = EnumSet.of(
-            ComposePlatforms.IosX64,
-            ComposePlatforms.IosArm64,
-            ComposePlatforms.IosSimulatorArm64
+            IosX64,
+            IosArm64,
+            IosSimulatorArm64
         )
 
         val TV_OS = EnumSet.of(
-            ComposePlatforms.TvosArm64,
-            ComposePlatforms.TvosX64,
-            ComposePlatforms.TvosSimulatorArm64
+            TvosArm64,
+            TvosX64,
+            TvosSimulatorArm64
         )
 
         val WATCH_OS = EnumSet.of(
-            ComposePlatforms.WatchosArm64,
-            ComposePlatforms.WatchosArm32,
-            ComposePlatforms.WatchosX64,
-            ComposePlatforms.WatchosSimulatorArm64
-        )
-
-        val WINDOWS_NATIVE = EnumSet.of(
-            ComposePlatforms.MingwX64
+            WatchosArm64,
+            WatchosArm32,
+            WatchosX64,
+            WatchosSimulatorArm64
         )
 
         val ANDROID = EnumSet.of(
-            ComposePlatforms.AndroidDebug,
-            ComposePlatforms.AndroidRelease
+            AndroidDebug,
+            AndroidRelease
         )
 
-        val LINUX = EnumSet.of(
-            ComposePlatforms.LinuxX64,
-            ComposePlatforms.LinuxArm64
+        val WINDOWS_NATIVE = EnumSet.of(
+            MingwX64
         )
 
-        val MACOS = EnumSet.of(
-            ComposePlatforms.MacosX64,
-            ComposePlatforms.MacosArm64
+        val LINUX_NATIVE = EnumSet.of(
+            LinuxX64,
+            LinuxArm64
+        )
+
+        val MACOS_NATIVE = EnumSet.of(
+            MacosX64,
+            MacosArm64
         )
 
         val WEB = EnumSet.of(
-            ComposePlatforms.Js,
-            ComposePlatforms.WasmJs
+            Js,
+            WasmJs
         )
 
-        val SKIKO_SUPPORT = EnumSet.of(KotlinMultiplatform) + JVM_BASED + UI_KIT + MACOS + WEB
+        val DARWIN = UI_KIT + IOS + WATCH_OS + TV_OS + MACOS_NATIVE
+
+        val GENERATE_KLIB = WEB + LINUX_NATIVE + WINDOWS_NATIVE + DARWIN
+
+        val SKIKO_SUPPORT =
+            EnumSet.of(KotlinMultiplatform) + JVM_BASED + UI_KIT + MACOS_NATIVE + WEB
 
         val ALL = EnumSet.allOf(ComposePlatforms::class.java) - IOS
         val ALL_AOSP = EnumSet.allOf(ComposePlatforms::class.java) - UI_KIT
