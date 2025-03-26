@@ -233,6 +233,8 @@ abstract interface androidx.compose.runtime.snapshots.tooling/SnapshotObserver {
     open fun onCreated(androidx.compose.runtime.snapshots/Snapshot, androidx.compose.runtime.snapshots/Snapshot?, androidx.compose.runtime.snapshots.tooling/SnapshotInstanceObservers?) // androidx.compose.runtime.snapshots.tooling/SnapshotObserver.onCreated|onCreated(androidx.compose.runtime.snapshots.Snapshot;androidx.compose.runtime.snapshots.Snapshot?;androidx.compose.runtime.snapshots.tooling.SnapshotInstanceObservers?){}[0]
     open fun onCreating(androidx.compose.runtime.snapshots/Snapshot?, kotlin/Boolean): androidx.compose.runtime.snapshots.tooling/SnapshotInstanceObservers? // androidx.compose.runtime.snapshots.tooling/SnapshotObserver.onCreating|onCreating(androidx.compose.runtime.snapshots.Snapshot?;kotlin.Boolean){}[0]
     open fun onDisposing(androidx.compose.runtime.snapshots/Snapshot) // androidx.compose.runtime.snapshots.tooling/SnapshotObserver.onDisposing|onDisposing(androidx.compose.runtime.snapshots.Snapshot){}[0]
+    open fun onPreCreate(androidx.compose.runtime.snapshots/Snapshot?, kotlin/Boolean): androidx.compose.runtime.snapshots.tooling/SnapshotInstanceObservers? // androidx.compose.runtime.snapshots.tooling/SnapshotObserver.onPreCreate|onPreCreate(androidx.compose.runtime.snapshots.Snapshot?;kotlin.Boolean){}[0]
+    open fun onPreDispose(androidx.compose.runtime.snapshots/Snapshot) // androidx.compose.runtime.snapshots.tooling/SnapshotObserver.onPreDispose|onPreDispose(androidx.compose.runtime.snapshots.Snapshot){}[0]
 }
 
 abstract interface androidx.compose.runtime.snapshots/SnapshotContextElement : kotlin.coroutines/CoroutineContext.Element { // androidx.compose.runtime.snapshots/SnapshotContextElement|null[0]
