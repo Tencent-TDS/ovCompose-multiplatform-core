@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.input.pointer.BrowserCursor
 import androidx.compose.ui.input.pointer.PointerButtons
@@ -201,9 +202,9 @@ internal class ComposeWindow(
                 return Offset(offsetX, offsetY)
             }
 
-            override fun processKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+            override fun processKeyboardEvent(keyEvent: KeyEvent): Boolean {
                 //this@ComposeWindow.processKeyboardEvent(keyboardEvent)
-                return scene.sendKeyEvent(keyboardEvent.toComposeEvent())
+                return scene.sendKeyEvent(keyEvent)
             }
         }
 

@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
@@ -28,7 +29,7 @@ internal interface ComposeCommandCommunicator {
     fun sendEditCommand(commands: List<EditCommand>)
     fun sendEditCommand(command: EditCommand) = sendEditCommand(listOf(command))
 
-    fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean
+    fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean
 }
 
 

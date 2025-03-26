@@ -18,16 +18,16 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
-import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun processKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean
+    fun processKeyboardEvent(keyboardEvent: KeyEvent): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
@@ -48,7 +48,7 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
             BackingDomInput(
                 imeOptions = imeOptions,
                 composeCommunicator = object : ComposeCommandCommunicator {
-                    override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                    override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
                         return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
                     }
 

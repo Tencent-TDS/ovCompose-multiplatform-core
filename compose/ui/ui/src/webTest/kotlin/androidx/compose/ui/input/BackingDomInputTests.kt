@@ -19,6 +19,9 @@ package androidx.compose.ui.input
 import androidx.compose.ui.events.InputEvent
 import androidx.compose.ui.events.InputEventInit
 import androidx.compose.ui.events.keyEvent
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.platform.BackingDomInput
 import androidx.compose.ui.platform.ComposeCommandCommunicator
 import androidx.compose.ui.text.input.CommitTextCommand
@@ -33,7 +36,6 @@ import kotlinx.browser.document
 import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
-import org.w3c.dom.events.KeyboardEvent
 
 class BackingDomInputTests {
 
@@ -43,7 +45,7 @@ class BackingDomInputTests {
             imeOptions = ImeOptions.Default,
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) { }
-                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean { return false }
+                override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean { return false }
             },
         )
         var textArea = document.querySelector("textarea")
@@ -62,7 +64,7 @@ class BackingDomInputTests {
 
     @Test
     fun onProcessKeyboardEventTest() {
-        val processedKeys = mutableListOf<String>()
+        val processedKeys = mutableListOf<Key>()
 
         val backingDomInput = BackingDomInput(
             imeOptions = ImeOptions.Default,
@@ -71,8 +73,8 @@ class BackingDomInputTests {
                     TODO("Not yet implemented")
                 }
 
-                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
-                    if (keyboardEvent.key != "Unidentified") {
+                override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
+                    if (keyboardEvent.key != Key.Unknown) {
                         processedKeys.add(keyboardEvent.key)
                         return true
                     }
@@ -95,7 +97,9 @@ class BackingDomInputTests {
             dispatchEvent(keyEvent("O"))
         }
 
-        assertEquals("H:E:L:L:O", processedKeys.joinToString(":"))
+        assertEquals(listOf(
+            Key.H, Key.E, Key.L, Key.L, Key.O
+        ), processedKeys)
     }
 
     @Test
@@ -109,7 +113,7 @@ class BackingDomInputTests {
                     lastEditCommand = commands
                 }
 
-                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
                     return true
                 }
             }
@@ -173,7 +177,7 @@ class BackingDomInputTests {
                     lastEditCommand = commands
                 }
 
-                override fun sendKeyboardEvent(keyboardEvent: KeyboardEvent): Boolean {
+                override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
                     return true
                 }
             }

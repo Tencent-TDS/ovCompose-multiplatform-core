@@ -1,5 +1,6 @@
 package androidx.compose.ui.platform
 
+import androidx.compose.ui.input.key.toComposeEvent
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
@@ -96,7 +97,7 @@ internal class CommonDomInputStrategy(
 
             editState = EditState.WaitingComposeActivity
 
-            val processed = composeSender.sendKeyboardEvent(evt)
+            val processed = composeSender.sendKeyboardEvent(evt.toComposeEvent())
             if (processed) {
                 evt.preventDefault()
             } else {
