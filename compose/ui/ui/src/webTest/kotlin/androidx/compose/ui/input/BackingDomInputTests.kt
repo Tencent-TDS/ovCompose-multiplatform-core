@@ -19,14 +19,12 @@ package androidx.compose.ui.input
 import androidx.compose.ui.events.InputEvent
 import androidx.compose.ui.events.InputEventInit
 import androidx.compose.ui.events.keyEvent
-import androidx.compose.ui.platform.BackingTextArea
+import androidx.compose.ui.platform.BackingDomInput
 import androidx.compose.ui.platform.ComposeCommandCommunicator
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.SetComposingTextCommand
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -37,11 +35,11 @@ import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.CompositionEventInit
 import org.w3c.dom.events.KeyboardEvent
 
-class BackingTextAreaTests {
+class BackingDomInputTests {
 
     @Test
     fun disposeTest() {
-        val backingTextArea = BackingTextArea(
+        val backingDomInput = BackingDomInput(
             imeOptions = ImeOptions.Default,
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) { }
@@ -51,12 +49,12 @@ class BackingTextAreaTests {
         var textArea = document.querySelector("textarea")
         assertNull(textArea)
 
-        backingTextArea.register()
+        backingDomInput.register()
 
         textArea = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(textArea)
 
-        backingTextArea.dispose()
+        backingDomInput.dispose()
 
         textArea = document.querySelector("textarea")
         assertNull(textArea)
@@ -66,7 +64,7 @@ class BackingTextAreaTests {
     fun onProcessKeyboardEventTest() {
         val processedKeys = mutableListOf<String>()
 
-        val backingTextArea = BackingTextArea(
+        val backingDomInput = BackingDomInput(
             imeOptions = ImeOptions.Default,
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
@@ -84,7 +82,7 @@ class BackingTextAreaTests {
             },
         )
 
-        backingTextArea.register()
+        backingDomInput.register()
         val textArea = document.querySelector("textarea")!!
 
         with (textArea) {
@@ -104,7 +102,7 @@ class BackingTextAreaTests {
     fun onProcessComposeEventsTest() {
         var lastEditCommand: List<EditCommand> = listOf()
 
-        val backingTextArea = BackingTextArea(
+        val backingDomInput = BackingDomInput(
             imeOptions = ImeOptions.Default,
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
@@ -117,7 +115,7 @@ class BackingTextAreaTests {
             }
         )
 
-        backingTextArea.register()
+        backingDomInput.register()
         val textArea = document.querySelector("textarea")!!
 
         textArea.dispatchEvent(CompositionEvent("compositionstart"))
@@ -168,7 +166,7 @@ class BackingTextAreaTests {
     fun onEditCommandTest() {
         var lastEditCommand: List<EditCommand> = listOf()
 
-        val backingTextArea = BackingTextArea(
+        val backingDomInput = BackingDomInput(
             imeOptions = ImeOptions.Default,
             composeCommunicator = object : ComposeCommandCommunicator {
                 override fun sendEditCommand(commands: List<EditCommand>) {
@@ -181,7 +179,7 @@ class BackingTextAreaTests {
             }
         )
 
-        backingTextArea.register()
+        backingDomInput.register()
         val textArea = document.querySelector("textarea")!!
 
         textArea.dispatchEvent(InputEvent("beforeinput", InputEventInit(inputType = "insertText", data = "Bonjour")))

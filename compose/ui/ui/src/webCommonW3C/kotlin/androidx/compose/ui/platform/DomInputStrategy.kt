@@ -3,22 +3,23 @@ package androidx.compose.ui.platform
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextInCodePointsCommand
 import androidx.compose.ui.text.input.EditCommand
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.TextFieldValue
-import org.w3c.dom.HTMLTextAreaElement
+import kotlinx.browser.document
+import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.CompositionEvent
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 
-internal interface DomInputStrategy {
-    val htmlInput: HTMLTextAreaElement
-    fun updateState(textFieldValue: TextFieldValue)
-}
 
 internal class CommonDomInputStrategy(
-    override val htmlInput: HTMLTextAreaElement,
+    imeOptions: ImeOptions,
     private val composeSender: ComposeCommandCommunicator,
-) : DomInputStrategy {
+) {
+    val htmlInput = imeOptions.createDomElement()
 
     private var lastActualCompositionTimestamp: Int = 0
     private var editState: EditState = EditState.Default
@@ -29,7 +30,9 @@ internal class CommonDomInputStrategy(
         initEvents()
     }
 
-    override fun updateState(textFieldValue: TextFieldValue) {
+    fun updateState(textFieldValue: TextFieldValue) {
+        htmlInput as HTMLElementWithValue
+
         if (editState != EditState.WaitingComposeActivity) return
 
         if (lastMeaningfulUpdate.text != textFieldValue.text) {
@@ -178,4 +181,72 @@ private sealed interface EditState {
 private external class InputEvent : Event {
     val inputType: String
     val data: String?
+}
+
+private fun ImeOptions.createDomElement(): HTMLElement {
+    val htmlElement = document.createElement(
+        if (singleLine) "input" else "textarea"
+    ) as HTMLElement
+
+    htmlElement.setAttribute("autocorrect", "off")
+    htmlElement.setAttribute("autocomplete", "off")
+    htmlElement.setAttribute("autocapitalize", "off")
+    htmlElement.setAttribute("spellcheck", "false")
+
+    val inputMode = when (keyboardType) {
+        KeyboardType.Text -> "text"
+        KeyboardType.Ascii -> "text"
+        KeyboardType.Number -> "number"
+        KeyboardType.Phone -> "tel"
+        KeyboardType.Uri -> "url"
+        KeyboardType.Email -> "email"
+        KeyboardType.Password -> "password"
+        KeyboardType.NumberPassword -> "number"
+        KeyboardType.Decimal -> "decimal"
+        else -> "text"
+    }
+
+    val enterKeyHint = when (imeAction) {
+        ImeAction.Default -> "enter"
+        ImeAction.None -> "enter"
+        ImeAction.Done -> "done"
+        ImeAction.Go -> "go"
+        ImeAction.Next -> "next"
+        ImeAction.Previous -> "previous"
+        ImeAction.Search -> "search"
+        ImeAction.Send -> "send"
+        else -> "enter"
+    }
+
+    htmlElement.setAttribute("inputmode", inputMode)
+    htmlElement.setAttribute("enterkeyhint", enterKeyHint)
+
+    htmlElement.style.apply {
+        setProperty("position", "absolute")
+        setProperty("user-select", "none")
+        setProperty("forced-color-adjust", "none")
+        setProperty("white-space", "pre-wrap")
+        setProperty("align-content", "center")
+        setProperty("top", "0")
+        setProperty("left", "0")
+        setProperty("padding", "0")
+        setProperty("opacity", "0")
+        setProperty("color", "transparent")
+        setProperty("background", "transparent")
+        setProperty("caret-color", "transparent")
+        setProperty("outline", "none")
+        setProperty("border", "none")
+        setProperty("resize", "none")
+        setProperty("text-shadow", "none")
+        setProperty("z-index", "-1")
+        // TODO: do we need pointer-events: none
+        //setProperty("pointer-events", "none")
+    }
+
+    return htmlElement
+}
+
+private external interface HTMLElementWithValue  {
+    var value: String
+    fun setSelectionRange(start: Int, end: Int, direction: String = definedExternally)
 }
