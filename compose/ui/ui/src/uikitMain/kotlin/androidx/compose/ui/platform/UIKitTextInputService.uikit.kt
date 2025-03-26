@@ -298,8 +298,6 @@ internal class UIKitTextInputService(
         }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
-//        _tempCurrentInputSession?.apply(commands.toList()) // should be obsolete
-
         editCommandsBatch.addAll(commands)
         flushEditCommandsIfNeeded()
     }
