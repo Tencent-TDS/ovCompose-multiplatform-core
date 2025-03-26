@@ -63,15 +63,10 @@ private fun FocusTargetNode.performRequestFocusOptimized(): Boolean {
         return true
     }
 
-    if (previousActiveNode?.clearFocus(refreshFocusEvents = true) == false) {
-        return false // Don't grant focus if clearing focus from the previous node was rejected
-    }
-
     // Request owner focus if it doesn't already have focus
     if (previousActiveNode == null && !requestFocusForOwner()) {
         return false // Don't grant focus if requesting owner focus failed
     }
-    grantFocus()
 
     // Find ancestor target and event nodes of the previous active target node
     var previousAncestorTargetNodes: MutableVector<FocusTargetNode>? = null
@@ -80,14 +75,26 @@ private fun FocusTargetNode.performRequestFocusOptimized(): Boolean {
         previousActiveNode.visitAncestors(Nodes.FocusTarget) { previousAncestorTargetNodes.add(it) }
     }
 
-    // Diff the previous ancestor nodes with the ancestors of the new active target node
+    // Diff the previous ancestor nodes with the ancestors of the new active target node.
+    // We also check if the previous active node is an ancestor of the new active node, in which
+    // case we don't need to clear focus from it.
+    var shouldClearFocusFromPreviousActiveNode = true
     val ancestorTargetNodes = mutableVectorOf<FocusTargetNode>()
     visitAncestors(Nodes.FocusTarget) {
         val removed = previousAncestorTargetNodes?.remove(it)
         if (removed == null || !removed) {
             ancestorTargetNodes.add(it)
         }
+        if (it === previousActiveNode) shouldClearFocusFromPreviousActiveNode = false
     }
+
+    if (shouldClearFocusFromPreviousActiveNode) {
+        if (previousActiveNode?.clearFocus(refreshFocusEvents = true) == false) {
+            return false // Don't grant focus if clearing focus from the previous node was rejected
+        }
+    }
+
+    grantFocus()
 
     // Notify ancestor target nodes of the previous active node that are no longer ActiveParent
     // The ancestors are traversed in the reversed order to dispatch events top->down
@@ -108,7 +115,10 @@ private fun FocusTargetNode.performRequestFocusOptimized(): Boolean {
             // The focus request was redirected or cancelled in a previous focus change callback
             return false
         }
-        it.dispatchFocusCallbacks(Inactive, ActiveParent)
+        it.dispatchFocusCallbacks(
+            previousState = if (it === previousActiveNode) Active else Inactive,
+            newState = ActiveParent
+        )
     }
 
     // Check if focus was cleared or redirected in a previous focus change callback

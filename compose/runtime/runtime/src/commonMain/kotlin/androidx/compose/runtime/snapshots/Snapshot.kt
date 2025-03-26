@@ -35,7 +35,7 @@ import androidx.compose.runtime.snapshots.Snapshot.Companion.takeMutableSnapshot
 import androidx.compose.runtime.snapshots.Snapshot.Companion.takeSnapshot
 import androidx.compose.runtime.snapshots.tooling.creatingSnapshot
 import androidx.compose.runtime.snapshots.tooling.dispatchObserverOnApplied
-import androidx.compose.runtime.snapshots.tooling.dispatchObserverOnDispose
+import androidx.compose.runtime.snapshots.tooling.dispatchObserverOnPreDispose
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -905,7 +905,7 @@ internal constructor(
         if (!disposed) {
             super.dispose()
             nestedDeactivated(this)
-            dispatchObserverOnDispose(this)
+            dispatchObserverOnPreDispose(this)
         }
     }
 
@@ -1390,7 +1390,7 @@ internal constructor(
         if (!disposed) {
             nestedDeactivated(this)
             super.dispose()
-            dispatchObserverOnDispose(this)
+            dispatchObserverOnPreDispose(this)
         }
     }
 
@@ -1455,7 +1455,7 @@ internal class NestedReadonlySnapshot(
             }
             parent.nestedDeactivated(this)
             super.dispose()
-            dispatchObserverOnDispose(this)
+            dispatchObserverOnPreDispose(this)
         }
     }
 

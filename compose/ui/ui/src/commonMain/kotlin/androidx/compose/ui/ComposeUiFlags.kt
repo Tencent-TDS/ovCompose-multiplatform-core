@@ -87,6 +87,13 @@ object ComposeUiFlags {
     @Suppress("MutableBareField") @JvmField var isViewFocusFixEnabled: Boolean = true
 
     /**
+     * When an embedded view that is focused is removed from the hierarchy, it triggers a
+     * requestFocus() which tries to re-assign focus before the previous composition is complete.
+     * This flag enables a fix for this issue.
+     */
+    @Suppress("MutableBareField") @JvmField var isRemoveFocusedViewFixEnabled: Boolean = true
+
+    /**
      * With this flag on, the new focus state management implementation is enabled. The new
      * implementation removes the focus state previously stored in each FocusTargetNode and instead
      * keeps track of the current active focus node centrally in FocusOwnerImpl. This change reduces

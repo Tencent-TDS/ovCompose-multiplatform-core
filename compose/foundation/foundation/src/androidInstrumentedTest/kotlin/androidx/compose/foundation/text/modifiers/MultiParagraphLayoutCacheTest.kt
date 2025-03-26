@@ -16,16 +16,21 @@
 
 package androidx.compose.foundation.text.modifiers
 
+import android.graphics.Typeface
 import androidx.compose.foundation.text.DefaultMinLines
 import androidx.compose.foundation.text.TEST_FONT_FAMILY
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.input.internal.AsyncFauxFont
+import androidx.compose.foundation.text.input.internal.AsyncTestTypefaceLoader
 import androidx.compose.foundation.text.toIntPx
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.font.toFontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -39,6 +44,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlin.math.roundToInt
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -600,13 +609,25 @@ class MultiParagraphLayoutCacheTest {
         // of ~9.7, so we use a string with 10 chars to test.
         val text = "aaaaaaaaaa"
 
+        fun fakeAutoSize(returnFontSize: TextUnit) =
+            object : TextAutoSize {
+                override fun TextAutoSizeLayoutScope.getFontSize(
+                    constraints: Constraints,
+                    text: AnnotatedString
+                ) = returnFontSize
+
+                override fun equals(other: Any?) = this === other
+
+                override fun hashCode() = System.identityHashCode(this)
+            }
+
         val layoutCache =
             MultiParagraphLayoutCache(
                     text = AnnotatedString(text),
                     style = TextStyle(fontFamily = fontFamily),
                     fontFamilyResolver = fontFamilyResolver,
                     overflow = TextOverflow.Clip,
-                    autoSize = AutoSizePreset(arrayOf(1.em))
+                    autoSize = fakeAutoSize(1.em)
                 )
                 .also { it.density = density }
 
@@ -615,11 +636,7 @@ class MultiParagraphLayoutCacheTest {
         // doesn't overflow
         assertThat(layoutResult.hasVisualOverflow).isFalse()
 
-        layoutCache.updateAutoSize(
-            text = text,
-            fontSize = TextUnit.Unspecified,
-            AutoSizePreset(arrayOf(2.em))
-        )
+        layoutCache.updateAutoSize(text, TextUnit.Unspecified, fakeAutoSize(2.em))
 
         layoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
         layoutResult = layoutCache.textLayoutResult
@@ -727,6 +744,77 @@ class MultiParagraphLayoutCacheTest {
         assertThat(layoutResult.layoutInput.constraints).isEqualTo(constraints)
     }
 
+    /**
+     * Regression test for b/392070664. Tests the scenario where we have successfully performed auto
+     * size before the font was resolved, requiring us to re-layout without the cache getting
+     * invalidated entirely.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun autoSize_layoutAfterFontResolutionCompletesProducesSameResult() = runTest {
+        val constraints = Constraints(minWidth = 0, maxWidth = 100, minHeight = 0, maxHeight = 100)
+        // Use an auto size that only performs two passes and returns the size of the last pass as
+        // the most optimal size. This simulates using TextAutoSize.StepBased with a string that can
+        // be fitted using auto size's max font size.
+        val autoSize =
+            object : TextAutoSize {
+                override fun TextAutoSizeLayoutScope.getFontSize(
+                    constraints: Constraints,
+                    text: AnnotatedString
+                ): TextUnit {
+                    performLayout(constraints, text, 110.sp)
+                    performLayout(constraints, text, 112.sp)
+                    return 112.sp
+                }
+
+                override fun equals(other: Any?) = this === other
+
+                override fun hashCode() = System.identityHashCode(this)
+            }
+
+        // Font family resolution is executed on the main thread by default, but we need to control
+        // the dispatcher in this test. FontListFontFamilyTypefaceAdapter creates a SupervisorJob
+        // that will then be active in this coroutine context, so we pass a Job along to make that
+        // SupervisorJob a child of our job and control its lifespan.
+        val fontFamilyResolutionJob = Job()
+        val testSchedulerControlledFontFamilyResolver =
+            createFontFamilyResolver(
+                context = context,
+                coroutineContext = this.coroutineContext + fontFamilyResolutionJob
+            )
+
+        val typefaceLoader = AsyncTestTypefaceLoader()
+        val fauxFont = AsyncFauxFont(typefaceLoader)
+        val autoSizeLayoutCache =
+            createLayoutCache(
+                AnnotatedString("aaaaaaaaa"),
+                autoSize,
+                style = TextStyle(fontFamily = fauxFont.toFontFamily()),
+                fontFamilyResolver = testSchedulerControlledFontFamilyResolver
+            )
+
+        autoSizeLayoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val firstPassAutoSizeLayoutResult = autoSizeLayoutCache.textLayoutResult
+
+        // By default, the system will fall back to Typeface.DEFAULT. We return something different
+        //  here to make sure the fonts actually become stale.
+        typefaceLoader.completeOne(fauxFont, Typeface.DEFAULT_BOLD)
+        advanceUntilIdle()
+
+        autoSizeLayoutCache.layoutWithConstraints(constraints, LayoutDirection.Ltr)
+        val secondPassAutoSizeLayoutResult = autoSizeLayoutCache.textLayoutResult
+
+        assertWithMessage("First pass LayoutInput's fontSize is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.layoutInput.style.fontSize)
+            .isEqualTo(secondPassAutoSizeLayoutResult.layoutInput.style.fontSize)
+        assertWithMessage("First pass MultiParagraph width is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.multiParagraph.width)
+            .isEqualTo(secondPassAutoSizeLayoutResult.multiParagraph.width)
+        assertWithMessage("First pass MultiParagraph height is equal to second pass")
+            .that(firstPassAutoSizeLayoutResult.multiParagraph.height)
+            .isEqualTo(secondPassAutoSizeLayoutResult.multiParagraph.height)
+    }
+
     @Test
     fun maxHeight_hasSameHeight_asParagraph() {
         val text = buildAnnotatedString {
@@ -799,7 +887,8 @@ class MultiParagraphLayoutCacheTest {
         text: AnnotatedString,
         autoSize: TextAutoSize? = null,
         style: TextStyle = TextStyle(fontFamily = fontFamily),
-        maxLines: Int = Int.MAX_VALUE
+        maxLines: Int = Int.MAX_VALUE,
+        fontFamilyResolver: FontFamily.Resolver = this.fontFamilyResolver
     ): MultiParagraphLayoutCache {
         return MultiParagraphLayoutCache(
                 text = text,
