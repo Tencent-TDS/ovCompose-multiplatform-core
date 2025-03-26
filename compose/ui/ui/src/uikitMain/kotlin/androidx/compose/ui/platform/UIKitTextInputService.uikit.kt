@@ -298,6 +298,7 @@ internal class UIKitTextInputService(
         }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
+        _tempCurrentInputSession?.apply(commands.toList())
         editCommandsBatch.addAll(commands)
         flushEditCommandsIfNeeded()
     }
@@ -308,9 +309,6 @@ internal class UIKitTextInputService(
             editCommandsBatch.clear()
 
             currentInput?.onEditCommand?.invoke(commandList)
-
-            val newValue = _tempCurrentInputSession?.toTextFieldValue() ?: return
-            updateState(oldValue = null, newValue = newValue)
         }
     }
 

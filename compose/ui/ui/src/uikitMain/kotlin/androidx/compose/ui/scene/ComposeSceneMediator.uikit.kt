@@ -736,6 +736,11 @@ internal class ComposeSceneMediator(
                 // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7832/iOS-Adopt-PlatformTextInputService2)
                 coroutineScope {
                     launch {
+                        request.outputValue.collect {
+                            textInputService.updateState(oldValue = null, newValue = it)
+                        }
+                    }
+                    launch {
                         request.textLayoutResult.collect {
                             textInputService.updateTextLayoutResult(it)
                         }

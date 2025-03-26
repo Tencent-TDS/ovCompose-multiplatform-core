@@ -93,8 +93,15 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
 
     coroutineScope {
         val outputValueFlow = callbackFlow {
-            state.collectImeNotifications { _, newValue, _ ->
-                trySend(newValue.toTextFieldValue())
+            state.collectImeNotifications { _, _, _ ->
+                /* This is required for iOS
+                *  It allows to iOS text input to know about any selection changes made by tap / long tap
+                *  Currently, iOS doesn't handle touches, it made on Compose side, so it's necessary to forward
+                *  selection changes explicitly (like BTF1 does in TextFieldDelegate.skiko.kt)
+                *  Without this, iOS will send EditCommands using last-know position which was changed
+                *  by text edition, not caret movement
+                *  */
+                trySend(state.untransformedText.toTextFieldValue())
             }
         }
 
