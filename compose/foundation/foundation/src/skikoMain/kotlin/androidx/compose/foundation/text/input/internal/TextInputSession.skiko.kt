@@ -95,12 +95,11 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         val outputValueFlow = callbackFlow {
             state.collectImeNotifications { _, _, _ ->
                 /* This is required for iOS
-                *  It allows the iOS text input to detect selection changes made by tapping / long tapping
-                *  Currently, iOS doesn't handle touches directly, they handled on Compose side,
-                *  so it's necessary to forward selection changes explicitly (like BTF1 does in TextFieldDelegate.skiko.kt).
                 *  This logic runs after any changes made in `onEditCommand` if any, ensuring the internal value
                 *  in UIKitTextInputService remains up-to-date and always sends a new position
-                *  which was changed by caret movement
+                *  which was changed by caret movement (tapping / long tapping).
+                *  Currently, iOS doesn't handle any touches directly, they handled on Compose side,
+                *  so it's necessary to forward selection changes explicitly (like BTF1 does in TextFieldDelegate.skiko.kt)
                 *  */
                 trySend(state.untransformedText.toTextFieldValue())
             }
