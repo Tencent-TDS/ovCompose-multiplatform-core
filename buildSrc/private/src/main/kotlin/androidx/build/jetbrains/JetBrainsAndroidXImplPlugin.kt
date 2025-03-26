@@ -20,6 +20,8 @@ package androidx.build.jetbrains
 
 import androidx.build.AndroidXExtension
 import androidx.build.multiplatformExtension
+import kotlinx.validation.ApiValidationExtension
+import kotlinx.validation.ExperimentalBCVApi
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
@@ -27,7 +29,6 @@ import org.gradle.kotlin.dsl.create
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.mpp.AbstractKotlinTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinSoftwareComponentWithCoordinatesAndPublication
 import org.jetbrains.kotlin.konan.target.KonanTarget
@@ -81,7 +82,7 @@ open class JetbrainsExtensions(
         val main = compilations.getByName("main")
         val test = compilations.getByName("test")
         val kNativeManifestRedirectingModulesRaw =
-            project.property("artifactRedirecting.modules-for-knative-manifest") as String
+            project.property("artifactRedirection.modulesForKNativeManifest") as String
 
         val projectPathToRedirectingVersionMap = kNativeManifestRedirectingModulesRaw
             .split(",").associate {
@@ -125,7 +126,7 @@ class JetBrainsAndroidXImplPlugin : Plugin<Project> {
     }
 
     private fun onKotlinMultiplatformPluginApplied(project: Project) {
-        enableArtifactRedirectingPublishing(project)
+        enableArtifactRedirectionPublishing(project)
         enableBinaryCompatibilityValidator(project)
         val multiplatformExtension =
             project.extensions.getByType(KotlinMultiplatformExtension::class.java)
@@ -143,22 +144,11 @@ class JetBrainsAndroidXImplPlugin : Plugin<Project> {
     }
 }
 
-private fun Project.experimentalArtifactRedirectingPublication() : Boolean = findProperty("artifactRedirecting.publication") == "true"
-private fun Project.artifactRedirectingAndroidxVersion() : String? = findProperty("artifactRedirecting.androidx.compose.version") as String?
-private fun Project.artifactRedirectingAndroidxFoundationVersion() : String? = findProperty("artifactRedirecting.androidx.compose.foundation.version") as String?
-private fun Project.artifactRedirectingAndroidxMaterial3Version() : String? = findProperty("artifactRedirecting.androidx.compose.material3.version") as String?
-private fun Project.artifactRedirectingAndroidxMaterialVersion() : String? = findProperty("artifactRedirecting.androidx.compose.material.version") as String?
-
-private fun enableArtifactRedirectingPublishing(project: Project) {
-    if (!project.experimentalArtifactRedirectingPublication()) return
-
-    if (project.experimentalArtifactRedirectingPublication() && (project.artifactRedirectingAndroidxVersion() == null)) {
-        error("androidx version should be specified for OEL publications")
-    }
+private fun enableArtifactRedirectionPublishing(project: Project) {
+    val redirection = project.artifactRedirection() ?: return
 
     val ext = project.multiplatformExtension ?: error("expected a multiplatform project")
 
-    val redirecting = project.artifactRedirecting()
     val newRootComponent: CustomRootComponent = run {
         val rootComponent = project
             .components
@@ -166,33 +156,34 @@ private fun enableArtifactRedirectingPublishing(project: Project) {
             .getByName("kotlin")
 
         CustomRootComponent(rootComponent) { configuration ->
-            val targetName = redirecting.targetVersions.keys.firstOrNull {
+            val targetName = redirection.targetVersions.keys.firstOrNull {
                 // we rely on the fact that configuration name starts with target name
                 configuration.name.startsWith(it, ignoreCase = true)
             }
-            val targetVersion = redirecting.versionForTargetOrDefault(targetName ?: "")
+            val targetVersion = redirection.versionForTargetOrDefault(targetName ?: "")
             project.dependencies.create(
-                redirecting.groupId, project.name, targetVersion
+                redirection.groupId, project.name, targetVersion
             )
         }
     }
 
-    val oelTargetNames = (project.findProperty("artifactRedirecting.publication.targetNames") as? String ?: "")
-        .split(",").map { it.lowercase() }.toSet()
-
     ext.targets.all { target ->
-        if (target.name.lowercase() in oelTargetNames || target is KotlinAndroidTarget) {
+        if (target.name.lowercase() in redirection.targetNames) {
             project.publishAndroidxReference(target as AbstractKotlinTarget, newRootComponent)
         }
     }
 }
 
+@OptIn(ExperimentalBCVApi::class)
 private fun enableBinaryCompatibilityValidator(project: Project) {
     val androidXExtension = project.extensions.findByType(AndroidXExtension::class.java)
         ?: throw Exception("You have applied AndroidXComposePlugin without AndroidXPlugin")
     project.afterEvaluate {
         if (androidXExtension.shouldPublish()) {
             project.apply(plugin = "org.jetbrains.kotlinx.binary-compatibility-validator")
+            project.extensions.getByType(ApiValidationExtension::class.java).apply {
+                klib.enabled = true
+            }
         }
     }
 }

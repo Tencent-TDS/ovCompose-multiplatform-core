@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.cutText
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.editableText
 import androidx.compose.ui.semantics.getTextLayoutResult
+import androidx.compose.ui.semantics.inputText
 import androidx.compose.ui.semantics.insertTextAtCursor
 import androidx.compose.ui.semantics.isEditable
 import androidx.compose.ui.semantics.onAutofillText
@@ -121,6 +122,7 @@ internal class CoreTextFieldSemanticsModifierNode(
         get() = true
 
     override fun SemanticsPropertyReceiver.applySemantics() {
+        this.inputText = value.annotatedString
         this.editableText = transformedText.text
         this.textSelectionRange = value.selection
 

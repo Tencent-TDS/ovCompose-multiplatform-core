@@ -91,8 +91,6 @@ public final class androidx/compose/ui/test/ComposeTimeoutException : java/lang/
 
 public abstract interface class androidx/compose/ui/test/ComposeUiTest : androidx/compose/ui/test/SemanticsNodeInteractionsProvider {
 	public abstract fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun disableAccessibilityChecks ()V
-	public abstract fun enableAccessibilityChecks ()V
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public abstract fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
 	public abstract fun runOnIdle (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
@@ -657,8 +655,6 @@ public class androidx/compose/ui/test/SkikoComposeUiTest : androidx/compose/ui/t
 	public final fun captureToImage ()Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/semantics/SemanticsNode;)Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/graphics/ImageBitmap;
-	public fun disableAccessibilityChecks ()V
-	public fun enableAccessibilityChecks ()V
 	public fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
 	public final fun getScene ()Landroidx/compose/ui/scene/ComposeScene;

@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -233,6 +234,39 @@ fun OutlinedTextFieldAutofillDemo() {
             onValueChange = { passwordInput = it },
             label = { Text("Enter password here") },
             modifier = Modifier.semantics { contentType = ContentType.Password }
+        )
+
+        // Submit button
+        Button(onClick = { autofillManager?.commit() }) { Text("Submit credentials") }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@SuppressLint("NullAnnotationGroup")
+@Preview
+@Composable
+fun OutlinedTextFieldVisualTransformationAutofillDemo() {
+    var usernameInput by remember { mutableStateOf("") }
+    var passwordInput by remember { mutableStateOf("") }
+
+    val autofillManager = LocalAutofillManager.current
+
+    Column {
+        // Username textfield
+        OutlinedTextField(
+            value = usernameInput,
+            onValueChange = { usernameInput = it },
+            label = { Text("Enter username here") },
+            modifier = Modifier.semantics { contentType = ContentType.Username }
+        )
+
+        // Password textfield
+        OutlinedTextField(
+            value = passwordInput,
+            onValueChange = { passwordInput = it },
+            label = { Text("Enter password here") },
+            modifier = Modifier.semantics { contentType = ContentType.Password },
+            visualTransformation = PasswordVisualTransformation()
         )
 
         // Submit button

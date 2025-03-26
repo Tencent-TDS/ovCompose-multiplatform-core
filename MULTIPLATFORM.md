@@ -27,7 +27,7 @@ Run tests for UIKit:
 ```
 
 ### API checks
-Compose Multiplatform stores all public API in *.api files. If any API is added/changed, `./gradlew checkDesktop` will fail with an error that API is changed (it runs on CI). Example:
+Compose Multiplatform stores all public API in *.api files. If any API is added/changed, `./gradlew jbApiCheck` will fail with an error that API is changed (it runs on CI). Example:
 
 ```
 Execution failed for task ':compose:material3:material3:desktopApiCheck'.
@@ -51,12 +51,10 @@ Execution failed for task ':compose:material3:material3:desktopApiCheck'.
 ```
 
 To fix this error:
-1. Run `./gradlew desktopApiDump`
+1. Run `./gradlew jbApiDump` or (for Linux/Window host) [CI task](https://teamcity.jetbrains.com/buildConfiguration/JetBrainsPublicProjects_Compose_CommitDumpApi) that creates a commit "Dump API" in a branch
 2. See what has changed in *.api files.
 3. If there are only additions - there is no binary incompatible change.
 4. If there are some removals - most probably there is a binary incompatible change and it needs to be fixed before merging it to the main branch.
-
-Note that only desktop has API checks at the moment, but in the future it will be added for all targets.
 
 ### Publishing
 Compose Multiplatform core libraries can be published to local Maven with the following steps:

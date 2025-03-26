@@ -6,9 +6,6 @@
 import org.gradle.api.Project
 
 class ComposeProperties(private val myProject: Project) {
-    val isArtifactRedirecting: Boolean
-        get() = myProject.findProperty("artifactRedirecting.publication") != "false"
-
     val targetPlatforms: Set<ComposePlatforms>
         get() {
             val requestedPlatforms = myProject.findProperty("compose.platforms")?.toString() ?: "jvm, android"

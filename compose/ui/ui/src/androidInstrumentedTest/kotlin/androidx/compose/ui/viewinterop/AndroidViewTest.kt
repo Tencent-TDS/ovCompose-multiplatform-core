@@ -2008,6 +2008,88 @@ class AndroidViewTest {
         }
     }
 
+    // Test for b/391862082
+    // Below API 30 ViewCompat.setOnApplyWindowInsetsListener needs to request insets to be applied
+    // when the callback is invoked, so there will be some extra root inset dispatches because of
+    // that.
+    @SdkSuppress(minSdkVersion = 30)
+    @Test
+    fun insetsAreNotDispatchedToRootWhenAndroidViewMoves() {
+        rule.runOnIdle {
+            WindowInsetsControllerCompat(rule.activity.window, rule.activity.window.decorView)
+                .show(WindowInsetsCompat.Type.systemBars())
+        }
+
+        var topPadding by mutableIntStateOf(0)
+        var topInset = 0
+        var outerTopInset = 0
+        var latch = CountDownLatch(1)
+        lateinit var root: InsetsTrackingFrameLayout
+        lateinit var composeView: ComposeView
+
+        rule.activityRule.scenario.onActivity { activity ->
+            root = InsetsTrackingFrameLayout(activity)
+            composeView = ComposeView(activity)
+            activity.setContentView(root)
+            root.addView(composeView)
+            composeView.setContent {
+                composeView.consumeWindowInsets = false // call this before accessing insets
+                val insets = WindowInsets.systemBars
+                Box {
+                    Box(
+                        Modifier.layout { m, c ->
+                                outerTopInset = insets.getTop(this)
+                                val p = m.measure(c.offset(vertical = -topPadding))
+                                layout(p.width, p.height) { p.place(0, topPadding) }
+                            }
+                            .background(Color.Blue)
+                            .fillMaxSize()
+                    ) {
+                        AndroidView(
+                            modifier = Modifier.fillMaxSize(),
+                            factory = { context ->
+                                ComposeView(context).apply {
+                                    setContent {
+                                        val systemBars = WindowInsets.systemBars
+                                        val density = LocalDensity.current
+                                        Box(
+                                            Modifier.fillMaxSize().onPlaced {
+                                                topInset = systemBars.getTop(density)
+                                                latch.countDown()
+                                            }
+                                        )
+                                        Box(Modifier.fillMaxSize().systemBarsPadding())
+                                    }
+                                }
+                            }
+                        )
+                        Box(Modifier.fillMaxSize().background(Color.White).safeContentPadding())
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+
+        assumeTrue(outerTopInset > 0) // This device must have a status bar inset
+
+        rule.runOnIdle {
+            assertThat(root.insetsDispatchCount).isEqualTo(1)
+            assertThat(topInset).isEqualTo(outerTopInset)
+            latch = CountDownLatch(1)
+            topPadding = 5
+        }
+
+        assertThat(latch.await(1, TimeUnit.SECONDS)).isTrue()
+
+        rule.runOnIdle {
+            // Even though we dispatched new insets to the AndroidView, we shouldn't have caused
+            // insets to be dispatched to the root again
+            assertThat(root.insetsDispatchCount).isEqualTo(1)
+            assertThat(topInset).isEqualTo(outerTopInset - 5)
+        }
+    }
+
     @SdkSuppress(minSdkVersion = 30)
     @Test
     fun insetsAnimateForChildren() {
@@ -2254,6 +2336,17 @@ class AndroidViewTest {
         override fun requestLayout() {
             super.requestLayout()
             requestLayoutCalled = true
+        }
+    }
+
+    private class InsetsTrackingFrameLayout(context: Context) : FrameLayout(context) {
+        var insetsDispatchCount = 0
+
+        override fun onApplyWindowInsets(
+            insets: android.view.WindowInsets?
+        ): android.view.WindowInsets? {
+            insetsDispatchCount++
+            return super.onApplyWindowInsets(insets)
         }
     }
 }
