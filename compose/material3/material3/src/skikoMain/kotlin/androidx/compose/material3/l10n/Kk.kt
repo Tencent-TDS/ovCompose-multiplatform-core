@@ -33,7 +33,6 @@ internal fun Translations.kk() = mapOf(
     Strings.MenuCollapsed to "Жиылды",
     Strings.ToggleDropdownMenu to "Ашылмалы мәзірді жаю/жию",
     Strings.SnackbarDismiss to "Жабу",
-    Strings.SnackbarPaneTitle to "Ескерту",
     Strings.SearchBarSearch to "Іздеу",
     Strings.SuggestionsAvailable to "Төмендегі ұсыныстар",
     Strings.DatePickerTitle to "Күн таңдау",
@@ -86,6 +85,4 @@ internal fun Translations.kk() = mapOf(
     Strings.TimePickerHour to "Сағат",
     Strings.TimePickerMinuteTextField to "минут",
     Strings.TimePickerHourTextField to "сағат",
-    Strings.CloseRail to "Жолақты жабу",
-    Strings.WideNavigationRailPaneTitle to "Навигация жолағы",
 )

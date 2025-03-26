@@ -5,7 +5,7 @@ public final class androidx/navigation/testing/TestNavHostController : androidx/
 
 public final class androidx/navigation/testing/TestNavigatorState : androidx/navigation/NavigatorState {
 	public fun <init> ()V
-	public fun createBackStackEntry (Landroidx/navigation/NavDestination;Landroidx/core/bundle/Bundle;)Landroidx/navigation/NavBackStackEntry;
+	public fun createBackStackEntry (Landroidx/navigation/NavDestination;Landroidx/savedstate/SavedState;)Landroidx/navigation/NavBackStackEntry;
 	public fun markTransitionComplete (Landroidx/navigation/NavBackStackEntry;)V
 	public fun pop (Landroidx/navigation/NavBackStackEntry;Z)V
 	public fun popWithTransition (Landroidx/navigation/NavBackStackEntry;Z)V

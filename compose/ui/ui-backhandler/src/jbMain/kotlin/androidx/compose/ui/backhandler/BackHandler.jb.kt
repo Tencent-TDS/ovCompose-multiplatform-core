@@ -19,8 +19,10 @@ package androidx.compose.ui.backhandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.lifecycle.Lifecycle
@@ -39,17 +41,24 @@ val LocalBackGestureDispatcher = staticCompositionLocalOf<BackGestureDispatcher?
 actual fun PredictiveBackHandler(
     enabled: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit
-)  {
+) {
     val backGestureDispatcher = LocalBackGestureDispatcher.current ?: return
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
+    val onBackScope = rememberCoroutineScope()
+
+    val currentOnBack by rememberUpdatedState(onBack)
+    val currentDispatcher by rememberUpdatedState(backGestureDispatcher)
 
     val listener = remember {
-        BackGestureListenerImpl(scope, onBack) { backGestureDispatcher.activeListenerChanged() }
+        BackGestureListenerImpl(
+            scope = onBackScope,
+            onBack = { currentOnBack(it) },
+            onReadyStateChanged = { currentDispatcher.activeListenerChanged() }
+        )
     }
 
     LaunchedEffect(enabled) { listener.enabled = enabled }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.currentStateFlow.collect { state ->
             listener.active = (state == Lifecycle.State.STARTED || state == Lifecycle.State.RESUMED)

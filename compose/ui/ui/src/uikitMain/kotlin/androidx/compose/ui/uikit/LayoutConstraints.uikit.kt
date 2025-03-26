@@ -16,50 +16,22 @@
 
 package androidx.compose.ui.uikit
 
-import kotlinx.cinterop.CValue
-import kotlinx.cinterop.useContents
-import platform.CoreGraphics.CGSize
 import platform.UIKit.NSLayoutConstraint
 import platform.UIKit.UIView
 
-internal fun UIView.embedSubview(subview: UIView): List<NSLayoutConstraint> {
+internal fun UIView.embedSubview(subview: UIView) {
     addSubview(subview)
-    subview.translatesAutoresizingMaskIntoConstraints = false
-    return subview.layoutConstraintsToMatch(this).also {
-        NSLayoutConstraint.activateConstraints(it)
-    }
+    subview.addLayoutConstraintsToMatch(this)
 }
 
-internal fun UIView.layoutConstraintsToMatch(other: UIView) =
+internal fun UIView.addLayoutConstraintsToMatch(other: UIView) {
+    translatesAutoresizingMaskIntoConstraints = false
     listOf(
         leftAnchor.constraintEqualToAnchor(other.leftAnchor),
         rightAnchor.constraintEqualToAnchor(other.rightAnchor),
         topAnchor.constraintEqualToAnchor(other.topAnchor),
         bottomAnchor.constraintEqualToAnchor(other.bottomAnchor)
-    )
-
-internal fun UIView.layoutConstraintsToCenterInParent(parent: UIView, size: CValue<CGSize>) =
-    size.useContents {
-        listOf(
-            centerXAnchor.constraintEqualToAnchor(parent.centerXAnchor),
-            centerYAnchor.constraintEqualToAnchor(parent.centerYAnchor),
-            widthAnchor.constraintEqualToConstant(width),
-            heightAnchor.constraintEqualToConstant(height)
-        )
-    }
-
-/**
- * A box for a list of constraints which deactivates the old constraints and activates the new ones
- * when new value is set.
- */
-internal class ExclusiveLayoutConstraints {
-    private var constraints: List<NSLayoutConstraint> = emptyList()
-
-    fun set(value: List<NSLayoutConstraint>) {
-        if (constraints.isNotEmpty()) {
-            NSLayoutConstraint.deactivateConstraints(constraints)
-        }
-        constraints = value
-        NSLayoutConstraint.activateConstraints(constraints)
+    ).also {
+        NSLayoutConstraint.activateConstraints(it)
     }
 }

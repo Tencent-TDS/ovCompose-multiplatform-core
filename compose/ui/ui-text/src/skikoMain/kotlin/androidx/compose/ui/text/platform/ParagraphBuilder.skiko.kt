@@ -519,6 +519,7 @@ internal class ParagraphBuilder(
         computedStyle: ComputedStyle
     ): ParagraphStyle {
         val pStyle = ParagraphStyle()
+        pStyle.replaceTabCharacters = true // https://youtrack.jetbrains.com/issue/CMP-6589
         pStyle.fontRastrSettings = makeSkFontRasterizationSettings(style)
         pStyle.textStyle = makeSkTextStyle(computedStyle)
         style.textAlign.let {

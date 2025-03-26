@@ -33,7 +33,6 @@ internal fun Translations.ko() = mapOf(
     Strings.MenuCollapsed to "접힘",
     Strings.ToggleDropdownMenu to "전환 드롭다운 메뉴",
     Strings.SnackbarDismiss to "닫기",
-    Strings.SnackbarPaneTitle to "주의",
     Strings.SearchBarSearch to "검색",
     Strings.SuggestionsAvailable to "아래의 추천 검색어",
     Strings.DatePickerTitle to "날짜 선택",
@@ -86,6 +85,4 @@ internal fun Translations.ko() = mapOf(
     Strings.TimePickerHour to "시간",
     Strings.TimePickerMinuteTextField to "기간(분)",
     Strings.TimePickerHourTextField to "기간(시간)",
-    Strings.CloseRail to "레일 닫기",
-    Strings.WideNavigationRailPaneTitle to "탐색 레일",
 )

@@ -19,20 +19,6 @@ open class ComposePublishingTask : AbstractComposePublishingTask() {
 val viewModelPlatforms = ComposePlatforms.ALL_AOSP - ComposePlatforms.WINDOWS_NATIVE
 
 val libraryToComponents = mapOf(
-    "CORE_BUNDLE" to listOf(
-        ComposeComponent(
-            path = ":core:core-bundle",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP,
-            neverRedirect = true
-        ),
-    ),
-    "CORE_URI" to listOf(
-        ComposeComponent(
-            path = ":core:core-uri",
-            supportedPlatforms = ComposePlatforms.ALL_AOSP,
-            neverRedirect = true
-        ),
-    ),
     "COMPOSE" to listOf(
         // TODO https://youtrack.jetbrains.com/issue/CMP-1604/Publish-public-collection-annotation-libraries-with-a-separate-version
         // They are part of COMPOSE versioning
@@ -206,11 +192,11 @@ tasks.register("testWeb") {
 
 val testWebJs = tasks.register("testWebJs") {
     dependsOn(":collection:collection:compileTestKotlinJs")
-    dependsOn(":compose:foundation:foundation:compileTestKotlinJs")
-    dependsOn(":compose:material3:material3:compileTestKotlinJs")
+    dependsOn(":compose:foundation:foundation:jsTest")
+    dependsOn(":compose:material3:material3:jsTest")
     dependsOn(":compose:runtime:runtime:jsTest")
-    dependsOn(":compose:ui:ui-text:compileTestKotlinJs")
-    dependsOn(":compose:ui:ui:compileTestKotlinJs")
+    dependsOn(":compose:ui:ui-text:jsTest")
+    dependsOn(":compose:ui:ui:jsTest")
     dependsOn(":navigation:navigation-runtime:jsTest")
 }
 

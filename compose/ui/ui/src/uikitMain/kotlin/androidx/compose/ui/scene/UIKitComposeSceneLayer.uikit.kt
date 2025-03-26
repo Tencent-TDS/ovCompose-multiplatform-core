@@ -59,6 +59,8 @@ internal class UIKitComposeSceneLayer(
     focusStack: FocusStack?,
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
+    private val coroutineContext: CoroutineContext,
+    private val enableBackGesture: Boolean,
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
@@ -75,13 +77,17 @@ internal class UIKitComposeSceneLayer(
         isInterceptingOutsideEvents = { focusable }
     )
 
+    val interopContainerView = UIKitTransparentContainerView()
+
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        enableBackGesture = enableBackGesture,
         density = view.density,
         getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
     )
 
     private val mediator = ComposeSceneMediator(
         parentView = view,
+        interopContainerView = interopContainerView,
         onFocusBehavior = onFocusBehavior,
         focusStack = focusStack,
         windowContext = windowContext,
@@ -96,8 +102,7 @@ internal class UIKitComposeSceneLayer(
     
     private fun createComposeScene(
         invalidate: () -> Unit,
-        platformContext: PlatformContext,
-        coroutineContext: CoroutineContext,
+        platformContext: PlatformContext
     ): ComposeScene =
         PlatformLayersComposeScene(
             density = initDensity, // We should use the local density already set for the current layer.
@@ -158,6 +163,8 @@ internal class UIKitComposeSceneLayer(
     internal fun dispose() {
         mediator.dispose()
         view.removeFromSuperview()
+        view.dispose()
+        interopContainerView.removeFromSuperview()
     }
 
     @Composable

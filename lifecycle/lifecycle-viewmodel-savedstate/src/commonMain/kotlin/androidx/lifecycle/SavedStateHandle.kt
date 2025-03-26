@@ -17,7 +17,6 @@ package androidx.lifecycle
 
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
-import androidx.core.bundle.Bundle
 import androidx.savedstate.SavedState
 import androidx.savedstate.SavedStateRegistry.SavedStateProvider
 import kotlin.jvm.JvmStatic
@@ -225,16 +224,6 @@ expect class SavedStateHandle {
     @MainThread fun clearSavedStateProvider(key: String)
 
     companion object {
-
-        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        @JvmStatic
-        @Suppress("DEPRECATION")
-        @Deprecated(
-            level = DeprecationLevel.HIDDEN,
-            message = "Use createHandle with SavedState instead"
-        )
-        fun createHandle(restoredState: Bundle?, defaultState: Bundle?): SavedStateHandle
-
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @JvmStatic
         @Suppress("DEPRECATION")

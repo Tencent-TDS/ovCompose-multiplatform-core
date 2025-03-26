@@ -60,7 +60,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(project(":collection:collection"))
             }
 

@@ -18,13 +18,12 @@ package androidx.navigation
 
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
+import androidx.navigation.NavDeepLinkTest.TestClass
 import kotlin.test.Test
 import kotlin.test.fail
 import kotlinx.serialization.Serializable
 
 class NavDeepLinkBuilderTest {
-
-    @Serializable class TestClass
 
     @Test
     fun buildDeepLinkAllSet() {
@@ -91,6 +90,27 @@ class NavDeepLinkBuilderTest {
         val expectedMimeType = "test/type"
         val navDeepLink =
             navDeepLink<TestClass>(expectedUri) {
+                action = expectedAction
+                mimeType = expectedMimeType
+            }
+        assertWithMessage("NavDeepLink should have uri pattern set")
+            .that(navDeepLink.uriPattern)
+            .isEqualTo(expectedUri)
+        assertWithMessage("NavDeepLink should have action set")
+            .that(navDeepLink.action)
+            .isEqualTo(expectedAction)
+        assertWithMessage("NavDeepLink should have mimeType set")
+            .that(navDeepLink.mimeType)
+            .isEqualTo(expectedMimeType)
+    }
+
+    @Test
+    fun buildDeepLinkAllSetKClassNonReified() {
+        val expectedUri = "example.com"
+        val expectedAction = "test.action"
+        val expectedMimeType = "test/type"
+        val navDeepLink =
+            navDeepLink(TestClass::class, expectedUri) {
                 action = expectedAction
                 mimeType = expectedMimeType
             }

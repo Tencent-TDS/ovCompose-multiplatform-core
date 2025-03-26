@@ -38,7 +38,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
@@ -61,6 +60,7 @@ import androidx.navigation.createGraph
 import androidx.navigation.navigation
 import androidx.navigation.plusAssign
 import androidx.navigation.testing.TestNavHostController
+import androidx.savedstate.SavedState
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
 import kotlin.reflect.KClass
@@ -243,15 +243,16 @@ class NavHostTest {
 
     @Test
     fun testViewModelSavedAfterConfigChange() = runComposeUiTestOnUiThread {
+        val ttt = TestViewModelStoreOwnerWithDefaults()
         lateinit var navController: NavHostController
         var lifecycleOwner = TestLifecycleOwner(Lifecycle.State.RESUMED)
         lateinit var state: MutableState<Int>
         lateinit var viewModel: TestViewModel
-        var savedState: Bundle? = null
+        var savedState: SavedState? = null
         setContent {
             state = remember { mutableStateOf(0) }
             CompositionLocalProvider(
-                LocalViewModelStoreOwner provides TestViewModelStoreOwnerWithDefaults(),
+                LocalViewModelStoreOwner provides ttt,
                 LocalLifecycleOwner provides lifecycleOwner
             ) {
                 navController =
@@ -269,6 +270,7 @@ class NavHostTest {
                     NavHost(navController, startDestination = "first") {
                         composable("first") {
                             val provider = ViewModelProvider.create(it, TestViewModelFactory())
+                            println("DESTINATION ID = ${it.id}")
                             viewModel = provider.get("key", TestViewModel::class)
                         }
                     }

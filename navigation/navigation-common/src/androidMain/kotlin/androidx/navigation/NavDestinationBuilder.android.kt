@@ -14,33 +14,25 @@
  * limitations under the License.
  */
 
-@file:JvmName("NavGraphBuilderKt")
-
 package androidx.navigation
 
 import androidx.annotation.IdRes
-import androidx.annotation.RestrictTo
-import androidx.core.os.bundleOf
 import androidx.navigation.serialization.generateHashCode
 import androidx.navigation.serialization.generateNavArguments
 import androidx.navigation.serialization.generateRoutePattern
+import androidx.savedstate.SavedState
+import androidx.savedstate.savedState
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.serializer
 
-/** DSL for constructing a new [NavDestination] */
 @NavDestinationDsl
 public actual open class NavDestinationBuilder<out D : NavDestination>
 internal constructor(
-    /**
-     * The navigator the destination that will be used in [instantiateDestination] to create the
-     * destination.
-     */
     protected actual val navigator: Navigator<out D>,
     /** The destination's unique ID. */
     @IdRes public val id: Int,
-    /** The destination's unique route. */
     public actual val route: String?
 ) {
 
@@ -59,29 +51,11 @@ internal constructor(
     )
     public constructor(navigator: Navigator<out D>, @IdRes id: Int) : this(navigator, id, null)
 
-    /**
-     * DSL for constructing a new [NavDestination] with a unique route.
-     *
-     * This will also update the [id] of the destination based on route.
-     *
-     * @param navigator navigator used to create the destination
-     * @param route the destination's unique route
-     * @return the newly constructed [NavDestination]
-     */
-    public actual constructor(navigator: Navigator<out D>, route: String?) :
-        this(navigator, -1, route)
+    public actual constructor(
+        navigator: Navigator<out D>,
+        route: String?
+    ) : this(navigator, -1, route)
 
-    /**
-     * DSL for constructing a new [NavDestination] with a serializable [KClass].
-     *
-     * This will also update the [id] of the destination based on KClass's serializer.
-     *
-     * @param navigator navigator used to create the destination
-     * @param route the [KClass] of the destination
-     * @param typeMap map of destination arguments' kotlin type [KType] to its respective custom
-     *   [NavType]. May be empty if destination does not use custom NavTypes.
-     * @return the newly constructed [NavDestination]
-     */
     @OptIn(InternalSerializationApi::class)
     public actual constructor(
         navigator: Navigator<out D>,
@@ -100,17 +74,14 @@ internal constructor(
 
     private lateinit var typeMap: Map<KType, NavType<*>>
 
-    /** The descriptive label of the destination */
     public actual var label: CharSequence? = null
 
     private var arguments = mutableMapOf<String, NavArgument>()
 
-    /** Add a [NavArgument] to this destination. */
     public actual fun argument(name: String, argumentBuilder: NavArgumentBuilder.() -> Unit) {
         arguments[name] = NavArgumentBuilder().apply(argumentBuilder).build()
     }
 
-    /** Add a [NavArgument] to this destination. */
     @Suppress("BuilderSetStyle")
     public actual fun argument(name: String, argument: NavArgument) {
         arguments[name] = argument
@@ -118,115 +89,35 @@ internal constructor(
 
     private var deepLinks = mutableListOf<NavDeepLink>()
 
-    /**
-     * Add a deep link to this destination.
-     *
-     * In addition to a direct Uri match, the following features are supported:
-     * * Uris without a scheme are assumed as http and https. For example, `www.example.com` will
-     *   match `http://www.example.com` and `https://www.example.com`.
-     * * Placeholders in the form of `{placeholder_name}` matches 1 or more characters. The String
-     *   value of the placeholder will be available in the arguments [Bundle] with a key of the same
-     *   name. For example, `http://www.example.com/users/{id}` will match
-     *   `http://www.example.com/users/4`.
-     * * The `.*` wildcard can be used to match 0 or more characters.
-     *
-     * @param uriPattern The uri pattern to add as a deep link
-     * @see deepLink
-     */
     public actual fun deepLink(uriPattern: String) {
         deepLinks.add(NavDeepLink(uriPattern))
     }
 
-    /**
-     * Add a deep link to this destination.
-     *
-     * The arguments in [T] are expected to be identical (in name and type) to the arguments in the
-     * [route] from KClass that was used to construct this [NavDestinationBuilder].
-     *
-     * Extracts deeplink arguments from [T] and appends it to the [basePath]. See docs on the safe
-     * args version of [NavDeepLink.Builder.setUriPattern] for the final uriPattern's generation
-     * logic.
-     *
-     * In addition to a direct Uri match, [basePath]s without a scheme are assumed as http and
-     * https. For example, `www.example.com` will match `http://www.example.com` and
-     * `https://www.example.com`.
-     *
-     * @param T The deepLink KClass to extract arguments from
-     * @param basePath The base uri path to append arguments onto
-     * @see NavDeepLink.Builder.setUriPattern for the final uriPattern's generation logic.
-     */
     @Suppress("BuilderSetStyle")
     @JvmName("deepLinkSafeArgs")
     public actual inline fun <reified T : Any> deepLink(
         basePath: String,
     ) {
-        deepLink(basePath, T::class) {}
+        deepLink(T::class, basePath) {}
     }
 
-    /**
-     * Add a deep link to this destination.
-     *
-     * In addition to a direct Uri match, the following features are supported:
-     * * Uris without a scheme are assumed as http and https. For example, `www.example.com` will
-     *   match `http://www.example.com` and `https://www.example.com`.
-     * * Placeholders in the form of `{placeholder_name}` matches 1 or more characters. The String
-     *   value of the placeholder will be available in the arguments [Bundle] with a key of the same
-     *   name. For example, `http://www.example.com/users/{id}` will match
-     *   `http://www.example.com/users/4`.
-     * * The `.*` wildcard can be used to match 0 or more characters.
-     *
-     * @param navDeepLink the NavDeepLink to be added to this destination
-     */
     public actual fun deepLink(navDeepLink: NavDeepLinkDslBuilder.() -> Unit) {
         deepLinks.add(NavDeepLinkDslBuilder().apply(navDeepLink).build())
     }
 
-    /**
-     * Add a deep link to this destination.
-     *
-     * The arguments in [T] are expected to be identical (in name and type) to the arguments in the
-     * [route] from KClass that was used to construct this [NavDestinationBuilder].
-     *
-     * Extracts deeplink arguments from [T] and appends it to the [basePath]. See docs on the safe
-     * args version of [NavDeepLink.Builder.setUriPattern] for the final uriPattern's generation
-     * logic.
-     *
-     * In addition to a direct Uri match, [basePath]s without a scheme are assumed as http and
-     * https. For example, `www.example.com` will match `http://www.example.com` and
-     * `https://www.example.com`.
-     *
-     * @param T The deepLink KClass to extract arguments from
-     * @param basePath The base uri path to append arguments onto
-     * @param navDeepLink the NavDeepLink to be added to this destination
-     * @see NavDeepLink.Builder.setUriPattern for the final uriPattern's generation logic.
-     */
     @Suppress("BuilderSetStyle")
     public actual inline fun <reified T : Any> deepLink(
         basePath: String,
         noinline navDeepLink: NavDeepLinkDslBuilder.() -> Unit
     ) {
-        deepLink(basePath, T::class, navDeepLink)
+        deepLink(T::class, basePath, navDeepLink)
     }
 
-    /**
-     * Public delegation for the reified deepLink overloads.
-     *
-     * Checks for deepLink validity:
-     * 1. They used the safe args constructor since we rely on that constructor to add arguments to
-     *    the destination
-     * 2. DeepLink does not contain extra arguments not present in the destination KClass. We will
-     *    not have its NavType. Even if we do, the destination is not aware of the argument and will
-     *    just ignore it. In general we don't want safe args deeplinks to introduce new arguments.
-     * 3. DeepLink does not contain different argument type for the same arg name
-     *
-     * For the case where the deepLink is missing required arguments in the [route], existing checks
-     * will catch it.
-     */
     @OptIn(InternalSerializationApi::class)
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @Suppress("BuilderSetStyle")
     public actual fun <T : Any> deepLink(
-        basePath: String,
         route: KClass<T>,
+        basePath: String,
         navDeepLink: NavDeepLinkDslBuilder.() -> Unit
     ) {
         // make sure they used the safe args constructors which automatically adds
@@ -236,6 +127,19 @@ internal constructor(
                 "constructor that takes a KClass with the same arguments."
         }
         val deepLinkArgs = route.serializer().generateNavArguments(typeMap)
+        /**
+         * Checks for deepLink validity:
+         * 1. They used the safe args constructor since we rely on that constructor to add arguments
+         *    to the destination
+         * 2. DeepLink does not contain extra arguments not present in the destination KClass. We
+         *    will not have its NavType. Even if we do, the destination is not aware of the argument
+         *    and will just ignore it. In general we don't want safe args deeplinks to introduce new
+         *    arguments.
+         * 3. DeepLink does not contain different argument type for the same arg name
+         *
+         * For the case where the deepLink is missing required arguments in the [route], existing
+         * checks will catch it.
+         */
         deepLinkArgs.forEach {
             val arg = arguments[it.name]
             // make sure deep link doesn't contain extra arguments not present in the route KClass
@@ -246,23 +150,9 @@ internal constructor(
                     "route from KClass"
             }
         }
-        deepLink(navDeepLink(basePath, route, typeMap, navDeepLink))
+        deepLink(navDeepLink(route, basePath, typeMap, navDeepLink))
     }
 
-    /**
-     * Add a deep link to this destination.
-     *
-     * In addition to a direct Uri match, the following features are supported:
-     * * Uris without a scheme are assumed as http and https. For example, `www.example.com` will
-     *   match `http://www.example.com` and `https://www.example.com`.
-     * * Placeholders in the form of `{placeholder_name}` matches 1 or more characters. The String
-     *   value of the placeholder will be available in the arguments [Bundle] with a key of the same
-     *   name. For example, `http://www.example.com/users/{id}` will match
-     *   `http://www.example.com/users/4`.
-     * * The `.*` wildcard can be used to match 0 or more characters.
-     *
-     * @param navDeepLink the NavDeepLink to be added to this destination
-     */
     @Suppress("BuilderSetStyle")
     public actual fun deepLink(navDeepLink: NavDeepLink) {
         deepLinks.add(navDeepLink)
@@ -279,16 +169,9 @@ internal constructor(
         actions[actionId] = NavActionBuilder().apply(actionBuilder).build()
     }
 
-    /**
-     * Instantiate a new instance of [D] that will be passed to [build].
-     *
-     * By default, this calls [Navigator.createDestination] on [navigator], but can be overridden to
-     * call a custom constructor, etc.
-     */
     @Suppress("BuilderSetStyle")
     protected actual open fun instantiateDestination(): D = navigator.createDestination()
 
-    /** Build the NavDestination by calling [Navigator.createDestination]. */
     public actual open fun build(): D {
         return instantiateDestination().also { destination ->
             destination.label = label
@@ -315,9 +198,9 @@ public class NavActionBuilder {
      * The set of default arguments that should be passed to the destination. The keys used here
      * should be the same as those used on the [NavDestinationBuilder.argument] for the destination.
      *
-     * All values added here should be able to be added to a [android.os.Bundle].
+     * All values added here should be able to be added to a [SavedState].
      *
-     * @see NavAction.getDefaultArguments
+     * @see NavAction.defaultArguments
      */
     public val defaultArguments: MutableMap<String, Any?> = mutableMapOf()
 
@@ -332,7 +215,6 @@ public class NavActionBuilder {
         NavAction(
             destinationId,
             navOptions,
-            if (defaultArguments.isEmpty()) null
-            else bundleOf(*defaultArguments.toList().toTypedArray())
+            if (defaultArguments.isEmpty()) null else savedState(defaultArguments)
         )
 }

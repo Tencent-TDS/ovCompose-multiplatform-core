@@ -21,7 +21,6 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NavType
 import androidx.navigation.toRoute
-import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
 import kotlin.reflect.typeOf
 import kotlinx.serialization.Serializable
@@ -29,7 +28,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-@SmallTest
 @RunWith(RobolectricTestRunner::class)
 class TestSavedStateHandleBuilder {
 

@@ -69,6 +69,20 @@ class NavTypeConverterTest {
     }
 
     @Test
+    fun matchDouble() {
+        val descriptor = serializer<Double>().descriptor
+        val kType = typeOf<Double>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
+    fun matchDoubleNullable() {
+        val descriptor = serializer<Double?>().descriptor
+        val kType = typeOf<Double?>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
     fun matchFloat() {
         val descriptor = serializer<Float>().descriptor
         val kType = typeOf<Float>()
@@ -107,6 +121,9 @@ class NavTypeConverterTest {
         val descriptor = serializer<String>().descriptor
         val kType = typeOf<String>()
         assertThat(descriptor.matchKType(kType)).isTrue()
+
+        val nullable = serializer<String?>().descriptor
+        assertThat(nullable.matchKType(kType)).isFalse()
     }
 
     @Test
@@ -160,6 +177,40 @@ class NavTypeConverterTest {
         assertThat(descriptor.matchKType(kType)).isTrue()
 
         val nonNullable = serializer<BooleanArray>().descriptor
+        assertThat(nonNullable.matchKType(kType)).isFalse()
+    }
+
+    @Test
+    fun matchDoubleArray() {
+        val descriptor = serializer<DoubleArray>().descriptor
+        val kType = typeOf<DoubleArray>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
+    fun matchDoubleArrayNullable() {
+        val descriptor = serializer<DoubleArray?>().descriptor
+        val kType = typeOf<DoubleArray?>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+
+        val nonNullable = serializer<DoubleArray>().descriptor
+        assertThat(nonNullable.matchKType(kType)).isFalse()
+    }
+
+    @Test
+    fun matchDoubleList() {
+        val descriptor = serializer<List<Double>>().descriptor
+        val kType = typeOf<List<Double>>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+    }
+
+    @Test
+    fun matchDoubleListNullable() {
+        val descriptor = serializer<List<Double>?>().descriptor
+        val kType = typeOf<List<Double>?>()
+        assertThat(descriptor.matchKType(kType)).isTrue()
+
+        val nonNullable = serializer<List<Double>>().descriptor
         assertThat(nonNullable.matchKType(kType)).isFalse()
     }
 
@@ -649,7 +700,7 @@ class NavTypeConverterTest {
         val longType = serializer<Long>().descriptor.getNavType()
         assertThat(longType).isEqualTo(NavType.LongType)
 
-        val stringType = serializer<String>().descriptor.getNavType()
+        val stringType = serializer<String?>().descriptor.getNavType()
         assertThat(stringType).isEqualTo(NavType.StringType)
     }
 
@@ -702,9 +753,9 @@ class NavTypeConverterTest {
             }
         assertThat(exception.message)
             .isEqualTo(
-                "Custom serializers declared directly on a class field via " +
-                    "@Serializable(with = ...) is currently not supported by safe args for both " +
-                    "custom types and third-party types. Please use @Serializable or " +
+                "Cannot find KSerializer for [LocalDate]. If applicable, custom KSerializers for " +
+                    "custom and third-party KType is currently not supported when declared directly " +
+                    "on a class field via @Serializable(with = ...). Please use @Serializable or " +
                     "@Serializable(with = ...) on the class or object declaration."
             )
     }

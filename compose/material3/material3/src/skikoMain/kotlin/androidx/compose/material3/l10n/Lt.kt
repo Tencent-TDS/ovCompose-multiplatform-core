@@ -33,7 +33,6 @@ internal fun Translations.lt() = mapOf(
     Strings.MenuCollapsed to "Sutraukta",
     Strings.ToggleDropdownMenu to "Perjungti išskleidžiamąjį meniu",
     Strings.SnackbarDismiss to "Atsisakyti",
-    Strings.SnackbarPaneTitle to "Įspėjimas",
     Strings.SearchBarSearch to "Paieška",
     Strings.SuggestionsAvailable to "Pasiūlymai pateikti toliau",
     Strings.DatePickerTitle to "Pasirinkite datą",
@@ -86,6 +85,4 @@ internal fun Translations.lt() = mapOf(
     Strings.TimePickerHour to "Valanda",
     Strings.TimePickerMinuteTextField to "minutės",
     Strings.TimePickerHourTextField to "valandos",
-    Strings.CloseRail to "Uždaryti juostą",
-    Strings.WideNavigationRailPaneTitle to "Naršymo juosta",
 )

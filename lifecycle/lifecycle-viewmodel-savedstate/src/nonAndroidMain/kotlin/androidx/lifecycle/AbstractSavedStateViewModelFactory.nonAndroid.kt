@@ -15,7 +15,6 @@
  */
 package androidx.lifecycle
 
-import androidx.core.bundle.Bundle
 import androidx.lifecycle.ViewModelProvider.Companion.VIEW_MODEL_KEY
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.savedstate.SavedState
@@ -31,12 +30,6 @@ public actual abstract class AbstractSavedStateViewModelFactory :
     actual constructor(
         owner: SavedStateRegistryOwner,
         defaultArgs: SavedState?
-    )
-
-    @Deprecated(level = DeprecationLevel.HIDDEN, message = "Use constructor with SavedState")
-    actual constructor(
-        owner: SavedStateRegistryOwner,
-        defaultArgs: Bundle?
     )
 
     /**

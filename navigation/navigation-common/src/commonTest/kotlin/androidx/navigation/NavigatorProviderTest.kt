@@ -16,7 +16,6 @@
 
 package androidx.navigation
 
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.navigation.testing.TestNavigatorState
@@ -114,13 +113,6 @@ class NavigatorProviderTest {
 internal expect class NoNameNavigator() : Navigator<NavDestination> {
     override fun createDestination(): NavDestination
 
-    override fun navigate(
-        destination: NavDestination,
-        args: Bundle?,
-        navOptions: NavOptions?,
-        navigatorExtras: Extras?
-    ): NavDestination?
-
     override fun popBackStack(): Boolean
 }
 
@@ -132,13 +124,6 @@ internal expect open class EmptyNavigator() : Navigator<NavDestination> {
     }
 
     override fun createDestination(): NavDestination
-
-    override fun navigate(
-        destination: NavDestination,
-        args: Bundle?,
-        navOptions: NavOptions?,
-        navigatorExtras: Extras?
-    ): NavDestination?
 
     override fun popBackStack(): Boolean
 }

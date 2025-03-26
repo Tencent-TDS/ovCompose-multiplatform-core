@@ -18,29 +18,33 @@ package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.content.internal.ReceiveContentConfiguration
 import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.focusedRectInRoot
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldCharSequence
+import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.text.input.setSelectionCoerced
+import androidx.compose.foundation.text.offsetByCodePoints
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.PlatformTextInputSession
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.TextEditingScope
+import androidx.compose.ui.text.input.TextEditorState
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class)
 internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSession(
@@ -59,62 +63,78 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
             value = state.untransformedText.toTextFieldValue(),
             textInputSession = null
         )
-
         val newValue = editProcessor.apply(commands)
 
-        state.replaceAll(newValue.text)
         state.editUntransformedTextAsUser {
-            val untransformedSelection = state.mapFromTransformed(newValue.selection)
-            setSelectionCoerced(untransformedSelection.start, untransformedSelection.end)
+            // Update text
+            replace(0, length, newValue.text)
 
+            // Update selection
+            val selection = newValue.selection
+            setSelectionCoerced(selection.start, selection.end)
+
+            // Update composition
             val composition = newValue.composition
             if (composition == null) {
                 commitComposition()
             } else {
-                val untransformedComposition = state.mapFromTransformed(composition)
-                setComposition(untransformedComposition.start, untransformedComposition.end)
+                setComposition(composition.start, composition.end)
+            }
+        }
+    }
+
+    fun editText(block: TextEditingScope.() -> Unit) {
+        state.editUntransformedTextAsUser {
+            with(TextEditingScope(this)) {
+                block()
             }
         }
     }
 
     coroutineScope {
-        launch {
+        val outputValueFlow = callbackFlow {
             state.collectImeNotifications { _, newValue, _ ->
-                val newTextFieldValue = TextFieldValue(newValue.text.toString(), newValue.selection, newValue.composition)
-                updateSelectionState(newTextFieldValue)
+                trySend(newValue.toTextFieldValue())
             }
         }
 
-        launch {
-            snapshotFlow {
-                val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
-                val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
-                focusedRectInRoot(
-                    layoutResult = layoutResult,
-                    layoutCoordinates = layoutCoords,
-                    focusOffset = state.visualText.selection.max,
-                    sizeForDefaultText = {
-                        layoutResult.layoutInput.let {
-                            computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
-                        }
+        val focusedRectInRootFlow = snapshotFlow {
+            val layoutResult = layoutState.layoutResult ?: return@snapshotFlow null
+            val layoutCoords = layoutState.textLayoutNodeCoordinates ?: return@snapshotFlow null
+            focusedRectInRoot(
+                layoutResult = layoutResult,
+                layoutCoordinates = layoutCoords,
+                focusOffset = state.visualText.selection.max,
+                sizeForDefaultText = {
+                    layoutResult.layoutInput.let {
+                        computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
                     }
-
-                )
-            }.collect { rect ->
-                if (rect != null) {
-                    notifyFocusedRect(rect)
                 }
-            }
-        }
+            )
+        }.filterNotNull()
+
+        val textFieldRectInRoot = snapshotFlow {
+            layoutState.decoratorNodeCoordinates?.boundsInRoot()
+        }.filterNotNull()
+
+        val textClippingRectInRoot = snapshotFlow {
+            layoutState.coreNodeCoordinates?.boundsInRoot()
+        }.filterNotNull()
 
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
-                state = state.untransformedText.toTextFieldValue(),
+                value = { state.untransformedText.toTextFieldValue() },
+                state = state.untransformedText.asTextEditorState(),
                 imeOptions = imeOptions,
                 onEditCommand = ::onEditCommand,
                 onImeAction = onImeAction,
                 editProcessor = editProcessor,
+                outputValue = outputValueFlow,
                 textLayoutResult = snapshotFlow(layoutState::layoutResult).filterNotNull(),
+                focusedRectInRoot = focusedRectInRootFlow,
+                textFieldRectInRoot = textFieldRectInRoot,
+                textClippingRectInRoot = textClippingRectInRoot,
+                editText = ::editText
             )
         )
     }
@@ -124,38 +144,115 @@ private fun TextFieldCharSequence.toTextFieldValue() =
     TextFieldValue(toString(), selection, composition)
 
 @OptIn(ExperimentalComposeUiApi::class)
+private fun TextFieldCharSequence.asTextEditorState() = object : TextEditorState {
+
+    override val length: Int
+        get() = this@asTextEditorState.length
+
+    override fun get(index: Int): Char = this@asTextEditorState[index]
+
+    override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
+        return this@asTextEditorState.subSequence(startIndex, endIndex)
+    }
+
+    override val selection: TextRange
+        get() = this@asTextEditorState.selection
+
+    override val composition: TextRange?
+        get() = this@asTextEditorState.composition
+
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun TextEditingScope(buffer: TextFieldBuffer) = object : TextEditingScope {
+
+    private var TextFieldBuffer.cursor: Int
+        get() = if (selection.collapsed) selection.end else -1
+        set(value) {
+            setSelectionCoerced(value, value)
+        }
+
+    override fun deleteSurroundingTextInCodePoints(
+        lengthBeforeCursor: Int,
+        lengthAfterCursor: Int
+    ) {
+        val charSequence = buffer.asCharSequence()
+        val selection = buffer.selection
+        buffer.delete(
+            start = selection.end,
+            end = charSequence.offsetByCodePoints(
+                index = selection.end,
+                offset = lengthAfterCursor
+            )
+        )
+        buffer.delete(
+            start = charSequence.offsetByCodePoints(
+                index = selection.start,
+                offset = -lengthBeforeCursor
+            ),
+            end = selection.start
+        )
+    }
+
+    override fun commitText(text: CharSequence, newCursorPosition: Int) {
+        // API description says replace ongoing composition text if there. Then, if there is no
+        // composition text, insert text into cursor position or replace selection.
+        val replacementRange = buffer.composition ?: buffer.selection
+        buffer.replace(replacementRange.start, replacementRange.end, text)
+
+        // After replace function is called, the editing buffer places the cursor at the end of the
+        // modified range.
+        val newCursor = buffer.cursor
+
+        // See API description for the meaning of newCursorPosition.
+        val newCursorInBuffer =
+            if (newCursorPosition > 0) {
+                newCursor + newCursorPosition - 1
+            } else {
+                newCursor + newCursorPosition - text.length
+            }
+        buffer.setSelectionCoerced(newCursorInBuffer, newCursorInBuffer)
+    }
+
+    override fun setComposingText(text: CharSequence, newCursorPosition: Int) {
+        val replacementRange = buffer.composition ?: buffer.selection
+        // API doc says, if there is ongoing composing text, replace it with new text.
+        // If there is no composing text, insert composing text into cursor position with
+        // removing selected text if any.
+        buffer.replace(replacementRange.start, replacementRange.end, text)
+        if (text.isNotEmpty()) {
+            buffer.setComposition(replacementRange.start, replacementRange.start + text.length)
+        }
+
+        // After replace function is called, the editing buffer places the cursor at the end of the
+        // modified range.
+        val newCursor = buffer.cursor
+
+        // See API description for the meaning of newCursorPosition.
+        val newCursorInBuffer =
+            if (newCursorPosition > 0) {
+                newCursor + newCursorPosition - 1
+            } else {
+                newCursor + newCursorPosition - text.length
+            }
+
+        buffer.cursor = newCursorInBuffer
+    }
+}
+
+
+@OptIn(ExperimentalComposeUiApi::class)
 private data class SkikoPlatformTextInputMethodRequest(
-    override val state: TextFieldValue,
+    override val value: () -> TextFieldValue,
+    override val state: TextEditorState,
     override val imeOptions: ImeOptions,
     override val onEditCommand: (List<EditCommand>) -> Unit,
     override val onImeAction: ((ImeAction) -> Unit)?,
     override val editProcessor: EditProcessor?,
+    override val outputValue: Flow<TextFieldValue>,
     override val textLayoutResult: Flow<TextLayoutResult>,
+    override val focusedRectInRoot: Flow<Rect>,
+    override val textFieldRectInRoot: Flow<Rect>,
+    override val textClippingRectInRoot: Flow<Rect>,
+    override val editText: (block: TextEditingScope.() -> Unit) -> Unit
 ): PlatformTextInputMethodRequest
-
-/**
- * Computes the bounds of the area where text editing is in progress, relative to the root.
- */
-// Adapted from TextFieldDelegate.notifyFocusedRect
-// TODO: Move this function into TextFieldDelegate.kt, and call it from both places.
-private fun focusedRectInRoot(
-    layoutResult: TextLayoutResult,
-    layoutCoordinates: LayoutCoordinates,
-    focusOffset: Int,
-    sizeForDefaultText: () -> IntSize
-): Rect {
-    val bbox = when {
-        focusOffset < layoutResult.layoutInput.text.length -> {
-            layoutResult.getBoundingBox(focusOffset)
-        }
-        focusOffset != 0 -> {
-            layoutResult.getBoundingBox(focusOffset - 1)
-        }
-        else -> { // empty text.
-            val size = sizeForDefaultText()
-            Rect(0f, 0f, 1.0f, size.height.toFloat())
-        }
-    }
-    val globalLT = layoutCoordinates.localToRoot(Offset(bbox.left, bbox.top))
-    return Rect(Offset(globalLT.x, globalLT.y), Size(bbox.width, bbox.height))
-}

@@ -33,7 +33,6 @@ internal fun Translations.kn() = mapOf(
     Strings.MenuCollapsed to "ಕುಗ್ಗಿಸಲಾಗಿದೆ",
     Strings.ToggleDropdownMenu to "ಡ್ರಾಪ್‌ಡೌನ್ ಮೆನುವನ್ನು ಟಾಗಲ್ ಮಾಡಿ",
     Strings.SnackbarDismiss to "ವಜಾಗೊಳಿಸಿ",
-    Strings.SnackbarPaneTitle to "ಎಚ್ಚರಿಕೆ",
     Strings.SearchBarSearch to "ಹುಡುಕಿ",
     Strings.SuggestionsAvailable to "ಸಲಹೆಗಳನ್ನು ಕೆಳಗೆ ನೀಡಲಾಗಿದೆ",
     Strings.DatePickerTitle to "ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ",
@@ -86,6 +85,4 @@ internal fun Translations.kn() = mapOf(
     Strings.TimePickerHour to "ಗಂಟೆ",
     Strings.TimePickerMinuteTextField to "ನಿಮಿಷಗಳವರೆಗೆ",
     Strings.TimePickerHourTextField to "ಗಂಟೆಯವರೆಗೆ",
-    Strings.CloseRail to "ರೇಲ್‌ ಮುಚ್ಚಿರಿ",
-    Strings.WideNavigationRailPaneTitle to "ನ್ಯಾವಿಗೇಷನ್ ರೇಲ್‌",
 )

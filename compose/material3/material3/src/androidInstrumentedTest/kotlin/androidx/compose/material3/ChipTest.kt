@@ -19,12 +19,9 @@ package androidx.compose.material3
 import android.os.Build
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
@@ -74,7 +71,6 @@ import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -84,7 +80,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
@@ -519,60 +514,6 @@ class ChipTest {
     }
 
     @Test
-    fun intrinsicSize_filterChip() {
-        val iconSize = 24.dp
-        val horizontalPadding = 8.dp
-        val minTouchTarget = 48.dp
-
-        rule.setMaterialContent(lightColorScheme()) {
-            Column {
-                Box(Modifier.height(IntrinsicSize.Max).testTag("chipMax")) {
-                    FilterChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text("Text", modifier = Modifier.testTag("labelMax")) },
-                        leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        trailingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    )
-                }
-                Box(Modifier.height(IntrinsicSize.Min).testTag("chipMin")) {
-                    FilterChip(
-                        selected = false,
-                        onClick = {},
-                        label = { Text("Text", modifier = Modifier.testTag("labelMin")) },
-                        leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                        trailingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                    )
-                }
-            }
-        }
-
-        val labelMaxWidth =
-            rule.onNodeWithTag("labelMax", useUnmergedTree = true).getUnclippedBoundsInRoot().width
-        rule
-            .onNodeWithTag("chipMax")
-            .assertHeightIsEqualTo(minTouchTarget)
-            .assertWidthIsEqualTo(
-                iconSize +
-                    labelMaxWidth +
-                    iconSize +
-                    horizontalPadding * 4 // chip start, chip end, label start, label end
-            )
-
-        val labelMinWidth =
-            rule.onNodeWithTag("labelMin", useUnmergedTree = true).getUnclippedBoundsInRoot().width
-        rule
-            .onNodeWithTag("chipMin")
-            .assertHeightIsEqualTo(minTouchTarget)
-            .assertWidthIsEqualTo(
-                iconSize +
-                    labelMinWidth +
-                    iconSize +
-                    horizontalPadding * 4 // chip start, chip end, label start, label end
-            )
-    }
-
-    @Test
     fun longLabelDoesNotHideTrailingIcon_filterChip() {
         rule.setMaterialContent(lightColorScheme()) {
             FilterChip(
@@ -644,7 +585,7 @@ class ChipTest {
                     containerColor = FilterChipTokens.ElevatedUnselectedContainerColor.value,
                     labelColor = FilterChipTokens.UnselectedLabelTextColor.value,
                     leadingIconColor = FilterChipTokens.UnselectedLeadingIconColor.value,
-                    trailingIconColor = FilterChipTokens.UnselectedTrailingIconColor.value,
+                    trailingIconColor = FilterChipTokens.UnselectedLeadingIconColor.value,
                     disabledContainerColor =
                         FilterChipTokens.ElevatedDisabledContainerColor.value.copy(
                             alpha = FilterChipTokens.ElevatedDisabledContainerOpacity
@@ -658,8 +599,8 @@ class ChipTest {
                             alpha = FilterChipTokens.DisabledLeadingIconOpacity
                         ),
                     disabledTrailingIconColor =
-                        FilterChipTokens.DisabledTrailingIconColor.value.copy(
-                            alpha = FilterChipTokens.DisabledTrailingIconOpacity
+                        FilterChipTokens.DisabledLeadingIconColor.value.copy(
+                            alpha = FilterChipTokens.DisabledLeadingIconOpacity
                         ),
                     selectedContainerColor = FilterChipTokens.ElevatedSelectedContainerColor.value,
                     disabledSelectedContainerColor =
@@ -668,7 +609,7 @@ class ChipTest {
                         ),
                     selectedLabelColor = FilterChipTokens.SelectedLabelTextColor.value,
                     selectedLeadingIconColor = FilterChipTokens.SelectedLeadingIconColor.value,
-                    selectedTrailingIconColor = FilterChipTokens.SelectedTrailingIconColor.value
+                    selectedTrailingIconColor = FilterChipTokens.SelectedLeadingIconColor.value
                 )
             val colors = FilterChipDefaults.elevatedFilterChipColors()
             assertThat(colors).isEqualTo(expectedColors)

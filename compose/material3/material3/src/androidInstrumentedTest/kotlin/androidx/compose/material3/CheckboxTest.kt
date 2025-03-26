@@ -27,8 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -233,102 +231,26 @@ class CheckboxTest {
         )
     }
 
-    @Test
-    fun checkBoxTest_MaterialSize_WhenChecked_withThickStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = On,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth * 3
-        )
-    }
-
-    @Test
-    fun checkBoxTest_MaterialSize_WhenChecked_withThinStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = On,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth / 3
-        )
-    }
-
-    @Test
-    fun checkBoxTest_MaterialSize_WhenUnchecked_withThickStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = Off,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth * 3
-        )
-    }
-
-    @Test
-    fun checkBoxTest_MaterialSize_WhenUnchecked_withThinStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = Off,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth / 3
-        )
-    }
-
-    @Test
-    fun checkBoxTest_MaterialSize_WhenIndeterminate_withThickStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = Indeterminate,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth * 3
-        )
-    }
-
-    @Test
-    fun checkBoxTest_MaterialSize_WhenIndeterminate_withThinStroke_withoutMinimumTouchTarget() {
-        materialSizeTestForValue(
-            checkboxValue = Indeterminate,
-            clickable = false, // Ensure a minimum size with clickable false and no min touch target
-            minimumTouchTarget = false,
-            strokeWidth = CheckboxDefaults.StrokeWidth / 3
-        )
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     private fun materialSizeTestForValue(
         checkboxValue: ToggleableState,
         clickable: Boolean,
-        minimumTouchTarget: Boolean,
-        strokeWidth: Dp? = null,
+        minimumTouchTarget: Boolean
     ) {
         rule
             .setMaterialContentForSizeAssertions {
                 CompositionLocalProvider(
                     LocalMinimumInteractiveComponentSize provides
-                        if (minimumTouchTarget) 48.dp else 0.dp
+                        if (minimumTouchTarget) 48.dp else Dp.Unspecified
                 ) {
-                    if (strokeWidth == null) {
-                        TriStateCheckbox(
-                            state = checkboxValue,
-                            onClick =
-                                if (clickable) {
-                                    {}
-                                } else null,
-                            enabled = false
-                        )
-                    } else {
-                        val strokeWidthPx =
-                            Stroke(width = with(LocalDensity.current) { strokeWidth.toPx() })
-                        TriStateCheckbox(
-                            state = checkboxValue,
-                            onClick =
-                                if (clickable) {
-                                    {}
-                                } else null,
-                            enabled = false,
-                            checkmarkStroke = strokeWidthPx,
-                            outlineStroke = strokeWidthPx
-                        )
-                    }
+                    TriStateCheckbox(
+                        state = checkboxValue,
+                        onClick =
+                            if (clickable) {
+                                {}
+                            } else null,
+                        enabled = false
+                    )
                 }
             }
             .run {

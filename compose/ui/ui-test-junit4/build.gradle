@@ -43,7 +43,7 @@ dependencies {
         api("androidx.activity:activity:1.2.1")
         api(libs.junit)
         api(libs.kotlinStdlib)
-        api(libs.kotlinStdlibCommon)
+        api(libs.kotlinStdlib)
         api(libs.testExtJunit)
 
         implementation("androidx.compose.runtime:runtime-saveable:1.2.1")
@@ -102,7 +102,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             jvmMain.dependencies {
                 api(libs.junit)
                 api(libs.kotlinStdlib)
-                api(libs.kotlinStdlibCommon)
+                api(libs.kotlinStdlib)
             }
 
             androidMain.dependencies {

@@ -33,7 +33,6 @@ internal fun Translations.si() = mapOf(
     Strings.MenuCollapsed to "හකුළන ලදි",
     Strings.ToggleDropdownMenu to "පතන මෙනුව ටොගල් කරන්න",
     Strings.SnackbarDismiss to "අස් කරන්න",
-    Strings.SnackbarPaneTitle to "ඇඟවීම",
     Strings.SearchBarSearch to "සෙවීම",
     Strings.SuggestionsAvailable to "පහත යෝජනා",
     Strings.DatePickerTitle to "දිනය තෝරන්න",
@@ -86,6 +85,4 @@ internal fun Translations.si() = mapOf(
     Strings.TimePickerHour to "පැය",
     Strings.TimePickerMinuteTextField to "මිනිත්තු ගණනක් සඳහා",
     Strings.TimePickerHourTextField to "පැයක් සඳහා",
-    Strings.CloseRail to "පීල්ල වසන්න",
-    Strings.WideNavigationRailPaneTitle to "සංචාලන පීල්ල",
 )

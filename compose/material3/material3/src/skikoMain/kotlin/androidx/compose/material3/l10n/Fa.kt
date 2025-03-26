@@ -33,7 +33,6 @@ internal fun Translations.fa() = mapOf(
     Strings.MenuCollapsed to "جمع شد",
     Strings.ToggleDropdownMenu to "جمع کردن/ ازهم باز کردن منوِ کرکره‌ای",
     Strings.SnackbarDismiss to "بستن",
-    Strings.SnackbarPaneTitle to "هشدار",
     Strings.SearchBarSearch to "جستجو",
     Strings.SuggestionsAvailable to "پیشنهادهای زیر",
     Strings.DatePickerTitle to "انتخاب تاریخ",
@@ -86,6 +85,4 @@ internal fun Translations.fa() = mapOf(
     Strings.TimePickerHour to "ساعت",
     Strings.TimePickerMinuteTextField to "برای دقیقه",
     Strings.TimePickerHourTextField to "برای ساعت",
-    Strings.CloseRail to "بستن ریل",
-    Strings.WideNavigationRailPaneTitle to "ریل پیمایش",
 )

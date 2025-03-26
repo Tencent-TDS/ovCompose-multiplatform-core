@@ -28,6 +28,7 @@ import androidx.compose.runtime.mock.view
 import androidx.compose.runtime.platform.SynchronizedObject
 import androidx.compose.runtime.platform.synchronized
 import kotlin.coroutines.resume
+import kotlin.math.exp
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -358,8 +359,8 @@ class PausableCompositionTests {
         )
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun pausableComposition_throwInResume() = runTest {
+    @Test
+    fun pausableComposition_throwInResume() = runTest(expect = IllegalStateException::class) {
         val recomposer = Recomposer(coroutineContext)
         val pausableComposition = PausableComposition(EmptyApplier(), recomposer)
 
@@ -373,8 +374,7 @@ class PausableCompositionTests {
         }
     }
 
-    @Test(expected = IllegalStateException::class)
-    fun pausableComposition_throwInApply() = runTest {
+    fun pausableComposition_throwInApply() = runTest(expect = IllegalStateException::class) {
         val recomposer = Recomposer(coroutineContext)
         val pausableComposition = PausableComposition(EmptyApplier(), recomposer)
 
