@@ -38,7 +38,9 @@ import androidx.compose.ui.demos.autofill.BasicTextFieldAutofill
 import androidx.compose.ui.demos.autofill.ExplicitAutofillTypesDemo
 import androidx.compose.ui.demos.autofill.LegacyTextFieldAutofillDemo
 import androidx.compose.ui.demos.autofill.MixedOldNewAutofillDemo
+import androidx.compose.ui.demos.autofill.MultiPageLoginDemo
 import androidx.compose.ui.demos.autofill.OutlinedTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.OutlinedTextFieldVisualTransformationAutofillDemo
 import androidx.compose.ui.demos.focus.AdjacentScrollablesFocusDemo
 import androidx.compose.ui.demos.focus.CancelFocusDemo
 import androidx.compose.ui.demos.focus.CaptureFocusDemo
@@ -288,7 +290,11 @@ private val AutofillDemos =
             },
             ComposableDemo("S: TextField Autofill") { LegacyTextFieldAutofillDemo() },
             ComposableDemo("S: OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() },
+            ComposableDemo("S: OutlinedTextField with Visual Transformation Autofill") {
+                OutlinedTextFieldVisualTransformationAutofillDemo()
+            },
             ComposableDemo("Navigation Sample") { AutofillNavigation() },
+            ComposableDemo("Multipage Navigation Sample") { MultiPageLoginDemo() },
             ComposableDemo("Old and New Autofill Mixed") { MixedOldNewAutofillDemo() }
         )
     )

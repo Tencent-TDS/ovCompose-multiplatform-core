@@ -1161,13 +1161,8 @@ internal constructor(
             // If target state is changed, reset all the animations to be re-created in the
             // next frame w/ their new target value. Child animations target values are updated in
             // the side effect that may not have happened when this function in invoked.
-            resetAnimations()
+            _animations.fastForEach { it.resetAnimation() }
         }
-    }
-
-    private fun resetAnimations() {
-        _animations.fastForEach { it.resetAnimation() }
-        _transitions.fastForEach { it.resetAnimations() }
     }
 
     // This should only be called if PlayTime comes from clock directly, instead of from a parent

@@ -754,6 +754,47 @@ class RequestFocusTest {
     }
 
     @Test
+    fun requestFocusOnParentAndThenChild_eventSequence() {
+        // Arrange.
+        val parentFocusRequester = FocusRequester()
+        val childFocusRequester = FocusRequester()
+        val eventSequence = mutableListOf<String>()
+        rule.setFocusableContent {
+            Box(
+                Modifier.focusRequester(parentFocusRequester)
+                    .onFocusChanged { eventSequence.add("Parent $it") }
+                    .focusTarget()
+            ) {
+                Box(
+                    Modifier.focusRequester(childFocusRequester)
+                        .onFocusChanged { eventSequence.add("Child $it") }
+                        .focusTarget()
+                )
+            }
+        }
+        rule.runOnIdle { eventSequence.clear() }
+
+        // Act.
+        rule.runOnIdle { parentFocusRequester.requestFocus() }
+
+        // Assert.
+        rule.runOnIdle { assertThat(eventSequence).containsExactly("Parent Active").inOrder() }
+
+        // Act.
+        rule.runOnIdle {
+            eventSequence.clear()
+            childFocusRequester.requestFocus()
+        }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(eventSequence)
+                .containsExactly("Parent ActiveParent", "Child Active")
+                .inOrder()
+        }
+    }
+
+    @Test
     fun requestFocus_wrongDirection() {
         val tag2 = "tag 2"
         val tag3 = "tag 3"
