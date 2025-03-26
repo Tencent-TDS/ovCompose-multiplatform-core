@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package androidx.compose.ui.test.samples
+package androidx.compose.ui.test.accessibility.samples
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.Sampled
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.accessibility.disableAccessibilityChecks
+import androidx.compose.ui.test.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -33,29 +35,7 @@ import com.google.android.apps.common.testing.accessibility.framework.integratio
 import org.junit.Test
 
 /**
- * Sample that shows how to enable accessibility checks from common code, when using a
- * ComposeTestRule.
- */
-@Sampled
-fun accessibilityChecks_withComposeTestRule_sample() {
-    // Enable accessibility checks with default configuration:
-    composeTestRule.enableAccessibilityChecks()
-
-    // Accessibility checks are run automatically when performing an action:
-    composeTestRule.onNodeWithText("Submit").performClick()
-
-    // You can also manually run accessibility checks:
-    composeTestRule.onRoot().tryPerformAccessibilityChecks()
-
-    // When disabling accessibility checks..
-    composeTestRule.disableAccessibilityChecks()
-
-    // .. they no longer run when performing an action:
-    composeTestRule.onNodeWithTag("list").performScrollToIndex(15)
-}
-
-/**
- * Sample that shows how to enable accessibility checks from common code, when using
+ * Sample that shows how to enable accessibility checks with default validator when using
  * runComposeUiTest {}.
  */
 @Sampled
@@ -81,24 +61,8 @@ fun accessibilityChecks_withComposeUiTest_sample() {
 }
 
 /**
- * Sample that shows how to enable accessibility checks from android code, when using a
- * AndroidComposeTestRule<A : ComponentActivity>.
- */
-@Sampled
-fun accessibilityChecks_withAndroidComposeTestRule_sample() {
-    // Enable accessibility checks with your own AccessibilityValidator:
-    androidComposeTestRule.accessibilityValidator = AccessibilityValidator()
-    // By setting a non-null AccessibilityValidator, accessibility checks are enabled
-
-    // Configure the AccessibilityValidator:
-    androidComposeTestRule.accessibilityValidator!!.setThrowExceptionFor(
-        AccessibilityCheckResultType.ERROR
-    )
-}
-
-/**
- * Sample that shows how to enable accessibility checks from android code, when using
- * runAndroidComposeUiTest<A : ComponentActivity> {}.
+ * Sample that shows how to enable accessibility checks when using runAndroidComposeUiTest<A :
+ * ComponentActivity> {} and custom validator.
  */
 @Sampled
 fun accessibilityChecks_withAndroidComposeUiTest_sample() {
@@ -106,24 +70,15 @@ fun accessibilityChecks_withAndroidComposeUiTest_sample() {
     @OptIn(ExperimentalTestApi::class)
     fun testWithAccessibilityChecks() =
         runAndroidComposeUiTest<ComponentActivity> {
+            // Configure your own AccessibilityValidator
+            val accessibilityValidator =
+                AccessibilityValidator().also {
+                    it.setThrowExceptionFor(AccessibilityCheckResultType.ERROR)
+                }
+
             // Enable accessibility checks with your own AccessibilityValidator:
-            accessibilityValidator = AccessibilityValidator()
-            // By setting a non-null AccessibilityValidator, accessibility checks are enabled
-
-            // Configure the AccessibilityValidator:
-            @OptIn(ExperimentalTestApi::class)
-            accessibilityValidator!!.setThrowExceptionFor(AccessibilityCheckResultType.ERROR)
+            enableAccessibilityChecks(accessibilityValidator)
         }
-}
-
-/**
- * Sample that shows how to set up accessibility checks in a hybrid environment, when using a
- * ComposeTestRule.
- */
-@Sampled
-fun accessibilityChecks_interopWithEspresso_withTestRule() {
-    // Enable accessibility checks in both Espresso and Compose, and share the configuration
-    androidComposeTestRule.accessibilityValidator = AccessibilityChecks.enable()
 }
 
 /**
@@ -137,6 +92,7 @@ fun accessibilityChecks_interopWithEspresso_withTestFunction() {
     fun testWithAccessibilityChecks() =
         runAndroidComposeUiTest<ComponentActivity> {
             // Enable accessibility checks in both Espresso and Compose, and share the configuration
-            accessibilityValidator = AccessibilityChecks.enable()
+            val accessibilityValidator = AccessibilityChecks.enable()
+            enableAccessibilityChecks(accessibilityValidator)
         }
 }

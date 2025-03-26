@@ -140,6 +140,7 @@ public final class androidx/compose/ui/ComposeUiFlags {
 	public static final field INSTANCE Landroidx/compose/ui/ComposeUiFlags;
 	public static field NewNestedScrollFlingDispatchingEnabled Z
 	public static field isRectTrackingEnabled Z
+	public static field isRemoveFocusedViewFixEnabled Z
 	public static field isSemanticAutofillEnabled Z
 	public static field isTrackFocusEnabled Z
 	public static field isViewFocusFixEnabled Z
@@ -4084,6 +4085,7 @@ public final class androidx/compose/ui/semantics/SemanticsProperties {
 	public final fun getHorizontalScrollAxisRange ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
 	public final fun getImeAction ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
 	public final fun getIndexForKey ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
+	public final fun getInputText ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
 	public final fun getInvisibleToUser ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
 	public final fun getIsContainer ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
 	public final fun getIsDialog ()Landroidx/compose/ui/semantics/SemanticsPropertyKey;
@@ -4136,6 +4138,7 @@ public final class androidx/compose/ui/semantics/SemanticsPropertiesKt {
 	public static final fun getFocused (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Z
 	public static final fun getHorizontalScrollAxisRange (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/semantics/ScrollAxisRange;
 	public static final fun getImeAction (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)I
+	public static final fun getInputText (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Landroidx/compose/ui/text/AnnotatedString;
 	public static final fun getLiveRegion (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)I
 	public static final fun getMaxTextLength (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)I
 	public static final fun getPaneTitle (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;)Ljava/lang/String;
@@ -4206,6 +4209,7 @@ public final class androidx/compose/ui/semantics/SemanticsPropertiesKt {
 	public static final fun setFocused (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Z)V
 	public static final fun setHorizontalScrollAxisRange (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/semantics/ScrollAxisRange;)V
 	public static final fun setImeAction-4L7nppU (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;I)V
+	public static final fun setInputText (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Landroidx/compose/ui/text/AnnotatedString;)V
 	public static final fun setLiveRegion-hR3wRGc (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;I)V
 	public static final fun setMaxTextLength (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;I)V
 	public static final fun setPaneTitle (Landroidx/compose/ui/semantics/SemanticsPropertyReceiver;Ljava/lang/String;)V
