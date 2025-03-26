@@ -158,6 +158,7 @@ internal class IntermediateTextInputUIView(
      * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
      */
     override fun deleteBackward() {
+        println("IntermediateTextInputUIView.deleteBackward")
         input?.deleteBackward()
     }
 
@@ -190,7 +191,32 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun setSelectedTextRange(selectedTextRange: UITextRange?) {
-        input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+        val currentSelection = input?.getSelectedTextRange()
+        val newSelection = selectedTextRange?.toTextRange()
+        /* If current selection represents the Cursor state (not Selection), iOS will call
+         * setSelectedTextRange() before deleteBackwards(), sending two separate `EditCommand`s ([Select], [Delete])
+         * instead of a list of two commands ([Select, Delete])
+         *
+         * In that case, setSelectedTextRange() will be always called with range like (currentPosition-1; currentPosition),
+         *
+         * Compose UndoManager doesn't know anything about this iOS behavior, so undoing operation of symbol deletion
+         * will only Delete command only, leaving the Select command as is, resulting in the selection of the last symbol
+         * restored by undoing.
+         *
+         * This doesn't occur if the selected range is not collapsed.
+         */
+        val willCallDeleteBackwardNext = newSelection != null &&
+            currentSelection?.collapsed ?: true &&
+            currentSelection != newSelection &&
+            (newSelection.end - newSelection.start) == 1
+
+        if (willCallDeleteBackwardNext) {
+            input?.withBatch {
+                input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+            }
+        } else {
+            input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+        }
     }
 
     /**
