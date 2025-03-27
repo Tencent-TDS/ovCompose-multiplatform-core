@@ -52,7 +52,7 @@ class CupertinoTextFieldDelegateTest {
         val actual = determineCursorDesiredOffset(
             offset = givenOffset,
             createSimpleTextFieldValue(text = sampleText, cursorOffset = cursorOffset).selection.start,
-            textLayoutResult = createSimpleTextLayoutResultProxy(sampleText),
+            textLayoutResult = createSimpleTextLayoutResult(sampleText),
             currentText = sampleText
         )
 
@@ -184,12 +184,10 @@ class CupertinoTextFieldDelegateTest {
     private fun createSimpleTextFieldValue(text: String, cursorOffset: Int?) =
         TextFieldValue(text, selection = TextRange(cursorOffset ?: 0))
 
-    private fun createSimpleTextLayoutResultProxy(text: String) = TextLayoutResultProxy(
-        value = TextLayoutResult(
-            layoutInput = simpleTextLayoutInput(text),
-            multiParagraph = simpleMultiParagraph(text),
-            size = IntSize(1083, 150)
-        )
+    private fun createSimpleTextLayoutResult(text: String) = TextLayoutResult(
+        layoutInput = simpleTextLayoutInput(text),
+        multiParagraph = simpleMultiParagraph(text),
+        size = IntSize(1083, 150)
     )
 
     private fun simpleTextLayoutInput(text: String) = TextLayoutInput(
