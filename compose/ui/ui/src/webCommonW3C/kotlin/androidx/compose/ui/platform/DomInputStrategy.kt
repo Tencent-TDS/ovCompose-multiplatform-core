@@ -65,17 +65,6 @@ internal class CommonDomInputStrategy(
 
             println("[keydown] check repeat ${evt.key   } ${evt.repeat} ${repeatBehaviourResolver.repeatBehaviour}")
 
-            if (editState is EditState.AccentDialogue) {
-                evt.preventDefault()
-                return@addEventListener
-            }
-
-            if (evt.repeat) {
-                editState = EditState.AccentDialogue
-                evt.preventDefault()
-                return@addEventListener
-            }
-
             if (evt.isComposing) {
                 editState = EditState.CompositeDialogue
             }
@@ -85,7 +74,7 @@ internal class CommonDomInputStrategy(
                 return@addEventListener
             }
 
-            if (evt.repeat) {
+            if (evt.repeat && (repeatBehaviourResolver.repeatBehaviour is RepeatBehaviour.ShowDialog)) {
                 editState = EditState.AccentDialogue
             }
 
