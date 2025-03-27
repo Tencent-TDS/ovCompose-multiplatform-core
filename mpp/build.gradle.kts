@@ -9,6 +9,11 @@ buildscript {
     }
 }
 
+// this module depends on all other modules info, so we need to initialize them first
+(rootProject.allprojects - project).forEach {
+    evaluationDependsOn(it.path)
+}
+
 open class ComposePublishingTask : AbstractComposePublishingTask() {
     override fun dependsOnComposeTask(task: String) {
         dependsOn(task)
