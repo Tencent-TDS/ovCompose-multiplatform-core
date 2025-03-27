@@ -165,18 +165,15 @@ internal class TextFieldMagnifierNodeImpl(
         }
     }
 
-    // TODO: Remove this once delegation can propagate this events on its own
     override fun ContentDrawScope.draw() {
         drawContent()
         with(magnifierNode) { draw() }
     }
 
-    // TODO: Remove this once delegation can propagate this events on its own
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         magnifierNode.onGloballyPositioned(coordinates)
     }
 
-    // TODO: Remove this once delegation can propagate this events on its own
     override fun SemanticsPropertyReceiver.applySemantics() {
         with(magnifierNode) { applySemantics() }
     }
