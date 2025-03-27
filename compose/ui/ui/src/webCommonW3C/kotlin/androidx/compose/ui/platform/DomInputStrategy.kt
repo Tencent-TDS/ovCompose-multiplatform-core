@@ -22,7 +22,6 @@ internal class CommonDomInputStrategy(
 ) {
     val htmlInput = imeOptions.createDomElement()
 
-    private var lastActualCompositionTimestamp: Int = 0
     private var editState: EditState = EditState.Default
 
     private var lastMeaningfulUpdate = TextFieldValue("")
@@ -50,6 +49,7 @@ internal class CommonDomInputStrategy(
 
     private fun initEvents() {
         var lastKeyboardEventIsDown = false
+        var lastActualCompositionTimestamp = 0
 
         htmlInput.addEventListener("blur", {evt ->
             // both accent dialogue and composition dialogue are lost when we switch windows
