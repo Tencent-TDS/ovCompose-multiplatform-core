@@ -51,6 +51,11 @@ internal class CommonDomInputStrategy(
         var lastKeyboardEventIsDown = false
         var lastActualCompositionTimestamp = 0
 
+        var lastActualKeydown: KeyboardEvent? = null
+        var inputHappenedWithoutKeyUp: Boolean? = null
+
+        var repeatBehaviour: RepeatBehaviour = RepeatBehaviour.Unknown
+
         htmlInput.addEventListener("blur", {evt ->
             // both accent dialogue and composition dialogue are lost when we switch windows
             // but can be restored later on if we are back
@@ -59,19 +64,39 @@ internal class CommonDomInputStrategy(
 
         htmlInput.addEventListener("keydown", { evt ->
             evt as KeyboardEvent
-            println("[${evt.type}] ${evt.key} ${evt.repeat}")
+            println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
+            if (repeatBehaviour !is RepeatBehaviour.Unknown) return@addEventListener
+
+            if (evt.repeat) {
+                repeatBehaviour = if (inputHappenedWithoutKeyUp == true) {
+                    RepeatBehaviour.Default
+                } else {
+                    RepeatBehaviour.ShowDialog
+                }
+                println("MODE RESOLVED AS $repeatBehaviour")
+            }
+
+            lastActualKeydown = evt
+            inputHappenedWithoutKeyUp = false
+
         })
 
         htmlInput.addEventListener("keyup", { evt ->
             evt as KeyboardEvent
-            println("[${evt.type}] ${evt.key} ${evt.repeat}")
+            println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
+            lastActualKeydown = null
+            inputHappenedWithoutKeyUp = null
         })
 
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
-            println("[${evt.type}] ${evt.inputType} => ${evt.data}")
-            evt.preventDefault()
+            inputHappenedWithoutKeyUp = true
+
+            println("[${evt.type}] (${evt.timeStamp})  ${evt.inputType} => ${evt.data}")
+            //evt.preventDefault()
         })
+
+        return
 
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
@@ -266,4 +291,10 @@ private fun ImeOptions.createDomElement(): HTMLElement {
 private external interface HTMLElementWithValue  {
     var value: String
     fun setSelectionRange(start: Int, end: Int, direction: String = definedExternally)
+}
+
+private sealed interface RepeatBehaviour {
+    data object Unknown : RepeatBehaviour
+    data object Default : RepeatBehaviour
+    data object ShowDialog: RepeatBehaviour
 }
