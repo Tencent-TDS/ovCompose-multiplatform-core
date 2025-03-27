@@ -65,18 +65,21 @@ internal class CommonDomInputStrategy(
         htmlInput.addEventListener("keydown", { evt ->
             evt as KeyboardEvent
             println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
-            if (repeatBehaviour !is RepeatBehaviour.Unknown) return@addEventListener
+
+            val resolved = (repeatBehaviour is RepeatBehaviour.Default) || (repeatBehaviour is RepeatBehaviour.ShowDialog)
+            if (resolved) return@addEventListener
 
             if (evt.repeat) {
-                repeatBehaviour = if (inputHappenedWithoutKeyUp == true) {
+                repeatBehaviour = if ((inputHappenedWithoutKeyUp == true) && lastKeyboardEventIsDown) {
                     RepeatBehaviour.Default
                 } else {
                     RepeatBehaviour.ShowDialog
                 }
                 println("MODE RESOLVED AS $repeatBehaviour")
+            } else {
+                lastActualKeydown = evt
             }
 
-            lastActualKeydown = evt
             inputHappenedWithoutKeyUp = false
 
         })
@@ -91,7 +94,6 @@ internal class CommonDomInputStrategy(
         htmlInput.addEventListener("beforeinput", { evt ->
             evt as InputEvent
             inputHappenedWithoutKeyUp = true
-
             println("[${evt.type}] (${evt.timeStamp})  ${evt.inputType} => ${evt.data}")
             //evt.preventDefault()
         })
