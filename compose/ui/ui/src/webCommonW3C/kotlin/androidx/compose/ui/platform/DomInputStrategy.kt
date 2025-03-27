@@ -51,10 +51,7 @@ internal class CommonDomInputStrategy(
         var lastKeyboardEventIsDown = false
         var lastActualCompositionTimestamp = 0
 
-        var lastActualKeydown: KeyboardEvent? = null
-        var inputHappenedWithoutKeyUp: Boolean? = null
-
-        var repeatBehaviour: RepeatBehaviour = RepeatBehaviour.Unknown
+        val repeatBehaviourResolver = RepeatBehaviourResolver(htmlInput)
 
         htmlInput.addEventListener("blur", {evt ->
             // both accent dialogue and composition dialogue are lost when we switch windows
@@ -62,47 +59,11 @@ internal class CommonDomInputStrategy(
             editState = EditState.Default
         })
 
-        htmlInput.addEventListener("keydown", { evt ->
-            evt as KeyboardEvent
-            println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
-
-            val resolved = (repeatBehaviour is RepeatBehaviour.Default) || (repeatBehaviour is RepeatBehaviour.ShowDialog)
-            if (resolved) return@addEventListener
-
-            if (evt.repeat) {
-                repeatBehaviour = if ((inputHappenedWithoutKeyUp == true) && lastKeyboardEventIsDown) {
-                    RepeatBehaviour.Default
-                } else {
-                    RepeatBehaviour.ShowDialog
-                }
-                println("MODE RESOLVED AS $repeatBehaviour")
-            } else {
-                lastActualKeydown = evt
-            }
-
-            inputHappenedWithoutKeyUp = false
-
-        })
-
-        htmlInput.addEventListener("keyup", { evt ->
-            evt as KeyboardEvent
-            println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
-            lastActualKeydown = null
-            inputHappenedWithoutKeyUp = null
-        })
-
-        htmlInput.addEventListener("beforeinput", { evt ->
-            evt as InputEvent
-            inputHappenedWithoutKeyUp = true
-            println("[${evt.type}] (${evt.timeStamp})  ${evt.inputType} => ${evt.data}")
-            //evt.preventDefault()
-        })
-
-        return
-
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
+
+            println("[keydown] check repeat ${evt.key   } ${evt.repeat} ${repeatBehaviourResolver.repeatBehaviour}")
 
             if (editState is EditState.AccentDialogue) {
                 evt.preventDefault()
@@ -299,4 +260,54 @@ private sealed interface RepeatBehaviour {
     data object Unknown : RepeatBehaviour
     data object Default : RepeatBehaviour
     data object ShowDialog: RepeatBehaviour
+}
+
+
+private class RepeatBehaviourResolver(private val input: HTMLElement) {
+    var repeatBehaviour: RepeatBehaviour = RepeatBehaviour.Unknown
+        private set
+
+    init {
+        initEvents()
+    }
+
+    fun initEvents() {
+        var inputHappenedWithoutKeyUp: Boolean? = null
+        var lastActualKeydown: KeyboardEvent? = null
+
+        input.addEventListener("keydown", { evt ->
+            evt as KeyboardEvent
+            //println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
+
+            val resolved = (repeatBehaviour is RepeatBehaviour.Default) || (repeatBehaviour is RepeatBehaviour.ShowDialog)
+            if (resolved) return@addEventListener
+
+            if (evt.repeat) {
+                repeatBehaviour = if ((inputHappenedWithoutKeyUp == true) && lastActualKeydown != null) {
+                    RepeatBehaviour.Default
+                } else {
+                    RepeatBehaviour.ShowDialog
+                }
+                println("MODE RESOLVED AS $repeatBehaviour")
+            } else {
+                lastActualKeydown = evt
+            }
+
+            inputHappenedWithoutKeyUp = false
+
+        })
+
+        input.addEventListener("keyup", { evt ->
+            evt as KeyboardEvent
+            //println("[${evt.type}] (${evt.timeStamp}) ${evt.key} ${evt.repeat}")
+            lastActualKeydown = null
+            inputHappenedWithoutKeyUp = null
+        })
+
+        input.addEventListener("beforeinput", { evt ->
+            evt as InputEvent
+            inputHappenedWithoutKeyUp = true
+            //println("[${evt.type}] (${evt.timeStamp})  ${evt.inputType} => ${evt.data}")
+        })
+    }
 }
