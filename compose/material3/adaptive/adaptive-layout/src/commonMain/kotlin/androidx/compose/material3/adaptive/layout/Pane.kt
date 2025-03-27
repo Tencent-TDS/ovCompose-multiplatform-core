@@ -29,46 +29,9 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntRect
-
-/** Interface that allows libraries to override the behavior of [AnimatedPane]. */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
-@ExperimentalMaterial3AdaptiveComponentOverrideApi
-interface AnimatedPaneOverride {
-    /** Behavior function that is called by the [AnimatedPane] composable. */
-    @Composable fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideContext<S, T>.AnimatedPane()
-}
-
-/**
- * Parameters available to [AnimatedPane].
- *
- * @param modifier The modifier applied to the [AnimatedPane].
- * @param enterTransition The [EnterTransition] used to animate the pane in.
- * @param exitTransition The [ExitTransition] used to animate the pane out.
- * @param boundsAnimationSpec The [FiniteAnimationSpec] used to animate the bounds of the pane when
- *   the pane is keeping showing but changing its size and/or position.
- * @param content The content of the [AnimatedPane]. Also see [AnimatedPaneScope].
- */
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
-@ExperimentalMaterial3AdaptiveComponentOverrideApi
-class AnimatedPaneOverrideContext<S, T : PaneScaffoldValue<S>>
-internal constructor(
-    val scope: ExtendedPaneScaffoldPaneScope<S, T>,
-    val modifier: Modifier,
-    val enterTransition: EnterTransition,
-    val exitTransition: ExitTransition,
-    val boundsAnimationSpec: FiniteAnimationSpec<IntRect>,
-    val content: (@Composable AnimatedPaneScope.() -> Unit),
-)
-
-/** CompositionLocal containing the currently-selected [AnimatedPaneOverride]. */
-@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-@get:ExperimentalMaterial3AdaptiveComponentOverrideApi
-@ExperimentalMaterial3AdaptiveComponentOverrideApi
-val LocalAnimatedPaneOverride: ProvidableCompositionLocal<AnimatedPaneOverride> =
-    compositionLocalOf {
-        DefaultAnimatedPaneOverride
-    }
 
 /**
  * The root composable of pane contents in a [ThreePaneScaffold] that supports default motions
@@ -99,7 +62,7 @@ fun <S, T : PaneScaffoldValue<S>> ExtendedPaneScaffoldPaneScope<S, T>.AnimatedPa
     content: (@Composable AnimatedPaneScope.() -> Unit),
 ) {
     with(LocalAnimatedPaneOverride.current) {
-        AnimatedPaneOverrideContext(
+        AnimatedPaneOverrideScope(
                 scope = this@AnimatedPane,
                 modifier = modifier,
                 enterTransition = enterTransition,
@@ -108,6 +71,45 @@ fun <S, T : PaneScaffoldValue<S>> ExtendedPaneScaffoldPaneScope<S, T>.AnimatedPa
                 content = content
             )
             .AnimatedPane()
+    }
+}
+
+/**
+ * This override provides the default behavior of the [AnimatedPane] component.
+ *
+ * [AnimatedPaneOverride] used when no override is specified.
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+private object DefaultAnimatedPaneOverride : AnimatedPaneOverride {
+    @Composable
+    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideScope<S, T>.AnimatedPane() {
+        with(scope) {
+            val animatingBounds = paneMotion == PaneMotion.AnimateBounds
+            val motionProgress = { motionProgress }
+            scaffoldStateTransition.AnimatedVisibility(
+                visible = { value: T -> value[paneRole] != PaneAdaptedValue.Hidden },
+                modifier =
+                    modifier
+                        .animatedPane()
+                        .animateBounds(
+                            animateFraction = motionProgress,
+                            animationSpec = boundsAnimationSpec,
+                            lookaheadScope = this,
+                            enabled = animatingBounds
+                        )
+                        .semantics { isTraversalGroup = true }
+                        .then(if (animatingBounds) Modifier else Modifier.clipToBounds()),
+                enter = enterTransition,
+                exit = exitTransition
+            ) {
+                (scope as ThreePaneScaffoldPaneScopeImpl).saveableStateHolder.SaveableStateProvider(
+                    paneRole.toString()
+                ) {
+                    AnimatedPaneScope.create(this).content()
+                }
+            }
+        }
     }
 }
 
@@ -127,32 +129,46 @@ sealed interface AnimatedPaneScope : AnimatedVisibilityScope {
         AnimatedPaneScope, AnimatedVisibilityScope by animatedVisibilityScope
 }
 
-/** [AnimatedPaneOverride] used when no override is specified. */
+/**
+ * Interface that allows libraries to override the behavior of [AnimatedPane].
+ *
+ * To override this component, implement the member function of this interface, then provide the
+ * implementation to [AnimatedPaneOverride] in the Compose hierarchy.
+ */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @ExperimentalMaterial3AdaptiveComponentOverrideApi
-private object DefaultAnimatedPaneOverride : AnimatedPaneOverride {
-    @Composable
-    override fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideContext<S, T>.AnimatedPane() {
-        with(scope) {
-            val animatingBounds = paneMotion == PaneMotion.AnimateBounds
-            val motionProgress = { motionProgress }
-            scaffoldStateTransition.AnimatedVisibility(
-                visible = { value: T -> value[paneRole] != PaneAdaptedValue.Hidden },
-                modifier =
-                    modifier
-                        .animatedPane()
-                        .animateBounds(
-                            animateFraction = motionProgress,
-                            animationSpec = boundsAnimationSpec,
-                            lookaheadScope = this,
-                            enabled = animatingBounds
-                        )
-                        .then(if (animatingBounds) Modifier else Modifier.clipToBounds()),
-                enter = enterTransition,
-                exit = exitTransition
-            ) {
-                AnimatedPaneScope.create(this).content()
-            }
-        }
-    }
+interface AnimatedPaneOverride {
+    /** Behavior function that is called by the [AnimatedPane] composable. */
+    @Composable fun <S, T : PaneScaffoldValue<S>> AnimatedPaneOverrideScope<S, T>.AnimatedPane()
 }
+
+/**
+ * Parameters available to [AnimatedPane].
+ *
+ * @param modifier The modifier applied to the [AnimatedPane].
+ * @param enterTransition The [EnterTransition] used to animate the pane in.
+ * @param exitTransition The [ExitTransition] used to animate the pane out.
+ * @param boundsAnimationSpec The [FiniteAnimationSpec] used to animate the bounds of the pane when
+ *   the pane is keeping showing but changing its size and/or position.
+ * @param content The content of the [AnimatedPane]. Also see [AnimatedPaneScope].
+ */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+class AnimatedPaneOverrideScope<S, T : PaneScaffoldValue<S>>
+internal constructor(
+    val scope: ExtendedPaneScaffoldPaneScope<S, T>,
+    val modifier: Modifier,
+    val enterTransition: EnterTransition,
+    val exitTransition: ExitTransition,
+    val boundsAnimationSpec: FiniteAnimationSpec<IntRect>,
+    val content: (@Composable AnimatedPaneScope.() -> Unit),
+)
+
+/** CompositionLocal containing the currently-selected [AnimatedPaneOverride]. */
+@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:ExperimentalMaterial3AdaptiveComponentOverrideApi
+@ExperimentalMaterial3AdaptiveComponentOverrideApi
+val LocalAnimatedPaneOverride: ProvidableCompositionLocal<AnimatedPaneOverride> =
+    compositionLocalOf {
+        DefaultAnimatedPaneOverride
+    }

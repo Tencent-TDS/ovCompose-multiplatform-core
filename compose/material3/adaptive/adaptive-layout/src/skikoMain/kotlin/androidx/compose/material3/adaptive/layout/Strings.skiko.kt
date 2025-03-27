@@ -39,19 +39,22 @@ internal actual fun getString(string: Strings, vararg formatArgs: Any): String {
 @Immutable
 internal actual value class Strings(val value: Int) {
     actual companion object {
-        actual inline val defaultPaneExpansionDragHandleContentDescription
+        actual val defaultPaneExpansionDragHandleContentDescription
             get() = Strings(0)
 
-        actual inline val defaultPaneExpansionDragHandleActionDescription
+        actual val defaultPaneExpansionDragHandleStateDescription
             get() = Strings(0)
 
-        actual inline val defaultPaneExpansionProportionAnchorDescription
+        actual val defaultPaneExpansionDragHandleActionDescription
             get() = Strings(0)
 
-        actual inline val defaultPaneExpansionStartOffsetAnchorDescription
+        actual val defaultPaneExpansionProportionAnchorDescription
             get() = Strings(0)
 
-        actual inline val defaultPaneExpansionEndOffsetAnchorDescription
+        actual val defaultPaneExpansionStartOffsetAnchorDescription
+            get() = Strings(0)
+
+        actual val defaultPaneExpansionEndOffsetAnchorDescription
             get() = Strings(0)
     }
 }
