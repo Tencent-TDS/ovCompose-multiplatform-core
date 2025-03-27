@@ -134,6 +134,9 @@ val libraryToTasks = mapOf(
     )
 )
 
+val pathToComposeComponent = libraryToComponents.values.flatten().associateBy { it.path }
+val Project.composeComponent get() = pathToComposeComponent[path]
+
 tasks.register("publishComposeJb", ComposePublishingTask::class) {
     repository = "MavenRepository"
 
@@ -178,10 +181,16 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
+// TODO deprecated, kept for CI compatibility, remove after Compose Multiplatform 1.8.0 is released
 tasks.register("checkDesktop") {
     dependsOn(allTasksWith(name = "desktopTest"))
     dependsOn(":collection:collection:jvmTest")
     dependsOn(allTasksWith(name = "desktopApiCheck"))
+}
+
+tasks.register("testDesktop") {
+    dependsOn(allTasksWith(name = "desktopTest"))
+    dependsOn(":collection:collection:jvmTest")
 }
 
 tasks.register("testWeb") {
@@ -252,6 +261,44 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
     // dependsOn(":compose:ui:ui-text:test")
     // compose/out/androidx/compose/ui/ui-text/build/intermediates/tmp/manifest/test/debug/tempFile1ProcessTestManifest10207049054096217572.xml Error:
     // android:exported needs to be explicitly specified for <activity>. Apps targeting Android 12 and higher are required to specify an explicit value for `android:exported` when the corresponding component has an intent filter defined.
+}
+
+tasks.register("jbApiDump") {
+    dependsOn(apiValidationTasks(suffix = "ApiDump"))
+}
+
+tasks.register("jbApiCheck") {
+    dependsOn(apiValidationTasks(suffix = "ApiCheck"))
+}
+
+fun apiValidationTasks(suffix: String) = buildSet<Task> {
+    fun Iterable<Task>.filterComposePlatforms(vararg platforms: ComposePlatforms) =
+        filter { task ->
+            val project = task.project
+            val component = project.composeComponent
+            platforms.any {
+                component != null
+                    && it in component.supportedPlatforms
+                    && !project.hasRedirection(it)
+            }
+        }
+
+    fun Iterable<Task>.filterComposePlatforms(platforms: Set<ComposePlatforms>) =
+        filterComposePlatforms(*platforms.toTypedArray())
+
+    this += allTasksWith(name = "desktop$suffix")
+        .filterComposePlatforms(ComposePlatforms.Desktop)
+
+    this += allTasksWith(name = "android$suffix")
+        .filterComposePlatforms(ComposePlatforms.ANDROID)
+
+    val klibPlatforms = if (System.getProperty("os.name") == "Mac OS X") {
+        ComposePlatforms.GENERATE_KLIB
+    } else {
+        ComposePlatforms.GENERATE_KLIB - ComposePlatforms.DARWIN
+    }
+    this += allTasksWith(name = "klib$suffix")
+        .filterComposePlatforms(klibPlatforms)
 }
 
 fun allTasksWith(name: String) =
