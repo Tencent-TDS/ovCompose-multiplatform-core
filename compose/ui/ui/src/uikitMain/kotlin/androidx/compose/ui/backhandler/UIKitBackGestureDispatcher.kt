@@ -68,7 +68,7 @@ internal class UIKitBackGestureDispatcher(
         action = NSSelectorFromString(UiKitScreenEdgePanGestureHandler::handleEdgePan.name + ":")
     ).apply {
         edges = UIRectEdgeLeft
-        enabled = false
+        enabled = activeListener != null
     }
 
     private val rightEdgePanGestureRecognizer = UIKitBackGestureRecognizer(
@@ -76,7 +76,7 @@ internal class UIKitBackGestureDispatcher(
         action = NSSelectorFromString(UiKitScreenEdgePanGestureHandler::handleEdgePan.name + ":")
     ).apply {
         edges = UIRectEdgeRight
-        enabled = false
+        enabled = activeListener != null
     }
 
     override fun activeListenerChanged() {
