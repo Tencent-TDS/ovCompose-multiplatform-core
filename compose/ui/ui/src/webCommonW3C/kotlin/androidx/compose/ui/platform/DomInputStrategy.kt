@@ -57,6 +57,22 @@ internal class CommonDomInputStrategy(
             editState = EditState.Default
         })
 
+        htmlInput.addEventListener("keydown", { evt ->
+            evt as KeyboardEvent
+            println("[${evt.type}] ${evt.key} ${evt.repeat}")
+        })
+
+        htmlInput.addEventListener("keyup", { evt ->
+            evt as KeyboardEvent
+            println("[${evt.type}] ${evt.key} ${evt.repeat}")
+        })
+
+        htmlInput.addEventListener("beforeinput", { evt ->
+            evt as InputEvent
+            println("[${evt.type}] ${evt.inputType} => ${evt.data}")
+            evt.preventDefault()
+        })
+
         htmlInput.addEventListener("keydown", {evt ->
             evt as KeyboardEvent
             lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
