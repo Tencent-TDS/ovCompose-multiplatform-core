@@ -2412,6 +2412,9 @@ final val androidx.compose.foundation.cupertino/androidx_compose_foundation_cupe
 final val androidx.compose.foundation.gestures/androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop // androidx.compose.foundation.gestures/androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop|#static{}androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop[0]
 
 // Targets: [ios]
+final val androidx.compose.foundation.text.input.internal.selection/androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop // androidx.compose.foundation.text.input.internal.selection/androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop|#static{}androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop[0]
+
+// Targets: [ios]
 final val androidx.compose.foundation/androidx_compose_foundation_MagnifierElement$stableprop // androidx.compose.foundation/androidx_compose_foundation_MagnifierElement$stableprop|#static{}androidx_compose_foundation_MagnifierElement$stableprop[0]
 
 // Targets: [ios]
@@ -2431,6 +2434,9 @@ final fun androidx.compose.foundation.cupertino/androidx_compose_foundation_cupe
 
 // Targets: [ios]
 final fun androidx.compose.foundation.gestures/androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop_getter(): kotlin/Int // androidx.compose.foundation.gestures/androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop_getter|androidx_compose_foundation_gestures_UiKitScrollConfig$stableprop_getter(){}[0]
+
+// Targets: [ios]
+final fun androidx.compose.foundation.text.input.internal.selection/androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop_getter(): kotlin/Int // androidx.compose.foundation.text.input.internal.selection/androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop_getter|androidx_compose_foundation_text_input_internal_selection_TextFieldMagnifierNodeImpl$stableprop_getter(){}[0]
 
 // Targets: [ios]
 final fun androidx.compose.foundation/androidx_compose_foundation_MagnifierElement$stableprop_getter(): kotlin/Int // androidx.compose.foundation/androidx_compose_foundation_MagnifierElement$stableprop_getter|androidx_compose_foundation_MagnifierElement$stableprop_getter(){}[0]
