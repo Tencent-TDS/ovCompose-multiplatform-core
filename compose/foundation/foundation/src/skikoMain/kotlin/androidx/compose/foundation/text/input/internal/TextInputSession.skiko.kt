@@ -93,8 +93,10 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
 
     coroutineScope {
         val outputValueFlow = callbackFlow {
-            state.collectImeNotifications { _, newValue, _ ->
-                trySend(newValue.toTextFieldValue())
+            state.collectImeNotifications { _, _, _ ->
+                // SkikoPlatformTextInputMethodRequest should work with an untransformed text on all platforms
+                // This updates platform text input services after changing the state with latest value in onEditCommand
+                trySend(state.untransformedText.toTextFieldValue())
             }
         }
 

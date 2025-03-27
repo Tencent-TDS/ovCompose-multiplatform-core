@@ -153,7 +153,9 @@ internal class UIKitTextInputService(
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = editProcessor
+        _tempCurrentInputSession = EditProcessor().apply {
+            reset(value, null)
+        }
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
