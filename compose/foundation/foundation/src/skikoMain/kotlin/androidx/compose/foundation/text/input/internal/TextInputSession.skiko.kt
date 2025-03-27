@@ -94,13 +94,8 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     coroutineScope {
         val outputValueFlow = callbackFlow {
             state.collectImeNotifications { _, _, _ ->
-                /* This is required for iOS
-                *  This logic runs after any changes made in `onEditCommand` if any, ensuring the internal value
-                *  in UIKitTextInputService remains up-to-date and always sends a new position
-                *  which was changed by caret movement (tapping / long tapping).
-                *  Currently, iOS doesn't handle any touches directly, they handled on Compose side,
-                *  so it's necessary to forward selection changes explicitly (like BTF1 does in TextFieldDelegate.skiko.kt)
-                *  */
+                // SkikoPlatformTextInputMethodRequest should work with an untransformed text on all platforms
+                // This updates platform text input services after changing the state with latest value in onEditCommand
                 trySend(state.untransformedText.toTextFieldValue())
             }
         }
