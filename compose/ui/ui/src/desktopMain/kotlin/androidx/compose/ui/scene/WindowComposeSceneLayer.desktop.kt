@@ -71,6 +71,10 @@ internal class WindowComposeSceneLayer(
             isWindowTransparent = transparent,
             renderApi = composeContainer.renderApi
         )
+        if (transparent) {
+            // Disable macOS shadow for undecorated windows
+            it.rootPane.putClientProperty("Window.shadow", false)
+        }
     }
     private val container = object : JLayeredPaneWithTransparencyHack() {
         override fun addNotify() {

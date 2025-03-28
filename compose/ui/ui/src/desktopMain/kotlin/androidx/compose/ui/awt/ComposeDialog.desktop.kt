@@ -250,6 +250,9 @@ class ComposeDialog : JDialog {
         get() = composePanel.isWindowTransparent
         set(value) {
             composePanel.isWindowTransparent = value
+
+            // Disable macOS shadow for undecorated windows
+            rootPane.putClientProperty("Window.shadow", !value)
         }
 
     /**

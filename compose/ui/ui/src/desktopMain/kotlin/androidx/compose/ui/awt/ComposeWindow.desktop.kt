@@ -186,7 +186,14 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
      * Transparency should be set only if window is not showing and `isUndecorated` is set to
      * `true`, otherwise AWT will throw an exception.
      */
-    var isTransparent: Boolean by composePanel::isWindowTransparent
+    var isTransparent: Boolean
+        get() = composePanel.isWindowTransparent
+        set(value) {
+            composePanel.isWindowTransparent = value
+
+            // Disable macOS shadow for undecorated windows
+            rootPane.putClientProperty("Window.shadow", !value)
+        }
 
     var placement: WindowPlacement
         get() = when {
