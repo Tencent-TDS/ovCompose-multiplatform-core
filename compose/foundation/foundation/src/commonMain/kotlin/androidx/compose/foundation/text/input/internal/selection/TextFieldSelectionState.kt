@@ -79,6 +79,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.Density
@@ -621,7 +622,11 @@ internal class TextFieldSelectionState(
         private var dragBeginPosition: Offset = Offset.Unspecified
 
         override fun onStart(downPosition: Offset, adjustment: SelectionAdjustment): Boolean {
-            if (!enabled || textFieldState.visualText.isEmpty()) return false
+            val layoutResult = textLayoutState.layoutResult
+            if (!enabled || layoutResult == null || textFieldState.visualText.isEmpty()) {
+                return false
+            }
+
             logDebug { "Mouse.onStart" }
             directDragGestureInitiator = InputType.Mouse
 
@@ -631,30 +636,40 @@ internal class TextFieldSelectionState(
             dragBeginOffsetInText = -1
             dragBeginPosition = downPosition
 
-            val newSelection = updateSelection(downPosition, adjustment, isStartOfSelection = true)
+            val newSelection =
+                updateSelection(downPosition, adjustment, layoutResult, isStartOfSelection = true)
             dragBeginOffsetInText = newSelection.start
 
             return true
         }
 
         override fun onDrag(dragPosition: Offset, adjustment: SelectionAdjustment): Boolean {
-            if (!enabled || textFieldState.visualText.isEmpty()) return false
+            val layoutResult = textLayoutState.layoutResult
+            if (!enabled || layoutResult == null || textFieldState.visualText.isEmpty()) {
+                return false
+            }
+
             logDebug { "Mouse.onDrag $dragPosition" }
-            updateSelection(dragPosition, adjustment, isStartOfSelection = false)
+            updateSelection(dragPosition, adjustment, layoutResult, isStartOfSelection = false)
             return true
         }
 
         private fun updateSelection(
             dragPosition: Offset,
             adjustment: SelectionAdjustment,
+            layoutResult: TextLayoutResult,
             isStartOfSelection: Boolean,
         ): TextRange {
+            val textLength = layoutResult.layoutInput.text.length
             val startOffset: Int =
-                dragBeginOffsetInText.takeIf { it >= 0 }
-                    ?: textLayoutState.getOffsetForPosition(
+                if (0 <= dragBeginOffsetInText && dragBeginOffsetInText <= textLength) {
+                    dragBeginOffsetInText
+                } else {
+                    textLayoutState.getOffsetForPosition(
                         position = dragBeginPosition,
                         coerceInVisibleBounds = false
                     )
+                }
 
             val endOffset: Int =
                 textLayoutState.getOffsetForPosition(
