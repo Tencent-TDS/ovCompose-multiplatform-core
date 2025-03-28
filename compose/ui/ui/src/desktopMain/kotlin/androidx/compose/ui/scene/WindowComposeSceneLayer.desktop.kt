@@ -16,11 +16,11 @@
 
 package androidx.compose.ui.scene
 
-import org.jetbrains.skia.Rect as SkRect
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.ui.awt.JLayeredPaneWithTransparencyHack
 import androidx.compose.ui.awt.RenderSettings
 import androidx.compose.ui.awt.getTransparentWindowBackground
+import androidx.compose.ui.awt.hasMacOsShadow
 import androidx.compose.ui.awt.toAwtRectangle
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.toRect
@@ -43,6 +43,7 @@ import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import javax.swing.JDialog
 import org.jetbrains.skia.Canvas
+import org.jetbrains.skia.Rect as SkRect
 import org.jetbrains.skiko.SkiaLayerAnalytics
 
 internal class WindowComposeSceneLayer(
@@ -72,8 +73,7 @@ internal class WindowComposeSceneLayer(
             renderApi = composeContainer.renderApi
         )
         if (transparent) {
-            // Disable macOS shadow for undecorated windows
-            it.rootPane.putClientProperty("Window.shadow", false)
+            it.hasMacOsShadow = false
         }
     }
     private val container = object : JLayeredPaneWithTransparencyHack() {
