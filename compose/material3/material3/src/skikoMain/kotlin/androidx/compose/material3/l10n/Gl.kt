@@ -33,7 +33,6 @@ internal fun Translations.gl() = mapOf(
     Strings.MenuCollapsed to "Contraído",
     Strings.ToggleDropdownMenu to "Activa ou desactiva o menú despregable",
     Strings.SnackbarDismiss to "Pechar",
-    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Buscar",
     Strings.SuggestionsAvailable to "Hai suxestións abaixo",
     Strings.DatePickerTitle to "Selecciona a data",
@@ -86,6 +85,4 @@ internal fun Translations.gl() = mapOf(
     Strings.TimePickerHour to "Hora",
     Strings.TimePickerMinuteTextField to "por minuto",
     Strings.TimePickerHourTextField to "por hora",
-    Strings.CloseRail to "Pechar o raíl",
-    Strings.WideNavigationRailPaneTitle to "Raíl de navegación",
 )

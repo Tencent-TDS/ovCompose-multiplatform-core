@@ -33,7 +33,6 @@ internal fun Translations.or() = mapOf(
     Strings.MenuCollapsed to "ସଙ୍କୁଚିତ କରାଯାଇଛି",
     Strings.ToggleDropdownMenu to "ଡ୍ରପଡାଉନ ମେନୁକୁ ଟୋଗଲ କରନ୍ତୁ",
     Strings.SnackbarDismiss to "ଖାରଜ କରନ୍ତୁ",
-    Strings.SnackbarPaneTitle to "ଆଲର୍ଟ",
     Strings.SearchBarSearch to "ସର୍ଚ୍ଚ କରନ୍ତୁ",
     Strings.SuggestionsAvailable to "ପରାମର୍ଶ ତଳେ ଦିଆଯାଇଛି",
     Strings.DatePickerTitle to "ତାରିଖ ଚୟନ କରନ୍ତୁ",
@@ -86,6 +85,4 @@ internal fun Translations.or() = mapOf(
     Strings.TimePickerHour to "ଘଣ୍ଟା",
     Strings.TimePickerMinuteTextField to "ମିନିଟ ପାଇଁ",
     Strings.TimePickerHourTextField to "ଘଣ୍ଟା ପାଇଁ",
-    Strings.CloseRail to "ରେଲ ବନ୍ଦ କରନ୍ତୁ",
-    Strings.WideNavigationRailPaneTitle to "ନାଭିଗେସନ ରେଲ",
 )

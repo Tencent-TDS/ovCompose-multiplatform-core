@@ -33,7 +33,6 @@ internal fun Translations.ca() = mapOf(
     Strings.MenuCollapsed to "S\'ha replegat",
     Strings.ToggleDropdownMenu to "Commuta el menú desplegable",
     Strings.SnackbarDismiss to "Ignora",
-    Strings.SnackbarPaneTitle to "Alerta",
     Strings.SearchBarSearch to "Cerca",
     Strings.SuggestionsAvailable to "Suggeriments a continuació",
     Strings.DatePickerTitle to "Selecciona la data",
@@ -86,6 +85,4 @@ internal fun Translations.ca() = mapOf(
     Strings.TimePickerHour to "Hora",
     Strings.TimePickerMinuteTextField to "per als minuts",
     Strings.TimePickerHourTextField to "per a l\'hora",
-    Strings.CloseRail to "Tanca la barra",
-    Strings.WideNavigationRailPaneTitle to "Barra de navegació",
 )

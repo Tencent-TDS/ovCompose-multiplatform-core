@@ -117,18 +117,6 @@ private val Buttons =
         examples = ButtonsExamples,
     )
 
-private val ButtonGroups =
-    Component(
-        id = nextId(),
-        name = "Button Groups",
-        description =
-            "button groups is a container for material components that adds an animation on press",
-        guidelinesUrl = "$ComponentGuidelinesUrl/button-groups",
-        docsUrl = "$PackageSummaryUrl#buttongroups",
-        sourceUrl = "$Material3SourceUrl/ButtonGroup.kt",
-        examples = ButtonGroupsExamples,
-    )
-
 private val Card =
     Component(
         id = nextId(),
@@ -237,30 +225,6 @@ private val FloatingActionButtons =
         examples = FloatingActionButtonsExamples,
     )
 
-private val FloatingActionButtonMenu =
-    Component(
-        id = nextId(),
-        name = "FAB Menu",
-        description = "The FAB Menu displays additional key actions on click of a FAB.",
-        // No FAB Menu icon
-        guidelinesUrl = "$ComponentGuidelinesUrl/fab-menu",
-        docsUrl = "$PackageSummaryUrl#floatingactionbuttonmenu",
-        sourceUrl = "$Material3SourceUrl/FloatingActionButtonMenu.kt",
-        examples = FloatingActionButtonMenuExamples,
-    )
-
-private val FloatingAppBars =
-    Component(
-        id = nextId(),
-        name = "Floating App Bar",
-        description = "A floating app bar displays key actions above the content.",
-        // No floating app bar icon
-        guidelinesUrl = "$ComponentGuidelinesUrl/floating-app-bars",
-        docsUrl = "$DocsUrl#floatingappbar",
-        sourceUrl = "$Material3SourceUrl/FloatingAppBar.kt",
-        examples = FloatingAppBarsExamples
-    )
-
 private val IconButtons =
     Component(
         id = nextId(),
@@ -286,22 +250,6 @@ private val Lists =
         sourceUrl = "$Material3SourceUrl/ListItem.kt",
         examples = ListsExamples,
     )
-
-private val LoadingIndicators =
-    Component(
-        id = nextId(),
-        name = "Loading indicators",
-        description =
-            "Loading indicators express an unspecified wait time or display the length of " +
-                "a loading process.",
-        // No loading indicator icon
-        guidelinesUrl = "$ComponentGuidelinesUrl/loading-indicators",
-        tintIcon = true,
-        docsUrl = "$PackageSummaryUrl#loadingindicator",
-        sourceUrl = "$Material3SourceUrl/LoadingIndicator.kt",
-        examples = LoadingIndicatorsExamples,
-    )
-
 private val Menus =
     Component(
         id = nextId(),
@@ -437,17 +385,6 @@ private val SegmentedButtons =
         examples = SegmentedButtonExamples
     )
 
-private val ToggleButtons =
-    Component(
-        id = nextId(),
-        name = "ToggleButtons",
-        description = "Toggle buttons provide a selectable button that animates on press.",
-        guidelinesUrl = "", // No guidelines yet
-        docsUrl = "", // No docs yet
-        sourceUrl = "$Material3SourceUrl/ToggleButton.kt",
-        examples = ToggleButtonsExamples
-    )
-
 private val Sliders =
     Component(
         id = nextId(),
@@ -472,17 +409,6 @@ private val Snackbars =
         docsUrl = "$DocsUrl#snackbar",
         sourceUrl = "$Material3SourceUrl/Snackbar.kt",
         examples = SnackbarsExamples
-    )
-
-private val SplitButtons =
-    Component(
-        id = nextId(),
-        name = "Split Button",
-        description = "Split buttons let user perform additional actions besides the main action",
-        guidelinesUrl = "", // No guidelines yet
-        docsUrl = "", // No docs yet
-        sourceUrl = "$Material3SourceUrl/SplitButton.kt",
-        examples = SplitButtonExamples
     )
 
 private val Switches =
@@ -568,7 +494,6 @@ val Components =
         BottomAppBars,
         BottomSheets,
         Buttons,
-        ButtonGroups,
         Card,
         Carousel,
         Checkboxes,
@@ -577,11 +502,8 @@ val Components =
         Dialogs,
         ExtendedFloatingActionButton,
         FloatingActionButtons,
-        FloatingActionButtonMenu,
-        FloatingAppBars,
         IconButtons,
         Lists,
-        LoadingIndicators,
         Menus,
         NavigationBar,
         NavigationDrawer,
@@ -594,12 +516,10 @@ val Components =
         SegmentedButtons,
         Sliders,
         Snackbars,
-        SplitButtons,
         Switches,
         Tabs,
         TextFields,
         TimePickers,
-        ToggleButtons,
         Tooltips,
         TopAppBar
     )

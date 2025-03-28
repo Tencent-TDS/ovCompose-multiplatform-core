@@ -47,6 +47,7 @@ internal class BackingTextArea(
     private val textArea: HTMLTextAreaElement = createHtmlInput()
 
     private fun processEvent(evt: KeyboardEvent): Boolean {
+        // source element is currently in composition session (after "compositionstart" but before "compositionend")
         if (evt.isComposing) return false
         // Unidentified keys is what we get when we press key on a virtual keyboard
         // TODO: In theory nothing stops us from passing Unidentified keys but this yet to be investigated:
@@ -58,11 +59,12 @@ internal class BackingTextArea(
     }
 
     private fun initEvents(htmlInput: EventTarget) {
-        var keyEventPrecedesUpdate = false
+        var removeSymbolOnCompositionStart = false
 
         DomInputService(htmlInput, object : DomInputListener {
             override fun onKeyDown(evt: KeyboardEvent) {
-                keyEventPrecedesUpdate = processEvent(evt)
+                // Dead keys occur whenever we are in pre-composition mode, initialized by typing OS-specific special keyboard shortcut
+                removeSymbolOnCompositionStart = processEvent(evt) && evt.key != "Dead"
             }
 
             override fun onKeyUp(evt: KeyboardEvent) {
@@ -72,9 +74,9 @@ internal class BackingTextArea(
             override fun onCompositionStart(evt: CompositionEvent) {
                 // whenever very first time compose happens, corresponding keydown event happens earlier
                 // so we have to manually delete last key entered
-                if (keyEventPrecedesUpdate) {
+                if (removeSymbolOnCompositionStart) {
                     onEditCommand(listOf(DeleteSurroundingTextInCodePointsCommand(1, 0)))
-                    keyEventPrecedesUpdate = false
+                    removeSymbolOnCompositionStart = false
                 }
             }
 
@@ -174,6 +176,9 @@ internal class BackingTextArea(
             setProperty("border", "none")
             setProperty("resize", "none")
             setProperty("text-shadow", "none")
+            setProperty("z-index", "-1")
+            // TODO: do we need pointer-events: none
+            //setProperty("pointer-events", "none")
         }
 
         initEvents(htmlInput)

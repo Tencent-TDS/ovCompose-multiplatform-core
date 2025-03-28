@@ -649,6 +649,75 @@ class DialogTest {
     }
 
     @Test
+    fun dismissWhenClickingWithNaNEvent() {
+        var dismissed = false
+        var clicked = false
+        lateinit var composeView: View
+        val clickBoxTag = "clickBox"
+        rule.setContent {
+            Dialog(
+                onDismissRequest = { dismissed = true },
+                properties =
+                    DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false
+                    )
+            ) {
+                composeView = LocalView.current
+                Box(Modifier.size(10.dp).testTag(clickBoxTag).clickable { clicked = true })
+            }
+        }
+
+        // click inside the compose view
+        rule.onNodeWithTag(clickBoxTag).performClick()
+
+        rule.waitForIdle()
+
+        assertThat(dismissed).isFalse()
+        assertThat(clicked).isTrue()
+
+        clicked = false
+
+        // click outside the compose view
+        rule.waitForIdle()
+        var root = composeView
+        while (root.parent is View) {
+            root = root.parent as View
+        }
+
+        rule.runOnIdle {
+            val x = Float.NaN
+            val y = Float.NaN
+            val down =
+                MotionEvent(
+                    eventTime = 0,
+                    action = ACTION_DOWN,
+                    numPointers = 1,
+                    actionIndex = 0,
+                    pointerProperties = arrayOf(PointerProperties(0)),
+                    pointerCoords = arrayOf(PointerCoords(x, y)),
+                    root
+                )
+            root.dispatchTouchEvent(down)
+            val up =
+                MotionEvent(
+                    eventTime = 10,
+                    action = ACTION_UP,
+                    numPointers = 1,
+                    actionIndex = 0,
+                    pointerProperties = arrayOf(PointerProperties(0)),
+                    pointerCoords = arrayOf(PointerCoords(x, y)),
+                    root
+                )
+            root.dispatchTouchEvent(up)
+        }
+        rule.waitForIdle()
+
+        assertThat(dismissed).isTrue()
+        assertThat(clicked).isFalse()
+    }
+
+    @Test
     fun dialogInsetsWhenDecorFitsSystemWindows() {
         var top = -1
         var bottom = -1

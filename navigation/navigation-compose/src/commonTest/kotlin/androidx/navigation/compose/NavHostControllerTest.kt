@@ -36,6 +36,7 @@ import androidx.navigation.createGraph
 import androidx.navigation.get
 import androidx.navigation.navArgument
 import androidx.navigation.toRoute
+import androidx.savedstate.read
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
 import kotlin.test.Test
@@ -256,8 +257,10 @@ class NavHostControllerTest {
 
             NavHost(navController, startDestination = "first?arg={arg}") {
                 composable("first?arg={arg}") { entry ->
-                    if (entry.arguments?.containsKey("arg") == true) {
-                        value = entry.arguments?.getString("arg", "").toString()
+                    entry.arguments?.read {
+                        if (contains("arg") == true) {
+                            value = getString("arg").toString()
+                        }
                     }
                 }
             }
@@ -290,7 +293,7 @@ class NavHostControllerTest {
                     "first?arg={arg}",
                     arguments = listOf(navArgument("arg") { type = NavType.StringListType })
                 ) { entry ->
-                    if (entry.arguments?.containsKey("arg") == true) {
+                    if (entry.arguments?.read {  contains("arg") } == true) {
                         value = NavType.StringListType.get(entry.arguments!!, "arg")!!
                     }
                 }

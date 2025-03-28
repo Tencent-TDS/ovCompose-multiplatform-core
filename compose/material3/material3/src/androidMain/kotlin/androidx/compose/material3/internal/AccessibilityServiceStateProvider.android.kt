@@ -23,6 +23,7 @@ import android.view.accessibility.AccessibilityManager
 import android.view.accessibility.AccessibilityManager.AccessibilityServicesStateChangeListener
 import android.view.accessibility.AccessibilityManager.AccessibilityStateChangeListener
 import android.view.accessibility.AccessibilityManager.TouchExplorationStateChangeListener
+import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -159,6 +160,7 @@ private class Listener(
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private object Api33Impl {
         @JvmStatic
+        @DoNotInline
         fun addAccessibilityServicesStateChangeListener(
             am: AccessibilityManager,
             listener: AccessibilityServicesStateChangeListener
@@ -167,6 +169,7 @@ private class Listener(
         }
 
         @JvmStatic
+        @DoNotInline
         fun removeAccessibilityServicesStateChangeListener(
             am: AccessibilityManager,
             listener: AccessibilityServicesStateChangeListener

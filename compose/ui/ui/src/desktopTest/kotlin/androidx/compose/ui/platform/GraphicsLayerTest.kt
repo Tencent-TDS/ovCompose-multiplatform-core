@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.renderComposeScene
 import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.junit4.DesktopScreenshotTestRule
@@ -64,7 +65,18 @@ class GraphicsLayerTest {
                         scaleY = 0.5f,
                         transformOrigin = TransformOrigin(0f, 0f)
                     )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Red)
+                    .requiredSize(10.dp, 10.dp).background(Color.Red)
+            )
+            Box(
+                Modifier.layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height) {
+                        placeable.placeWithLayer(10, 10) {
+                            scaleX = 2f
+                            scaleY = 0.5f
+                        }
+                    }
+                }.requiredSize(10.dp, 10.dp).background(Color.Green)
             )
             Box(
                 Modifier
@@ -74,7 +86,7 @@ class GraphicsLayerTest {
                         scaleX = 2f,
                         scaleY = 0.5f
                     )
-                    .requiredSize(10f.dp, 10f.dp).background(Color.Blue)
+                    .requiredSize(10.dp, 10.dp).background(Color.Blue)
             )
         }
         screenshotRule.assertImageAgainstGolden(snapshot)

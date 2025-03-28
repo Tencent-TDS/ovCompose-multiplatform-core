@@ -47,7 +47,7 @@ class CarouselState(
     @FloatRange(from = -0.5, to = 0.5) currentItemOffsetFraction: Float = 0f,
     itemCount: () -> Int
 ) : ScrollableState {
-    internal var itemCountState = mutableStateOf(itemCount)
+    var itemCountState = mutableStateOf(itemCount)
 
     internal var pagerState: PagerState =
         PagerState(currentItem, currentItemOffsetFraction, itemCountState.value)
@@ -114,34 +114,34 @@ fun rememberCarouselState(
 /**
  * Interface to hold information about a Carousel item and its size.
  *
- * Example of CarouselItemDrawInfo usage:
+ * Example of CarouselItemInfo usage:
  *
  * @sample androidx.compose.material3.samples.FadingHorizontalMultiBrowseCarouselSample
  */
 @ExperimentalMaterial3Api
-sealed interface CarouselItemDrawInfo {
+sealed interface CarouselItemInfo {
 
-    /** The size of the carousel item in the main axis in pixels */
+    /** The size of the carousel item in the main axis */
     val size: Float
 
     /**
-     * The minimum size of the carousel item in the main axis in pixels, eg. the size of the item as
-     * it scrolls off the sides of the carousel
+     * The minimum size in the main axis of the carousel item, eg. the size of the item when it
+     * scrolls off the sides of the carousel
      */
     val minSize: Float
 
     /**
-     * The maximum size of the carousel item in the main axis in pixels, eg. the size of the item
-     * when it is at a focal position
+     * The maximum size in the main axis of the carousel item, eg. the size of the item when it is
+     * at a focal position
      */
     val maxSize: Float
 
-    /** The [Rect] by which the carousel item is being clipped. */
+    /** The rect by which the carousel item is being clipped. */
     val maskRect: Rect
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-internal class CarouselItemDrawInfoImpl : CarouselItemDrawInfo {
+internal class CarouselItemInfoImpl : CarouselItemInfo {
 
     var sizeState by mutableFloatStateOf(0f)
     var minSizeState by mutableFloatStateOf(0f)

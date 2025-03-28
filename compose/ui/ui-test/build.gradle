@@ -54,7 +54,7 @@ dependencies {
         api(libs.kotlinCoroutinesCore)
         api(libs.kotlinCoroutinesTest)
         api(libs.kotlinStdlib)
-        api(libs.kotlinStdlibCommon)
+        api(libs.kotlinStdlib)
 
         implementation(project(":compose:ui:ui-util"))
         implementation("androidx.annotation:annotation:1.1.0")
@@ -111,7 +111,7 @@ if (AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:runtime:runtime"))
                 api(libs.kotlinCoroutinesCore)
                 api(libs.kotlinCoroutinesTest)
-                api(libs.kotlinStdlibCommon)
+                api(libs.kotlinStdlib)
             }
 
             androidMain.dependencies {

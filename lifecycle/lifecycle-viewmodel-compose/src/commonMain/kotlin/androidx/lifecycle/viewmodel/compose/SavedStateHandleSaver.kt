@@ -26,10 +26,11 @@ import androidx.compose.runtime.saveable.autoSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotMutableState
-import androidx.core.bundle.Bundle
-import androidx.core.bundle.bundleOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.SavedStateHandle.Companion.validateValue
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.savedState
 import kotlin.jvm.JvmName
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
@@ -58,11 +59,13 @@ fun <T : Any> SavedStateHandle.saveable(
     saver as Saver<T, Any>
     // value is restored using the SavedStateHandle or created via [init] lambda
     @Suppress("DEPRECATION") // Bundle.get has been deprecated in API 31
-    val value = get<Bundle?>(key)?.get("value")?.let(saver::restore) ?: init()
+    val value = get<SavedState?>(key)?.read {
+        if (contains("value")) getSavedState("value") else null
+    }?.let(saver::restore) ?: init()
 
     // Hook up saving the state to the SavedStateHandle
     setSavedStateProvider(key) {
-        bundleOf("value" to with(saver) { SaverScope(::validateValue).save(value) })
+        savedState(mapOf("value" to with(saver) { SaverScope(::validateValue).save(value) }))
     }
     return value
 }

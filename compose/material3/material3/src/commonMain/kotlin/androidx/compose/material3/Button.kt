@@ -33,13 +33,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.internal.ProvideContentColorTextStyle
 import androidx.compose.material3.internal.animateElevation
-import androidx.compose.material3.tokens.BaselineButtonTokens
-import androidx.compose.material3.tokens.ButtonLargeTokens
-import androidx.compose.material3.tokens.ButtonMediumTokens
-import androidx.compose.material3.tokens.ButtonSmallTokens
-import androidx.compose.material3.tokens.ButtonXLargeTokens
-import androidx.compose.material3.tokens.ButtonXSmallTokens
-import androidx.compose.material3.tokens.ColorSchemeKeyTokens
 import androidx.compose.material3.tokens.ElevatedButtonTokens
 import androidx.compose.material3.tokens.FilledButtonTokens
 import androidx.compose.material3.tokens.FilledTonalButtonTokens
@@ -79,28 +72,13 @@ import androidx.compose.ui.unit.dp
  * like "Save", "Join now", or "Confirm".
  *
  * @sample androidx.compose.material3.samples.ButtonSample
+ *
  * @sample androidx.compose.material3.samples.ButtonWithIconSample
- *
- * Button that uses a square shape instead of the default round shape:
- *
- * @sample androidx.compose.material3.samples.SquareButtonSample
- *
- * Button that utilizes the small design content padding:
- *
- * @sample androidx.compose.material3.samples.SmallButtonSample
- *
- * [Button] uses the small design spec as default. For a [Button] that uses the design for extra
- * small, medium, large, or extra large buttons:
- *
- * @sample androidx.compose.material3.samples.XSmallButtonWithIconSample
- * @sample androidx.compose.material3.samples.MediumButtonWithIconSample
- * @sample androidx.compose.material3.samples.LargeButtonWithIconSample
- * @sample androidx.compose.material3.samples.XLargeButtonWithIconSample
  *
  * Choose the best button for an action based on the amount of emphasis it needs. The more important
  * an action is, the higher emphasis its button should be.
  * - See [OutlinedButton] for a medium-emphasis button with a border.
- * - See [ElevatedButton] for an [FilledTonalButton] with a shadow.
+ * - See [ElevatedButton] for an [OutlinedButton] with a shadow.
  * - See [TextButton] for a low-emphasis button with no border.
  * - See [FilledTonalButton] for a middle ground between [OutlinedButton] and [Button].
  *
@@ -125,7 +103,6 @@ import androidx.compose.ui.unit.dp
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param content The content displayed on the button, expected to be text, icon or image.
  */
 @Composable
 fun Button(
@@ -219,7 +196,6 @@ fun Button(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param content The content displayed on the button, expected to be text, icon or image.
  */
 @Composable
 fun ElevatedButton(
@@ -293,7 +269,6 @@ fun ElevatedButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param content The content displayed on the button, expected to be text, icon or image.
  */
 @Composable
 fun FilledTonalButton(
@@ -366,7 +341,6 @@ fun FilledTonalButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param content The content displayed on the button, expected to be text, icon or image.
  */
 @Composable
 fun OutlinedButton(
@@ -440,7 +414,6 @@ fun OutlinedButton(
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
  *   still happen internally.
- * @param content The content displayed on the button, expected to be text.
  */
 @Composable
 fun TextButton(
@@ -489,11 +462,7 @@ fun TextButton(
  */
 object ButtonDefaults {
 
-    private val ButtonLeadingSpace = BaselineButtonTokens.LeadingSpace
-    private val ButtonTrailingSpace = BaselineButtonTokens.TrailingSpace
-    private val ButtonWithIconStartpadding = 16.dp
-    private val SmallButtonStartPadding = ButtonSmallTokens.LeadingSpace
-    private val SmallButtonEndPadding = ButtonSmallTokens.TrailingSpace
+    private val ButtonHorizontalPadding = 24.dp
     private val ButtonVerticalPadding = 8.dp
 
     /**
@@ -506,76 +475,22 @@ object ButtonDefaults {
      */
     val ContentPadding =
         PaddingValues(
-            start = ButtonLeadingSpace,
+            start = ButtonHorizontalPadding,
             top = ButtonVerticalPadding,
-            end = ButtonTrailingSpace,
+            end = ButtonHorizontalPadding,
             bottom = ButtonVerticalPadding
         )
+
+    private val ButtonWithIconHorizontalStartPadding = 16.dp
 
     /** The default content padding used by [Button] that contains an [Icon]. */
     val ButtonWithIconContentPadding =
         PaddingValues(
-            start = ButtonWithIconStartpadding,
+            start = ButtonWithIconHorizontalStartPadding,
             top = ButtonVerticalPadding,
-            end = ButtonTrailingSpace,
+            end = ButtonHorizontalPadding,
             bottom = ButtonVerticalPadding
         )
-
-    /** The default content padding used for small [Button] */
-    @ExperimentalMaterial3ExpressiveApi
-    val SmallButtonContentPadding
-        get() =
-            PaddingValues(
-                start = SmallButtonStartPadding,
-                top = ButtonVerticalPadding,
-                end = SmallButtonEndPadding,
-                bottom = ButtonVerticalPadding
-            )
-
-    /** Default content padding for an extra small button. */
-    @ExperimentalMaterial3ExpressiveApi
-    val XSmallContentPadding
-        get() =
-            PaddingValues(
-                // TODO update with the value from ButtonXSmallTokens.kt once it's been corrected
-                start = 12.dp,
-                end = 12.dp,
-                top = 6.dp,
-                bottom = 6.dp
-            )
-
-    /** Default content padding for a medium button. */
-    @ExperimentalMaterial3ExpressiveApi
-    val MediumContentPadding
-        get() =
-            PaddingValues(
-                start = ButtonMediumTokens.LeadingSpace,
-                end = ButtonMediumTokens.TrailingSpace,
-                top = 16.dp,
-                bottom = 16.dp
-            )
-
-    /** Default content padding for a large button. */
-    @ExperimentalMaterial3ExpressiveApi
-    val LargeContentPadding
-        get() =
-            PaddingValues(
-                start = ButtonLargeTokens.LeadingSpace,
-                end = ButtonLargeTokens.TrailingSpace,
-                top = 32.dp,
-                bottom = 32.dp
-            )
-
-    /** Default content padding for an extra large button. */
-    @ExperimentalMaterial3ExpressiveApi
-    val XLargeContentPadding
-        get() =
-            PaddingValues(
-                start = ButtonXLargeTokens.LeadingSpace,
-                end = ButtonXLargeTokens.TrailingSpace,
-                top = 48.dp,
-                bottom = 48.dp
-            )
 
     private val TextButtonHorizontalPadding = 12.dp
 
@@ -604,130 +519,44 @@ object ButtonDefaults {
         )
 
     /**
-     * The default min width applied for small buttons. Note that you can override it by applying
+     * The default min width applied for all buttons. Note that you can override it by applying
      * Modifier.widthIn directly on the button composable.
      */
     val MinWidth = 58.dp
 
     /**
-     * The default min height applied for small buttons. Note that you can override it by applying
+     * The default min height applied for all buttons. Note that you can override it by applying
      * Modifier.heightIn directly on the button composable.
      */
-    val MinHeight = ButtonSmallTokens.ContainerHeight
+    val MinHeight = 40.dp
 
-    /** The default height for a extra small button container. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XSmallContainerHeight = ButtonXSmallTokens.ContainerHeight
-
-    /** The default height for a medium button container. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val MediumContainerHeight = ButtonMediumTokens.ContainerHeight
-
-    /** The default height for a large button container. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val LargeContainerHeight = ButtonLargeTokens.ContainerHeight
-
-    /** The default height for a extra large button container. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XLargeContainerHeight = ButtonXLargeTokens.ContainerHeight
-
-    /** The default size of the icon when used inside a small button. */
-    // TODO update with the correct value in BaselineButtonTokens when available
-    val IconSize = 18.dp
-
-    /** The default size of the icon used inside of a extra small button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XSmallIconSize = ButtonXSmallTokens.IconSize
-
-    /** The default size of the icon used inside of a medium button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val MediumIconSize = ButtonMediumTokens.IconSize
-
-    /** The default size of the icon used inside of a large button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val LargeIconSize = ButtonLargeTokens.IconSize
-
-    /** The default size of the icon used inside of a extra large button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XLargeIconSize = ButtonXLargeTokens.IconSize
+    /** The default size of the icon when used inside any button. */
+    val IconSize = FilledButtonTokens.IconSize
 
     /**
-     * The default size of the spacing between an icon and a text when they used inside a small
-     * button.
+     * The default size of the spacing between an icon and a text when they used inside any button.
      */
-    val IconSpacing = ButtonSmallTokens.IconLabelSpace
-
-    /**
-     * The default spacing between an icon and a text when they used inside any extra small button.
-     */
-    // TODO use the value from ButtonXSmallTokens.kt once it's been corrected
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XSmallIconSpacing = 4.dp
-
-    /** The default spacing between an icon and a text when they used inside any medium button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val MediumIconSpacing = ButtonMediumTokens.IconLabelSpace
-
-    /** The default spacing between an icon and a text when they used inside any large button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val LargeIconSpacing = ButtonLargeTokens.IconLabelSpace
-
-    /**
-     * The default spacing between an icon and a text when they used inside any extra large button.
-     */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val XLargeIconSpacing = ButtonXLargeTokens.IconLabelSpace
-
-    /** Square shape for any button. */
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
-    @get:ExperimentalMaterial3ExpressiveApi
-    @ExperimentalMaterial3ExpressiveApi
-    val squareShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeSquare.value
+    val IconSpacing = 8.dp
 
     /** Default shape for a button. */
     val shape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
+        @Composable get() = FilledButtonTokens.ContainerShape.value
 
     /** Default shape for an elevated button. */
     val elevatedShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
+        @Composable get() = ElevatedButtonTokens.ContainerShape.value
 
     /** Default shape for a filled tonal button. */
     val filledTonalShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
+        @Composable get() = FilledTonalButtonTokens.ContainerShape.value
 
     /** Default shape for an outlined button. */
     val outlinedShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
+        @Composable get() = OutlinedButtonTokens.ContainerShape.value
 
     /** Default shape for a text button. */
     val textShape: Shape
-        @Composable get() = ButtonSmallTokens.ContainerShapeRound.value
+        @Composable get() = TextButtonTokens.ContainerShape.value
 
     /**
      * Creates a [ButtonColors] that represents the default container and content colors used in a
@@ -943,12 +772,11 @@ object ButtonDefaults {
             return defaultTextButtonColorsCached
                 ?: ButtonColors(
                         containerColor = Color.Transparent,
-                        // TODO replace with the token value once it's corrected
-                        contentColor = fromToken(ColorSchemeKeyTokens.Primary),
+                        contentColor = fromToken(TextButtonTokens.LabelTextColor),
                         disabledContainerColor = Color.Transparent,
                         disabledContentColor =
-                            fromToken(TextButtonTokens.DisabledLabelColor)
-                                .copy(alpha = TextButtonTokens.DisabledLabelOpacity)
+                            fromToken(TextButtonTokens.DisabledLabelTextColor)
+                                .copy(alpha = TextButtonTokens.DisabledLabelTextOpacity)
                     )
                     .also { defaultTextButtonColorsCached = it }
         }
@@ -968,8 +796,8 @@ object ButtonDefaults {
     fun buttonElevation(
         defaultElevation: Dp = FilledButtonTokens.ContainerElevation,
         pressedElevation: Dp = FilledButtonTokens.PressedContainerElevation,
-        focusedElevation: Dp = FilledButtonTokens.FocusedContainerElevation,
-        hoveredElevation: Dp = FilledButtonTokens.HoveredContainerElevation,
+        focusedElevation: Dp = FilledButtonTokens.FocusContainerElevation,
+        hoveredElevation: Dp = FilledButtonTokens.HoverContainerElevation,
         disabledElevation: Dp = FilledButtonTokens.DisabledContainerElevation,
     ): ButtonElevation =
         ButtonElevation(
@@ -995,8 +823,8 @@ object ButtonDefaults {
     fun elevatedButtonElevation(
         defaultElevation: Dp = ElevatedButtonTokens.ContainerElevation,
         pressedElevation: Dp = ElevatedButtonTokens.PressedContainerElevation,
-        focusedElevation: Dp = ElevatedButtonTokens.FocusedContainerElevation,
-        hoveredElevation: Dp = ElevatedButtonTokens.HoveredContainerElevation,
+        focusedElevation: Dp = ElevatedButtonTokens.FocusContainerElevation,
+        hoveredElevation: Dp = ElevatedButtonTokens.HoverContainerElevation,
         disabledElevation: Dp = ElevatedButtonTokens.DisabledContainerElevation
     ): ButtonElevation =
         ButtonElevation(
@@ -1048,7 +876,7 @@ object ButtonDefaults {
         )
         get() =
             BorderStroke(
-                width = ButtonSmallTokens.OutlinedOutlineWidth,
+                width = OutlinedButtonTokens.OutlineWidth,
                 color = OutlinedButtonTokens.OutlineColor.value,
             )
 
@@ -1060,13 +888,13 @@ object ButtonDefaults {
     @Composable
     fun outlinedButtonBorder(enabled: Boolean = true): BorderStroke =
         BorderStroke(
-            width = ButtonSmallTokens.OutlinedOutlineWidth,
+            width = OutlinedButtonTokens.OutlineWidth,
             color =
                 if (enabled) {
                     OutlinedButtonTokens.OutlineColor.value
                 } else {
                     OutlinedButtonTokens.OutlineColor.value.copy(
-                        alpha = OutlinedButtonTokens.DisabledContainerOpacity
+                        alpha = OutlinedButtonTokens.DisabledOutlineOpacity
                     )
                 }
         )

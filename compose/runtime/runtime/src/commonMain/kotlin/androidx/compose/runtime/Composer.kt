@@ -3088,7 +3088,8 @@ internal class ComposerImpl(
                 return result
             }
 
-            result = result xor (groupKey rol keyRot) xor (rGroupIndexOf(parent) rol rgiRot)
+            val effectiveRGroupIndex = if (reader.hasObjectKey(parent)) 0 else rGroupIndexOf(parent)
+            result = result xor (groupKey rol keyRot) xor (effectiveRGroupIndex rol rgiRot)
             keyRot = (keyRot + 6) % 32
             rgiRot = (rgiRot + 6) % 32
 

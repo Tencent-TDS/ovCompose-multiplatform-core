@@ -23,6 +23,7 @@ import java.awt.Component
 import java.awt.EventQueue
 import java.awt.Graphics
 import java.awt.Rectangle
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JLayeredPane
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -109,14 +110,37 @@ internal open class JLayeredPaneWithTransparencyHack: JLayeredPane() {
 }
 
 /**
- * Calls [block] synchronously on the event dispatching thread. If the calling thread is already the
- * event dispatch thread, simply executes [block]; otherwise schedules [block] to run on event
- * dispatching thread and waits for it to return.
+ * A utility for running code on the event dispatching thread, making sure it is not queued more
+ * than once.
  */
-internal fun runOnEDTThread(block: () -> Unit) {
-    if (EventQueue.isDispatchThread()) {
-        block()
-    } else {
-        EventQueue.invokeAndWait(block)
+internal class DebouncingEdtExecutor {
+
+    /**
+     * Whether any code has been scheduled.
+     */
+    private val isScheduled = AtomicBoolean(false)
+
+    /**
+     * Calls [block] on the event dispatching thread.
+     *
+     * If the thread calling this function is the event dispatching thread, executes [block] and
+     * cancels any previously scheduled blocks. Otherwise, if no block is currently scheduled,
+     * schedules [block] to run event dispatching thread. If a block is already scheduled, does
+     * nothing.
+     *
+     * Note that this utility is not intended to run or schedule multiple different blocks of code
+     * at the same time, as only one block of code can be scheduled at a time.
+     */
+    fun runOrScheduleDebounced(block: () -> Unit) {
+        if (EventQueue.isDispatchThread()) {
+            isScheduled.set(false)
+            block()
+        } else if (!isScheduled.getAndSet(true)) {
+            EventQueue.invokeLater {
+                if (isScheduled.getAndSet(false)) {
+                    block()
+                }
+            }
+        }
     }
 }

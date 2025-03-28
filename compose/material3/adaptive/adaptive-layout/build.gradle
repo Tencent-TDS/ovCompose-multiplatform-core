@@ -49,7 +49,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 api(project(":compose:material3:adaptive:adaptive"))
                 api(project(":compose:animation:animation-core"))
                 api(project(":compose:ui:ui"))
@@ -58,7 +58,7 @@ kotlin {
                 implementation(project(":compose:foundation:foundation-layout"))
                 implementation(project(":compose:ui:ui-geometry"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation(project(":window:window-core"))
+                implementation("org.jetbrains.androidx.window:window-core:1.3.1")
                 implementation(project(":collection:collection"))
             }
         }
@@ -137,6 +137,41 @@ kotlin {
         wasmJsTest.dependsOn(webTest)
         nativeTest.dependsOn(nonJvmTest)
     }
+}
+
+// This task updates the translations of the localizable strings in this module.
+// It obtains them from Android's base repository.
+tasks.register("updateTranslations", UpdateTranslationsTask.class) {
+    group = "localization"
+    gitRepo = "https://github.com/androidx/androidx"
+    repoResDirectories = [
+            "compose/material3/adaptive/adaptive-layout/src/androidMain/res"
+    ]
+    targetDirectory = project.file("src/skikoMain/kotlin/androidx/compose/material3/adaptive/l10n")
+    targetPackageName = "androidx.compose.material3.adaptive.l10n"
+    kotlinStringsPackageName = "androidx.compose.material3.adaptive.layout"
+    stringByResourceName = [
+            // These come are from the material3.adaptive-layout module resources
+            "m3_adaptive_default_pane_expansion_drag_handle_content_description": "defaultPaneExpansionDragHandleContentDescription",
+            "m3_adaptive_default_pane_expansion_drag_handle_state_description"  : "defaultPaneExpansionDragHandleStateDescription",
+            "m3_adaptive_default_pane_expansion_drag_handle_action_description" : "defaultPaneExpansionDragHandleActionDescription",
+            "m3_adaptive_default_pane_expansion_proportion_anchor_description"  : "defaultPaneExpansionProportionAnchorDescription",
+            "m3_adaptive_default_pane_expansion_start_offset_anchor_description": "defaultPaneExpansionStartOffsetAnchorDescription",
+            "m3_adaptive_default_pane_expansion_end_offset_anchor_description"  : "defaultPaneExpansionEndOffsetAnchorDescription",
+    ]
+    // This is all the locales translated by Compose on Android in the ui module:
+    // https://github.com/androidx/androidx/tree/androidx-main/compose/material3/adaptive/adaptive-layout/src/androidMain/res
+    // with the exception of
+    // - b+sr+Latn which doesn't appear to be supported by Java
+    locales = [
+            "en", "af", "am", "ar", "as", "az", "be", "bg", "bn", "bs", "ca", "cs", "da",
+            "de", "el", "en_AU", "en_CA", "en_GB", "en_IN", "es_US", "es", "et", "eu", "fa",
+            "fi", "fr_CA", "fr", "gl", "gu", "hi", "hr", "hu", "hy", "in", "is", "it", "iw", "ja",
+            "ka", "kk", "km", "kn", "ko", "ky", "lo", "lt", "lv", "mk", "ml", "mn", "mr", "ms",
+            "my", "nb", "ne", "nl", "or", "pa", "pl", "pt_BR", "pt_PT", "pt", "ro", "ru", "si",
+            "sk", "sl", "sq", "sr", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur", "uz",
+            "vi", "zh_CN", "zh_HK", "zh_TW", "zu"
+    ]
 }
 
 android {

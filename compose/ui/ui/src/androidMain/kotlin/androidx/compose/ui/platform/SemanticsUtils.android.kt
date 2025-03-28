@@ -49,8 +49,6 @@ internal class SemanticsNodeCopy(
     currentSemanticsNodes: IntObjectMap<SemanticsNodeWithAdjustedBounds>
 ) {
     val unmergedConfig = semanticsNode.unmergedConfig
-    // Root node must always be considered visible and sent to listening services
-    val isTransparent = if (semanticsNode.isRoot) false else semanticsNode.isTransparent
     val children: MutableIntSet = MutableIntSet(semanticsNode.replacedChildren.size)
 
     init {

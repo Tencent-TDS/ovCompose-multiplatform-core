@@ -41,7 +41,7 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
         implementation("androidx.compose.runtime:runtime:1.2.1")
         implementation(project(":compose:ui:ui-util"))
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
 
         testImplementation(libs.testRules)
         testImplementation(libs.testRunner)
@@ -83,7 +83,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
 
                 api(project(":compose:ui:ui-unit"))
                 implementation(project(":compose:runtime:runtime"))
@@ -180,6 +180,14 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 }
             }
             nativeTest {
+                dependsOn(skikoTest)
+            }
+
+            jsTest {
+                dependsOn(skikoTest)
+            }
+
+            wasmJsTest {
                 dependsOn(skikoTest)
             }
 

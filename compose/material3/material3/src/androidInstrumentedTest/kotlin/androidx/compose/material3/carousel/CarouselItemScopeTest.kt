@@ -223,7 +223,7 @@ class CarouselItemScopeTest {
         maskRect: DpRect
     ): CarouselItemScope {
         return CarouselItemScopeImpl(
-            CarouselItemDrawInfoImpl().apply {
+            CarouselItemInfoImpl().apply {
                 with(rule.density) {
                     sizeState = size.toPx()
                     minSizeState = minSize.toPx()

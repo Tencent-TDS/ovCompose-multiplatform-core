@@ -109,9 +109,12 @@ def includeProject(name, filePath) {
     }
 }
 
-includeProject(":annotation:annotation")
+// Stubbed projects:
+// see /mpp/docs/Stubbed Projects.md
+includeProject(":annotation:annotation", "annotation/annotation-compatibility-stub")
+includeProject(":collection:collection", "collection/collection-compatibility-stub")
+
 includeProject(":annotation:annotation-sampled")
-includeProject(":collection:collection")
 includeProject(":compose:animation")
 includeProject(":compose:animation:animation")
 includeProject(":compose:animation:animation-lint")
@@ -222,14 +225,13 @@ includeProject(":compose:ui:ui:integration-tests:ui-demos")
 includeProject(":compose:ui:ui:ui-samples", "compose/ui/ui/samples")
 includeProject(":compose:ui:ui-uikit")
 includeProject(":compose:ui:ui-xctest")
+includeProject(":compose:ui:ui-backhandler")
 
 includeProject(":kruth:kruth")
 
 includeProject(":lint-checks")
 includeProject(":lint-checks:integration-tests")
 
-includeProject(":core:core-bundle")
-includeProject(":core:core-uri")
 includeProject(":graphics:graphics-shapes")
 includeProject(":lifecycle:lifecycle-common")
 includeProject(":lifecycle:lifecycle-runtime")
@@ -263,3 +265,4 @@ includeBuild("placeholder")
 
 includeProject(":mpp")
 includeProject(":window:window-core")
+includeProject(":performance:performance-annotation")

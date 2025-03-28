@@ -18,6 +18,8 @@ package androidx.compose.runtime
 
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.reflect.KClass
+import kotlin.test.assertTrue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.TestScope
@@ -26,19 +28,37 @@ import kotlinx.test.testWithTimeout
 
 private const val DEFAULT_DISPATCH_TIMEOUT_MS = 60_000L
 
-@ExperimentalCoroutinesApi
+@OptIn(ExperimentalCoroutinesApi::class)
 internal fun runTest(
     context: CoroutineContext = EmptyCoroutineContext,
     dispatchTimeoutMs: Long = DEFAULT_DISPATCH_TIMEOUT_MS,
     timeoutMs: Long? = null,
+    expect: KClass<out Throwable>? = null,
     testBody: suspend TestScope.() -> Unit
 ): TestResult = kotlinx.coroutines.test.runTest(context, dispatchTimeoutMs) {
     val testScope = this
     if (timeoutMs == null) {
-        testBody()
+        runTestImpl(expect) { testBody() }
     } else {
         testWithTimeout(timeoutMs) {
-            testBody(testScope)
+            runTestImpl(expect) { testBody(testScope) }
         }
+    }
+}
+
+inline fun runTestImpl(expect: KClass<out Throwable>? = null, block: () -> Unit) {
+    if (expect != null) {
+        var exception: Throwable? = null
+        try {
+            block()
+        } catch (e: Throwable) {
+            exception = e
+        }
+        assertTrue(
+            exception != null && expect.isInstance(exception),
+            "Expected $expect to be thrown"
+        )
+    } else {
+        block()
     }
 }

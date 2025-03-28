@@ -20,6 +20,7 @@ package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.runTest
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -32,10 +33,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlin.test.Ignore
-import kotlinx.test.IgnoreJsAndNative
+import kotlinx.coroutines.test.runTest
 import kotlinx.test.IgnoreJsTarget
+import kotlinx.test.IgnoreJsAndNative
 
 class SnapshotStateMapTests {
     @Test
@@ -484,8 +484,9 @@ class SnapshotStateMapTests {
     }
 
     @Test
+    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_new() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_new() = runTest {
         repeat(100) {
             val map = mutableStateMapOf<Int, String>()
             coroutineScope {
@@ -497,8 +498,9 @@ class SnapshotStateMapTests {
     }
 
     @Test
+    @IgnoreJsTarget
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentModificationInGlobal_put_replace() = runTest(UnconfinedTestDispatcher()) {
+    fun concurrentModificationInGlobal_put_replace() = runTest {
         repeat(100) {
             val map = mutableStateMapOf(*Array(100) { it to "default" })
             coroutineScope {
@@ -518,60 +520,64 @@ class SnapshotStateMapTests {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentMixingWriteApply_set() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) { index ->
-                        maps.fastForEach { map -> map[index] = index }
+    @IgnoreJsTarget // Not relevant in a single threaded environment
+    fun concurrentMixingWriteApply_set() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) { index ->
+                            maps.fastForEach { map -> map[index] = index }
 
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                            // Simulate the write observer
+                            channel.trySend(Unit)
+                        }
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun concurrentMixingWriteApply_clear() = runTest(timeoutMs = 30_000) {
-        repeat(10) {
-            val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
-            val channel = Channel<Unit>(Channel.CONFLATED)
-            coroutineScope {
-                // Launch mutator
-                launch(Dispatchers.Default) {
-                    repeat(100) {
-                        maps.fastForEach { map ->
-                            repeat(10) { index -> map[index] = index }
-                            map.clear()
+    @IgnoreJsTarget // Not relevant in a single threaded environment
+    fun concurrentMixingWriteApply_clear() =
+        runTest(timeout = 30.seconds) {
+            repeat(10) {
+                val maps = Array(100) { mutableStateMapOf<Int, Int>() }.toList()
+                val channel = Channel<Unit>(Channel.CONFLATED)
+                coroutineScope {
+                    // Launch mutator
+                    launch(Dispatchers.Default) {
+                        repeat(100) {
+                            maps.fastForEach { map ->
+                                repeat(10) { index -> map[index] = index }
+                                map.clear()
+                            }
+
+                            // Simulate the write observer
+                            channel.trySend(Unit)
                         }
-
-                        // Simulate the write observer
-                        channel.trySend(Unit)
+                        channel.close()
                     }
-                    channel.close()
-                }
 
-                // Simulate the global snapshot manager
-                launch(Dispatchers.Default) {
-                    channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    // Simulate the global snapshot manager
+                    launch(Dispatchers.Default) {
+                        channel.consumeEach { Snapshot.notifyObjectsInitialized() }
+                    }
                 }
             }
+            // Should only get here if the above doesn't deadlock.
         }
-        // Should only get here if the above doesn't deadlock.
-    }
 
     @Test
     fun toStringOfSnapshotStateMapDoesNotTriggerReadObserver() {

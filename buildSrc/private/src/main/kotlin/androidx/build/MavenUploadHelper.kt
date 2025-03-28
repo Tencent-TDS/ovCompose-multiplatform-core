@@ -20,7 +20,6 @@ import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
 import com.android.utils.childrenIterator
 import com.android.utils.forEach
-import com.android.utils.mapValuesNotNull
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.stream.JsonWriter
@@ -59,8 +58,10 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.xml.sax.InputSource
 import org.xml.sax.XMLReader
-import androidx.build.jetbrains.ArtifactRedirecting
-import androidx.build.jetbrains.artifactRedirecting
+import androidx.build.jetbrains.originalToRedirectedDependency
+import org.gradle.api.artifacts.ModuleIdentifier
+import org.gradle.api.artifacts.ModuleVersionIdentifier
+import org.gradle.api.internal.artifacts.DefaultModuleIdentifier
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 
 fun Project.configureMavenArtifactUpload(
@@ -120,19 +121,6 @@ private fun Project.configureComponentPublishing(
     )
     group = androidxGroup.group
 
-    val mavenCoordsToRedirecting: Provider<Map<String, ArtifactRedirecting>> = provider {
-        project
-            .getProjectsMap()
-            .values
-            .mapNotNull { project.findProject(it) }
-            .associateBy {
-                val group = it.group
-                val name = it.name
-                "$group:$name"
-            }
-            .mapValuesNotNull { it.value.artifactRedirecting() }
-    }
-
     /*
      * Provides a set of maven coordinates (groupId:artifactId) of artifacts in AndroidX
      * that are Android Libraries.
@@ -185,7 +173,8 @@ private fun Project.configureComponentPublishing(
         publications.withType(MavenPublication::class.java).all { publication ->
             publication.pom { pom ->
                 addInformativeMetadata(extension, pom)
-                tweakDependenciesMetadata(androidxGroup, pom, androidLibrariesSetProvider,
+                tweakDependenciesMetadata(
+                    pom, androidLibrariesSetProvider,
                     publication.name == KMP_ANCHOR_PUBLICATION_NAME, kmpExtension.defaultPlatform)
             }
         }
@@ -205,10 +194,21 @@ private fun Project.configureComponentPublishing(
     }
     project.tasks.withType(GenerateMavenPom::class.java).configureEach { task ->
         task.doLast {
+            fun hasTargetWithComponent(componentName: String) =
+                multiplatformExtension?.targets?.find { target ->
+                    target.components.any { it.name == componentName }
+                } != null
+
+            // extract heuristically from:
+            // "build/publications/kotlinMultiplatformDecorated/pom-default.xml"
+            // "build/publications/desktop/pom-default.xml"
+            // ...
+            // and take only if it is a target's component (we redirect only targets)
+            val componentName = task.destination.parentFile.name.takeIf(::hasTargetWithComponent)
+
             val pomFile = task.destination
             val pom = pomFile.readText()
-            val modifiedPom = modifyPomDependencies(pom, mavenCoordsToRedirecting.get())
-
+            val modifiedPom = modifyPomDependencies(pom, componentName)
             if (pom != modifiedPom) {
                 pomFile.writeText(modifiedPom)
             }
@@ -233,10 +233,7 @@ private fun Project.configureComponentPublishing(
 /**
  * Looks for a dependencies XML element within [pom], sorts its contents and modify it by redirecting coordinates
  */
-internal fun modifyPomDependencies(
-    pom: String,
-    mavenCoordsToRedirecting: Map<String, ArtifactRedirecting>
-): String {
+internal fun Project.modifyPomDependencies(pom: String, componentName: String?): String {
     // Workaround for using the default namespace in dom4j.
     val namespaceUris = mapOf("ns" to "http://maven.apache.org/POM/4.0.0")
     val docFactory = DocumentFactory()
@@ -245,6 +242,12 @@ internal fun modifyPomDependencies(
     val xmlReader = JAXPSAXParser()
     val document = parseText(docFactory, xmlReader, pom)
 
+    val originalToRedirected = if (componentName != null) {
+        originalToRedirectedDependency(componentName)
+    } else {
+        emptyMap()
+    }
+
     // For each <dependencies> element, sort the contained elements in-place.
     document.rootElement
         .selectNodes("ns:dependencies")
@@ -252,7 +255,7 @@ internal fun modifyPomDependencies(
         .forEach { element ->
             val deps = element.elements()
             val modifiedDeps = deps
-                .map { modifyPomDependency(it, mavenCoordsToRedirecting) }
+                .onEach { modifyPomDependency(it, originalToRedirected) }
                 .sortedBy { it.stringValue }
 
             // Content contains formatting nodes, so to avoid modifying those we replace
@@ -283,22 +286,18 @@ internal fun modifyPomDependencies(
 
 internal fun modifyPomDependency(
     dependency: Element,
-    mavenCoordsToRedirecting: Map<String, ArtifactRedirecting>
-): Element {
-    val groupId = dependency.selectSingleNode("ns:groupId")
-    val artifactId = dependency.selectSingleNode("ns:artifactId")
-    val version = dependency.selectSingleNode("ns:version")
-    val name = artifactId.stringValue.substringBeforeLast("-")
-    val target = artifactId.stringValue.substringAfterLast("-")
-
-    val coords = "${groupId.stringValue}:$name"
-    val redirecting = mavenCoordsToRedirecting[coords] ?: return dependency
-    val shouldReplace = redirecting.targetNames.contains(target)
-    if (shouldReplace) {
-        groupId.text = redirecting.groupId
-        version.text = redirecting.versionForTargetOrDefault(target)
+    originalToRedirected: Map<ModuleIdentifier, ModuleVersionIdentifier>
+) {
+    val groupIdNode = dependency.selectSingleNode("ns:groupId")
+    val artifactIdNode = dependency.selectSingleNode("ns:artifactId")
+    val versionNode = dependency.selectSingleNode("ns:version")
+    val id = DefaultModuleIdentifier.newId(groupIdNode.stringValue, artifactIdNode.stringValue)
+    val redirected = originalToRedirected[id]
+    if (redirected != null) {
+        groupIdNode.text = redirected.group
+        artifactIdNode.text = redirected.name
+        versionNode.text = redirected.version
     }
-    return dependency
 }
 
 // Coped from org.dom4j.DocumentHelper with modifications to allow SAXReader configuration.
@@ -367,12 +366,11 @@ private fun Project.isMultiplatformPublicationEnabled(): Boolean {
     return extensions.findByType<KotlinMultiplatformExtension>() != null
 }
 
-private val coreKmpLibraries = setOf(
-    ":core:core-bundle",
-    ":core:core-uri",
+private val jetBrainsLibrariesWithAndroidTarget = setOf(
+    ":compose:ui:ui-backhandler",
 )
 private fun Project.configureMultiplatformPublication(componentFactory: SoftwareComponentFactory) {
-    if (project.path !in coreKmpLibraries) return
+    if (project.path !in jetBrainsLibrariesWithAndroidTarget) return
     val multiplatformExtension = extensions.findByType<KotlinMultiplatformExtension>()!!
     multiplatformExtension.targets.all { target ->
         if (target is KotlinAndroidTarget) {
@@ -556,7 +554,6 @@ private fun Project.addInformativeMetadata(extension: AndroidXExtension, pom: Ma
 }
 
 private fun tweakDependenciesMetadata(
-    mavenGroup: LibraryGroup,
     pom: MavenPom,
     androidLibrariesSetProvider: Provider<Set<String>>,
     kmpAnchor: Boolean,
@@ -568,7 +565,6 @@ private fun tweakDependenciesMetadata(
         // modified. TODO remove the use of getProjectsMap and move to earlier configuration.
         // For more context see:
         // https://android-review.googlesource.com/c/platform/frameworks/support/+/1144664/8/buildSrc/src/main/kotlin/androidx/build/MavenUploadHelper.kt#177
-        assignSingleVersionDependenciesInGroupForPom(xml, mavenGroup)
         assignAarTypes(xml, androidLibrariesSetProvider.get())
         ensureConsistentJvmSuffix(xml)
 
@@ -650,50 +646,6 @@ private fun org.w3c.dom.Node.find(
         }
     }
     return null
-}
-
-/**
- * Modifies the given .pom to specify that every dependency in <group> refers to a single version
- * and can't be automatically promoted to a new version.
- * This will replace, for example, a version string of "1.0" with a version string of "[1.0]"
- *
- * Note: this is not enforced in Gradle nor in plain Maven (without the Enforcer plugin)
- * (https://github.com/gradle/gradle/issues/8297)
- */
-fun assignSingleVersionDependenciesInGroupForPom(
-    xml: XmlProvider,
-    mavenGroup: LibraryGroup
-) {
-    if (!mavenGroup.requireSameVersion) {
-        return
-    }
-
-    val dependencies = xml.asElement().find {
-        it.nodeName == "dependencies"
-    } as? org.w3c.dom.Element ?: return
-
-    dependencies.getElementsByTagName("dependency").forEach { dependency ->
-        val groupId = dependency.find { it.nodeName == "groupId" }?.textContent
-            ?: throw IllegalArgumentException("Failed to locate groupId node")
-        if (groupId == mavenGroup.group) {
-            val versionNode = dependency.find { it.nodeName == "version" }
-                ?: throw IllegalArgumentException("Failed to locate version node")
-            val version = versionNode.textContent
-            if (isVersionRange(version)) {
-                throw GradleException("Unsupported version '$version': already is a version range")
-            }
-            val pinnedVersion = "[$version]"
-            versionNode.textContent = pinnedVersion
-        }
-    }
-}
-
-private fun isVersionRange(text: String): Boolean {
-    return text.contains("[") ||
-        text.contains("]") ||
-        text.contains("(") ||
-        text.contains(")") ||
-        text.contains(",")
 }
 
 /**

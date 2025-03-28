@@ -5,12 +5,14 @@ public class androidx/navigation/NavController {
 	public final fun clearBackStack (I)Z
 	public final fun clearBackStack (Ljava/lang/Object;)Z
 	public final fun clearBackStack (Ljava/lang/String;)Z
+	public final fun clearBackStack (Lkotlin/reflect/KClass;)Z
 	public static final fun enableDeepLinkSaveState (Z)V
 	public final fun findDestination (I)Landroidx/navigation/NavDestination;
 	public final fun findDestination (Ljava/lang/String;)Landroidx/navigation/NavDestination;
 	public final fun findDestinationComprehensive (Landroidx/navigation/NavDestination;IZ)Landroidx/navigation/NavDestination;
 	public final fun getBackStackEntry (Ljava/lang/Object;)Landroidx/navigation/NavBackStackEntry;
 	public final fun getBackStackEntry (Ljava/lang/String;)Landroidx/navigation/NavBackStackEntry;
+	public final fun getBackStackEntry (Lkotlin/reflect/KClass;)Landroidx/navigation/NavBackStackEntry;
 	public final fun getCurrentBackStack ()Lkotlinx/coroutines/flow/StateFlow;
 	public fun getCurrentBackStackEntry ()Landroidx/navigation/NavBackStackEntry;
 	public final fun getCurrentBackStackEntryFlow ()Lkotlinx/coroutines/flow/Flow;
@@ -20,12 +22,12 @@ public class androidx/navigation/NavController {
 	public fun getPreviousBackStackEntry ()Landroidx/navigation/NavBackStackEntry;
 	public final fun getVisibleEntries ()Lkotlinx/coroutines/flow/StateFlow;
 	public final fun handleDeepLink (Landroidx/navigation/NavDeepLinkRequest;)Z
-	public fun navigate (Landroidx/core/uri/Uri;)V
-	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;)V
-	public fun navigate (Landroidx/core/uri/Uri;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;)V
 	public fun navigate (Landroidx/navigation/NavDeepLinkRequest;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
+	public fun navigate (Landroidx/navigation/NavUri;)V
+	public fun navigate (Landroidx/navigation/NavUri;Landroidx/navigation/NavOptions;)V
+	public fun navigate (Landroidx/navigation/NavUri;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
 	public final fun navigate (Ljava/lang/Object;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;)V
 	public final fun navigate (Ljava/lang/Object;Landroidx/navigation/NavOptions;Landroidx/navigation/Navigator$Extras;)V
@@ -43,14 +45,17 @@ public class androidx/navigation/NavController {
 	public final fun popBackStack (Ljava/lang/Object;ZZ)Z
 	public final fun popBackStack (Ljava/lang/String;Z)Z
 	public final fun popBackStack (Ljava/lang/String;ZZ)Z
+	public final fun popBackStack (Lkotlin/reflect/KClass;Z)Z
+	public final fun popBackStack (Lkotlin/reflect/KClass;ZZ)Z
 	public final synthetic fun popBackStack (Z)Z
 	public static synthetic fun popBackStack$default (Landroidx/navigation/NavController;Ljava/lang/Object;ZZILjava/lang/Object;)Z
 	public static synthetic fun popBackStack$default (Landroidx/navigation/NavController;Ljava/lang/String;ZZILjava/lang/Object;)Z
+	public static synthetic fun popBackStack$default (Landroidx/navigation/NavController;Lkotlin/reflect/KClass;ZZILjava/lang/Object;)Z
 	public fun removeOnDestinationChangedListener (Landroidx/navigation/NavController$OnDestinationChangedListener;)V
-	public fun restoreState (Landroidx/core/bundle/Bundle;)V
-	public fun saveState ()Landroidx/core/bundle/Bundle;
+	public fun restoreState (Landroidx/savedstate/SavedState;)V
+	public fun saveState ()Landroidx/savedstate/SavedState;
 	public fun setGraph (Landroidx/navigation/NavGraph;)V
-	public fun setGraph (Landroidx/navigation/NavGraph;Landroidx/core/bundle/Bundle;)V
+	public fun setGraph (Landroidx/navigation/NavGraph;Landroidx/savedstate/SavedState;)V
 	public fun setLifecycleOwner (Landroidx/lifecycle/LifecycleOwner;)V
 	public fun setNavigatorProvider (Landroidx/navigation/NavigatorProvider;)V
 	public fun setViewModelStore (Landroidx/lifecycle/ViewModelStore;)V
@@ -61,7 +66,7 @@ public final class androidx/navigation/NavController$Companion {
 }
 
 public abstract interface class androidx/navigation/NavController$OnDestinationChangedListener {
-	public abstract fun onDestinationChanged (Landroidx/navigation/NavController;Landroidx/navigation/NavDestination;Landroidx/core/bundle/Bundle;)V
+	public abstract fun onDestinationChanged (Landroidx/navigation/NavController;Landroidx/navigation/NavDestination;Landroidx/savedstate/SavedState;)V
 }
 
 public final class androidx/navigation/NavControllerKt {

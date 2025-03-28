@@ -17,7 +17,15 @@ fun main() {
         ComposeViewport(viewportContainerId = "composeApplication") {
             val navController = rememberNavController()
 
-            val app = remember { App() }
+            val app = remember {
+                App(
+                    extraScreens = listOf(
+                        Screen.Example("Web Clipboard API example") {
+                            WebClipboardDemo()
+                        }
+                    )
+                )
+            }
             app.Content(navController)
 
             LaunchedEffect(Unit) {

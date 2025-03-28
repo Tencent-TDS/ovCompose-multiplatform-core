@@ -38,7 +38,7 @@ dependencies {
 }
 
 val resourcesDir = "$buildDir/resources"
-val skikoWasm by configurations.creating
+val skikoWasm = configurations.findByName("skikoWasm") ?: configurations.create("skikoWasm")
 
 dependencies {
     skikoWasm(libs.skikoWasm)
@@ -162,6 +162,7 @@ kotlin {
                 implementation(project(":compose:ui:ui"))
                 implementation(project(":compose:ui:ui-graphics"))
                 implementation(project(":compose:ui:ui-text"))
+                implementation(project(":compose:ui:ui-backhandler"))
                 implementation(project(":lifecycle:lifecycle-common"))
                 implementation(project(":lifecycle:lifecycle-runtime"))
                 implementation(project(":lifecycle:lifecycle-runtime-compose"))

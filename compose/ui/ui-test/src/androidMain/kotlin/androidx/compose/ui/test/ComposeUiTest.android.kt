@@ -16,12 +16,11 @@
 
 package androidx.compose.ui.test
 
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
+import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Recomposer
 import androidx.compose.ui.InternalComposeUiApi
@@ -31,7 +30,6 @@ import androidx.compose.ui.platform.WindowRecomposerPolicy
 import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
-import com.google.android.apps.common.testing.accessibility.framework.integrations.espresso.AccessibilityValidator
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -457,17 +455,9 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
         override val mainClock: MainTestClock
             get() = mainClockImpl
 
-        @get:RequiresApi(34)
-        @set:RequiresApi(34)
-        override var accessibilityValidator: AccessibilityValidator?
-            get() = testContext.platform.accessibilityValidator
-            set(value) {
-                if (HasRobolectricFingerprint) {
-                    // TODO(b/332778271): Remove this warning when said bug is fixed
-                    Log.w(TAG, "Accessibility checks are currently not supported by Robolectric")
-                }
-                testContext.platform.accessibilityValidator = value
-            }
+        override fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?) {
+            testContext.platform.composeAccessibilityValidator = validator
+        }
 
         override fun <T> runOnUiThread(action: () -> T): T {
             return testOwner.runOnUiThread(action)
@@ -524,16 +514,6 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
 
         override fun unregisterIdlingResource(idlingResource: IdlingResource) {
             idlingResourceRegistry.unregisterIdlingResource(idlingResource)
-        }
-
-        @RequiresApi(34)
-        override fun enableAccessibilityChecks() {
-            accessibilityValidator = AccessibilityValidator().setRunChecksFromRootView(true)
-        }
-
-        @RequiresApi(34)
-        override fun disableAccessibilityChecks() {
-            accessibilityValidator = null
         }
 
         override fun onNode(
@@ -642,19 +622,11 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
     actual val mainClock: MainTestClock
 
     /**
-     * The [AccessibilityValidator] that will be used to run Android accessibility checks before
-     * every action that is expected to change the UI.
-     *
-     * If no validator is set (`null`), no checks will be performed. You can either supply your own
-     * validator directly, or have one configured for you with [enableAccessibilityChecks].
-     *
-     * The default value is `null`.
-     *
-     * This requires API 34+ (Android U), and currently does not work on Robolectric.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeUiTest_sample
+     * Sets the [ComposeAccessibilityValidator] to perform the accessibility checks with. Providing
+     * `null` means disabling the accessibility checks
      */
-    @get:RequiresApi(34) @set:RequiresApi(34) var accessibilityValidator: AccessibilityValidator?
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?)
 
     actual fun <T> runOnUiThread(action: () -> T): T
 
@@ -670,13 +642,20 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
         condition: () -> Boolean
     )
 
-    actual fun registerIdlingResource(idlingResource: IdlingResource)
+    /** Registers an [IdlingResource] in this test. */
+    fun registerIdlingResource(idlingResource: IdlingResource)
 
-    actual fun unregisterIdlingResource(idlingResource: IdlingResource)
+    /** Unregisters an [IdlingResource] from this test. */
+    fun unregisterIdlingResource(idlingResource: IdlingResource)
 
     actual fun setContent(composable: @Composable () -> Unit)
+}
 
-    @RequiresApi(34) actual fun enableAccessibilityChecks()
-
-    @RequiresApi(34) actual fun disableAccessibilityChecks()
+/**
+ * A validator that is used to run accessibility checks before every action through
+ * [tryPerformAccessibilityChecks]
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+interface ComposeAccessibilityValidator {
+    fun check(view: View)
 }

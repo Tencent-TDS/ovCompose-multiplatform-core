@@ -25,6 +25,8 @@ import androidx.compose.runtime.mock.CompositionTestScope
 import androidx.compose.runtime.mock.NonReusableText
 import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.mock.expectNoChanges
+import androidx.compose.runtime.mock.revalidate
+import androidx.compose.runtime.mock.validate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -151,6 +153,30 @@ class CompoundHashKeyTests {
             state.value = !state.value
             markers = retraceConsistentWith(markers)
         }
+    }
+
+    @Test // regression test for b/382670037
+    fun nestedCompositeHashKeyIsConsistentOnRecompose() = compositionTest {
+        lateinit var scope: RecomposeScope
+        var lastRecordedHash = -1
+
+        compose {
+            RestartGroup {}
+            key(0) {
+                RestartGroup {
+                    scope = currentRecomposeScope
+                    lastRecordedHash = currentCompositeKeyHash
+                }
+            }
+        }
+
+        validate {}
+        val originalHash = lastRecordedHash
+        lastRecordedHash = -1
+        scope.invalidate()
+        expectNoChanges()
+        revalidate()
+        assertEquals(originalHash, lastRecordedHash)
     }
 
     @Test

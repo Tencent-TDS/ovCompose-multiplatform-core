@@ -40,7 +40,7 @@ import platform.UIKit.UIAccessibilityTraitUpdatesFrequently
 import platform.UIKit.UIAccessibilityTraits
 
 // Private accessibility trait for text fields
-internal val CMPAccessibilityTraitTextField: UIAccessibilityTraits = 1UL shl 18
+internal val CMPAccessibilityTraitTextView: UIAccessibilityTraits = (1UL shl 18) or (1UL shl 47)
 internal val CMPAccessibilityTraitIsEditing: UIAccessibilityTraits = 1UL shl 21
 
 internal fun SemanticsConfiguration.accessibilityTraits(): UIAccessibilityTraits {
@@ -86,10 +86,11 @@ internal fun SemanticsConfiguration.accessibilityTraits(): UIAccessibilityTraits
         }
     }
 
-    if (contains(SemanticsProperties.EditableText) &&
-        contains(SemanticsActions.SetText)
-    ) {
-        result = result or CMPAccessibilityTraitTextField
+    if (contains(SemanticsProperties.EditableText)) {
+        result = result or CMPAccessibilityTraitTextView
+        if (getOrNull(SemanticsProperties.Focused) == true) {
+            result = result or CMPAccessibilityTraitIsEditing
+        }
     } else if (contains(SemanticsActions.OnClick)) {
         result = result or UIAccessibilityTraitButton
     }
@@ -145,7 +146,7 @@ internal fun SemanticsConfiguration.accessibilityValue(): String? {
     }
 
     return getOrNull(SemanticsProperties.ProgressBarRangeInfo)?.let {
-        return if (!it.range.isEmpty()) {
+        return if (it.range.endInclusive > it.range.start) {
             val fraction = (it.current - it.range.start) /
                 (it.range.endInclusive - it.range.start)
             "${(fraction * 100f).roundToInt()}%"

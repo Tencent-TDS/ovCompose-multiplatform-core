@@ -352,7 +352,7 @@ internal class IntrinsicsMeasureScope(
     override fun layout(
         width: Int,
         height: Int,
-        alignmentLines: Map<out AlignmentLine, Int>,
+        alignmentLines: Map<AlignmentLine, Int>,
         rulers: (RulerScope.() -> Unit)?,
         placementBlock: Placeable.PlacementScope.() -> Unit
     ): MeasureResult {
@@ -366,7 +366,7 @@ internal class IntrinsicsMeasureScope(
             override val height: Int
                 get() = h
 
-            override val alignmentLines: Map<out AlignmentLine, Int>
+            override val alignmentLines: Map<AlignmentLine, Int>
                 get() = alignmentLines
 
             override val rulers: (RulerScope.() -> Unit)?
@@ -386,7 +386,7 @@ internal class ApproachIntrinsicsMeasureScope(
     override fun layout(
         width: Int,
         height: Int,
-        alignmentLines: Map<out AlignmentLine, Int>,
+        alignmentLines: Map<AlignmentLine, Int>,
         rulers: (RulerScope.() -> Unit)?,
         placementBlock: Placeable.PlacementScope.() -> Unit
     ): MeasureResult {
@@ -400,7 +400,7 @@ internal class ApproachIntrinsicsMeasureScope(
             override val height: Int
                 get() = h
 
-            override val alignmentLines: Map<out AlignmentLine, Int>
+            override val alignmentLines: Map<AlignmentLine, Int>
                 get() = alignmentLines
 
             override val rulers: (RulerScope.() -> Unit)?

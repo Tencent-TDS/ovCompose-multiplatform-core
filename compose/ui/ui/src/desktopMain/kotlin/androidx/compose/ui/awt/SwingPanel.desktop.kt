@@ -21,7 +21,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.ComposeFeatureFlags
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.EmptyLayout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.LocalInteropContainer
@@ -72,6 +71,8 @@ public fun <T : Component> SwingPanel(
         )
     }
 
+    // TODO(https://youtrack.jetbrains.com/issue/CMP-7557/SwingInteropViewHolder.-Commonization-of-focus-logic-with-different-targets)
+    //  we probably can commonize this logic across different targets (including Android)
     val focusSwitcher = remember { InteropFocusSwitcher(group, focusManager) }
 
     val interopViewHolder = remember {
@@ -84,20 +85,16 @@ public fun <T : Component> SwingPanel(
         )
     }
 
-    EmptyLayout(focusSwitcher.backwardTrackerModifier)
-
     InteropView(
         factory = {
             interopViewHolder
         },
-        modifier,
+        modifier.then(focusSwitcher.modifier),
         update = {
             it.background = background.toAwtColor()
             update(it)
         }
     )
-
-    EmptyLayout(focusSwitcher.forwardTrackerModifier)
 }
 
 /**

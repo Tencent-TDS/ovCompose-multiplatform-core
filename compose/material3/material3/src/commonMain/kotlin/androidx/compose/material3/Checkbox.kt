@@ -17,9 +17,10 @@
 package androidx.compose.material3
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.Interaction
@@ -29,7 +30,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.selection.triStateToggleable
 import androidx.compose.material3.tokens.CheckboxTokens
-import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.State
@@ -72,6 +72,7 @@ import kotlin.math.max
  * Combined Checkbox with Text sample:
  *
  * @sample androidx.compose.material3.samples.CheckboxWithTextSample
+ *
  * @param checked whether this checkbox is checked or unchecked
  * @param onCheckedChange called when this checkbox is clicked. If `null`, then this checkbox will
  *   not be interactable, unless something else handles its input events and updates its state.
@@ -124,6 +125,7 @@ fun Checkbox(
  * image](https://developer.android.com/images/reference/androidx/compose/material3/indeterminate-checkbox.png)
  *
  * @sample androidx.compose.material3.samples.TriStateCheckboxSample
+ *
  * @param state whether this checkbox is checked, unchecked, or in an indeterminate state
  * @param onClick called when this checkbox is clicked. If `null`, then this checkbox will not be
  *   interactable, unless something else handles its input events and updates its [state].
@@ -156,7 +158,11 @@ fun TriStateCheckbox(
                 enabled = enabled,
                 role = Role.Checkbox,
                 interactionSource = interactionSource,
-                indication = ripple(bounded = false, radius = CheckboxTokens.StateLayerSize / 2)
+                indication =
+                    rippleOrFallbackImplementation(
+                        bounded = false,
+                        radius = CheckboxTokens.StateLayerSize / 2
+                    )
             )
         } else {
             Modifier
@@ -265,15 +271,13 @@ private fun CheckboxImpl(
     colors: CheckboxColors
 ) {
     val transition = updateTransition(value)
-    val defaultAnimationSpec = MotionSchemeKeyTokens.DefaultSpatial.value<Float>()
     val checkDrawFraction =
         transition.animateFloat(
             transitionSpec = {
                 when {
-                    // TODO Load the motionScheme tokens from the component tokens file
-                    initialState == ToggleableState.Off -> defaultAnimationSpec
-                    targetState == ToggleableState.Off -> snap(delayMillis = SnapAnimationDelay)
-                    else -> defaultAnimationSpec
+                    initialState == ToggleableState.Off -> tween(CheckAnimationDuration)
+                    targetState == ToggleableState.Off -> snap(BoxOutDuration)
+                    else -> spring()
                 }
             }
         ) {
@@ -288,10 +292,9 @@ private fun CheckboxImpl(
         transition.animateFloat(
             transitionSpec = {
                 when {
-                    // TODO Load the motionScheme tokens from the component tokens file
                     initialState == ToggleableState.Off -> snap()
-                    targetState == ToggleableState.Off -> snap(delayMillis = SnapAnimationDelay)
-                    else -> defaultAnimationSpec
+                    targetState == ToggleableState.Off -> snap(BoxOutDuration)
+                    else -> tween(durationMillis = CheckAnimationDuration)
                 }
             }
         ) {
@@ -484,7 +487,8 @@ constructor(
                 checkedCheckmarkColor
             }
 
-        return animateColorAsState(target, colorAnimationSpecForState(state))
+        val duration = if (state == ToggleableState.Off) BoxOutDuration else BoxInDuration
+        return animateColorAsState(target, tween(durationMillis = duration))
     }
 
     /**
@@ -514,7 +518,8 @@ constructor(
         // If not enabled 'snap' to the disabled state, as there should be no animations between
         // enabled / disabled.
         return if (enabled) {
-            animateColorAsState(target, colorAnimationSpecForState(state))
+            val duration = if (state == ToggleableState.Off) BoxOutDuration else BoxInDuration
+            animateColorAsState(target, tween(durationMillis = duration))
         } else {
             rememberUpdatedState(target)
         }
@@ -546,22 +551,10 @@ constructor(
         // If not enabled 'snap' to the disabled state, as there should be no animations between
         // enabled / disabled.
         return if (enabled) {
-            animateColorAsState(target, colorAnimationSpecForState(state))
+            val duration = if (state == ToggleableState.Off) BoxOutDuration else BoxInDuration
+            animateColorAsState(target, tween(durationMillis = duration))
         } else {
             rememberUpdatedState(target)
-        }
-    }
-
-    /** Returns the color [AnimationSpec] for the given state. */
-    @Composable
-    private fun colorAnimationSpecForState(state: ToggleableState): AnimationSpec<Color> {
-        // TODO Load the motionScheme tokens from the component tokens file
-        return if (state == ToggleableState.Off) {
-            // Box out
-            MotionSchemeKeyTokens.FastEffects.value()
-        } else {
-            // Box in
-            MotionSchemeKeyTokens.DefaultEffects.value()
         }
     }
 
@@ -602,7 +595,9 @@ constructor(
     }
 }
 
-private const val SnapAnimationDelay = 100
+private const val BoxInDuration = 50
+private const val BoxOutDuration = 100
+private const val CheckAnimationDuration = 100
 
 // TODO(b/188529841): Update the padding and size when the Checkbox spec is finalized.
 private val CheckboxDefaultPadding = 2.dp

@@ -18,7 +18,6 @@ package androidx.compose.ui.uikit
 
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.platform.AccessibilitySyncOptions
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UIViewController
@@ -45,16 +44,6 @@ class ComposeUIViewControllerConfiguration {
     var delegate: ComposeUIViewControllerDelegate = object : ComposeUIViewControllerDelegate {}
 
     /**
-     * @see [AccessibilitySyncOptions]
-     *
-     * By default, accessibility sync is enabled when required by accessibility services and debug
-     * logging is disabled.
-     */
-    @ExperimentalComposeApi
-    var accessibilitySyncOptions: AccessibilitySyncOptions =
-        AccessibilitySyncOptions.WhenRequiredByAccessibilityServices
-
-    /**
      * Determines whether the Compose view should have an opaque background.
      * Warning: disabling opaque layer may affect performance.
      */
@@ -79,6 +68,12 @@ class ComposeUIViewControllerConfiguration {
      */
     @ExperimentalComposeUiApi
     var parallelRendering: Boolean = false
+
+    /**
+     * A flag to enable or disable iOS BackGesture recognizer.
+     */
+    @ExperimentalComposeApi
+    var enableBackGesture: Boolean = true
 }
 
 /**
@@ -125,6 +120,7 @@ sealed interface OnFocusBehavior {
     /**
      * The Compose view will stay on the current position.
      */
+    @Suppress("unused")
     data object DoNothing : OnFocusBehavior
 
     /**

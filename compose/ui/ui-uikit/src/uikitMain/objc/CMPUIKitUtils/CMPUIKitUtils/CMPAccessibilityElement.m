@@ -20,14 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation CMPAccessibilityElement
 
-- (void)setAccessibilityContainer:(__nullable id)accessibilityContainer {
-    // NoOp
-}
-
-- (__nullable id)accessibilityContainer {
-    return [self accessibilityContainer];
-}
-
 + (__nullable id)accessibilityContainerOfObject:(id)object {
     // Duck-typing selector dispatch
     return [object accessibilityContainer];
@@ -39,6 +31,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (UIAccessibilityTraits)accessibilityTraits {
     return [super accessibilityTraits];
+}
+
+- (UIAccessibilityContainerType)accessibilityContainerType {
+    return [super accessibilityContainerType];
 }
 
 - (NSString *__nullable)accessibilityIdentifier {

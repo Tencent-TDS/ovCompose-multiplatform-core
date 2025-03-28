@@ -20,7 +20,6 @@ import android.os.Build
 import androidx.activity.BackEventCompat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -64,7 +63,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -88,7 +88,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -113,7 +114,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -136,7 +138,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -161,7 +164,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -189,7 +193,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -214,7 +219,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = expanded,
                         onExpandedChange = onExpandedChange,
@@ -267,7 +273,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = false,
                         onExpandedChange = {},
@@ -289,7 +296,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = false,
                         onExpandedChange = {},
@@ -312,7 +320,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = true,
                         onExpandedChange = {},
@@ -333,7 +342,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = true,
                         onExpandedChange = {},
@@ -356,7 +366,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = true,
                         onExpandedChange = {},
@@ -378,7 +389,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = true,
                         onExpandedChange = {},
@@ -404,7 +416,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState(),
+                        query = "",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = false,
                         onExpandedChange = {},
@@ -427,7 +440,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
                 modifier = Modifier.testTag(testTag),
                 inputField = {
                     SearchBarDefaults.InputField(
-                        state = rememberTextFieldState("Query"),
+                        query = "Query",
+                        onQueryChange = {},
                         onSearch = {},
                         expanded = true,
                         onExpandedChange = {},
@@ -495,7 +509,8 @@ class SearchBarScreenshotTest(private val scheme: ColorSchemeWrapper) {
             modifier = Modifier.testTag(testTag),
             inputField = {
                 SearchBarDefaults.InputField(
-                    state = rememberTextFieldState("Query"),
+                    query = "Query",
+                    onQueryChange = {},
                     onSearch = {},
                     expanded = true,
                     onExpandedChange = {},

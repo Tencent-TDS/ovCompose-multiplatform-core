@@ -17,6 +17,8 @@
 package androidx.compose.ui.node
 
 import androidx.collection.mutableObjectIntMapOf
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.classKeyForObject
 import androidx.compose.ui.draw.DrawModifier
@@ -329,7 +331,7 @@ private fun autoInvalidateNodeSelf(node: Modifier.Node, selfKindSet: Int, phase:
         node.invalidateDraw()
     }
     if (Nodes.Semantics in selfKindSet && node is SemanticsModifierNode) {
-        node.invalidateSemantics()
+        node.requireLayoutNode().isSemanticsInvalidated = true
     }
     if (Nodes.ParentData in selfKindSet && node is ParentDataModifierNode) {
         node.invalidateParentData()
@@ -339,9 +341,13 @@ private fun autoInvalidateNodeSelf(node: Modifier.Node, selfKindSet: Int, phase:
             node is FocusPropertiesModifierNode &&
             node.specifiesCanFocusProperty()
     ) {
-        when (phase) {
-            Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
-            else -> node.invalidateFocusProperties()
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled)
+            node.scheduleInvalidationOfAssociatedFocusTargets()
+        else {
+            when (phase) {
+                Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
+                else -> node.invalidateFocusProperties()
+            }
         }
     }
     if (Nodes.FocusEvent in selfKindSet && node is FocusEventModifierNode) {

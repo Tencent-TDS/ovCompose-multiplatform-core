@@ -33,7 +33,6 @@ internal fun Translations.pl() = mapOf(
     Strings.MenuCollapsed to "Zwinięte",
     Strings.ToggleDropdownMenu to "Pokaż lub ukryj menu",
     Strings.SnackbarDismiss to "Zamknij",
-    Strings.SnackbarPaneTitle to "Alert",
     Strings.SearchBarSearch to "Szukaj",
     Strings.SuggestionsAvailable to "Sugestie znajdziesz poniżej",
     Strings.DatePickerTitle to "Wybierz datę",
@@ -86,6 +85,4 @@ internal fun Translations.pl() = mapOf(
     Strings.TimePickerHour to "Godzina",
     Strings.TimePickerMinuteTextField to "aby wpisać minuty",
     Strings.TimePickerHourTextField to "aby wpisać godzinę",
-    Strings.CloseRail to "Zamknij kolumnę",
-    Strings.WideNavigationRailPaneTitle to "Kolumna nawigacji",
 )

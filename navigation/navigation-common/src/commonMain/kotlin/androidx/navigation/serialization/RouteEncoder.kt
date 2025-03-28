@@ -48,7 +48,7 @@ public class RouteEncoder<T : Any>(
      * to the default entry by directly calling [super.encodeSerializableValue].
      */
     @Suppress("UNCHECKED_CAST")
-    fun encodeToArgMap(value: Any): Map<String, List<String>> {
+    public fun encodeToArgMap(value: Any): Map<String, List<String>> {
         super.encodeSerializableValue(serializer, value as T)
         return map.toMap()
     }

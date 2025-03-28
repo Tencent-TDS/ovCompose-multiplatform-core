@@ -24,8 +24,6 @@ import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.draw
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.internal.checkPrecondition
@@ -334,20 +332,27 @@ class CacheDrawScope internal constructor() : Density {
         layoutDirection: LayoutDirection = this@CacheDrawScope.layoutDirection,
         size: IntSize = this@CacheDrawScope.size.toIntSize(),
         block: ContentDrawScope.() -> Unit
-    ) =
-        record(density, layoutDirection, size) {
-            val contentDrawScope = this@CacheDrawScope.contentDrawScope!!
-            drawIntoCanvas { canvas ->
-                contentDrawScope.draw(
-                    density,
-                    layoutDirection,
-                    canvas,
-                    Size(size.width.toFloat(), size.height.toFloat())
-                ) {
-                    block(contentDrawScope)
+    ) {
+        val scope = contentDrawScope!!
+        with(scope) {
+            val prevDensity = drawContext.density
+            val prevLayoutDirection = drawContext.layoutDirection
+            record(size) {
+                drawContext.apply {
+                    this.density = density
+                    this.layoutDirection = layoutDirection
+                }
+                try {
+                    block(scope)
+                } finally {
+                    drawContext.apply {
+                        this.density = prevDensity
+                        this.layoutDirection = prevLayoutDirection
+                    }
                 }
             }
         }
+    }
 
     /** Issue drawing commands to be executed before the layout content is drawn */
     fun onDrawBehind(block: DrawScope.() -> Unit): DrawResult = onDrawWithContent {

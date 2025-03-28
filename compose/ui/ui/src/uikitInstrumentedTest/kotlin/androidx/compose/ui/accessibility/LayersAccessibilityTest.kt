@@ -32,7 +32,7 @@ class LayersAccessibilityTest {
         val topPopup = mutableStateOf(false)
         val bottomPopup = mutableStateOf(false)
         val topPopupFocusable = mutableStateOf(false)
-        setContentWithAccessibilityEnabled {
+        setContent {
             Text("Root")
             if (bottomPopup.value) {
                 Popup {
@@ -93,7 +93,7 @@ class LayersAccessibilityTest {
     @Test
     fun testNodesCoveredByDialog() = runUIKitInstrumentedTest {
         val showDialog = mutableStateOf(false)
-        setContentWithAccessibilityEnabled {
+        setContent {
             Text("Root")
             Popup {
                 Text("Popup")
@@ -136,7 +136,7 @@ class LayersAccessibilityTest {
     fun testLayersAppearanceOrder() = runUIKitInstrumentedTest {
         val bottomLayer = mutableStateOf(false)
         val middleLayers = mutableStateOf(false)
-        setContentWithAccessibilityEnabled {
+        setContent {
             Text("Root")
             if (bottomLayer.value) {
                 Popup(properties = PopupProperties(focusable = true)) {

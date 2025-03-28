@@ -71,7 +71,7 @@ internal fun LazyList(
     /** The overscroll effect to render and dispatch events to */
     overscrollEffect: OverscrollEffect?,
     /** Number of items to layout before and after the visible items */
-    beyondBoundsItemCount: Int = 0,
+    beyondBoundsItemCount: Int = defaultLazyListBeyondBoundsItemCount(),
     /** The alignment to align items horizontally. Required when isVertical is true */
     horizontalAlignment: Alignment.Horizontal? = null,
     /** The vertical arrangement for items. Required when isVertical is true */
@@ -190,6 +190,7 @@ private fun rememberLazyListMeasurePolicy(
         contentPadding,
         reverseLayout,
         isVertical,
+        beyondBoundsItemCount,
         horizontalAlignment,
         verticalAlignment,
         horizontalArrangement,
@@ -388,3 +389,5 @@ private fun rememberLazyListMeasurePolicy(
             measureResult
         }
     }
+
+@Composable internal expect fun defaultLazyListBeyondBoundsItemCount(): Int

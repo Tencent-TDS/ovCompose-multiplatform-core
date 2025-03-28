@@ -175,14 +175,14 @@ internal class NavigationRailTestCase(
                     selected = selectedIndexState.value == 0,
                     onClick = {},
                     icon = { Spacer(Modifier.size(24.dp)) },
-                    railExpanded = state.isExpanded,
+                    railExpanded = state.targetValue == WideNavigationRailValue.Expanded,
                     label = { Spacer(Modifier.size(24.dp)) }
                 )
                 WideNavigationRailItem(
                     selected = selectedIndexState.value == 1,
                     onClick = {},
                     icon = { Spacer(Modifier.size(24.dp)) },
-                    railExpanded = state.isExpanded,
+                    railExpanded = state.targetValue == WideNavigationRailValue.Expanded,
                     label = { Spacer(Modifier.size(24.dp)) }
                 )
             }
@@ -243,14 +243,16 @@ internal class ModalWideNavigationRailTestCase(
                 selected = true,
                 onClick = {},
                 icon = { Spacer(Modifier.size(24.dp)) },
-                railExpanded = if (isDismissible) true else state.isExpanded,
+                railExpanded =
+                    isDismissible || state.targetValue == WideNavigationRailValue.Expanded,
                 label = { Spacer(Modifier.size(24.dp)) }
             )
             WideNavigationRailItem(
                 selected = false,
                 onClick = {},
                 icon = { Spacer(Modifier.size(24.dp)) },
-                railExpanded = if (isDismissible) true else state.isExpanded,
+                railExpanded =
+                    isDismissible || state.targetValue == WideNavigationRailValue.Expanded,
                 label = { Spacer(Modifier.size(24.dp)) }
             )
         }

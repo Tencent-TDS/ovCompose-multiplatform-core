@@ -42,24 +42,22 @@ androidXMultiplatform {
     mac()
     linux()
     ios()
-    js { browser() }
-    wasm { browser() }
+    js()
+    wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
     sourceSets {
         commonMain {
             dependencies {
-                api "org.jetbrains.compose.annotation-internal:annotation:1.7.1"
-                implementation "org.jetbrains.compose.collection-internal:collection:1.7.1"
-                api project(":core:core-bundle")
-                api project(":core:core-uri")
-                api "org.jetbrains.androidx.lifecycle:lifecycle-common:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-runtime:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.8.4"
-                api "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.4"
+                api "androidx.annotation:annotation:1.9.1"
+                api "androidx.collection:collection:1.5.0-beta01"
+                api project(":lifecycle:lifecycle-common")
+                api project(":lifecycle:lifecycle-runtime")
+                api project(":lifecycle:lifecycle-viewmodel")
+                api project(":lifecycle:lifecycle-viewmodel-savedstate")
+                api project(":savedstate:savedstate")
                 api project(":navigation:navigation-common")
-                api "org.jetbrains.androidx.savedstate:savedstate:1.2.2"
 
                 api(libs.kotlinStdlib)
                 implementation(libs.kotlinSerializationCore)
@@ -77,11 +75,11 @@ androidXMultiplatform {
             }
         }
 
-        jvmMain.dependsOn(commonMain)
-        jvmTest.dependsOn(commonTest)
+        jvmCommonMain.dependsOn(commonMain)
+        jvmCommonTest.dependsOn(commonTest)
 
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(jvmCommonMain)
             dependencies {
                 api("androidx.activity:activity-ktx:1.7.1")
             }
@@ -107,33 +105,36 @@ androidXMultiplatform {
             }
         }
 
-        jbMain.dependsOn(commonMain)
-        jbTest.dependsOn(commonTest)
+        nonAndroidMain.dependsOn(commonMain)
+        nonAndroidTest.dependsOn(commonTest)
 
-        nonJvmMain {
-            dependsOn(jbMain)
+        nonJvmCommonMain {
+            dependsOn(nonAndroidMain)
             dependencies {
                 implementation(libs.atomicFu)
             }
         }
-        nonJvmTest.dependsOn(jbTest)
+        nonJvmCommonTest.dependsOn(nonAndroidTest)
 
         desktopMain {
-            dependsOn(jvmMain)
-            dependsOn(jbMain)
+            dependsOn(jvmCommonMain)
+            dependsOn(nonAndroidMain)
         }
         desktopTest {
-            dependsOn(jvmTest)
-            dependsOn(jbTest)
+            dependsOn(jvmCommonTest)
+            dependsOn(nonAndroidTest)
         }
 
-        webMain.dependsOn(nonJvmMain)
-        webTest.dependsOn(nonJvmTest)
+        nativeMain.dependsOn(nonJvmCommonMain)
+        nativeTest.dependsOn(nonJvmCommonTest)
+
+        webMain.dependsOn(nonJvmCommonMain)
+        webTest.dependsOn(nonJvmCommonTest)
 
         targets.all { target ->
             if (target.platformType == KotlinPlatformType.native) {
-                target.compilations["main"].defaultSourceSet.dependsOn(nonJvmMain)
-                target.compilations["test"].defaultSourceSet.dependsOn(nonJvmTest)
+                target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
             } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
                 target.compilations["main"].defaultSourceSet.dependsOn(webMain)
                 target.compilations["test"].defaultSourceSet.dependsOn(webTest)

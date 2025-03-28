@@ -275,8 +275,19 @@ constructor(
                 // prefetch is best effort.
                 val prefetchHandles = mutableListOf<LazyLayoutPrefetchState.PrefetchHandle>()
                 Snapshot.withoutReadObservation {
-                    layoutInfoState.value.prefetchInfoRetriever(lineIndex).fastForEach {
-                        prefetchHandles.add(prefetchState.schedulePrefetch(it.first, it.second))
+                    val layoutInfo =
+                        if (hasLookaheadOccurred) {
+                            approachLayoutInfo
+                        } else {
+                            layoutInfoState.value
+                        }
+
+                    layoutInfo?.let {
+                        it.prefetchInfoRetriever(lineIndex).fastForEach { lineInfo ->
+                            prefetchHandles.add(
+                                prefetchState.schedulePrefetch(lineInfo.first, lineInfo.second)
+                            )
+                        }
                     }
                 }
                 return prefetchHandles

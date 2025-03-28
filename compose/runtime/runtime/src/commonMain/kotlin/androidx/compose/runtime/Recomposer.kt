@@ -124,7 +124,7 @@ interface RecomposerInfo {
 @InternalComposeApi
 internal interface RecomposerErrorInfo {
     /** Exception which forced recomposition to halt. */
-    val cause: Exception
+    val cause: Throwable
 
     /**
      * Whether composition can recover from the error by itself. If the error is not recoverable,
@@ -432,7 +432,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
 
     private class RecomposerErrorState(
         override val recoverable: Boolean,
-        override val cause: Exception
+        override val cause: Throwable
     ) : RecomposerErrorInfo
 
     private val recomposerInfo = RecomposerInfoImpl()
@@ -620,7 +620,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
                                 performRecompose(composition, modifiedValues)?.let { toApply += it }
                                 alreadyComposed.add(composition)
                             }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             processCompositionError(e, recoverable = true)
                             clearRecompositionState()
                             return@withFrameNanos
@@ -664,7 +664,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
                                     toLateApply += performInsertValues(toInsert, modifiedValues)
                                     fillToInsert()
                                 }
-                            } catch (e: Exception) {
+                            } catch (e: Throwable) {
                                 processCompositionError(e, recoverable = true)
                                 clearRecompositionState()
                                 return@withFrameNanos
@@ -682,7 +682,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
                             // toComplete += toApply
                             toApply.fastForEach { composition -> toComplete.add(composition) }
                             toApply.fastForEach { composition -> composition.applyChanges() }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             processCompositionError(e)
                             clearRecompositionState()
                             return@withFrameNanos
@@ -695,7 +695,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
                         try {
                             toComplete += toLateApply
                             toLateApply.forEach { composition -> composition.applyLateChanges() }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             processCompositionError(e)
                             clearRecompositionState()
                             return@withFrameNanos
@@ -707,7 +707,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
                     if (toComplete.isNotEmpty()) {
                         try {
                             toComplete.forEach { composition -> composition.changesApplied() }
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             processCompositionError(e)
                             clearRecompositionState()
                             return@withFrameNanos
@@ -735,7 +735,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
     }
 
     private fun processCompositionError(
-        e: Exception,
+        e: Throwable,
         failedInitialComposition: ControlledComposition? = null,
         recoverable: Boolean = false,
     ) {
@@ -1130,7 +1130,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
         val composerWasComposing = composition.isComposing
         try {
             composing(composition, null) { composition.composeContent(content) }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             processCompositionError(e, composition, recoverable = true)
             return
         }
@@ -1150,7 +1150,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
 
         try {
             performInitialMovableContentInserts(composition)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             processCompositionError(e, composition, recoverable = true)
             return
         }
@@ -1158,7 +1158,7 @@ class Recomposer(effectCoroutineContext: CoroutineContext) : CompositionContext(
         try {
             composition.applyChanges()
             composition.applyLateChanges()
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             processCompositionError(e)
             return
         }

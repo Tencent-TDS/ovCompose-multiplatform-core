@@ -33,7 +33,6 @@ internal fun Translations.`is`() = mapOf(
     Strings.MenuCollapsed to "Minnkað",
     Strings.ToggleDropdownMenu to "Velja eða afvelja fellivalmynd",
     Strings.SnackbarDismiss to "Hunsa",
-    Strings.SnackbarPaneTitle to "Viðvörun",
     Strings.SearchBarSearch to "Leit",
     Strings.SuggestionsAvailable to "Tillögur hér fyrir neðan",
     Strings.DatePickerTitle to "Velja dagsetningu",
@@ -86,6 +85,4 @@ internal fun Translations.`is`() = mapOf(
     Strings.TimePickerHour to "Klukkustund",
     Strings.TimePickerMinuteTextField to "fyrir mínútur",
     Strings.TimePickerHourTextField to "fyrir klukkustund",
-    Strings.CloseRail to "Loka stiku",
-    Strings.WideNavigationRailPaneTitle to "Yfirlitsstika",
 )

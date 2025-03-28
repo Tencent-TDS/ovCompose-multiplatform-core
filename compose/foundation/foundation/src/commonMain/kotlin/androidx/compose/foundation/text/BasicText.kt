@@ -84,7 +84,8 @@ import kotlin.math.floor
  * @param autoSize Enable auto sizing for this text composable. Finds the biggest font size that
  *   fits in the available space and lays the text out with this size. This performs multiple layout
  *   passes and can be slower than using a fixed font size. This takes precedence over sizes defined
- *   through [style].
+ *   through [style]. See [TextAutoSize] and
+ *   [androidx.compose.foundation.samples.TextAutoSizeBasicTextSample].
  */
 @Composable
 fun BasicText(
@@ -97,7 +98,7 @@ fun BasicText(
     maxLines: Int = Int.MAX_VALUE,
     minLines: Int = 1,
     color: ColorProducer? = null,
-    autoSize: AutoSize? = null
+    autoSize: TextAutoSize? = null
 ) {
     validateMinMaxLines(minLines = minLines, maxLines = maxLines)
     val selectionRegistrar = LocalSelectionRegistrar.current
@@ -115,7 +116,7 @@ fun BasicText(
             null
         }
     val finalModifier =
-        if (selectionController != null || onTextLayout != null) {
+        if (selectionController != null || onTextLayout != null || autoSize != null) {
             modifier.textModifier(
                 AnnotatedString(text = text),
                 style = style,
@@ -130,7 +131,7 @@ fun BasicText(
                 selectionController = selectionController,
                 color = color,
                 onShowTranslation = null,
-                autoSize = requireAutoSizeInternalImplementationOrNull(autoSize)
+                autoSize = autoSize
             )
         } else {
             modifier then
@@ -142,8 +143,7 @@ fun BasicText(
                     softWrap = softWrap,
                     maxLines = maxLines,
                     minLines = minLines,
-                    color = color,
-                    autoSize = requireAutoSizeInternalImplementationOrNull(autoSize)
+                    color = color
                 )
         }
     Layout(finalModifier, EmptyMeasurePolicy)
@@ -176,7 +176,8 @@ fun BasicText(
  * @param autoSize Enable auto sizing for this text composable. Finds the biggest font size that
  *   fits in the available space and lays the text out with this size. This performs multiple layout
  *   passes and can be slower than using a fixed font size. This takes precedence over sizes defined
- *   through [style].
+ *   through [style]. See [TextAutoSize] and
+ *   [androidx.compose.foundation.samples.TextAutoSizeBasicTextSample].
  */
 @Composable
 fun BasicText(
@@ -190,7 +191,7 @@ fun BasicText(
     minLines: Int = 1,
     inlineContent: Map<String, InlineTextContent> = mapOf(),
     color: ColorProducer? = null,
-    autoSize: AutoSize? = null
+    autoSize: TextAutoSize? = null
 ) {
     validateMinMaxLines(minLines = minLines, maxLines = maxLines)
     val selectionRegistrar = LocalSelectionRegistrar.current
@@ -227,7 +228,7 @@ fun BasicText(
                     selectionController = selectionController,
                     color = color,
                     onShowTranslation = null,
-                    autoSize = requireAutoSizeInternalImplementationOrNull(autoSize)
+                    autoSize = autoSize
                 ),
             EmptyMeasurePolicy
         )
@@ -258,7 +259,7 @@ fun BasicText(
                         substitutionValue.original
                     }
             },
-            autoSize = requireAutoSizeInternalImplementationOrNull(autoSize)
+            autoSize = autoSize
         )
     }
 }
@@ -696,16 +697,4 @@ private fun LayoutWithLinksAndInlineContent(
                 )
             }
     )
-}
-
-/**
- * [AutoSize], our public type, is a sealed interface. Our internal representation is not sealed.
- * This is an extra validity check to ensure we are receiving the correct type; in practice it
- * should never happen.
- */
-private fun requireAutoSizeInternalImplementationOrNull(autoSize: AutoSize?): TextAutoSize? {
-    if (autoSize != null && autoSize !is TextAutoSize) {
-        throw IllegalArgumentException("AutoSize must implement TextAutoSize")
-    }
-    return autoSize as? TextAutoSize
 }

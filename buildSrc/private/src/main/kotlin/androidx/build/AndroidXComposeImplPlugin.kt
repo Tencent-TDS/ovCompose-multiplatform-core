@@ -56,6 +56,8 @@ const val composeReportsOption =
     "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination"
 const val enableMetricsArg = "androidx.enableComposeCompilerMetrics"
 const val enableReportsArg = "androidx.enableComposeCompilerReports"
+
+@Suppress("unused") // enabled by default in kotlin 2.1.0 and newer
 const val composeStrongSkippingOption =
     "plugin:androidx.compose.compiler.plugins.kotlin:featureFlag=StrongSkipping"
 const val composeNonSkippingGroupOptimizationOption =
@@ -395,10 +397,6 @@ private fun configureComposeCompilerPlugin(
             compile.onlyIf {
                 compile.compilerOptions.freeCompilerArgs.add("-Xplugin=${kotlinPlugin.first()}")
 
-                // Enable Compose strong skipping mode
-                compile.compilerOptions.freeCompilerArgs.addAll(
-                    listOf("-P", composeStrongSkippingOption)
-                )
                 compile.compilerOptions.freeCompilerArgs.addAll(
                     listOf("-P", composeNonSkippingGroupOptimizationOption)
                 )

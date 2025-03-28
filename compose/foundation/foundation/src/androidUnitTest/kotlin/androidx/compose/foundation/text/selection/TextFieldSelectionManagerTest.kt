@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,17 +18,18 @@ package androidx.compose.foundation.text.selection
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.internal.ClipboardUtils
 import androidx.compose.foundation.text.HandleState
 import androidx.compose.foundation.text.LegacyTextFieldState
 import androidx.compose.foundation.text.TextDelegate
 import androidx.compose.foundation.text.TextLayoutResultProxy
-import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.text.AnnotatedString
@@ -50,6 +51,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.packFloats
 import androidx.compose.ui.util.packInts
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,6 +61,7 @@ import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
@@ -88,12 +92,11 @@ class TextFieldSelectionManagerTest {
     private val layoutResultProxy: TextLayoutResultProxy = mock()
     private lateinit var manager: TextFieldSelectionManager
 
-    private val clipboardManager = mock<ClipboardManager>()
+    private val clipboard = mock<Clipboard>()
     private val textToolbar = mock<TextToolbar>()
     private val hapticFeedback = mock<HapticFeedback>()
     private val focusRequester = mock<FocusRequester>()
     private val multiParagraph = mock<MultiParagraph>()
-    private val autofillManager = mock<AutofillManager>()
 
     @Before
     fun setup() {
@@ -101,11 +104,11 @@ class TextFieldSelectionManagerTest {
         manager.offsetMapping = offsetMapping
         manager.onValueChange = lambda
         manager.value = value
-        manager.clipboardManager = clipboardManager
+        manager.clipboard = clipboard
         manager.textToolbar = textToolbar
         manager.hapticFeedBack = hapticFeedback
         manager.focusRequester = focusRequester
-        manager.autofillManager = autofillManager
+        manager.coroutineScope = null
 
         whenever(layoutResult.layoutInput)
             .thenReturn(
@@ -364,48 +367,66 @@ class TextFieldSelectionManagerTest {
     @Test
     fun autofill_selection_collapse() {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
+        val mockLambda: () -> Unit = mock()
+        val manager = TextFieldSelectionManager().apply { requestAutofillAction = mockLambda }
 
         manager.autofill()
 
-        verify(autofillManager, times(1)).requestAutofillForActiveElement()
+        verify(mockLambda, times(1)).invoke()
         assertThat(state.handleState).isEqualTo(HandleState.None)
     }
 
     @Test
-    fun copy_selection_collapse() {
+    fun copy_selection_collapse() = runTestWithCoroutineScope {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
 
         manager.copy()
 
-        verify(clipboardManager, times(0)).setText(any())
+        verify(clipboard, times(0)).setClipEntry(any())
     }
 
     @Test
-    fun copy_selection_not_null() {
-        manager.value = TextFieldValue(text = text, selection = TextRange(0, "Hello".length))
+    fun copy_selection_not_null() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<ClipEntry> { ClipboardUtils.toClipEntry(any()) }
+                .thenReturn(clipEntry)
 
-        manager.copy()
+            manager.value = TextFieldValue(text = text, selection = TextRange(0, "Hello".length))
 
-        verify(clipboardManager, times(1)).setText(AnnotatedString("Hello"))
-        assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.copy()
+
+            mockedClipboardUtils.verify { ClipboardUtils.toClipEntry(eq(AnnotatedString("Hello"))) }
+            verify(clipboard, times(1)).setClipEntry(clipEntry)
+            assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
-    fun copy_selection_reversed() {
-        manager.value =
-            TextFieldValue(text = text, selection = TextRange("Hello".length, "He".length))
+    fun copy_selection_reversed() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<ClipEntry> { ClipboardUtils.toClipEntry(any()) }
+                .thenReturn(clipEntry)
 
-        manager.copy()
+            manager.value =
+                TextFieldValue(text = text, selection = TextRange("Hello".length, "He".length))
 
-        verify(clipboardManager, times(1)).setText(AnnotatedString("llo"))
-        assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.copy()
+
+            mockedClipboardUtils.verify { ClipboardUtils.toClipEntry(eq(AnnotatedString("llo"))) }
+            verify(clipboard, times(1)).setClipEntry(clipEntry)
+            assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
-    fun paste_clipBoardManager_null() {
-        manager.clipboardManager = null
+    fun paste_clipBoardManager_null() = runTestWithCoroutineScope {
+        manager.clipboard = null
 
         manager.paste()
 
@@ -413,8 +434,8 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun paste_clipBoardManager_empty() {
-        whenever(clipboardManager.getText()).thenReturn(null)
+    fun paste_clipBoardManager_empty() = runTestWithCoroutineScope {
+        whenever(clipboard.getClipEntry()).thenReturn(null)
 
         manager.paste()
 
@@ -422,64 +443,101 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun paste_clipBoardManager_not_empty() {
-        whenever(clipboardManager.getText()).thenReturn(AnnotatedString("Hello"))
-        manager.value =
-            TextFieldValue(text = text, selection = TextRange("Hel".length, "Hello Wo".length))
+    fun paste_clipBoardManager_not_empty() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<AnnotatedString?> { ClipboardUtils.readAnnotatedString(clipEntry) }
+                .thenReturn(AnnotatedString("Hello"))
 
-        manager.paste()
+            whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
+            manager.value =
+                TextFieldValue(text = text, selection = TextRange("Hel".length, "Hello Wo".length))
 
-        assertThat(value.text).isEqualTo("HelHellorld")
-        assertThat(value.selection).isEqualTo(TextRange("Hello Wo".length, "Hello Wo".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.paste()
+
+            assertThat(value.text).isEqualTo("HelHellorld")
+            assertThat(value.selection).isEqualTo(TextRange("Hello Wo".length, "Hello Wo".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
-    fun paste_selection_reversed() {
-        whenever(clipboardManager.getText()).thenReturn(AnnotatedString("i"))
-        manager.value =
-            TextFieldValue(text = text, selection = TextRange("Hello".length, "H".length))
+    fun paste_selection_reversed() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<AnnotatedString?> { ClipboardUtils.readAnnotatedString(clipEntry) }
+                .thenReturn(AnnotatedString("i"))
 
-        manager.paste()
+            whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
+            manager.value =
+                TextFieldValue(text = text, selection = TextRange("Hello".length, "H".length))
 
-        assertThat(value.text).isEqualTo("Hi World")
-        assertThat(value.selection).isEqualTo(TextRange("Hi".length, "Hi".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.paste()
+
+            assertThat(value.text).isEqualTo("Hi World")
+            assertThat(value.selection).isEqualTo(TextRange("Hi".length, "Hi".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
-    fun cut_selection_collapse() {
+    fun cut_selection_collapse() = runTestWithCoroutineScope {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))
 
         manager.cut()
 
-        verify(clipboardManager, times(0)).setText(any())
+        verify(clipboard, times(0)).setClipEntry(any())
     }
 
     @Test
-    fun cut_selection_not_null() {
-        manager.value =
-            TextFieldValue(text = text + text, selection = TextRange("Hello".length, text.length))
+    fun cut_selection_not_null() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<ClipEntry> { ClipboardUtils.toClipEntry(any()) }
+                .thenReturn(clipEntry)
 
-        manager.cut()
+            manager.value =
+                TextFieldValue(
+                    text = text + text,
+                    selection = TextRange("Hello".length, text.length)
+                )
 
-        verify(clipboardManager, times(1)).setText(AnnotatedString(" World"))
-        assertThat(value.text).isEqualTo("HelloHello World")
-        assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.cut()
+
+            mockedClipboardUtils.verify {
+                ClipboardUtils.toClipEntry(eq(AnnotatedString(" World")))
+            }
+
+            verify(clipboard, times(1)).setClipEntry(clipEntry)
+            assertThat(value.text).isEqualTo("HelloHello World")
+            assertThat(value.selection).isEqualTo(TextRange("Hello".length, "Hello".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
-    fun cut_selection_reversed() {
-        manager.value =
-            TextFieldValue(text = text, selection = TextRange("Hello".length, "He".length))
+    fun cut_selection_reversed() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<ClipEntry> { ClipboardUtils.toClipEntry(any()) }
+                .thenReturn(clipEntry)
 
-        manager.cut()
+            manager.value =
+                TextFieldValue(text = text, selection = TextRange("Hello".length, "He".length))
 
-        verify(clipboardManager, times(1)).setText(AnnotatedString("llo"))
-        assertThat(value.text).isEqualTo("He World")
-        assertThat(value.selection).isEqualTo(TextRange("He".length, "He".length))
-        assertThat(state.handleState).isEqualTo(HandleState.None)
+            manager.cut()
+
+            mockedClipboardUtils.verify { ClipboardUtils.toClipEntry(eq(AnnotatedString("llo"))) }
+
+            verify(clipboard, times(1)).setClipEntry(clipEntry)
+            assertThat(value.text).isEqualTo("He World")
+            assertThat(value.selection).isEqualTo(TextRange("He".length, "He".length))
+            assertThat(state.handleState).isEqualTo(HandleState.None)
+        }
     }
 
     @Test
@@ -509,53 +567,88 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun showSelectionToolbar_trigger_textToolbar_showMenu_noText_inClipboard_not_show_paste() {
-        whenever(clipboardManager.hasText()).thenReturn(false)
-        manager.value =
-            TextFieldValue(text = text + text, selection = TextRange("Hello".length, text.length))
+    fun showSelectionToolbar_trigger_textToolbar_showMenu_noText_inClipboard_not_show_paste() =
+        runTestWithCoroutineScope {
+            manager.value =
+                TextFieldValue(
+                    text = text + text,
+                    selection = TextRange("Hello".length, text.length)
+                )
 
-        manager.showSelectionToolbar()
+            manager.showSelectionToolbar()
 
-        verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), any(), anyOrNull(), isNull())
-    }
-
-    @Test
-    fun showSelectionToolbar_trigger_textToolbar_showMenu_hasText_inClipboard_show_paste() {
-        whenever(clipboardManager.hasText()).thenReturn(true)
-        manager.value =
-            TextFieldValue(text = text + text, selection = TextRange("Hello".length, text.length))
-
-        manager.showSelectionToolbar()
-
-        verify(textToolbar, times(1))
-            .showMenu(anyOrNull(), anyOrNull(), any(), anyOrNull(), anyOrNull(), isNull())
-    }
+            verify(textToolbar, times(1))
+                .showMenu(any(), any(), isNull(), any(), anyOrNull(), isNull())
+        }
 
     @Test
-    fun showSelectionToolbar_trigger_textToolbar_showMenu_selection_collapse_not_show_copy_cut() {
-        whenever(clipboardManager.getText()).thenReturn(AnnotatedString(text))
-        whenever(clipboardManager.hasText()).thenReturn(true)
-        manager.value = TextFieldValue(text = text + text, selection = TextRange(0, 0))
+    fun showSelectionToolbar_trigger_textToolbar_showMenu_hasText_inClipboard_show_paste() =
+        runTestWithCoroutineScope {
+            Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+                val clipEntry = mock<ClipEntry>()
+                whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
 
-        manager.showSelectionToolbar()
+                mockedClipboardUtils
+                    .`when`<Boolean> { ClipboardUtils.hasText(any()) }
+                    .thenReturn(true)
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), anyOrNull(), any())
-    }
+                manager.value =
+                    TextFieldValue(
+                        text = text + text,
+                        selection = TextRange("Hello".length, text.length)
+                    )
+
+                manager.showSelectionToolbar()
+
+                verify(textToolbar, times(1))
+                    .showMenu(anyOrNull(), anyOrNull(), any(), anyOrNull(), anyOrNull(), isNull())
+            }
+        }
 
     @Test
-    fun showSelectionToolbar_trigger_textToolbar_showMenu_no_text_show_paste_only() {
-        whenever(clipboardManager.hasText()).thenReturn(true)
-        manager.value = TextFieldValue()
+    fun showSelectionToolbar_trigger_textToolbar_showMenu_selection_collapse_not_show_copy_cut() =
+        runTestWithCoroutineScope {
+            Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+                val clipEntry = mock<ClipEntry>()
+                mockedClipboardUtils
+                    .`when`<AnnotatedString?> { ClipboardUtils.readAnnotatedString(clipEntry) }
+                    .thenReturn(AnnotatedString(text))
+                mockedClipboardUtils
+                    .`when`<Boolean> { ClipboardUtils.hasText(clipEntry) }
+                    .thenReturn(true)
 
-        manager.showSelectionToolbar()
+                whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
+                manager.value = TextFieldValue(text = text + text, selection = TextRange(0, 0))
 
-        verify(textToolbar, times(1)).showMenu(any(), isNull(), any(), isNull(), isNull(), any())
-    }
+                manager.showSelectionToolbar()
+
+                verify(textToolbar, times(1))
+                    .showMenu(any(), isNull(), any(), isNull(), anyOrNull(), any())
+            }
+        }
 
     @Test
-    fun showSelectionToolbar_trigger_textToolbar_no_menu() {
-        whenever(clipboardManager.getText()).thenReturn(null)
-        whenever(clipboardManager.hasText()).thenReturn(false)
+    fun showSelectionToolbar_trigger_textToolbar_showMenu_no_text_show_paste_only() =
+        runTestWithCoroutineScope {
+            Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+                val clipEntry = mock<ClipEntry>()
+                whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
+
+                mockedClipboardUtils
+                    .`when`<Boolean> { ClipboardUtils.hasText(any()) }
+                    .thenReturn(true)
+                manager.value = TextFieldValue()
+
+                manager.showSelectionToolbar()
+
+                verify(textToolbar, times(1))
+                    .showMenu(any(), isNull(), any(), isNull(), isNull(), any())
+            }
+        }
+
+    @Test
+    fun showSelectionToolbar_trigger_textToolbar_no_menu() = runTestWithCoroutineScope {
+        whenever(clipboard.getClipEntry()).thenReturn(null)
         manager.value = TextFieldValue()
 
         manager.showSelectionToolbar()
@@ -564,16 +657,25 @@ class TextFieldSelectionManagerTest {
     }
 
     @Test
-    fun showSelectionToolbar_passwordTextField_not_show_copy_cut() {
-        manager.visualTransformation = PasswordVisualTransformation()
-        whenever(clipboardManager.getText()).thenReturn(AnnotatedString(text))
-        whenever(clipboardManager.hasText()).thenReturn(true)
-        manager.value = TextFieldValue(text, TextRange(0, 5))
+    fun showSelectionToolbar_passwordTextField_not_show_copy_cut() = runTestWithCoroutineScope {
+        Mockito.mockStatic(ClipboardUtils::class.java).use { mockedClipboardUtils ->
+            val clipEntry = mock<ClipEntry>()
+            mockedClipboardUtils
+                .`when`<AnnotatedString?> { ClipboardUtils.readAnnotatedString(clipEntry) }
+                .thenReturn(AnnotatedString(text))
+            mockedClipboardUtils
+                .`when`<Boolean> { ClipboardUtils.hasText(clipEntry) }
+                .thenReturn(true)
 
-        manager.showSelectionToolbar()
+            manager.visualTransformation = PasswordVisualTransformation()
+            whenever(clipboard.getClipEntry()).thenReturn(clipEntry)
+            manager.value = TextFieldValue(text, TextRange(0, 5))
 
-        verify(textToolbar, times(1))
-            .showMenu(any(), isNull(), any(), isNull(), anyOrNull(), isNull())
+            manager.showSelectionToolbar()
+
+            verify(textToolbar, times(1))
+                .showMenu(any(), isNull(), any(), isNull(), anyOrNull(), isNull())
+        }
     }
 
     @Test
@@ -629,6 +731,11 @@ class TextFieldSelectionManagerTest {
 
         assertThat(manager.getHandleLineHeight(isStartHandle = true)).isZero()
         assertThat(manager.getHandleLineHeight(isStartHandle = false)).isZero()
+    }
+
+    private fun runTestWithCoroutineScope(testBody: suspend TestScope.() -> Unit) = runTest {
+        manager.coroutineScope = this
+        testBody()
     }
 }
 

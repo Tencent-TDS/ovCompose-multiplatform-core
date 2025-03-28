@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.AccessibilitySyncOptions
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeUIViewController
@@ -55,18 +54,12 @@ import platform.UIKit.sheetPresentationController
 val NativePopupWithComposePopupExample = Screen.Example("Native popup with Compose popup") {
     val viewController = LocalUIViewController.current
 
-    val syncOptions = AccessibilitySyncOptions.WhenRequiredByAccessibilityServices
-
     Column {
         Button(onClick = {
             val presentedViewController = UIViewController(nibName = null, bundle = null)
             presentedViewController.view.backgroundColor = UIColor.yellowColor
 
-            val composeViewController = ComposeUIViewController(
-                configure = {
-                    accessibilitySyncOptions = syncOptions
-                }
-            ) {
+            val composeViewController = ComposeUIViewController {
                 var showComposePopup by remember { mutableStateOf(false) }
                 var showComposeDialog by remember { mutableStateOf(false) }
 
@@ -166,9 +159,7 @@ val NativePopupWithComposePopupExample = Screen.Example("Native popup with Compo
 
         Button(
             onClick = {
-                val composeViewController = ComposeUIViewController(configure = {
-                    accessibilitySyncOptions = syncOptions
-                }) {
+                val composeViewController = ComposeUIViewController {
                     IosDemo("", null)
                 }
 

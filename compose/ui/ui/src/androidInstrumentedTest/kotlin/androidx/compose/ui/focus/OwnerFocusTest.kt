@@ -248,7 +248,8 @@ class OwnerFocusTest {
 
         // Assert.
         rule.runOnIdle {
-            assertThat(success).isFalse()
+            // b/369256395 we must return true when we advertise that we're focusable
+            assertThat(success).isTrue()
             assertThat(ownerView.isFocused).isFalse()
         }
     }

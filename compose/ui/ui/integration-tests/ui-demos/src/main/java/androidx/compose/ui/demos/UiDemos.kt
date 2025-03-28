@@ -18,7 +18,6 @@ package androidx.compose.ui.demos
 
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
-import android.os.Build.VERSION_CODES.O
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.demos.text.SoftwareKeyboardControllerDemo
 import androidx.compose.integration.demos.common.ActivityDemo
@@ -32,12 +31,16 @@ import androidx.compose.ui.demos.accessibility.ScaffoldSampleDemo
 import androidx.compose.ui.demos.accessibility.ScaffoldSampleScrollDemo
 import androidx.compose.ui.demos.accessibility.ScrollingColumnDemo
 import androidx.compose.ui.demos.accessibility.SimpleRtlLayoutDemo
+import androidx.compose.ui.demos.autofill.AutofillNavigation
 import androidx.compose.ui.demos.autofill.BTFResetCredentialsDemo
 import androidx.compose.ui.demos.autofill.BasicSecureTextFieldAutofillDemo
 import androidx.compose.ui.demos.autofill.BasicTextFieldAutofill
 import androidx.compose.ui.demos.autofill.ExplicitAutofillTypesDemo
 import androidx.compose.ui.demos.autofill.LegacyTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.MixedOldNewAutofillDemo
+import androidx.compose.ui.demos.autofill.MultiPageLoginDemo
 import androidx.compose.ui.demos.autofill.OutlinedTextFieldAutofillDemo
+import androidx.compose.ui.demos.autofill.OutlinedTextFieldVisualTransformationAutofillDemo
 import androidx.compose.ui.demos.focus.AdjacentScrollablesFocusDemo
 import androidx.compose.ui.demos.focus.CancelFocusDemo
 import androidx.compose.ui.demos.focus.CaptureFocusDemo
@@ -286,7 +289,13 @@ private val AutofillDemos =
                 BasicSecureTextFieldAutofillDemo()
             },
             ComposableDemo("S: TextField Autofill") { LegacyTextFieldAutofillDemo() },
-            ComposableDemo("S: OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() }
+            ComposableDemo("S: OutlinedTextField Autofill") { OutlinedTextFieldAutofillDemo() },
+            ComposableDemo("S: OutlinedTextField with Visual Transformation Autofill") {
+                OutlinedTextFieldVisualTransformationAutofillDemo()
+            },
+            ComposableDemo("Navigation Sample") { AutofillNavigation() },
+            ComposableDemo("Multipage Navigation Sample") { MultiPageLoginDemo() },
+            ComposableDemo("Old and New Autofill Mixed") { MixedOldNewAutofillDemo() }
         )
     )
 

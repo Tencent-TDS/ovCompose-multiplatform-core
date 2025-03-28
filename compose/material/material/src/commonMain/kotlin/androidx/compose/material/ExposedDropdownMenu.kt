@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7502
+//  aosp/3466924 reverts naming commonization in last minute before 1.8.0-beta01
+//  so it had to be re-done during 1.9 development cycle
+//  For now revert naming into 1.7.x state to avoid extra changes
+@file:JvmName("ExposedDropdownMenu_skikoKt")
+@file:JvmMultifileClass
+
 package androidx.compose.material
 
 import androidx.compose.animation.animateColorAsState
@@ -61,6 +68,8 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntRect
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 import kotlin.math.max
 
 /**

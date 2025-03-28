@@ -33,7 +33,6 @@ internal fun Translations.pa() = mapOf(
     Strings.MenuCollapsed to "ਸਮੇਟਿਆ ਗਿਆ",
     Strings.ToggleDropdownMenu to "ਡ੍ਰੌਪ-ਡਾਊਨ ਮੀਨੂ ਨੂੰ ਟੌਗਲ ਕਰੋ",
     Strings.SnackbarDismiss to "ਖਾਰਜ ਕਰੋ",
-    Strings.SnackbarPaneTitle to "ਅਲਰਟ",
     Strings.SearchBarSearch to "ਖੋਜੋ",
     Strings.SuggestionsAvailable to "ਸੁਝਾਅ ਹੇਠਾਂ ਹਨ",
     Strings.DatePickerTitle to "ਤਾਰੀਖ ਚੁਣੋ",
@@ -86,6 +85,4 @@ internal fun Translations.pa() = mapOf(
     Strings.TimePickerHour to "ਘੰਟਾ",
     Strings.TimePickerMinuteTextField to "ਮਿੰਟਾਂ ਲਈ",
     Strings.TimePickerHourTextField to "ਘੰਟੇ ਲਈ",
-    Strings.CloseRail to "ਰੇਲ ਬੰਦ ਕਰੋ",
-    Strings.WideNavigationRailPaneTitle to "ਨੈਵੀਗੇਸ਼ਨ ਰੇਲ",
 )

@@ -16,31 +16,21 @@
 
 package androidx.compose.ui.graphics
 
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-import org.jetbrains.skia.Point3
+import org.jetbrains.skiko.node.RenderNode
+import org.jetbrains.skiko.node.RenderNodeContext
 
 @InternalComposeUiApi
 class SkiaGraphicsContext(
-    internal val measureDrawBounds: Boolean = false,
+    measureDrawBounds: Boolean = false,
 ): GraphicsContext {
-    internal val lightGeometry = LightGeometry()
-    internal val lightInfo = LightInfo()
-    internal val snapshotObserver = SnapshotStateObserver { command ->
-        command()
-    }
-
-    init {
-        snapshotObserver.start()
-    }
+    private val renderNodeContext = RenderNodeContext(
+        measureDrawBounds = measureDrawBounds,
+    )
 
     fun dispose() {
-        snapshotObserver.stop()
-        snapshotObserver.clear()
+        renderNodeContext.close()
     }
 
     fun setLightingInfo(
@@ -51,26 +41,21 @@ class SkiaGraphicsContext(
         ambientShadowAlpha: Float = 0f,
         spotShadowAlpha: Float = 0f
     ) {
-        lightGeometry.center = Point3(centerX, centerY, centerZ)
-        lightGeometry.radius = radius
-        lightInfo.ambientShadowAlpha = ambientShadowAlpha
-        lightInfo.spotShadowAlpha = spotShadowAlpha
+        renderNodeContext.setLightingInfo(
+            centerX,
+            centerY,
+            centerZ,
+            radius,
+            ambientShadowAlpha,
+            spotShadowAlpha
+        )
     }
 
-    override fun createGraphicsLayer() = GraphicsLayer(this)
+    override fun createGraphicsLayer() = GraphicsLayer(
+        renderNode = RenderNode(renderNodeContext)
+    )
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
         layer.release()
     }
 }
-
-// Adoption of frameworks/base/libs/hwui/Lighting.h
-internal data class LightGeometry(
-    var center: Point3 = Point3(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE),
-    var radius: Float = 0f
-)
-
-internal data class LightInfo(
-    var ambientShadowAlpha: Float = 0f,
-    var spotShadowAlpha: Float = 0f
-)

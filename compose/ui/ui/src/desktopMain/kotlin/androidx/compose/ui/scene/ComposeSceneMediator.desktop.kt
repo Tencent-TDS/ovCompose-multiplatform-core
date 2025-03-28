@@ -24,10 +24,10 @@ import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.awt.AwtEventListener
 import androidx.compose.ui.awt.AwtEventListeners
+import androidx.compose.ui.awt.DebouncingEdtExecutor
 import androidx.compose.ui.awt.OnlyValidPrimaryMouseButtonFilter
 import androidx.compose.ui.awt.SwingInteropViewGroup
 import androidx.compose.ui.awt.isFocusGainedHandledBySwingPanel
-import androidx.compose.ui.awt.runOnEDTThread
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.platform.AwtDragAndDropManager
 import androidx.compose.ui.platform.DelegateRootForTestListener
 import androidx.compose.ui.platform.DesktopTextInputService
+import androidx.compose.ui.platform.DesktopTextInputService2
 import androidx.compose.ui.platform.EmptyViewConfiguration
 import androidx.compose.ui.platform.PlatformComponent
 import androidx.compose.ui.platform.PlatformContext
@@ -93,6 +94,8 @@ import javax.swing.SwingUtilities
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.jetbrains.skia.Canvas
 import org.jetbrains.skiko.ClipRectangle
@@ -138,6 +141,7 @@ internal class ComposeSceneMediator(
 
     private val platformComponent = DesktopPlatformComponent()
     private val textInputService = DesktopTextInputService(platformComponent)
+    private val textInputService2 = DesktopTextInputService2(platformComponent)
     private val _platformContext = DesktopPlatformContext()
     val platformContext: PlatformContext get() = _platformContext
 
@@ -163,12 +167,18 @@ internal class ComposeSceneMediator(
         get() = renderApi == GraphicsApi.METAL && contentComponent !is SkiaSwingLayer
 
     /**
+     * Whether to place interop components above non-interop components.
+     */
+    private val shouldPlaceInteropAbove: Boolean
+        get() = !useInteropBlending || metalOrderHack
+
+    /**
      * A container that controls interop views/components. It is used to add and remove
      * native views/components to [container].
      */
     private val interopContainer = SwingInteropContainer(
         root = container,
-        placeInteropAbove = !useInteropBlending || metalOrderHack,
+        placeInteropAbove = shouldPlaceInteropAbove,
         requestRedraw = ::onComposeInvalidation
     )
 
@@ -224,6 +234,9 @@ internal class ComposeSceneMediator(
             if (isDisposed) return
             catchExceptions {
                 textInputService.inputMethodTextChanged(event)
+            }
+            catchExceptions {
+                textInputService2.inputMethodTextChanged(event)
             }
         }
     }
@@ -346,6 +359,8 @@ internal class ComposeSceneMediator(
         getComposeRootDragAndDropNode = { scene.rootDragAndDropNode },
     )
 
+    private val composeInvalidationExecutor = DebouncingEdtExecutor()
+
     init {
         // Transparency is used during redrawer creation that triggered by [addNotify], so
         // it must be set to correct value before adding to the hierarchy to handle cases
@@ -358,6 +373,9 @@ internal class ComposeSceneMediator(
         // Because interopContainer.root == container, add a listener only after adding
         // [invisibleComponent] and [contentComponent] to react only on changes with [interopLayer].
         interopContainer.root.addContainerListener(interopContainerListener)
+        onRenderApiChanged {
+            interopContainer.placeInteropAbove = shouldPlaceInteropAbove
+        }
 
         // AwtDragAndDropManager support
         container.transferHandler = dragAndDropManager.transferHandler
@@ -465,6 +483,7 @@ internal class ComposeSceneMediator(
         }
         val composeEvent = event.toComposeEvent()
         textInputService.onKeyEvent(event)
+        textInputService2.onKeyEvent(event)
         windowContext.setKeyboardModifiers(composeEvent.internal.modifiers)
         if (onPreviewKeyEvent(composeEvent) ||
             scene.sendKeyEvent(composeEvent) ||
@@ -536,7 +555,7 @@ internal class ComposeSceneMediator(
         }
     }
 
-    fun onComposeInvalidation() = runOnEDTThread {
+    fun onComposeInvalidation() = composeInvalidationExecutor.runOrScheduleDebounced {
         catchExceptions {
             if (isDisposed) return@catchExceptions
             skiaLayerComponent.onComposeInvalidation()
@@ -770,21 +789,27 @@ internal class ComposeSceneMediator(
             // This session has no data, just init/dispose tasks.
             sessionInitializer = { null }
         ) {
-            (suspendCancellableCoroutine<Nothing> { continuation ->
-                textInputService.startInput(
-                    value = request.state,
-                    imeOptions = request.imeOptions,
-                    onEditCommand = request.onEditCommand,
-                    onImeActionPerformed = request.onImeAction ?: {}
-                )
-
-                continuation.invokeOnCancellation {
-                    textInputService.stopInput()
+            coroutineScope {
+                launch {
+                    request.focusedRectInRoot.collect {
+                        textInputService2.focusedRectChanged(it)
+                    }
                 }
-            })
+
+                suspendCancellableCoroutine<Nothing> { continuation ->
+                    textInputService2.startInput(
+                        state = request.state,
+                        imeOptions = request.imeOptions,
+                        editText = request.editText,
+                    )
+
+                    continuation.invokeOnCancellation {
+                        textInputService2.stopInput()
+                    }
+                }
+            }
         }
     }
-
 
     private class InvisibleComponent : Component() {
         fun requestFocusTemporary(): Boolean {

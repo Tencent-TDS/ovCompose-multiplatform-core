@@ -91,15 +91,11 @@ public final class androidx/compose/ui/test/ComposeTimeoutException : java/lang/
 
 public abstract interface class androidx/compose/ui/test/ComposeUiTest : androidx/compose/ui/test/SemanticsNodeInteractionsProvider {
 	public abstract fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
-	public abstract fun disableAccessibilityChecks ()V
-	public abstract fun enableAccessibilityChecks ()V
 	public abstract fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public abstract fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
-	public abstract fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public abstract fun runOnIdle (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public abstract fun runOnUiThread (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public abstract fun setContent (Lkotlin/jvm/functions/Function2;)V
-	public abstract fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public abstract fun waitForIdle ()V
 	public abstract fun waitUntil (Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 	public static synthetic fun waitUntil$default (Landroidx/compose/ui/test/ComposeUiTest;Ljava/lang/String;JLkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
@@ -129,6 +125,15 @@ public final class androidx/compose/ui/test/ComposeUiTest_skikoKt {
 	public static synthetic fun runInternalSkikoComposeUiTest$default (IILandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
 	public static final fun runSkikoComposeUiTest-Cqks5Fs (JLandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;)V
 	public static synthetic fun runSkikoComposeUiTest-Cqks5Fs$default (JLandroidx/compose/ui/unit/Density;Lkotlin/coroutines/CoroutineContext;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+}
+
+public final class androidx/compose/ui/test/DesktopComposeUiTest : androidx/compose/ui/test/SkikoComposeUiTest {
+	public static final field $stable I
+	public fun <init> ()V
+	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;)V
+	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
+	public final fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 }
 
 public abstract interface class androidx/compose/ui/test/DeviceConfigurationOverride {
@@ -607,7 +612,6 @@ public final class androidx/compose/ui/test/SemanticsNodeInteraction {
 	public static synthetic fun assertIsDeactivated$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;ILjava/lang/Object;)V
 	public final fun fetchSemanticsNode (Ljava/lang/String;)Landroidx/compose/ui/semantics/SemanticsNode;
 	public static synthetic fun fetchSemanticsNode$default (Landroidx/compose/ui/test/SemanticsNodeInteraction;Ljava/lang/String;ILjava/lang/Object;)Landroidx/compose/ui/semantics/SemanticsNode;
-	public final fun semanticsId ()I
 }
 
 public final class androidx/compose/ui/test/SemanticsNodeInteractionCollection {
@@ -639,31 +643,28 @@ public final class androidx/compose/ui/test/SemanticsSelector {
 	public final fun map (Ljava/lang/Iterable;Ljava/lang/String;)Landroidx/compose/ui/test/SelectionResult;
 }
 
-public final class androidx/compose/ui/test/SkikoComposeUiTest : androidx/compose/ui/test/ComposeUiTest {
+public class androidx/compose/ui/test/SkikoComposeUiTest : androidx/compose/ui/test/ComposeUiTest {
 	public static final field $stable I
 	public field scene Landroidx/compose/ui/scene/ComposeScene;
 	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;)V
 	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;)V
 	public synthetic fun <init> (IILkotlin/coroutines/CoroutineContext;Landroidx/compose/ui/unit/Density;Landroidx/compose/ui/platform/PlatformContext$SemanticsOwnerListener;Lkotlinx/coroutines/test/TestDispatcher;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	protected fun areAllResourcesIdle ()Z
 	public fun awaitIdle (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun captureToImage ()Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/semantics/SemanticsNode;)Landroidx/compose/ui/graphics/ImageBitmap;
 	public final fun captureToImage (Landroidx/compose/ui/test/SemanticsNodeInteraction;)Landroidx/compose/ui/graphics/ImageBitmap;
-	public fun disableAccessibilityChecks ()V
-	public fun enableAccessibilityChecks ()V
 	public fun getDensity ()Landroidx/compose/ui/unit/Density;
 	public fun getMainClock ()Landroidx/compose/ui/test/MainTestClock;
 	public final fun getScene ()Landroidx/compose/ui/scene/ComposeScene;
 	public fun onAllNodes (Landroidx/compose/ui/test/SemanticsMatcher;Z)Landroidx/compose/ui/test/SemanticsNodeInteractionCollection;
 	public fun onNode (Landroidx/compose/ui/test/SemanticsMatcher;Z)Landroidx/compose/ui/test/SemanticsNodeInteraction;
-	public fun registerIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public fun runOnIdle (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public fun runOnUiThread (Lkotlin/jvm/functions/Function0;)Ljava/lang/Object;
 	public final fun runTest (Lkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 	public fun setContent (Lkotlin/jvm/functions/Function2;)V
 	public final fun setScene (Landroidx/compose/ui/scene/ComposeScene;)V
-	public fun unregisterIdlingResource (Landroidx/compose/ui/test/IdlingResource;)V
 	public fun waitForIdle ()V
 	public fun waitUntil (Ljava/lang/String;JLkotlin/jvm/functions/Function0;)V
 }

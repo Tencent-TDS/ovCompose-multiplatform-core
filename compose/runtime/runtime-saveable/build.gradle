@@ -96,7 +96,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             corresponding block above */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(project(":collection:collection"))
 
                 api project(":compose:runtime:runtime")

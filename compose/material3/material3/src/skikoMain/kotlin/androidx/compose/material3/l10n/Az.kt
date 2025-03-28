@@ -33,7 +33,6 @@ internal fun Translations.az() = mapOf(
     Strings.MenuCollapsed to "Yığcamlaşdırılıb",
     Strings.ToggleDropdownMenu to "Aşağı açılan menyunu aktiv/deaktiv edin",
     Strings.SnackbarDismiss to "Rədd edin",
-    Strings.SnackbarPaneTitle to "Xəbərdarlıq",
     Strings.SearchBarSearch to "Axtarış",
     Strings.SuggestionsAvailable to "Təkliflər aşağıdadır",
     Strings.DatePickerTitle to "Tarix seçin",
@@ -86,6 +85,4 @@ internal fun Translations.az() = mapOf(
     Strings.TimePickerHour to "Saat",
     Strings.TimePickerMinuteTextField to "dəqiqəlik",
     Strings.TimePickerHourTextField to "saatlıq",
-    Strings.CloseRail to "Relsi bağlayın",
-    Strings.WideNavigationRailPaneTitle to "Naviqasiya relsi",
 )

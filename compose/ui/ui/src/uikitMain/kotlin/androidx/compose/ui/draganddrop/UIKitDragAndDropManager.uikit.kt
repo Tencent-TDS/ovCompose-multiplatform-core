@@ -46,23 +46,24 @@ import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIBezierPath
 import platform.UIKit.UIColor
 import platform.UIKit.UIDragInteraction
+import platform.UIKit.UIDragInteractionDelegateProtocol
 import platform.UIKit.UIDragItem
 import platform.UIKit.UIDragSessionProtocol
 import platform.UIKit.UIDropInteraction
-import platform.UIKit.UIDropOperationForbidden
-import platform.UIKit.UIDropProposal
-import platform.UIKit.UIDropSessionProtocol
-import platform.UIKit.addInteraction
-import platform.UIKit.UIDragInteractionDelegateProtocol
 import platform.UIKit.UIDropInteractionDelegateProtocol
 import platform.UIKit.UIDropOperation
 import platform.UIKit.UIDropOperationCopy
+import platform.UIKit.UIDropOperationForbidden
+import platform.UIKit.UIDropProposal
+import platform.UIKit.UIDropSessionProtocol
 import platform.UIKit.UIImageView
+import platform.UIKit.UILongPressGestureRecognizer
 import platform.UIKit.UIPreviewParameters
 import platform.UIKit.UIPreviewTarget
 import platform.UIKit.UITargetedDragPreview
 import platform.UIKit.UIView
 import platform.UIKit.UIViewContentMode
+import platform.UIKit.addInteraction
 
 /**
  * Context of a drag session initiated from Compose.
@@ -320,6 +321,15 @@ internal class UIKitDragAndDropManager(
     init {
         view.addInteraction(UIDragInteraction(delegate = dragInteractionProxy))
         view.addInteraction(UIDropInteraction(delegate = dropInteractionProxy))
+
+        // UIDragInteraction adds its own gesture recogniser that can cancel the gesture that is
+        // responsive to touch handling. Ignore this gesture if the drag session is not started
+        // or empty.
+        view.canIgnoreDragGesture = { gestureRecognizer ->
+            (gestureRecognizer is UILongPressGestureRecognizer &&
+                gestureRecognizer.view == view &&
+                dragSessionContext?.transferData?.items?.isNotEmpty() != true)
+        }
     }
 
     private fun <R> withDragSessionContext(block: DragSessionContext.() -> R): R? =

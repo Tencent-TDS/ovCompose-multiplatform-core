@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation.text
 
+import kotlin.math.absoluteValue
+import kotlin.math.sign
 import org.jetbrains.skia.BreakIterator
 
 internal actual fun String.findPrecedingBreak(index: Int): Int {
@@ -28,6 +30,40 @@ internal actual fun String.findFollowingBreak(index: Int): Int {
     val it = BreakIterator.makeCharacterInstance()
     it.setText(this)
     return it.following(index)
+}
+
+/**
+ * Returns true when [high] is a Unicode high-surrogate code unit and [low] is a Unicode
+ * low-surrogate code unit.
+ */
+private fun isSurrogatePair(high: Char, low: Char): Boolean =
+    high.isHighSurrogate() && low.isLowSurrogate()
+
+/**
+ * Returns the index, in characters, of the code point at distance [offset] from [index].
+ *
+ * If there aren't enough codepoints in the correct direction, returns 0 (if [offset] is negative)
+ * or the length of the char sequence (if [offset] is positive).
+ */
+internal fun CharSequence.offsetByCodePoints(index: Int, offset: Int): Int {
+    val sign = offset.sign
+    val distance = offset.absoluteValue
+
+    var currentOffset = index
+    for (i in 0 until distance) {
+        currentOffset += sign
+        if (currentOffset <= 0) return 0
+        else if (currentOffset >= length) return length
+
+        val lead = this[currentOffset - 1]
+        val trail = this[currentOffset]
+
+        if (isSurrogatePair(lead, trail)) {
+            currentOffset += sign
+        }
+    }
+
+    return currentOffset
 }
 
 // Copied from CharHelpers.skiko.kt

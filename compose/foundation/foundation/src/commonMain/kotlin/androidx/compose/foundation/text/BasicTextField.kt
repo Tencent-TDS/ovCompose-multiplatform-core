@@ -48,6 +48,9 @@ import androidx.compose.foundation.text.input.internal.TextLayoutState
 import androidx.compose.foundation.text.input.internal.TransformedTextFieldState
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState
 import androidx.compose.foundation.text.input.internal.selection.TextFieldSelectionState.InputType
+import androidx.compose.foundation.text.input.internal.selection.TextToolbarHandler
+import androidx.compose.foundation.text.input.internal.selection.TextToolbarState
+import androidx.compose.foundation.text.input.internal.selection.menuItem
 import androidx.compose.foundation.text.selection.SelectionHandle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -56,21 +59,23 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalAutofillManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -80,8 +85,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.launch
 
 private object BasicTextFieldDefaults {
     val CursorBrush = SolidColor(Color.Black)
@@ -290,10 +297,64 @@ internal fun BasicTextField(
                 isPassword = isPassword,
             )
         }
+    val coroutineScope = rememberCoroutineScope()
     val currentHapticFeedback = LocalHapticFeedback.current
-    val currentClipboardManager = LocalClipboardManager.current
+    val currentClipboard = LocalClipboard.current
     val currentTextToolbar = LocalTextToolbar.current
-    val autofillManager = LocalAutofillManager.current
+
+    val textToolbarHandler =
+        remember(coroutineScope, currentTextToolbar) {
+            object : TextToolbarHandler {
+                override suspend fun showTextToolbar(
+                    selectionState: TextFieldSelectionState,
+                    rect: Rect
+                ) =
+                    with(selectionState) {
+                        currentTextToolbar.showMenu(
+                            rect = rect,
+                            onCopyRequested =
+                                menuItem(canCopy(), TextToolbarState.None) {
+                                    coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                        copy()
+                                    }
+                                },
+                            onPasteRequested =
+                                menuItem(canPaste(), TextToolbarState.None) {
+                                    coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                        paste()
+                                    }
+                                },
+                            onCutRequested =
+                                menuItem(canCut(), TextToolbarState.None) {
+                                    coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                        cut()
+                                    }
+                                },
+                            onSelectAllRequested =
+                                menuItem(canSelectAll(), TextToolbarState.Selection) {
+                                    selectAll()
+                                },
+                            onAutofillRequested =
+                                menuItem(canAutofill(), TextToolbarState.None) { autofill() }
+                        )
+                    }
+
+                override fun hideTextToolbar() {
+                    if (currentTextToolbar.status == TextToolbarStatus.Shown) {
+                        currentTextToolbar.hide()
+                    }
+                }
+            }
+        }
+
+    // TODO: upstreaming https://youtrack.jetbrains.com/issue/CMP-7517/Upstream-rememberClipboardEventsHandler
+    rememberClipboardEventsHandler(
+        isEnabled = isFocused,
+        onPaste = { textFieldSelectionState.pasteAsPlainText(it) },
+        onCopy = { textFieldSelectionState.copyWithResult() },
+        onCut = { textFieldSelectionState.cutWithResult() }
+    )
+
     SideEffect {
         // These properties are not backed by snapshot state, so they can't be updated directly in
         // composition.
@@ -301,13 +362,12 @@ internal fun BasicTextField(
 
         textFieldSelectionState.update(
             hapticFeedBack = currentHapticFeedback,
-            clipboardManager = currentClipboardManager,
-            textToolbar = currentTextToolbar,
+            clipboard = currentClipboard,
             density = density,
             enabled = enabled,
             readOnly = readOnly,
             isPassword = isPassword,
-            autofillManager = autofillManager
+            showTextToolbar = textToolbarHandler
         )
     }
 

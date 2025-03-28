@@ -81,7 +81,7 @@ class ComponentsAccessibilitySemanticTest {
     @Test
     fun testButtonNodeActionAndSemantic() = runUIKitInstrumentedTest {
         var tapped = false
-        setContentWithAccessibilityEnabled {
+        setContent {
             Button({ tapped = true }) {
                 Text("Content")
             }
@@ -115,7 +115,7 @@ class ComponentsAccessibilitySemanticTest {
     @Test
     fun testProgressNodesSemantic() = runUIKitInstrumentedTest {
         var sliderValue = 0.4f
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Slider(
                     value = sliderValue,
@@ -162,7 +162,7 @@ class ComponentsAccessibilitySemanticTest {
     @Test
     fun testSliderAction() = runUIKitInstrumentedTest {
         var sliderValue = 0.4f
-        setContentWithAccessibilityEnabled {
+        setContent {
             Slider(
                 value = sliderValue,
                 onValueChange = { sliderValue = it },
@@ -182,7 +182,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testToggleAndCheckboxSemantic() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Switch(false, {})
                 Checkbox(false, {})
@@ -231,7 +231,7 @@ class ComponentsAccessibilitySemanticTest {
         var checkbox by mutableStateOf(false)
         var triStateCheckbox by mutableStateOf(ToggleableState.Off)
 
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Switch(
                     checked = switch,
@@ -271,7 +271,7 @@ class ComponentsAccessibilitySemanticTest {
     fun testRadioButtonSelection() = runUIKitInstrumentedTest {
         var selectedIndex by mutableStateOf(0)
 
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 RadioButton(selected = selectedIndex == 0, onClick = { selectedIndex = 0 })
                 RadioButton(selected = selectedIndex == 1, onClick = { selectedIndex = 1 })
@@ -342,7 +342,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testImageSemantics() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Image(
                     ImageBitmap(10, 10),
@@ -384,7 +384,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testTextSemantics() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Text("Static Text", modifier = Modifier.testTag("Text 1"))
                 Text("Custom Button", modifier = Modifier.testTag("Text 2").clickable { })
@@ -409,7 +409,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testDisabledSemantics() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Button({}, enabled = false) {}
                 TextField("", {}, enabled = false)
@@ -476,7 +476,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testHeadingSemantics() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Scaffold(topBar = {
                 TopAppBar {
                     Text("Header", modifier = Modifier.semantics { heading() })
@@ -514,7 +514,7 @@ class ComponentsAccessibilitySemanticTest {
             )
         }
 
-        setContentWithAccessibilityEnabled {
+        setContent {
             SelectionContainer {
                 Column {
                     Text("Title")
@@ -547,7 +547,7 @@ class ComponentsAccessibilitySemanticTest {
     fun testVisibleNodes() = runUIKitInstrumentedTest {
         var alpha by mutableStateOf(0f)
 
-        setContentWithAccessibilityEnabled {
+        setContent {
             Text("Hidden", modifier = Modifier.graphicsLayer {
                 this.alpha = alpha
             })
@@ -569,7 +569,7 @@ class ComponentsAccessibilitySemanticTest {
     fun testVisibleNodeContainers() = runUIKitInstrumentedTest {
         var alpha by mutableStateOf(0f)
 
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Text("Text 1")
                 Row(modifier = Modifier.graphicsLayer {
@@ -615,7 +615,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testAccessibilityContainer() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column(modifier = Modifier.testTag("Container")) {
                 Text("Text 1")
                 Text("Text 2")
@@ -638,7 +638,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testAccessibilityInterop() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column(modifier = Modifier.testTag("Container")) {
                 UIKitView(
                     factory = {
@@ -691,7 +691,7 @@ class ComponentsAccessibilitySemanticTest {
 
     @Test
     fun testChildrenOfCollapsedNode() = runUIKitInstrumentedTest {
-        setContentWithAccessibilityEnabled {
+        setContent {
             Column {
                 Row(modifier = Modifier.testTag("row").clickable {}) {
                     Text("Foo", modifier = Modifier.testTag("row_title"))

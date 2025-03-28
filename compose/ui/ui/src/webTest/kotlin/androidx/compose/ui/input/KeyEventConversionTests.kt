@@ -154,6 +154,8 @@ class KeyEventConversionTests {
         keyEvent("F12", code = "F12", keyCode = Key.F12.keyCode.toInt()).assertEquivalence(key = Key.F12)
 
         keyEvent("", code = "Space", keyCode = Key.Spacebar.keyCode.toInt()).assertEquivalence(key = Key.Spacebar)
+
+        keyEvent("'", code= "Quote", keyCode = Key.Apostrophe.keyCode.toInt()).assertEquivalence(key = Key.Apostrophe, codePoint = 39)
     }
 
     @Test

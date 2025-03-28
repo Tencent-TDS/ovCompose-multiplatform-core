@@ -29,6 +29,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.testing.TestLifecycleOwner
+import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDestination.Companion.createRoute
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.serialization.generateHashCode
@@ -50,8 +51,8 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import androidx.testutils.TestNavigator
 import androidx.testutils.test
-import androidx.kruth.assertThat
-import androidx.kruth.assertWithMessage
+import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.typeOf
@@ -83,11 +84,7 @@ class NavControllerRouteTest {
                     type = NavType.StringType
                     defaultValue = "defaultValue"
                 }
-                deepLink {
-                    uriPattern = "android-app://androidx.navigation.test/test/{arg2}"
-                    action = "test.action"
-                    mimeType = "type/test"
-                }
+                deepLink { uriPattern = "android-app://androidx.navigation.test/test/{arg2}" }
                 deepLink {
                     uriPattern = "android-app://androidx.navigation.test/test/{arg1}/{arg2}"
                 }
@@ -99,8 +96,11 @@ class NavControllerRouteTest {
                 }
                 deepLink {
                     uriPattern = "android-app://androidx.navigation.test/test/test{arg3}"
-                    action = "test.action2"
                     mimeType = "type/test2"
+                }
+                deepLink {
+                    uriPattern = "android-app://androidx.navigation.test/test/test{arg3}"
+                    action = "test.action2"
                 }
             }
         }
@@ -124,34 +124,37 @@ class NavControllerRouteTest {
             test("second_test")
         }
 
-    val nav_deeplink_route_graph =
+    val nav_deeplink_mime_graph =
         createNavController().createGraph(route = "nav_root", startDestination = "first_test") {
-            test("first_test") {
+            test("first_test") { deepLink { mimeType = "*/*" } }
+            test("second_test") { deepLink { mimeType = "image/*" } }
+            test("third_test") { deepLink { mimeType = "*/test" } }
+        }
+
+    val nav_deeplink_graph =
+        createNavController().createGraph(route = "nav_root", startDestination = "start_test") {
+            test("start_test")
+            test("uri_only") {
+                deepLink { uriPattern = "android-app://androidx.navigation.test/uriOnly" }
+            }
+            test("action_only") { deepLink { action = "action.only" } }
+            test("mime_only") { deepLink { mimeType = "mime/only" } }
+            test("uri_mime") {
                 deepLink {
-                    uriPattern = "android-app://androidx.navigation.test/test"
-                    action = "test.action"
-                    mimeType = "*/*"
+                    uriPattern = "android-app://androidx.navigation.test/uriMime"
+                    mimeType = "uri/mime"
                 }
             }
-            test("second_test") {
+            test("uri_action") {
                 deepLink {
-                    uriPattern = "android-app://androidx.navigation.test/test"
-                    action = "test.action"
-                    mimeType = "image/*"
+                    uriPattern = "android-app://androidx.navigation.test/test/uriAction"
+                    action = "uri.action"
                 }
             }
-            test("third_test") {
+            test("action_mime") {
                 deepLink {
-                    uriPattern = "android-app://androidx.navigation.test/test"
-                    action = "test.action"
-                    mimeType = "*/test"
-                }
-            }
-            test("forth_test") {
-                deepLink {
-                    uriPattern = "android-app://androidx.navigation.test/test"
-                    action = "test.action"
-                    mimeType = "type/test"
+                    action = "action.mime"
+                    mimeType = "action/mime"
                 }
             }
         }
@@ -285,11 +288,18 @@ class NavControllerRouteTest {
         @Serializable @SerialName("test") class TestClass(val arg: Int)
 
         val navController = createNavController()
-        navController.graph =
-            navController.createGraph(startDestination = TestClass::class) { test<TestClass>() }
-        assertThat(navController.currentDestination?.route).isEqualTo("test/{arg}")
-        assertThat(navController.currentDestination?.id)
-            .isEqualTo(serializer<TestClass>().generateHashCode())
+        val exception =
+            assertFailsWith<IllegalArgumentException> {
+                navController.graph =
+                    navController.createGraph(startDestination = TestClass::class) {
+                        test<TestClass>()
+                    }
+            }
+        assertThat(exception.message)
+            .isEqualTo(
+                "Cannot navigate to startDestination Destination(0x693c804) " +
+                    "route=test/{arg}. Missing required arguments [[arg]]"
+            )
     }
 
     @UiThreadTest
@@ -420,6 +430,30 @@ class NavControllerRouteTest {
         val actual = entry.arguments!!.getString("arg")
         val expected = "myArg"
         assertThat(actual).isEqualTo(expected)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testStartDestinationMissingRequiredArg() {
+        val navController = createNavController()
+        val exception =
+            assertFailsWith<IllegalArgumentException> {
+                navController.graph =
+                    navController.createGraph(
+                        route = "graph",
+                        startDestination = "start_test/{arg}"
+                    ) {
+                        test("start_test/{arg}") {
+                            // does not have default value to fallback to
+                            argument("arg") { type = NavType.IntType }
+                        }
+                    }
+            }
+        assertThat(exception.message)
+            .isEqualTo(
+                "Cannot navigate to startDestination Destination(0x67775af) " +
+                    "route=start_test/{arg}. Missing required arguments [[arg]]"
+            )
     }
 
     @UiThreadTest
@@ -814,6 +848,30 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
+    fun testNavigateContainsIntent() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test("second")
+            }
+
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+        assertThat(navigator.backStack.size).isEqualTo(1)
+
+        navController.navigate("second")
+        assertThat(navController.currentDestination?.route).isEqualTo("second")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+        val intent: Intent? =
+            @Suppress("DEPRECATION")
+            navController.currentBackStackEntry?.arguments?.getParcelable(KEY_DEEP_LINK_INTENT)
+        assertThat(intent).isNotNull()
+        assertThat(intent!!.data).isEqualTo(Uri.parse("android-app://androidx.navigation/second"))
+    }
+
+    @UiThreadTest
+    @Test
     fun testNavigateNestedSharedDestination() {
         val navController = createNavController()
         navController.graph =
@@ -1003,19 +1061,28 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
-    @Suppress("DEPRECATION")
-    fun testNavigateViaDeepLink() {
+    fun testNavigateNestedDuplicateDestination() {
         val navController = createNavController()
-        navController.graph = nav_simple_route_graph
-        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = Uri.parse("android-app://androidx.navigation.test/test/arg2")
+        navController.graph =
+            navController.createGraph(route = "root", startDestination = "start") {
+                test("start")
+                navigation(route = "second", startDestination = "duplicate") { test("duplicate") }
+                navigation(route = "duplicate", startDestination = "third") { test("third") }
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
 
-        navController.navigate(deepLink)
-        assertThat(navController.currentDestination?.route).isEqualTo("second_test/{arg2}")
-        assertThat(navigator.backStack.size).isEqualTo(2)
-        val intent =
-            navigator.current.arguments?.getParcelable<Intent>(NavController.KEY_DEEP_LINK_INTENT)
-        assertThat(intent?.data).isEqualTo(deepLink)
+        navController.navigate("second")
+        assertThat(navController.currentBackStack.value.map { it.destination.route })
+            .containsExactly("root", "start", "second", "duplicate")
+
+        navController.navigate("third")
+        assertThat(navController.currentBackStack.value.map { it.destination.route })
+            .containsExactly("root", "start", "second", "duplicate", "duplicate", "third")
+        val duplicateNode =
+            navController.currentBackStack.value
+                .last { it.destination.route == "duplicate" }
+                .destination
+        assertThat(duplicateNode.parent?.route).isEqualTo("root")
     }
 
     @UiThreadTest
@@ -1264,6 +1331,31 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
+    fun testNavigateWithObjectDouble() {
+        @Serializable class TestClass(val arg: Double = 11.11)
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+
+        // passed in arg
+        navController.navigate(TestClass(11E123))
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isEqualTo(11E123)
+        assertThat(navController.currentBackStack.value.size).isEqualTo(3)
+
+        // use default
+        navController.navigate(TestClass())
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isEqualTo(11.11)
+        assertThat(navController.currentBackStack.value.size).isEqualTo(4)
+    }
+
+    @UiThreadTest
+    @Test
     fun testNavigateWithObjectNullableInt() {
         @Serializable class TestClass(val arg: Int? = 10)
         val navController = createNavController()
@@ -1365,6 +1457,62 @@ class NavControllerRouteTest {
         navController.navigate(TestClass(true))
         assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
         assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isTrue()
+        assertThat(navController.currentBackStack.value.size).isEqualTo(3)
+
+        // passed in null
+        navController.navigate(TestClass(null))
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isNull()
+        assertThat(navController.currentBackStack.value.size).isEqualTo(4)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullableDouble() {
+        @Serializable class TestClass(val arg: Double? = 11.11)
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+
+        // passed in arg
+        navController.navigate(TestClass(11E123))
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isEqualTo(11E123)
+        assertThat(navController.currentBackStack.value.size).isEqualTo(3)
+
+        // passed in null
+        navController.navigate(TestClass(null))
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isNull()
+        assertThat(navController.currentBackStack.value.size).isEqualTo(4)
+
+        // use default
+        navController.navigate(TestClass())
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isEqualTo(11.11)
+        assertThat(navController.currentBackStack.value.size).isEqualTo(5)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullableDoubleNoDefault() {
+        @Serializable class TestClass(val arg: Double?)
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+
+        // passed in arg
+        navController.navigate(TestClass(11E123))
+        assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
+        assertThat(navController.currentBackStackEntry?.toRoute<TestClass>()?.arg).isEqualTo(11E123)
         assertThat(navController.currentBackStack.value.size).isEqualTo(3)
 
         // passed in null
@@ -1524,7 +1672,6 @@ class NavControllerRouteTest {
                 test<TestClass>()
             }
         assertThat(navController.currentDestination?.route).isEqualTo("start")
-
         // passed in arg
         navController.navigate(TestClass(TestTopLevelEnum.TWO))
         assertThat(navController.currentDestination?.hasRoute(TestClass::class)).isTrue()
@@ -1725,12 +1872,10 @@ class NavControllerRouteTest {
         navController.graph = nav_singleArg_graph
 
         // first nav with arg filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
         // second nav with arg filled in
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13", "second_test/18"]
@@ -1761,12 +1906,10 @@ class NavControllerRouteTest {
             }
 
         // fist nested graph
-        val deepLink = Uri.parse("android-app://androidx.navigation/graph2/13")
-        navController.navigate(deepLink)
+        navController.navigate("graph2/13")
 
         // second nested graph
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/graph3/18")
-        navController.navigate(deepLink2)
+        navController.navigate("graph3/18")
 
         val navigator = navController.navigatorProvider.getNavigator(NavGraphNavigator::class.java)
         // ["graph", "graph2/13", "graph3/18"]
@@ -1786,8 +1929,7 @@ class NavControllerRouteTest {
         navController.graph = nav_multiArg_graph
 
         // navigate with both args filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -1804,8 +1946,7 @@ class NavControllerRouteTest {
         navController.graph = nav_multiArg_graph
 
         // navigate with args partially filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/{arg2}"]
@@ -1902,8 +2043,7 @@ class NavControllerRouteTest {
             }
 
         // navigate with query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt=13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt=13")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -1937,8 +2077,7 @@ class NavControllerRouteTest {
             }
 
         // navigate with query params
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt=null&opt2=13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt=null&opt2=13")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -1952,7 +2091,7 @@ class NavControllerRouteTest {
         navController.graph =
             createNavController().createGraph(
                 route = "nav_root",
-                startDestination = "start_test?{arg}"
+                startDestination = "start_test?myArg"
             ) {
                 test("start_test?{arg}") { argument("arg") { type = NavType.StringType } }
             }
@@ -1975,7 +2114,7 @@ class NavControllerRouteTest {
         navController.graph =
             createNavController().createGraph(
                 route = "nav_root",
-                startDestination = "start_test?opt={arg}"
+                startDestination = "start_test?opt=myArg"
             ) {
                 test("start_test?opt={arg}") { argument("arg") { type = NavType.StringType } }
             }
@@ -1998,8 +2137,7 @@ class NavControllerRouteTest {
         navController.graph = nav_singleArg_graph
 
         // navigate with arg filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13"]
@@ -2024,8 +2162,7 @@ class NavControllerRouteTest {
         navController.graph = nav_multiArg_graph
 
         // navigate with args partially filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2049,8 +2186,7 @@ class NavControllerRouteTest {
         navController.graph = nav_multiArg_graph
 
         // navigate with args partially filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/{arg2}"]
@@ -2073,8 +2209,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2180,6 +2315,25 @@ class NavControllerRouteTest {
         assertThat(navigator.backStack.size).isEqualTo(2)
 
         val entry = navController.getBackStackEntry<TestClass>()
+        assertThat(entry.destination.route).isEqualTo(TEST_CLASS_ROUTE)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testGetBackStackEntryWithKClassNonReified() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+
+        navController.navigate(TEST_CLASS_ROUTE)
+
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        assertThat(navigator.backStack.size).isEqualTo(2)
+
+        val entry = navController.getBackStackEntry(TestClass::class)
         assertThat(entry.destination.route).isEqualTo(TEST_CLASS_ROUTE)
     }
 
@@ -2446,12 +2600,10 @@ class NavControllerRouteTest {
         navController.graph = nav_singleArg_graph
 
         // first nav with arg filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
         // second nav with arg filled in
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13", "second_test/18"]
@@ -2470,12 +2622,10 @@ class NavControllerRouteTest {
         navController.graph = nav_singleArg_graph
 
         // first nav with arg filed in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
         // second nav with arg filled in
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13", "second_test/18"]
@@ -2492,8 +2642,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2510,8 +2659,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/{arg2}"]
@@ -2539,8 +2687,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without filling query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?{arg}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?{arg}")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -2569,8 +2716,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt={arg}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt={arg}")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -2596,8 +2742,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt=null")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt=null")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -2612,8 +2757,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2630,8 +2774,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/{arg2}"]
@@ -2648,8 +2791,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2666,8 +2808,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         // ["start_test", "second_test/13/18"]
@@ -2693,6 +2834,25 @@ class NavControllerRouteTest {
         assertThat(navigator.backStack.size).isEqualTo(2)
 
         val popped = navController.popBackStack<TestClass>(true)
+        assertThat(popped).isTrue()
+        assertThat(navigator.backStack.size).isEqualTo(1)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testPopBackStackWithKClassNonReified() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+        navController.navigate(TestClass())
+
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        assertThat(navigator.backStack.size).isEqualTo(2)
+
+        val popped = navController.popBackStack(TestClass::class, true)
         assertThat(popped).isTrue()
         assertThat(navigator.backStack.size).isEqualTo(1)
     }
@@ -2989,11 +3149,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3012,11 +3170,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3036,11 +3192,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3090,11 +3244,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/14")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/14")
 
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18/19")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18/19")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3111,11 +3263,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
-        val deepLink3 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink3)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3133,11 +3283,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/14")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/14")
 
-        val deepLink2 = Uri.parse("android-app://androidx.navigation/second_test/18/19")
-        navController.navigate(deepLink2)
+        navController.navigate("second_test/18/19")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3155,11 +3303,9 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
-        val deepLink3 = Uri.parse("android-app://androidx.navigation/second_test/18")
-        navController.navigate(deepLink3)
+        navController.navigate("second_test/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(3)
@@ -3179,8 +3325,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_singleArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3201,8 +3346,7 @@ class NavControllerRouteTest {
         navController.graph = nav_multiArg_graph
 
         // navigate with partial args filled in
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3229,8 +3373,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without filling query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?{arg}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?{arg}")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -3258,8 +3401,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without filling query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt={arg}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt={arg}")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -3287,8 +3429,7 @@ class NavControllerRouteTest {
             }
 
         // navigate without filling query param
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test?opt=null")
-        navController.navigate(deepLink)
+        navController.navigate("second_test?opt=null")
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
 
@@ -3305,8 +3446,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/{arg2}")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/{arg2}")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3323,8 +3463,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3341,8 +3480,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3359,8 +3497,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_multiArg_graph
 
-        val deepLink = Uri.parse("android-app://androidx.navigation/second_test/13/18")
-        navController.navigate(deepLink)
+        navController.navigate("second_test/13/18")
 
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
         assertThat(navigator.backStack.size).isEqualTo(2)
@@ -3387,6 +3524,26 @@ class NavControllerRouteTest {
         assertThat(popped).isTrue()
 
         val cleared = navController.clearBackStack<TestClass>()
+        assertThat(cleared).isTrue()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testClearBackStackWithKClassNonReified() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start")
+                test<TestClass>()
+            }
+
+        navController.navigate(TEST_CLASS_ROUTE)
+        assertThat(navController.currentBackStack.value.size).isEqualTo(3)
+
+        val popped = navController.popBackStack<TestClass>(true, true)
+        assertThat(popped).isTrue()
+
+        val cleared = navController.clearBackStack(TestClass::class)
         assertThat(cleared).isTrue()
     }
 
@@ -3615,7 +3772,7 @@ class NavControllerRouteTest {
         val navController = createNavController()
         navController.graph = nav_simple_route_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = Uri.parse("android-app://androidx.navigation.test/test/arg2")
+        val deepLink = Uri.parse("android-app://androidx.navigation.test/test/arg1")
 
         navController.navigate(deepLink)
 
@@ -3628,14 +3785,58 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
-    fun testNavigateViaDeepLinkActionDifferentURI() {
+    @Suppress("DEPRECATION")
+    fun testNavigateViaDeepLinkUri() {
         val navController = createNavController()
-        navController.graph = nav_simple_route_graph
+        navController.graph = nav_deeplink_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = NavDeepLinkRequest(Uri.parse("invalidDeepLink.com"), "test.action", null)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/uriOnly"),
+                null,
+                null
+            )
 
         navController.navigate(deepLink)
-        assertThat(navController.currentDestination?.route).isEqualTo("second_test/{arg2}")
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_only")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+        val intent = navigator.current.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
+        assertThat(intent?.data).isEqualTo(deepLink.uri)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink = NavDeepLinkRequest(null, "action.only", null)
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("action_only")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkActionDifferentURI() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(Uri.parse("invalidDeepLink.com"), "uri.action", null)
+        // invalid Uri, no match
+        assertFailsWith<java.lang.IllegalArgumentException> { navController.navigate(deepLink) }
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkActionAdditionalURI() {
+        val navController = createNavController()
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(Uri.parse("additionalDeepLink.com"), "action.only", null)
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("action_only")
         assertThat(navigator.backStack.size).isEqualTo(2)
     }
 
@@ -3661,13 +3862,27 @@ class NavControllerRouteTest {
     @Test
     fun testNavigateViaDeepLinkMimeTypeDifferentUri() {
         val navController = createNavController()
-        navController.graph = nav_simple_route_graph
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(Uri.parse("invalidDeepLink.com"), null, "uri/mime")
+        // invalid Uri, no match
+        assertFailsWith<java.lang.IllegalArgumentException> { navController.navigate(deepLink) }
+    }
+
+    @UiThreadTest
+    @Test
+    @Suppress("DEPRECATION")
+    fun testNavigateViaDeepLinkMimeTypeAdditionalUri() {
+        val navController = createNavController()
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = NavDeepLinkRequest(Uri.parse("invalidDeepLink.com"), null, "type/test")
+        val mimeType = "mime/only"
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(Uri.parse("additionalUri.com"), null, mimeType)
 
         navController.navigate(deepLink)
-        assertThat(navController.currentDestination?.route).isEqualTo("second_test/{arg2}")
+        assertThat(navController.currentDestination?.route).isEqualTo("mime_only")
         assertThat(navigator.backStack.size).isEqualTo(2)
+        val intent = navigator.current.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
+        assertThat(intent?.type).isEqualTo(mimeType)
     }
 
     @UiThreadTest
@@ -3693,16 +3908,15 @@ class NavControllerRouteTest {
     @Suppress("DEPRECATION")
     fun testNavigateViaDeepLinkMimeType() {
         val navController = createNavController()
-        navController.graph = nav_deeplink_route_graph
+        navController.graph = nav_deeplink_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val mimeType = "type/test"
+        val mimeType = "mime/only"
         val deepLink = NavDeepLinkRequest(null, null, mimeType)
 
         navController.navigate(deepLink)
-        assertThat(navController.currentDestination?.route).isEqualTo("forth_test")
+        assertThat(navController.currentDestination?.route).isEqualTo("mime_only")
         assertThat(navigator.backStack.size).isEqualTo(2)
-        val intent =
-            navigator.current.arguments?.getParcelable<Intent>(NavController.KEY_DEEP_LINK_INTENT)
+        val intent = navigator.current.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
         assertThat(intent?.type).isEqualTo(mimeType)
     }
 
@@ -3710,9 +3924,9 @@ class NavControllerRouteTest {
     @Test
     fun testNavigateViaDeepLinkMimeTypeWildCard() {
         val navController = createNavController()
-        navController.graph = nav_deeplink_route_graph
+        navController.graph = nav_deeplink_mime_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = NavDeepLinkRequest(null, null, "any/thing")
+        val deepLink = NavDeepLinkRequest(null, null, "wildCard/wildCard")
 
         navController.navigate(deepLink)
         assertThat(navController.currentDestination?.route).isEqualTo("first_test")
@@ -3723,9 +3937,9 @@ class NavControllerRouteTest {
     @Test
     fun testNavigateViaDeepLinkMimeTypeWildCardSubtype() {
         val navController = createNavController()
-        navController.graph = nav_deeplink_route_graph
+        navController.graph = nav_deeplink_mime_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = NavDeepLinkRequest(null, null, "image/jpg")
+        val deepLink = NavDeepLinkRequest(null, null, "image/wildCard")
 
         navController.navigate(deepLink)
         assertThat(navController.currentDestination?.route).isEqualTo("second_test")
@@ -3736,13 +3950,95 @@ class NavControllerRouteTest {
     @Test
     fun testNavigateViaDeepLinkMimeTypeWildCardType() {
         val navController = createNavController()
-        navController.graph = nav_deeplink_route_graph
+        navController.graph = nav_deeplink_mime_graph
         val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
-        val deepLink = NavDeepLinkRequest(null, null, "doesNotEvenMatter/test")
+        val deepLink = NavDeepLinkRequest(null, null, "wildCard/test")
 
         navController.navigate(deepLink)
         assertThat(navController.currentDestination?.route).isEqualTo("third_test")
         assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkUriAndAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/test/uriAction"),
+                "uri.action",
+                null
+            )
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_action")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkUriAndMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/uriMime"),
+                null,
+                "uri/mime"
+            )
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_mime")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkActionAndMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink = NavDeepLinkRequest(null, "action.mime", "action/mime")
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("action_mime")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkUriAndActionMissingUri() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(null, "uri.action", null)
+
+        // invalid Uri, no match
+        assertFailsWith<java.lang.IllegalArgumentException> { navController.navigate(deepLink) }
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkActionAndMimeTypeMissingMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(null, "action.mime", null)
+
+        // invalid Uri, no match
+        assertFailsWith<java.lang.IllegalArgumentException> { navController.navigate(deepLink) }
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaDeepLinkActionAndMimeTypeMissingAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(null, null, "action/mime")
+
+        // invalid Uri, no match
+        assertFailsWith<java.lang.IllegalArgumentException> { navController.navigate(deepLink) }
     }
 
     @UiThreadTest
@@ -3844,6 +4140,71 @@ class NavControllerRouteTest {
             .isTrue()
         assertThat(navController.currentDestination?.route).isEqualTo("simple_child_start_test")
         assertThat(navigator.backStack.size).isEqualTo(1)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaUriOnlyIfDeepLinkExplicitlyAdded() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start") { deepLink { uriPattern = createRoute("explicit_start_deeplink") } }
+            }
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+        assertThat(navigator.backStack.size).isEqualTo(1)
+
+        val deepLink = Uri.parse(createRoute("explicit_start_deeplink"))
+
+        navController.navigate(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+
+        // ensure can't deep link with destination's public route
+        val deepLink2 = Uri.parse(createRoute("start"))
+
+        val exception =
+            assertFailsWith<IllegalArgumentException> { navController.navigate(deepLink2) }
+        assertThat(exception.message)
+            .isEqualTo(
+                "Navigation destination that matches request " +
+                    "NavDeepLinkRequest{ uri=android-app://androidx.navigation/start } " +
+                    "cannot be found in the navigation graph NavGraph(0x0) " +
+                    "startDestination={Destination(0xa2cd94f5) route=start}"
+            )
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateViaRequestOnlyIfDeepLinkExplicitlyAdded() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start") { deepLink { uriPattern = createRoute("explicit_start_deeplink") } }
+            }
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+        assertThat(navigator.backStack.size).isEqualTo(1)
+
+        val request =
+            NavDeepLinkRequest(Uri.parse(createRoute("explicit_start_deeplink")), null, null)
+
+        navController.navigate(request)
+        assertThat(navController.currentDestination?.route).isEqualTo("start")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+
+        // ensure can't deep link with destination's public route
+        val request2 = NavDeepLinkRequest(Uri.parse(createRoute("start")), null, null)
+
+        val exception =
+            assertFailsWith<IllegalArgumentException> { navController.navigate(request2) }
+        assertThat(exception.message)
+            .isEqualTo(
+                "Navigation destination that matches request " +
+                    "NavDeepLinkRequest{ uri=android-app://androidx.navigation/start } " +
+                    "cannot be found in the navigation graph NavGraph(0x0) " +
+                    "startDestination={Destination(0xa2cd94f5) route=start}"
+            )
     }
 
     @LargeTest
@@ -4650,6 +5011,33 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
+    fun testNavigateWithObjectNonNullableString() {
+        @Serializable @SerialName("test") class TestClass(val arg: String)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass("null")) { test<TestClass>() }
+        assertThat(navController.currentDestination?.route).isEqualTo("test/{arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isNotNull()
+        assertThat(route.arg).isEqualTo("null")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullableString() {
+        @Serializable @SerialName("test") class TestClass(val arg: String?)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass("null")) { test<TestClass>() }
+        assertThat(navController.currentDestination?.route).isEqualTo("test/{arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isNull()
+    }
+
+    @UiThreadTest
+    @Test
     fun testNavigateWithObjectQueryNullString() {
         @Serializable @SerialName("test") class TestClass(val arg: String? = null)
 
@@ -4659,6 +5047,144 @@ class NavControllerRouteTest {
         assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
         val route = navController.currentBackStackEntry?.toRoute<TestClass>()
         assertThat(route!!.arg).isNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringArrayNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: Array<String>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(arrayOf())) { test<TestClass>() }
+
+        navController.navigate(TestClass(arrayOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg.first()).isEqualTo("one")
+        assertThat(arg.last()).isEqualTo("null")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringArrayNullableNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: Array<String>?)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        navController.navigate(TestClass(arrayOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg!!.first()).isEqualTo("one")
+        assertThat(arg.last()).isEqualTo("null")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringNullableArrayNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: Array<String?>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(arrayOf())) { test<TestClass>() }
+
+        navController.navigate(TestClass(arrayOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg.first()).isEqualTo("one")
+        // should match behavior of String? type where "null" -> null
+        assertThat(arg.last()).isNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringNullableArrayNullString() {
+        @Serializable @SerialName("test") class TestClass(val arg: Array<String?>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(arrayOf())) { test<TestClass>() }
+
+        navController.navigate(TestClass(arrayOf("one", null)))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg.first()).isEqualTo("one")
+        // should match behavior of String? type where null -> null
+        assertThat(arg.last()).isNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringListNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<String>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(listOf())) { test<TestClass>() }
+
+        navController.navigate(TestClass(listOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg.first()).isEqualTo("one")
+        assertThat(arg.last()).isEqualTo("null")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringListNullableNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<String>?)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        navController.navigate(TestClass(listOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg!!.first()).isEqualTo("one")
+        assertThat(arg.last()).isEqualTo("null")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringNullableListNullLiteral() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<String?>?)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        navController.navigate(TestClass(listOf("one", "null")))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg!!.first()).isEqualTo("one")
+        assertThat(arg.last()).isNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectStringNullableListNullString() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<String?>?)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        navController.navigate(TestClass(listOf("one", null)))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+
+        val arg = navController.currentBackStackEntry?.toRoute<TestClass>()!!.arg
+        assertThat(arg!!.first()).isEqualTo("one")
+        assertThat(arg.last()).isNull()
     }
 
     @UiThreadTest
@@ -4872,6 +5398,141 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
+    fun testNavigateWithObjectDoubleArray() {
+        @Serializable @SerialName("test") class TestClass(val arg: DoubleArray)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(doubleArrayOf(11E123, 11.11))) {
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isEqualTo(doubleArrayOf(11E123, 11.11))
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullDoubleArray() {
+        @Serializable @SerialName("test") class TestClass(val arg: DoubleArray? = null)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isNull()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectDoubleList() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<Double>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(listOf(11E123, 11.11))) {
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).containsExactly(11E123, 11.11)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullDoubleList() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<Double>? = null)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isNull()
+
+        navController.navigate(TestClass(listOf(11E123, 11.11)))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route2 = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route2!!.arg).containsExactly(11E123, 11.11)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectEnumList() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<TestEnum>)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(
+                startDestination = TestClass(listOf(TestEnum.ONE, TestEnum.TWO))
+            ) {
+                test<TestClass>()
+            }
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).containsExactly(TestEnum.ONE, TestEnum.TWO)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectNullEnumList() {
+        @Serializable @SerialName("test") class TestClass(val arg: List<TestEnum>? = null)
+
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(null)) { test<TestClass>() }
+
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isNull()
+
+        navController.navigate(TestClass(listOf(TestEnum.ONE, TestEnum.TWO)))
+        assertThat(navController.currentDestination?.route).isEqualTo("test?arg={arg}")
+        val route2 = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route2!!.arg).containsExactly(TestEnum.ONE, TestEnum.TWO)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testNavigateWithObjectValueClass() {
+        @Serializable @SerialName("test") class TestClass(val arg: TestValueClass)
+        val navType =
+            object : NavType<TestValueClass>(false) {
+                override fun put(bundle: Bundle, key: String, value: TestValueClass) {
+                    bundle.putInt(key, value.id)
+                }
+
+                override fun get(bundle: Bundle, key: String): TestValueClass? =
+                    TestValueClass(bundle.getInt(key))
+
+                override fun parseValue(value: String): TestValueClass =
+                    TestValueClass(value.toInt())
+
+                override fun serializeAsValue(value: TestValueClass): String = value.id.toString()
+            }
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = TestClass(TestValueClass(12))) {
+                test<TestClass>(mapOf(typeOf<TestValueClass>() to navType))
+                test<TestValueClass>()
+            }
+        // test value class as arg type
+        assertThat(navController.currentDestination?.route).isEqualTo("test/{arg}")
+        val route = navController.currentBackStackEntry?.toRoute<TestClass>()
+        assertThat(route!!.arg).isEqualTo(TestValueClass(12))
+
+        // test value class as destination route
+        navController.navigate(TestValueClass(22))
+        assertThat(navController.currentDestination?.route)
+            .isEqualTo("androidx.navigation.NavControllerRouteTest.TestValueClass/{id}")
+        val route2 = navController.currentBackStackEntry?.toRoute<TestValueClass>()
+        assertThat(route2!!.id).isEqualTo(22)
+    }
+
+    @UiThreadTest
+    @Test
     fun testDeepLinkFromNavGraph() {
         val navController = createNavController()
         navController.graph = nav_simple_route_graph
@@ -4938,6 +5599,142 @@ class NavControllerRouteTest {
         assertThat(destination?.route).isEqualTo("second_test/{arg2}")
         assertThat(destination?.arguments?.get("defaultArg")?.defaultValue.toString())
             .isEqualTo("defaultValue")
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLinkUri() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/uriOnly"),
+                null,
+                null
+            )
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_only")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLinkAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink = NavDeepLinkRequest(null, "action.only", null)
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("action_only")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLinkMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink = NavDeepLinkRequest(null, null, "mime/only")
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("mime_only")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_UriAndAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/test/uriAction"),
+                "uri.action",
+                null
+            )
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_action")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_UriAndMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/uriMime"),
+                null,
+                "uri/mime"
+            )
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("uri_mime")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_ActionAndMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val navigator = navController.navigatorProvider.getNavigator(TestNavigator::class.java)
+        val deepLink = NavDeepLinkRequest(null, "action.mime", "action/mime")
+
+        navController.handleDeepLink(deepLink)
+        assertThat(navController.currentDestination?.route).isEqualTo("action_mime")
+        assertThat(navigator.backStack.size).isEqualTo(2)
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_MissingUri() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink = NavDeepLinkRequest(null, "uri.action", null)
+
+        val result = navController.handleDeepLink(deepLink)
+        assertThat(result).isFalse()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_MissingAction() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/test/uriAction"),
+                null,
+                null
+            )
+
+        val result = navController.handleDeepLink(deepLink)
+        assertThat(result).isFalse()
+    }
+
+    @UiThreadTest
+    @Test
+    fun testHandleDeepLink_MissingMimeType() {
+        val navController = createNavController()
+        navController.graph = nav_deeplink_graph
+        val deepLink =
+            NavDeepLinkRequest(
+                Uri.parse("android-app://androidx.navigation.test/uriMime"),
+                null,
+                null
+            )
+
+        val result = navController.handleDeepLink(deepLink)
+        assertThat(result).isFalse()
     }
 
     @UiThreadTest
@@ -5125,6 +5922,56 @@ class NavControllerRouteTest {
 
     @UiThreadTest
     @Test
+    fun testHandleDeepLinkFromRouteOnlyIfExplicitlyAdded() {
+        val navController = createNavController()
+        navController.graph =
+            navController.createGraph(startDestination = "start") {
+                test("start") { deepLink { uriPattern = createRoute("explicit_start_deeplink") } }
+            }
+        val collectedDestinationRoutes = mutableListOf<String?>()
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            collectedDestinationRoutes.add(destination.route)
+        }
+
+        assertThat(collectedDestinationRoutes).containsExactly("start")
+
+        val intent =
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(createRoute("explicit_start_deeplink")),
+                ApplicationProvider.getApplicationContext() as Context,
+                TestActivity::class.java
+            )
+
+        assertWithMessage("handleDeepLink should return true with valid deep link")
+            .that(navController.handleDeepLink(intent))
+            .isTrue()
+
+        assertWithMessage("$collectedDestinationRoutes should have 2 destination id")
+            .that(collectedDestinationRoutes)
+            .hasSize(2)
+        assertThat(collectedDestinationRoutes).containsExactly("start", "start")
+
+        val intent2 =
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse(createRoute("start")),
+                ApplicationProvider.getApplicationContext() as Context,
+                TestActivity::class.java
+            )
+
+        assertWithMessage("handleDeepLink should return false with invalid deep link")
+            .that(navController.handleDeepLink(intent2))
+            .isFalse()
+
+        assertWithMessage("$collectedDestinationRoutes should have 2 destination id")
+            .that(collectedDestinationRoutes)
+            .hasSize(2)
+        assertThat(collectedDestinationRoutes).containsExactly("start", "start")
+    }
+
+    @UiThreadTest
+    @Test
     fun testHandleDeepLinkToRootInvalid() {
         val navController = createNavController()
         navController.graph = nav_simple_route_graph
@@ -5200,6 +6047,8 @@ class NavControllerRouteTest {
         navController.graph = navRepeatedGraph
         navController.graph = navRepeatedGraph
     }
+
+    @Serializable @JvmInline value class TestValueClass(val id: Int)
 
     private fun createNavController(): NavController {
         val navController = NavController(ApplicationProvider.getApplicationContext())

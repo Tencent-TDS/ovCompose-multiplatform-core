@@ -33,6 +33,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.SoftwareKeyboardController
+import kotlin.jvm.JvmInline
 
 /** Factory function to create a platform specific [TextFieldKeyEventHandler]. */
 internal expect fun createTextFieldKeyEventHandler(): TextFieldKeyEventHandler
@@ -82,9 +83,10 @@ internal abstract class TextFieldKeyEventHandler {
         textFieldState: TransformedTextFieldState,
         textLayoutState: TextLayoutState,
         textFieldSelectionState: TextFieldSelectionState,
+        clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
         editable: Boolean,
         singleLine: Boolean,
-        onSubmit: () -> Unit
+        onSubmit: () -> Unit,
     ): Boolean {
         val keyCode = event.key.keyCode
 
@@ -106,10 +108,10 @@ internal abstract class TextFieldKeyEventHandler {
                 event = event,
                 textFieldState = textFieldState,
                 textLayoutState = textLayoutState,
-                textFieldSelectionState = textFieldSelectionState,
+                clipboardKeyCommandsHandler = clipboardKeyCommandsHandler,
                 editable = editable,
                 singleLine = singleLine,
-                onSubmit = onSubmit
+                onSubmit = onSubmit,
             )
 
         if (consumed) {
@@ -127,10 +129,10 @@ internal abstract class TextFieldKeyEventHandler {
         event: KeyEvent,
         textFieldState: TransformedTextFieldState,
         textLayoutState: TextLayoutState,
-        textFieldSelectionState: TextFieldSelectionState,
+        clipboardKeyCommandsHandler: ClipboardKeyCommandsHandler,
         editable: Boolean,
         singleLine: Boolean,
-        onSubmit: () -> Unit
+        onSubmit: () -> Unit,
     ): Boolean {
         if (event.isTypedEvent) {
             val codePoint = deadKeyCombiner.consume(event)
@@ -157,9 +159,9 @@ internal abstract class TextFieldKeyEventHandler {
         var consumed = true
         preparedSelectionContext(textFieldState, textLayoutState, event.isFromSoftKeyboard) {
             when (command) {
-                KeyCommand.COPY -> textFieldSelectionState.copy(false)
-                KeyCommand.PASTE -> textFieldSelectionState.paste()
-                KeyCommand.CUT -> textFieldSelectionState.cut()
+                KeyCommand.COPY,
+                KeyCommand.PASTE,
+                KeyCommand.CUT -> clipboardKeyCommandsHandler.handler(command)
                 KeyCommand.LEFT_CHAR -> collapseLeftOr { moveCursorLeftByChar() }
                 KeyCommand.RIGHT_CHAR -> collapseRightOr { moveCursorRightByChar() }
                 KeyCommand.LEFT_WORD -> moveCursorLeftByWord()
@@ -287,3 +289,5 @@ internal abstract class TextFieldKeyEventHandler {
             ?.height ?: Float.NaN
     }
 }
+
+@JvmInline internal value class ClipboardKeyCommandsHandler(val handler: (KeyCommand) -> Unit)

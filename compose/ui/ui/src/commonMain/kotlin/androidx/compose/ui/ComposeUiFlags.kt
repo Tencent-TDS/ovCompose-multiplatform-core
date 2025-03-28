@@ -75,9 +75,29 @@ object ComposeUiFlags {
     var NewNestedScrollFlingDispatchingEnabled: Boolean = true
 
     /**
-     * With this flag on, the new semantic version of Autofill will be enabled. Prior to the
-     * semantics refactoring, this will introduce significant overhead, but can be used to test out
-     * the new Autofill APIs and features introduced.
+     * With this flag on, the new semantic version of Autofill APIs will be enabled. Turning this
+     * flag off will disable the new Semantic Autofill APIs, and the new refactored semantics.
      */
-    @Suppress("MutableBareField") @JvmField var isSemanticAutofillEnabled: Boolean = false
+    @Suppress("MutableBareField") @JvmField var isSemanticAutofillEnabled: Boolean = true
+
+    /**
+     * This enables fixes for View focus. The changes are large enough to require a flag to allow
+     * disabling them.
+     */
+    @Suppress("MutableBareField") @JvmField var isViewFocusFixEnabled: Boolean = true
+
+    /**
+     * When an embedded view that is focused is removed from the hierarchy, it triggers a
+     * requestFocus() which tries to re-assign focus before the previous composition is complete.
+     * This flag enables a fix for this issue.
+     */
+    @Suppress("MutableBareField") @JvmField var isRemoveFocusedViewFixEnabled: Boolean = true
+
+    /**
+     * With this flag on, the new focus state management implementation is enabled. The new
+     * implementation removes the focus state previously stored in each FocusTargetNode and instead
+     * keeps track of the current active focus node centrally in FocusOwnerImpl. This change reduces
+     * the cost of initializing the focus system.
+     */
+    @Suppress("MutableBareField") @JvmField var isTrackFocusEnabled: Boolean = true
 }

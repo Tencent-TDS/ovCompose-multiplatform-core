@@ -1,7 +1,10 @@
 package androidx.compose.mpp.demo
 
 import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.IntOffset
@@ -27,10 +30,16 @@ class App(
             startDestination = initialScreenName ?: MainScreen.title,
 
             // Custom animations
-            enterTransition = { slideIntoContainer(SlideDirection.Left, animationSpec) },
-            exitTransition = { slideOutOfContainer(SlideDirection.Left, animationSpec) },
-            popEnterTransition = { slideIntoContainer(SlideDirection.Right, animationSpec) },
-            popExitTransition = { slideOutOfContainer(SlideDirection.Right, animationSpec) }
+            enterTransition = { fadeIn() },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = SlideDirection.Right,
+                    targetOffset = { it / 2 },
+                    animationSpec = animationSpec
+                )
+            }
         ) {
             buildScreen(MainScreen.mergedWith(extraScreens), navController)
         }

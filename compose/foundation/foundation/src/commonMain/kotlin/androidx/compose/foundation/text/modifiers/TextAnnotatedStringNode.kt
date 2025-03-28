@@ -82,6 +82,9 @@ internal class TextAnnotatedStringNode(
     private var autoSize: TextAutoSize? = null,
     private var onShowTranslation: ((TextSubstitutionValue) -> Unit)? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    override val shouldAutoInvalidate: Boolean
+        get() = false
+
     @Suppress("PrimitiveInCollection")
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
 
@@ -286,6 +289,9 @@ internal class TextAnnotatedStringNode(
 
     private fun setSubstitution(updatedText: AnnotatedString): Boolean {
         val currentTextSubstitution = textSubstitution
+        // updatedText is currently always returned as a plain text so we ignore inline content
+        // which is represented by placeholders. If translation ever supports annotations, we
+        // would need to recalculate the placeholders
         if (currentTextSubstitution != null) {
             if (updatedText == currentTextSubstitution.substitution) {
                 return false
@@ -299,7 +305,7 @@ internal class TextAnnotatedStringNode(
                 softWrap,
                 maxLines,
                 minLines,
-                placeholders,
+                placeholders = emptyList(),
                 autoSize
             ) ?: return false
         } else {
@@ -313,7 +319,7 @@ internal class TextAnnotatedStringNode(
                     softWrap,
                     maxLines,
                     minLines,
-                    placeholders,
+                    placeholders = emptyList(),
                     autoSize
                 )
             substitutionLayoutCache.density = layoutCache.density

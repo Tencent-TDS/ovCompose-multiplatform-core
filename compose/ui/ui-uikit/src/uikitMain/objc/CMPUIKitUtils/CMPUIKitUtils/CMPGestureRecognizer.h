@@ -15,38 +15,25 @@
  */
 
 #import <UIKit/UIKit.h>
-#import <UIKit/UIGestureRecognizerSubclass.h>
-#import "CMPMacros.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+@interface CMPGestureRecognizer : UIGestureRecognizer
 
-/// Class that propery exposes the methods of `UIGestureRecognizerDelegate` to Kotlin without signature conflicts.
-/// Default implementations return the same result as if the selector wasn't implemented at all, following the Apple documentation
-/// See https://developer.apple.com/documentation/uikit/uigesturerecognizerdelegate
-@interface CMPGestureRecognizerDelegateProxy : NSObject <UIGestureRecognizerDelegate>
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 
-- (BOOL)gestureRecognizerShouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer CMP_CAN_OVERRIDE;
+- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 
-- (BOOL)gestureRecognizerShouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer CMP_CAN_OVERRIDE;
+- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 
-- (BOOL)gestureRecognizerShouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer CMP_CAN_OVERRIDE;
+- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;
 
-@end
+- (BOOL)canPreventGestureRecognizer:(UIGestureRecognizer *)preventedGestureRecognizer;
 
+- (BOOL)canBePreventedByGestureRecognizer:(UIGestureRecognizer *)preventingGestureRecognizer;
 
-@interface CMPGestureRecognizer : UIGestureRecognizer <UIGestureRecognizerDelegate>
-
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event CMP_ABSTRACT_FUNCTION;
-
-- (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event CMP_ABSTRACT_FUNCTION;
-
-- (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event CMP_ABSTRACT_FUNCTION;
-
-- (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event CMP_ABSTRACT_FUNCTION;
+- (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer;
 
 @end
-
 
 NS_ASSUME_NONNULL_END
- 

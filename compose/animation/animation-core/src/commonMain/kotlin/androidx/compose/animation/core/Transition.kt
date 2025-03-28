@@ -1161,13 +1161,8 @@ internal constructor(
             // If target state is changed, reset all the animations to be re-created in the
             // next frame w/ their new target value. Child animations target values are updated in
             // the side effect that may not have happened when this function in invoked.
-            resetAnimations()
+            _animations.fastForEach { it.resetAnimation() }
         }
-    }
-
-    private fun resetAnimations() {
-        _animations.fastForEach { it.resetAnimation() }
-        _transitions.fastForEach { it.resetAnimations() }
     }
 
     // This should only be called if PlayTime comes from clock directly, instead of from a parent
@@ -1861,18 +1856,31 @@ internal fun <S, T, V : AnimationVector> Transition<S>.createTransitionAnimation
                 label
             )
         }
-    if (isSeeking) {
-        // In the case of seeking, we also need to update initial value as needed
-        transitionAnimation.updateInitialAndTargetValue(initialValue, targetValue, animationSpec)
-    } else {
-        transitionAnimation.updateTargetValue(targetValue, animationSpec)
-    }
+    UpdateInitialAndTargetValues(transitionAnimation, initialValue, targetValue, animationSpec)
 
     DisposableEffect(transitionAnimation) {
         addAnimation(transitionAnimation)
         onDispose { removeAnimation(transitionAnimation) }
     }
     return transitionAnimation
+}
+
+// This composable function is needed to contain recompositions caused by reads of the internal
+// animation states to an internal recomposition scope. Without this function, the caller of
+// animateValue gets recomposed when an animation starts.
+@Composable
+private fun <S, T, V : AnimationVector> Transition<S>.UpdateInitialAndTargetValues(
+    transitionAnimation: Transition<S>.TransitionAnimationState<T, V>,
+    initialValue: T,
+    targetValue: T,
+    animationSpec: FiniteAnimationSpec<T>
+) {
+    if (isSeeking) {
+        // In the case of seeking, we also need to update initial value as needed
+        transitionAnimation.updateInitialAndTargetValue(initialValue, targetValue, animationSpec)
+    } else {
+        transitionAnimation.updateTargetValue(targetValue, animationSpec)
+    }
 }
 
 // TODO: Remove noinline when b/174814083 is fixed.

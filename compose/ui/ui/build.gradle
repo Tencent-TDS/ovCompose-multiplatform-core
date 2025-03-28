@@ -50,7 +50,7 @@ dependencies {
          * When updating dependencies, make sure to make the an an analogous update in the
          * corresponding block below
          */
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation(libs.kotlinCoroutinesCore)
         implementation(libs.atomicFu)
 
@@ -161,7 +161,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             commonMain.dependencies {
                 implementation(project(":annotation:annotation"))
                 implementation(project(":collection:collection"))
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
 
                 // when updating the runtime version please also update the runtime-saveable version
@@ -173,12 +173,11 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api project(":compose:ui:ui-text")
                 api project(":compose:ui:ui-unit")
                 api project(":compose:ui:ui-util")
-
-                // TODO(igor): figure out how to avoid downgrading runtime to 1.6 in case of project dependencies in mpp demo + pinned lifecycle here
-                implementation(project(":lifecycle:lifecycle-common"))
-                implementation(project(":lifecycle:lifecycle-runtime"))
-                implementation(project(":lifecycle:lifecycle-runtime-compose"))
-                implementation(project(":lifecycle:lifecycle-viewmodel"))
+                implementation(project(":compose:ui:ui-backhandler"))
+                api("org.jetbrains.androidx.lifecycle:lifecycle-common:2.8.4")
+                implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime:2.8.4")
+                implementation("org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
+                implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:2.8.4")
             }
 
             androidMain.dependencies {
@@ -343,6 +342,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(libs.kotlinCoroutinesSwing)
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(project(":compose:material:material"))
+                implementation(project(":compose:material3:material3"))
                 implementation(project(":compose:ui:ui-test-junit4"))
             }
 
@@ -416,7 +416,7 @@ tasks.register("updateTranslationsIos", UpdateTranslationsTask.class) {
             "ar", // Arabic
             "eu", // Basque
             "bn", // Bengali (India)
-            // "bh_IN", // Bhojpuri (India)
+            "bho", // Bhojpuri (India)
             "bg", // Bulgarian
             "zh_HK", // Cantonese (Hong Kong)
             "ca", // Catalan

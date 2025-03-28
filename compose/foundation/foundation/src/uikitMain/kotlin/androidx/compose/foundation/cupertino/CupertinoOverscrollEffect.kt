@@ -20,26 +20,34 @@ import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutAwareModifierNode
+import androidx.compose.ui.node.LayoutModifierNode
+import androidx.compose.ui.node.PointerInputModifierNode
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.round
@@ -86,8 +94,7 @@ private data class CupertinoOverscrollAvailableDelta(
  * @param applyClip Some consumers of overscroll effect apply clip by themselves and some don't,
  * thus this flag is needed to update our modifier chain and make the clipping correct in every case while avoiding redundancy
  */
-@ExperimentalFoundationApi
-class CupertinoOverscrollEffect(
+internal class CupertinoOverscrollEffect(
     private val density: Float,
     layoutDirection: LayoutDirection,
     val applyClip: Boolean
@@ -123,12 +130,18 @@ class CupertinoOverscrollEffect(
      * It will be mapped to the actual visible offset using the rubber banding rule inside
      * [Modifier.offset] within [effectModifier]
      */
-    private var overscrollOffset: Offset by mutableStateOf(Offset.Zero)
+    private var overscrollOffsetState = mutableStateOf(Offset.Zero)
+    private var overscrollOffset: Offset
+        get () = overscrollOffsetState.value
+        set(value) {
+            overscrollOffsetState.value = value
+            drawCallScheduledByOffsetChange = true
+        }
+    private var drawCallScheduledByOffsetChange = true
 
     private var lastFlingUnconsumedDelta: Offset = Offset.Zero
     private val visibleOverscrollOffset: IntOffset
-        get() =
-            overscrollOffset.reverseHorizontalIfNeeded().rubberBanded().round()
+        get() = overscrollOffsetState.value.reverseHorizontalIfNeeded().rubberBanded().round()
 
     override val isInProgress: Boolean
         get() =
@@ -136,18 +149,23 @@ class CupertinoOverscrollEffect(
             // this effect is considered to be in progress
             visibleOverscrollOffset.toOffset().getDistance() > 0.5f
 
-    override val node: DelegatableNode = CupertinoOverscrollNode(
+    private val overscrollNode = CupertinoOverscrollNode(
         offset = { visibleOverscrollOffset },
-        coordinates = { scrollSize = it.size.toSize() },
+        onNodeRemeasured = { scrollSize = it.toSize() },
+        onDraw = ::onDraw,
         applyClip = applyClip
     )
+    override val node: DelegatableNode get() = overscrollNode
 
-    private fun Modifier.clipIfNeeded(): Modifier =
-        if (applyClip) {
-            clipToBounds() then this
-        } else {
-            this
+    private fun onDraw() {
+        // Fix an issue where scrolling was cancelled but the overscroll effect was not completed.
+        // Reset the overscroll effect when no ongoing animation or interaction is applied.
+        if (!drawCallScheduledByOffsetChange && isInProgress && overscrollNode.pointersDown == 0) {
+            overscrollOffsetState.value = Offset.Zero
         }
+
+        drawCallScheduledByOffsetChange = false
+    }
 
     private fun NestedScrollSource.toCupertinoScrollSource(): CupertinoScrollSource? =
         when (this) {
@@ -233,7 +251,7 @@ class CupertinoOverscrollEffect(
             }
 
             CupertinoScrollSource.FLING -> {
-                // If unconsumedDelta is not Zero, [CupertinoFlingEffect] will cancel fling and
+                // If unconsumedDelta is not Zero, [CupertinoOverscrollEffect] will cancel fling and
                 // start spring animation instead
                 lastFlingUnconsumedDelta = unconsumedDelta
                 delta - unconsumedDelta
@@ -264,8 +282,13 @@ class CupertinoOverscrollEffect(
         val velocityConsumedByFling = performFling(availableFlingVelocity)
         val postFlingVelocity = availableFlingVelocity - velocityConsumedByFling
 
+        val unconsumedDelta = lastFlingUnconsumedDelta.toFloat()
+        if (unconsumedDelta == 0f && overscrollOffset == Offset.Zero) {
+            return
+        }
+
         playSpringAnimation(
-            lastFlingUnconsumedDelta.toFloat(),
+            unconsumedDelta,
             postFlingVelocity.toFloat(),
             CupertinoSpringAnimationReason.POSSIBLE_SPRING_IN_THE_END
         )
@@ -445,29 +468,61 @@ class CupertinoOverscrollEffect(
 
 private class CupertinoOverscrollNode(
     val offset: Density.() -> IntOffset,
-    val coordinates: (LayoutCoordinates) -> Unit,
+    val onNodeRemeasured: (IntSize) -> Unit,
+    val onDraw: () -> Unit,
     val applyClip: Boolean
-): LayoutAwareModifierNode, DrawModifierNode, Modifier.Node() {
+) : Modifier.Node(),
+    LayoutModifierNode,
+    LayoutAwareModifierNode,
+    DrawModifierNode,
+    PointerInputModifierNode {
+    override fun onRemeasured(size: IntSize) = onNodeRemeasured(size)
 
-    override val shouldAutoInvalidate: Boolean = true
+    var pointersDown by mutableStateOf(0)
+
+    override fun onPointerEvent(
+        pointerEvent: PointerEvent,
+        pass: PointerEventPass,
+        bounds: IntSize
+    ) {
+        if (pass == PointerEventPass.Final) {
+            if (pointerEvent.type == PointerEventType.Press) {
+                pointersDown++
+            } else if (pointerEvent.type == PointerEventType.Release) {
+                pointersDown--
+                assert(pointersDown >= 0) { "pointersDown cannot be negative" }
+            }
+        }
+    }
+
+    override fun onCancelPointerInput() {
+        pointersDown = 0
+    }
 
     override fun ContentDrawScope.draw() {
+        onDraw()
         if (applyClip) {
-            clipRect { this@draw.drawContentWithOffset() }
+            val bounds = Rect(-offset().toOffset(), size)
+            val rect = size.toRect().intersect(bounds)
+            clipRect(
+                left = rect.left,
+                top = rect.top,
+                right = rect.right,
+                bottom = rect.bottom,
+            ) { this@draw.drawContent() }
         } else {
-            this@draw.drawContentWithOffset()
+            this@draw.drawContent()
         }
     }
 
-    private fun ContentDrawScope.drawContentWithOffset() {
-        val offset = offset()
-        translate(left = offset.x.toFloat(), top = offset.y.toFloat()) {
-            this@drawContentWithOffset.drawContent()
+    override fun MeasureScope.measure(
+        measurable: Measurable,
+        constraints: Constraints
+    ): MeasureResult {
+        val placeable = measurable.measure(constraints)
+        return layout(placeable.width, placeable.height) {
+            placeable.placeWithLayer(offset())
         }
-    }
-
-    override fun onPlaced(coordinates: LayoutCoordinates) {
-        coordinates(coordinates)
     }
 }
 

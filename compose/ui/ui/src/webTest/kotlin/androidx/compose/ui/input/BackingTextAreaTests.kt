@@ -118,7 +118,16 @@ class BackingTextAreaTests {
         assertEquals(
             listOf(),
             lastEditCommand,
-            "when compositionstart is triggered, last keyboard event should be ignored only if meaningful keyboard event happened"
+            "when compositionstart is triggered, last keyboard event should be ignored  if Unidentified key is pressed and not released"
+        )
+
+        textArea.dispatchEvent(keyEvent("Dead"))
+        textArea.dispatchEvent(CompositionEvent("compositionstart"))
+
+        assertEquals(
+            listOf(),
+            lastEditCommand,
+            "when compositionstart is triggered, last keyboard event should be ignored if DeadKey is pressed and not released"
         )
 
 

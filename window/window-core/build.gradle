@@ -66,7 +66,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api(project(":annotation:annotation"))
             }
         }
 
@@ -109,6 +109,6 @@ androidx {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }

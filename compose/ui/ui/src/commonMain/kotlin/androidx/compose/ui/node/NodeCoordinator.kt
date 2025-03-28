@@ -1518,7 +1518,7 @@ internal abstract class NodeCoordinator(
                 override fun interceptOutOfBoundsChildEvents(node: Modifier.Node) = false
 
                 override fun shouldHitTestChildren(parentLayoutNode: LayoutNode) =
-                    parentLayoutNode.collapsedSemantics?.isClearingSemantics != true
+                    parentLayoutNode.semanticsConfiguration?.isClearingSemantics != true
 
                 override fun childHitTest(
                     layoutNode: LayoutNode,
@@ -1540,7 +1540,7 @@ internal abstract class NodeCoordinator(
 @Suppress("PrimitiveInCollection")
 private fun compareEquals(
     a: MutableObjectIntMap<AlignmentLine>?,
-    b: Map<out AlignmentLine, Int>
+    b: Map<AlignmentLine, Int>
 ): Boolean {
     if (a == null) return false
     if (a.size != b.size) return false

@@ -21,12 +21,19 @@ import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
+import androidx.compose.runtime.saveable.SaveableStateRegistry
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.LocalSystemTheme
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.SystemTheme
+import androidx.compose.ui.backhandler.LocalBackGestureDispatcher
+import androidx.compose.ui.backhandler.UIKitBackGestureDispatcher
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.hapticfeedback.CupertinoHapticFeedback
-import androidx.compose.ui.platform.AccessibilitySyncOptions
+import androidx.compose.ui.platform.IOSLifecycleOwner
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInternalViewModelStoreOwner
 import androidx.compose.ui.platform.PlatformContext
@@ -37,31 +44,33 @@ import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
+import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.asDpRect
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.util.fastForEachReversed
 import androidx.compose.ui.viewinterop.UIKitInteropAction
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
+import androidx.compose.ui.window.ApplicationActiveStateListener
 import androidx.compose.ui.window.ComposeView
 import androidx.compose.ui.window.DisplayLinkListener
 import androidx.compose.ui.window.FocusStack
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
-import androidx.compose.ui.window.ViewControllerBasedLifecycleOwner
+import androidx.compose.ui.window.ViewControllerLifecycleDelegate
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlin.coroutines.CoroutineContext
 import kotlin.native.runtime.GC
 import kotlin.native.runtime.NativeRuntimeApi
+import kotlin.test.assertNotNull
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.CValue
 import kotlinx.cinterop.ExportObjCClass
-import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -69,18 +78,14 @@ import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.OSVersion
 import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGSize
-import platform.Foundation.NSNotificationCenter
-import platform.Foundation.NSSelectorFromString
-import platform.UIKit.UIAccessibilityIsVoiceOverRunning
-import platform.UIKit.UIAccessibilityVoiceOverStatusChanged
-import platform.UIKit.UIAccessibilityVoiceOverStatusDidChangeNotification
+import platform.UIKit.UIAccessibilityIsReduceMotionEnabled
 import platform.UIKit.UIApplication
-import platform.UIKit.UIEvent
 import platform.UIKit.UIStatusBarAnimation
 import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
+import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 import platform.darwin.dispatch_async
@@ -91,40 +96,38 @@ import platform.darwin.dispatch_get_main_queue
 internal class ComposeHostingViewController(
     private val configuration: ComposeUIViewControllerConfiguration,
     private val content: @Composable () -> Unit,
-    private val coroutineContext: CoroutineContext = Dispatchers.Main
-) : CMPViewController(nibName = null, bundle = null) {
-    private val lifecycleOwner = ViewControllerBasedLifecycleOwner()
+    private val lifecycleOwner: IOSLifecycleOwner = IOSLifecycleOwner(),
+    coroutineContext: CoroutineContext = Dispatchers.Main
+) : CMPViewController(lifecycleDelegate = ViewControllerLifecycleDelegate(lifecycleOwner)) {
     private val hapticFeedback = CupertinoHapticFeedback()
 
-    private val rootMetalView = MetalView(
-        retrieveInteropTransaction = {
-            mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
-                override val actions = emptyList<UIKitInteropAction>()
-                override val isInteropActive = false
-            }
-        },
-        useSeparateRenderThreadWhenPossible = configuration.parallelRendering,
-        render = { canvas, nanoTime ->
-            mediator?.render(canvas.asComposeCanvas(), nanoTime)
-        }
-    ).apply {
-        canBeOpaque = configuration.opaque
-    }
     private val rootView = ComposeView(
-        onDidMoveToWindow = ::onDidMoveToWindow,
-        onLayoutSubviews = {},
-        metalView = rootMetalView,
         transparentForTouches = false,
         useOpaqueConfiguration = configuration.opaque,
     )
+    private val interopContainerView = UIView().also {
+        rootView.embedSubview(it)
+    }
     private var mediator: ComposeSceneMediator? = null
     private val windowContext = PlatformWindowContext()
-    private val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
+    private var layers: UIKitComposeSceneLayersHolder? = null
     private val layoutDirection get() = getLayoutDirection()
     private var hasViewAppeared: Boolean = false
+    private val motionDurationScale = MotionDurationScaleImpl()
+    private var applicationActiveStateListener: ApplicationActiveStateListener? = null
+    private val composeCoroutineContext: CoroutineContext = coroutineContext + motionDurationScale
+    private var savableStateRegistry = SaveableStateRegistry(
+        restoredValues = null, canBeSaved = { true }
+    )
+
+    private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        enableBackGesture = configuration.enableBackGesture,
+        density = rootView.density,
+        getTopLeftOffsetInWindow = { IntOffset.Zero } //full screen
+    )
 
     fun hasInvalidations(): Boolean {
-        return mediator?.hasInvalidations == true || layers.hasInvalidations
+        return mediator?.hasInvalidations == true || layers?.hasInvalidations == true
     }
 
     /*
@@ -187,13 +190,6 @@ internal class ComposeHostingViewController(
 
         configuration.delegate.viewDidLoad()
         systemThemeState.value = traitCollection.userInterfaceStyle.asComposeSystemTheme()
-
-        NSNotificationCenter.defaultCenter.addObserver(
-            observer = this,
-            selector = NSSelectorFromString(::onAccessibilityChanged.name),
-            name = UIAccessibilityVoiceOverStatusDidChangeNotification,
-            `object` = null
-        )
     }
 
     override fun viewDidLayoutSubviews() {
@@ -211,11 +207,14 @@ internal class ComposeHostingViewController(
     }
 
     private fun onDidMoveToWindow(window: UIWindow?) {
+        backGestureDispatcher.onDidMoveToWindow(window, rootView)
         val windowContainer = window ?: return
 
         updateInterfaceOrientationState()
 
+        layers?.window = window
         windowContext.setWindowContainer(windowContainer)
+        updateMotionSpeed()
     }
 
     private fun updateInterfaceOrientationState() {
@@ -238,9 +237,6 @@ internal class ComposeHostingViewController(
     override fun viewWillAppear(animated: Boolean) {
         super.viewWillAppear(animated)
 
-        createMediatorIfNeeded()
-
-        lifecycleOwner.handleViewWillAppear()
         configuration.delegate.viewWillAppear(animated)
     }
 
@@ -249,7 +245,7 @@ internal class ComposeHostingViewController(
         super.viewDidAppear(animated)
         hasViewAppeared = true
         mediator?.sceneDidAppear()
-        layers.viewDidAppear()
+        layers?.viewDidAppear()
         configuration.delegate.viewDidAppear(animated)
     }
 
@@ -258,7 +254,7 @@ internal class ComposeHostingViewController(
         super.viewWillDisappear(animated)
         hasViewAppeared = false
         mediator?.sceneWillDisappear()
-        layers.viewWillDisappear()
+        layers?.viewWillDisappear()
         configuration.delegate.viewWillDisappear(animated)
     }
 
@@ -271,19 +267,84 @@ internal class ComposeHostingViewController(
             GC.collect()
         }
 
-        lifecycleOwner.handleViewDidDisappear()
         configuration.delegate.viewDidDisappear(animated)
+    }
+
+    override fun viewControllerDidEnterWindowHierarchy() {
+        super.viewControllerDidEnterWindowHierarchy()
+
+        val metalView = MetalView(
+            retrieveInteropTransaction = {
+                mediator?.retrieveInteropTransaction() ?: object : UIKitInteropTransaction {
+                    override val actions = emptyList<UIKitInteropAction>()
+                    override val isInteropActive = false
+                }
+            },
+            useSeparateRenderThreadWhenPossible = configuration.parallelRendering,
+            render = { canvas, nanoTime ->
+                mediator?.render(canvas.asComposeCanvas(), nanoTime)
+            }
+        )
+        rootView.updateMetalView(metalView, ::onDidMoveToWindow)
+        metalView.canBeOpaque = configuration.opaque
+
+        val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
+        layers.window = rootView.window
+        this.layers = layers
+
+        mediator = ComposeSceneMediator(
+            parentView = rootView,
+            interopContainerView = interopContainerView,
+            onFocusBehavior = configuration.onFocusBehavior,
+            focusStack = focusStack,
+            windowContext = windowContext,
+            coroutineContext = composeCoroutineContext,
+            redrawer = metalView.redrawer,
+            composeSceneFactory = { invalidate, context ->
+                createComposeScene(invalidate, context, layers.metalView)
+            },
+            backGestureDispatcher = backGestureDispatcher
+        ).also { mediator ->
+            mediator.updateInteractionRect()
+            mediator.setContent {
+                ProvideContainerCompositionLocals(content)
+            }
+        }
+
+        applicationActiveStateListener = ApplicationActiveStateListener { isApplicationActive ->
+            if (isApplicationActive) {
+                updateMotionSpeed()
+            }
+        }
+
+        onAccessibilityChanged()
     }
 
     override fun viewControllerDidLeaveWindowHierarchy() {
         super.viewControllerDidLeaveWindowHierarchy()
 
-        dispose()
+        // Store the current state in the next SaveableStateRegistry instance. It is used to
+        // provide the saved state to the next compose scene when the view controller re-enters
+        // the window hierarchy.
+        savableStateRegistry = SaveableStateRegistry(
+            restoredValues = savableStateRegistry.performSave(),
+            canBeSaved = { true }
+        )
+
+        rootView.updateMetalView(metalView = null)
+
+        mediator?.dispose()
+        mediator = null
+
+        applicationActiveStateListener?.dispose()
+        applicationActiveStateListener = null
+
+        layers?.dispose(hasViewAppeared)
+        layers = null
     }
 
     @OptIn(NativeRuntimeApi::class)
     override fun didReceiveMemoryWarning() {
-        println("didReceiveMemoryWarning")
         GC.collect()
         super.didReceiveMemoryWarning()
     }
@@ -307,13 +368,17 @@ internal class ComposeHostingViewController(
     private fun animateSizeTransition(
         transitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
-        val displayLinkListener = DisplayLinkListener()
-        val sizeTransitionScope = CoroutineScope(coroutineContext + displayLinkListener.frameClock)
         val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
+        if (duration == Duration.ZERO) return
+
+        val displayLinkListener = DisplayLinkListener()
+        val sizeTransitionScope = CoroutineScope(
+            composeCoroutineContext + displayLinkListener.frameClock
+        )
         displayLinkListener.start()
 
         val animations = mediator?.prepareAndGetSizeTransitionAnimation()
-        layers.animateSizeTransition(sizeTransitionScope, duration)
+        layers?.animateSizeTransition(sizeTransitionScope, duration)
         rootView.animateSizeTransition(sizeTransitionScope) {
             animations?.invoke(duration)
         }
@@ -327,7 +392,10 @@ internal class ComposeHostingViewController(
         )
     }
 
-    private fun createComposeSceneContext(platformContext: PlatformContext): ComposeSceneContext {
+    private fun createComposeSceneContext(
+        platformContext: PlatformContext,
+        metalView: MetalView
+    ): ComposeSceneContext {
         return object : ComposeSceneContext {
             override val platformContext: PlatformContext = platformContext
 
@@ -339,10 +407,9 @@ internal class ComposeHostingViewController(
             ): ComposeSceneLayer {
                 val layer = UIKitComposeSceneLayer(
                     onClosed = ::detachLayer,
-                    createComposeSceneContext = ::createComposeSceneContext,
-                    providingCompositionLocals = { ProvideContainerCompositionLocals(it) },
-                    metalView = layers.metalView,
-                    onGestureEvent = layers::onGestureEvent,
+                    createComposeSceneContext = { createComposeSceneContext(it, metalView) },
+                    hostCompositionLocals = { ProvideContainerCompositionLocals(it) },
+                    metalView = metalView,
                     initDensity = density,
                     initLayoutDirection = layoutDirection,
                     onFocusBehavior = configuration.onFocusBehavior,
@@ -350,6 +417,8 @@ internal class ComposeHostingViewController(
                     focusStack = if (focusable) focusStack else null,
                     windowContext = windowContext,
                     compositionContext = compositionContext,
+                    coroutineContext = composeCoroutineContext,
+                    enableBackGesture = configuration.enableBackGesture,
                 )
 
                 attachLayer(layer)
@@ -362,51 +431,25 @@ internal class ComposeHostingViewController(
     private fun createComposeScene(
         invalidate: () -> Unit,
         platformContext: PlatformContext,
-        coroutineContext: CoroutineContext,
+        metalView: MetalView
     ): ComposeScene = PlatformLayersComposeScene(
         density = view.density,
         layoutDirection = layoutDirection,
-        coroutineContext = coroutineContext,
+        coroutineContext = composeCoroutineContext,
         composeSceneContext = createComposeSceneContext(
-            platformContext = platformContext
+            platformContext = platformContext,
+            metalView = metalView
         ),
         invalidate = invalidate,
     )
-
-    private fun createMediatorIfNeeded() {
-        if (mediator == null) {
-            mediator = createMediator()
-            onAccessibilityChanged()
-        }
-    }
-
-    private fun createMediator() = ComposeSceneMediator(
-        parentView = rootView,
-        onFocusBehavior = configuration.onFocusBehavior,
-        focusStack = focusStack,
-        windowContext = windowContext,
-        coroutineContext = coroutineContext,
-        redrawer = rootMetalView.redrawer,
-        onGestureEvent = ::onGestureEvent,
-        composeSceneFactory = ::createComposeScene,
-    ).also { mediator ->
-        mediator.updateInteractionRect()
-        mediator.setContent {
-            ProvideContainerCompositionLocals(content)
-        }
-
-        rootView.bringSubviewToFront(rootMetalView)
-    }
 
     /**
      * Enables or disables accessibility for each layer, as well as the root mediator, taking into
      * account layer order and ability to overlay underlying content.
      */
-    @ObjCAction
     private fun onAccessibilityChanged() {
-        var isAccessibilityEnabled =
-            configuration.accessibilitySyncOptions.isGlobalAccessibilityEnabled
-        layers.withLayers {
+        var isAccessibilityEnabled = true
+        layers?.withLayers {
             it.fastForEachReversed { layer ->
                 layer.isAccessibilityEnabled = isAccessibilityEnabled
                 isAccessibilityEnabled = isAccessibilityEnabled && !layer.focusable
@@ -415,47 +458,15 @@ internal class ComposeHostingViewController(
         mediator?.isAccessibilityEnabled = isAccessibilityEnabled
     }
 
-    /**
-     * When there is an ongoing gesture, we need notify redrawer about it. It should unconditionally
-     * unpause CADisplayLink which affects frequency of polling UITouch events on high frequency
-     * display and force it to match display refresh rate.
-     *
-     * Otherwise [UIEvent]s will be dispatched with the 60hz frequency.
-     */
-    private fun onGestureEvent(gestureEvent: GestureEvent) {
-        rootMetalView.needsProactiveDisplayLink = when (gestureEvent) {
-            GestureEvent.BEGAN -> true
-            GestureEvent.ENDED -> false
-        }
-    }
-
-    private fun dispose() {
-        rootMetalView.dispose()
-        lifecycleOwner.dispose()
-        mediator?.dispose()
-        rootView.dispose()
-        mediator = null
-
-        layers.dispose(hasViewAppeared)
-
-        NSNotificationCenter.defaultCenter.removeObserver(
-            observer = this,
-            name = UIAccessibilityVoiceOverStatusChanged,
-            `object` = null
-        )
-    }
-
     private fun attachLayer(layer: UIKitComposeSceneLayer) {
-        val window = checkNotNull(view.window) {
-            "Cannot attach layer if the view is not in the window hierarchy"
-        }
-
-        layers.attach(window, layer, hasViewAppeared)
+        assertNotNull(layers) { "Attempt to attach layers for disposed scene" }
+        layers?.attach(layer, hasViewAppeared)
         onAccessibilityChanged()
     }
 
     private fun detachLayer(layer: UIKitComposeSceneLayer) {
-        layers.detach(layer, hasViewAppeared)
+        assertNotNull(layers) { "Attempt to detach layers for disposed scene" }
+        layers?.detach(layer, hasViewAppeared)
         onAccessibilityChanged()
     }
 
@@ -468,12 +479,24 @@ internal class ComposeHostingViewController(
             LocalSystemTheme provides systemThemeState.value,
             LocalLifecycleOwner provides lifecycleOwner,
             LocalInternalViewModelStoreOwner provides lifecycleOwner,
+            LocalBackGestureDispatcher provides backGestureDispatcher,
+            LocalSaveableStateRegistry provides savableStateRegistry,
             content = content
         )
 
     private fun ComposeSceneMediator.updateInteractionRect() {
         interactionBounds = with(density) {
             view.bounds.asDpRect().toRect().roundToIntRect()
+        }
+    }
+
+    private fun updateMotionSpeed() {
+        motionDurationScale.scaleFactor = if (UIAccessibilityIsReduceMotionEnabled()) {
+            // 0f would cause motion to finish in the next frame callback.
+            // See [MotionDurationScale.scaleFactor] for more details.
+            0f
+        } else {
+            1f / (view.window?.layer?.speed?.takeIf { it > 0 } ?: 1f)
         }
     }
 }
@@ -492,11 +515,6 @@ private fun getLayoutDirection() =
         else -> LayoutDirection.Ltr
     }
 
-@OptIn(ExperimentalComposeApi::class)
-private val AccessibilitySyncOptions.isGlobalAccessibilityEnabled
-    get() =
-        when (this) {
-            AccessibilitySyncOptions.Never -> false
-            AccessibilitySyncOptions.WhenRequiredByAccessibilityServices -> UIAccessibilityIsVoiceOverRunning()
-            AccessibilitySyncOptions.Always -> true
-        }
+private class MotionDurationScaleImpl: MotionDurationScale {
+    override var scaleFactor by mutableStateOf(1f)
+}

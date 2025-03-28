@@ -46,6 +46,7 @@ import androidx.compose.runtime.mock.skip
 import androidx.compose.runtime.mock.validate
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.min
 import kotlin.random.Random
 import kotlin.reflect.KProperty
 import kotlin.test.Ignore
@@ -55,6 +56,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -68,16 +70,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.TestResult
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlinx.test.IgnoreJsTarget
 import kotlinx.coroutines.withContext
+import kotlinx.test.IgnoreJsTarget
 
 @Composable fun Container(content: @Composable () -> Unit) = content()
 
 @Stable
-@OptIn(InternalComposeApi::class, ExperimentalCoroutinesApi::class)
+@OptIn(InternalComposeApi::class)
 @Suppress("unused")
 class CompositionTests {
     @Test
@@ -2565,8 +2565,8 @@ class CompositionTests {
         assertArrayEquals(listOf(observed), abandonedObjects)
     }
 
+    @IgnoreJsTarget // The test is properly implemented in CompositionTestWeb
     @Test
-    @IgnoreJsTarget
     fun testRememberObserver_Abandon_Recompose() {
         val abandonedObjects = mutableListOf<RememberObserver>()
         val observed =
@@ -4197,7 +4197,7 @@ class CompositionTests {
         var seen = emptyList<Any?>()
 
         fun seen(list: List<Any>) {
-            for (i in 0 until minOf(list.size, seen.size)) {
+            for (i in 0 until min(list.size, seen.size)) {
                 assertEquals(list[i], seen[i])
             }
             seen = list
@@ -4262,8 +4262,8 @@ class CompositionTests {
     }
 
     @Test
-    fun testCompositionAndRecomposerDeadlock(): TestResult {
-        return runTest(timeoutMs = 10_000, context = UnconfinedTestDispatcher()) {
+    fun testCompositionAndRecomposerDeadlock() {
+        runTest(timeout = 10.seconds) {
             withGlobalSnapshotManager {
                 repeat(100) {
                     val job = Job(parent = coroutineContext[Job])
@@ -4441,8 +4441,6 @@ class CompositionTests {
         }
     }
 
-    // TODO reenable in https://youtrack.jetbrains.com/issue/COMPOSE-1504/Compose-1.7.-Enable-Strong-Skipping-mode-for-the-sources
-    @Ignore
     @Test
     fun composableWithUnstableParameters_skipped() = compositionTest {
         val consumer = UnstableCompConsumer()

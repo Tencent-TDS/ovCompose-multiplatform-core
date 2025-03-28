@@ -16,51 +16,34 @@
 
 #import "CMPGestureRecognizer.h"
 
-@implementation CMPGestureRecognizerDelegateProxy
-
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return [self gestureRecognizerShouldRequireFailureOfGestureRecognizer:gestureRecognizer otherGestureRecognizer:otherGestureRecognizer];
-}
-
-- (BOOL)gestureRecognizerShouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return NO;
-}
-
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return [self gestureRecognizerShouldRecognizeSimultaneouslyWithGestureRecognizer:gestureRecognizer otherGestureRecognizer:otherGestureRecognizer];
-}
-
-- (BOOL)gestureRecognizerShouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return NO;
-}
-
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return [self gestureRecognizerShouldBeRequiredToFailByGestureRecognizer:gestureRecognizer otherGestureRecognizer:otherGestureRecognizer];
-}
-
-- (BOOL)gestureRecognizerShouldBeRequiredToFailByGestureRecognizer:(UIGestureRecognizer *)gestureRecognizer otherGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    return NO;
-}
-
-@end
-
-
 @implementation CMPGestureRecognizer
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    [super touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    [super touchesMoved:touches withEvent:event];
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    [super touchesEnded:touches withEvent:event];
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    CMP_ABSTRACT_FUNCTION_CALLED
+    [super touchesCancelled:touches withEvent:event];
+}
+
+- (BOOL)canPreventGestureRecognizer:(UIGestureRecognizer *)preventedGestureRecognizer {
+    return [super canPreventGestureRecognizer:preventedGestureRecognizer];
+}
+
+- (BOOL)canBePreventedByGestureRecognizer:(UIGestureRecognizer *)preventingGestureRecognizer {
+    return [super canBePreventedByGestureRecognizer:preventingGestureRecognizer];
+}
+
+- (BOOL)shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    return [super shouldRequireFailureOfGestureRecognizer:otherGestureRecognizer];
 }
 
 @end

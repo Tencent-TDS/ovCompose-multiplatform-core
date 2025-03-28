@@ -76,6 +76,7 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.approachLayout
@@ -2895,6 +2896,27 @@ class SharedTransitionTest {
         target = !target
         rule.mainClock.advanceTimeByFrame()
         rule.waitForIdle()
+    }
+
+    @Test
+    fun intrinsicsQueryComingFromAboveLookaheadRoot() {
+        var intrinsicWidth = 0
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                Layout(
+                    content = {
+                        SharedTransitionLayout { Box(Modifier.skipToLookaheadSize().size(100.dp)) }
+                    },
+                ) { measurables, constraints ->
+                    val measurable = measurables[0]
+                    intrinsicWidth = measurable.maxIntrinsicWidth(constraints.maxHeight)
+                    val placeable = measurable.measure(constraints)
+                    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, 0) }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(100, intrinsicWidth)
     }
 }
 

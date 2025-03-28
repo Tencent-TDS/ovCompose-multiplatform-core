@@ -39,11 +39,6 @@ internal class PlatformClipboardManager : ClipboardManager {
     override fun setClip(clipEntry: ClipEntry?) = Unit
 }
 
-actual class ClipEntry {
-    actual val clipMetadata: ClipMetadata
-        get() = TODO("Not yet implemented")
-}
-
 actual class ClipMetadata
 
-actual class NativeClipboard
+internal expect fun createPlatformClipboard(): Clipboard

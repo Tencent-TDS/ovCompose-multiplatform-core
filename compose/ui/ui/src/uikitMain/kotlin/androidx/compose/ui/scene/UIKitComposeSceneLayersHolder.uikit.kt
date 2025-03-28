@@ -18,18 +18,17 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.uikit.addLayoutConstraintsToMatch
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
 import androidx.compose.ui.window.ComposeView
-import androidx.compose.ui.window.GestureEvent
 import androidx.compose.ui.window.MetalView
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.Canvas
-import platform.UIKit.UIEvent
 import platform.UIKit.UIWindow
 
 /**
@@ -50,8 +49,6 @@ internal class UIKitComposeSceneLayersHolder(
 
     fun withLayers(block: (List<UIKitComposeSceneLayer>) -> Unit) = layersCache.withCopy(block)
 
-    private var ongoingGesturesCount = 0
-
     /**
      * Transactions of the layers that were imperatively removed before their changes were applied.
      */
@@ -66,12 +63,27 @@ internal class UIKitComposeSceneLayersHolder(
     }
 
     private val view = ComposeView(
-        onDidMoveToWindow = {},
-        onLayoutSubviews = { windowContext.updateWindowContainerSize() },
         useOpaqueConfiguration = false,
         transparentForTouches = true,
-        metalView = metalView
-    )
+    ).also {
+        it.updateMetalView(
+            metalView = metalView,
+            onLayoutSubviews = { windowContext.updateWindowContainerSize() }
+        )
+    }
+
+    var window: UIWindow? = null
+        set(value) {
+            if (field != value) {
+                field = value
+
+                view.removeFromSuperview()
+                if (layers.isNotEmpty()) {
+                    value?.embedSubview(view)
+                    value?.layoutIfNeeded()
+                }
+            }
+        }
 
     fun animateSizeTransition(scope: CoroutineScope, duration: Duration) {
         if (this.layers.isEmpty()) {
@@ -90,37 +102,7 @@ internal class UIKitComposeSceneLayersHolder(
         }
     }
 
-    /**
-     * When there is an ongoing gesture, we need notify redrawer about it. It should unconditionally
-     * unpause CADisplayLink which affects frequency of polling UITouch events on high frequency
-     * display and force it to match display refresh rate.
-     *
-     * Otherwise [UIEvent]s will be dispatched with the 60hz frequency.
-     */
-    fun onGestureEvent(event: GestureEvent) {
-        val hadAnyOngoingGestures = ongoingGesturesCount > 0
-
-        when (event) {
-            GestureEvent.BEGAN -> {
-                ongoingGesturesCount++
-
-                if (!hadAnyOngoingGestures && ongoingGesturesCount > 0) {
-                    metalView.needsProactiveDisplayLink = true
-                }
-            }
-            GestureEvent.ENDED -> {
-                ongoingGesturesCount--
-
-                if (hadAnyOngoingGestures && ongoingGesturesCount == 0) {
-                    metalView.needsProactiveDisplayLink = false
-                }
-            }
-        }
-    }
-
     fun dispose(hasViewAppeared: Boolean) {
-        metalView.dispose()
-
         // `dispose` is called instead of `close`, because `close` is also used imperatively
         // to remove the layer from the array based on user interaction.
         while (this.layers.isNotEmpty()) {
@@ -133,26 +115,20 @@ internal class UIKitComposeSceneLayersHolder(
             layer.dispose()
         }
 
-        view.dispose()
+        view.updateMetalView(metalView = null)
         view.removeFromSuperview()
     }
 
-    fun attach(window: UIWindow, layer: UIKitComposeSceneLayer, hasViewAppeared: Boolean) {
-        val isFirstLayer = this.layers.isEmpty()
+    fun attach(layer: UIKitComposeSceneLayer, hasViewAppeared: Boolean) {
+        val isFirstLayer = layers.isEmpty()
 
-        this.layers.add(layer)
-
+        layers.add(layer)
+        view.insertSubview(layer.interopContainerView, belowSubview = metalView)
+        layer.interopContainerView.addLayoutConstraintsToMatch(view)
         view.embedSubview(layer.view)
-        view.bringSubviewToFront(metalView)
 
         if (isFirstLayer) {
-            // The content of previous layers drawn on the Metal view should be cleared and
-            // redrawn synchronously after the new layer is attached to avoid flickering.
-
-            metalView.setNeedsSynchronousDrawOnNextLayout()
-
-            window.embedSubview(view)
-            window.layoutIfNeeded()
+            window?.embedSubview(view)
         }
 
         if (hasViewAppeared) {
@@ -175,13 +151,15 @@ internal class UIKitComposeSceneLayersHolder(
             view.removeFromSuperview()
 
             transaction.actions.fastForEach { it.invoke() }
+
+            // If the layers list is empty, the draw call will clear the canvas.
+            metalView.redrawer.draw(waitUntilCompletion = false)
         } else {
             // It wasn't the last layer, pending transactions should be added to the list
             removedLayersTransactions.add(transaction)
 
             // Redraw content with layer removed
             metalView.redrawer.setNeedsRedraw()
-
         }
     }
 
@@ -219,8 +197,8 @@ internal class UIKitComposeSceneLayersHolder(
 
         // Some layers may be removed during rendering, because recomposition will happen in the
         // process, so we need to make a temporary copy of the list
-        layersCache.withCopy {
-            it.fastForEach {
+        layersCache.withCopy { layers ->
+            layers.fastForEach {
                 it.render(composeCanvas, nanoTime)
             }
         }

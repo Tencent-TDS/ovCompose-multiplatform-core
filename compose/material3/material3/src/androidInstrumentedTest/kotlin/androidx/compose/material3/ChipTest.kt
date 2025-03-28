@@ -585,7 +585,7 @@ class ChipTest {
                     containerColor = FilterChipTokens.ElevatedUnselectedContainerColor.value,
                     labelColor = FilterChipTokens.UnselectedLabelTextColor.value,
                     leadingIconColor = FilterChipTokens.UnselectedLeadingIconColor.value,
-                    trailingIconColor = FilterChipTokens.UnselectedTrailingIconColor.value,
+                    trailingIconColor = FilterChipTokens.UnselectedLeadingIconColor.value,
                     disabledContainerColor =
                         FilterChipTokens.ElevatedDisabledContainerColor.value.copy(
                             alpha = FilterChipTokens.ElevatedDisabledContainerOpacity
@@ -599,8 +599,8 @@ class ChipTest {
                             alpha = FilterChipTokens.DisabledLeadingIconOpacity
                         ),
                     disabledTrailingIconColor =
-                        FilterChipTokens.DisabledTrailingIconColor.value.copy(
-                            alpha = FilterChipTokens.DisabledTrailingIconOpacity
+                        FilterChipTokens.DisabledLeadingIconColor.value.copy(
+                            alpha = FilterChipTokens.DisabledLeadingIconOpacity
                         ),
                     selectedContainerColor = FilterChipTokens.ElevatedSelectedContainerColor.value,
                     disabledSelectedContainerColor =
@@ -609,7 +609,7 @@ class ChipTest {
                         ),
                     selectedLabelColor = FilterChipTokens.SelectedLabelTextColor.value,
                     selectedLeadingIconColor = FilterChipTokens.SelectedLeadingIconColor.value,
-                    selectedTrailingIconColor = FilterChipTokens.SelectedTrailingIconColor.value
+                    selectedTrailingIconColor = FilterChipTokens.SelectedLeadingIconColor.value
                 )
             val colors = FilterChipDefaults.elevatedFilterChipColors()
             assertThat(colors).isEqualTo(expectedColors)

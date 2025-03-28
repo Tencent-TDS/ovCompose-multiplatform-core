@@ -28,6 +28,7 @@ import androidx.compose.runtime.mock.view
 import androidx.compose.runtime.platform.SynchronizedObject
 import androidx.compose.runtime.platform.synchronized
 import kotlin.coroutines.resume
+import kotlin.math.exp
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -356,6 +357,38 @@ class PausableCompositionTests {
                 .joinToString { (it as Named).name },
             "Expected enter order",
         )
+    }
+
+    @Test
+    fun pausableComposition_throwInResume() = runTest(expect = IllegalStateException::class) {
+        val recomposer = Recomposer(coroutineContext)
+        val pausableComposition = PausableComposition(EmptyApplier(), recomposer)
+
+        try {
+            val handle = pausableComposition.setPausableContent { error("Test error") }
+            handle.resume { false }
+            handle.apply()
+        } finally {
+            recomposer.cancel()
+            recomposer.close()
+        }
+    }
+
+    fun pausableComposition_throwInApply() = runTest(expect = IllegalStateException::class) {
+        val recomposer = Recomposer(coroutineContext)
+        val pausableComposition = PausableComposition(EmptyApplier(), recomposer)
+
+        try {
+            val handle =
+                pausableComposition.setPausableContent {
+                    DisposableEffect(Unit) { throw IllegalStateException("test") }
+                }
+            handle.resume { false }
+            handle.apply()
+        } finally {
+            recomposer.cancel()
+            recomposer.close()
+        }
     }
 }
 

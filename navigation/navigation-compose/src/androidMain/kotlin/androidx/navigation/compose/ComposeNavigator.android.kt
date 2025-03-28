@@ -23,33 +23,25 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 import androidx.navigation.compose.ComposeNavigator.Destination
+import kotlinx.coroutines.flow.StateFlow
 
-/**
- * Navigator that navigates through [Composable]s. Every destination using this Navigator must set a
- * valid [Composable] by setting it directly on an instantiated [Destination] or calling
- * [composable].
- */
 @Navigator.Name("composable")
-public actual class ComposeNavigator
-actual constructor() : Navigator<Destination>() {
+public actual class ComposeNavigator actual constructor() : Navigator<Destination>() {
 
-    /** Get the map of transitions currently in progress from the [state]. */
     internal actual val transitionsInProgress
         get() = state.transitionsInProgress
 
-    /** Get the back stack from the [state]. */
-    public actual val backStack
+    public actual val backStack: StateFlow<List<NavBackStackEntry>>
         get() = state.backStack
 
     internal actual val isPop = mutableStateOf(false)
 
-    override fun navigate(
+    actual override fun navigate(
         entries: List<NavBackStackEntry>,
         navOptions: NavOptions?,
         navigatorExtras: Extras?
@@ -58,42 +50,26 @@ actual constructor() : Navigator<Destination>() {
         isPop.value = false
     }
 
-    override fun createDestination(): Destination {
+    actual override fun createDestination(): Destination {
         return Destination(this) {}
     }
 
-    override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
+    actual override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean) {
         state.popWithTransition(popUpTo, savedState)
         isPop.value = true
     }
 
-    /**
-     * Function to prepare the entry for transition.
-     *
-     * This should be called when the entry needs to move the [Lifecycle.State] in preparation for a
-     * transition such as when using predictive back.
-     */
     public actual fun prepareForTransition(entry: NavBackStackEntry) {
         state.prepareForTransition(entry)
     }
 
-    /**
-     * Callback to mark a navigation in transition as complete.
-     *
-     * This should be called in conjunction with [navigate] and [popBackStack] as those calls merely
-     * start a transition to the target destination, and requires manually marking the transition as
-     * complete by calling this method.
-     *
-     * Failing to call this method could result in entries being prevented from reaching their final
-     * [Lifecycle.State].
-     */
     public actual fun onTransitionComplete(entry: NavBackStackEntry) {
         state.markTransitionComplete(entry)
     }
 
-    /** NavDestination specific to [ComposeNavigator] */
     @NavDestination.ClassType(Composable::class)
-    public actual class Destination actual constructor(
+    public actual class Destination
+    actual constructor(
         navigator: ComposeNavigator,
         internal actual val content:
             @Composable
@@ -104,7 +80,7 @@ actual constructor() : Navigator<Destination>() {
             message = "Deprecated in favor of Destination that supports AnimatedContent",
             level = DeprecationLevel.HIDDEN,
         )
-        constructor(
+        public constructor(
             navigator: ComposeNavigator,
             content: @Composable (NavBackStackEntry) -> @JvmSuppressWildcards Unit
         ) : this(navigator, content = { entry -> content(entry) })

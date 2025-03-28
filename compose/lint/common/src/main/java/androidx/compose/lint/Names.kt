@@ -68,6 +68,11 @@ object Names {
             val ParentDataModifier = Name(PackageName, "ParentDataModifier")
         }
 
+        object Platform {
+            val PackageName = Package(Ui.PackageName, "platform")
+            val LocalConfiguration = Name(PackageName, "LocalConfiguration")
+        }
+
         object Pointer {
             val PackageName = Package(Ui.PackageName, "input.pointer")
             val PointerInputScope = Name(PackageName, "PointerInputScope")

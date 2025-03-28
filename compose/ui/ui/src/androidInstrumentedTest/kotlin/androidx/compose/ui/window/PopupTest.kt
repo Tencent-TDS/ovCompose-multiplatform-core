@@ -64,6 +64,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.UiDevice
+import androidx.window.layout.WindowMetricsCalculator
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -418,11 +419,9 @@ class PopupTest {
             }
         }
         rule.runOnIdle {
-            assertThat(box1Width)
-                .isEqualTo(
-                    (rule.activity.resources.configuration.screenWidthDp * rule.density.density)
-                        .roundToInt()
-                )
+            val metrics =
+                WindowMetricsCalculator.getOrCreate().computeCurrentWindowMetrics(rule.activity)
+            assertThat(box1Width).isEqualTo(metrics.bounds.width())
             assertThat(box2Width).isLessThan(box1Width)
         }
     }

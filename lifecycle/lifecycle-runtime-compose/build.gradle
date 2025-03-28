@@ -61,7 +61,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
+                api(project(":annotation:annotation"))
                 implementation(project(":lifecycle:lifecycle-common"))
                 api project(":lifecycle:lifecycle-runtime")
                 api("org.jetbrains.compose.runtime:runtime:1.7.1")

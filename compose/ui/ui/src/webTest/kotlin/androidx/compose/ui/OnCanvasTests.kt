@@ -76,6 +76,10 @@ internal interface OnCanvasTests {
             element.dispatchEvent(event)
         }
     }
+
+    fun requestFocus() {
+        getCanvas().focus()
+    }
 }
 
 internal fun <T> Channel<T>.sendFromScope(value: T, scope: CoroutineScope = MainScope()) {

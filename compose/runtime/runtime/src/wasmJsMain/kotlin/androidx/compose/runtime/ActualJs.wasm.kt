@@ -21,9 +21,3 @@ private external fun dynamicGetInt(obj: JsAny, index: String): Int?
 
 @JsFun("(obj) => typeof obj")
 private external fun jsTypeOf(a: JsAny?): String
-
-// TODO https://youtrack.jetbrains.com/issue/CMP-719/Make-expect-fun-identityHashCodeinstance-Any-Int-internal
-@InternalComposeApi
-@Deprecated("Made internal. It wasn't supposed to be public")
-fun identityHashCode(instance: Any?): Int =
-    androidx.compose.runtime.internal.identityHashCode(instance)
