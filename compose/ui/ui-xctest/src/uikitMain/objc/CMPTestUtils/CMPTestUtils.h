@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-import XCTest
-import InstrumentedTest
 
-class TestLauncher: XCTestCase {
-    override class var defaultTestSuite: XCTestSuite {
-        ConfigurationKt.testSuite()
-    }
-}
+#import <Foundation/Foundation.h>
+
+//! Project version number for CMPTestUtils.
+FOUNDATION_EXPORT double CMPTestUtilsVersionNumber;
+
+//! Project version string for CMPTestUtils.
+FOUNDATION_EXPORT const unsigned char CMPTestUtilsVersionString[];
+
+#import "UITouch+Test.h"

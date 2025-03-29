@@ -19,10 +19,8 @@ package androidx.build
 import javax.inject.Inject
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
-import org.gradle.kotlin.dsl.creating
 import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.getByName
-import org.gradle.kotlin.dsl.getValue
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
@@ -304,13 +302,16 @@ open class AndroidXComposeMultiplatformExtensionImpl @Inject constructor(
 
     override fun iosInstrumentedTest() {
         multiplatformExtension.run {
-            val uikitMain = sourceSets.getByName("uikitMain")
             val uikitInstrumentedTest = sourceSets.create("uikitInstrumentedTest")
-            uikitInstrumentedTest.dependsOn(uikitMain)
 
             fun KotlinNativeTargetWithSimulatorTests.configureTestRun() {
                 val testCompilation = compilations.create("instrumentedTest") {
-                    it.associateWith(compilations.getByName("main"))
+                    compilerOptions {
+                        // Generate K/N test runner for kotlin.test @Test support
+                        freeCompilerArgs.add("-tr")
+                    }
+
+                    it.associateWith(compilations.getByName("test"))
                     it.defaultSourceSet.dependsOn(uikitInstrumentedTest)
                 }
                 binaries.framework("InstrumentedTest", setOf(DEBUG)) {

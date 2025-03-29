@@ -23,7 +23,6 @@ import kotlin.native.internal.test.TestSuite
 import kotlinx.cinterop.Arena
 import kotlinx.cinterop.COpaquePointer
 import kotlinx.cinterop.ObjCAction
-import kotlinx.cinterop.UnsafeNumber
 import kotlinx.cinterop.cstr
 import platform.Foundation.NSClassFromString
 import platform.Foundation.NSCocoaErrorDomain
@@ -46,6 +45,7 @@ import platform.XCTest.XCTSourceCodeLocation
 import platform.XCTest.XCTestCase
 import platform.XCTest.XCTestCaseMeta
 import platform.XCTest.XCTestSuite
+import platform.XCTest.skipImplementation
 import platform.objc.class_addMethod
 import platform.objc.imp_implementationWithBlock
 import platform.objc.objc_allocateClassPair
@@ -75,14 +75,9 @@ internal class XCTestCaseWrapper(val testCase: TestCase) : XCTestCase(dummyInvoc
             }
 
         object_setClass(this, newClass)
-        val testName = if (ignored) {
-            "[ignored] ${testCase.name}"
-        } else {
-            testCase.name
-        }
 
-        val selector = NSSelectorFromString(testName)
-        createRunMethod(selector)
+        val selector = NSSelectorFromString(testCase.name)
+        createRunMethod(selector, ignored)
         setInvocation(methodSignatureForSelector(selector)?.let { signature ->
             @Suppress("CAST_NEVER_SUCCEEDS")
             val invocation = NSInvocation.invocationWithMethodSignature(signature as NSMethodSignature)
@@ -96,11 +91,17 @@ internal class XCTestCaseWrapper(val testCase: TestCase) : XCTestCase(dummyInvoc
      * Creates and adds method to the metaclass with implementation block
      * that gets an XCTestCase instance as self to be run.
      */
-    private fun createRunMethod(selector: COpaquePointer?) {
+    private fun createRunMethod(selector: COpaquePointer?, isIgnored: Boolean) {
+        val imp = if (isIgnored) {
+            // A special implementation that makes current test execution to skip a test case
+            skipImplementation()
+        } else {
+            imp_implementationWithBlock(::run)
+        }
         val result = class_addMethod(
             cls = this.`class`(),
             name = selector,
-            imp = imp_implementationWithBlock(::run),
+            imp = imp,
             types = "v@:" // Obj-C type encodings: v (returns void), @ (id self), : (SEL sel)
         )
         check(result) {
@@ -108,16 +109,8 @@ internal class XCTestCaseWrapper(val testCase: TestCase) : XCTestCase(dummyInvoc
         }
     }
 
-    @OptIn(UnsafeNumber::class)
     @ObjCAction
     private fun run() {
-        if (ignored) {
-            // TODO: to skip the test XCTSkip() should be used.
-            //  But it is not possible to do that due to the KT-43719 and not implemented exception importing.
-            //  For example, _XCTSkipHandler(testName, 0U, "Test $testName is ignored") fails with 'Uncaught Kotlin exception'.
-            //  So, just don't run the test. It will be seen as passed in XCode, but K/N TestListener correctly processes that.
-            return
-        }
         try {
             testCase.doRun()
         } catch (throwable: Throwable) {

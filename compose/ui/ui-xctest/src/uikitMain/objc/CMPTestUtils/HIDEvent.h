@@ -13,12 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-import XCTest
-import InstrumentedTest
 
-class TestLauncher: XCTestCase {
-    override class var defaultTestSuite: XCTestSuite {
-        ConfigurationKt.testSuite()
-    }
-}
+#import <UIKit/UIKit.h>
+
+typedef struct __IOHIDEvent * IOHIDEventPtr;
+
+IOHIDEventPtr HIDEventWithTouches(NSArray<UITouch *> *touches) CF_RETURNS_RETAINED;

@@ -18,7 +18,7 @@
 import androidx.build.JetbrainsAndroidXPlugin
 import androidx.build.LibraryType
 import org.jetbrains.kotlin.konan.target.KonanTarget
-
+import org.jetbrains.kotlin.konan.target.Architecture
 
 plugins {
     id("AndroidXPlugin")
@@ -30,13 +30,13 @@ JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
 kotlin {
     iosX64("uikitX64") {
-        configure(it)
+        configure(it, false)
     }
     iosArm64("uikitArm64") {
-        configure(it)
+        configure(it, true)
     }
     iosSimulatorArm64("uikitSimArm64") {
-        configure(it)
+        configure(it, false)
     }
 
     sourceSets {
@@ -56,7 +56,6 @@ kotlin {
             languageSettings.optIn("kotlinx.cinterop.ExperimentalForeignApi")
             languageSettings.optIn("kotlin.experimental.ExperimentalNativeApi")
         }
-
     }
 }
 
@@ -85,24 +84,106 @@ private static String frameworksPath(target) {
     return "${path}/Developer/Library/Frameworks/"
 }
 
-private def configure(target) {
-    target.compilations.all {
+private def configure(target, isDevice) {
+    def frameworkName = "CMPTestUtils"
+    def buildSchemeName = frameworkName
+    def frameworkSourcesDir = new File(project.projectDir, "src/uikitMain/objc")
+    def headersPath = new File(frameworkSourcesDir, frameworkName)
+    def sdkName
+    def destination
+    if (isDevice) {
+        sdkName = "iphoneos"
+        destination = "generic/platform=iOS"
+    } else {
+        sdkName = "iphonesimulator"
+        destination = "generic/platform=iOS Simulator"
+    }
+    def buildDir = new File(project.buildDir, "objc/${sdkName}.xcarchive")
+    def frameworkPath = new File(buildDir, "/Products/usr/local/lib/lib${frameworkName}.a")
+    def systemFrameworks = ["UIKit", "IOKit", "XCTest", frameworkName]
+    def linkerFlags = ["-ObjC"] + systemFrameworks.collectMany {
+        ["-framework", it]
+    }
+    def compilerArgs = [
+            "-include-binary", frameworkPath.toString(),
+    ] + linkerFlags.collectMany {
+        ["-linker-option", it]
+    }
+
+    println(">>> -- ${frameworkPath}")
+
+    def architecture
+    switch (target.konanTarget.architecture) {
+        case Architecture.ARM64:
+            architecture = "arm64"
+            break
+        case Architecture.X64:
+            architecture = "x86_64"
+            break
+        case Architecture.ARM32:
+            return
+        case Architecture.X86:
+            return
+    }
+
+    target.compilations.main {
+        def libTaskName = "${compileTaskProvider.name}ObjCLib"
+        project.tasks.register(libTaskName, Exec) {
+            inputs.dir(frameworkSourcesDir)
+                    .withPropertyName("${frameworkName}-${sdkName}")
+                    .withPathSensitivity(PathSensitivity.RELATIVE)
+
+            outputs.cacheIf { true }
+            outputs.dir(buildDir)
+                    .withPropertyName("${frameworkName}-${sdkName}-archive")
+
+            workingDir(frameworkSourcesDir)
+            commandLine("xcodebuild")
+            args(
+                    "archive",
+                    "-scheme", buildSchemeName,
+                    "-archivePath", buildDir,
+                    "-sdk", sdkName,
+                    "-destination", destination,
+                    "SKIP_INSTALL=NO",
+                    "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
+                    "VALID_ARCHS=${architecture}",
+                    "MACH_O_TYPE=staticlib"
+            )
+        }
+
+        tasks[compileTaskProvider.name].dependsOn(libTaskName)
+
         cinterops {
             XCTest {
                 def path = frameworksPath(target.konanTarget)
                 compilerOpts("-iframework", path)
             }
-        }
-        compileTaskProvider.configure {
-            compilerOptions {
-                freeCompilerArgs.add("-Xdont-warn-on-error-suppression")
+            CMPTestUtils {
+                def cinteropTask = tasks[interopProcessingTaskName]
+                headersPath.eachFileRecurse {
+                    if (it.name.endsWith('.h')) {
+                        extraOpts("-header", it.name)
+                        cinteropTask.inputs.file(it)
+                    }
+                }
+                compilerOpts("-I${headersPath}")
             }
+        }
+    }
+
+    target.binaries.all {
+        freeCompilerArgs += compilerArgs
+    }
+    target.compilations.all {
+        kotlinOptions {
+            freeCompilerArgs += compilerArgs
         }
     }
 }
 
 androidx {
-    name = "Compose XCTest Utils"
+    name = "Compose Instrumented Test Utils"
     type = LibraryType.INTERNAL_TEST_LIBRARY
     inceptionYear = "2025"
     description = "Internal utilities that convert kotlin.test into XCTest."

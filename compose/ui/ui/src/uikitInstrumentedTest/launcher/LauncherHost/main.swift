@@ -21,9 +21,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     var window: UIWindow?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        
-        print(ProcessInfo.processInfo.environment)
-        print(ProcessInfo.processInfo.arguments)
         window = UIWindow(frame: UIScreen.main.bounds)
         window?.rootViewController = UIViewController()
         window?.rootViewController?.view.backgroundColor = .orange

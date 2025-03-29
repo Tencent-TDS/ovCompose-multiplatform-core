@@ -14,22 +14,10 @@
 # limitations under the License.
 #
 
-depends = Foundation darwin posix
+linkerOpts = -framework UIKit -framework IOKit
+package = androidx.compose.test.utils
 language = Objective-C
-package = platform.XCTest
-modules = XCTest
-
-compilerOpts = -framework XCTest
-linkerOpts = -framework XCTest
+compilerOpts = -D_Float16=short
+headerFilter = UI*
 
 foreignExceptionMode = objc-wrap
-
----
- #import <objc/runtime.h>
-
- static IMP skipImplementation() {
-     return imp_implementationWithBlock(^void(id _self, SEL _sel) {
-         // Use the XCTSkip function to skip the test with the provided reason
-         XCTSkip(@"Test was skipped (ignored with @Ignore annotation)");
-     });
- }

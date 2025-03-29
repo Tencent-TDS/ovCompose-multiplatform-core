@@ -13,12 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-import XCTest
-import InstrumentedTest
 
-class TestLauncher: XCTestCase {
-    override class var defaultTestSuite: XCTestSuite {
-        ConfigurationKt.testSuite()
-    }
-}
+#import <UIKit/UIKit.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface UITouch (CMPTest)
+
++ (instancetype)touchAtPoint:(CGPoint)point
+                    inWindow:(UIWindow *)window
+                    tapCount:(NSInteger)tapCount
+                    fromEdge:(BOOL)fromEdge;
+
+@property (assign) UITouchPhase phase;
+@property (assign) CGPoint locationInWindow;
+
+- (void)send;
+- (void)updateTimestamp;
+
+@end
+
+NS_ASSUME_NONNULL_END
