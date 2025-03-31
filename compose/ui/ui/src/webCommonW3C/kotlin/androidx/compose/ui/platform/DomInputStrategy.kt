@@ -16,7 +16,7 @@ import org.w3c.dom.events.Event
 import org.w3c.dom.events.KeyboardEvent
 
 
-internal class CommonDomInputStrategy(
+internal class DomInputStrategy(
     imeOptions: ImeOptions,
     private val composeSender: ComposeCommandCommunicator,
 ) {
@@ -26,8 +26,11 @@ internal class CommonDomInputStrategy(
 
     private var lastMeaningfulUpdate = TextFieldValue("")
 
+    private var repeatDetector: RepeatDetector
+
     init {
         initEvents()
+        repeatDetector = RepeatDetector(htmlInput)
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
@@ -61,17 +64,6 @@ internal class CommonDomInputStrategy(
             evt as KeyboardEvent
             lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
 
-            if (editState is EditState.AccentDialogue) {
-                evt.preventDefault()
-                return@addEventListener
-            }
-
-            if (evt.repeat) {
-                editState = EditState.AccentDialogue
-                evt.preventDefault()
-                return@addEventListener
-            }
-
             if (evt.isComposing) {
                 editState = EditState.CompositeDialogue
             }
@@ -82,7 +74,12 @@ internal class CommonDomInputStrategy(
             }
 
             if (evt.repeat) {
-                editState = EditState.AccentDialogue
+                if (repeatDetector.repeatMode == RepeatMode.Accent) {
+                    editState = EditState.AccentDialogue
+                }
+                if (repeatDetector.repeatMode == RepeatMode.Unknown) {
+                    return@addEventListener
+                }
             }
 
             if (editState is EditState.AccentDialogue) {
@@ -250,4 +247,41 @@ private fun ImeOptions.createDomElement(): HTMLElement {
 private external interface HTMLElementWithValue  {
     var value: String
     fun setSelectionRange(start: Int, end: Int, direction: String = definedExternally)
+}
+
+private sealed interface RepeatMode {
+    data object Unknown: RepeatMode
+    data object Accent: RepeatMode
+    data object Default: RepeatMode
+}
+
+private class RepeatDetector(private val input: HTMLElement) {
+    private var resolving = false
+    var repeatMode: RepeatMode = RepeatMode.Unknown
+        private set
+
+    init {
+        initEvents()
+    }
+
+    fun initEvents() {
+        input.addEventListener("keydown", { evt ->
+            evt as KeyboardEvent
+            if (evt.repeat && this.repeatMode === RepeatMode.Unknown) {
+                if (resolving) {
+                    repeatMode = RepeatMode.Accent;
+                    resolving = false;
+                } else {
+                    resolving = true;
+                }
+            }
+        });
+
+        input.addEventListener("beforeinput", {
+            if (resolving && repeatMode === RepeatMode.Unknown) {
+                resolving = false;
+                repeatMode = RepeatMode.Default;
+            }
+        });
+    }
 }

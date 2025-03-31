@@ -22,7 +22,6 @@ import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.browser.document
-import org.w3c.dom.events.KeyboardEvent
 
 
 internal interface ComposeCommandCommunicator {
@@ -42,7 +41,7 @@ internal class BackingDomInput(
     imeOptions: ImeOptions,
     composeCommunicator : ComposeCommandCommunicator,
 ) {
-    private val inputStrategy = CommonDomInputStrategy(
+    private val inputStrategy = DomInputStrategy(
         imeOptions,
         composeCommunicator
     )

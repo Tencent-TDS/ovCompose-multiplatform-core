@@ -39,7 +39,8 @@ internal fun keyEvent(
     metaKey: Boolean = false,
     altKey: Boolean = false,
     shiftKey: Boolean = false,
-    cancelable: Boolean = true
+    cancelable: Boolean = true,
+    repeat: Boolean = false,
 ): KeyboardEvent =
     KeyboardEventInit(
         key = key,
@@ -48,7 +49,8 @@ internal fun keyEvent(
         metaKey = metaKey,
         altKey = altKey,
         shiftKey = shiftKey,
-        cancelable = cancelable
+        cancelable = cancelable,
+        repeat = repeat
     )
         .withKeyCode(keyCode)
         .keyEvent(type)

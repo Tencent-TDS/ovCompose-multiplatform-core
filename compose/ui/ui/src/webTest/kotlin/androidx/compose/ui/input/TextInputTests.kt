@@ -51,10 +51,135 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.events.InputEvent
+import org.w3c.dom.events.InputEventInit
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 
 class TextInputTests : OnCanvasTests  {
+
+    @Test
+    fun singleInput() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("s"),
+            keyEvent("t"),
+            keyEvent("e"),
+            keyEvent("p"),
+            keyEvent("1")
+        )
+
+        assertEquals("step1", textInputChannel.receive())
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("Backspace", code = "Backspace"),
+            keyEvent("X"),
+        )
+
+        assertEquals("stepX", textInputChannel.receive(), "Backspace should delete last symbol typed")
+    }
+
+    @Test
+    fun singleInputRepeatedAccent() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+        )
+
+        assertEquals("a", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
+    }
+
+    @Test
+    fun singleInputRepeatedDefault() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            keyEvent("a", repeat = true),
+            InputEvent(type = "beforeinput", InputEventInit(data = "a")),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+        )
+
+        assertEquals("aaaaa", textInputChannel.receive(), "Repeat mode should be resolved as Default")
+    }
+
 
     @Test
     fun keyboardEventPassedToTextField() = runTest {
