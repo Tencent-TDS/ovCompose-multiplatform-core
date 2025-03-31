@@ -53,10 +53,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
-import org.w3c.dom.events.CompositionEvent
-import org.w3c.dom.events.CompositionEventInit
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
+import org.w3c.dom.events.UIEvent
 
 class TextInputTests : OnCanvasTests  {
 
@@ -390,3 +389,15 @@ class TextInputTests : OnCanvasTests  {
 private fun compositionStart(data: String = "")  = CompositionEvent("compositionstart", CompositionEventInit(data = data))
 private fun compositionEnd(data: String) = CompositionEvent("compositionend", CompositionEventInit(data = data))
 private fun beforeInput(inputType: String, data: String) = InputEvent("beforeinput", InputEventInit(inputType = inputType, data = data))
+
+
+private open external class CompositionEvent(type: String, eventInitDict: CompositionEventInit = definedExternally): UIEvent {
+    open val data: String
+}
+
+private external interface CompositionEventInit {
+    var data: String?
+}
+
+private fun CompositionEventInit(data: String? = ""): CompositionEventInit
+    = js("({data: data})")
