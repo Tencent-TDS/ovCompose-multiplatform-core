@@ -28,6 +28,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
+import androidx.compose.ui.events.InputEvent
+import androidx.compose.ui.events.InputEventInit
 import androidx.compose.ui.events.keyEvent
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -51,8 +53,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
-import org.w3c.dom.events.InputEvent
-import org.w3c.dom.events.InputEventInit
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 
@@ -170,14 +170,14 @@ class TextInputTests : OnCanvasTests  {
             backingTextField,
             keyEvent("a"),
             keyEvent("a", repeat = true),
-            InputEvent(type = "beforeinput", InputEventInit(data = "a")),
+            InputEvent(type = "beforeinput", InputEventInit(data = "a", inputType = "insertText")),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
         )
 
-        assertEquals("aaaaa", textInputChannel.receive(), "Repeat mode should be resolved as Default")
+        assertEquals("aaaaaa", textInputChannel.receive(), "Repeat mode should be resolved as Default")
     }
 
 
