@@ -26,7 +26,7 @@ internal class CommonDomInputStrategy(
 
     private var lastMeaningfulUpdate = TextFieldValue("")
 
-    private lateinit var repeatDetector: RepeatDetector
+    private var repeatDetector: RepeatDetector
 
     init {
         initEvents()
@@ -72,8 +72,6 @@ internal class CommonDomInputStrategy(
                 evt.preventDefault()
                 return@addEventListener
             }
-
-            println("IS REPEAT ${evt.key} ${evt.repeat} ${repeatDetector.repeatMode}")
 
             if (evt.repeat) {
                 if (repeatDetector.repeatMode == RepeatMode.Accent) {
@@ -279,7 +277,7 @@ private class RepeatDetector(private val input: HTMLElement) {
             }
         });
 
-        input.addEventListener("beforeinput", { evt ->
+        input.addEventListener("beforeinput", {
             if (resolving && repeatMode === RepeatMode.Unknown) {
                 resolving = false;
                 repeatMode = RepeatMode.Default;
