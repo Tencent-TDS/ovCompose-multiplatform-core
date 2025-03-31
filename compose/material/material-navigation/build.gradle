@@ -85,10 +85,8 @@ kotlin {
 androidx {
     name = "Compose Material Navigation"
     type = LibraryType.PUBLISHED_LIBRARY
-    mavenVersion = LibraryVersions.COMPOSE
     inceptionYear = "2024"
     description = "Compose Material integration with Navigation"
-//    samples(projectOrArtifact(":compose:material:material-navigation-samples"))
 }
 
 android {
