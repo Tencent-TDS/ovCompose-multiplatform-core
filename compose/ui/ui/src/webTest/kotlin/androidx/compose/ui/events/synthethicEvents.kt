@@ -41,6 +41,7 @@ internal fun keyEvent(
     shiftKey: Boolean = false,
     cancelable: Boolean = true,
     repeat: Boolean = false,
+    isComposing: Boolean = false,
 ): KeyboardEvent =
     KeyboardEventInit(
         key = key,
@@ -50,7 +51,8 @@ internal fun keyEvent(
         altKey = altKey,
         shiftKey = shiftKey,
         cancelable = cancelable,
-        repeat = repeat
+        repeat = repeat,
+        isComposing = isComposing,
     )
         .withKeyCode(keyCode)
         .keyEvent(type)

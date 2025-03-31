@@ -53,6 +53,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.events.CompositionEvent
+import org.w3c.dom.events.CompositionEventInit
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
 
@@ -102,6 +104,47 @@ class TextInputTests : OnCanvasTests  {
 
         assertEquals("stepX", textInputChannel.receive(), "Backspace should delete last symbol typed")
     }
+
+    @Test
+    fun compositeInput() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            compositionStart(),
+            beforeInput("insertCompositionText", "a"),
+            keyEvent("a", type = "keyup"),
+            keyEvent("1", code = "Digit1", isComposing = true),
+            beforeInput("insertCompositionText", "啊"),
+            compositionEnd("啊"),
+            keyEvent("1", code = "Digit1", type = "keyup"),
+        )
+
+        assertEquals("啊", textInputChannel.receive())
+    }
+
 
     @Test
     fun singleInputRepeatedAccent() = runTest {
@@ -172,7 +215,7 @@ class TextInputTests : OnCanvasTests  {
             backingTextField,
             keyEvent("a"),
             keyEvent("a", repeat = true),
-            InputEvent(type = "beforeinput", InputEventInit(data = "a", inputType = "insertText")),
+            beforeInput("insertText", "a"),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
@@ -342,3 +385,8 @@ class TextInputTests : OnCanvasTests  {
         assertEquals(TextRange(0, 14), selection)
     }
 }
+
+
+private fun compositionStart(data: String = "")  = CompositionEvent("compositionstart", CompositionEventInit(data = data))
+private fun compositionEnd(data: String) = CompositionEvent("compositionend", CompositionEventInit(data = data))
+private fun beforeInput(inputType: String, data: String) = InputEvent("beforeinput", InputEventInit(inputType = inputType, data = data))
