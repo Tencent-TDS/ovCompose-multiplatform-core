@@ -64,17 +64,6 @@ internal class CommonDomInputStrategy(
             evt as KeyboardEvent
             lastKeyboardEventIsDown = evt.key != "Dead" && evt.key != "Unidentified"
 
-            if (editState is EditState.AccentDialogue) {
-                evt.preventDefault()
-                return@addEventListener
-            }
-
-            if (evt.repeat) {
-                editState = EditState.AccentDialogue
-                evt.preventDefault()
-                return@addEventListener
-            }
-
             if (evt.isComposing) {
                 editState = EditState.CompositeDialogue
             }
@@ -84,8 +73,15 @@ internal class CommonDomInputStrategy(
                 return@addEventListener
             }
 
+            println("IS REPEAT ${evt.key} ${evt.repeat} ${repeatDetector.repeatMode}")
+
             if (evt.repeat) {
-                editState = EditState.AccentDialogue
+                if (repeatDetector.repeatMode == RepeatMode.Accent) {
+                    editState = EditState.AccentDialogue
+                }
+                if (repeatDetector.repeatMode == RepeatMode.Unknown) {
+                    return@addEventListener
+                }
             }
 
             if (editState is EditState.AccentDialogue) {
@@ -256,14 +252,15 @@ private external interface HTMLElementWithValue  {
 }
 
 private sealed interface RepeatMode {
-    object Unknown: RepeatMode
-    object Accent: RepeatMode
-    object Default: RepeatMode
+    data object Unknown: RepeatMode
+    data object Accent: RepeatMode
+    data object Default: RepeatMode
 }
 
 private class RepeatDetector(private val input: HTMLElement) {
     private var resolving = false
-    private var repeatMode: RepeatMode = RepeatMode.Unknown
+    var repeatMode: RepeatMode = RepeatMode.Unknown
+        private set
 
     init {
         initEvents()
@@ -273,19 +270,19 @@ private class RepeatDetector(private val input: HTMLElement) {
         input.addEventListener("keydown", { evt ->
             evt as KeyboardEvent
             if (evt.repeat && this.repeatMode === RepeatMode.Unknown) {
-                if (this.resolving) {
-                    this.repeatMode = RepeatMode.Accent;
-                    this.resolving = false;
+                if (resolving) {
+                    repeatMode = RepeatMode.Accent;
+                    resolving = false;
                 } else {
-                    this.resolving = true;
+                    resolving = true;
                 }
             }
         });
 
-        input.addEventListener("input", { evt ->
-            if (this.resolving && this.repeatMode === RepeatMode.Unknown) {
-                this.resolving = false;
-                this.repeatMode = RepeatMode.Default;
+        input.addEventListener("beforeinput", { evt ->
+            if (resolving && repeatMode === RepeatMode.Unknown) {
+                resolving = false;
+                repeatMode = RepeatMode.Default;
             }
         });
     }
