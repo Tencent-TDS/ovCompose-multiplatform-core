@@ -136,9 +136,11 @@ class TextInputTests : OnCanvasTests  {
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
+            keyEvent("b"),
+            keyEvent("c"),
         )
 
-        assertEquals("a", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
+        assertEquals("abc", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
     }
 
     @Test
@@ -175,9 +177,11 @@ class TextInputTests : OnCanvasTests  {
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
+            keyEvent("b"),
+            keyEvent("c")
         )
 
-        assertEquals("aaaaaa", textInputChannel.receive(), "Repeat mode should be resolved as Default")
+        assertEquals("aaaaaabc", textInputChannel.receive(), "Repeat mode should be resolved as Default")
     }
 
 
