@@ -43,18 +43,22 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -368,8 +372,13 @@ internal class UIKitTextInputService(
             attachIntermediateTextInputView()
             updateView()
         }
+        val density = view.density
+        val offset = textUIView?.frame?.useContents {
+            origin.asDpOffset().toOffset(density)
+        } ?: return
+
         textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(view.density).asCGRect(),
+            targetRect = rect.translate(-offset).toDpRect(density).asCGRect(),
             textActions = object : TextActions {
                 override val copy: (() -> Unit)? = onCopyRequested
                 override val cut: (() -> Unit)? = onCutRequested
@@ -401,8 +410,12 @@ internal class UIKitTextInputService(
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
+            it.setAutoresizingMask(
+                UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+            )
             it.onKeyboardPresses = onKeyboardPresses
             view.addSubview(it)
+            it.setFrame(view.bounds)
         }
     }
 
