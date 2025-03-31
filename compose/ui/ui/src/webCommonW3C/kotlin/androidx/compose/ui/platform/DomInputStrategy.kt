@@ -26,8 +26,11 @@ internal class CommonDomInputStrategy(
 
     private var lastMeaningfulUpdate = TextFieldValue("")
 
+    private lateinit var repeatDetector: RepeatDetector
+
     init {
         initEvents()
+        repeatDetector = RepeatDetector(htmlInput)
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
@@ -250,4 +253,40 @@ private fun ImeOptions.createDomElement(): HTMLElement {
 private external interface HTMLElementWithValue  {
     var value: String
     fun setSelectionRange(start: Int, end: Int, direction: String = definedExternally)
+}
+
+private sealed interface RepeatMode {
+    object Unknown: RepeatMode
+    object Accent: RepeatMode
+    object Default: RepeatMode
+}
+
+private class RepeatDetector(private val input: HTMLElement) {
+    private var resolving = false
+    private var repeatMode: RepeatMode = RepeatMode.Unknown
+
+    init {
+        initEvents()
+    }
+
+    fun initEvents() {
+        input.addEventListener("keydown", { evt ->
+            evt as KeyboardEvent
+            if (evt.repeat && this.repeatMode === RepeatMode.Unknown) {
+                if (this.resolving) {
+                    this.repeatMode = RepeatMode.Accent;
+                    this.resolving = false;
+                } else {
+                    this.resolving = true;
+                }
+            }
+        });
+
+        input.addEventListener("input", { evt ->
+            if (this.resolving && this.repeatMode === RepeatMode.Unknown) {
+                this.resolving = false;
+                this.repeatMode = RepeatMode.Default;
+            }
+        });
+    }
 }
