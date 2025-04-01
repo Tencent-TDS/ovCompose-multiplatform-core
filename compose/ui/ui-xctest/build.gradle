@@ -69,19 +69,24 @@ private static String getSdkPlatformPath(platform) {
 }
 
 private static String frameworksPath(target) {
-    def path
-    switch (target) {
-        case KonanTarget.IOS_SIMULATOR_ARM64:
-        case KonanTarget.IOS_X64:
-            path = getSdkPlatformPath("iphonesimulator")
-            break
-        case KonanTarget.IOS_ARM64:
-            path = getSdkPlatformPath("iphoneos")
-            break
-        default:
-            throw new IllegalArgumentException("Unexpected target ${target}")
+    try {
+        def path
+        switch (target) {
+            case KonanTarget.IOS_SIMULATOR_ARM64:
+            case KonanTarget.IOS_X64:
+                path = getSdkPlatformPath("iphonesimulator")
+                break
+            case KonanTarget.IOS_ARM64:
+                path = getSdkPlatformPath("iphoneos")
+                break
+            default:
+                throw new IllegalArgumentException("Unexpected target ${target}")
+        }
+        return "${path}/Developer/Library/Frameworks/"
+    } catch (IOException e) {
+        println "Error occurred while running xcrun: ${e.message}"
+        return ""
     }
-    return "${path}/Developer/Library/Frameworks/"
 }
 
 private def configure(target, isDevice) {
@@ -109,8 +114,6 @@ private def configure(target, isDevice) {
     ] + linkerFlags.collectMany {
         ["-linker-option", it]
     }
-
-    println(">>> -- ${frameworkPath}")
 
     def architecture
     switch (target.konanTarget.architecture) {
