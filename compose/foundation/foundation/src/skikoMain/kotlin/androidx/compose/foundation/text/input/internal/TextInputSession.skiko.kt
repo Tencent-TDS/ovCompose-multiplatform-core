@@ -244,7 +244,7 @@ private fun TextEditingScope(buffer: TextFieldBuffer) = object : TextEditingScop
 
 
 @OptIn(ExperimentalComposeUiApi::class)
-private data class SkikoPlatformTextInputMethodRequest(
+internal data class SkikoPlatformTextInputMethodRequest(
     override val value: () -> TextFieldValue,
     override val state: TextEditorState,
     override val imeOptions: ImeOptions,

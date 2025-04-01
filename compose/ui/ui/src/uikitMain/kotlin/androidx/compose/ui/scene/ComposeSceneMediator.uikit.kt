@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
@@ -708,7 +709,6 @@ internal class ComposeSceneMediator(
 
         override val viewConfiguration get() = this@ComposeSceneMediator.viewConfiguration
         override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
-        override val textInputService get() = this@ComposeSceneMediator.textInputService
         override val textToolbar get() = this@ComposeSceneMediator.textInputService
         override val semanticsOwnerListener get() = this@ComposeSceneMediator.semanticsOwnerListener
         override val dragAndDropManager get() = this@ComposeSceneMediator.dragAndDropManager
@@ -734,10 +734,12 @@ internal class ComposeSceneMediator(
                 sessionInitializer = { null }
             ) {
                 // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7832/iOS-Adopt-PlatformTextInputService2)
+                var previousValue: TextFieldValue? = null
                 coroutineScope {
                     launch {
                         request.outputValue.collect {
-                            textInputService.updateState(oldValue = null, newValue = it)
+                            textInputService.updateState(oldValue = previousValue, newValue = it)
+                            previousValue = it
                         }
                     }
                     launch {
@@ -752,10 +754,12 @@ internal class ComposeSceneMediator(
                     }
                     suspendCancellableCoroutine<Nothing> { continuation ->
                         textInputService.startInput(
-                            value = request.value(),
+                            value = request.value,
                             imeOptions = request.imeOptions,
-                            editProcessor = request.editProcessor,
-                            onEditCommand = request.onEditCommand,
+                            onEditCommand = {
+                                request.onEditCommand(it)
+                                previousValue = request.value()
+                            },
                             onImeActionPerformed = request.onImeAction ?: {}
                         )
 

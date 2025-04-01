@@ -18,7 +18,6 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -30,12 +29,9 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
-import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.OffsetMapping
-import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
@@ -72,36 +68,13 @@ internal class UIKitTextInputService(
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
     private val focusManager: () -> ComposeSceneFocusManager
-) : PlatformTextInputService, TextToolbar {
+): TextToolbar {
 
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
     private var textLayoutResult : TextLayoutResult? = null
-
-    /**
-     * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and
-     * selectionDidChange when the value of the current input is changed by the system (i.e., by the user
-     * input) not by the state change of the Compose side. These 4 functions call methods of
-     * UITextInputDelegateProtocol, which notifies the system that the text or the selection of the
-     * current input has changed.
-     *
-     * This is to properly handle multi-stage input methods that depend on text selection, required by
-     * languages such as Korean (Chinese and Japanese input methods depend on text marking). The writing
-     * system of these languages contains letters that can be broken into multiple parts, and each keyboard
-     * key corresponds to those parts. Therefore, the input system holds an internal state to combine these
-     * parts correctly. However, the methods of UITextInputDelegateProtocol reset this state, resulting in
-     * incorrect input. (e.g., 컴포즈 becomes ㅋㅓㅁㅍㅗㅈㅡ when not handled properly)
-     *
-     * @see _tempCurrentInputSession holds the same text and selection of the current input. It is used
-     * instead of the old value passed to updateState. When the current value change is due to the
-     * user input, updateState is not effective because _tempCurrentInputSession holds the same value.
-     * However, when the current value change is due to the change of the user selection or to the
-     * state change in the Compose side, updateState calls the 4 methods because the new value holds
-     * these changes.
-     */
-    private var _tempCurrentInputSession: EditProcessor? = null
 
     /**
      * Workaround to prevent IME action from being called multiple times with hardware keyboards.
@@ -126,18 +99,17 @@ internal class UIKitTextInputService(
      * And after clear in updateState function.
      */
     private var _tempCursorPos: Int? = null
+    private var _tempSelection: TextRange? = null
     private val mainScope = MainScope()
 
-    override fun startInput(
-        value: TextFieldValue,
+    fun startInput(
+        value: () -> TextFieldValue,
         imeOptions: ImeOptions,
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
-            reset(value, null)
-        }
+        _tempSelection = value().selection
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
@@ -149,31 +121,10 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
-    fun startInput(
-        value: TextFieldValue,
-        imeOptions: ImeOptions,
-        editProcessor: EditProcessor?,
-        onEditCommand: (List<EditCommand>) -> Unit,
-        onImeActionPerformed: (ImeAction) -> Unit
-    ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
-            reset(value, null)
-        }
-        currentImeOptions = imeOptions
-        currentImeActionHandler = onImeActionPerformed
-
-        attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
-
-        showSoftwareKeyboard()
-    }
-
-    override fun stopInput() {
+    fun stopInput() {
         flushEditCommandsIfNeeded(force = true)
         currentInput = null
-        _tempCurrentInputSession = null
+        _tempSelection = null
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
@@ -183,33 +134,30 @@ internal class UIKitTextInputService(
         detachIntermediateTextInputView()
     }
 
-    override fun showSoftwareKeyboard() {
+    private fun showSoftwareKeyboard() {
         textUIView?.let {
             focusStack?.pushAndFocus(it)
         }
     }
 
-    override fun hideSoftwareKeyboard() {
+    private fun hideSoftwareKeyboard() {
         textUIView?.let {
             focusStack?.popUntilNext(it)
         }
     }
 
-    override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
-        val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
-        val selectionChanged =
-            textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
+    fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
+        val textChanged = oldValue == null || oldValue.text != newValue.text
+        val selectionChanged = oldValue == null || oldValue.selection != newValue.selection
         if (textChanged) {
             textUIView?.textWillChange()
         }
         if (selectionChanged) {
             textUIView?.selectionWillChange()
         }
-        _tempCurrentInputSession?.reset(newValue, null)
         currentInput?.let { input ->
-            input.value = newValue
             _tempCursorPos = null
+            _tempSelection = newValue.selection
         }
         if (textChanged) {
             textUIView?.textDidChange()
@@ -229,29 +177,6 @@ internal class UIKitTextInputService(
             Key.Escape -> handleEscape(event)
             else -> false
         }
-    }
-
-    override fun updateTextLayoutResult(
-        textFieldValue: TextFieldValue,
-        offsetMapping: OffsetMapping,
-        textLayoutResult: TextLayoutResult,
-        textFieldToRootTransform: (Matrix) -> Unit,
-        innerTextFieldBounds: Rect,
-        decorationBoxBounds: Rect
-    ) {
-        super.updateTextLayoutResult(
-            textFieldValue,
-            offsetMapping,
-            textLayoutResult,
-            textFieldToRootTransform,
-            innerTextFieldBounds,
-            decorationBoxBounds
-        )
-        updateTextLayoutResult(textLayoutResult)
-
-        val matrix = Matrix()
-        textFieldToRootTransform(matrix)
-        updateTextFrame(matrix.map(decorationBoxBounds))
     }
 
     fun updateTextFrame(rect: Rect) {
@@ -303,8 +228,11 @@ internal class UIKitTextInputService(
         }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
-        _tempCurrentInputSession?.apply(commands.toList())
-
+        commands.forEach { command ->
+            if (command is SetSelectionCommand) {
+                _tempSelection = TextRange(command.start, command.end)
+            }
+        }
         editCommandsBatch.addAll(commands)
         flushEditCommandsIfNeeded()
     }
@@ -357,7 +285,7 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = currentInput?.value
+    private fun getState(): TextFieldValue? = currentInput?.value?.invoke()
 
     // Fixes a problem where the menu is shown before the textUIView gets its final layout.
     private var showMenuOrUpdatePosition = {}
@@ -502,7 +430,7 @@ internal class UIKitTextInputService(
          */
         override fun deleteBackward() {
             val deleteCommand =
-                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
+                if (_tempSelection?.collapsed == true) {
                     DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
                 } else {
                     CommitTextCommand("", 0)
@@ -677,6 +605,6 @@ internal class UIKitTextInputService(
 }
 
 private data class CurrentInput(
-    var value: TextFieldValue,
+    var value: () -> TextFieldValue,
     val onEditCommand: (List<EditCommand>) -> Unit
 )

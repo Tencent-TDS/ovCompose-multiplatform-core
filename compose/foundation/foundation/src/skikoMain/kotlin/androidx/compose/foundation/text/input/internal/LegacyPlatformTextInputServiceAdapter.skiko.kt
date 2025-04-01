@@ -17,31 +17,48 @@
 package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.platform.LocalTextInputService
-import androidx.compose.ui.text.InternalTextApi
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
+import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.SetComposingTextCommand
+import androidx.compose.ui.text.input.TextEditingScope
+import androidx.compose.ui.text.input.TextEditorState
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextInputService
-import androidx.compose.ui.text.input.TextInputSession
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.filterNotNull
 
 // TODO remove after https://youtrack.jetbrains.com/issue/COMPOSE-740/Implement-BasicTextField2
-@Suppress("DEPRECATION")
+@ExperimentalComposeUiApi
 @Composable
 internal actual fun legacyTextInputServiceAdapterAndService():
-    Pair<LegacyPlatformTextInputServiceAdapter, TextInputService>
-{
-    val service = LocalTextInputService.current!!
-    val adapter = remember(service) {
-        object : LegacyPlatformTextInputServiceAdapter() {
-            private var session: TextInputSession? = null
-            override fun startStylusHandwriting() {}
+    Pair<LegacyPlatformTextInputServiceAdapter, TextInputService> {
+    return remember {
+        val adapter = object : LegacyPlatformTextInputServiceAdapter() {
+            private var job: Job? = null
+
+            private var textFieldValue by mutableStateOf(TextFieldValue())
+            private var textLayoutResult by mutableStateOf<TextLayoutResult?>(null)
+            private var focusedRectInRoot by mutableStateOf(Rect.Zero)
+            private var textFieldRectInRoot by mutableStateOf(Rect.Zero)
+            private var textClippingRectInRoot by mutableStateOf(Rect.Zero)
+            private var currentRequest: SkikoPlatformTextInputMethodRequest? = null
+            private val editProcessor = EditProcessor()
 
             override fun startInput(
                 value: TextFieldValue,
@@ -49,16 +66,34 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 onEditCommand: (List<EditCommand>) -> Unit,
                 onImeActionPerformed: (ImeAction) -> Unit
             ) {
-                session = service.startInput(value, imeOptions, onEditCommand, onImeActionPerformed)
+                reset(value)
+                val node = textInputModifierNode ?: return
+
+                job = node.launchTextInputSession {
+                    coroutineScope {
+                        val request = makeRequest(
+                            imeOptions = imeOptions,
+                            onEditCommand = onEditCommand,
+                            onImeActionPerformed = onImeActionPerformed
+                        )
+                        currentRequest = request
+                        try {
+                            startInputMethod(request)
+                        } finally {
+                            currentRequest = null
+                        }
+                    }
+                }
             }
 
             override fun stopInput() {
-                session?.dispose()
-                session = null
+                job?.cancel()
+                job = null
+                reset(TextFieldValue())
             }
 
             override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-                session?.updateState(oldValue, newValue)
+                reset(newValue)
             }
 
             override fun updateTextLayoutResult(
@@ -69,16 +104,93 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 innerTextFieldBounds: Rect,
                 decorationBoxBounds: Rect
             ) {
-                session?.updateTextLayoutResult(
-                    textFieldValue,
-                    offsetMapping,
-                    textLayoutResult,
-                    textFieldToRootTransform,
-                    innerTextFieldBounds,
-                    decorationBoxBounds
+                reset(textFieldValue)
+                this.textLayoutResult = textLayoutResult
+
+
+                val matrix = Matrix()
+                textFieldToRootTransform(matrix)
+                textFieldRectInRoot = matrix.map(decorationBoxBounds)
+
+                // TODO: Implement
+                // focusedRectInRoot = ...
+                // textClippingRectInRoot = ...
+            }
+
+            override fun startStylusHandwriting() {}
+
+            private fun reset(value: TextFieldValue) {
+                textFieldValue = value
+                editProcessor.reset(value, null)
+            }
+
+            private fun makeRequest(
+                imeOptions: ImeOptions,
+                onEditCommand: (List<EditCommand>) -> Unit,
+                onImeActionPerformed: (ImeAction) -> Unit
+            ): SkikoPlatformTextInputMethodRequest {
+                val textEditorState = object : TextEditorState {
+                    override val selection: TextRange get() = textFieldValue.selection
+                    override val composition: TextRange? get() = textFieldValue.composition
+                    override val length: Int get() = textFieldValue.text.length
+                    override fun get(index: Int): Char = textFieldValue.text[index]
+                    override fun subSequence(startIndex: Int, endIndex: Int): CharSequence =
+                        textFieldValue.text.subSequence(startIndex, endIndex)
+                }
+
+                val editBlock: (block: TextEditingScope.() -> Unit) -> Unit = { block ->
+                    object : TextEditingScope {
+                        fun runOnEditCommand(command: EditCommand) {
+                            val list = listOf(command)
+                            textFieldValue = editProcessor.apply(list)
+                            onEditCommand(list)
+                        }
+
+                        override fun deleteSurroundingTextInCodePoints(
+                            lengthBeforeCursor: Int,
+                            lengthAfterCursor: Int
+                        ) {
+                            runOnEditCommand(
+                                DeleteSurroundingTextCommand(lengthBeforeCursor, lengthAfterCursor)
+                            )
+                        }
+
+                        override fun commitText(
+                            text: CharSequence,
+                            newCursorPosition: Int
+                        ) {
+                            runOnEditCommand(
+                                CommitTextCommand(text.toString(), newCursorPosition)
+                            )
+                        }
+
+                        override fun setComposingText(
+                            text: CharSequence,
+                            newCursorPosition: Int
+                        ) {
+                            runOnEditCommand(
+                                SetComposingTextCommand(text.toString(), newCursorPosition)
+                            )
+                        }
+                    }.block()
+                }
+
+                return SkikoPlatformTextInputMethodRequest(
+                    value = { textFieldValue },
+                    state = textEditorState,
+                    imeOptions = imeOptions,
+                    onEditCommand = onEditCommand,
+                    onImeAction = onImeActionPerformed,
+                    editProcessor = null,
+                    outputValue = snapshotFlow { textFieldValue },
+                    textLayoutResult = snapshotFlow { textLayoutResult }.filterNotNull(),
+                    focusedRectInRoot = snapshotFlow { focusedRectInRoot },
+                    textFieldRectInRoot = snapshotFlow { textFieldRectInRoot },
+                    textClippingRectInRoot = snapshotFlow { textClippingRectInRoot },
+                    editText = editBlock
                 )
             }
         }
+        adapter to TextInputService(adapter)
     }
-    return adapter to service
 }
