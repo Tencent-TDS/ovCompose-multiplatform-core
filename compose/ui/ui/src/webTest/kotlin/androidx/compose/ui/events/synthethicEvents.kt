@@ -16,20 +16,18 @@
 
 package androidx.compose.ui.events
 
-import androidx.compose.ui.input.key.Key
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 import org.w3c.dom.events.MouseEvent
 
 internal external interface KeyboardEventInitExtended : KeyboardEventInit {
     var keyCode: Int?
+    var timestamp: Int
 }
 
 private fun KeyboardEventInit.keyEvent(type: String) = KeyboardEvent(type, this)
-private fun KeyboardEventInit.withKeyCode(keyCode: Int) = (this as KeyboardEventInitExtended).apply {
-    this.keyCode = keyCode
-}
 
+@Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
 internal fun keyEvent(
     key: String,
     code: String = "Key${key.uppercase()}",
@@ -42,8 +40,9 @@ internal fun keyEvent(
     cancelable: Boolean = true,
     repeat: Boolean = false,
     isComposing: Boolean = false,
-): KeyboardEvent =
-    KeyboardEventInit(
+    timestamp: Int = 0
+): KeyboardEvent {
+    val keyboardEventInit = KeyboardEventInit(
         key = key,
         code = code,
         ctrlKey = ctrlKey,
@@ -53,14 +52,14 @@ internal fun keyEvent(
         cancelable = cancelable,
         repeat = repeat,
         isComposing = isComposing,
-    )
-        .withKeyCode(keyCode)
-        .keyEvent(type)
+    ) as KeyboardEventInitExtended
 
-internal fun keyDownEventUnprevented(): KeyboardEvent =
-    KeyboardEventInit(ctrlKey = true, cancelable = true, key = "Control")
-        .withKeyCode(Key.CtrlLeft.keyCode.toInt())
-        .keyEvent("keydown")
+    keyboardEventInit.keyCode = keyCode
+    keyboardEventInit.timestamp = timestamp
+
+    return keyboardEventInit
+        .keyEvent(type)
+}
 
 private fun DummyTouchEventInit(): TouchEventInit = js("({ changedTouches: [new Touch({identifier: 0, target: document})] })")
 
