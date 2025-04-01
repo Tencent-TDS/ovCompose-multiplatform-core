@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
+import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
@@ -68,13 +69,36 @@ internal class UIKitTextInputService(
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
     private val focusManager: () -> ComposeSceneFocusManager
-): TextToolbar {
+) : TextToolbar {
 
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
     private var textLayoutResult : TextLayoutResult? = null
+
+    /**
+     * Workaround to prevent calling textWillChange, textDidChange, selectionWillChange, and
+     * selectionDidChange when the value of the current input is changed by the system (i.e., by the user
+     * input) not by the state change of the Compose side. These 4 functions call methods of
+     * UITextInputDelegateProtocol, which notifies the system that the text or the selection of the
+     * current input has changed.
+     *
+     * This is to properly handle multi-stage input methods that depend on text selection, required by
+     * languages such as Korean (Chinese and Japanese input methods depend on text marking). The writing
+     * system of these languages contains letters that can be broken into multiple parts, and each keyboard
+     * key corresponds to those parts. Therefore, the input system holds an internal state to combine these
+     * parts correctly. However, the methods of UITextInputDelegateProtocol reset this state, resulting in
+     * incorrect input. (e.g., 컴포즈 becomes ㅋㅓㅁㅍㅗㅈㅡ when not handled properly)
+     *
+     * @see _tempCurrentInputSession holds the same text and selection of the current input. It is used
+     * instead of the old value passed to updateState. When the current value change is due to the
+     * user input, updateState is not effective because _tempCurrentInputSession holds the same value.
+     * However, when the current value change is due to the change of the user selection or to the
+     * state change in the Compose side, updateState calls the 4 methods because the new value holds
+     * these changes.
+     */
+    private var _tempCurrentInputSession: EditProcessor? = null
 
     /**
      * Workaround to prevent IME action from being called multiple times with hardware keyboards.
@@ -99,17 +123,18 @@ internal class UIKitTextInputService(
      * And after clear in updateState function.
      */
     private var _tempCursorPos: Int? = null
-    private var _tempSelection: TextRange? = null
     private val mainScope = MainScope()
 
     fun startInput(
-        value: () -> TextFieldValue,
+        value: TextFieldValue,
         imeOptions: ImeOptions,
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(value, onEditCommand)
-        _tempSelection = value().selection
+        _tempCurrentInputSession = EditProcessor().apply {
+            reset(value, null)
+        }
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
@@ -124,7 +149,7 @@ internal class UIKitTextInputService(
     fun stopInput() {
         flushEditCommandsIfNeeded(force = true)
         currentInput = null
-        _tempSelection = null
+        _tempCurrentInputSession = null
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
@@ -146,18 +171,21 @@ internal class UIKitTextInputService(
         }
     }
 
-    fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        val textChanged = oldValue == null || oldValue.text != newValue.text
-        val selectionChanged = oldValue == null || oldValue.selection != newValue.selection
+    fun updateState(newValue: TextFieldValue) {
+        val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
+        val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
+        val selectionChanged =
+            textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
         if (textChanged) {
             textUIView?.textWillChange()
         }
         if (selectionChanged) {
             textUIView?.selectionWillChange()
         }
+        _tempCurrentInputSession?.reset(newValue, null)
         currentInput?.let { input ->
+            input.value = newValue
             _tempCursorPos = null
-            _tempSelection = newValue.selection
         }
         if (textChanged) {
             textUIView?.textDidChange()
@@ -228,11 +256,8 @@ internal class UIKitTextInputService(
         }
 
     private fun sendEditCommand(vararg commands: EditCommand) {
-        commands.forEach { command ->
-            if (command is SetSelectionCommand) {
-                _tempSelection = TextRange(command.start, command.end)
-            }
-        }
+        _tempCurrentInputSession?.apply(commands.toList())
+
         editCommandsBatch.addAll(commands)
         flushEditCommandsIfNeeded()
     }
@@ -285,7 +310,7 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = currentInput?.value?.invoke()
+    private fun getState(): TextFieldValue? = currentInput?.value
 
     // Fixes a problem where the menu is shown before the textUIView gets its final layout.
     private var showMenuOrUpdatePosition = {}
@@ -430,7 +455,7 @@ internal class UIKitTextInputService(
          */
         override fun deleteBackward() {
             val deleteCommand =
-                if (_tempSelection?.collapsed == true) {
+                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
                     DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
                 } else {
                     CommitTextCommand("", 0)
@@ -605,6 +630,6 @@ internal class UIKitTextInputService(
 }
 
 private data class CurrentInput(
-    var value: () -> TextFieldValue,
+    var value: TextFieldValue,
     val onEditCommand: (List<EditCommand>) -> Unit
 )

@@ -30,7 +30,6 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
 import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
-import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.OffsetMapping
@@ -57,8 +56,6 @@ internal actual fun legacyTextInputServiceAdapterAndService():
             private var focusedRectInRoot by mutableStateOf(Rect.Zero)
             private var textFieldRectInRoot by mutableStateOf(Rect.Zero)
             private var textClippingRectInRoot by mutableStateOf(Rect.Zero)
-            private var currentRequest: SkikoPlatformTextInputMethodRequest? = null
-            private val editProcessor = EditProcessor()
 
             override fun startInput(
                 value: TextFieldValue,
@@ -66,22 +63,18 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 onEditCommand: (List<EditCommand>) -> Unit,
                 onImeActionPerformed: (ImeAction) -> Unit
             ) {
-                reset(value)
+                textFieldValue = value
                 val node = textInputModifierNode ?: return
 
                 job = node.launchTextInputSession {
                     coroutineScope {
-                        val request = makeRequest(
-                            imeOptions = imeOptions,
-                            onEditCommand = onEditCommand,
-                            onImeActionPerformed = onImeActionPerformed
+                        startInputMethod(
+                            makeRequest(
+                                imeOptions = imeOptions,
+                                onEditCommand = onEditCommand,
+                                onImeActionPerformed = onImeActionPerformed
+                            )
                         )
-                        currentRequest = request
-                        try {
-                            startInputMethod(request)
-                        } finally {
-                            currentRequest = null
-                        }
                     }
                 }
             }
@@ -89,11 +82,11 @@ internal actual fun legacyTextInputServiceAdapterAndService():
             override fun stopInput() {
                 job?.cancel()
                 job = null
-                reset(TextFieldValue())
+                textFieldValue = TextFieldValue()
             }
 
             override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-                reset(newValue)
+                this.textFieldValue = newValue
             }
 
             override fun updateTextLayoutResult(
@@ -104,7 +97,7 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 innerTextFieldBounds: Rect,
                 decorationBoxBounds: Rect
             ) {
-                reset(textFieldValue)
+                this.textFieldValue = textFieldValue
                 this.textLayoutResult = textLayoutResult
 
 
@@ -118,11 +111,6 @@ internal actual fun legacyTextInputServiceAdapterAndService():
             }
 
             override fun startStylusHandwriting() {}
-
-            private fun reset(value: TextFieldValue) {
-                textFieldValue = value
-                editProcessor.reset(value, null)
-            }
 
             private fun makeRequest(
                 imeOptions: ImeOptions,
@@ -141,9 +129,7 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 val editBlock: (block: TextEditingScope.() -> Unit) -> Unit = { block ->
                     object : TextEditingScope {
                         fun runOnEditCommand(command: EditCommand) {
-                            val list = listOf(command)
-                            textFieldValue = editProcessor.apply(list)
-                            onEditCommand(list)
+                            onEditCommand(listOf(command))
                         }
 
                         override fun deleteSurroundingTextInCodePoints(

@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
@@ -734,12 +733,10 @@ internal class ComposeSceneMediator(
                 sessionInitializer = { null }
             ) {
                 // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7832/iOS-Adopt-PlatformTextInputService2)
-                var previousValue: TextFieldValue? = null
                 coroutineScope {
                     launch {
                         request.outputValue.collect {
-                            textInputService.updateState(oldValue = previousValue, newValue = it)
-                            previousValue = it
+                            textInputService.updateState(newValue = it)
                         }
                     }
                     launch {
@@ -754,12 +751,9 @@ internal class ComposeSceneMediator(
                     }
                     suspendCancellableCoroutine<Nothing> { continuation ->
                         textInputService.startInput(
-                            value = request.value,
+                            value = request.value(),
                             imeOptions = request.imeOptions,
-                            onEditCommand = {
-                                request.onEditCommand(it)
-                                previousValue = request.value()
-                            },
+                            onEditCommand = request.onEditCommand,
                             onImeActionPerformed = request.onImeAction ?: {}
                         )
 
