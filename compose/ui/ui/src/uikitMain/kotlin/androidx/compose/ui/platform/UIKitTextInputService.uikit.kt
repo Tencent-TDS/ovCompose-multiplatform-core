@@ -43,18 +43,22 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
@@ -252,6 +256,7 @@ internal class UIKitTextInputService(
 
     fun updateTextFrame(rect: Rect) {
         textUIView?.setFrame(rect.toDpRect(view.density).asCGRect())
+        showMenuOrUpdatePosition()
     }
 
     fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
@@ -354,6 +359,8 @@ internal class UIKitTextInputService(
 
     private fun getState(): TextFieldValue? = currentInput?.value
 
+    // Fixes a problem where the menu is shown before the textUIView gets its final layout.
+    private var showMenuOrUpdatePosition = {}
     override fun showMenu(
         rect: Rect,
         onCopyRequested: (() -> Unit)?,
@@ -368,21 +375,30 @@ internal class UIKitTextInputService(
             attachIntermediateTextInputView()
             updateView()
         }
-        textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(view.density).asCGRect(),
-            textActions = object : TextActions {
-                override val copy: (() -> Unit)? = onCopyRequested
-                override val cut: (() -> Unit)? = onCutRequested
-                override val paste: (() -> Unit)? = onPasteRequested
-                override val selectAll: (() -> Unit)? = onSelectAllRequested
+        showMenuOrUpdatePosition = {
+            textUIView?.let { textUIView ->
+                val density = view.density
+                val offset = textUIView.frame.useContents { origin.asDpOffset().toOffset(density) }
+                val target = rect.translate(-offset).toDpRect(density).asCGRect()
+                textUIView.showTextMenu(
+                    targetRect = target,
+                    textActions = object : TextActions {
+                        override val copy: (() -> Unit)? = onCopyRequested
+                        override val cut: (() -> Unit)? = onCutRequested
+                        override val paste: (() -> Unit)? = onPasteRequested
+                        override val selectAll: (() -> Unit)? = onSelectAllRequested
+                    }
+                )
             }
-        )
+        }
+        showMenuOrUpdatePosition()
     }
 
     /**
      * TODO on UIKit native behaviour is hide text menu, when touch outside
      */
     override fun hide() {
+        showMenuOrUpdatePosition = {}
         textUIView?.hideTextMenu()
         if ((textUIView != null) && (currentInput == null)) { // means that editing context menu shown in selection container
             textUIView?.resignFirstResponder()
@@ -401,8 +417,12 @@ internal class UIKitTextInputService(
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
+            it.setAutoresizingMask(
+                UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+            )
             it.onKeyboardPresses = onKeyboardPresses
             view.addSubview(it)
+            it.setFrame(view.bounds)
         }
     }
 

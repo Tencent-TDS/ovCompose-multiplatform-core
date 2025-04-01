@@ -24,6 +24,9 @@ import java.awt.EventQueue
 import java.awt.Graphics
 import java.awt.Rectangle
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.JComponent
+import javax.swing.JDialog
+import javax.swing.JFrame
 import javax.swing.JLayeredPane
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -73,6 +76,26 @@ internal fun getTransparentWindowBackground(
     return if (isWindowTransparent && !skikoTransparentWindowHack) java.awt.Color(0, 0, 0, 0) else null
 }
 
+// See https://developer.apple.com/library/archive/technotes/tn2007/tn2196.html#WINDOW_SHADOW
+private var JComponent.hasMacOsShadow: Boolean
+    get() = getClientProperty("Window.shadow") as? Boolean? ?: false
+    set(value) { putClientProperty("Window.shadow", value) }
+
+/**
+ * Determines if the window has a shadow on macOS.
+ */
+internal var JFrame.hasMacOsShadow: Boolean
+    // Delegated properties don't work for extensions https://youtrack.jetbrains.com/issue/KT-6643
+    get() = rootPane.hasMacOsShadow
+    set(value) { rootPane.hasMacOsShadow = value }
+
+/**
+ * Determines if the window has a shadow on macOS.
+ */
+internal var JDialog.hasMacOsShadow: Boolean
+    // Delegated properties don't work for extensions https://youtrack.jetbrains.com/issue/KT-6643
+    get() = rootPane.hasMacOsShadow
+    set(value) { rootPane.hasMacOsShadow = value }
 
 /**
  * Windows makes clicks on transparent pixels fall through, but it doesn't work
