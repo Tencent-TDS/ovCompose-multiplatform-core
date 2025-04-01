@@ -19,16 +19,15 @@ package androidx.compose.ui.window
 import androidx.compose.ui.unit.asDpSize
 import kotlin.math.max
 import kotlinx.cinterop.CValue
-import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import platform.CoreGraphics.CGPoint
 import platform.CoreGraphics.CGRectEqualToRect
 import platform.CoreGraphics.CGRectMake
-import platform.CoreGraphics.CGRectZero
 import platform.UIKit.UIColor
 import platform.UIKit.UIEvent
+import platform.UIKit.UIScreen
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceStyle
 import platform.UIKit.UIView
@@ -37,7 +36,7 @@ import platform.UIKit.UIWindow
 internal class ComposeView(
     private val useOpaqueConfiguration: Boolean,
     private val transparentForTouches: Boolean,
-): UIView(frame = CGRectZero.readValue()) {
+): UIView(frame = UIScreen.mainScreen().bounds) {
     init {
         setClipsToBounds(true)
         setOpaque(useOpaqueConfiguration)
@@ -47,6 +46,10 @@ internal class ComposeView(
     private var metalView: MetalView? = null
     private var onDidMoveToWindow: (UIWindow?) -> Unit = {}
     private var onLayoutSubviews: () -> Unit = {}
+
+    override fun canBecomeFirstResponder(): Boolean {
+        return true
+    }
 
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
