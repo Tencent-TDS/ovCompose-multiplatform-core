@@ -53,9 +53,10 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.events.CompositionEvent
+import org.w3c.dom.events.CompositionEventInit
 import org.w3c.dom.events.MouseEvent
 import org.w3c.dom.events.MouseEventInit
-import org.w3c.dom.events.UIEvent
 
 class TextInputTests : OnCanvasTests  {
 
@@ -139,9 +140,63 @@ class TextInputTests : OnCanvasTests  {
             beforeInput("insertCompositionText", "啊"),
             compositionEnd("啊"),
             keyEvent("1", code = "Digit1", type = "keyup"),
+            keyEvent("X"),
+            keyEvent("X", type = "keyup")
         )
 
-        assertEquals("啊", textInputChannel.receive())
+        dispatchEvents(
+            keyEvent("X"),
+            keyEvent("X", type = "keyup")
+        )
+
+        assertEquals("啊X", textInputChannel.receive())
+    }
+
+    @Test
+    fun compositeInputWebkit() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        val keyEvent = keyEvent("1", code = "Digit1")
+
+        dispatchEvents(
+            backingTextField,
+            compositionStart(),
+            keyEvent("a", isComposing = true),
+            keyEvent("a", type = "keyup", isComposing = true),
+            beforeInput("deleteCompositionText", null),
+            beforeInput("insertFromComposition", "啊"),
+            compositionEnd("啊"),
+            keyEvent,
+            keyEvent("1", type="keyup", code = "Digit1"),
+        )
+
+        dispatchEvents(
+            keyEvent("b"),
+            keyEvent("b", type = "keyup")
+        )
+
+        assertEquals("啊b", textInputChannel.receive())
     }
 
 
@@ -388,16 +443,6 @@ class TextInputTests : OnCanvasTests  {
 
 private fun compositionStart(data: String = "")  = CompositionEvent("compositionstart", CompositionEventInit(data = data))
 private fun compositionEnd(data: String) = CompositionEvent("compositionend", CompositionEventInit(data = data))
-private fun beforeInput(inputType: String, data: String) = InputEvent("beforeinput", InputEventInit(inputType = inputType, data = data))
+private fun beforeInput(inputType: String, data: String?) = InputEvent("beforeinput", InputEventInit(inputType = inputType, data = data))
 
 
-private open external class CompositionEvent(type: String, eventInitDict: CompositionEventInit = definedExternally): UIEvent {
-    open val data: String
-}
-
-private external interface CompositionEventInit {
-    var data: String?
-}
-
-private fun CompositionEventInit(data: String? = ""): CompositionEventInit
-    = js("({data: data})")

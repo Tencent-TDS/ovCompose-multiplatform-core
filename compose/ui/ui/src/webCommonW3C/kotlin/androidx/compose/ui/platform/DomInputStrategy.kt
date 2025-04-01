@@ -87,7 +87,7 @@ internal class DomInputStrategy(
                 }
             }
 
-            if ((evt.timeStamp.toInt() - lastActualCompositionTimestamp) <= 0) {
+            if (evt.timeStamp.toInt() <= lastActualCompositionTimestamp) {
                 evt.preventDefault()
                 return@addEventListener
             }
@@ -107,6 +107,7 @@ internal class DomInputStrategy(
         htmlInput.addEventListener("keyup", { evt ->
             lastKeyboardEventIsDown = false
             evt as KeyboardEvent
+
             if (evt.isComposing) {
                 editState = EditState.CompositeDialogue
             }

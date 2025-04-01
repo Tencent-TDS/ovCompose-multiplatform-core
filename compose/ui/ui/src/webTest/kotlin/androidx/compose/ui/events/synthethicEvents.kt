@@ -39,8 +39,7 @@ internal fun keyEvent(
     shiftKey: Boolean = false,
     cancelable: Boolean = true,
     repeat: Boolean = false,
-    isComposing: Boolean = false,
-    timestamp: Int = 0
+    isComposing: Boolean = false
 ): KeyboardEvent {
     val keyboardEventInit = KeyboardEventInit(
         key = key,
@@ -55,7 +54,6 @@ internal fun keyEvent(
     ) as KeyboardEventInitExtended
 
     keyboardEventInit.keyCode = keyCode
-    keyboardEventInit.timestamp = timestamp
 
     return keyboardEventInit
         .keyEvent(type)
