@@ -16,4 +16,6 @@
 
 package androidx.navigation.internal
 
-internal actual fun identityHashCode(instance: Any?): Int = System.identityHashCode(instance)
+import java.util.concurrent.atomic.AtomicInteger
+
+internal actual typealias AtomicInt = AtomicInteger
