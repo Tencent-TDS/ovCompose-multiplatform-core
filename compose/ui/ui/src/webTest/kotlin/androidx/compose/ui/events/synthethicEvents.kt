@@ -22,7 +22,6 @@ import org.w3c.dom.events.MouseEvent
 
 internal external interface KeyboardEventInitExtended : KeyboardEventInit {
     var keyCode: Int?
-    var timestamp: Int
 }
 
 private fun KeyboardEventInit.keyEvent(type: String) = KeyboardEvent(type, this)
