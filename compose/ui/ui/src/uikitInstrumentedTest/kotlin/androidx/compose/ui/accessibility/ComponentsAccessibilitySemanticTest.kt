@@ -46,8 +46,10 @@ import androidx.compose.ui.platform.accessibility.CMPAccessibilityTraitTextView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.assertAccessibilityTree
 import androidx.compose.ui.test.findNodeWithTag
@@ -581,25 +583,43 @@ class ComponentsAccessibilitySemanticTest {
         }
     }
 
-    @Ignore
     @Test
-    fun testAccessibilityContainer() = runUIKitInstrumentedTest {
+    fun testAccessibilityTraversalGrouping() = runUIKitInstrumentedTest {
         setContent {
-            Column(modifier = Modifier.testTag("Container")) {
-                Text("Text 1")
-                Text("Text 2")
+            Column {
+                Column(modifier = Modifier.semantics {
+                    isTraversalGroup = true
+                    testTag = "Container"
+                }) {
+                    Text("Text 1")
+                    Text("Text 2")
+                }
+                Text("Text 3")
+                Text("Text 4")
             }
         }
 
         assertAccessibilityTree {
-            identifier = "Container"
-            isAccessibilityElement = false
             node {
-                label = "Text 1"
+                node {
+                    identifier = "Container"
+                    isAccessibilityElement = false
+                }
+                node {
+                    label = "Text 1"
+                    isAccessibilityElement = true
+                }
+                node {
+                    label = "Text 2"
+                    isAccessibilityElement = true
+                }
+            }
+            node {
+                label = "Text 3"
                 isAccessibilityElement = true
             }
             node {
-                label = "Text 2"
+                label = "Text 4"
                 isAccessibilityElement = true
             }
         }
