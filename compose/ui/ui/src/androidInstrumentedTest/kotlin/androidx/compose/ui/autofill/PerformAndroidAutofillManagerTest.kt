@@ -122,9 +122,7 @@ class PerformAndroidAutofillManagerTest {
     @SmallTest
     @SdkSuppress(minSdkVersion = 26)
     fun autofillModifier_contentType() {
-        rule.setContent {
-            Box(Modifier.testTag("TestTag").autofillContentType(ContentType.NewUsername)) {}
-        }
+        rule.setContent { Box(Modifier.testTag("TestTag").contentType(ContentType.NewUsername)) {} }
 
         rule
             .onNodeWithTag("TestTag")

@@ -679,6 +679,51 @@ class ExtensionWindowBackendTest {
         assertEquals(listOf(SupportedPosture.TABLETOP), actual)
     }
 
+    @Test
+    fun testGetCurrentWindowLayoutInfo_throwsBeforeApi9() {
+        assumeBeforeWindowExtensionVersion(9)
+        val component = FakeWindowComponent()
+        val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+        activityScenario.scenario.onActivity { activity ->
+            assertThrows(UnsupportedOperationException::class.java) {
+                backend.getCurrentWindowLayoutInfo(activity)
+            }
+        }
+    }
+
+    @Test
+    fun testGetCurrentWindowLayoutInfo_activityContext_returnsWindowLayoutInfo() {
+        assumeAtLeastWindowExtensionVersion(9)
+        activityScenario.scenario.onActivity { activity ->
+            val windowLayoutInfoFromActivity = newTestOEMWindowLayoutInfo(activity)
+            val expected = translate(activity, windowLayoutInfoFromActivity)
+            val component =
+                FakeWindowComponent(currentWindowLayoutInfo = windowLayoutInfoFromActivity)
+            val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+            val actual = backend.getCurrentWindowLayoutInfo(activity)
+
+            assertEquals(expected, actual)
+        }
+    }
+
+    @Test
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun testGetCurrentWindowLayoutInfo_overlayWindowContext_returnsWindowLayoutInfo() {
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        assumeAtLeastWindowExtensionVersion(9)
+        val windowContext = WindowTestUtils.createOverlayWindowContext()
+        val windowLayoutInfoFromContext = newTestOEMWindowLayoutInfo(windowContext)
+        val expected = translate(windowContext, windowLayoutInfoFromContext)
+        val component = FakeWindowComponent(currentWindowLayoutInfo = windowLayoutInfoFromContext)
+        val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+        val actual = backend.getCurrentWindowLayoutInfo(windowContext)
+
+        assertEquals(expected, actual)
+    }
+
     internal companion object {
         private fun newTestOEMWindowLayoutInfo(activity: Activity): OEMWindowLayoutInfo {
             val bounds =
@@ -731,8 +776,10 @@ class ExtensionWindowBackendTest {
         }
     }
 
-    private class FakeWindowComponent(private val windowFeatures: SupportedWindowFeatures? = null) :
-        WindowLayoutComponent {
+    private class FakeWindowComponent(
+        private val windowFeatures: SupportedWindowFeatures? = null,
+        private val currentWindowLayoutInfo: OEMWindowLayoutInfo = OEMWindowLayoutInfo(emptyList()),
+    ) : WindowLayoutComponent {
 
         val consumers = mutableListOf<JavaConsumer<OEMWindowLayoutInfo>>()
         val oemConsumers = mutableListOf<OEMConsumer<OEMWindowLayoutInfo>>()
@@ -765,6 +812,10 @@ class ExtensionWindowBackendTest {
                     "Window features are not set. Either the vendor API level is too low or value " +
                         "was not set"
                 )
+        }
+
+        override fun getCurrentWindowLayoutInfo(context: Context): OEMWindowLayoutInfo {
+            return currentWindowLayoutInfo
         }
 
         @SuppressLint("NewApi")

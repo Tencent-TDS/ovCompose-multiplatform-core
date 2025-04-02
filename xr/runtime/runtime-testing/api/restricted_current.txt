@@ -102,13 +102,13 @@ package androidx.xr.runtime.testing {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class FakeRuntimeHand implements androidx.xr.runtime.internal.Hand {
     ctor public FakeRuntimeHand();
-    ctor public FakeRuntimeHand(optional boolean isActive, optional java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints);
-    method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
-    method public boolean isActive();
-    method public void setActive(boolean);
-    method public void setHandJoints(java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose>);
-    property public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
-    property public boolean isActive;
+    ctor public FakeRuntimeHand(optional androidx.xr.runtime.internal.TrackingState trackingState, optional java.nio.ByteBuffer handJointsBuffer);
+    method public java.nio.ByteBuffer getHandJointsBuffer();
+    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
+    method public void setHandJointsBuffer(java.nio.ByteBuffer);
+    method public void setTrackingState(androidx.xr.runtime.internal.TrackingState);
+    property public java.nio.ByteBuffer handJointsBuffer;
+    property public androidx.xr.runtime.internal.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class FakeRuntimePlane implements androidx.xr.runtime.testing.AnchorHolder androidx.xr.runtime.internal.Plane {

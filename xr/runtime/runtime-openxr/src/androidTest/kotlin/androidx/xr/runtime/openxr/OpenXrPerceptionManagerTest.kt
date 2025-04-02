@@ -23,6 +23,7 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
 import androidx.xr.runtime.internal.HandJointType
+import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
 import androidx.xr.runtime.math.Ray
@@ -123,26 +124,53 @@ class OpenXrPerceptionManagerTest {
     @Test
     fun update_updatesHands() = initOpenXrManagerAndRunTest {
         check(underTest.xrResources.updatables.size == 2)
-        check(!underTest.leftHand.isActive)
-        check(!underTest.rightHand.isActive)
+        check(underTest.leftHand.trackingState != TrackingState.Tracking)
+        check(underTest.rightHand.trackingState != TrackingState.Tracking)
 
         underTest.update(XR_TIME)
 
         // TODO - b/346615429: Define values here using the stub's Kotlin API. For the time being
         // they
         // come from `kPose` defined in //third_party/jetpack_xr_natives/openxr/openxr_stub.cc
-        assertThat(underTest.leftHand.isActive).isTrue()
-        assertThat(underTest.leftHand.handJoints).hasSize(1)
-        assertThat(underTest.leftHand.handJoints[HandJointType.PALM]!!.rotation)
-            .isEqualTo(Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-        assertThat(underTest.leftHand.handJoints[HandJointType.PALM]!!.translation)
-            .isEqualTo(Vector3(5.0f, 6.0f, 7.0f))
-        assertThat(underTest.rightHand.isActive).isTrue()
-        assertThat(underTest.rightHand.handJoints).hasSize(1)
-        assertThat(underTest.rightHand.handJoints[HandJointType.PALM]!!.rotation)
-            .isEqualTo(Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
-        assertThat(underTest.rightHand.handJoints[HandJointType.PALM]!!.translation)
-            .isEqualTo(Vector3(5.0f, 6.0f, 7.0f))
+        val leftHandJoints = underTest.leftHand.handJoints
+        assertThat(underTest.leftHand.trackingState).isEqualTo(TrackingState.Tracking)
+        assertThat(leftHandJoints).hasSize(HandJointType.values().size)
+        for (jointType in HandJointType.values()) {
+            val jointTypeIndex = jointType.ordinal.toFloat()
+            assertThat(leftHandJoints[jointType]!!.rotation)
+                .isEqualTo(
+                    Quaternion(
+                        jointTypeIndex + 0.1f,
+                        jointTypeIndex + 0.2f,
+                        jointTypeIndex + 0.3f,
+                        jointTypeIndex + 0.4f,
+                    )
+                )
+            assertThat(leftHandJoints[jointType]!!.translation)
+                .isEqualTo(
+                    Vector3(jointTypeIndex + 0.5f, jointTypeIndex + 0.6f, jointTypeIndex + 0.7f)
+                )
+        }
+
+        val rightHandJoints = underTest.rightHand.handJoints
+        assertThat(underTest.rightHand.trackingState).isEqualTo(TrackingState.Tracking)
+        assertThat(rightHandJoints).hasSize(HandJointType.values().size)
+        for (jointType in HandJointType.values()) {
+            val jointTypeIndex = jointType.ordinal.toFloat()
+            assertThat(rightHandJoints[jointType]!!.rotation)
+                .isEqualTo(
+                    Quaternion(
+                        jointTypeIndex + 0.1f,
+                        jointTypeIndex + 0.2f,
+                        jointTypeIndex + 0.3f,
+                        jointTypeIndex + 0.4f,
+                    )
+                )
+            assertThat(rightHandJoints[jointType]!!.translation)
+                .isEqualTo(
+                    Vector3(jointTypeIndex + 0.5f, jointTypeIndex + 0.6f, jointTypeIndex + 0.7f)
+                )
+        }
     }
 
     @Test

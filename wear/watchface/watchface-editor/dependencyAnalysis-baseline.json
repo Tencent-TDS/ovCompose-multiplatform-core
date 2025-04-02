@@ -4,14 +4,6 @@
     {
       "coordinates": {
         "type": "module",
-        "identifier": "androidx.core:core",
-        "resolvedVersion": "1.8.0"
-      },
-      "fromConfiguration": "implementation"
-    },
-    {
-      "coordinates": {
-        "type": "module",
         "identifier": "androidx.lifecycle:lifecycle-common-java8",
         "resolvedVersion": "2.6.1"
       },
@@ -87,7 +79,22 @@
         "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
         "resolvedVersion": "1.7.3"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "module",
+        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+        "resolvedVersion": "1.7.3"
+      },
       "toConfiguration": "api"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface"
+      },
+      "toConfiguration": "androidTestImplementation"
     },
     {
       "coordinates": {
@@ -101,6 +108,13 @@
         "type": "project",
         "identifier": ":wear:watchface:watchface-complications"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications"
+      },
       "toConfiguration": "api"
     },
     {
@@ -108,7 +122,21 @@
         "type": "project",
         "identifier": ":wear:watchface:watchface-complications-data"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications-data"
+      },
       "toConfiguration": "api"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-style"
+      },
+      "toConfiguration": "androidTestImplementation"
     },
     {
       "coordinates": {

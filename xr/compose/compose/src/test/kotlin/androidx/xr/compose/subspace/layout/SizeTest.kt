@@ -28,6 +28,7 @@ import androidx.xr.compose.testing.assertHeightIsEqualTo
 import androidx.xr.compose.testing.assertWidthIsEqualTo
 import androidx.xr.compose.testing.onSubspaceNodeWithTag
 import androidx.xr.compose.testing.setSubspaceContent
+import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -207,5 +208,38 @@ class SizeTest {
             .assertWidthIsEqualTo(10.dp)
             .assertHeightIsEqualTo(10.dp)
             .assertDepthIsEqualTo(10.dp)
+    }
+
+    @Test
+    fun spatialRecommendedSize_returnsSameModifier() {
+        val modifier = SubspaceModifier
+        val returnedModifier = modifier.SpatialRecommendedSize()
+        assertSame(
+            "SpatialRecommendedSize should return the same SubspaceModifier instance",
+            modifier,
+            returnedModifier,
+        )
+    }
+
+    @Test
+    fun spatialRecommendedWidth_returnsSameModifier() {
+        val modifier = SubspaceModifier
+        val returnedModifier = modifier.SpatialRecommendedWidth()
+        assertSame(
+            "SpatialRecommendedWidth should return the same SubspaceModifier instance",
+            modifier,
+            returnedModifier,
+        )
+    }
+
+    @Test
+    fun spatialRecommendedHeight_returnsSameModifier() {
+        val modifier = SubspaceModifier
+        val returnedModifier = modifier.SpatialRecommendedHeight()
+        assertSame(
+            "SpatialRecommendedHeight should return the same SubspaceModifier instance",
+            modifier,
+            returnedModifier,
+        )
     }
 }

@@ -36,39 +36,43 @@ data class FragmentOptions(
     private var fragment: BaseFragment = deriveFragment()
 
     companion object {
-        private const val KEY_FRAGMENT = "fragment"
-        private const val FRAGMENT_RESIZE = "resize" // default
-        private const val FRAGMENT_SCROLL = "scroll"
-        private const val FRAGMENT_POOLING_CONTAINER = "pooling-container"
+        const val KEY_FRAGMENT = "fragment"
+        const val FRAGMENT_RESIZE = "resize" // default
+        const val FRAGMENT_RESIZE_HIDDEN = "resize-hidden"
+        const val FRAGMENT_SCROLL = "scroll"
+        const val FRAGMENT_POOLING_CONTAINER = "pooling-container"
 
-        private const val KEY_MEDIATION = "mediation"
-        private const val MEDIATION_TYPE_NON_MEDIATED = "non-mediated" // default
-        private const val MEDIATION_TYPE_IN_APP = "in-app"
-        private const val MEDIATION_TYPE_IN_RUNTIME = "in-runtime"
-        private const val MEDIATION_TYPE_IN_RUNTIME_WITH_OVERLAY = "in-runtime-with-overlay"
-        private const val MEDIATION_TYPE_REFRESHABLE = "refreshable"
+        const val KEY_MEDIATION = "mediation"
+        const val MEDIATION_TYPE_NON_MEDIATED = "non-mediated" // default
+        const val MEDIATION_TYPE_IN_APP = "in-app"
+        const val MEDIATION_TYPE_IN_RUNTIME = "in-runtime"
+        const val MEDIATION_TYPE_IN_RUNTIME_WITH_OVERLAY = "in-runtime-with-overlay"
+        const val MEDIATION_TYPE_REFRESHABLE = "refreshable"
 
-        private const val KEY_AD_TYPE = "ad-type"
-        private const val AD_TYPE_NON_WEBVIEW = "non-webview" // default
-        private const val AD_TYPE_BASIC_WEBVIEW = "basic-webview"
-        private const val AD_TYPE_WEBVIEW_FROM_ASSETS = "webview-from-assets"
-        private const val AD_TYPE_VIDEO = "video"
+        const val KEY_AD_TYPE = "ad-type"
+        const val AD_TYPE_NON_WEBVIEW = "non-webview" // default
+        const val AD_TYPE_BASIC_WEBVIEW = "basic-webview"
+        const val AD_TYPE_WEBVIEW_FROM_ASSETS = "webview-from-assets"
+        const val AD_TYPE_VIDEO = "video"
 
-        private const val KEY_Z_ORDER = "z-order"
-        private const val Z_ORDER_ABOVE = "above" // default
-        private const val Z_ORDER_BELOW = "below"
+        const val KEY_Z_ORDER = "z-order"
+        const val Z_ORDER_ABOVE = "above" // default
+        const val Z_ORDER_BELOW = "below"
 
-        private const val KEY_DRAW_VIEWABILITY = "draw-viewability" // default is false
+        const val KEY_DRAW_VIEWABILITY = "draw-viewability" // default is false
 
-        private const val KEY_UI_FRAMEWORK = "ui-framework"
-        private const val UI_FRAMEWORK_VIEW = "view" // default
-        private const val UI_FRAMEWORK_COMPOSE = "compose"
+        const val KEY_UI_FRAMEWORK = "ui-framework"
+        const val UI_FRAMEWORK_VIEW = "view" // default
+        const val UI_FRAMEWORK_COMPOSE = "compose"
+
+        const val LOAD_SDK_COMPLETE = "loadSdkComplete"
 
         fun createFromIntentExtras(extras: Bundle): FragmentOptions {
             val fragmentExtra = extras.getString(KEY_FRAGMENT)
             val fragment =
                 when (fragmentExtra) {
                     FRAGMENT_RESIZE -> FragmentOption.RESIZE
+                    FRAGMENT_RESIZE_HIDDEN -> FragmentOption.RESIZE_HIDDEN
                     FRAGMENT_POOLING_CONTAINER -> FragmentOption.POOLING_CONTAINER
                     FRAGMENT_SCROLL -> FragmentOption.SCROLL
                     else -> FragmentOption.RESIZE
@@ -140,6 +144,7 @@ data class FragmentOptions(
                     FragmentOption.SCROLL -> ScrollFragment()
                     FragmentOption.RESIZE -> ResizeFragment()
                     FragmentOption.POOLING_CONTAINER -> PoolingContainerFragment()
+                    FragmentOption.RESIZE_HIDDEN -> ResizeHiddenFragment()
                     else -> ResizeFragment()
                 }
             UiFrameworkOption.COMPOSE ->

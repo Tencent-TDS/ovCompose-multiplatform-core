@@ -16,20 +16,19 @@
 
 package androidx.navigation.testing
 
-import android.os.Bundle
+import androidx.kruth.assertThat
 import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NavType
 import androidx.navigation.toRoute
-import com.google.common.truth.Truth.assertThat
+import androidx.savedstate.SavedState
+import androidx.savedstate.read
+import androidx.savedstate.write
 import kotlin.reflect.typeOf
 import kotlinx.serialization.Serializable
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
-class TestSavedStateHandleBuilder {
+class TestSavedStateHandleBuilder : RobolectricTest() {
 
     @Test
     fun primitiveArgument() {
@@ -248,12 +247,12 @@ class TestSavedStateHandleBuilder {
 
 private val testNavType =
     object : NavType<TestType>(false) {
-        override fun put(bundle: Bundle, key: String, value: TestType) {
-            bundle.putString(key, serializeAsValue(value))
+        override fun put(bundle: SavedState, key: String, value: TestType) {
+            bundle.write { putString(key, serializeAsValue(value)) }
         }
 
-        override fun get(bundle: Bundle, key: String): TestType =
-            parseValue(bundle.getString(key) as String)
+        override fun get(bundle: SavedState, key: String): TestType =
+            parseValue(bundle.read { getString(key) })
 
         override fun parseValue(value: String): TestType {
             val args = value.split(".")
@@ -268,17 +267,19 @@ private val testCollectionNavType: NavType<List<TestType>> =
         override fun serializeAsValues(value: List<TestType>): List<String> =
             value.map { "${it.id}.${it.name}" }
 
-        override fun put(bundle: Bundle, key: String, value: List<TestType>) {
-            bundle.putStringArray(key, serializeAsValues(value).toTypedArray())
+        override fun put(bundle: SavedState, key: String, value: List<TestType>) {
+            bundle.write { putStringArray(key, serializeAsValues(value).toTypedArray()) }
         }
 
         override fun emptyCollection(): List<TestType> = emptyList()
 
-        override fun get(bundle: Bundle, key: String): List<TestType> {
-            return bundle.getStringArray(key)!!.map {
-                val args = it.split(".")
-                TestType(id = args.first().toInt(), name = args.last())
-            }
+        override fun get(bundle: SavedState, key: String): List<TestType> {
+            return bundle
+                .read { getStringArray(key) }
+                .map {
+                    val args = it.split(".")
+                    TestType(id = args.first().toInt(), name = args.last())
+                }
         }
 
         override fun parseValue(value: String) = listOf(testNavType.parseValue(value))

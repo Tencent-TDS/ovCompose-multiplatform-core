@@ -248,6 +248,14 @@ constructor(
         ) {
             quirks.add(ImageCaptureFailedForVideoSnapshotQuirk())
         }
+        if (
+            quirkSettings.shouldEnableQuirk(
+                AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk::class.java,
+                AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk.isEnabled()
+            )
+        ) {
+            quirks.add(AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk())
+        }
 
         Quirks(quirks).also {
             Logger.d(TAG, "camera2-pipe-integration CameraQuirks = " + Quirks.toString(it))

@@ -62,11 +62,13 @@ package androidx.xr.arcore {
   }
 
   public static final class Hand.State {
-    ctor public Hand.State(boolean isActive, java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints);
+    ctor public Hand.State(androidx.xr.runtime.internal.TrackingState trackingState, java.nio.ByteBuffer handJointsBuffer);
     method public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> getHandJoints();
-    method public boolean isActive();
+    method public java.nio.ByteBuffer getHandJointsBuffer();
+    method public androidx.xr.runtime.internal.TrackingState getTrackingState();
     property public java.util.Map<androidx.xr.runtime.internal.HandJointType,androidx.xr.runtime.math.Pose> handJoints;
-    property public boolean isActive;
+    property public java.nio.ByteBuffer handJointsBuffer;
+    property public androidx.xr.runtime.internal.TrackingState trackingState;
   }
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class HitResult {

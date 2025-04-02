@@ -16,8 +16,8 @@
 
 package androidx.compose.foundation.text.contextmenu.provider
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.foundation.MutatorMutex
+import androidx.compose.foundation.internal.checkPreconditionNotNull
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSession
 import androidx.compose.runtime.Composable
@@ -27,6 +27,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -58,14 +59,13 @@ internal fun ProvideBasicTextContextMenu(
         (
             session: TextContextMenuSession,
             dataProvider: TextContextMenuDataProvider,
-            anchorLayoutCoordinates: LayoutCoordinates,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
         ) -> Unit,
     content: @Composable () -> Unit
 ) {
     ProvideBasicTextContextMenu(Modifier, providableCompositionLocal, contextMenu, content)
 }
 
-@VisibleForTesting
 @Composable
 internal fun ProvideBasicTextContextMenu(
     modifier: Modifier,
@@ -75,21 +75,24 @@ internal fun ProvideBasicTextContextMenu(
         (
             session: TextContextMenuSession,
             dataProvider: TextContextMenuDataProvider,
-            anchorLayoutCoordinates: LayoutCoordinates,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
         ) -> Unit,
     content: @Composable () -> Unit
 ) {
     val provider = remember(contextMenu) { BasicTextContextMenuProvider(contextMenu) }
     DisposableEffect(provider) { onDispose { provider.cancel() } }
 
-    var layoutCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    Box(
-        propagateMinConstraints = true,
-        modifier = modifier.onGloballyPositioned { layoutCoordinates = it }
-    ) {
-        CompositionLocalProvider(providableCompositionLocal provides provider) {
+    var layoutCoordinates: LayoutCoordinates? by remember {
+        mutableStateOf(null, neverEqualPolicy())
+    }
+
+    CompositionLocalProvider(providableCompositionLocal provides provider) {
+        Box(
+            propagateMinConstraints = true,
+            modifier = modifier.onGloballyPositioned { layoutCoordinates = it }
+        ) {
             content()
-            provider.ContextMenu(layoutCoordinates)
+            provider.ContextMenu { checkPreconditionNotNull(layoutCoordinates) }
         }
     }
 }
@@ -100,7 +103,7 @@ private class BasicTextContextMenuProvider(
         (
             session: TextContextMenuSession,
             dataProvider: TextContextMenuDataProvider,
-            anchorLayoutCoordinates: LayoutCoordinates,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
         ) -> Unit
 ) : TextContextMenuProvider {
     private val mutatorMutex = MutatorMutex()
@@ -119,8 +122,7 @@ private class BasicTextContextMenuProvider(
     }
 
     @Composable
-    fun ContextMenu(anchorLayoutCoordinates: LayoutCoordinates?) {
-        anchorLayoutCoordinates ?: return
+    fun ContextMenu(anchorLayoutCoordinates: () -> LayoutCoordinates) {
         val session = session ?: return
         contextMenuBlock(session, session.dataProvider, anchorLayoutCoordinates)
     }

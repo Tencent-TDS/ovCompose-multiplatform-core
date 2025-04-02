@@ -24,18 +24,18 @@ import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
 
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeTransaction;
+
 import java.util.concurrent.ScheduledExecutorService;
 
 /** BasePanelEntity provides implementations of capabilities common to PanelEntities. */
-@SuppressWarnings("deprecation") // TODO(b/373435470): Remove
 abstract class BasePanelEntity extends AndroidXrEntity implements PanelEntity {
     private static final float DEFAULT_CORNER_RADIUS_DP = 32.0f;
     protected PixelDimensions mPixelDimensions;
@@ -49,7 +49,7 @@ abstract class BasePanelEntity extends AndroidXrEntity implements PanelEntity {
         super(node, extensions, entityManager, executor);
     }
 
-    private float getDefaultPixelDensity() {
+    protected float getDefaultPixelDensity() {
         return mExtensions
                 .getConfig()
                 .defaultPixelsPerMeter(Resources.getSystem().getDisplayMetrics().density);
@@ -91,7 +91,9 @@ abstract class BasePanelEntity extends AndroidXrEntity implements PanelEntity {
         return radiusPixels / getDefaultPixelDensity();
     }
 
+    @NonNull
     @Override
+    @Deprecated
     public Vector3 getPixelDensity() {
         Vector3 scale = getWorldSpaceScale();
         float defaultPixelDensity = getDefaultPixelDensity();
@@ -101,28 +103,31 @@ abstract class BasePanelEntity extends AndroidXrEntity implements PanelEntity {
                 defaultPixelDensity / scale.getZ());
     }
 
+    @NonNull
     @Override
     public Dimensions getSize() {
-        Vector3 pixelDensity = getPixelDensity();
+        float pixelDensity = getDefaultPixelDensity();
         return new Dimensions(
-                mPixelDimensions.width / pixelDensity.getX(),
-                mPixelDimensions.height / pixelDensity.getY(),
-                0);
+                mPixelDimensions.width / pixelDensity, mPixelDimensions.height / pixelDensity, 0);
     }
 
     @Override
     public void setSize(@NonNull Dimensions dimensions) {
-        // TODO(b/352630025): remove this method.
-        setPixelDimensions(new PixelDimensions((int) dimensions.width, (int) dimensions.height));
+        float pixelDensity = getDefaultPixelDensity();
+        setSizeInPixels(
+                new PixelDimensions(
+                        (int) (dimensions.width * pixelDensity),
+                        (int) (dimensions.height * pixelDensity)));
     }
 
+    @NonNull
     @Override
-    public PixelDimensions getPixelDimensions() {
+    public PixelDimensions getSizeInPixels() {
         return mPixelDimensions;
     }
 
     @Override
-    public void setPixelDimensions(PixelDimensions dimensions) {
+    public void setSizeInPixels(@NonNull PixelDimensions dimensions) {
         mPixelDimensions = dimensions;
     }
 

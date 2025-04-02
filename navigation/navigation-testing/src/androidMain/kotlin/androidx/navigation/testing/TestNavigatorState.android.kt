@@ -17,7 +17,6 @@
 package androidx.navigation.testing
 
 import android.content.Context
-import android.os.Bundle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelStore
 import androidx.navigation.FloatingWindow
@@ -26,6 +25,8 @@ import androidx.navigation.NavDestination
 import androidx.navigation.NavViewModelStoreProvider
 import androidx.navigation.NavigatorState
 import androidx.navigation.SupportingPane
+import androidx.savedstate.SavedState
+import androidx.savedstate.savedState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -42,14 +43,12 @@ import kotlinx.coroutines.withContext
  * updated as they are added and removed from the state. This work is kicked off on the
  * [coroutineDispatcher].
  */
-public actual class TestNavigatorState @JvmOverloads constructor(
+public class TestNavigatorState
+@JvmOverloads
+constructor(
     private val context: Context? = null,
     private val coroutineDispatcher: CoroutineDispatcher = Dispatchers.Main.immediate
 ) : NavigatorState() {
-    public actual constructor() : this(
-        context = null,
-        coroutineDispatcher = Dispatchers.Main.immediate
-    )
 
     private val viewModelStoreProvider =
         object : NavViewModelStoreProvider {
@@ -59,12 +58,12 @@ public actual class TestNavigatorState @JvmOverloads constructor(
                 viewModelStores.getOrPut(backStackEntryId) { ViewModelStore() }
         }
 
-    private val savedStates = mutableMapOf<String, Bundle>()
+    private val savedStates = mutableMapOf<String, SavedState>()
     private val entrySavedState = mutableMapOf<NavBackStackEntry, Boolean>()
 
     override fun createBackStackEntry(
         destination: NavDestination,
-        arguments: Bundle?
+        arguments: SavedState?
     ): NavBackStackEntry =
         NavBackStackEntry.create(
             context,
@@ -78,7 +77,7 @@ public actual class TestNavigatorState @JvmOverloads constructor(
      * Restore a previously saved [NavBackStackEntry]. You must have previously called [pop] with
      * [previouslySavedEntry] and `true`.
      */
-    public actual fun restoreBackStackEntry(previouslySavedEntry: NavBackStackEntry): NavBackStackEntry {
+    public fun restoreBackStackEntry(previouslySavedEntry: NavBackStackEntry): NavBackStackEntry {
         val savedState =
             checkNotNull(savedStates[previouslySavedEntry.id]) {
                 "restoreBackStackEntry(previouslySavedEntry) must be passed a NavBackStackEntry " +
@@ -149,7 +148,7 @@ public actual class TestNavigatorState @JvmOverloads constructor(
                     ) {
                         // Move the NavBackStackEntry to the stopped state, then save its state
                         entry.maxLifecycle = Lifecycle.State.CREATED
-                        val savedState = Bundle()
+                        val savedState = savedState()
                         entry.saveState(savedState)
                         savedStates[entry.id] = savedState
                     }

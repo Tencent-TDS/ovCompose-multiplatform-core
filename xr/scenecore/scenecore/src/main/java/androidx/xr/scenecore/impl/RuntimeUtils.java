@@ -20,15 +20,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.xr.extensions.environment.EnvironmentVisibilityState;
-import androidx.xr.extensions.environment.PassthroughVisibilityState;
-import androidx.xr.extensions.node.InputEvent.Action;
-import androidx.xr.extensions.node.InputEvent.PointerType;
-import androidx.xr.extensions.node.InputEvent.Source;
-import androidx.xr.extensions.node.Mat4f;
-import androidx.xr.extensions.node.Quatf;
-import androidx.xr.extensions.node.ReformEvent;
-import androidx.xr.extensions.node.Vec3;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
@@ -42,6 +33,13 @@ import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
 import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent;
 import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
 import androidx.xr.scenecore.impl.perception.Plane;
+
+import com.android.extensions.xr.environment.EnvironmentVisibilityState;
+import com.android.extensions.xr.environment.PassthroughVisibilityState;
+import com.android.extensions.xr.node.Mat4f;
+import com.android.extensions.xr.node.Quatf;
+import com.android.extensions.xr.node.ReformEvent;
+import com.android.extensions.xr.node.Vec3;
 
 final class RuntimeUtils {
     private RuntimeUtils() {}
@@ -110,7 +108,8 @@ final class RuntimeUtils {
 
     @Nullable
     private static HitInfo getHitInfo(
-            androidx.xr.extensions.node.InputEvent.HitInfo xrHitInfo, EntityManager entityManager) {
+            com.android.extensions.xr.node.InputEvent.HitInfo xrHitInfo,
+            EntityManager entityManager) {
         if (xrHitInfo == null
                 || xrHitInfo.getInputNode() == null
                 || xrHitInfo.getTransform() == null) {
@@ -132,14 +131,14 @@ final class RuntimeUtils {
     /**
      * Converts an XR InputEvent to a JXRCore InputEvent.
      *
-     * @param xrInputEvent an {@link androidx.xr.extensions.node.InputEvent} instance to be
+     * @param xrInputEvent an {@link com.android.extensions.xr.node.InputEvent} instance to be
      *     converted.
      * @param entityManager an {@link EntityManager} instance to look up entities.
      * @return a {@link androidx.xr.scenecore.JXRCoreRuntime.InputEvent} instance representing the
      *     input event.
      */
     static InputEvent getInputEvent(
-            @NonNull androidx.xr.extensions.node.InputEvent xrInputEvent,
+            @NonNull com.android.extensions.xr.node.InputEvent xrInputEvent,
             @NonNull EntityManager entityManager) {
         Vector3 origin = getVector3(xrInputEvent.getOrigin());
         Vector3 direction = getVector3(xrInputEvent.getDirection());
@@ -163,19 +162,19 @@ final class RuntimeUtils {
     }
 
     @InputEvent.Source
-    static int getInputEventSource(@Source int xrInputEventSource) {
+    static int getInputEventSource(int xrInputEventSource) {
         switch (xrInputEventSource) {
-            case androidx.xr.extensions.node.InputEvent.SOURCE_UNKNOWN:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_UNKNOWN:
                 return InputEvent.SOURCE_UNKNOWN;
-            case androidx.xr.extensions.node.InputEvent.SOURCE_HEAD:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_HEAD:
                 return InputEvent.SOURCE_HEAD;
-            case androidx.xr.extensions.node.InputEvent.SOURCE_CONTROLLER:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_CONTROLLER:
                 return InputEvent.SOURCE_CONTROLLER;
-            case androidx.xr.extensions.node.InputEvent.SOURCE_HANDS:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_HANDS:
                 return InputEvent.SOURCE_HANDS;
-            case androidx.xr.extensions.node.InputEvent.SOURCE_MOUSE:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_MOUSE:
                 return InputEvent.SOURCE_MOUSE;
-            case androidx.xr.extensions.node.InputEvent.SOURCE_GAZE_AND_GESTURE:
+            case com.android.extensions.xr.node.InputEvent.SOURCE_GAZE_AND_GESTURE:
                 return InputEvent.SOURCE_GAZE_AND_GESTURE;
             default:
                 throw new IllegalArgumentException(
@@ -184,13 +183,13 @@ final class RuntimeUtils {
     }
 
     @InputEvent.PointerType
-    static int getInputEventPointerType(@PointerType int xrInputEventPointerType) {
+    static int getInputEventPointerType(int xrInputEventPointerType) {
         switch (xrInputEventPointerType) {
-            case androidx.xr.extensions.node.InputEvent.POINTER_TYPE_DEFAULT:
+            case com.android.extensions.xr.node.InputEvent.POINTER_TYPE_DEFAULT:
                 return InputEvent.POINTER_TYPE_DEFAULT;
-            case androidx.xr.extensions.node.InputEvent.POINTER_TYPE_LEFT:
+            case com.android.extensions.xr.node.InputEvent.POINTER_TYPE_LEFT:
                 return InputEvent.POINTER_TYPE_LEFT;
-            case androidx.xr.extensions.node.InputEvent.POINTER_TYPE_RIGHT:
+            case com.android.extensions.xr.node.InputEvent.POINTER_TYPE_RIGHT:
                 return InputEvent.POINTER_TYPE_RIGHT;
             default:
                 throw new IllegalArgumentException(
@@ -199,21 +198,21 @@ final class RuntimeUtils {
     }
 
     @InputEvent.Action
-    static int getInputEventAction(@Action int xrInputEventAction) {
+    static int getInputEventAction(int xrInputEventAction) {
         switch (xrInputEventAction) {
-            case androidx.xr.extensions.node.InputEvent.ACTION_DOWN:
+            case com.android.extensions.xr.node.InputEvent.ACTION_DOWN:
                 return InputEvent.ACTION_DOWN;
-            case androidx.xr.extensions.node.InputEvent.ACTION_UP:
+            case com.android.extensions.xr.node.InputEvent.ACTION_UP:
                 return InputEvent.ACTION_UP;
-            case androidx.xr.extensions.node.InputEvent.ACTION_MOVE:
+            case com.android.extensions.xr.node.InputEvent.ACTION_MOVE:
                 return InputEvent.ACTION_MOVE;
-            case androidx.xr.extensions.node.InputEvent.ACTION_CANCEL:
+            case com.android.extensions.xr.node.InputEvent.ACTION_CANCEL:
                 return InputEvent.ACTION_CANCEL;
-            case androidx.xr.extensions.node.InputEvent.ACTION_HOVER_MOVE:
+            case com.android.extensions.xr.node.InputEvent.ACTION_HOVER_MOVE:
                 return InputEvent.ACTION_HOVER_MOVE;
-            case androidx.xr.extensions.node.InputEvent.ACTION_HOVER_ENTER:
+            case com.android.extensions.xr.node.InputEvent.ACTION_HOVER_ENTER:
                 return InputEvent.ACTION_HOVER_ENTER;
-            case androidx.xr.extensions.node.InputEvent.ACTION_HOVER_EXIT:
+            case com.android.extensions.xr.node.InputEvent.ACTION_HOVER_EXIT:
                 return InputEvent.ACTION_HOVER_EXIT;
             default:
                 throw new IllegalArgumentException(
@@ -222,7 +221,7 @@ final class RuntimeUtils {
     }
 
     @ResizeEvent.ResizeState
-    static int getResizeEventState(@ReformEvent.ReformState int resizeState) {
+    static int getResizeEventState(int resizeState) {
         switch (resizeState) {
             case ReformEvent.REFORM_STATE_UNKNOWN:
                 return ResizeEvent.RESIZE_STATE_UNKNOWN;
@@ -238,10 +237,7 @@ final class RuntimeUtils {
     }
 
     static Matrix4 getMatrix(Mat4f xrMatrix) {
-        float[] matrixData = new float[16];
-        for (int i = 0; i < 4; i++) {
-            System.arraycopy(xrMatrix.m[i], 0, matrixData, i * 4, 4);
-        }
+        float[] matrixData = xrMatrix.getFlattenedMatrix();
         return new Matrix4(matrixData);
     }
 
@@ -317,34 +313,34 @@ final class RuntimeUtils {
     /**
      * Converts from the Extensions spatial capabilities to the runtime spatial capabilities.
      *
-     * @param extCapabilities a {@link androidx.xr.extensions.space.SpatialCapabilities} instance to
-     *     be converted.
+     * @param extCapabilities a {@link com.android.extensions.xr.space.SpatialCapabilities} instance
+     *     to be converted.
      */
     static SpatialCapabilities convertSpatialCapabilities(
-            androidx.xr.extensions.space.SpatialCapabilities extCapabilities) {
+            com.android.extensions.xr.space.SpatialCapabilities extCapabilities) {
         @SpatialCapabilities.SpatialCapability int capabilities = 0;
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_UI_CAPABLE)) {
+                com.android.extensions.xr.space.SpatialCapabilities.SPATIAL_UI_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_UI;
         }
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_3D_CONTENTS_CAPABLE)) {
+                com.android.extensions.xr.space.SpatialCapabilities.SPATIAL_3D_CONTENTS_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT;
         }
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities.PASSTHROUGH_CONTROL_CAPABLE)) {
+                com.android.extensions.xr.space.SpatialCapabilities.PASSTHROUGH_CONTROL_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL;
         }
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities.APP_ENVIRONMENTS_CAPABLE)) {
+                com.android.extensions.xr.space.SpatialCapabilities.APP_ENVIRONMENTS_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_APP_ENVIRONMENT;
         }
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities.SPATIAL_AUDIO_CAPABLE)) {
+                com.android.extensions.xr.space.SpatialCapabilities.SPATIAL_AUDIO_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_SPATIAL_AUDIO;
         }
         if (extCapabilities.get(
-                androidx.xr.extensions.space.SpatialCapabilities
+                com.android.extensions.xr.space.SpatialCapabilities
                         .SPATIAL_ACTIVITY_EMBEDDING_CAPABLE)) {
             capabilities |= SpatialCapabilities.SPATIAL_CAPABILITY_EMBED_ACTIVITY;
         }
@@ -357,10 +353,10 @@ final class RuntimeUtils {
      * visibility state.
      *
      * @param environmentState a {@link
-     *     androidx.xr.extensions.environment.EnvironmentVisibilityState} instance to be converted.
+     *     com.android.extensions.xr.environment.EnvironmentVisibilityState} instance to be
+     *     converted.
      */
-    static boolean getIsSpatialEnvironmentPreferenceActive(
-            @EnvironmentVisibilityState.State int environmentState) {
+    static boolean getIsSpatialEnvironmentPreferenceActive(int environmentState) {
         return environmentState == EnvironmentVisibilityState.APP_VISIBLE;
     }
 

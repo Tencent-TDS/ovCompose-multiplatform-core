@@ -42,6 +42,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 
 /**
@@ -102,8 +103,7 @@ public fun FadingExpandingLabel(
 ) {
     val density = LocalDensity.current
     var currentText by remember { mutableStateOf(text) }
-    val textMeasurer = rememberTextMeasurer()
-
+    var maxTextWidth by remember { mutableStateOf<Int?>(null) }
     // Merge the optional parameters with the [TextStyle]
     val mergedTextStyle =
         textStyle.merge(
@@ -118,19 +118,26 @@ public fun FadingExpandingLabel(
             letterSpacing = letterSpacing
         )
 
+    val textMeasurer = rememberTextMeasurer()
     val textMeasureResult =
-        remember(text, mergedTextStyle) {
+        remember(text, mergedTextStyle, maxTextWidth) {
             textMeasurer.measure(
                 text = text,
                 style = mergedTextStyle,
                 softWrap = softWrap,
-                maxLines = maxLines
+                maxLines = maxLines,
+                // TODO(b/404793120): consider using BoxWithConstraints to get constraints once
+                // b/404793120 is fixed.
+                constraints = maxTextWidth?.let { Constraints(maxWidth = it) } ?: Constraints()
             )
         }
     var currentTextMeasureResult by remember { mutableStateOf(textMeasureResult) }
     val animatedHeight = remember { Animatable(currentTextMeasureResult.size.height.toFloat()) }
 
     LaunchedEffect(textMeasureResult) {
+        // If the text is expanding, update it before the fading lines animation, if it's
+        // collapsing, update it after the animation. This is because we can only animate the
+        // expanding fading effect on the larger text.
         val isLinesDecreasing = currentTextMeasureResult.lineCount > textMeasureResult.lineCount
         if (!isLinesDecreasing) {
             currentText = text
@@ -148,6 +155,10 @@ public fun FadingExpandingLabel(
 
     Text(
         text = currentText,
+        onTextLayout = { textLayoutResult ->
+            // Set the max width that will be used to measure the text.
+            maxTextWidth = textLayoutResult.layoutInput.constraints.maxWidth
+        },
         modifier =
             modifier
                 .height(with(density) { animatedHeight.value.toDp() })
@@ -170,10 +181,9 @@ public fun FadingExpandingLabel(
                     }
                 },
         style = mergedTextStyle,
-        softWrap = softWrap,
-        minLines = minLines,
         maxLines = maxLines,
-        overflow = TextOverflow.Visible
+        overflow = TextOverflow.Visible,
+        textAlign = textAlign,
     )
 }
 

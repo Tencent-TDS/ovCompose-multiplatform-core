@@ -106,6 +106,7 @@ import androidx.camera.camera2.internal.compat.quirk.ImageCaptureFailWithAutoFla
 import androidx.camera.camera2.internal.compat.quirk.ImageCaptureFlashNotFireQuirk;
 import androidx.camera.camera2.interop.Camera2CameraInfo;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
+import androidx.camera.camera2.pipe.integration.compat.quirk.DeviceQuirks;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
@@ -638,12 +639,24 @@ public class CameraXActivity extends AppCompatActivity {
             case FLASH_MODE_AUTO:
                 CameraInfo cameraInfo = getCameraInfo();
                 if (cameraInfo instanceof CameraInfoInternal) {
-                    Quirks deviceQuirks =
-                            androidx.camera.camera2.internal.compat.quirk.DeviceQuirks.getAll();
+
+                    Quirks deviceQuirks = CameraXViewModel.CAMERA_PIPE_IMPLEMENTATION_OPTION.equals(
+                            getConfiguredCameraXCameraImplementation()) ? DeviceQuirks.all
+                            : androidx.camera.camera2.internal.compat.quirk.DeviceQuirks.getAll();
                     Quirks cameraQuirks = ((CameraInfoInternal) cameraInfo).getCameraQuirks();
+
                     if (deviceQuirks.contains(CrashWhenTakingPhotoWithAutoFlashAEModeQuirk.class)
                             || cameraQuirks.contains(ImageCaptureFailWithAutoFlashQuirk.class)
-                            || cameraQuirks.contains(ImageCaptureFlashNotFireQuirk.class)) {
+                            || cameraQuirks.contains(ImageCaptureFlashNotFireQuirk.class)
+                            || deviceQuirks.contains(
+                            androidx.camera.camera2.pipe.integration.compat.quirk
+                                    .CrashWhenTakingPhotoWithAutoFlashAEModeQuirk.class)
+                            || cameraQuirks.contains(
+                            androidx.camera.camera2.pipe.integration.compat.quirk
+                                    .ImageCaptureFailWithAutoFlashQuirk.class)
+                            || cameraQuirks.contains(
+                            androidx.camera.camera2.pipe.integration.compat.quirk
+                                    .ImageCaptureFlashNotFireQuirk.class)) {
 
                         Toast.makeText(this, DESCRIPTION_FLASH_MODE_NOT_SUPPORTED,
                                 Toast.LENGTH_SHORT).show();

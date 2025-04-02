@@ -2177,7 +2177,13 @@ internal class AndroidComposeView(context: Context, coroutineContext: CoroutineC
     }
 
     // TODO(shepshapard): Test this method.
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun dispatchTouchEvent(motionEvent: MotionEvent): Boolean {
+        if (ComposeUiFlags.isHitPathTrackerLoggingEnabled) {
+            println("POINTER_INPUT_DEBUG_LOG_TAG AndroidComposeView.dispatchTouchEvent()")
+            println("POINTER_INPUT_DEBUG_LOG_TAG \t\tmotionEvent: $motionEvent")
+        }
+
         if (hoverExitReceived) {
             // Go ahead and send ACTION_HOVER_EXIT if this isn't an ACTION_DOWN for the same
             // pointer

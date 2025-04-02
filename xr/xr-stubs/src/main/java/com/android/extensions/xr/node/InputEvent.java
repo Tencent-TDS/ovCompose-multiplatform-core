@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /** A single 6DOF pointer event. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public final class InputEvent {
 
     InputEvent() {
@@ -206,7 +204,6 @@ public final class InputEvent {
 
     /** Info about a single ray hit. */
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static class HitInfo {
 
         public HitInfo(

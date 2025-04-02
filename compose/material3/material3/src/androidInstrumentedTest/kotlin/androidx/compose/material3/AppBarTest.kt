@@ -2072,6 +2072,100 @@ class AppBarTest {
             .assertTopPositionInRootIsEqualTo(rule.rootHeight() - 12.dp - fabBounds.height)
     }
 
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun topAppBar_pinned_changeColors_reverseLayout_scrolledContent() {
+        lateinit var scrollBehavior: TopAppBarScrollBehavior
+        rule.setMaterialContent(lightColorScheme()) {
+            scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(reverseLayout = true)
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                topBar = {
+                    Box(Modifier.testTag(TopAppBarTestTag)) {
+                        TopAppBar(
+                            title = { Text("Title") },
+                            scrollBehavior = scrollBehavior,
+                            colors =
+                                TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Red,
+                                    scrolledContainerColor = Color.Green
+                                )
+                        )
+                    }
+                },
+                content = { paddingValues ->
+                    LazyColumn(
+                        modifier =
+                            Modifier.testTag(LazyListTag)
+                                .padding(paddingValues)
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        reverseLayout = true,
+                    ) {
+                        items(List(100) { it }.size) { Text(it.toString()) }
+                    }
+                }
+            )
+        }
+
+        rule.onNodeWithTag(TopAppBarTestTag).captureToImage().assertContainsColor(Color.Green)
+
+        // Swipe down to scroll the content.
+        rule.onNodeWithTag(LazyListTag).performTouchInput { swipeDown(startY = 0f, endY = 500f) }
+        rule.waitForIdle()
+        rule.onNodeWithTag(TopAppBarTestTag).captureToImage().assertContainsColor(Color.Green)
+
+        // Swipe down to scroll the content and collapse the top app bar.
+        rule.onNodeWithTag(LazyListTag).performTouchInput {
+            swipeDown(startY = 500f, endY = height + 1000f)
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag(TopAppBarTestTag).captureToImage().assertContainsColor(Color.Red)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun topAppBar_pinned_changeColors_scrolledContent() {
+        lateinit var scrollBehavior: TopAppBarScrollBehavior
+        rule.setMaterialContent(lightColorScheme()) {
+            scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+            Scaffold(
+                modifier = Modifier.fillMaxSize(),
+                topBar = {
+                    Box(Modifier.testTag(TopAppBarTestTag)) {
+                        TopAppBar(
+                            title = { Text("Title") },
+                            scrollBehavior = scrollBehavior,
+                            colors =
+                                TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Red,
+                                    scrolledContainerColor = Color.Green
+                                )
+                        )
+                    }
+                },
+                content = { paddingValues ->
+                    LazyColumn(
+                        modifier =
+                            Modifier.testTag(LazyListTag)
+                                .padding(paddingValues)
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    ) {
+                        items(List(100) { it }.size) { Text(it.toString()) }
+                    }
+                }
+            )
+        }
+
+        rule.onNodeWithTag(TopAppBarTestTag).captureToImage().assertContainsColor(Color.Red)
+
+        // Swipe up to scroll the content.
+        rule.onNodeWithTag(LazyListTag).performTouchInput {
+            swipeUp(startY = height - 200f, endY = height - 1000f)
+        }
+        rule.waitForIdle()
+        rule.onNodeWithTag(TopAppBarTestTag).captureToImage().assertContainsColor(Color.Green)
+    }
+
     @Test
     fun bottomAppBar_exitAlways_allowHorizontalScroll() {
         lateinit var state: LazyListState

@@ -974,8 +974,6 @@ final val androidx.compose.runtime.tooling/LocalInspectionTables // androidx.com
     final fun <get-LocalInspectionTables>(): androidx.compose.runtime/ProvidableCompositionLocal<kotlin.collections/MutableSet<androidx.compose.runtime.tooling/CompositionData>?> // androidx.compose.runtime.tooling/LocalInspectionTables.<get-LocalInspectionTables>|<get-LocalInspectionTables>(){}[0]
 final val androidx.compose.runtime/DefaultMonotonicFrameClock // androidx.compose.runtime/DefaultMonotonicFrameClock|{}DefaultMonotonicFrameClock[0]
     final fun <get-DefaultMonotonicFrameClock>(): androidx.compose.runtime/MonotonicFrameClock // androidx.compose.runtime/DefaultMonotonicFrameClock.<get-DefaultMonotonicFrameClock>|<get-DefaultMonotonicFrameClock>(){}[0]
-final val androidx.compose.runtime/LocalCollectAsStateCoroutineContext // androidx.compose.runtime/LocalCollectAsStateCoroutineContext|{}LocalCollectAsStateCoroutineContext[0]
-    final fun <get-LocalCollectAsStateCoroutineContext>(): androidx.compose.runtime/ProvidableCompositionLocal<kotlin.coroutines/CoroutineContext> // androidx.compose.runtime/LocalCollectAsStateCoroutineContext.<get-LocalCollectAsStateCoroutineContext>|<get-LocalCollectAsStateCoroutineContext>(){}[0]
 final val androidx.compose.runtime/compositionLocalMap // androidx.compose.runtime/compositionLocalMap|{}compositionLocalMap[0]
     final fun <get-compositionLocalMap>(): kotlin/Any // androidx.compose.runtime/compositionLocalMap.<get-compositionLocalMap>|<get-compositionLocalMap>(){}[0]
 final val androidx.compose.runtime/currentComposer // androidx.compose.runtime/currentComposer|{}currentComposer[0]

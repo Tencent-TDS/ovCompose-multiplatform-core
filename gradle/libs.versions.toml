@@ -11,7 +11,7 @@ androidLint = "31.10.0-alpha07"
 androidStudio = "2024.3.2.7"
 # -----------------------------------------------------------------------------
 
-androidLintMin = "31.1.0"
+androidLintMin = "31.1.1"
 # Lint version that uses the old analysis API. Updating projects using this version to the new
 # analysis API would make those lint checks unavailable for users of previous AGP versions.
 androidLintPrevAnalysis = "31.7.0-alpha02"
@@ -36,7 +36,7 @@ asm = "9.7"
 cmake = "3.22.1"
 composeCompilerPlugin = "2.1.0-RC"
 dagger = "2.54"
-dependencyAnalysisGradlePlugin = "2.4.2"
+dependencyAnalysisGradlePlugin = "2.11.0"
 dexmaker = "2.28.4"
 dokka = "1.8.20-dev-214"
 espresso = "3.7.0-alpha01"
@@ -131,7 +131,7 @@ byteBuddyAgent = { module = "net.bytebuddy:byte-buddy-agent", version.ref = "byt
 checkerframework = { module = "org.checkerframework:checker-qual", version = "2.5.3" }
 checkmark = { module = "net.saff.checkmark:checkmark", version = "0.1.6" }
 constraintLayout = { module = "androidx.constraintlayout:constraintlayout", version = "2.0.1"}
-dackka = { module = "com.google.devsite:dackka", version = "1.6.2" }
+dackka = { module = "com.google.devsite:dackka", version = "1.6.3" }
 dagger = { module = "com.google.dagger:dagger", version.ref = "dagger" }
 dependency-analysis-gradle-plugin = { module = "com.autonomousapps:dependency-analysis-gradle-plugin", version.ref = "dependencyAnalysisGradlePlugin" }
 daggerCompiler = { module = "com.google.dagger:dagger-compiler", version.ref = "dagger" }

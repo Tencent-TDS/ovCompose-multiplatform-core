@@ -125,6 +125,7 @@ fun AlertDialogBuilder() {
                         label = { Text("Caption") },
                     )
                 }
+
                 item { ListHeader { Text("Buttons") } }
                 item {
                     RadioButton(
@@ -150,6 +151,7 @@ fun AlertDialogBuilder() {
                         label = { Text("No EdgeButton") },
                     )
                 }
+
                 item { Button(onClick = { showDialog = true }, label = { Text("Show dialog") }) }
             }
         }

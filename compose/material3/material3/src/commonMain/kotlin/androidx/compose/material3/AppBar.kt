@@ -112,7 +112,9 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.fastSumBy
+import kotlin.DeprecationLevel
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -1498,6 +1500,9 @@ interface TopAppBarScrollBehavior {
      * keep track of the scroll events.
      */
     val nestedScrollConnection: NestedScrollConnection
+
+    /** Indicates that the layout direction of scrollable content is reversed. */
+    @Suppress("GetterSetterNames") @get:Suppress("GetterSetterNames") val reverseLayout: Boolean
 }
 
 /** Contains default values used for the top app bar implementations. */
@@ -1752,14 +1757,42 @@ object TopAppBarDefaults {
      *   state. See [rememberTopAppBarState] for a state that is remembered across compositions.
      * @param canScroll a callback used to determine whether scroll events are to be handled by this
      *   pinned [TopAppBarScrollBehavior]
+     * @param reverseLayout indicates that this behavior is applied to a scrollable content that has
+     *   a reversed direction of scrolling and layout
      */
-    @ExperimentalMaterial3Api
     @Composable
     fun pinnedScrollBehavior(
         state: TopAppBarState = rememberTopAppBarState(),
         canScroll: () -> Boolean = { true },
+        reverseLayout: Boolean = false,
     ): TopAppBarScrollBehavior =
-        remember(state, canScroll) { PinnedScrollBehavior(state = state, canScroll = canScroll) }
+        remember(state, canScroll) {
+            PinnedScrollBehavior(
+                state = state,
+                canScroll = canScroll,
+                reverseLayout = reverseLayout
+            )
+        }
+
+    /**
+     * Returns a pinned [TopAppBarScrollBehavior] that tracks nested-scroll callbacks and updates
+     * its [TopAppBarState.contentOffset] accordingly.
+     *
+     * The returned [TopAppBarScrollBehavior] is remembered across compositions.
+     *
+     * @param state the state object to be used to control or observe the top app bar's scroll
+     *   state. See [rememberTopAppBarState] for a state that is remembered across compositions.
+     * @param canScroll a callback used to determine whether scroll events are to be handled by this
+     *   pinned [TopAppBarScrollBehavior]
+     */
+    @Deprecated("Maintained for binary compatibility", level = DeprecationLevel.HIDDEN)
+    @ExperimentalMaterial3Api
+    @Composable
+    fun pinnedScrollBehavior(
+        state: TopAppBarState = rememberTopAppBarState(),
+        canScroll: () -> Boolean = { true }
+    ): TopAppBarScrollBehavior =
+        pinnedScrollBehavior(state = state, canScroll = canScroll, reverseLayout = false)
 
     /**
      * Returns a [TopAppBarScrollBehavior]. A top app bar that is set up with this
@@ -2000,9 +2033,39 @@ class TopAppBarState(
      * A `0.0` indicates that the app bar does not overlap any content, while `1.0` indicates that
      * the entire visible app bar area overlaps the scrolled content.
      */
+    @Deprecated(
+        message = "Use the overlappedFraction function that can take a reverse layout parameter",
+        replaceWith = ReplaceWith("overlappedFraction(reverseLayout = )"),
+        DeprecationLevel.WARNING,
+    )
     val overlappedFraction: Float
-        get() =
-            if (heightOffsetLimit != 0f) {
+        get() = overlappedFraction()
+
+    /**
+     * Returns a value that represents the percentage of the app bar area that is overlapping with
+     * the content scrolled behind it.
+     *
+     * A `0.0` indicates that the app bar does not overlap any content, while `1.0` indicates that
+     * the entire visible app bar area overlaps the scrolled content.
+     *
+     * @param reverseLayout indicates that this behavior is applied to a scrollable content that has
+     *   a reversed layout direction.
+     */
+    fun overlappedFraction(reverseLayout: Boolean = false): Float {
+        if (reverseLayout) {
+            return if (heightOffsetLimit == -Float.MAX_VALUE && contentOffset == 0f) {
+                1f
+            } else if (heightOffsetLimit != 0f) {
+                1 -
+                    ((heightOffsetLimit + contentOffset.absoluteValue).coerceIn(
+                        minimumValue = heightOffsetLimit,
+                        maximumValue = 0f,
+                    ) / heightOffsetLimit)
+            } else {
+                0f
+            }
+        } else {
+            return if (heightOffsetLimit != 0f) {
                 1 -
                     ((heightOffsetLimit - contentOffset).coerceIn(
                         minimumValue = heightOffsetLimit,
@@ -2011,6 +2074,8 @@ class TopAppBarState(
             } else {
                 0f
             }
+        }
+    }
 
     companion object {
         /** The default [Saver] implementation for [TopAppBarState]. */
@@ -2599,14 +2664,16 @@ object DefaultSingleRowTopAppBarOverride : SingleRowTopAppBarOverride {
             "The expandedHeight is expected to be specified and finite"
         }
 
-        // Obtain the container color from the TopAppBarColors using the `overlapFraction`. This
-        // ensures that the colors will adjust whether the app bar behavior is pinned or scrolled.
+        // Obtain the container color from the TopAppBarColors using the 'overlapFraction' (or
+        // 'reversedOverlappedFraction' for a reversed layout). This ensures that the colors will
+        // adjust whether the app bar behavior is pinned or scrolled.
         // This may potentially animate or interpolate a transition between the container-color and
         // the container's scrolled-color according to the app bar's scroll state.
         val targetColor by
             remember(colors, scrollBehavior) {
                 derivedStateOf {
-                    val overlappingFraction = scrollBehavior?.state?.overlappedFraction ?: 0f
+                    val overlappingFraction =
+                        scrollBehavior?.let { it.state.overlappedFraction(it.reverseLayout) } ?: 0f
                     colors.containerColor(if (overlappingFraction > 0.01f) 1f else 0f)
                 }
             }
@@ -3355,11 +3422,14 @@ private class TopAppBarMeasurePolicy(
  * @param state a [TopAppBarState]
  * @param canScroll a callback used to determine whether scroll events are to be handled by this
  *   [PinnedScrollBehavior]
+ * @param reverseLayout indicates that this behavior is applied to a scrollable content that has a
+ *   reversed direction of scrolling and layout
  */
 @OptIn(ExperimentalMaterial3Api::class)
 private class PinnedScrollBehavior(
     override val state: TopAppBarState,
     val canScroll: () -> Boolean = { true },
+    override val reverseLayout: Boolean = false,
 ) : TopAppBarScrollBehavior {
     override val isPinned: Boolean = true
     override val snapAnimationSpec: AnimationSpec<Float>? = null
@@ -3411,7 +3481,7 @@ private class EnterAlwaysScrollBehavior(
     override val snapAnimationSpec: AnimationSpec<Float>?,
     override val flingAnimationSpec: DecayAnimationSpec<Float>?,
     val canScroll: () -> Boolean = { true },
-    val reverseLayout: Boolean = false,
+    override val reverseLayout: Boolean = false,
 ) : TopAppBarScrollBehavior {
     override val isPinned: Boolean = false
     override var nestedScrollConnection =
@@ -3486,6 +3556,7 @@ private class ExitUntilCollapsedScrollBehavior(
     override val flingAnimationSpec: DecayAnimationSpec<Float>?,
     val canScroll: () -> Boolean = { true },
 ) : TopAppBarScrollBehavior {
+    override val reverseLayout: Boolean = false
     override val isPinned: Boolean = false
     override var nestedScrollConnection =
         object : NestedScrollConnection {

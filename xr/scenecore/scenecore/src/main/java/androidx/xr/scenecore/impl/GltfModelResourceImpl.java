@@ -25,13 +25,13 @@ import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource;
  */
 @SuppressWarnings({"deprecation", "UnnecessarilyFullyQualified"}) // TODO(b/373435470): Remove
 final class GltfModelResourceImpl implements GltfModelResource {
-    private final androidx.xr.extensions.asset.GltfModelToken mToken;
+    private final com.android.extensions.xr.asset.GltfModelToken mToken;
 
-    GltfModelResourceImpl(androidx.xr.extensions.asset.GltfModelToken token) {
+    GltfModelResourceImpl(com.android.extensions.xr.asset.GltfModelToken token) {
         mToken = token;
     }
 
-    public androidx.xr.extensions.asset.GltfModelToken getExtensionModelToken() {
+    public com.android.extensions.xr.asset.GltfModelToken getExtensionModelToken() {
         return mToken;
     }
 }

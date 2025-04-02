@@ -390,14 +390,15 @@ package androidx.wear.compose.foundation {
   }
 
   public final class SwipeToRevealDefaults {
-    method public androidx.wear.compose.foundation.GestureInclusion bidirectionalGestureInclusion();
-    method public androidx.wear.compose.foundation.GestureInclusion gestureInclusion(optional float edgeZoneFraction);
+    method public androidx.wear.compose.foundation.GestureInclusion gestureInclusion(androidx.wear.compose.foundation.RevealState state, optional @FloatRange(from=0.0, to=1.0) float edgeZoneFraction);
+    method public androidx.wear.compose.foundation.GestureInclusion getBidirectionalGestureInclusion();
     method public float getLeftEdgeZoneFraction();
     method public kotlin.jvm.functions.Function1<java.lang.Float,java.lang.Float> getPositionalThreshold();
     method public float getRevealingRatio();
     property public float LeftEdgeZoneFraction;
     property public kotlin.jvm.functions.Function1<java.lang.Float,java.lang.Float> PositionalThreshold;
     property public float RevealingRatio;
+    property public androidx.wear.compose.foundation.GestureInclusion bidirectionalGestureInclusion;
     field public static final androidx.wear.compose.foundation.SwipeToRevealDefaults INSTANCE;
   }
 

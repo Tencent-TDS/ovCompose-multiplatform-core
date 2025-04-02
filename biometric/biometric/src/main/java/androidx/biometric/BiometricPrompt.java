@@ -67,6 +67,13 @@ import javax.crypto.Mac;
  * ongoing authentication session's callbacks to be received by the new fragment/activity instance.
  * Note that {@code cancelAuthentication()} should not be called, and {@code authenticate()} does
  * not need to be invoked during activity/fragment creation.
+ *
+ * <p>Note that if multiple instances of {@code BiometricPrompt} are created within a single
+ * Fragment or Activity, only the callback registered with the last created instance will be
+ * saved and receive authentication results. This behavior can lead to unexpected results if
+ * multiple independent biometric authentication flows are attempted within the same Fragment or
+ * Activity. It is highly recommended to avoid creating multiple BiometricPrompt instances in
+ * this scenario.
  */
 public class BiometricPrompt {
     private static final String TAG = "BiometricPromptCompat";
@@ -168,6 +175,12 @@ public class BiometricPrompt {
     public static final int ERROR_SECURITY_UPDATE_REQUIRED = 15;
 
     /**
+     * The privacy setting has been enabled and will block use of the sensor.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public static final int ERROR_SENSOR_PRIVACY_ENABLED = 18;
+
+    /**
      * Identity Check is currently not active.
      *
      * This device either doesn't have this feature enabled, or it's not considered in a
@@ -208,6 +221,8 @@ public class BiometricPrompt {
         ERROR_HW_NOT_PRESENT,
         ERROR_NEGATIVE_BUTTON,
         ERROR_NO_DEVICE_CREDENTIAL,
+        ERROR_SECURITY_UPDATE_REQUIRED,
+        ERROR_SENSOR_PRIVACY_ENABLED,
         ERROR_IDENTITY_CHECK_NOT_ACTIVE,
         ERROR_NOT_ENABLED_FOR_APPS,
         ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON

@@ -43,7 +43,7 @@ dependencies {
     implementation(project(":compose:foundation:foundation"))
     implementation(project(":compose:foundation:foundation-layout"))
     implementation(project(":compose:ui:ui"))
-    implementation(project(":activity:activity-compose"))
+    implementation("androidx.activity:activity-compose:1.10.1")
     implementation(project(":profileinstaller:profileinstaller"))
     implementation(project(":wear:compose:compose-material3"))
     implementation(project(":wear:compose:compose-material3-macrobenchmark-common"))

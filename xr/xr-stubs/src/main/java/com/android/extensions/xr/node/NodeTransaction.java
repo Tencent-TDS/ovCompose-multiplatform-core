@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * An atomic set of changes to apply to a set of {@link com.android.extensions.xr.node.Node Node}s.
@@ -25,7 +24,6 @@ import androidx.annotation.RestrictTo;
  * system, i.e. +X points to the right, +Y up, and +Z points towards the camera.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class NodeTransaction implements java.io.Closeable {
 
     NodeTransaction() {

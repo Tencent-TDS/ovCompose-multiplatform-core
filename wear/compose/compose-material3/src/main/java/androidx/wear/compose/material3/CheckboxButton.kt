@@ -53,6 +53,8 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -102,6 +104,8 @@ import androidx.wear.compose.materialcore.animateSelectionColor
  *   emitting [Interaction]s for this button's "toggleable" tap area. You can use this to change the
  *   button's appearance or preview the button in different states. Note that if `null` is provided,
  *   interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param icon An optional slot for providing an icon to indicate the purpose of the button. The
  *   contents are expected to be a horizontally and vertically center aligned icon of size 24.dp.
  * @param secondaryLabel A slot for providing the button's secondary label. The contents are
@@ -119,6 +123,7 @@ public fun CheckboxButton(
     colors: CheckboxButtonColors = CheckboxButtonDefaults.checkboxButtonColors(),
     contentPadding: PaddingValues = CheckboxButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     icon: @Composable (BoxScope.() -> Unit)? = null,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
     label: @Composable RowScope.() -> Unit
@@ -180,7 +185,11 @@ public fun CheckboxButton(
             val backgroundColor =
                 colors.containerColor(enabled = isEnabled, checked = isChecked).value
 
-            Modifier.background(backgroundColor)
+            Modifier.surface(
+                transformation = transformation,
+                painter = ColorPainter(backgroundColor),
+                shape = shape
+            )
         },
         enabled = enabled,
         interactionSource = interactionSource,
@@ -243,6 +252,8 @@ public fun CheckboxButton(
  *   and emitting [Interaction]s for this button's main body "clickable" tap area. You can use this
  *   to change the button's appearance or preview the button in different states. Note that if
  *   `null` is provided, interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param containerClickLabel Optional click label on the main body of the button for accessibility.
  * @param contentPadding The spacing values to apply internally between the container and the
  *   content.
@@ -263,6 +274,7 @@ public fun SplitCheckboxButton(
     colors: SplitCheckboxButtonColors = CheckboxButtonDefaults.splitCheckboxButtonColors(),
     toggleInteractionSource: MutableInteractionSource? = null,
     containerInteractionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     containerClickLabel: String? = null,
     contentPadding: PaddingValues = CheckboxButtonDefaults.ContentPadding,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
@@ -276,7 +288,13 @@ public fun SplitCheckboxButton(
                 .defaultMinSize(minHeight = MIN_HEIGHT)
                 .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
-                .clip(shape = shape)
+                .graphicsLayer {
+                    clip = true
+                    this.shape = shape
+
+                    val transformation = transformation ?: return@graphicsLayer
+                    with(transformation) { applyContainerTransformation() }
+                }
     ) {
         Row(
             modifier =

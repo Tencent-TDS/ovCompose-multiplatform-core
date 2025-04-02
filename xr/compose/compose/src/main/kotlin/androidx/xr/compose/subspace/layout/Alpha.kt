@@ -56,8 +56,8 @@ private class AlphaElement(private var alpha: Float) : SubspaceModifierNodeEleme
     }
 }
 
-private class AlphaNode(public var alpha: Float) : SubspaceModifier.Node(), CoreEntityNode {
-    override fun modifyCoreEntity(coreEntity: CoreEntity) {
-        coreEntity.setAlpha(alpha)
+private class AlphaNode(var alpha: Float) : SubspaceModifier.Node(), CoreEntityNode {
+    override fun CoreEntityScope.modifyCoreEntity() {
+        setOrAppendAlpha(alpha)
     }
 }

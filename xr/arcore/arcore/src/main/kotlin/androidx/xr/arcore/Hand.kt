@@ -20,6 +20,10 @@ import androidx.annotation.RestrictTo
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.internal.Hand as RuntimeHand
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Quaternion
+import androidx.xr.runtime.math.Vector3
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,32 +68,98 @@ public class Hand internal constructor(internal val runtimeHand: RuntimeHand) : 
     /**
      * The representation of the current state of [Hand].
      *
-     * @property isActive whether the hand is currently being tracked.
-     * @property handJoints the current pose of each joint in the hand.
+     * @param trackingState the current [TrackingState] of the hand.
+     * @param handJointsBuffer the [ByteBuffer] containing the pose of each joint in the hand.
      */
     public class State(
-        public val isActive: Boolean,
-        public val handJoints: Map<HandJointType, Pose>,
+        public val trackingState: TrackingState,
+        public val handJointsBuffer: ByteBuffer,
     ) {
+
+        private class JointsMap(
+            val trackingState: TrackingState,
+            val handJointsBuffer: ByteBuffer
+        ) : Map<HandJointType, Pose> {
+            override val entries: Set<Map.Entry<HandJointType, Pose>>
+                get() =
+                    if (trackingState == TrackingState.Tracking) {
+                        RuntimeHand.parseHandJoint(trackingState, handJointsBuffer).entries.toSet()
+                    } else {
+                        emptySet()
+                    }
+
+            override val keys: Set<HandJointType>
+                get() =
+                    if (trackingState == TrackingState.Tracking) HandJointType.values().toSet()
+                    else emptySet()
+
+            override val size: Int
+                get() = keys.size
+
+            override val values: Collection<Pose>
+                get() = entries.map { it.value }
+
+            override fun containsKey(key: HandJointType): Boolean {
+                return keys.contains(key)
+            }
+
+            override fun containsValue(value: Pose): Boolean {
+                return values.contains(value)
+            }
+
+            override fun get(key: HandJointType): Pose? =
+                if (trackingState == TrackingState.Tracking) locateHandJointFromBuffer(key)
+                else null
+
+            override fun isEmpty(): Boolean {
+                return trackingState != TrackingState.Tracking
+            }
+
+            private fun locateHandJointFromBuffer(handJointType: HandJointType): Pose {
+                val buffer = handJointsBuffer.duplicate().order(ByteOrder.nativeOrder())
+                val bytePerPose = 7 * 4
+                val byteOffset = handJointType.ordinal * bytePerPose
+                buffer.position(byteOffset)
+                val qx = buffer.float
+                val qy = buffer.float
+                val qz = buffer.float
+                val qw = buffer.float
+                val px = buffer.float
+                val py = buffer.float
+                val pz = buffer.float
+                return Pose(Vector3(px, py, pz), Quaternion(qx, qy, qz, qw))
+            }
+        }
+
+        /**
+         * Returns the current pose of each joint in the hand.
+         *
+         * @return a map of [HandJointType] to [Pose] representing the current pose of each joint in
+         *   the hand.
+         */
+        public val handJoints: Map<HandJointType, Pose> = JointsMap(trackingState, handJointsBuffer)
+
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is State) return false
-            return isActive == other.isActive && handJoints == other.handJoints
+            return trackingState == other.trackingState &&
+                handJointsBuffer == other.handJointsBuffer
         }
 
         override fun hashCode(): Int {
-            var result = isActive.hashCode()
-            result = 31 * result + handJoints.hashCode()
+            var result = trackingState.hashCode()
+            result = 31 * result + handJointsBuffer.hashCode()
             return result
         }
     }
 
-    private val _state = MutableStateFlow<State>(State(isActive = false, handJoints = emptyMap()))
+    private val _state =
+        MutableStateFlow<State>(State(TrackingState.Paused, ByteBuffer.allocate(0)))
     /** The current [State] of this hand. */
     public val state: StateFlow<State> = _state.asStateFlow()
 
     override suspend fun update() {
-        _state.emit(State(isActive = runtimeHand.isActive, handJoints = runtimeHand.handJoints))
+        _state.emit(State(runtimeHand.trackingState, runtimeHand.handJointsBuffer))
     }
 
     override fun equals(other: Any?): Boolean {

@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr;
 
-import androidx.annotation.RestrictTo;
 
 /** XR configuration information. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Config {
 
     Config() {

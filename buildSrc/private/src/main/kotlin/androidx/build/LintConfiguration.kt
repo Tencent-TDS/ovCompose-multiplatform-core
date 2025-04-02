@@ -194,8 +194,10 @@ private fun Project.configureLint(lint: Lint, isLibrary: Boolean) {
         }
         ignoreWarnings = true
 
-        // Run lint on tests. Uses top-level lint.xml to specify checks.
-        checkTestSources = true
+        // Run lint on tests. All checks defined with test scope will be run on test sources.
+        // Additional checks for tests can be specified in the top-level lint.xml.
+        ignoreTestSources = false
+        checkTestSources = false
 
         // Write output directly to the console (and nowhere else).
         textReport = true
@@ -310,11 +312,14 @@ private fun Project.configureLint(lint: Lint, isLibrary: Boolean) {
 
         disable.add("RequiresWindowSdk") // temporarily disable this check due to downstream diff
 
+        // Report errors for incompatible custom lint jars
+        fatal.add("ObsoleteLintCustomCheck")
+
         val lintXmlPath =
             if (extension.type == SoftwareType.SAMPLES) {
-                "buildSrc/lint_samples.xml"
+                "buildSrc/lint/lint_samples.xml"
             } else {
-                "buildSrc/lint.xml"
+                "buildSrc/lint/lint.xml"
             }
 
         // Prevent libraries from fully overriding the config from buildSrc. Projects can create a

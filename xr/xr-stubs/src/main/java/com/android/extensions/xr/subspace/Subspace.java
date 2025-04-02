@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.subspace;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Handle to a subspace in the system scene graph.
@@ -28,7 +27,6 @@ import androidx.annotation.RestrictTo;
  * coordinate system, i.e. +X points to the right, +Y up, and +Z points towards the camera.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class Subspace {
 
     Subspace() {

@@ -107,7 +107,12 @@ constructor(public val x: Float = 0F, public val y: Float = 0F, public val z: Fl
         return this.x == other.x && this.y == other.y && this.z == other.z
     }
 
-    override fun hashCode(): Int = 31 * x.hashCode() + y.hashCode() + z.hashCode()
+    override fun hashCode(): Int {
+        var result = x.hashCode()
+        result = 31 * result + y.hashCode()
+        result = 31 * result + z.hashCode()
+        return result
+    }
 
     override fun toString(): String = "[x=$x, y=$y, z=$z]"
 

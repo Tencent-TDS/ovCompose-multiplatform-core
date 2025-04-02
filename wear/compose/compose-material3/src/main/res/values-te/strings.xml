@@ -44,6 +44,6 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"పెంచండి"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"నిర్ధారించండి"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"విస్మరించండి"</string>
-    <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"ఫోన్‌లో తెరు"</string>
-    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="7845336918219306426">"\'ఫోన్‌లో తెరవండి\' చిహ్నం"</string>
+    <string name="wear_m3c_open_on_phone" msgid="3200727397161392122">"మీ ఫోన్‌ను చెక్ చేయండి"</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="5953380527505012363">"మీ ఫోన్ చిహ్నాన్ని చెక్ చేయండి"</string>
 </resources>

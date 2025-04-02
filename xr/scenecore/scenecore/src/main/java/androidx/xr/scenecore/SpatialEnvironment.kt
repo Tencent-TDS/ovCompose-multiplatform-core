@@ -85,10 +85,23 @@ public class SpatialEnvironment(private val runtime: JxrPlatformAdapter) {
      *   null, it will be all black.
      * @param geometry The preferred geometry for the environment based on a pre-loaded [GltfModel].
      *   If null, there will be no geometry.
+     * @param geometryMaterial The material to override a given mesh in the geometry. If null, the
+     *   material will not override any mesh.
+     * @param geometryMeshName The name of the mesh to override with the material. If null, the
+     *   material will not override any mesh.
+     * @param geometryAnimationName The name of the animation to play on the geometry. If null, the
+     *   geometry will not play any animation. Note that the animation will be played in loop.
+     * @throws IllegalStateException if the material is not properly set up and if the geometry glTF
+     *   model does not contain the mesh or the animation name.
      */
-    public class SpatialEnvironmentPreference(
+    public class SpatialEnvironmentPreference
+    @JvmOverloads
+    constructor(
         public val skybox: ExrImage?,
         public val geometry: GltfModel?,
+        internal val geometryMaterial: Material? = null,
+        internal val geometryMeshName: String? = null,
+        internal val geometryAnimationName: String? = null,
     ) {
 
         override fun equals(other: Any?): Boolean {
@@ -330,8 +343,7 @@ public class SpatialEnvironment(private val runtime: JxrPlatformAdapter) {
      * application, meaning the default system environment will be displayed instead.
      *
      * If the given [SpatialEnvironmentPreference] is not null, but all of its properties are null,
-     * then the spatial environment will consist of a black skybox and no geometry
-     * [isSpatialEnvironmentPreferenceActive] is true.
+     * then the spatial environment will consist of a black skybox and no geometry.
      *
      * Changes to the Environment state will be notified via listeners added with
      * [addOnSpatialEnvironmentChangedListener].
@@ -434,7 +446,13 @@ public class SpatialEnvironment(private val runtime: JxrPlatformAdapter) {
 
 internal fun SpatialEnvironment.SpatialEnvironmentPreference.toRtSpatialEnvironmentPreference():
     RtSpatialEnvironmentPreference {
-    return RtSpatialEnvironmentPreference(skybox?.image, geometry?.model)
+    return RtSpatialEnvironmentPreference(
+        skybox?.image,
+        geometry?.model,
+        geometryMaterial?.material,
+        geometryMeshName,
+        geometryAnimationName,
+    )
 }
 
 internal fun RtSpatialEnvironmentPreference.toSpatialEnvironmentPreference():
@@ -442,6 +460,9 @@ internal fun RtSpatialEnvironmentPreference.toSpatialEnvironmentPreference():
     return SpatialEnvironment.SpatialEnvironmentPreference(
         skybox?.let { ExrImage(it) },
         geometry?.let { GltfModel(it) },
+        geometryMaterial?.let { Material(it) },
+        geometryMeshName,
+        geometryAnimationName,
     )
 }
 

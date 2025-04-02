@@ -39,11 +39,14 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -72,9 +75,9 @@ import androidx.xr.compose.spatial.SpatialDialog
 import androidx.xr.compose.spatial.Subspace
 import androidx.xr.compose.subspace.MainPanel
 import androidx.xr.compose.subspace.SpatialColumn
+import androidx.xr.compose.subspace.SpatialCurvedRow
 import androidx.xr.compose.subspace.SpatialLayoutSpacer
 import androidx.xr.compose.subspace.SpatialPanel
-import androidx.xr.compose.subspace.SpatialRow
 import androidx.xr.compose.subspace.SubspaceComposable
 import androidx.xr.compose.subspace.Volume
 import androidx.xr.compose.subspace.layout.SpatialAlignment
@@ -84,8 +87,11 @@ import androidx.xr.compose.subspace.layout.depth
 import androidx.xr.compose.subspace.layout.fillMaxHeight
 import androidx.xr.compose.subspace.layout.fillMaxWidth
 import androidx.xr.compose.subspace.layout.height
+import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.padding
+import androidx.xr.compose.subspace.layout.resizable
+import androidx.xr.compose.subspace.layout.testTag
 import androidx.xr.compose.subspace.layout.width
 import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.runtime.math.Pose
@@ -151,6 +157,15 @@ class SpatialComposeAppActivity : ComponentActivity() {
                 ) {
                     Text("Switch Space Mode")
                 }
+                Button(
+                    onClick = {
+                        val intent =
+                            Intent(this@SpatialComposeAppActivity, VideoPlayerActivity::class.java)
+                        startActivity(intent)
+                    }
+                ) {
+                    Text("Launch Video Player")
+                }
             }
         }
     }
@@ -160,16 +175,14 @@ class SpatialComposeAppActivity : ComponentActivity() {
     fun PanelGrid() {
         val sidePanelModifier = SubspaceModifier.fillMaxWidth().height(200.dp)
         val curveRadius = 1025.dp
-        SpatialColumn(name = "PanelGridColumn") {
-            SpatialRow(
-                modifier = SubspaceModifier.width(2000.dp).height(1200.dp),
+        SpatialColumn(SubspaceModifier.testTag("PanelGridColumn")) {
+            SpatialCurvedRow(
+                modifier = SubspaceModifier.width(2000.dp).height(1200.dp).testTag("PanelGridRow"),
                 alignment = SpatialAlignment.BottomCenter,
                 curveRadius = curveRadius,
-                name = "PanelGridRow",
             ) {
                 SpatialColumn(
-                    modifier = SubspaceModifier.width(200.dp).fillMaxHeight(),
-                    name = "LeftColumn",
+                    modifier = SubspaceModifier.width(200.dp).fillMaxHeight().testTag("LeftColumn")
                 ) {
                     Orbiter(
                         position = OrbiterEdge.Start,
@@ -193,21 +206,22 @@ class SpatialComposeAppActivity : ComponentActivity() {
                 }
                 SpatialColumn(
                     modifier =
-                        SubspaceModifier.width(800.dp).fillMaxHeight().padding(horizontal = 20.dp),
+                        SubspaceModifier.width(800.dp)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp)
+                            .testTag("CenterColumn"),
                     alignment = SpatialAlignment.TopCenter,
-                    name = "CenterColumn",
                 ) {
                     MainPanel(modifier = SubspaceModifier.fillMaxWidth().height(600.dp))
                     SpatialPanel(
-                        modifier = SubspaceModifier.fillMaxWidth().height(400.dp),
-                        name = "ActivityPanel",
+                        modifier =
+                            SubspaceModifier.fillMaxWidth().height(400.dp).testTag("ActivityPanel"),
                         intent =
                             Intent(this@SpatialComposeAppActivity, AnotherActivity::class.java),
                     )
                 }
                 SpatialColumn(
-                    modifier = SubspaceModifier.width(200.dp).fillMaxHeight(),
-                    name = "RightColumn",
+                    modifier = SubspaceModifier.width(200.dp).fillMaxHeight().testTag("RightColumn")
                 ) {
                     AppPanel(modifier = sidePanelModifier, text = "Panel Top Right")
                     SpatialLayoutSpacer(modifier = SubspaceModifier.height(20.dp))
@@ -217,20 +231,35 @@ class SpatialComposeAppActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @SubspaceComposable
     @Composable
     fun AppPanel(modifier: SubspaceModifier = SubspaceModifier, text: String = "") {
-        SpatialPanel(modifier = modifier, name = text) { PanelContent(text) }
-    }
+        var moveResizeLocked by remember { mutableStateOf(true) }
+        SpatialPanel(
+            modifier =
+                modifier
+                    .testTag(text)
+                    .movable(enabled = !moveResizeLocked)
+                    .resizable(enabled = !moveResizeLocked)
+        ) {
+            PanelContent { Text(text) }
 
-    @UiComposable
-    @SubspaceComposable
-    @Composable
-    fun PanelContent(vararg texts: String) {
-        PanelContent {
-            Column {
-                for (text in texts) {
-                    Text(text)
+            Orbiter(
+                position = OrbiterEdge.Bottom,
+                offset = 24.dp,
+                shape = SpatialRoundedCornerShape(size = CornerSize(50)),
+                settings = OrbiterSettings(shouldRenderInNonSpatial = false),
+            ) {
+                ToggleButton(
+                    checked = moveResizeLocked,
+                    onCheckedChange = { moveResizeLocked = !moveResizeLocked },
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Lock,
+                        contentDescription =
+                            if (moveResizeLocked) "Enable Move/Resize" else "Disable Move/Resize",
+                    )
                 }
             }
         }
@@ -239,6 +268,7 @@ class SpatialComposeAppActivity : ComponentActivity() {
     @UiComposable
     @Composable
     fun PanelContent(content: @Composable () -> Unit) {
+        var showArrows by remember { mutableStateOf(false) }
         var addHighlight by remember { mutableStateOf(false) }
         val borderWidth by remember { derivedStateOf { if (addHighlight) 3.dp else 0.dp } }
         var showDialog by remember { mutableStateOf(false) }
@@ -250,6 +280,9 @@ class SpatialComposeAppActivity : ComponentActivity() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
+            if (showArrows) {
+                Subspace { XyzArrows() }
+            }
             content()
             Orbiter(
                 position = OrbiterEdge.End,
@@ -258,7 +291,10 @@ class SpatialComposeAppActivity : ComponentActivity() {
                 settings = OrbiterSettings(shouldRenderInNonSpatial = false),
             ) {
                 IconButton(
-                    onClick = { addHighlight = !addHighlight },
+                    onClick = {
+                        addHighlight = !addHighlight
+                        showArrows = !showArrows
+                    },
                     modifier = Modifier.background(Color.Gray),
                 ) {
                     Icon(imageVector = Icons.Filled.Check, contentDescription = "Add highlight")
@@ -302,6 +338,7 @@ class SpatialComposeAppActivity : ComponentActivity() {
         SpatialPanel(view = textView, modifier = modifier)
     }
 
+    @SubspaceComposable
     @Composable
     fun XyzArrows(modifier: SubspaceModifier = SubspaceModifier) {
         val session =

@@ -16,22 +16,29 @@
 
 package androidx.xr.scenecore.impl;
 
+import static com.android.extensions.xr.node.InputEvent.ACTION_MOVE;
+import static com.android.extensions.xr.node.InputEvent.DISPATCH_FLAG_NONE;
+import static com.android.extensions.xr.node.InputEvent.POINTER_TYPE_DEFAULT;
+import static com.android.extensions.xr.node.InputEvent.SOURCE_UNKNOWN;
+
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import androidx.annotation.NonNull;
-import androidx.xr.extensions.node.InputEvent;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.Vec3;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
 import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
 import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent.StateListener;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeInputEvent;
 import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.InputEvent;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.ShadowInputEvent;
+import com.android.extensions.xr.node.Vec3;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,12 +70,13 @@ public class PointerCaptureComponentImplTest {
 
     private final FakeInputEventListener mInputListener = new FakeInputEventListener();
 
-    private final FakeXrExtensions mFakeExtensions = new FakeXrExtensions();
+    private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final FakeScheduledExecutorService mFakeScheduler = new FakeScheduledExecutorService();
-    private final FakeNode mFakeNode = (FakeNode) mFakeExtensions.createNode();
+    private final Node mNode = mXrExtensions.createNode();
+    private final FakeNode mFakeNode = new FakeNode(mNode);
 
     private final Entity mEntity =
-            new AndroidXrEntity(mFakeNode, mFakeExtensions, new EntityManager(), mFakeScheduler) {};
+            new AndroidXrEntity(mNode, mXrExtensions, new EntityManager(), mFakeScheduler) {};
 
     @Test
     public void onAttach_enablesPointerCapture() {
@@ -86,10 +94,15 @@ public class PointerCaptureComponentImplTest {
                 new PointerCaptureComponentImpl(directExecutor(), mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        FakeInputEvent fakeInput = new FakeInputEvent();
-        fakeInput.setDispatchFlags(InputEvent.DISPATCH_FLAG_CAPTURED_POINTER);
-        fakeInput.setOrigin(new Vec3(0, 0, 0));
-        fakeInput.setDirection(new Vec3(1, 1, 1));
+        InputEvent fakeInput =
+                ShadowInputEvent.create(
+                        SOURCE_UNKNOWN,
+                        POINTER_TYPE_DEFAULT,
+                        /* timestamp= */ 0,
+                        /* origin= */ new Vec3(0, 0, 0),
+                        /* direction= */ new Vec3(1, 1, 1),
+                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        ACTION_MOVE);
         mFakeNode.sendInputEvent(fakeInput);
         mFakeScheduler.runAll();
 
@@ -105,16 +118,25 @@ public class PointerCaptureComponentImplTest {
                 new PointerCaptureComponentImpl(directExecutor(), mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        FakeInputEvent fakeCapturedInput = new FakeInputEvent();
-        fakeCapturedInput.setDispatchFlags(InputEvent.DISPATCH_FLAG_CAPTURED_POINTER);
-        fakeCapturedInput.setTimestamp(100);
-        fakeCapturedInput.setOrigin(new Vec3(0, 0, 0));
-        fakeCapturedInput.setDirection(new Vec3(1, 1, 1));
+        InputEvent fakeCapturedInput =
+                ShadowInputEvent.create(
+                        SOURCE_UNKNOWN,
+                        POINTER_TYPE_DEFAULT,
+                        /* timestamp= */ 100,
+                        /* origin= */ new Vec3(0, 0, 0),
+                        /* direction= */ new Vec3(1, 1, 1),
+                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        ACTION_MOVE);
 
-        FakeInputEvent fakeInput = new FakeInputEvent();
-        fakeInput.setTimestamp(200);
-        fakeInput.setOrigin(new Vec3(0, 0, 0));
-        fakeInput.setDirection(new Vec3(1, 1, 1));
+        InputEvent fakeInput =
+                ShadowInputEvent.create(
+                        SOURCE_UNKNOWN,
+                        POINTER_TYPE_DEFAULT,
+                        /* timestamp= */ 200,
+                        /* origin= */ new Vec3(0, 0, 0),
+                        /* direction= */ new Vec3(1, 1, 1),
+                        DISPATCH_FLAG_NONE,
+                        ACTION_MOVE);
 
         mFakeNode.sendInputEvent(fakeCapturedInput);
         mFakeNode.sendInputEvent(fakeInput);
@@ -133,11 +155,15 @@ public class PointerCaptureComponentImplTest {
                         propagationExecutor, mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        FakeInputEvent fakeCapturedInput = new FakeInputEvent();
-        fakeCapturedInput.setDispatchFlags(InputEvent.DISPATCH_FLAG_CAPTURED_POINTER);
-        fakeCapturedInput.setTimestamp(100);
-        fakeCapturedInput.setOrigin(new Vec3(0, 0, 0));
-        fakeCapturedInput.setDirection(new Vec3(1, 1, 1));
+        InputEvent fakeCapturedInput =
+                ShadowInputEvent.create(
+                        SOURCE_UNKNOWN,
+                        POINTER_TYPE_DEFAULT,
+                        /* timestamp= */ 100,
+                        /* origin= */ new Vec3(0, 0, 0),
+                        /* direction= */ new Vec3(1, 1, 1),
+                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        ACTION_MOVE);
 
         mFakeNode.sendInputEvent(fakeCapturedInput);
 

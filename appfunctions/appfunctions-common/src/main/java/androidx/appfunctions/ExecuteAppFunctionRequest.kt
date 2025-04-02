@@ -69,6 +69,20 @@ constructor(
             "functionIdentifier=$functionIdentifier, functionParameters=$functionParameters)"
     }
 
+    @RestrictTo(LIBRARY_GROUP)
+    public fun copy(
+        targetPackageName: String = this.targetPackageName,
+        functionIdentifier: String = this.functionIdentifier,
+        functionParameters: AppFunctionData = this.functionParameters,
+        useJetpackSchema: Boolean = this.useJetpackSchema
+    ): ExecuteAppFunctionRequest =
+        ExecuteAppFunctionRequest(
+            targetPackageName,
+            functionIdentifier,
+            functionParameters,
+            useJetpackSchema
+        )
+
     public companion object {
         internal const val EXTRA_PARAMETERS = "androidXAppfunctionsExtraParameters"
         internal const val EXTRA_USE_JETPACK_SCHEMA = "androidXAppfunctionsExtraUseJetpackSchema"

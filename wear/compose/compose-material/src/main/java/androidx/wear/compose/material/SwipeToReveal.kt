@@ -440,7 +440,7 @@ private fun SwipeToRevealComponent(
                     }
                 else -> null
             },
-        gestureInclusion = bidirectionalGestureInclusion(),
+        gestureInclusion = bidirectionalGestureInclusion,
         content = content
     )
 }

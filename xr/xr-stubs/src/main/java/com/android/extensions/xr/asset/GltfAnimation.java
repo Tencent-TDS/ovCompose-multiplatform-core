@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.asset;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Animation configuration to be played on a glTF model.
@@ -24,7 +23,6 @@ import androidx.annotation.RestrictTo;
  * @deprecated SceneCore doesn't need this anymore as it does the same with Split Engine.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Deprecated
 public interface GltfAnimation {
     /**
@@ -33,7 +31,6 @@ public interface GltfAnimation {
      * @deprecated No longer needed by SceneCore.
      */
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     @Deprecated
     enum State {
         /**

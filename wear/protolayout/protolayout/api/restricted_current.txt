@@ -1601,6 +1601,7 @@ package androidx.wear.protolayout.modifiers {
   }
 
   public final class SemanticsKt {
+    method public static androidx.wear.protolayout.modifiers.LayoutModifier clearSemantics(androidx.wear.protolayout.modifiers.LayoutModifier);
     method public static androidx.wear.protolayout.modifiers.LayoutModifier contentDescription(androidx.wear.protolayout.modifiers.LayoutModifier, String staticValue, optional @androidx.wear.protolayout.expression.RequiresSchemaVersion(major=1, minor=200) androidx.wear.protolayout.expression.DynamicBuilders.DynamicString? dynamicValue);
     method public static androidx.wear.protolayout.modifiers.LayoutModifier semanticsRole(androidx.wear.protolayout.modifiers.LayoutModifier, int semanticsRole);
   }

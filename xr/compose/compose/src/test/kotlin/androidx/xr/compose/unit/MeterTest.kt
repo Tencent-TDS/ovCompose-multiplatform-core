@@ -33,12 +33,12 @@ class MeterTest {
 
     @Test
     fun meter_toDp() {
-        assertThat(1.meters.toDp()).isEqualTo(1151.856f.dp)
+        assertThat(1.meters.toDp()).isEqualTo(1.dp)
     }
 
     @Test
     fun roundToPx_roundsToNearestPixel() {
-        assertThat(1.meters.roundToPx(UNIT_DENSITY)).isEqualTo(1152)
+        assertThat(1.meters.roundToPx(UNIT_DENSITY)).isEqualTo(1)
     }
 
     @Test
@@ -46,12 +46,12 @@ class MeterTest {
         val DOUBLE_DENSITY = Density(density = 2.0f, fontScale = 2.0f)
 
         // Twice the density, twice the pixels.
-        assertThat(1.meters.roundToPx(DOUBLE_DENSITY)).isEqualTo(2304)
+        assertThat(1.meters.roundToPx(DOUBLE_DENSITY)).isEqualTo(2)
     }
 
     @Test
     fun dp_toMeter() {
-        assertThat(10.dp.toMeter()).isEqualTo(Meter(0.008681641f))
+        assertThat(10.dp.toMeter()).isEqualTo(Meter(10f))
         assertThat(Dp.Infinity.toMeter()).isEqualTo(Meter.Infinity)
         assertThat(Dp.Unspecified.toMeter()).isEqualTo(Meter.NaN)
 
@@ -80,17 +80,17 @@ class MeterTest {
 
     @Test
     fun meter_toPx() {
-        assertThat(5.meters.toPx(UNIT_DENSITY)).isEqualTo(5759.28f)
+        assertThat(5.meters.toPx(UNIT_DENSITY)).isEqualTo(5f)
     }
 
     @Test
     fun meter_roundToPx() {
-        assertThat(5.meters.roundToPx(UNIT_DENSITY)).isEqualTo(5759)
+        assertThat(5.meters.roundToPx(UNIT_DENSITY)).isEqualTo(5)
     }
 
     @Test
     fun meter_todp() {
-        assertThat(5.meters.toDp()).isEqualTo(5759.28f.dp)
+        assertThat(5.meters.toDp()).isEqualTo(5.dp)
     }
 
     @Test

@@ -140,14 +140,14 @@ class SinglePaneNavDisplayTest {
 
     @Test
     fun testStateOfInactiveContentIsRestoredWhenWeGoBackToIt() {
-        var increment = 0
-        var numberOnScreen1 = -1
+        lateinit var numberOnScreen1: MutableState<Int>
         lateinit var backStack: MutableList<Any>
         composeTestRule.setContent {
             backStack = remember { mutableStateListOf(first) }
             SinglePaneNavDisplay(backStack = backStack) {
                 when (it) {
-                    first -> NavEntry(first) { numberOnScreen1 = rememberSaveable { increment++ } }
+                    first ->
+                        NavEntry(first) { numberOnScreen1 = rememberSaveable { mutableStateOf(0) } }
                     second -> NavEntry(second) {}
                     else -> error("Invalid key passed")
                 }
@@ -155,16 +155,18 @@ class SinglePaneNavDisplayTest {
         }
 
         composeTestRule.runOnIdle {
-            assertWithMessage("Initial number should be 0").that(numberOnScreen1).isEqualTo(0)
-            numberOnScreen1 = -1
-            assertWithMessage("The number should be -1").that(numberOnScreen1).isEqualTo(-1)
+            assertWithMessage("Initial number should be 0").that(numberOnScreen1.value).isEqualTo(0)
+            numberOnScreen1.value++
+            assertWithMessage("The number should be 1").that(numberOnScreen1.value).isEqualTo(1)
             backStack.add(second)
         }
 
         composeTestRule.runOnIdle { backStack.removeAt(backStack.size - 1) }
 
         composeTestRule.runOnIdle {
-            assertWithMessage("The number should be restored").that(numberOnScreen1).isEqualTo(0)
+            assertWithMessage("The number should be restored")
+                .that(numberOnScreen1.value)
+                .isEqualTo(1)
         }
     }
 

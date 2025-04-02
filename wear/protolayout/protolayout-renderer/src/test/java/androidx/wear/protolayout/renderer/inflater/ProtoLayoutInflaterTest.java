@@ -760,6 +760,75 @@ public class ProtoLayoutInflaterTest {
     }
 
     @Test
+    public void inflate_expandableBox_withExpandChildWithWrapChild_appliesMutationCorrectly() {
+        // Box - Box - Text
+        Text.Builder text1 = Text.newBuilder().setText(StringProp.newBuilder().setValue("1"));
+        LayoutElement.Builder children1 =
+                LayoutElement.newBuilder()
+                        .setBox(
+                                Box.newBuilder()
+                                        .setWidth(expand())
+                                        .setHeight(expand())
+                                        .addContents(
+                                                LayoutElement.newBuilder().setText(text1).build())
+                                        .build());
+        Modifiers.Builder modifier1 =
+                Modifiers.newBuilder().setClickable(Clickable.newBuilder().setId("1").build());
+        LayoutElement layout1 =
+                LayoutElement.newBuilder()
+                        .setBox(
+                                Box.newBuilder()
+                                        .setModifiers(modifier1)
+                                        .setWidth(expand())
+                                        .setHeight(expand())
+                                        .addContents(children1))
+                        .build();
+
+        // Box (has diff for self) - Box - Text (has diff for self)
+        Text.Builder text2 = Text.newBuilder().setText(StringProp.newBuilder().setValue("2"));
+        LayoutElement.Builder children2 =
+                LayoutElement.newBuilder()
+                        .setBox(
+                                Box.newBuilder()
+                                        .setWidth(expand())
+                                        .setHeight(expand())
+                                        .addContents(
+                                                LayoutElement.newBuilder().setText(text2).build())
+                                        .build());
+        Modifiers.Builder modifier2 =
+                Modifiers.newBuilder().setClickable(Clickable.newBuilder().setId("2").build());
+        LayoutElement layout2 =
+                LayoutElement.newBuilder()
+                        .setBox(
+                                Box.newBuilder()
+                                        .setModifiers(modifier2)
+                                        .setWidth(expand())
+                                        .setHeight(expand())
+                                        .addContents(children2))
+                        .build();
+
+        // Add initial layout.
+        Renderer renderer = renderer(fingerprintedLayout(layout1));
+        ViewGroup inflatedViewParent = renderer.inflate();
+
+        // Check that there's a single element in the layout
+        assertThat(inflatedViewParent.getChildCount()).isEqualTo(1);
+
+        // Compute the mutation.
+        ViewGroupMutation mutation =
+                renderer.computeMutation(
+                        getRenderedMetadata(inflatedViewParent), fingerprintedLayout(layout2));
+        assertThat(mutation).isNotNull();
+        assertThat(mutation.isNoOp()).isFalse();
+
+        // Apply the mutation.
+        boolean mutationResult = renderer.applyMutation(inflatedViewParent, mutation);
+
+        // Make sure that mutation was successful.
+        assertThat(mutationResult).isTrue();
+    }
+
+    @Test
     public void inflate_spacerWithModifiers() {
         int width = 10;
         int height = 20;

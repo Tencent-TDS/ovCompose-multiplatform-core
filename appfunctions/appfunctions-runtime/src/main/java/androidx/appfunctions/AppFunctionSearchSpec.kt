@@ -62,23 +62,16 @@ constructor(
                     add("packageName:(${getOrQueryExpression(packageNames)})")
                 }
 
-                // TODO - Decide what to do with empty strings.
-                // Schema fields need to be searched against top level fields as well for legacy
-                // indexer.
-                if (!schemaName.isNullOrEmpty()) {
-                    add("(schema.schemaName:\"${schemaName}\" OR schemaName:\"${schemaName}\")")
+                if (schemaName != null) {
+                    add("schemaName:\"${schemaName}\"")
                 }
 
-                if (!schemaCategory.isNullOrEmpty()) {
-                    add(
-                        "(schema.schemaCategory:\"${schemaCategory}\" OR schemaCategory:\"${schemaCategory}\")"
-                    )
+                if (schemaCategory != null) {
+                    add("schemaCategory:\"${schemaCategory}\"")
                 }
 
                 if (minSchemaVersion > 0) {
-                    add(
-                        "(schema.schemaVersion>=${minSchemaVersion} OR schemaVersion>=${minSchemaVersion})"
-                    )
+                    add("schemaVersion>=${minSchemaVersion}")
                 }
             }
             .joinToString(" ")

@@ -182,23 +182,7 @@ public class Matrix4(dataToCopy: FloatArray) {
     }
 
     /** Standard hash code calculation using constructor values */
-    public override fun hashCode(): Int =
-        31 * data[0].hashCode() +
-            data[1].hashCode() +
-            data[2].hashCode() +
-            data[3].hashCode() +
-            data[4].hashCode() +
-            data[5].hashCode() +
-            data[6].hashCode() +
-            data[7].hashCode() +
-            data[8].hashCode() +
-            data[9].hashCode() +
-            data[10].hashCode() +
-            data[11].hashCode() +
-            data[12].hashCode() +
-            data[13].hashCode() +
-            data[14].hashCode() +
-            data[15].hashCode()
+    public override fun hashCode(): Int = data.contentHashCode()
 
     /** Standard toString() implementation */
     public override fun toString(): String =

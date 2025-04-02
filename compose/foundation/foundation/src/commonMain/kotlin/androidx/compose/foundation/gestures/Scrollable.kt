@@ -21,7 +21,6 @@ import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.splineBasedDecay
-import androidx.compose.foundation.ComposeFoundationFlags.NewNestedFlingPropagationEnabled
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.FocusedBoundsObserverNode
 import androidx.compose.foundation.LocalOverscrollFactory
@@ -789,11 +788,7 @@ internal class ScrollingLogic(
                             // node above will be able to pick up the left over velocity and
                             // continue
                             // the fling.
-                            if (
-                                NewNestedFlingPropagationEnabled &&
-                                    pixels.absoluteValue != 0.0f &&
-                                    shouldCancelFling(pixels)
-                            ) {
+                            if (pixels.absoluteValue != 0.0f && shouldCancelFling(pixels)) {
                                 throw FlingCancellationException()
                             }
 
@@ -894,12 +889,8 @@ private class ScrollableNestedScrollConnection(
     override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
         return if (enabled) {
             val velocityLeft =
-                if (NewNestedFlingPropagationEnabled) {
-                    if (scrollingLogic.isFlinging) {
-                        Velocity.Zero
-                    } else {
-                        scrollingLogic.doFlingAnimation(available)
-                    }
+                if (scrollingLogic.isFlinging) {
+                    Velocity.Zero
                 } else {
                     scrollingLogic.doFlingAnimation(available)
                 }

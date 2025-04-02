@@ -123,6 +123,7 @@ sealed class Metric {
      */
     @ConsistentCopyVisibility // Mirror copy()'s visibility with that of the constructor
     @ExperimentalMetricApi
+    @Suppress("DataClassDefinition")
     data class Measurement
     internal constructor(
         /**

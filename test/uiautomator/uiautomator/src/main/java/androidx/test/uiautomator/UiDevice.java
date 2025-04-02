@@ -63,11 +63,10 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -1412,12 +1411,16 @@ public class UiDevice implements Searchable {
         return uiAutomation.getWindows();
     }
 
-    /** Returns a list containing the root {@link AccessibilityNodeInfo}s for each active window */
+    /**
+     * Returns a list containing the root {@link AccessibilityNodeInfo}s for each active window.
+     * For convenience the returned list is sorted in descending window order, ensuring the root of
+     * the topmost visible window is reported first.
+     */
     @NonNull
     public List<AccessibilityNodeInfo> getWindowRoots() {
         waitForIdle();
 
-        Set<AccessibilityNodeInfo> roots = new HashSet<>();
+        LinkedHashSet<AccessibilityNodeInfo> roots = new LinkedHashSet<>();
         UiAutomation uiAutomation = getUiAutomation();
 
         // Ensure the active window root is included.

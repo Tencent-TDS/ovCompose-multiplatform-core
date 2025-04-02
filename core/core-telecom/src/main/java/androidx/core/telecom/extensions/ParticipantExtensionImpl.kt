@@ -55,13 +55,13 @@ internal typealias ActionConnector =
  * - [addKickParticipantSupport] = Support for allowing a user on a remote surface to kick a
  *   participant.
  *
- * @param initialParticipants The initial set of Participants that are associated with this call.
+ * @param initialParticipants The initial list of Participants that are associated with this call.
  * @param initialActiveParticipant The initial active Participant that is associated with this call.
  */
 @OptIn(ExperimentalAppActions::class)
 @RequiresApi(VERSION_CODES.O)
 internal class ParticipantExtensionImpl(
-    initialParticipants: Set<Participant>,
+    initialParticipants: List<Participant>,
     initialActiveParticipant: Participant?
 ) : ParticipantExtension {
     companion object {
@@ -94,7 +94,7 @@ internal class ParticipantExtensionImpl(
     }
 
     /** StateFlow of the current set of Participants associated with the call */
-    internal val participants: MutableStateFlow<Set<Participant>> =
+    internal val participants: MutableStateFlow<List<Participant>> =
         MutableStateFlow(initialParticipants)
 
     /** StateFlow containing the active participant of the call if it exists */
@@ -104,7 +104,7 @@ internal class ParticipantExtensionImpl(
     /** Maps an action to its [ActionConnector], which will be called during capability exchange */
     private val actionRemoteConnector: HashMap<Int, ActionConnector> = HashMap()
 
-    override suspend fun updateParticipants(newParticipants: Set<Participant>) {
+    override suspend fun updateParticipants(newParticipants: List<Participant>) {
         participants.emit(newParticipants)
     }
 

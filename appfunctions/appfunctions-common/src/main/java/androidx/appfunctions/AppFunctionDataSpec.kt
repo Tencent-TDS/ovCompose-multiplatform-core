@@ -16,6 +16,7 @@
 
 package androidx.appfunctions
 
+import android.app.PendingIntent
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
@@ -28,6 +29,7 @@ import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_FLOAT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_INT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_LONG
+import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_PENDING_INTENT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_STRING
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 
@@ -220,6 +222,9 @@ internal abstract class AppFunctionDataSpec {
             }
             Byte::class.java -> {
                 this.type == TYPE_BYTES
+            }
+            PendingIntent::class.java -> {
+                this.type == TYPE_PENDING_INTENT
             }
             else -> {
                 false

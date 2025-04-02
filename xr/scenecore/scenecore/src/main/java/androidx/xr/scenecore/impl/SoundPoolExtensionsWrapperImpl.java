@@ -18,10 +18,11 @@ package androidx.xr.scenecore.impl;
 
 import android.media.SoundPool;
 
-import androidx.xr.extensions.media.SoundPoolExtensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PointSourceAttributes;
 import androidx.xr.scenecore.JxrPlatformAdapter.SoundFieldAttributes;
 import androidx.xr.scenecore.JxrPlatformAdapter.SoundPoolExtensionsWrapper;
+
+import com.android.extensions.xr.media.SoundPoolExtensions;
 
 /** Implementation of {@link SoundPoolExtensionsWrapper}. */
 final class SoundPoolExtensionsWrapperImpl implements SoundPoolExtensionsWrapper {
@@ -41,7 +42,7 @@ final class SoundPoolExtensionsWrapperImpl implements SoundPoolExtensionsWrapper
             int priority,
             int loop,
             float rate) {
-        androidx.xr.extensions.media.PointSourceAttributes extAttributes =
+        com.android.extensions.xr.media.PointSourceAttributes extAttributes =
                 MediaUtils.convertPointSourceAttributesToExtensions(attributes);
         return mExtensions.playAsPointSource(
                 soundPool, soundId, extAttributes, volume, priority, loop, rate);
@@ -56,7 +57,7 @@ final class SoundPoolExtensionsWrapperImpl implements SoundPoolExtensionsWrapper
             int priority,
             int loop,
             float rate) {
-        androidx.xr.extensions.media.SoundFieldAttributes extAttributes =
+        com.android.extensions.xr.media.SoundFieldAttributes extAttributes =
                 MediaUtils.convertSoundFieldAttributesToExtensions(attributes);
 
         return mExtensions.playAsSoundField(

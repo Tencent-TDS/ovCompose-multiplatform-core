@@ -110,10 +110,10 @@ fun LayoutModifier.clipBottomRight(
 internal class BaseBackgroundElement(
     val color: LayoutColor? = null,
     val brush: Brush? = null,
-) : LayoutModifier.Element {
+) : BaseProtoLayoutModifiersElement<Background.Builder> {
     @SuppressLint("ProtoLayoutMinSchema") // Relevant callers have correct Requires annotation.
-    fun mergeTo(initial: Background.Builder?): Background.Builder =
-        (initial ?: Background.Builder()).apply {
+    override fun mergeTo(initialBuilder: Background.Builder?): Background.Builder =
+        (initialBuilder ?: Background.Builder()).apply {
             color?.let { setColor(it.prop) }
             brush?.let { setBrush(it) }
         }
@@ -125,10 +125,10 @@ internal class BaseCornerElement(
     @RequiresSchemaVersion(major = 1, minor = 400) val topRightRadius: CornerRadius? = null,
     @RequiresSchemaVersion(major = 1, minor = 400) val bottomLeftRadius: CornerRadius? = null,
     @RequiresSchemaVersion(major = 1, minor = 400) val bottomRightRadius: CornerRadius? = null
-) : LayoutModifier.Element {
+) : BaseProtoLayoutModifiersElement<Corner.Builder> {
     @SuppressLint("ProtoLayoutMinSchema")
-    fun mergeTo(initial: Corner.Builder?): Corner.Builder =
-        (initial ?: Corner.Builder()).apply {
+    override fun mergeTo(initialBuilder: Corner.Builder?): Corner.Builder =
+        (initialBuilder ?: Corner.Builder()).apply {
             cornerRadiusDp?.let { setRadius(cornerRadiusDp.dp) }
             topLeftRadius?.let { setTopLeftRadius(cornerRadius(it.x.value, it.y.value)) }
             topRightRadius?.let { setTopRightRadius(cornerRadius(it.x.value, it.y.value)) }

@@ -230,7 +230,7 @@ public abstract class PasswordDialog extends DialogFragment {
         EditText textField = passwordDialog.findViewById(R.id.password);
         textField.selectAll();
 
-        Accessibility.get().announce(getActivity(), passwordDialog.getCurrentFocus(),
+        Accessibility.get().announce(getActivity(), textField,
                 R.string.desc_password_incorrect_message);
 
         TextInputLayout passwordLayout = passwordDialog.findViewById(

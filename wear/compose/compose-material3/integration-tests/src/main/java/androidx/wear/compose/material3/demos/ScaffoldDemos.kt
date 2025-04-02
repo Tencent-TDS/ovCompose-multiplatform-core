@@ -92,14 +92,14 @@ fun HorizontalPagerScaffoldFadeOutIndicatorDemo(navigateBack: () -> Unit) {
 
         HorizontalPagerScaffold(
             pagerState = pagerState,
-            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimation
+            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimationSpec
         ) {
             HorizontalPager(
                 state = pagerState,
                 flingBehavior =
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     ScreenScaffold {
                         Column(
                             modifier = Modifier.fillMaxSize(),
@@ -128,14 +128,14 @@ fun VerticalPagerScaffoldFadeOutIndicatorDemo() {
 
         VerticalPagerScaffold(
             pagerState = pagerState,
-            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimation
+            pageIndicatorAnimationSpec = PagerScaffoldDefaults.FadeOutAnimationSpec
         ) {
             VerticalPager(
                 state = pagerState,
                 flingBehavior =
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     ScreenScaffold {
                         Column(
                             modifier = Modifier.fillMaxSize(),

@@ -32,7 +32,6 @@ import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
-import androidx.xr.extensions.node.Node;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPanelEntity;
@@ -49,11 +48,14 @@ import androidx.xr.scenecore.JxrPlatformAdapter.PerceptionSpaceActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
 import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
@@ -73,15 +75,15 @@ public class EntityManagerTest {
 
     private static final int VGA_WIDTH = 640;
     private static final int VGA_HEIGHT = 480;
-    private final FakeXrExtensions mFakeExtensions = new FakeXrExtensions();
+    private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final FakeImpressApi mFakeImpressApi = new FakeImpressApi();
     private final FakeScheduledExecutorService mFakeExecutor = new FakeScheduledExecutorService();
     private final PerceptionLibrary mPerceptionLibrary = mock(PerceptionLibrary.class);
     private final Session mSession = mock(Session.class);
     private final AndroidXrEntity mActivitySpaceRoot = mock(AndroidXrEntity.class);
     private final FakeScheduledExecutorService mExecutor = new FakeScheduledExecutorService();
-    private final Node mPanelEntityNode = mFakeExtensions.createNode();
-    private final Node mAnchorEntityNode = mFakeExtensions.createNode();
+    private final Node mPanelEntityNode = mXrExtensions.createNode();
+    private final Node mAnchorEntityNode = mXrExtensions.createNode();
     private final EntityManager mEntityManager = new EntityManager();
     private final SplitEngineSubspaceManager mSplitEngineSubspaceManager =
             Mockito.mock(SplitEngineSubspaceManager.class);
@@ -106,20 +108,20 @@ public class EntityManagerTest {
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mFakeImpressApi,
                         mEntityManager,
                         mPerceptionLibrary,
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
                         /* useSplitEngine= */ false);
-        Node taskNode = mFakeExtensions.createNode();
+        Node taskNode = mXrExtensions.createNode();
         mActivitySpace =
                 new ActivitySpaceImpl(
                         taskNode,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mEntityManager,
-                        () -> mFakeExtensions.fakeSpatialState,
+                        () -> mXrExtensions.getSpatialState(mActivity),
                         mExecutor);
         long currentTimeMillis = 1000000000L;
         SystemClock.setCurrentTimeMillis(currentTimeMillis);
@@ -161,7 +163,7 @@ public class EntityManagerTest {
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
         AnchorEntity anchorEntity = createAnchorEntity();
-        Node testNode = mFakeExtensions.createNode();
+        Node testNode = mXrExtensions.createNode();
 
         assertThat(mEntityManager.getEntityForNode(mGltfEntityNode)).isEqualTo(gltfEntity);
         assertThat(mEntityManager.getEntityForNode(mPanelEntityNode)).isEqualTo(panelEntity);
@@ -297,7 +299,7 @@ public class EntityManagerTest {
                 new GltfEntityImpl(
                         (GltfModelResourceImpl) model,
                         mActivitySpaceRoot,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mEntityManager,
                         mExecutor);
         mGltfEntityNode = gltfEntity.getNode();
@@ -312,13 +314,13 @@ public class EntityManagerTest {
         view.setLayoutParams(new LayoutParams(VGA_WIDTH, VGA_HEIGHT));
         PanelEntityImpl panelEntity =
                 new PanelEntityImpl(
+                        displayContext,
                         mPanelEntityNode,
                         view,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mEntityManager,
                         new PixelDimensions(VGA_WIDTH, VGA_HEIGHT),
                         "panel",
-                        displayContext,
                         mExecutor);
         mEntityManager.setEntityForNode(mPanelEntityNode, panelEntity);
         return panelEntity;
@@ -343,7 +345,7 @@ public class EntityManagerTest {
                         null,
                         mActivitySpace,
                         mActivitySpaceRoot,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mEntityManager,
                         mExecutor,
                         mPerceptionLibrary);

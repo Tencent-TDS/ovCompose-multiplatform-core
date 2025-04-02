@@ -35,26 +35,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.xr.compose.platform.LocalCoreEntity
+import androidx.xr.compose.platform.LocalOpaqueEntity
 import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.coreMainPanelEntity
-import androidx.xr.compose.platform.disposableValueOf
-import androidx.xr.compose.platform.getValue
-import androidx.xr.compose.subspace.layout.CorePanelEntity
 import androidx.xr.compose.subspace.layout.SpatialRoundedCornerShape
 import androidx.xr.compose.subspace.layout.SpatialShape
 import androidx.xr.compose.subspace.rememberComposeView
+import androidx.xr.compose.subspace.rememberCorePanelEntity
 import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.Meter
 import androidx.xr.compose.unit.Meter.Companion.meters
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.PanelEntity
+import androidx.xr.scenecore.PixelDimensions
 
 internal object ElevatedPanelDefaults {
     /** Default shape for a Spatial Panel. */
@@ -117,29 +114,19 @@ internal fun ElevatedPanel(
 ) {
     val session = checkNotNull(LocalSession.current) { "session must be initialized" }
     val parentEntity = LocalCoreEntity.current ?: session.coreMainPanelEntity
-    val density = LocalDensity.current
     val view = rememberComposeView()
-    val meterSize = contentSize.toMeterSize(density)
-    val panelEntity by remember {
-        disposableValueOf(
-            CorePanelEntity(
-                session,
-                PanelEntity.create(
-                    session = session,
-                    view = view,
-                    surfaceDimensionsPx =
-                        contentSize.run { Dimensions(width.toFloat(), height.toFloat(), 0f) },
-                    dimensions = meterSize.toCoreMeterDimensions(),
-                    name = "ElevatedPanel:${view.id}",
-                ),
+    val panelEntity =
+        rememberCorePanelEntity(shape = shape) {
+            PanelEntity.create(
+                session = session,
+                view = view,
+                pixelDimensions = contentSize.run { PixelDimensions(width, height) },
+                name = "ElevatedPanel:${view.id}",
             )
-        ) {
-            it.dispose()
         }
-    }
 
     view.setContent {
-        CompositionLocalProvider(LocalCoreEntity provides panelEntity) {
+        CompositionLocalProvider(LocalOpaqueEntity provides panelEntity) {
             Box(Modifier.alpha(if (pose == null) 0.0f else 1.0f)) { content() }
         }
     }
@@ -155,12 +142,6 @@ internal fun ElevatedPanel(
         val height = contentSize.height
 
         panelEntity.size = IntVolumeSize(width = width, height = height, depth = 0)
-        if (shape is SpatialRoundedCornerShape) {
-            panelEntity.setCornerRadius(
-                shape.computeCornerRadius(width.toFloat(), height.toFloat(), density),
-                density,
-            )
-        }
     }
 
     LaunchedEffect(parentEntity) { panelEntity.entity.setParent(parentEntity.entity) }
@@ -183,22 +164,6 @@ internal data class MeterPosition(
 
     fun toVector3() = Vector3(x = x.toM(), y = y.toM(), z = z.toM())
 }
-
-/** Represents a 3D size using [Meter] units. */
-internal data class MeterSize(
-    public val width: Meter = 0.meters,
-    public val height: Meter = 0.meters,
-    public val depth: Meter = 0.meters,
-)
-
-private fun IntSize.toMeterSize(density: Density) =
-    MeterSize(
-        Meter.fromPixel(width.toFloat(), density),
-        Meter.fromPixel(height.toFloat(), density),
-        0.meters,
-    )
-
-private fun MeterSize.toCoreMeterDimensions() = Dimensions(width.toM(), height.toM(), depth.toM())
 
 internal val View.size
     get() = IntSize(width, height)

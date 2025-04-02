@@ -19,6 +19,7 @@ package androidx.xr.compose.testing
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.View
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -26,18 +27,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.xr.compose.platform.LocalHasXrSpatialFeature
 import androidx.xr.compose.platform.LocalSession
+import androidx.xr.runtime.math.Pose
 import androidx.xr.scenecore.JxrPlatformAdapter
 import androidx.xr.scenecore.Session
-import androidx.xr.scenecore.SpatialEnvironment
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
 /**
- * A Test environment composable wrapper to support testing elevated components locally
+ * A Test environment composable wrapper to support testing elevated components locally.
  *
- * TODO(b/370856223) Update documentation
+ * @param isXrEnabled Whether to enable XR.
+ * @param isFullSpace Whether to enable full space mode.
+ * @param runtime The [JxrPlatformAdapter] to use for the [Session].
+ * @param content The content block containing the compose content to be tested.
  */
 @Composable
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -103,10 +107,16 @@ private fun createNonXrSession(activity: Activity): Session {
                 {
                     throw UnsupportedOperationException()
                 }
-            on { createPanelEntity(any(), any(), any(), any(), any(), any(), any()) } doAnswer
-                {
-                    throw UnsupportedOperationException()
-                }
+            on {
+                createPanelEntity(
+                    any<Context>(),
+                    any<Pose>(),
+                    any<View>(),
+                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<String>(),
+                    any<JxrPlatformAdapter.Entity>(),
+                )
+            } doAnswer { throw UnsupportedOperationException() }
             on { createLoggingEntity(any()) } doAnswer { throw UnsupportedOperationException() }
         },
     )

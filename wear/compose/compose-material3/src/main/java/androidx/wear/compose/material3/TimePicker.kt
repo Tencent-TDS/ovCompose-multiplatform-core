@@ -18,12 +18,7 @@ package androidx.wear.compose.material3
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -118,19 +113,18 @@ public fun TimePicker(
         LocalTouchExplorationStateProvider.current.touchExplorationState()
 
     /** The current selected [Picker] index. */
-    var selectedIndex by
-        remember(touchExplorationServicesEnabled) {
-            // When the time picker loads, none of the individual pickers are selected in talkback
-            // mode,
-            // otherwise hours picker should be focused.
-            val initiallySelectedIndex =
-                if (touchExplorationServicesEnabled) {
-                    null
-                } else {
-                    FocusableElements.Hours.index
-                }
-            mutableStateOf(initiallySelectedIndex)
-        }
+    var selectedIndex: Int? by remember { mutableStateOf(null) }
+
+    LaunchedEffect(touchExplorationServicesEnabled) {
+        // When the time picker loads, none of the individual pickers are selected in talkback mode,
+        // otherwise hours picker should be focused.
+        selectedIndex =
+            if (touchExplorationServicesEnabled) {
+                null
+            } else {
+                FocusableElements.Hours.index
+            }
+    }
 
     val focusRequesterConfirmButton = remember { FocusRequester() }
 
@@ -207,43 +201,27 @@ public fun TimePicker(
                         }
                     } ?: if (touchExplorationServicesEnabled) instructionHeadingString else ""
 
-                val headingAnimationSpec: FiniteAnimationSpec<Float> =
-                    MaterialTheme.motionScheme.defaultEffectsSpec()
-
                 // Allow more room for the initial instruction heading under TalkBack
                 val maxTextLines = if (selectedIndex == null) 2 else 1
                 val textPaddingPercentage = 30f
                 val textModifier = if (selectedIndex == null) Modifier else Modifier.height(24.dp)
 
-                AnimatedContent(
-                    targetState = heading,
-                    transitionSpec = {
-                        ContentTransform(
-                            targetContentEnter =
-                                fadeIn(animationSpec = headingAnimationSpec.delayMillis(200)),
-                            initialContentExit = fadeOut(animationSpec = headingAnimationSpec),
-                            sizeTransform = null
-                        )
-                    }
-                ) { targetText ->
-                    Text(
-                        text = targetText,
-                        color = colors.pickerLabelColor,
-                        style = styles.labelTextStyle,
-                        maxLines = maxTextLines,
-                        modifier =
-                            textModifier
-                                .padding(
-                                    horizontal =
-                                        PaddingDefaults.horizontalContentPadding(
-                                            textPaddingPercentage
-                                        )
-                                )
-                                .fillMaxWidth()
-                                .align(Alignment.CenterHorizontally),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                FadeLabel(
+                    text = heading,
+                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                    modifier =
+                        textModifier
+                            .padding(
+                                horizontal =
+                                    PaddingDefaults.horizontalContentPadding(textPaddingPercentage)
+                            )
+                            .fillMaxWidth()
+                            .align(Alignment.CenterHorizontally),
+                    color = colors.pickerLabelColor,
+                    style = styles.labelTextStyle,
+                    maxLines = maxTextLines,
+                    textAlign = TextAlign.Center
+                )
                 Spacer(Modifier.height(styles.sectionVerticalPadding))
                 Row(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -591,7 +569,7 @@ private fun getTimePickerStyles(
                 TimePickerTokens.ContentTypography
             }
             .value
-            .copy(textAlign = TextAlign.Center)
+            .copy(textAlign = TextAlign.Center, fontFeatureSettings = "tnum")
 
     val optionHeight =
         if (isLargeScreen || timePickerType == TimePickerType.HoursMinutes24H) {

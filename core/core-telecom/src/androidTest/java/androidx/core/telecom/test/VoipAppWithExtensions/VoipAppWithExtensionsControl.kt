@@ -53,7 +53,8 @@ open class VoipAppWithExtensionsControl : Service() {
     var mCallsManager: CallsManager? = null
     private var mScope: CoroutineScope? = null
     private var mCallback: ITestAppControlCallback? = null
-    private var participantsFlow: MutableStateFlow<Set<Participant>> = MutableStateFlow(emptySet())
+    private var participantsFlow: MutableStateFlow<List<Participant>> =
+        MutableStateFlow(emptyList())
     private var activeParticipantFlow: MutableStateFlow<Participant?> = MutableStateFlow(null)
     private var raisedHandsFlow: MutableStateFlow<List<Participant>> = MutableStateFlow(emptyList())
     // TODO:: b/364316364 should be Pair(callId:String, value: Boolean)
@@ -155,7 +156,7 @@ open class VoipAppWithExtensionsControl : Service() {
             }
 
             override fun updateParticipants(setOfParticipants: List<ParticipantParcelable>) {
-                participantsFlow.value = setOfParticipants.map { it.toParticipant() }.toSet()
+                participantsFlow.value = setOfParticipants.map { it.toParticipant() }
             }
 
             override fun updateActiveParticipant(participant: ParticipantParcelable?) {
@@ -189,7 +190,7 @@ open class VoipAppWithExtensionsControl : Service() {
         mScope?.cancel(CancellationException("Control interface is unbinding"))
         mScope = null
         mCallback = null
-        participantsFlow.value = emptySet()
+        participantsFlow.value = emptyList()
         activeParticipantFlow.value = null
         raisedHandsFlow.value = emptyList()
         return false

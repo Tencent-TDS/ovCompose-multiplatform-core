@@ -23,6 +23,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.when;
 
+import android.app.Activity;
+
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
@@ -30,32 +32,37 @@ import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
 import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose.CameraType;
 import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose.Fov;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.impl.perception.ViewProjection;
 import androidx.xr.scenecore.impl.perception.ViewProjections;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
+
+import com.android.extensions.xr.XrExtensions;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public final class CameraViewActivityPoseImplTest {
 
     private final AndroidXrEntity mActivitySpaceRoot = Mockito.mock(AndroidXrEntity.class);
-    private final FakeXrExtensions mFakeExtensions = new FakeXrExtensions();
+    private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final PerceptionLibrary mPerceptionLibrary = Mockito.mock(PerceptionLibrary.class);
     private final Session mSession = Mockito.mock(Session.class);
     private final FakeScheduledExecutorService mExecutor = new FakeScheduledExecutorService();
+    private final Activity mActivity =
+            Robolectric.buildActivity(Activity.class).create().start().get();
     private final ActivitySpaceImpl mActivitySpace =
             new ActivitySpaceImpl(
-                    mFakeExtensions.createNode(),
-                    mFakeExtensions,
+                    mXrExtensions.createNode(),
+                    mXrExtensions,
                     new EntityManager(),
-                    () -> mFakeExtensions.fakeSpatialState,
+                    () -> mXrExtensions.getSpatialState(mActivity),
                     mExecutor);
 
     /** Creates a CameraViewActivityPoseImpl. */

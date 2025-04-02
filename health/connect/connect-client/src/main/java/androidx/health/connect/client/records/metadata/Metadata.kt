@@ -34,9 +34,8 @@ internal constructor(
     @param:RecordingMethod @property:RecordingMethod @get:RecordingMethod val recordingMethod: Int,
 
     /**
-     * Unique identifier of this data, assigned by the Android Health Platform at insertion time.
-     * When [Record] is created before insertion, this takes a sentinel value, any assigned value
-     * will be ignored.
+     * Unique identifier of this data, assigned by Health Connect at insertion time. When [Record]
+     * is created before insertion, this takes a sentinel value, any assigned value will be ignored.
      */
     public val id: String = EMPTY_ID,
 

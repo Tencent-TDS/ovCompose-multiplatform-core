@@ -23,11 +23,11 @@ import androidx.compose.runtime.Composable
  * created as part of a [NavDisplay.entryProvider](reference/androidx/navigation/NavDisplay).
  *
  * @param key key for this entry
- * @param featureMap map of the available features from a display
+ * @param metadata provides information to the display
  * @param content content for this entry to be displayed when this entry is active
  */
 public open class NavEntry<T : Any>(
     public open val key: T,
-    public open val featureMap: Map<String, Any> = emptyMap(),
+    public open val metadata: Map<String, Any> = emptyMap(),
     public open val content: @Composable (T) -> Unit
 )

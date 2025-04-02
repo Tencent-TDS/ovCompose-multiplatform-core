@@ -25,24 +25,6 @@ import java.util.concurrent.Executor
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface Entity : ActivityPose {
 
-    /** Updates the pose (position and rotation) of the Entity relative to its parent. */
-    public var pose: Pose
-
-    /**
-     * Sets the scale of this entity relative to its parent. This value will affect the rendering of
-     * this Entity's children. As the scale increases, this will stretch the content of the Entity.
-     *
-     * @param scale The [Vector3] scale factor from the parent.
-     */
-    public var scale: Vector3
-
-    /**
-     * Add given Entity as child. The child Entity's pose will be relative to the pose of its parent
-     *
-     * @param child The child entity.
-     */
-    public fun addChild(child: Entity)
-
     /** Sets the provided Entities to be children of the Entity. */
     public var children: List<Entity>
 
@@ -64,13 +46,6 @@ public interface Entity : ActivityPose {
      */
     public var size: Dimensions
 
-    /**
-     * Sets the alpha transparency for the given Entity.
-     *
-     * @param alpha Alpha transparency level for the Entity.
-     */
-    public var alpha: Float
-
     /** Returns the total alpha transparency level for this Entity. */
     public val activitySpaceAlpha: Float
 
@@ -82,6 +57,80 @@ public interface Entity : ActivityPose {
      * @param hidden The new local hidden state of this Entity.
      */
     public var isHidden: Boolean
+
+    /**
+     * Add given Entity as child. The child Entity's pose will be relative to the pose of its parent
+     *
+     * @param child The child entity.
+     */
+    public fun addChild(child: Entity)
+
+    /** Returns the pose for this entity, relative to the given space. */
+    public fun getPose(@SpaceValue relativeTo: Int): Pose
+
+    /** Returns the pose for this entity, relative to its parent. */
+    public fun getPose(): Pose = getPose(Space.PARENT)
+
+    /** Updates the pose (position and rotation) of the Entity relative to the given space. */
+    public fun setPose(pose: Pose, @SpaceValue relativeTo: Int)
+
+    /** Updates the pose (position and rotation) of the Entity relative to its parent. */
+    public fun setPose(pose: Pose): Unit = setPose(pose, Space.PARENT)
+
+    /**
+     * Returns the scale of this entity, relative to the given space.
+     *
+     * @return Current [Vector3] scale relative to the given space.
+     */
+    public fun getScale(@SpaceValue relativeTo: Int): Vector3
+
+    /**
+     * Returns the scale of this entity, relative to its parent.
+     *
+     * @return Current [Vector3] scale relative to the parent.
+     */
+    public fun getScale(): Vector3 = getScale(Space.PARENT)
+
+    /**
+     * Sets the scale of this entity relative to the given space. This value will affect the
+     * rendering of this Entity's children. As the scale increases, this will stretch the content of
+     * the Entity.
+     *
+     * @param scale The [Vector3] scale factor relative to the given space.
+     */
+    public fun setScale(scale: Vector3, @SpaceValue relativeTo: Int)
+
+    /**
+     * Sets the scale of this entity relative to its parent. This value will affect the rendering of
+     * this Entity's children. As the scale increases, this will stretch the content of the Entity.
+     *
+     * @param scale The [Vector3] scale factor from the parent.
+     */
+    public fun setScale(scale: Vector3): Unit = setScale(scale, Space.PARENT)
+
+    /**
+     * Returns the effective alpha transparency level of the entity, relative to the given space.
+     *
+     * @param relativeTo The space in which to evaluate the alpha.
+     */
+    public fun getAlpha(@SpaceValue relativeTo: Int): Float
+
+    /** Returns the set alpha transparency level for this Entity. */
+    public fun getAlpha(): Float = getAlpha(Space.PARENT)
+
+    /**
+     * Sets the alpha transparency for the given Entity, relative to the given space.
+     *
+     * @param alpha Alpha transparency level for the Entity.
+     */
+    public fun setAlpha(alpha: Float, @SpaceValue relativeTo: Int)
+
+    /**
+     * Sets the alpha transparency for the given Entity.
+     *
+     * @param alpha Alpha transparency level for the Entity.
+     */
+    public fun setAlpha(alpha: Float): Unit = setAlpha(alpha, Space.PARENT)
 
     /**
      * Returns the hidden status of this Entity.

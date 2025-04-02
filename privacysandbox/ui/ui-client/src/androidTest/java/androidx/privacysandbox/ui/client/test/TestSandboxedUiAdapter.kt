@@ -30,7 +30,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
-class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("option")) :
+class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf()) :
     AbstractSandboxedUiAdapter() {
 
     companion object {
@@ -40,7 +40,7 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
     var isSessionOpened = false
     var internalClient: SandboxedUiAdapter.SessionClient? = null
     var testSession: TestSession? = null
-    var isZOrderOnTop = true
+    var isZOrderOnTop = false
     var sessionData: SessionData? = null
 
     // When set to true, the onSessionOpened callback will only be invoked when specified
@@ -108,7 +108,9 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
     inner class TestSession(context: Context, override val signalOptions: Set<String>) :
         SandboxedUiAdapter.Session {
         var zOrderChangedLatch: CountDownLatch = CountDownLatch(1)
+        var sessionOpenedLatch = CountDownLatch(1)
         var shortestGapBetweenUiChangeEvents = Long.MAX_VALUE
+        var supportedSignalOptions: Set<String>? = null
         private var notifyUiChangedLatch: CountDownLatch = CountDownLatch(1)
         private var latestUiChange: Bundle = Bundle()
         private var hasReceivedFirstUiChange = false
@@ -149,6 +151,11 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf("opt
             timeReceivedLastUiChange = SystemClock.elapsedRealtime()
             latestUiChange = uiContainerInfo
             notifyUiChangedLatch.countDown()
+        }
+
+        override fun notifySessionRendered(supportedSignalOptions: Set<String>) {
+            this.supportedSignalOptions = supportedSignalOptions
+            sessionOpenedLatch.countDown()
         }
 
         fun assertNoSubsequentUiChanges() {

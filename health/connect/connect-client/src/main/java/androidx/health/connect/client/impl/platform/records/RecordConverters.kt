@@ -16,6 +16,7 @@
 
 @file:RestrictTo(RestrictTo.Scope.LIBRARY)
 @file:RequiresApi(api = 34)
+@file:OptIn(ExperimentalPersonalHealthRecordApi::class)
 
 package androidx.health.connect.client.impl.platform.records
 
@@ -24,6 +25,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
@@ -44,6 +46,8 @@ import androidx.health.connect.client.records.ExerciseRoute
 import androidx.health.connect.client.records.ExerciseRouteResult
 import androidx.health.connect.client.records.ExerciseSegment
 import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.FhirResource
+import androidx.health.connect.client.records.FhirVersion
 import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
@@ -51,6 +55,9 @@ import androidx.health.connect.client.records.HeightRecord
 import androidx.health.connect.client.records.HydrationRecord
 import androidx.health.connect.client.records.IntermenstrualBleedingRecord
 import androidx.health.connect.client.records.LeanBodyMassRecord
+import androidx.health.connect.client.records.MedicalDataSource
+import androidx.health.connect.client.records.MedicalResource
+import androidx.health.connect.client.records.MedicalResourceId
 import androidx.health.connect.client.records.MenstruationFlowRecord
 import androidx.health.connect.client.records.MenstruationPeriodRecord
 import androidx.health.connect.client.records.NutritionRecord
@@ -1312,3 +1319,35 @@ internal fun PlatformExerciseLap.toSdkExerciseLap() =
 
 internal fun PlatformExerciseSegment.toSdkExerciseSegment() =
     ExerciseSegment(startTime, endTime, segmentType.toSdkExerciseSegmentType(), repetitionsCount)
+
+@SuppressLint("NewApi") // Guarded by sdk extension check
+internal fun PlatformMedicalResourceId.toSdkMedicalResourceId() =
+    MedicalResourceId(dataSourceId, fhirResourceType.toSdkFhirResourceType(), fhirResourceId)
+
+@SuppressLint("NewApi") // Guarded by sdk extension check
+internal fun PlatformFhirVersion.toSdkFhirVersion() = FhirVersion(major, minor, patch)
+
+@SuppressLint("NewApi") // Guarded by sdk extension check
+internal fun PlatformMedicalDataSource.toSdkMedicalDataSource() =
+    MedicalDataSource(
+        id = id,
+        packageName = packageName,
+        fhirBaseUri = fhirBaseUri,
+        displayName = displayName,
+        fhirVersion = FhirVersion(fhirVersion.major, fhirVersion.minor, fhirVersion.patch),
+        lastDataUpdateTime = lastDataUpdateTime
+    )
+
+@SuppressLint("NewApi") // Guarded by sdk extension check
+internal fun PlatformFhirResource.toSdkFhirResource() =
+    FhirResource(type.toSdkFhirResourceType(), id, data)
+
+@SuppressLint("NewApi") // Guarded by sdk extension check
+internal fun PlatformMedicalResource.toSdkMedicalResource() =
+    MedicalResource(
+        type.toSdkMedicalResourceType(),
+        id.toSdkMedicalResourceId(),
+        dataSourceId,
+        fhirVersion.toSdkFhirVersion(),
+        fhirResource.toSdkFhirResource()
+    )

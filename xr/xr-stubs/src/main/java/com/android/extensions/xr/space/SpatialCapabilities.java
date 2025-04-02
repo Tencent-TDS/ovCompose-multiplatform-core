@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /** Represents a set of capabilities an activity has. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SpatialCapabilities {
 
     public SpatialCapabilities() {

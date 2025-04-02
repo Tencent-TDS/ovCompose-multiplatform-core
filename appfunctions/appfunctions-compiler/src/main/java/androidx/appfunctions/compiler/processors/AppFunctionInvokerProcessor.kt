@@ -148,8 +148,8 @@ class AppFunctionInvokerProcessor(private val codeGenerator: CodeGenerator) : Sy
         codeGenerator
             .createNewFile(
                 Dependencies(
-                    aggregating = false,
-                    checkNotNull(appFunctionClass.classDeclaration.containingFile)
+                    aggregating = true,
+                    sources = appFunctionClass.getSourceFiles().toTypedArray(),
                 ),
                 originalPackageName,
                 invokerClassName

@@ -37,11 +37,11 @@ import androidx.camera.core.impl.utils.futures.Futures
 import androidx.camera.integration.view.util.takePictureOnDisk
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.testing.impl.AndroidUtil.isEmulator
-import androidx.camera.testing.impl.AndroidUtil.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.testing.impl.CameraAvailabilityUtil.assumeDeviceHasFrontCamera
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CoreAppTestUtil
+import androidx.camera.testing.impl.IgnoreVideoRecordingProblematicDeviceRule.Companion.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.video.VideoRecordEvent
 import androidx.camera.view.CameraController.TAP_TO_FOCUS_FAILED
 import androidx.camera.view.CameraController.TAP_TO_FOCUS_FOCUSED

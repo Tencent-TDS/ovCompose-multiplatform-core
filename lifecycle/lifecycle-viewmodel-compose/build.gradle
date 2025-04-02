@@ -89,7 +89,7 @@ androidXMultiplatform {
                 // but it doesn't work in androidx.
                 // See aosp/1804059
                 implementation(project(":lifecycle:lifecycle-common-java8"))
-                implementation(project(":activity:activity-compose"))
+                implementation("androidx.activity:activity-compose:1.10.1")
             }
         }
     }

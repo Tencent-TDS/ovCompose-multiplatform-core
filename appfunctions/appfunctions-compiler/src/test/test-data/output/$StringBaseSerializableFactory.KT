@@ -8,15 +8,16 @@ import javax.`annotation`.processing.Generated
 public class `$StringBaseSerializableFactory` : AppFunctionSerializableFactory<StringBaseSerializable> {
   override fun fromAppFunctionData(appFunctionData: AppFunctionData): StringBaseSerializable {
 
-    val name = checkNotNull(appFunctionData.getString("name"))
+    val stringToOpen = checkNotNull(appFunctionData.getString("stringToOpen"))
 
-    return StringBaseSerializable(name)
+    return StringBaseSerializable(stringToOpen)
   }
 
   override fun toAppFunctionData(appFunctionSerializable: StringBaseSerializable): AppFunctionData {
 
     val builder = AppFunctionData.Builder("com.testdata.StringBaseSerializable")
-    builder.setString("name", appFunctionSerializable.name)
+    val stringToOpen = appFunctionSerializable.stringToOpen
+    builder.setString("stringToOpen", stringToOpen)
 
     return builder.build()
   }

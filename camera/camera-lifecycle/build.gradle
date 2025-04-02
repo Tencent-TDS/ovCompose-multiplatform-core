@@ -58,6 +58,21 @@ dependencies {
     androidTestImplementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
     androidTestImplementation(project(":internal-testutils-truth"))
     androidTestImplementation("org.jetbrains.kotlinx:atomicfu:0.13.1")
+    androidTestImplementation(project(":camera:camera-camera2"))
+    androidTestImplementation(project(":camera:camera-camera2-pipe-integration"))
+
+    testImplementation(libs.kotlinCoroutinesTest)
+    testImplementation(libs.kotlinStdlib)
+    testImplementation(libs.testCore)
+    testImplementation(libs.testRunner)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.truth)
+    testImplementation("org.jetbrains.kotlinx:atomicfu:0.13.1")
+    testImplementation(project(":internal-testutils-truth"))
+    testImplementation(project(":camera:camera-testing")) {
+        // Ensure camera-testing does not pull in androidx.test dependencies
+        exclude(group:"androidx.test")
+    }
 }
 
 android {

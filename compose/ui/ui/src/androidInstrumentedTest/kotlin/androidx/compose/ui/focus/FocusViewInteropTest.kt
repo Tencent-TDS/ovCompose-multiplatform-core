@@ -18,6 +18,7 @@ package androidx.compose.ui.focus
 
 import android.content.Context
 import android.graphics.Rect as AndroidRect
+import android.os.Build.VERSION.SDK_INT
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.CompositionLocalProvider
@@ -44,6 +46,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection.Companion.Down
 import androidx.compose.ui.focus.FocusDirection.Companion.Left
@@ -52,9 +56,12 @@ import androidx.compose.ui.focus.FocusDirection.Companion.Previous
 import androidx.compose.ui.focus.FocusDirection.Companion.Right
 import androidx.compose.ui.focus.FocusDirection.Companion.Up
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.InputMode.Companion.Touch
+import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
@@ -71,6 +78,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -226,7 +234,7 @@ class FocusViewInteropTest {
     }
 
     @Test
-    fun moveFocusThroughUnfocusableComposeViewNext() {
+    fun moveFocusThroughUnFocusableComposeViewNext() {
         lateinit var topEditText: EditText
         lateinit var composeView: ComposeView
         lateinit var bottomEditText: EditText
@@ -269,7 +277,7 @@ class FocusViewInteropTest {
     }
 
     @Test
-    fun moveFocusThroughUnfocusableComposeViewDown() {
+    fun moveFocusThroughUnFocusableComposeViewDown() {
         lateinit var topEditText: EditText
         lateinit var composeView: ComposeView
         lateinit var bottomEditText: EditText
@@ -453,14 +461,14 @@ class FocusViewInteropTest {
                             linearLayout.orientation = LinearLayout.VERTICAL
                             linearLayout.addView(
                                 Button(context).apply {
-                                    setText("Android Button")
+                                    text = "Android Button"
                                     isFocusableInTouchMode = true
                                     androidButton1 = this
                                 }
                             )
                             linearLayout.addView(
                                 Button(context).apply {
-                                    setText("Android Button 2")
+                                    text = "Android Button 2"
                                     isFocusableInTouchMode = true
                                 }
                             )
@@ -483,6 +491,56 @@ class FocusViewInteropTest {
             rule.runOnIdle {
                 assertThat(composeView.isFocused).isTrue()
                 assertThat(androidButton1.isFocused).isFalse()
+            }
+        }
+    }
+
+    @Test
+    fun removeFocusedView() {
+        @OptIn(ExperimentalComposeUiApi::class)
+        assumeTrue(ComposeUiFlags.isRemoveFocusedViewFixEnabled)
+
+        // Arrange.
+        lateinit var buttonView1: Button
+        lateinit var buttonView3: Button
+        lateinit var lazyListState: LazyListState
+        lateinit var inputModeManager: InputModeManager
+        rule.setContent {
+            inputModeManager = LocalInputModeManager.current
+            lazyListState = rememberLazyListState(initialFirstVisibleItemIndex = 2)
+            with(rule.density) {
+                LazyColumn(Modifier.size(10f.toDp()), lazyListState) {
+                    items(3) { index ->
+                        AndroidView(
+                            factory = { context ->
+                                Button(context).apply {
+                                    text = "Android Button"
+                                    isFocusableInTouchMode = true
+                                    when (index) {
+                                        0 -> buttonView1 = this
+                                        2 -> buttonView3 = this
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        rule.runOnIdle { buttonView3.requestFocus() }
+
+        // Act.
+        rule.runOnIdle { lazyListState.requestScrollToItem(0) }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(buttonView3.isFocused).isFalse()
+            // We don't reassign focus in touch mode.
+            // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
+            if (inputModeManager.inputMode == Touch && SDK_INT > 28) {
+                assertThat(buttonView1.isFocused).isFalse()
+            } else {
+                assertThat(buttonView1.isFocused).isTrue()
             }
         }
     }

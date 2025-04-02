@@ -60,6 +60,7 @@ import androidx.xr.compose.subspace.layout.movable
 import androidx.xr.compose.subspace.layout.offset
 import androidx.xr.compose.subspace.layout.padding
 import androidx.xr.compose.subspace.layout.rotate
+import androidx.xr.compose.subspace.layout.testTag
 import androidx.xr.compose.subspace.layout.width
 import androidx.xr.runtime.math.Quaternion
 
@@ -105,15 +106,17 @@ class MovablePanelApp : ComponentActivity() {
         var zValueMovable by remember { mutableStateOf(0.dp) }
         val density = LocalDensity.current
         var rotateValueMovable by remember { mutableStateOf(Quaternion.Identity) }
-        SpatialColumn(name = "PanelGridSpatialColumn") {
+        SpatialColumn(SubspaceModifier.testTag("PanelGridSpatialColumn")) {
             SpatialRow(
                 modifier = SubspaceModifier.fillMaxWidth(),
                 alignment = SpatialAlignment.BottomCenter,
             ) {
                 SpatialColumn(
                     modifier =
-                        SubspaceModifier.width(400.dp).fillMaxHeight().padding(horizontal = 20.dp),
-                    name = "LeftColumn",
+                        SubspaceModifier.width(400.dp)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp)
+                            .testTag("LeftColumn")
                 ) {
                     if (
                         transition.value >= 150f
@@ -147,8 +150,10 @@ class MovablePanelApp : ComponentActivity() {
                 }
                 SpatialColumn(
                     modifier =
-                        SubspaceModifier.width(600.dp).fillMaxHeight().padding(horizontal = 20.dp),
-                    name = "MiddleColumn",
+                        SubspaceModifier.width(600.dp)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp)
+                            .testTag("MiddleColumn")
                 ) {
                     SpatialPanel(
                         modifier = SubspaceModifier.width(panelWidth).height(200.dp).fillMaxWidth()
@@ -186,8 +191,10 @@ class MovablePanelApp : ComponentActivity() {
                 }
                 SpatialColumn(
                     modifier =
-                        SubspaceModifier.width(400.dp).fillMaxHeight().padding(horizontal = 20.dp),
-                    name = "RightColumn",
+                        SubspaceModifier.width(400.dp)
+                            .fillMaxHeight()
+                            .padding(horizontal = 20.dp)
+                            .testTag("RightColumn")
                 ) {
                     SpatialPanel(
                         modifier = SubspaceModifier.width(panelWidth).height(200.dp).fillMaxWidth()
@@ -201,8 +208,8 @@ class MovablePanelApp : ComponentActivity() {
                             SubspaceModifier.offset(x = 120.dp)
                                 .width(panelWidth)
                                 .height(200.dp)
-                                .movable(true),
-                        name = "ActivityPanel",
+                                .movable(true)
+                                .testTag("ActivityPanel"),
                     )
                 }
             }

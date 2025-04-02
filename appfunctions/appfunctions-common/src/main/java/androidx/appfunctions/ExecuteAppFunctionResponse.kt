@@ -40,6 +40,10 @@ public sealed interface ExecuteAppFunctionResponse {
             )
         }
 
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        public fun copy(returnValue: AppFunctionData = this.returnValue): Success =
+            Success(returnValue)
+
         public companion object {
             /**
              * The key name of the property that stores the function return value within `result`.
@@ -53,7 +57,7 @@ public sealed interface ExecuteAppFunctionResponse {
             @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
             public fun fromPlatformExtensionClass(
                 response: com.android.extensions.appfunctions.ExecuteAppFunctionResponse
-            ): ExecuteAppFunctionResponse {
+            ): Success {
                 return Success(AppFunctionData(response.resultDocument, response.extras))
             }
         }

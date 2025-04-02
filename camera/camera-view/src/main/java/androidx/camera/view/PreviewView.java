@@ -192,6 +192,7 @@ public final class PreviewView extends FrameLayout {
 
         @Override
         @AnyThread
+        @SuppressWarnings("WrongThread") // View.getContext()
         public void onSurfaceRequested(@NonNull SurfaceRequest surfaceRequest) {
             if (!Threads.isMainThread()) {
                 // Post on main thread to ensure thread safety.

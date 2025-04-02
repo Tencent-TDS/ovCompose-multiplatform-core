@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /** Quaternion. q = w + xi + yj + zk */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public final class Quatf {
 
     public Quatf(float x, float y, float z, float w) {

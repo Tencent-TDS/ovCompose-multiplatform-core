@@ -16,6 +16,7 @@
 
 package androidx.xr.scenecore.testing;
 
+import android.content.res.Resources.NotFoundException;
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
 
@@ -114,7 +115,8 @@ public class FakeImpressApi implements ImpressApi {
         /** Enum representing the different built-in material types that can be created. */
         public enum Type {
             GENERIC,
-            WATER
+            WATER,
+            WATER_ALPHA
         }
 
         @NonNull public Type type;
@@ -140,8 +142,12 @@ public class FakeImpressApi implements ImpressApi {
         }
     }
 
+    // Vector of image based lighting asset tokens.
+    private final List<Long> mImageBasedLightingAssets = new ArrayList<>();
+
     // Map of model tokens to the list of impress nodes that are instances of that model.
     private final Map<Long, List<Integer>> mGltfModels = new HashMap<>();
+
     // Map of impress nodes to their parent impress nodes.
     private final Map<GltfNodeData, GltfNodeData> mImpressNodes = new HashMap<>();
 
@@ -160,10 +166,12 @@ public class FakeImpressApi implements ImpressApi {
     // Map of material tokens to their associated MaterialData object
     public final Map<Long, MaterialData> mMaterials = new HashMap<>();
 
+    private int mNextImageBasedLightingAssetId = 1;
     private int mNextModelId = 1;
     private int mNextNodeId = 1;
     private long mNextTextureId = 1;
     private long mNextMaterialId = 1;
+    private long mCurrentEnvironmentLightId = -1;
 
     @NonNull
     public Map<Integer, StereoSurfaceEntityData> getStereoSurfaceEntities() {
@@ -180,9 +188,57 @@ public class FakeImpressApi implements ImpressApi {
     public void onPause() {}
 
     @Override
+    public void releaseImageBasedLightingAsset(long iblToken) {
+        if (!mImageBasedLightingAssets.contains(iblToken)) {
+            throw new NotFoundException("Image based lighting asset token not found");
+        }
+        mImageBasedLightingAssets.remove(iblToken);
+    }
+
+    @Override
     @NonNull
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
-    public ListenableFuture<Long> loadGltfModel(@NonNull String name) {
+    public ListenableFuture<Long> loadImageBasedLightingAsset(@NonNull String path) {
+        long imageBasedLightingAssetToken = mNextImageBasedLightingAssetId++;
+        mImageBasedLightingAssets.add(imageBasedLightingAssetToken);
+        // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
+        ResolvableFuture<Long> ret = ResolvableFuture.create();
+        ret.set(imageBasedLightingAssetToken);
+
+        return ret;
+    }
+
+    @Override
+    @NonNull
+    @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
+    public ListenableFuture<Long> loadImageBasedLightingAsset(
+            @NonNull byte[] data, @NonNull String key) {
+        long imageBasedLightingAssetToken = mNextImageBasedLightingAssetId++;
+        mImageBasedLightingAssets.add(imageBasedLightingAssetToken);
+        // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
+        ResolvableFuture<Long> ret = ResolvableFuture.create();
+        ret.set(imageBasedLightingAssetToken);
+
+        return ret;
+    }
+
+    @Override
+    @NonNull
+    @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
+    public ListenableFuture<Long> loadGltfModel(@NonNull String path) {
+        long modelToken = mNextModelId++;
+        mGltfModels.put(modelToken, new ArrayList<>());
+        // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
+        ResolvableFuture<Long> ret = ResolvableFuture.create();
+        ret.set(modelToken);
+
+        return ret;
+    }
+
+    @Override
+    @NonNull
+    @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
+    public ListenableFuture<Long> loadGltfModel(@NonNull byte[] data, @NonNull String key) {
         long modelToken = mNextModelId++;
         mGltfModels.put(modelToken, new ArrayList<>());
         // TODO(b/352827267): Enforce minSDK API strategy - go/androidx-api-guidelines#compat-newapi
@@ -195,7 +251,7 @@ public class FakeImpressApi implements ImpressApi {
     @Override
     public void releaseGltfModel(long modelToken) {
         if (!mGltfModels.containsKey(modelToken)) {
-            throw new IllegalArgumentException("Model token not found");
+            throw new NotFoundException("Model token not found");
         }
         mGltfModels.remove(modelToken);
     }
@@ -443,9 +499,19 @@ public class FakeImpressApi implements ImpressApi {
     }
 
     @Override
+    @NonNull
+    public Texture getReflectionTextureFromIbl(long iblToken) {
+        long textureImageToken = mNextTextureId++;
+        return new Texture.Builder()
+                .setNativeTexture(textureImageToken)
+                .setTextureSampler(new TextureSampler.Builder().build())
+                .build();
+    }
+
+    @Override
     @SuppressWarnings("RestrictTo")
     @NonNull
-    public ListenableFuture<WaterMaterial> createWaterMaterial(boolean transparent) {
+    public ListenableFuture<WaterMaterial> createWaterMaterial(boolean isAlphaMapVersion) {
         long materialToken = mNextMaterialId++;
         WaterMaterial material =
                 new WaterMaterial.Builder()
@@ -479,20 +545,35 @@ public class FakeImpressApi implements ImpressApi {
     }
 
     @Override
+    public void setAlphaStepMultiplierOnWaterMaterial(
+            long nativeMaterial, float alphaStepMultiplier) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
+    public void setAlphaMapOnWaterMaterial(long nativeWaterMaterial, long alphaMap) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
+    public void setNormalZOnWaterMaterial(long nativeWaterMaterial, float normalZ) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
+    public void setNormalBoundaryOnWaterMaterial(long nativeWaterMaterial, float normalBoundary) {
+        throw new IllegalArgumentException("not implemented");
+    }
+
+    @Override
     public void setAlphaStepUOnWaterMaterial(
-            long nativeMaterial, float x, float y, float z, float w) {
+            long nativeWaterMaterial, float x, float y, float z, float w) {
         throw new IllegalArgumentException("not implemented");
     }
 
     @Override
     public void setAlphaStepVOnWaterMaterial(
-            long nativeMaterial, float x, float y, float z, float w) {
-        throw new IllegalArgumentException("not implemented");
-    }
-
-    @Override
-    public void setAlphaStepMultiplierOnWaterMaterial(
-            long nativeMaterial, float alphaStepMultiplier) {
+            long nativeWaterMaterial, float x, float y, float z, float w) {
         throw new IllegalArgumentException("not implemented");
     }
 
@@ -516,6 +597,16 @@ public class FakeImpressApi implements ImpressApi {
         gltfNodeData.setMaterialOverride(mMaterials.get(nativeMaterial));
     }
 
+    @Override
+    public void setPreferredEnvironmentLight(long iblToken) {
+        mCurrentEnvironmentLightId = iblToken;
+    }
+
+    @Override
+    public void clearPreferredEnvironmentIblAsset() {
+        mCurrentEnvironmentLightId = -1;
+    }
+
     /** Returns the map of texture image tokens to their associated Texture object. */
     @NonNull
     public Map<Long, Texture> getTextureImages() {
@@ -532,6 +623,11 @@ public class FakeImpressApi implements ImpressApi {
     @NonNull
     public Map<GltfNodeData, GltfNodeData> getImpressNodes() {
         return mImpressNodes;
+    }
+
+    /** Returns the current environment light token. */
+    public long getCurrentEnvironmentLight() {
+        return mCurrentEnvironmentLightId;
     }
 
     @Nullable

@@ -5,15 +5,18 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     ctor public FakeImpressApi();
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Void!> animateGltfModel(int, String?, boolean);
     method public com.google.ar.imp.apibindings.Texture borrowReflectionTexture();
+    method public void clearPreferredEnvironmentIblAsset();
     method public int createImpressNode();
     method public int createStereoSurface(@com.google.ar.imp.apibindings.ImpressApi.StereoMode int);
     method public com.google.common.util.concurrent.ListenableFuture<com.google.ar.imp.apibindings.WaterMaterial!> createWaterMaterial(boolean);
     method public void destroyImpressNode(int);
     method public void destroyNativeObject(long);
+    method public long getCurrentEnvironmentLight();
     method public int getImpressNodeParent(int);
     method public java.util.Map<androidx.xr.scenecore.testing.FakeImpressApi.GltfNodeData!,androidx.xr.scenecore.testing.FakeImpressApi.GltfNodeData!> getImpressNodes();
     method public java.util.List<java.lang.Integer!> getImpressNodesForToken(long);
     method public java.util.Map<java.lang.Long!,androidx.xr.scenecore.testing.FakeImpressApi.MaterialData!> getMaterials();
+    method public com.google.ar.imp.apibindings.Texture getReflectionTextureFromIbl(long);
     method public java.util.Map<java.lang.Integer!,androidx.xr.scenecore.testing.FakeImpressApi.StereoSurfaceEntityData!> getStereoSurfaceEntities();
     method public android.view.Surface getSurfaceFromStereoSurface(int);
     method public java.util.Map<java.lang.Long!,com.google.ar.imp.apibindings.Texture!> getTextureImages();
@@ -22,20 +25,28 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method public int impressNodeLoopAnimatingSize();
     method public int instanceGltfModel(long);
     method public int instanceGltfModel(long, boolean);
+    method public com.google.common.util.concurrent.ListenableFuture<java.lang.Long!> loadGltfModel(byte[], String);
     method public com.google.common.util.concurrent.ListenableFuture<java.lang.Long!> loadGltfModel(String);
+    method public com.google.common.util.concurrent.ListenableFuture<java.lang.Long!> loadImageBasedLightingAsset(byte[], String);
+    method public com.google.common.util.concurrent.ListenableFuture<java.lang.Long!> loadImageBasedLightingAsset(String);
     method public com.google.common.util.concurrent.ListenableFuture<com.google.ar.imp.apibindings.Texture!> loadTexture(String, com.google.ar.imp.apibindings.TextureSampler);
     method public void onPause();
     method public void onResume();
     method public void releaseGltfModel(long);
+    method public void releaseImageBasedLightingAsset(long);
+    method public void setAlphaMapOnWaterMaterial(long, long);
     method public void setAlphaStepMultiplierOnWaterMaterial(long, float);
     method public void setAlphaStepUOnWaterMaterial(long, float, float, float, float);
     method public void setAlphaStepVOnWaterMaterial(long, float, float, float, float);
     method public void setGltfModelColliderEnabled(int, boolean);
     method public void setImpressNodeParent(int, int);
     method public void setMaterialOverride(int, long, String);
+    method public void setNormalBoundaryOnWaterMaterial(long, float);
     method public void setNormalMapOnWaterMaterial(long, long);
     method public void setNormalSpeedOnWaterMaterial(long, float);
     method public void setNormalTilingOnWaterMaterial(long, float);
+    method public void setNormalZOnWaterMaterial(long, float);
+    method public void setPreferredEnvironmentLight(long);
     method public void setReflectionCubeOnWaterMaterial(long, long);
     method public void setStereoModeForStereoSurface(int, @com.google.ar.imp.apibindings.ImpressApi.StereoMode int);
     method public void setStereoSurfaceEntityCanvasShapeHemisphere(int, float);
@@ -64,6 +75,7 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
   public enum FakeImpressApi.MaterialData.Type {
     enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type GENERIC;
     enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type WATER;
+    enum_constant public static final androidx.xr.scenecore.testing.FakeImpressApi.MaterialData.Type WATER_ALPHA;
   }
 
   public static class FakeImpressApi.StereoSurfaceEntityData {
@@ -126,8 +138,8 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeActivityPanel getActivityPanelForHost(android.app.Activity);
     method public int getApiVersion();
     method public androidx.xr.extensions.Config getConfig();
-    method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getFakeEnvironmentNode();
-    method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getFakeNodeForMainWindow();
+    method public androidx.xr.extensions.node.Node? getFakeEnvironmentNode();
+    method public androidx.xr.extensions.node.Node? getFakeNodeForMainWindow();
     method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getFakeTaskNode();
     method public int getMainWindowHeight();
     method public int getMainWindowWidth();
@@ -156,8 +168,8 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method @Deprecated public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode testGetNodeWithEnvironmentToken(androidx.xr.extensions.asset.EnvironmentToken);
     method @Deprecated public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode testGetNodeWithGltfToken(androidx.xr.extensions.asset.GltfModelToken);
     field public final java.util.Map<android.app.Activity!,androidx.xr.scenecore.testing.FakeXrExtensions.FakeActivityPanel!> activityPanelMap;
-    field public final java.util.List<androidx.xr.scenecore.testing.FakeXrExtensions.FakeEnvironmentToken!> createdEnvironmentTokens;
-    field public final java.util.List<androidx.xr.scenecore.testing.FakeXrExtensions.FakeGltfModelToken!> createdGltfModelTokens;
+    field public final java.util.List<androidx.xr.extensions.asset.EnvironmentToken!> createdEnvironmentTokens;
+    field public final java.util.List<com.android.extensions.xr.asset.FakeGltfModelToken!> createdGltfModelTokens;
     field public final java.util.List<androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode!> createdNodes;
     field public final androidx.xr.scenecore.testing.FakeXrExtensions.FakeSpatialAudioExtensions fakeSpatialAudioExtensions;
     field public final androidx.xr.scenecore.testing.FakeXrExtensions.FakeSpatialState fakeSpatialState;
@@ -191,54 +203,8 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method public boolean isClosed();
   }
 
-  public static class FakeXrExtensions.FakeConfig implements androidx.xr.extensions.Config {
-    ctor public FakeXrExtensions.FakeConfig();
-    method public float defaultPixelsPerMeter(float);
-    field public static final float DEFAULT_PIXELS_PER_METER = 1.0f;
-  }
-
-  public static class FakeXrExtensions.FakeEnvironmentToken implements androidx.xr.extensions.asset.EnvironmentToken {
-    ctor public FakeXrExtensions.FakeEnvironmentToken(String);
-    method public String getUrl();
-  }
-
   public static class FakeXrExtensions.FakeEnvironmentVisibilityState implements androidx.xr.extensions.environment.EnvironmentVisibilityState {
     ctor public FakeXrExtensions.FakeEnvironmentVisibilityState(@androidx.xr.extensions.environment.EnvironmentVisibilityState.State int);
-  }
-
-  public static class FakeXrExtensions.FakeGltfModelToken implements androidx.xr.extensions.asset.GltfModelToken {
-    ctor public FakeXrExtensions.FakeGltfModelToken(String);
-    method public String getUrl();
-  }
-
-  public static class FakeXrExtensions.FakeInputEvent implements androidx.xr.extensions.node.InputEvent {
-    ctor public FakeXrExtensions.FakeInputEvent();
-    method public int getAction();
-    method public androidx.xr.extensions.node.Vec3 getDirection();
-    method public int getDispatchFlags();
-    method public androidx.xr.extensions.node.InputEvent.HitInfo? getHitInfo();
-    method public androidx.xr.extensions.node.Vec3 getOrigin();
-    method public int getPointerType();
-    method public androidx.xr.extensions.node.InputEvent.HitInfo? getSecondaryHitInfo();
-    method public int getSource();
-    method public long getTimestamp();
-    method public void setDirection(androidx.xr.extensions.node.Vec3);
-    method public void setDispatchFlags(int);
-    method public void setFakeHitInfo(androidx.xr.scenecore.testing.FakeXrExtensions.FakeInputEvent.FakeHitInfo);
-    method public void setOrigin(androidx.xr.extensions.node.Vec3);
-    method public void setTimestamp(long);
-  }
-
-  public static class FakeXrExtensions.FakeInputEvent.FakeHitInfo implements androidx.xr.extensions.node.InputEvent.HitInfo {
-    ctor public FakeXrExtensions.FakeInputEvent.FakeHitInfo();
-    method public androidx.xr.extensions.node.Vec3? getHitPosition();
-    method public androidx.xr.extensions.node.Node getInputNode();
-    method public int getSubspaceImpressNodeId();
-    method public androidx.xr.extensions.node.Mat4f getTransform();
-    method public void setHitPosition(androidx.xr.extensions.node.Vec3?);
-    method public void setInputNode(androidx.xr.extensions.node.Node);
-    method public void setSubspaceImpressNodeId(int);
-    method public void setTransform(androidx.xr.extensions.node.Mat4f);
   }
 
   public static class FakeXrExtensions.FakeMediaPlayerExtensions implements androidx.xr.extensions.media.MediaPlayerExtensions {
@@ -248,6 +214,8 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
   }
 
   public static final class FakeXrExtensions.FakeNode implements androidx.xr.extensions.node.Node {
+    ctor public FakeXrExtensions.FakeNode(androidx.xr.extensions.node.Node);
+    ctor public FakeXrExtensions.FakeNode(com.android.extensions.xr.node.Node);
     method public int describeContents();
     method public float getAlpha();
     method public android.os.IBinder? getAnchorId();
@@ -255,14 +223,14 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method @Deprecated public androidx.xr.extensions.asset.EnvironmentToken? getEnvironment();
     method public java.util.concurrent.Executor? getExecutor();
     method @Deprecated public androidx.xr.extensions.asset.GltfModelToken? getGltfModel();
-    method public androidx.xr.extensions.Consumer<androidx.xr.extensions.node.InputEvent!>? getListener();
+    method public com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.InputEvent!>? getListener();
     method public String? getName();
-    method public androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode? getParent();
+    method public androidx.xr.extensions.node.Node? getParent();
     method public androidx.xr.extensions.Consumer<java.lang.Integer!>? getPointerCaptureStateCallback();
     method public androidx.xr.extensions.node.ReformOptions? getReformOptions();
-    method public android.view.SurfaceControlViewHost.SurfacePackage? getSurfacePackage();
+    method public android.view.SurfaceControl? getSurfaceControl();
     method public java.util.concurrent.Executor? getTransformExecutor();
-    method public androidx.xr.extensions.Consumer<androidx.xr.extensions.node.NodeTransform!>? getTransformListener();
+    method public com.android.extensions.xr.function.Consumer<com.android.extensions.xr.node.NodeTransform!>? getTransformListener();
     method public float getWOrientation();
     method public float getXOrientation();
     method public float getXPosition();
@@ -273,66 +241,20 @@ package @RequiresApi(34) androidx.xr.scenecore.testing {
     method public boolean isVisible();
     method public void listenForInput(androidx.xr.extensions.Consumer<androidx.xr.extensions.node.InputEvent!>, java.util.concurrent.Executor);
     method public void requestPointerCapture(androidx.xr.extensions.Consumer<java.lang.Integer!>, java.util.concurrent.Executor);
-    method public void sendInputEvent(androidx.xr.extensions.node.InputEvent);
-    method public void sendTransformEvent(androidx.xr.scenecore.testing.FakeXrExtensions.FakeNodeTransform);
+    method public void sendInputEvent(com.android.extensions.xr.node.InputEvent);
+    method public void sendTransformEvent(com.android.extensions.xr.node.NodeTransform);
     method public void setNonPointerFocusTarget(android.view.AttachedSurfaceControl);
     method public void stopListeningForInput();
     method public void stopPointerCapture();
     method public java.io.Closeable subscribeToTransform(androidx.xr.extensions.Consumer<androidx.xr.extensions.node.NodeTransform!>, java.util.concurrent.Executor);
     method public void writeToParcel(android.os.Parcel, int);
-  }
-
-  public static class FakeXrExtensions.FakeNodeTransaction implements androidx.xr.extensions.node.NodeTransaction {
-  }
-
-  public static class FakeXrExtensions.FakeNodeTransform implements androidx.xr.extensions.node.NodeTransform {
-    ctor public FakeXrExtensions.FakeNodeTransform(androidx.xr.extensions.node.Mat4f);
-    method public long getTimestamp();
-    method public androidx.xr.extensions.node.Mat4f getTransform();
+    field public final androidx.xr.extensions.node.Node! node;
+    field public final com.android.extensions.xr.node.Node! realNode;
+    field public final com.android.extensions.xr.node.ShadowNode! shadowNode;
   }
 
   public static class FakeXrExtensions.FakePassthroughVisibilityState implements androidx.xr.extensions.environment.PassthroughVisibilityState {
     ctor public FakeXrExtensions.FakePassthroughVisibilityState(@androidx.xr.extensions.environment.PassthroughVisibilityState.State int, float);
-  }
-
-  public static class FakeXrExtensions.FakeReformEvent implements androidx.xr.extensions.node.ReformEvent {
-    ctor public FakeXrExtensions.FakeReformEvent();
-    method public androidx.xr.extensions.node.Vec3 getCurrentRayDirection();
-    method public androidx.xr.extensions.node.Vec3 getCurrentRayOrigin();
-    method public int getId();
-    method public androidx.xr.extensions.node.Vec3 getInitialRayDirection();
-    method public androidx.xr.extensions.node.Vec3 getInitialRayOrigin();
-    method public androidx.xr.extensions.node.Quatf getProposedOrientation();
-    method public androidx.xr.extensions.node.Vec3 getProposedPosition();
-    method public androidx.xr.extensions.node.Vec3 getProposedScale();
-    method public androidx.xr.extensions.node.Vec3 getProposedSize();
-    method public int getState();
-    method public int getType();
-    method public void setProposedOrientation(androidx.xr.extensions.node.Quatf);
-    method public void setProposedPosition(androidx.xr.extensions.node.Vec3);
-    method public void setProposedScale(androidx.xr.extensions.node.Vec3);
-    method public void setProposedSize(androidx.xr.extensions.node.Vec3);
-    method public void setState(int);
-    method public void setType(int);
-  }
-
-  public static class FakeXrExtensions.FakeReformOptions implements androidx.xr.extensions.node.ReformOptions {
-    method public androidx.xr.extensions.node.Vec3 getCurrentSize();
-    method public int getEnabledReform();
-    method public androidx.xr.extensions.Consumer<androidx.xr.extensions.node.ReformEvent!> getEventCallback();
-    method public java.util.concurrent.Executor getEventExecutor();
-    method public float getFixedAspectRatio();
-    method public int getFlags();
-    method public androidx.xr.extensions.node.Vec3 getMaximumSize();
-    method public androidx.xr.extensions.node.Vec3 getMinimumSize();
-    method public androidx.xr.extensions.node.ReformOptions setCurrentSize(androidx.xr.extensions.node.Vec3);
-    method public androidx.xr.extensions.node.ReformOptions setEnabledReform(int);
-    method public androidx.xr.extensions.node.ReformOptions setEventCallback(androidx.xr.extensions.Consumer<androidx.xr.extensions.node.ReformEvent!>);
-    method public androidx.xr.extensions.node.ReformOptions setEventExecutor(java.util.concurrent.Executor);
-    method public androidx.xr.extensions.node.ReformOptions setFixedAspectRatio(float);
-    method public androidx.xr.extensions.node.ReformOptions setFlags(int);
-    method public androidx.xr.extensions.node.ReformOptions setMaximumSize(androidx.xr.extensions.node.Vec3);
-    method public androidx.xr.extensions.node.ReformOptions setMinimumSize(androidx.xr.extensions.node.Vec3);
   }
 
   public static class FakeXrExtensions.FakeSoundPoolExtensions implements androidx.xr.extensions.media.SoundPoolExtensions {

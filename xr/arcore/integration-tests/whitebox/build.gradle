@@ -22,6 +22,7 @@
  * modifying its settings.
  */
 
+import androidx.build.AndroidXConfig
 import androidx.build.ApkCopyHelperKt
 import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
@@ -76,6 +77,8 @@ dependencies {
     implementation("androidx.compose.runtime:runtime:1.7.5")
     implementation("androidx.compose.ui:ui:1.7.5")
     implementation("androidx.lifecycle:lifecycle-runtime:2.8.7")
+
+    compileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
 }
 
 // Making this APK available via Android Build so the QA team can

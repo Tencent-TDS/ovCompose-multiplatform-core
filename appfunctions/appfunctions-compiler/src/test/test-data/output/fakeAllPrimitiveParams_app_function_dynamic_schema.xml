@@ -134,12 +134,9 @@
                 <type>0</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>fake_schema_category</schemaCategory>
-            <schemaName>allPrimitiveParams</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>fake_schema_category</schemaCategory>
+        <schemaName>allPrimitiveParams</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.FakeAllPrimitiveParamsImpl#allPrimitiveArrayParams</functionId>
     </appfunction>
     <appfunction>
@@ -216,12 +213,9 @@
                 <type>0</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>fake_schema_category</schemaCategory>
-            <schemaName>allPrimitiveParams</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>fake_schema_category</schemaCategory>
+        <schemaName>allPrimitiveParams</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.FakeAllPrimitiveParamsImpl#allPrimitiveParams</functionId>
     </appfunction>
 </appfunctions>

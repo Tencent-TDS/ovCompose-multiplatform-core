@@ -19,13 +19,12 @@ package androidx.appfunctions.compiler.core
 import androidx.appfunctions.compiler.core.IntrospectionHelper.APP_FUNCTIONS_AGGREGATED_DEPS_PACKAGE_NAME
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionAnnotation
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionComponentRegistryAnnotation
+import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableAnnotation
+import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableProxyAnnotation
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import kotlin.collections.component1
-import kotlin.collections.component2
-import kotlin.collections.map
 
 /** The helper class to resolve AppFunction related symbols. */
 class AppFunctionSymbolResolver(private val resolver: Resolver) {
@@ -53,6 +52,49 @@ class AppFunctionSymbolResolver(private val resolver: Resolver) {
             .map { (classDeclaration, appFunctionsDeclarations) ->
                 AnnotatedAppFunctions(classDeclaration, appFunctionsDeclarations).validate()
             }
+    }
+
+    /**
+     * Resolves all classes annotated with @AppFunctionSerializable
+     *
+     * @return a list of AnnotatedAppFunctionSerializable
+     */
+    fun resolveAnnotatedAppFunctionSerializables(): List<AnnotatedAppFunctionSerializable> {
+        return resolver
+            .getSymbolsWithAnnotation(AppFunctionSerializableAnnotation.CLASS_NAME.canonicalName)
+            .map { declaration ->
+                if (declaration !is KSClassDeclaration) {
+                    throw ProcessingException(
+                        "Only classes can be annotated with @AppFunctionSerializable",
+                        declaration
+                    )
+                }
+                AnnotatedAppFunctionSerializable(declaration).validate()
+            }
+            .toList()
+    }
+
+    /**
+     * Resolves all classes annotated with @AppFunctionSerializableProxy
+     *
+     * @return a list of AnnotatedAppFunctionSerializableProxy
+     */
+    fun resolveAnnotatedAppFunctionSerializableProxies():
+        List<AnnotatedAppFunctionSerializableProxy> {
+        return resolver
+            .getSymbolsWithAnnotation(
+                AppFunctionSerializableProxyAnnotation.CLASS_NAME.canonicalName
+            )
+            .map { declaration ->
+                if (declaration !is KSClassDeclaration) {
+                    throw ProcessingException(
+                        "Only classes can be annotated with @AppFunctionSerializableProxy",
+                        declaration
+                    )
+                }
+                AnnotatedAppFunctionSerializableProxy(declaration).validate()
+            }
+            .toList()
     }
 
     /**

@@ -42,6 +42,4 @@ internal object Dependencies {
                 suffix = "_Impl",
             )
     }
-
-    internal val translatorSelector: TranslatorSelector = TranslatorSelectorImpl()
 }

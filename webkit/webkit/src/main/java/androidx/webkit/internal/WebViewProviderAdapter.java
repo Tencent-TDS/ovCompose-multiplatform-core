@@ -32,6 +32,7 @@ import androidx.webkit.Profile;
 import androidx.webkit.SpeculativeLoadingParameters;
 import androidx.webkit.WebMessageCompat;
 import androidx.webkit.WebMessagePortCompat;
+import androidx.webkit.WebNavigationClient;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewRenderProcess;
 import androidx.webkit.WebViewRenderProcessClient;
@@ -262,5 +263,29 @@ public class WebViewProviderAdapter {
             int maxSizeBytes,
             boolean includeForwardState) {
         mImpl.saveState(outState, maxSizeBytes, includeForwardState);
+    }
+
+    /**
+     * Adapter method for {@link WebViewCompat#saveState(WebView, Bundle, int, boolean)}.
+     */
+    @UiThread
+    public void setWebNavigationClient(
+            @NonNull WebNavigationClient client) {
+        InvocationHandler clientBoundaryInterface =
+                BoundaryInterfaceReflectionUtil.createInvocationHandlerFor(
+                        new WebNavigationClientAdapter(client));
+        mImpl.setWebViewNavigationClient(clientBoundaryInterface);
+    }
+
+    /**
+     * Adapter method for {@link WebViewCompat#getWebN(WebView, Bundle, int, boolean)}.
+     */
+    @UiThread
+    public @NonNull WebNavigationClient getWebNavigationClient() {
+        InvocationHandler client = mImpl.getWebViewNavigationClient();
+        if (client == null) return null;
+        return ((WebNavigationClientAdapter)
+                BoundaryInterfaceReflectionUtil.getDelegateFromInvocationHandler(
+                        client)).getWebNavigationClient();
     }
 }

@@ -83,6 +83,20 @@ class ModifiersTest {
     }
 
     @Test
+    fun clearSemantics_fromModifier() {
+        val modifiers =
+            LayoutModifier.contentDescription(
+                    STATIC_CONTENT_DESCRIPTION,
+                    DYNAMIC_CONTENT_DESCRIPTION
+                )
+                .semanticsRole(SEMANTICS_ROLE_BUTTON)
+                .clearSemantics()
+                .toProtoLayoutModifiers()
+
+        assertThat(modifiers.semantics).isNull()
+    }
+
+    @Test
     fun background_clip_toModifier() {
         val modifiers =
             LayoutModifier.background(COLOR)

@@ -62,4 +62,10 @@
     <string name="error_cannot_open_pdf" msgid="2361919778558145071">"PDF файлын ашу мүмкін емес."</string>
     <string name="cannot_edit_pdf" msgid="7677598370087228978">"Бұл PDF файлын өзгерту мүмкін емес."</string>
     <string name="clipboard_label" msgid="8943155331324944981">"PDF файлынан көшірілген контент"</string>
+    <!-- no translation found for fast_scroller_thumb (6712048991132846541) -->
+    <skip />
+    <!-- no translation found for service_disconnect_error_message (7077247973576767455) -->
+    <skip />
+    <!-- no translation found for pdf_view_error_message (1228656072516996088) -->
+    <skip />
 </resources>

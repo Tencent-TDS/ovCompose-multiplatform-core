@@ -18,14 +18,16 @@ package androidx.camera.viewfinder.compose
 
 import android.graphics.RectF
 import android.util.Size
+import android.util.SizeF
 import android.view.Surface
 import androidx.camera.viewfinder.core.ImplementationMode
-import androidx.camera.viewfinder.core.ScaleType
 import androidx.camera.viewfinder.core.TransformationInfo
 import androidx.camera.viewfinder.core.TransformationInfo.Companion.DEFAULT
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest
 import androidx.camera.viewfinder.core.ViewfinderSurfaceSessionScope
+import androidx.camera.viewfinder.core.impl.OffsetF
 import androidx.camera.viewfinder.core.impl.RefCounted
+import androidx.camera.viewfinder.core.impl.ScaleFactorF
 import androidx.camera.viewfinder.core.impl.Transformations
 import androidx.camera.viewfinder.core.impl.ViewfinderSurfaceSessionImpl
 import androidx.compose.foundation.AndroidEmbeddedExternalSurface
@@ -36,15 +38,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.setFrom
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.util.fastRoundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 
@@ -72,6 +77,10 @@ import kotlinx.coroutines.coroutineScope
  *   coordinates such as touch coordinates to surface space coordinates. When the Viewfinder is
  *   displaying content from the camera, this transformer can be used to translate touch events into
  *   camera sensor coordinates for focus and metering actions.
+ * @param alignment Optional alignment parameter used to place the [Surface] in the given bounds of
+ *   the [Viewfinder]. Defaults to [Alignment.Center].
+ * @param contentScale Optional scale parameter used to determine the aspect ratio scaling to be
+ *   used to fit the [Surface] in the bounds of the [Viewfinder]. Defaults to [ContentScale.Crop].
  * @param onInit Lambda invoked on first composition and any time a new [surfaceRequest] is
  *   provided. This lambda can be used to declare a [ViewfinderInitScope.onSurfaceSession] callback
  *   that will be called each time a new [Surface] is provided by the viewfinder.
@@ -84,6 +93,8 @@ fun Viewfinder(
     modifier: Modifier = Modifier,
     transformationInfo: TransformationInfo = DEFAULT,
     coordinateTransformer: MutableCoordinateTransformer? = null,
+    alignment: Alignment = Alignment.Center,
+    contentScale: ContentScale = ContentScale.Crop,
     onInit: ViewfinderInitScope.() -> Unit
 ) {
     Box(modifier = modifier.clipToBounds().fillMaxSize()) {
@@ -94,7 +105,9 @@ fun Viewfinder(
                 transformationInfo = transformationInfo,
                 implementationMode =
                     surfaceRequest.implementationMode ?: ImplementationMode.EXTERNAL,
-                coordinateTransformer = coordinateTransformer
+                coordinateTransformer = coordinateTransformer,
+                alignment = alignment,
+                contentScale = contentScale
             ) {
                 val viewfinderInitScope =
                     ViewfinderInitScopeImpl(viewfinderSurfaceRequest = surfaceRequest)
@@ -127,6 +140,8 @@ private fun TransformedSurface(
     transformationInfo: TransformationInfo,
     implementationMode: ImplementationMode,
     coordinateTransformer: MutableCoordinateTransformer?,
+    alignment: Alignment,
+    contentScale: ContentScale,
     onInit: AndroidExternalSurfaceScope.() -> Unit
 ) {
     val layoutDirection = LocalConfiguration.current.layoutDirection
@@ -150,7 +165,8 @@ private fun TransformedSurface(
                             surfaceResolution = Size(surfaceWidth, surfaceHeight),
                             transformationInfo = transformationInfo,
                             layoutDirection = layoutDirection,
-                            scaleType = ScaleType.FILL_CENTER
+                            contentScale = contentScale.toInternalContentScale(),
+                            alignment = alignment.toInternalAlignment()
                         )
 
                     coordinateTransformer?.transformMatrix =
@@ -206,6 +222,42 @@ private fun TransformedSurface(
         }
     }
 }
+
+private fun Alignment.toInternalAlignment(): androidx.camera.viewfinder.core.impl.Alignment =
+    object : androidx.camera.viewfinder.core.impl.Alignment {
+        override fun align(size: SizeF, space: SizeF, layoutDirection: Int): OffsetF {
+            val composeSize =
+                androidx.compose.ui.unit.IntSize(
+                    size.width.fastRoundToInt(),
+                    size.height.fastRoundToInt()
+                )
+            val composeSpace =
+                androidx.compose.ui.unit.IntSize(
+                    space.width.fastRoundToInt(),
+                    space.height.fastRoundToInt()
+                )
+            val composeLayoutDirection =
+                when (layoutDirection) {
+                    android.util.LayoutDirection.LTR -> androidx.compose.ui.unit.LayoutDirection.Ltr
+                    android.util.LayoutDirection.RTL -> androidx.compose.ui.unit.LayoutDirection.Rtl
+                    else ->
+                        throw IllegalArgumentException("Invalid layout direction: $layoutDirection")
+                }
+            val offset = align(composeSize, composeSpace, composeLayoutDirection)
+            return OffsetF(offset.x.toFloat(), offset.y.toFloat())
+        }
+    }
+
+private fun ContentScale.toInternalContentScale():
+    androidx.camera.viewfinder.core.impl.ContentScale =
+    object : androidx.camera.viewfinder.core.impl.ContentScale {
+        override fun computeScaleFactor(srcSize: SizeF, dstSize: SizeF): ScaleFactorF {
+            val composeSrcSize = androidx.compose.ui.geometry.Size(srcSize.width, srcSize.height)
+            val composeDstSize = androidx.compose.ui.geometry.Size(dstSize.width, dstSize.height)
+            val scale = computeScaleFactor(composeSrcSize, composeDstSize)
+            return ScaleFactorF(scale.scaleX, scale.scaleY)
+        }
+    }
 
 /**
  * A scoped environment provided when a [Viewfinder] is first initialized.

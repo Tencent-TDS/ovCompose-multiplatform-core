@@ -16,12 +16,12 @@
 
 package androidx.compose.foundation.text.contextmenu.modifier
 
-import androidx.compose.foundation.internal.checkPreconditionNotNull
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.contextmenu.test.TestTextContextMenuDataInvoker
+import androidx.compose.foundation.text.contextmenu.test.testTextContextMenuDataReader
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -139,7 +139,7 @@ class TextContextMenuModifierTraversalTest {
         outerContent: @Composable (dataReadingContent: @Composable () -> Unit) -> Unit,
     ) {
         val reader = TestTextContextMenuDataInvoker()
-        rule.setContent { outerContent { Box(TestTextContextMenuDataReaderElement(reader)) } }
+        rule.setContent { outerContent { Box(Modifier.testTextContextMenuDataReader(reader)) } }
         reader.invokeTraversal()
     }
 }
@@ -150,43 +150,3 @@ private fun Modifier.fakeFilterTextContextMenuComponents(block: () -> Unit): Mod
         block()
         true
     }
-
-private class TestTextContextMenuDataInvoker {
-    var node: TestTextContextMenuDataReaderNode? = null
-
-    fun invokeTraversal() {
-        checkPreconditionNotNull(node).collectTextContextMenuData()
-    }
-}
-
-private data class TestTextContextMenuDataReaderElement(
-    val invoker: TestTextContextMenuDataInvoker,
-) : ModifierNodeElement<TestTextContextMenuDataReaderNode>() {
-    override fun create(): TestTextContextMenuDataReaderNode =
-        TestTextContextMenuDataReaderNode(invoker)
-
-    override fun update(node: TestTextContextMenuDataReaderNode) {
-        node.update(invoker)
-    }
-}
-
-private class TestTextContextMenuDataReaderNode(
-    invoker: TestTextContextMenuDataInvoker,
-) : Modifier.Node() {
-    var invoker: TestTextContextMenuDataInvoker = invoker
-        private set
-
-    override fun onAttach() {
-        super.onAttach()
-        invoker.node = this
-    }
-
-    override fun onDetach() {
-        invoker.node = null
-        super.onDetach()
-    }
-
-    fun update(reader: TestTextContextMenuDataInvoker) {
-        this.invoker = reader
-    }
-}

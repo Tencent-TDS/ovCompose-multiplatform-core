@@ -41,6 +41,7 @@ import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.CPI
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.INDICATOR_STROKE_WIDTH_INCREMENT_PX
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.LARGE_STROKE_WIDTH
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.METADATA_TAG
+import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.TRACK_GAP_SIZE_INCREMENT_PX
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.TRIVIAL_ARC_OFFSET
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.calculateRecommendedGapSize
 import androidx.wear.protolayout.material3.CircularProgressIndicatorDefaults.filledProgressIndicatorColors
@@ -358,15 +359,14 @@ private fun MaterialScope.multipleSegmentsImpl(
             staticProgress = staticProgress,
             dynamicProgress = dynamicProgress
         )
-    val linePattern =
-        DashedLinePattern.Builder()
-            .setGapSize(gapSize)
-            .setGapInterval(sweepAngle / segmentCount)
-            .build()
+    val gapInterval = sweepAngle / segmentCount
 
-    // We need to make the indicator arc a bit wider than the track arc to make sure the top
-    // arc covers the bottom one completely in the overlapped area.
+    // To prevent aliasing issue, we need to make sure the top arc covers the bottom one completely
+    // in the overlapped area:
+    // 1. make the indicator arc a bit wider than the track arc
     val insetPadding = INDICATOR_STROKE_WIDTH_INCREMENT_PX / deviceConfiguration.screenDensity / 2F
+    // 2. make the track arc slightly shorter than the indicator arc .
+    val trackGapIncrement = TRACK_GAP_SIZE_INCREMENT_PX / deviceConfiguration.screenDensity
     return Box.Builder()
         .addContent(
             // the track
@@ -376,7 +376,11 @@ private fun MaterialScope.multipleSegmentsImpl(
                     arcLength = degrees(sweepAngle),
                     arcColor = trackColor(staticProgress, dynamicProgress, colors),
                     strokeWidth = strokeWidth,
-                    linePattern = linePattern,
+                    linePattern =
+                        DashedLinePattern.Builder()
+                            .setGapSize(gapSize + trackGapIncrement)
+                            .setGapInterval(gapInterval)
+                            .build(),
                     arcDirection = LayoutElementBuilders.ARC_DIRECTION_CLOCKWISE
                 )
                 .setModifiers(
@@ -396,7 +400,11 @@ private fun MaterialScope.multipleSegmentsImpl(
                     arcLength = progressInDegrees,
                     arcColor = colors.indicatorColor.prop,
                     strokeWidth = strokeWidth + insetPadding * 2F,
-                    linePattern = linePattern,
+                    linePattern =
+                        DashedLinePattern.Builder()
+                            .setGapSize(gapSize)
+                            .setGapInterval(gapInterval)
+                            .build(),
                     arcDirection = LayoutElementBuilders.ARC_DIRECTION_CLOCKWISE
                 )
                 .build()
@@ -493,6 +501,7 @@ private fun createArc(
                 .setThickness(strokeWidth)
                 .setLinePattern(linePattern)
                 .setLength(arcLength)
+                .setArcDirection(arcDirection)
                 .setLayoutConstraintsForDynamicLength(
                     // We use one Arc container to put one arcline, so it is fine to put 360 here
                     // as layout constraint.

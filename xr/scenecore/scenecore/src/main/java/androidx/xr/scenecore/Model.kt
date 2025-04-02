@@ -36,7 +36,7 @@ import com.google.common.util.concurrent.ListenableFuture
 //                     playback animation from the integer index.
 // TODO: b/362368652 - Add an interface which returns a list of available animation names
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class GltfModel internal constructor(public val model: RtGltfModel) : Model {
+public class GltfModel internal constructor(internal val model: RtGltfModel) : Model {
 
     public companion object {
         @Deprecated(
@@ -58,25 +58,16 @@ public class GltfModel internal constructor(public val model: RtGltfModel) : Mod
             platformAdapter: JxrPlatformAdapter,
             name: String,
         ): ListenableFuture<GltfModel> {
-            val gltfResourceFuture = platformAdapter.loadGltfByAssetNameSplitEngine(name)
-            val modelFuture = ResolvableFuture.create<GltfModel>()
+            return createModelFuture(platformAdapter.loadGltfByAssetNameSplitEngine(name)!!)
+        }
 
-            // TODO: b/375070346 - remove this `!!` when we're sure the future is non-null.
-            gltfResourceFuture!!.addListener(
-                {
-                    try {
-                        val gltfResource = gltfResourceFuture.get()
-                        modelFuture.set(GltfModel(gltfResource))
-                    } catch (e: Exception) {
-                        if (e is InterruptedException) {
-                            Thread.currentThread().interrupt()
-                        }
-                        modelFuture.setException(e)
-                    }
-                },
-                Runnable::run,
-            )
-            return modelFuture
+        @SuppressWarnings("RestrictTo")
+        internal fun createAsync(
+            platformAdapter: JxrPlatformAdapter,
+            assetData: ByteArray,
+            assetKey: String,
+        ): ListenableFuture<GltfModel> {
+            return createModelFuture(platformAdapter.loadGltfByByteArray(assetData, assetKey)!!)
         }
 
         /**
@@ -98,6 +89,51 @@ public class GltfModel internal constructor(public val model: RtGltfModel) : Mod
         @Suppress("AsyncSuffixFuture")
         public fun create(session: Session, name: String): ListenableFuture<GltfModel> {
             return GltfModel.createAsync(session.platformAdapter, name)
+        }
+
+        /**
+         * Public factory function for a [GltfModel], where the glTF is asynchronously loaded.
+         *
+         * This method must be called from the main thread.
+         * https://developer.android.com/guide/components/processes-and-threads
+         *
+         * Currently, only binary glTF (.glb) files are supported.
+         *
+         * @param session The [Session] to use for loading the model.
+         * @param assetData The byte array data of a binary glTF (.glb) model to be loaded.
+         * @param assetKey The key to use for the model. This is used to identify the model in the
+         *   [SceneCore] cache.
+         * @return a ListenableFuture<GltfModel>. Listeners will be called on the main thread if
+         *   Runnable::run is supplied.
+         */
+        @MainThread
+        @JvmStatic
+        public fun create(
+            session: Session,
+            assetData: ByteArray,
+            assetKey: String,
+        ): ListenableFuture<GltfModel> {
+            return GltfModel.createAsync(session.platformAdapter, assetData, assetKey)
+        }
+
+        private fun createModelFuture(
+            gltfResourceFuture: ListenableFuture<RtGltfModel>
+        ): ListenableFuture<GltfModel> {
+            val modelFuture = ResolvableFuture.create<GltfModel>()
+
+            gltfResourceFuture.addListener(
+                {
+                    try {
+                        modelFuture.set(GltfModel(gltfResourceFuture.get()))
+                    } catch (e: Exception) {
+                        if (e is InterruptedException) Thread.currentThread().interrupt()
+                        modelFuture.setException(e)
+                    }
+                },
+                Runnable::run,
+            )
+
+            return modelFuture
         }
     }
 

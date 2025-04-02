@@ -150,7 +150,6 @@ class PhoneTypeHelperTest {
             .isEqualTo(PhoneTypeHelper.DEVICE_TYPE_UNKNOWN)
     }
 
-    @Test
     @Config(sdk = [Build.VERSION_CODES.UPSIDE_DOWN_CAKE])
     fun testGetDeviceType_returnsAndroid_onUWithGreaterTargetSdk() {
         Settings.Global.putInt(

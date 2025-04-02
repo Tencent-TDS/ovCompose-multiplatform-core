@@ -29,6 +29,16 @@ interface ISdkApi {
         drawViewability: Boolean
     ): Bundle
 
+    // This new method is needed since we cannot add optional params to shim methods.
+    suspend fun loadBannerAdForAutomatedTests(
+        adFormat: Int,
+        adType: Int,
+        mediationOption: Int,
+        waitInsideOnDraw: Boolean,
+        drawViewability: Boolean,
+        automatedTestCallback: IAutomatedTestCallback
+    ): Bundle
+
     fun requestResize(width: Int, height: Int)
 
     fun triggerProcessDeath()

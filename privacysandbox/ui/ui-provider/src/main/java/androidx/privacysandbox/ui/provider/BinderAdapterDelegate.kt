@@ -26,6 +26,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.Display
+import android.view.MotionEvent
 import android.view.SurfaceControlViewHost
 import android.view.View
 import androidx.annotation.RequiresApi
@@ -35,6 +36,7 @@ import androidx.privacysandbox.ui.core.ExperimentalFeatures
 import androidx.privacysandbox.ui.core.IDelegateChangeListener
 import androidx.privacysandbox.ui.core.IDelegatingSandboxedUiAdapter
 import androidx.privacysandbox.ui.core.IDelegatorCallback
+import androidx.privacysandbox.ui.core.IMotionEventTransferCallback
 import androidx.privacysandbox.ui.core.IRemoteSessionClient
 import androidx.privacysandbox.ui.core.IRemoteSessionController
 import androidx.privacysandbox.ui.core.ISandboxedUiAdapter
@@ -243,7 +245,7 @@ private class BinderAdapterDelegate(
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private class SessionClientProxy(
-        private val touchTransferringView: TouchFocusTransferringView,
+        private val providerViewWrapper: ProviderViewWrapper,
         private val surfaceControlViewHost: SurfaceControlViewHost,
         private val isZOrderOnTop: Boolean,
         private val remoteSessionClient: IRemoteSessionClient
@@ -254,16 +256,16 @@ private class BinderAdapterDelegate(
          * step duration and interference with actual openSession() logic (reduce potential delays).
          */
         fun initialize(initialWidth: Int, initialHeight: Int) {
-            surfaceControlViewHost.setView(touchTransferringView, initialWidth, initialHeight)
+            surfaceControlViewHost.setView(providerViewWrapper, initialWidth, initialHeight)
         }
 
         override fun onSessionOpened(session: SandboxedUiAdapter.Session) {
             val view = session.view
 
-            if (touchTransferringView.childCount > 0) {
-                touchTransferringView.removeAllViews()
+            if (providerViewWrapper.childCount > 0) {
+                providerViewWrapper.removeAllViews()
             }
-            touchTransferringView.addView(view)
+            providerViewWrapper.addView(view)
 
             // This var is not locked as it will be set to false by the first event that can trigger
             // sending the remote session opened callback.
@@ -306,7 +308,7 @@ private class BinderAdapterDelegate(
                     surfacePackage,
                     remoteSessionController,
                     isZOrderOnTop,
-                    session.signalOptions.isNotEmpty()
+                    session.signalOptions.toList()
                 )
             }
         }
@@ -349,6 +351,22 @@ private class BinderAdapterDelegate(
                 session.notifyUiChanged(uiContainerInfo)
             }
 
+            override fun notifySessionRendered(supportedSignalOptions: List<String>) {
+                session.notifySessionRendered(supportedSignalOptions.toSet())
+            }
+
+            override fun notifyMotionEvent(
+                motionEvent: MotionEvent,
+                eventTargetFrameTime: Long,
+                eventTransferCallback: IMotionEventTransferCallback?
+            ) {
+                providerViewWrapper.scheduleMotionEventProcessing(
+                    motionEvent,
+                    eventTargetFrameTime,
+                    eventTransferCallback
+                )
+            }
+
             override fun close() {
                 val mHandler = Handler(Looper.getMainLooper())
                 mHandler.post {
@@ -368,10 +386,14 @@ private class BinderAdapterDelegate(
 
         override fun onSessionOpened(session: SandboxedUiAdapter.Session) {
             val sessionObservers: MutableList<SessionObserver> = mutableListOf()
+            val signalOptions: MutableSet<String> = mutableSetOf()
             if (adapter is SessionObserverFactoryRegistry) {
-                adapter.sessionObserverFactories.forEach { sessionObservers.add(it.create()) }
+                adapter.sessionObserverFactories.forEach {
+                    sessionObservers.add(it.create())
+                    signalOptions.addAll(it.signalOptions)
+                }
             }
-            client.onSessionOpened(SessionForObservers(session, sessionObservers))
+            client.onSessionOpened(SessionForObservers(session, sessionObservers, signalOptions))
         }
     }
 
@@ -381,26 +403,18 @@ private class BinderAdapterDelegate(
      */
     private class SessionForObservers(
         val session: SandboxedUiAdapter.Session,
-        val sessionObservers: List<SessionObserver>
+        val sessionObservers: List<SessionObserver>,
+        override val signalOptions: Set<String>
     ) : SandboxedUiAdapter.Session by session {
-
-        init {
-            if (sessionObservers.isNotEmpty()) {
-                val sessionObserverContext = SessionObserverContext(view)
-                sessionObservers.forEach { it.onSessionOpened(sessionObserverContext) }
-            }
-        }
 
         override val view: View
             get() = session.view
 
-        override val signalOptions: Set<String>
-            get() =
-                if (sessionObservers.isEmpty()) {
-                    setOf()
-                } else {
-                    setOf("someOptions")
-                }
+        override fun notifySessionRendered(supportedSignalOptions: Set<String>) {
+            sessionObservers.forEach {
+                it.onSessionOpened(SessionObserverContext(view, supportedSignalOptions))
+            }
+        }
 
         override fun notifyUiChanged(uiContainerInfo: Bundle) {
             sessionObservers.forEach { it.onUiContainerChanged(uiContainerInfo) }
@@ -432,10 +446,8 @@ private class BinderAdapterDelegate(
                 checkNotNull(createSurfaceControlViewHost(displayContext, display, sessionData)) {
                     "Failed to create SurfaceControlViewHost"
                 }
-            val touchTransferringView =
-                TouchFocusTransferringView(displayContext, surfaceControlViewHost)
             return SessionClientProxy(
-                touchTransferringView,
+                ProviderViewWrapper(displayContext),
                 surfaceControlViewHost,
                 isZOrderOnTop,
                 remoteSessionClient

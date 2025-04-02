@@ -27,21 +27,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistryOwner
@@ -55,9 +64,9 @@ import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.AnchorEntity
-import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.PanelEntity
+import androidx.xr.scenecore.PixelDimensions
 import androidx.xr.scenecore.Session as JxrCoreSession
 import java.util.UUID
 import kotlin.collections.List
@@ -80,17 +89,18 @@ class PersistentAnchorsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        sessionHelper =
-            SessionLifecycleHelper(
-                onCreateCallback = {
-                    session = it
-                    jxrCoreSession = JxrCoreSession.create(this)
-                    createTargetPanel()
-                    setContent { MainPanel() }
-                },
-                onResumeCallback = { onResumeCallback() },
-            )
+        sessionHelper = SessionLifecycleHelper(this)
+        session = sessionHelper.session
         lifecycle.addObserver(sessionHelper)
+
+        jxrCoreSession = JxrCoreSession.create(this)
+
+        createTargetPanel()
+        setContent { MainPanel() }
+
+        session.lifecycleScope.launch {
+            session.repeatOnLifecycle(Lifecycle.State.RESUMED) { onResumeCallback() }
+        }
     }
 
     private fun createTargetPanel() {
@@ -101,8 +111,7 @@ class PersistentAnchorsActivity : ComponentActivity() {
             PanelEntity.create(
                 jxrCoreSession,
                 composeView,
-                Dimensions(640f, 640f),
-                Dimensions(1f, 1f, 1f),
+                PixelDimensions(640, 640),
                 "movableEntity",
                 movableEntityOffset,
             )
@@ -140,20 +149,52 @@ class PersistentAnchorsActivity : ComponentActivity() {
     private fun MainPanel() {
         val uuidsState = uuids.collectAsStateWithLifecycle()
 
-        Column(
-            modifier =
-                Modifier.background(color = Color.White)
-                    .fillMaxHeight()
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-        ) {
-            BackToMainActivityButton()
-            Text(modifier = Modifier.padding(top = 20.dp), text = "Persisted anchors:")
-            for (uuid in uuidsState.value) {
-                Row(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)) {
-                    Text(text = "UUID: $uuid", fontSize = 24.sp)
-                    Button(onClick = { loadAnchor(uuid) }) { Text("Load anchor") }
-                    Button(onClick = { unpersistAnchor(uuid) }) { Text("Unpersist anchor") }
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    BackToMainActivityButton()
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        text = "Persistent Anchors",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                    )
+                }
+            },
+        ) { innerPadding ->
+            Column(
+                modifier =
+                    Modifier.background(color = Color.White)
+                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+            ) {
+                for (uuid in uuidsState.value) {
+                    Row(
+                        modifier =
+                            Modifier.fillMaxWidth().padding(vertical = 15.dp, horizontal = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "UUID: $uuid", fontSize = 24.sp, modifier = Modifier.weight(1f))
+                        Button(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            onClick = { loadAnchor(uuid) },
+                        ) {
+                            Text("Load anchor")
+                        }
+                        Button(
+                            modifier = Modifier.padding(horizontal = 10.dp),
+                            onClick = { unpersistAnchor(uuid) },
+                        ) {
+                            Text("Unpersist anchor")
+                        }
+                    }
                 }
             }
         }
@@ -203,8 +244,7 @@ class PersistentAnchorsActivity : ComponentActivity() {
             PanelEntity.create(
                 jxrCoreSession,
                 composeView,
-                Dimensions(640f, 640f),
-                Dimensions(1f, 1f, 1f),
+                PixelDimensions(640, 640),
                 "anchorEntity ${anchor.hashCode()}",
                 Pose(),
             )

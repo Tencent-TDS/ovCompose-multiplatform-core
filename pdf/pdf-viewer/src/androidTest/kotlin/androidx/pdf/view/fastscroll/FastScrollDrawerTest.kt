@@ -18,7 +18,6 @@ package androidx.pdf.view.fastscroll
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.util.Range
 import androidx.core.content.ContextCompat
@@ -73,12 +72,11 @@ class FastScrollDrawerTest {
 
     @Test
     fun draw_withinVisibleArea_verifyDrawOnCanvas() {
-        val zoom = 1.5f
-        val scrollY = 100
-        val visibleAreaPx = Rect(0, 0, 500, 800)
+        val xOffset = 500
+        val yOffset = 100
         val visiblePages = Range(1, 5)
 
-        fastScrollDrawer.draw(spyCanvas, zoom, scrollY, visibleAreaPx, visiblePages)
+        fastScrollDrawer.draw(spyCanvas, xOffset, yOffset, visiblePages)
 
         val leftCaptor = ArgumentCaptor.forClass(Int::class.java)
         val topCaptor = ArgumentCaptor.forClass(Int::class.java)
@@ -93,9 +91,9 @@ class FastScrollDrawerTest {
             )
         verify(thumbDrawable).draw(spyCanvas)
 
-        val expectedLeftRange = Range(600, 700)
-        val expectedTopRange = Range(100, 200)
-        val expectedRightRange = Range(700, 800)
+        val expectedLeftRange = Range(350, 450)
+        val expectedTopRange = Range(0, 100)
+        val expectedRightRange = Range(450, 550)
         val expectedBottomRange = Range(100, 300)
         assertTrue(expectedLeftRange.contains(leftCaptor.value))
         assertTrue(expectedTopRange.contains(topCaptor.value))
@@ -117,5 +115,53 @@ class FastScrollDrawerTest {
         assertEquals(expectedLowerPageRange, pageRange[0].toString().toInt())
         assertEquals(expectedUpperPageRange, pageRange[2].toString().toInt())
         assertEquals(expectedTotalPages, totalPages.toString().toInt())
+    }
+
+    @Test
+    fun testFastScroll_draw_verifyThumbBounds() {
+        val xOffset = 500
+        val yOffset = 100
+        val visiblePages = Range(1, 5)
+
+        fastScrollDrawer.draw(spyCanvas, xOffset, yOffset, visiblePages)
+
+        val expectedThumbLeftRange = Range(400, 600)
+        val expectedThumbTopRange = Range(100, 200)
+        val expectedThumbRightRange = Range(500, 700)
+        val expectedThumbBottomRange = Range(100, 300)
+
+        assertTrue(expectedThumbLeftRange.contains(fastScrollDrawer.thumbBounds.left.toInt()))
+        assertTrue(expectedThumbTopRange.contains(fastScrollDrawer.thumbBounds.top.toInt()))
+        assertTrue(expectedThumbRightRange.contains(fastScrollDrawer.thumbBounds.right.toInt()))
+        assertTrue(expectedThumbBottomRange.contains(fastScrollDrawer.thumbBounds.bottom.toInt()))
+    }
+
+    @Test
+    fun testFastScroll_draw_verifyPageIndicatorBounds() {
+        val xOffset = 500
+        val yOffset = 100
+        val visiblePages = Range(1, 5)
+
+        fastScrollDrawer.draw(spyCanvas, xOffset, yOffset, visiblePages)
+
+        val expectedIndicatorLeftRange = Range(150, 450)
+        val expectedIndicatorTopRange = Range(100, 250)
+        val expectedIndicatorRightRange = Range(300, 650)
+        val expectedIndicatorBottomRange = Range(150, 300)
+
+        assertTrue(
+            expectedIndicatorLeftRange.contains(fastScrollDrawer.pageIndicatorBounds.left.toInt())
+        )
+        assertTrue(
+            expectedIndicatorTopRange.contains(fastScrollDrawer.pageIndicatorBounds.top.toInt())
+        )
+        assertTrue(
+            expectedIndicatorRightRange.contains(fastScrollDrawer.pageIndicatorBounds.right.toInt())
+        )
+        assertTrue(
+            expectedIndicatorBottomRange.contains(
+                fastScrollDrawer.pageIndicatorBounds.bottom.toInt()
+            )
+        )
     }
 }

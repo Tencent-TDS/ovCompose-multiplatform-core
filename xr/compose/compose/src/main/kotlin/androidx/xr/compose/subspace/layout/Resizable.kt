@@ -17,10 +17,26 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.xr.compose.platform.LocalSession
+import androidx.xr.compose.subspace.node.CompositionLocalConsumerSubspaceModifierNode
+import androidx.xr.compose.subspace.node.LayoutCoordinatesAwareModifierNode
 import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
+import androidx.xr.compose.subspace.node.currentValueOf
 import androidx.xr.compose.unit.DpVolumeSize
 import androidx.xr.compose.unit.IntVolumeSize
+import androidx.xr.compose.unit.toDimensionsInMeters
+import androidx.xr.compose.unit.toIntVolumeSize
+import androidx.xr.scenecore.Dimensions
+import androidx.xr.scenecore.Entity
+import androidx.xr.scenecore.ResizableComponent
+import androidx.xr.scenecore.ResizeListener
+import androidx.xr.scenecore.Session
+import java.util.concurrent.Executor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 
 /**
  * When the resizable modifier is present and enabled, draggable UI controls will be shown that
@@ -43,7 +59,7 @@ public fun SubspaceModifier.resizable(
     minimumSize: DpVolumeSize = DpVolumeSize.Zero,
     maximumSize: DpVolumeSize = DpVolumeSize(Dp.Infinity, Dp.Infinity, Dp.Infinity),
     maintainAspectRatio: Boolean = false,
-    onSizeChange: (IntVolumeSize) -> Boolean = { false },
+    onSizeChange: ((IntVolumeSize) -> Boolean)? = null,
 ): SubspaceModifier =
     this.then(
         ResizableElement(enabled, minimumSize, maximumSize, maintainAspectRatio, onSizeChange)
@@ -54,7 +70,7 @@ private class ResizableElement(
     private val minimumSize: DpVolumeSize,
     private val maximumSize: DpVolumeSize,
     private val maintainAspectRatio: Boolean,
-    private val onSizeChange: (IntVolumeSize) -> Boolean,
+    private val onSizeChange: ((IntVolumeSize) -> Boolean)?,
 ) : SubspaceModifierNodeElement<ResizableNode>() {
 
     init {
@@ -107,9 +123,119 @@ internal class ResizableNode(
     internal var minimumSize: DpVolumeSize,
     internal var maximumSize: DpVolumeSize,
     internal var maintainAspectRatio: Boolean,
-    internal var onSizeChange: (IntVolumeSize) -> Boolean,
-) : SubspaceModifier.Node(), CoreEntityNode {
-    override fun modifyCoreEntity(coreEntity: CoreEntity) {
-        coreEntity.resizable?.updateState(this)
+    internal var onSizeChange: ((IntVolumeSize) -> Boolean)?,
+) :
+    SubspaceModifier.Node(),
+    CompositionLocalConsumerSubspaceModifierNode,
+    CoreEntityNode,
+    LayoutCoordinatesAwareModifierNode,
+    ResizeListener {
+    private inline val density: Density
+        get() = currentValueOf(LocalDensity)
+
+    private inline val session: Session
+        get() = checkNotNull(currentValueOf(LocalSession)) { "Expected Session to be available." }
+
+    /** Size based on user adjustments from ResizeEvents from SceneCore. */
+    private var userSize: IntVolumeSize? = null
+
+    /** Whether the resizableComponent is attached to the entity. */
+    private var isComponentAttached: Boolean = false
+
+    private val component: ResizableComponent by lazy {
+        ResizableComponent.create(session).also { it.addResizeListener(MainExecutor, this) }
+    }
+
+    /** Updates the resizable state of this CoreEntity. Only update resizable state if [enabled]. */
+    private fun updateState() {
+        if (enabled && coreEntity is ResizableCoreEntity) {
+            enableAndUpdateComponent()
+        } else {
+            disableComponent()
+        }
+    }
+
+    /** Enables the ResizableComponent for this CoreEntity and updates its values. */
+    private fun enableAndUpdateComponent() {
+        if (!isComponentAttached) {
+            check(coreEntity.addComponent(component)) {
+                "Could not add ResizableComponent to Core Entity"
+            }
+            isComponentAttached = true
+        }
+
+        minimumSize.toDimensionsInMeters().let {
+            if (component.minimumSize != it) {
+                component.minimumSize = it
+            }
+        }
+        maximumSize.toDimensionsInMeters().let {
+            if (component.maximumSize != it) {
+                component.maximumSize = it
+            }
+        }
+    }
+
+    /** Returns 0.0f if the aspect ratio of x to y is not well defined. */
+    private fun getAspectRatioY(size: Dimensions): Float {
+        if (size.width == 0f || size.height == 0f) return 0.0f
+        return size.width / size.height
+    }
+
+    /**
+     * Disables the ResizableComponent for this CoreEntity. Takes care of life cycle tasks for the
+     * underlying component in SceneCore.
+     */
+    private fun disableComponent() {
+        if (isComponentAttached) {
+            coreEntity.removeComponent(component)
+            isComponentAttached = false
+            userSize = null
+            requestRelayout()
+        }
+    }
+
+    override fun onResizeStart(entity: Entity, originalSize: Dimensions) {
+        component.fixedAspectRatio =
+            if (maintainAspectRatio) getAspectRatioY(originalSize) else 0.0f
+    }
+
+    /**
+     * During a resize, the size of the entity does not change, only its reform window. We do not
+     * need to respond to every event, e.g., onResizeUpdate, like we do for Movable.
+     */
+    override fun onResizeEnd(entity: Entity, finalSize: Dimensions) {
+        resizeListener(finalSize)
+    }
+
+    /**
+     * Called every time there is an onResizeEnd event in SceneCore, if this CoreEntity is
+     * resizable.
+     */
+    private fun resizeListener(newSize: Dimensions) {
+        if (onSizeChange?.invoke(newSize.toIntVolumeSize(density)) == true) {
+            // We're done, the user app will handle the event.
+            return
+        }
+        userSize = newSize.toIntVolumeSize(density)
+        requestRelayout()
+    }
+
+    override fun CoreEntityScope.modifyCoreEntity() {
+        updateState()
+        userSize?.let { setRenderedSize(it) }
+    }
+
+    override fun onLayoutCoordinates(coordinates: SubspaceLayoutCoordinates) {
+        // Update the size of the component to match the final size of the layout.
+        component.size = coordinates.size.toDimensionsInMeters(density)
+    }
+
+    override fun onDetach() {
+        disableComponent()
+    }
+
+    private companion object {
+        val MainExecutor: Executor = Dispatchers.Main.asExecutor()
     }
 }

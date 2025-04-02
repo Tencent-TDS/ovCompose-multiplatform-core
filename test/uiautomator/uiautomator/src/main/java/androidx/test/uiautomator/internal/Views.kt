@@ -18,7 +18,6 @@ package androidx.test.uiautomator.internal
 
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.uiautomator.NodeFilterScope
-import androidx.test.uiautomator.ViewNotFoundException
 import androidx.test.uiautomator.children
 
 /**
@@ -82,11 +81,5 @@ internal fun findViews(
             uiDevice.runWatchers()
         }
     }
-
-    val nodes = findNodes()
-    if (nodes.isEmpty()) {
-        throw ViewNotFoundException("Could not find a view matching the given filter.")
-    }
-
-    return nodes
+    return findNodes()
 }

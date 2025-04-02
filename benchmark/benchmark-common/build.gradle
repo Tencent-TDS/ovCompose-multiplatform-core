@@ -118,6 +118,3 @@ tasks.withType(KotlinCompile).configureEach {
     }
 }
 
-ksp {
-    useKsp2 = true
-}

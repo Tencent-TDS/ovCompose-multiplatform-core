@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.time.Duration
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import org.junit.rules.TestRule
@@ -277,7 +278,14 @@ private constructor(
         activityProvider: (R) -> A,
     ) : this(
         activityRule,
-        AndroidComposeUiTestEnvironment(effectContext) { activityProvider(activityRule) },
+        AndroidComposeUiTestEnvironment(
+            effectContext = effectContext,
+            // Since now it calls kotlinx.coroutines.test.runTest under the hood,
+            // to preserve the behaviour compatibility we set an Infinite timeout
+            testTimeout = Duration.INFINITE
+        ) {
+            activityProvider(activityRule)
+        },
     )
 
     /**
@@ -298,12 +306,6 @@ private constructor(
                         base.evaluate()
                     } catch (t: Throwable) {
                         blockException = t
-                    } finally {
-                        // Remove all compose content in a controlled environment. Content may or
-                        // may not dispose cleanly. The Activity teardown is going to dispose all
-                        // of the compositions anyway, so we need to preemptively try now where we
-                        // can catch any exceptions.
-                        runOnUiThread { environment.tryDiscardAllCompositions() }
                     }
 
                     // Throw the aggregate exception. May be from the test body or from the cleanup.

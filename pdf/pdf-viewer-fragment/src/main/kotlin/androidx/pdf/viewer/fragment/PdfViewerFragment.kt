@@ -36,6 +36,7 @@ import android.widget.TextView
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
+import androidx.core.os.OperationCanceledException
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat.Callback.DISPATCH_MODE_CONTINUE_ON_SUBTREE
 import androidx.fragment.app.Fragment
@@ -43,6 +44,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.pdf.util.AnnotationUtils
 import androidx.pdf.view.PdfView
 import androidx.pdf.view.Selection
 import androidx.pdf.view.ToolBoxView
@@ -103,6 +105,8 @@ public open class PdfViewerFragment constructor() : Fragment() {
         arguments = args
     }
 
+    private var isAnnotationIntentResolvable = false
+
     /**
      * The URI of the PDF document to display defaulting to `null`.
      *
@@ -134,8 +138,8 @@ public open class PdfViewerFragment constructor() : Fragment() {
         get() = documentViewModel.isTextSearchActiveFromState
         set(value) {
             documentViewModel.updateSearchState(value)
-            // hiding the toolbox when search is active and showing when search is closes
-            isToolboxVisible = !value
+            // entering the immersive mode when search is active and exiting when search is closes
+            documentViewModel.setImmersiveModeDesired(enterImmersive = value)
         }
 
     /**
@@ -146,9 +150,11 @@ public open class PdfViewerFragment constructor() : Fragment() {
      * accordingly.
      */
     public var isToolboxVisible: Boolean
-        get() = documentViewModel.isToolboxVisibleFromState
+        // We can't use toolbox.visibility because toolboxView is the layout here, and
+        // its visibility doesn't change.
+        get() = if (::toolboxView.isInitialized) toolboxView.toolboxVisibility == VISIBLE else false
         set(value) {
-            documentViewModel.updateToolboxState(isToolboxActive = value)
+            if (value && isAnnotationIntentResolvable) toolboxView.show() else toolboxView.hide()
         }
 
     /**
@@ -240,12 +246,12 @@ public open class PdfViewerFragment constructor() : Fragment() {
             toolboxGestureDelegate =
                 object : ToolboxGestureDelegate {
                     override fun onSingleTap() {
-                        documentViewModel.updateToolboxState(isToolboxActive = !isToolboxVisible)
+                        documentViewModel.toggleImmersiveModeState()
                         _pdfSearchView.clearFocus()
                     }
 
                     override fun onScroll(position: Int) {
-                        documentViewModel.updateToolboxState(isToolboxActive = (position <= 0))
+                        documentViewModel.setImmersiveModeDesired(enterImmersive = (position > 0))
                     }
                 }
         )
@@ -316,6 +322,7 @@ public open class PdfViewerFragment constructor() : Fragment() {
             _pdfSearchView.searchQueryBox.requestFocus()
 
         super.onResume()
+        pdfView.pdfDocument?.uri?.let { uri -> setAnnotationIntentResolvability(uri) }
     }
 
     /**
@@ -396,13 +403,16 @@ public open class PdfViewerFragment constructor() : Fragment() {
             documentViewModel.searchViewUiState.collect { uiState ->
                 pdfSearchViewManager.setState(uiState)
 
-                /** Clear selection when we start a search session. */
-                if (uiState !is SearchViewUiState.Closed) _pdfView.clearSelection()
-
-                /**
-                 * Dynamically control the fast scroller visibility based on the search UI state.
-                 */
-                _pdfView.overrideFastScrollerVisibility(uiState is SearchViewUiState.Closed)
+                /** Clear selection when we start a search session. Also hide the fast scroller. */
+                if (uiState !is SearchViewUiState.Closed) {
+                    _pdfView.apply {
+                        clearSelection()
+                        forcedFastScrollVisibility = false
+                    }
+                } else {
+                    // Let PdfView internally control fast scroller visibility.
+                    _pdfView.forcedFastScrollVisibility = null
+                }
             }
         }
 
@@ -416,8 +426,8 @@ public open class PdfViewerFragment constructor() : Fragment() {
         }
 
         toolboxStateCollector = collectFlowOnLifecycleScope {
-            documentViewModel.toolboxViewUiState.collect { showToolbox ->
-                if (showToolbox) toolboxView.show() else toolboxView.hide()
+            documentViewModel.immersiveModeFlow.collect { immersiveModeState ->
+                onRequestImmersiveMode(immersiveModeState)
             }
         }
     }
@@ -509,6 +519,7 @@ public open class PdfViewerFragment constructor() : Fragment() {
         onLoadDocumentSuccess()
         _pdfView.pdfDocument = uiState.pdfDocument
         toolboxView.setPdfDocument(uiState.pdfDocument)
+        setAnnotationIntentResolvability(uiState.pdfDocument.uri)
         setViewVisibility(
             pdfView = VISIBLE,
             loadingView = GONE,
@@ -518,12 +529,28 @@ public open class PdfViewerFragment constructor() : Fragment() {
         collectViewStates()
     }
 
+    private fun setAnnotationIntentResolvability(uri: Uri) {
+        isAnnotationIntentResolvable =
+            AnnotationUtils.resolveAnnotationIntent(requireContext(), uri)
+        if (!isAnnotationIntentResolvable) {
+            toolboxView.hide()
+        }
+    }
+
     private fun handleDocumentError(uiState: DocumentError) {
         dismissPasswordDialog()
-        val errorMessage =
-            context?.resources?.getString(androidx.pdf.R.string.pdf_error)
-                ?: uiState.exception.message
-        onLoadDocumentError(RuntimeException(errorMessage, uiState.exception))
+        if (uiState.exception is OperationCanceledException) {
+            onLoadDocumentError(uiState.exception)
+        } else {
+            onLoadDocumentError(
+                RuntimeException(
+                    context?.resources?.getString(androidx.pdf.R.string.pdf_error)
+                        ?: uiState.exception.message,
+                    uiState.exception
+                )
+            )
+        }
+
         setViewVisibility(
             pdfView = GONE,
             loadingView = GONE,

@@ -54,17 +54,6 @@ import kotlin.jvm.JvmField
  */
 @ExperimentalFoundationApi
 object ComposeFoundationFlags {
-
-    /**
-     * Selecting flag to enable the change in Fling Propagation behavior in nested Scrollables. When
-     * this is true, an ongoing fling that causes the scrollable container to hit the bounds will be
-     * cancelled so the next scrollable in the chain can take over and fling with velocity left. We
-     * are doing a flagged roll out of this behavior change. A node that is detached during a fling
-     * will be treated as a node that hit its bounds, that is, it will cancel its fling and
-     * propagate the remaining velocity through onPostFling.
-     */
-    @Suppress("MutableBareField") @JvmField var NewNestedFlingPropagationEnabled = true
-
     /**
      * Selecting flag to enable Drag Gesture "Pick-up" on drag gesture detectors. This also applies
      * to Draggables and Scrollables which use gesture detectors as well. Any parent drag detector
@@ -90,4 +79,12 @@ object ComposeFoundationFlags {
      */
     // TODO(grantapher-cm-api-publicize) Make field public
     @Suppress("MutableBareField") @JvmField internal var isNewContextMenuEnabled = false
+
+    /**
+     * Selecting flag to enable the use of new PausableComposition in lazy layout prefetch. This
+     * change allows us to distribute work we need to do during the prefetch better, for example we
+     * can only perform the composition for parts of the LazyColumn's next item during one ui frame,
+     * and then continue composing the rest of it in the next frames.
+     */
+    @Suppress("MutableBareField") @JvmField var isPausableCompositionInPrefetchEnabled = true
 }

@@ -17,17 +17,29 @@
 package androidx.health.connect.client.impl
 
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectFeatures
+import androidx.health.connect.client.aggregate.AggregationResult
+import androidx.health.connect.client.aggregate.AggregationResultGroupedByDuration
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
+import androidx.health.connect.client.feature.isPersonalHealthRecordFeatureAvailableInPlatform
+import androidx.health.connect.client.impl.platform.phr.VaccinesMedicalResourceFactory.CompleteStatus.COMPLETE
+import androidx.health.connect.client.impl.platform.phr.VaccinesMedicalResourceFactory.CompleteStatus.INCOMPLETE
+import androidx.health.connect.client.impl.platform.phr.VaccinesMedicalResourceFactory.createVaccinesUpsertMedicalResourceRequest
 import androidx.health.connect.client.impl.platform.records.SDK_TO_PLATFORM_RECORD_CLASS
 import androidx.health.connect.client.impl.platform.records.SDK_TO_PLATFORM_RECORD_CLASS_EXT_13
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.readRecord
+import androidx.health.connect.client.records.FhirResource.Companion.FHIR_RESOURCE_TYPE_IMMUNIZATION
+import androidx.health.connect.client.records.FhirVersion
 import androidx.health.connect.client.records.HeartRateRecord
+import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_RESOURCE_TYPE_VACCINES
+import androidx.health.connect.client.records.MedicalResourceId
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.WeightRecord
@@ -39,6 +51,11 @@ import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ChangesTokenRequest
+import androidx.health.connect.client.request.CreateMedicalDataSourceRequest
+import androidx.health.connect.client.request.DeleteMedicalResourcesRequest
+import androidx.health.connect.client.request.GetMedicalDataSourcesRequest
+import androidx.health.connect.client.request.ReadMedicalResourcesInitialRequest
+import androidx.health.connect.client.request.ReadMedicalResourcesPageRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
@@ -66,6 +83,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalPersonalHealthRecordApi::class)
 @RunWith(AndroidJUnit4::class)
 @MediumTest
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, codeName = "UpsideDownCake")
@@ -78,6 +96,12 @@ class HealthConnectClientUpsideDownImplTest {
             LocalDate.now().minusDays(5).atStartOfDay().toInstant(ZoneOffset.UTC)
         private val ZONE_OFFSET = ZoneOffset.UTC
         private val ZONE_ID = ZoneId.of(ZONE_OFFSET.id)
+
+        private const val MEDICAL_DATA_SOURCE_DISPLAY_NAME = "Data source test app"
+        private val FHIR_BASE_URI = Uri.parse("https://fhir.com/oauth/api/FHIR/R4/")
+        // lazy is needed, otherwise the object would be constructed without a check for PHR feature
+        // availability, which would lead to a crash.
+        private val FHIR_VERSION_4_0_1 by lazy { FhirVersion(4, 0, 1) }
 
         fun getAllRecordPermissions(): Array<String> {
             val permissions: HashSet<String> = HashSet()
@@ -92,6 +116,10 @@ class HealthConnectClientUpsideDownImplTest {
                     permissions.add(HealthPermission.getReadPermission(recordType))
                     permissions.add(HealthPermission.getWritePermission(recordType))
                 }
+            }
+
+            if (isPersonalHealthRecordFeatureAvailableInPlatform()) {
+                permissions.addAll(HealthPermission.ALL_PERSONAL_HEALTH_RECORD_PERMISSIONS)
             }
 
             return permissions.toTypedArray()
@@ -116,11 +144,15 @@ class HealthConnectClientUpsideDownImplTest {
         for (recordType in SDK_TO_PLATFORM_RECORD_CLASS.keys) {
             healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
         }
-
         if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13) {
             for (recordType in SDK_TO_PLATFORM_RECORD_CLASS_EXT_13.keys) {
                 healthConnectClient.deleteRecords(recordType, TimeRangeFilter.after(Instant.EPOCH))
             }
+        }
+        if (isPersonalHealthRecordFeatureAvailableInPlatform()) {
+            healthConnectClient
+                .getMedicalDataSources(GetMedicalDataSourcesRequest(listOf(context.packageName)))
+                .forEach { healthConnectClient.deleteMedicalDataSourceWithData(it.id) }
         }
     }
 
@@ -450,6 +482,12 @@ class HealthConnectClientUpsideDownImplTest {
 
     @Test
     fun aggregateGroupByDuration() = runTest {
+        // Data origins are not supported for duration buckets pre sdkExt 10. See b/284163741
+        val dataOrigins =
+            if (SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) < 10)
+                emptySet()
+            else setOf(DataOrigin(context.packageName))
+
         healthConnectClient.insertRecords(
             listOf(
                 NutritionRecord(
@@ -482,18 +520,38 @@ class HealthConnectClientUpsideDownImplTest {
         val aggregateResponse =
             healthConnectClient.aggregateGroupByDuration(
                 AggregateGroupByDurationRequest(
-                    setOf(NutritionRecord.ENERGY_TOTAL),
+                    setOf(HeartRateRecord.BPM_AVG, NutritionRecord.ENERGY_TOTAL),
                     TimeRangeFilter.between(START_TIME, START_TIME + 1.minutes),
                     Duration.ofSeconds(30),
                     setOf()
                 )
             )
 
-        with(aggregateResponse) {
-            assertThat(this).hasSize(2)
-            assertThat(this[0].result[NutritionRecord.ENERGY_TOTAL]).isEqualTo(300.kilocalories)
-            assertThat(this[1].result[NutritionRecord.ENERGY_TOTAL]).isEqualTo(500.kilocalories)
-        }
+        assertThat(aggregateResponse)
+            .containsExactly(
+                AggregationResultGroupedByDuration(
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues = mapOf(NutritionRecord.ENERGY_TOTAL.metricKey to 300.0),
+                            dataOrigins = dataOrigins
+                        ),
+                    startTime = START_TIME,
+                    endTime = START_TIME + 30.seconds,
+                    zoneOffset = ZoneOffset.UTC
+                ),
+                AggregationResultGroupedByDuration(
+                    result =
+                        AggregationResult(
+                            longValues = emptyMap(),
+                            doubleValues = mapOf(NutritionRecord.ENERGY_TOTAL.metricKey to 500.0),
+                            dataOrigins = dataOrigins
+                        ),
+                    startTime = START_TIME + 30.seconds,
+                    endTime = START_TIME + 1.minutes,
+                    zoneOffset = ZoneOffset.UTC
+                )
+            )
     }
 
     @Test
@@ -769,6 +827,10 @@ class HealthConnectClientUpsideDownImplTest {
 
     @Test
     fun getGrantedPermissions() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
         assertThat(healthConnectClient.permissionController.getGrantedPermissions())
             .containsExactlyElementsIn(getAllRecordPermissions())
     }
@@ -889,6 +951,321 @@ class HealthConnectClientUpsideDownImplTest {
 
         assertThat(groupedByPeriodResult[0].result.dataOrigins)
             .containsExactly(DataOrigin(packageName = context.packageName))
+    }
+
+    @Test
+    fun createMedicalDataSource_thenGetByRequest_expectSuccess() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+
+        // Create a MedicalDataSource
+        val createMedicalDataSourceResponse =
+            healthConnectClient.createMedicalDataSource(
+                CreateMedicalDataSourceRequest(
+                    fhirBaseUri = FHIR_BASE_URI,
+                    displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                    fhirVersion = FHIR_VERSION_4_0_1
+                )
+            )
+        assertThat(createMedicalDataSourceResponse.id).isNotEmpty()
+
+        // Retrieve newly created data source by request and verify retrieved == created response
+        val getMedicalDataSourcesByRequestResponse =
+            healthConnectClient.getMedicalDataSources(
+                GetMedicalDataSourcesRequest(listOf(createMedicalDataSourceResponse.packageName))
+            )
+        assertThat(getMedicalDataSourcesByRequestResponse)
+            .containsExactly(createMedicalDataSourceResponse)
+    }
+
+    @Test
+    fun createMedicalDataSource_thenGetByIds_expectSuccess() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+
+        // Create a MedicalDataSource
+        val createMedicalDataSourceResponse =
+            healthConnectClient.createMedicalDataSource(
+                CreateMedicalDataSourceRequest(
+                    fhirBaseUri = FHIR_BASE_URI,
+                    displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                    fhirVersion = FHIR_VERSION_4_0_1
+                )
+            )
+        assertThat(createMedicalDataSourceResponse.id).isNotEmpty()
+
+        // Retrieve newly created data source by ID and verify retrieved == created response
+        val getMedicalDataSourcesByIdsResponse =
+            healthConnectClient.getMedicalDataSources(listOf(createMedicalDataSourceResponse.id))
+        assertThat(getMedicalDataSourcesByIdsResponse).hasSize(1)
+        assertThat(getMedicalDataSourcesByIdsResponse)
+            .containsExactly(createMedicalDataSourceResponse)
+    }
+
+    @Test
+    fun createMedicalDataSource_thenDelete_expectSuccess() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+
+        // Create a MedicalDataSource
+        val createMedicalDataSourceResponse =
+            healthConnectClient.createMedicalDataSource(
+                CreateMedicalDataSourceRequest(
+                    fhirBaseUri = FHIR_BASE_URI,
+                    displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                    fhirVersion = FHIR_VERSION_4_0_1
+                )
+            )
+        assertThat(createMedicalDataSourceResponse.id).isNotEmpty()
+
+        // Delete the newly created data source
+        healthConnectClient.deleteMedicalDataSourceWithData(createMedicalDataSourceResponse.id)
+
+        // Verify newly created data source does not exist
+        val getMedicalDataSourcesByIdsResponse =
+            healthConnectClient.getMedicalDataSources(listOf(createMedicalDataSourceResponse.id))
+        assertThat(getMedicalDataSourcesByIdsResponse).hasSize(0)
+    }
+
+    @Test
+    fun upsertNewMedicalResourcesThenReadByRequest_expectCorrectResponse() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+        val dataSourceId =
+            healthConnectClient
+                .createMedicalDataSource(
+                    CreateMedicalDataSourceRequest(
+                        fhirBaseUri = FHIR_BASE_URI,
+                        displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                        fhirVersion = FHIR_VERSION_4_0_1
+                    )
+                )
+                .id
+        val requests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = "immunization-101"
+                ),
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = "immunization-102"
+                )
+            )
+
+        // insert a new MedicalResource
+        val upsertResponse = healthConnectClient.upsertMedicalResources(requests)
+
+        assertThat(upsertResponse).hasSize(2)
+        assertThat(upsertResponse.map { it.fhirResource.data }).isEqualTo(requests.map { it.data })
+
+        // read the first MedicalResource with ReadMedicalResourcesInitialRequest
+        val firstPageResponse =
+            healthConnectClient.readMedicalResources(
+                ReadMedicalResourcesInitialRequest(
+                    MEDICAL_RESOURCE_TYPE_VACCINES,
+                    setOf(dataSourceId),
+                    pageSize = 1
+                )
+            )
+
+        assertThat(firstPageResponse.medicalResources).containsExactly(upsertResponse[0])
+        assertThat(firstPageResponse.remainingCount).isEqualTo(1)
+        assertThat(firstPageResponse.nextPageToken).isNotNull()
+
+        // read the second MedicalResource with ReadMedicalResourcesPageRequest
+        val secondPageResponse =
+            healthConnectClient.readMedicalResources(
+                ReadMedicalResourcesPageRequest(firstPageResponse.nextPageToken!!)
+            )
+
+        assertThat(secondPageResponse.medicalResources).containsExactly(upsertResponse[1])
+        assertThat(secondPageResponse.remainingCount).isEqualTo(0)
+        assertThat(secondPageResponse.nextPageToken).isNull()
+    }
+
+    @Test
+    fun upsertNewMedicalResourcesThenReadByIds_expectCorrectResponse() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+        val dataSourceId =
+            healthConnectClient
+                .createMedicalDataSource(
+                    CreateMedicalDataSourceRequest(
+                        fhirBaseUri = FHIR_BASE_URI,
+                        displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                        fhirVersion = FHIR_VERSION_4_0_1
+                    )
+                )
+                .id
+        val fhirResourceId = "immunization-101"
+        val requests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = fhirResourceId
+                )
+            )
+
+        // insert a new MedicalResource
+        val upsertResponse = healthConnectClient.upsertMedicalResources(requests)
+
+        assertThat(upsertResponse).hasSize(1)
+        assertThat(upsertResponse[0].fhirResource.data).isEqualTo(requests[0].data)
+
+        // read back the MedicalResource
+        val medicalResources =
+            healthConnectClient.readMedicalResources(
+                listOf(
+                    MedicalResourceId(
+                        dataSourceId = dataSourceId,
+                        fhirResourceType = FHIR_RESOURCE_TYPE_IMMUNIZATION,
+                        fhirResourceId = fhirResourceId
+                    )
+                )
+            )
+
+        assertThat(medicalResources).isEqualTo(upsertResponse)
+    }
+
+    @Test
+    fun upsertExistingMedicalResourcesThenReadByIds_expectCorrectResponse() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+        val dataSourceId =
+            healthConnectClient
+                .createMedicalDataSource(
+                    CreateMedicalDataSourceRequest(
+                        fhirBaseUri = FHIR_BASE_URI,
+                        displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                        fhirVersion = FHIR_VERSION_4_0_1
+                    )
+                )
+                .id
+        val fhirResourceId = "immunization-101"
+        val insertRequests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = fhirResourceId,
+                    completeStatus = COMPLETE
+                )
+            )
+
+        // insert a new MedicalResource
+        val insertResponse = healthConnectClient.upsertMedicalResources(insertRequests)
+
+        assertThat(insertResponse).hasSize(1)
+        assertThat(insertResponse[0].fhirResource.data).isEqualTo(insertRequests[0].data)
+
+        // update the inserted MedicalResource
+        val updateRequests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = fhirResourceId,
+                    completeStatus = INCOMPLETE // change this from COMPLETE => INCOMPLETE
+                )
+            )
+
+        val updateResponse = healthConnectClient.upsertMedicalResources(updateRequests)
+        assertThat(updateResponse).hasSize(1)
+        assertThat(updateResponse[0].fhirResource.data).isEqualTo(updateRequests[0].data)
+        assertThat(insertResponse[0].id).isEqualTo(updateResponse[0].id)
+
+        // read back the MedicalResource
+        val medicalResources =
+            healthConnectClient.readMedicalResources(
+                listOf(
+                    MedicalResourceId(
+                        dataSourceId = dataSourceId,
+                        fhirResourceType = FHIR_RESOURCE_TYPE_IMMUNIZATION,
+                        fhirResourceId = fhirResourceId
+                    )
+                )
+            )
+
+        assertThat(medicalResources).isEqualTo(updateResponse)
+    }
+
+    @Test
+    fun insertMedicalResourcesThenDeleteByIds_expectSuccessfulDeletion() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+        val dataSourceId =
+            healthConnectClient
+                .createMedicalDataSource(
+                    CreateMedicalDataSourceRequest(
+                        fhirBaseUri = FHIR_BASE_URI,
+                        displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                        fhirVersion = FHIR_VERSION_4_0_1
+                    )
+                )
+                .id
+        val fhirResourceId = "immunization-101"
+        val requests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = fhirResourceId
+                )
+            )
+        val insertResponse = healthConnectClient.upsertMedicalResources(requests)
+
+        healthConnectClient.deleteMedicalResources(insertResponse.map { it.id })
+
+        val medicalResources =
+            healthConnectClient.readMedicalResources(insertResponse.map { it.id })
+        assertThat(medicalResources).isEmpty()
+    }
+
+    @Test
+    fun insertMedicalResourcesThenDeleteByRequest_expectSuccessfulDeletion() = runTest {
+        assumeTrue(
+            "FEATURE_PERSONAL_HEALTH_RECORD is not available on this device!",
+            isPersonalHealthRecordFeatureAvailableInPlatform()
+        )
+        val dataSourceId =
+            healthConnectClient
+                .createMedicalDataSource(
+                    CreateMedicalDataSourceRequest(
+                        fhirBaseUri = FHIR_BASE_URI,
+                        displayName = MEDICAL_DATA_SOURCE_DISPLAY_NAME,
+                        fhirVersion = FHIR_VERSION_4_0_1
+                    )
+                )
+                .id
+        val fhirResourceId = "immunization-101"
+        val requests =
+            listOf(
+                createVaccinesUpsertMedicalResourceRequest(
+                    dataSourceId = dataSourceId,
+                    fhirResourceId = fhirResourceId
+                )
+            )
+        val insertResponse = healthConnectClient.upsertMedicalResources(requests)
+
+        healthConnectClient.deleteMedicalResources(
+            DeleteMedicalResourcesRequest(setOf(dataSourceId))
+        )
+
+        val medicalResources =
+            healthConnectClient.readMedicalResources(insertResponse.map { it.id })
+        assertThat(medicalResources).isEmpty()
     }
 
     private val Int.seconds: Duration

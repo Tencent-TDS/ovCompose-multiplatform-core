@@ -22,7 +22,13 @@ import androidx.compose.foundation.contextmenu.ContextMenuState
 import androidx.compose.foundation.text.MenuItemsAvailability
 import androidx.compose.foundation.text.TextContextMenuItems
 import androidx.compose.foundation.text.TextItem
+import androidx.compose.foundation.text.contextmenu.modifier.addTextContextMenuComponentsWithResources
+import androidx.compose.foundation.text.textItem
 import androidx.compose.runtime.State
+import androidx.compose.ui.Modifier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 
 internal fun TextFieldSelectionState.contextMenuBuilder(
     state: ContextMenuState,
@@ -47,4 +53,39 @@ internal fun TextFieldSelectionState.contextMenuBuilder(
             onMenuItemClicked(TextContextMenuItems.Autofill)
         }
     }
+}
+
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    state: TextFieldSelectionState,
+    coroutineScope: CoroutineScope,
+): Modifier = addTextContextMenuComponentsWithResources { resources ->
+    separator()
+    if (state.canCut())
+        textItem(resources, TextContextMenuItems.Cut) {
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) { state.cut() }
+            close()
+        }
+    if (state.canCopy())
+        textItem(resources, TextContextMenuItems.Copy) {
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                state.copy(cancelSelection = state.textToolbarShown)
+            }
+            close()
+        }
+    if (state.canPaste())
+        textItem(resources, TextContextMenuItems.Paste) {
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) { state.paste() }
+            close()
+        }
+    if (state.canSelectAll())
+        textItem(resources, TextContextMenuItems.SelectAll) {
+            state.selectAll()
+            if (!state.textToolbarShown) close()
+        }
+    if (Build.VERSION.SDK_INT >= 26 && state.canAutofill())
+        textItem(resources, TextContextMenuItems.Autofill) {
+            state.autofill()
+            close()
+        }
+    separator()
 }

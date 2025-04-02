@@ -21,7 +21,6 @@ import android.content.Context
 import android.graphics.Rect
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Build
 import android.util.Rational
 import android.view.Surface
 import androidx.camera.camera2.Camera2Config
@@ -47,11 +46,10 @@ import androidx.camera.core.impl.utils.TransformUtils.rectToSize
 import androidx.camera.core.impl.utils.TransformUtils.rotateSize
 import androidx.camera.core.impl.utils.TransformUtils.within360
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.testing.impl.AndroidUtil.isEmulator
-import androidx.camera.testing.impl.AndroidUtil.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraTaskTrackingExecutor
 import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.IgnoreVideoRecordingProblematicDeviceRule
 import androidx.camera.testing.impl.SurfaceTextureProvider
 import androidx.camera.testing.impl.WakelockEmptyActivityRule
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
@@ -78,7 +76,9 @@ import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.TestRule
 import org.junit.runners.Parameterized
 
 abstract class VideoRecordingTestBase(
@@ -107,7 +107,11 @@ abstract class VideoRecordingTestBase(
     val permissionRule: GrantPermissionRule =
         GrantPermissionRule.grant(Manifest.permission.RECORD_AUDIO)
 
-    @get:Rule val wakelockEmptyActivityRule = WakelockEmptyActivityRule()
+    // Chain rule to not run WakelockEmptyActivityRule when the test is ignored.
+    @get:Rule
+    val skipAndWakelockRule: TestRule =
+        RuleChain.outerRule(IgnoreVideoRecordingProblematicDeviceRule())
+            .around(WakelockEmptyActivityRule())
 
     companion object {
         private const val VIDEO_TIMEOUT_SEC = 10L
@@ -177,13 +181,6 @@ abstract class VideoRecordingTestBase(
     @Before
     fun setUp() {
         assumeTrue(CameraUtil.hasCameraWithLensFacing(cameraSelector.lensFacing!!))
-        skipVideoRecordingTestIfNotSupportedByEmulator()
-
-        // Skip for b/264902324
-        assumeFalse(
-            "Emulator API 30 crashes running this test.",
-            Build.VERSION.SDK_INT == 30 && isEmulator()
-        )
 
         cameraExecutor = CameraTaskTrackingExecutor()
         val cameraXConfig =

@@ -19,17 +19,17 @@ package androidx.credentials.providerevents.playservices
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.SigningInfo
+import android.os.Build
 import android.os.CancellationSignal
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.core.os.OutcomeReceiverCompat
 import androidx.credentials.CreateCredentialResponse
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.provider.CallingAppInfo
+import androidx.credentials.provider.ProviderCreateCredentialRequest
 import androidx.credentials.providerevents.CredentialEventsProvider
 import androidx.credentials.providerevents.service.CredentialProviderEventsService
 import com.google.android.gms.common.wrappers.Wrappers
@@ -40,7 +40,6 @@ import com.google.android.gms.identitycredentials.provider.ICredentialProviderSe
 import java.lang.ref.WeakReference
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-@RequiresApi(28)
 public class CredentialEventsProviderPlayServices() : CredentialEventsProvider {
 
     override fun getStubImplementation(service: CredentialProviderEventsService): IBinder? {
@@ -48,18 +47,39 @@ public class CredentialEventsProviderPlayServices() : CredentialEventsProvider {
         return binderInterface.asBinder()
     }
 
+    @Suppress("RestrictedApiAndroidX")
     private class ServiceWrapper(service: CredentialProviderEventsService, val handler: Handler) :
         ICredentialProviderService.Stub() {
 
+        private fun constructCallingAppInfo(request: CreateCredentialRequest): CallingAppInfo? {
+            val callingAppInfoBundle =
+                request.candidateQueryData.getBundle(EXTRA_CREDENTIAL_CALLING_APP_INFO)
+            return callingAppInfoBundle?.let { CallingAppInfo.extractCallingAppInfo(it) }
+        }
+
         private fun convertToJetpackRequest(
             request: CreateCredentialRequest
-        ): androidx.credentials.CreateCredentialRequest {
-            return androidx.credentials.CreateCredentialRequest.Companion.createFrom(
-                request.type,
-                request.credentialData,
-                request.candidateQueryData,
-                false
-            )
+        ): ProviderCreateCredentialRequest? {
+            val callingAppInfo = constructCallingAppInfo(request)
+            if (callingAppInfo == null) {
+                return null
+            }
+            val providerRequest =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    ProviderCreateCredentialRequest(
+                        androidx.credentials.CreateCredentialRequest.createFrom(
+                            request.type,
+                            request.credentialData,
+                            request.candidateQueryData,
+                            false
+                        ),
+                        callingAppInfo = callingAppInfo
+                    )
+                } else {
+                    // Don't need to support this level as passkey support is 28+
+                    return null
+                }
+            return providerRequest
         }
 
         private fun convertToGmsResponse(
@@ -87,16 +107,17 @@ public class CredentialEventsProviderPlayServices() : CredentialEventsProvider {
             if (!isAuthorizedUid(getCallingUid())) {
                 return
             }
-
-            val jetpackRequest: androidx.credentials.CreateCredentialRequest =
-                convertToJetpackRequest(request)
-            // TODO(b/385394695): Fix being able to create CallingAppInfo with list of signatures
-            val jetpackCallingAppInfo =
-                CallingAppInfo.create(
-                    callingAppInfo.packageName,
-                    SigningInfo(),
-                    callingAppInfo.origin
+            // TODO(b/385394695): Fix being able to create CallingAppInfo with GMS
+            //  CallingAppInfoParcelable
+            val jetpackRequest = convertToJetpackRequest(request)
+            if (jetpackRequest == null) {
+                callback.onFailure(
+                    com.google.android.gms.identitycredentials.CreateCredentialException
+                        .ERROR_TYPE_UNKNOWN,
+                    "Request could not be constructed"
                 )
+                return
+            }
 
             handler.post {
                 val service = serviceRef.get()
@@ -106,14 +127,13 @@ public class CredentialEventsProviderPlayServices() : CredentialEventsProvider {
 
                 service.onCreateCredentialRequest(
                     jetpackRequest,
-                    jetpackCallingAppInfo,
                     CancellationSignal(),
                     object :
                         OutcomeReceiverCompat<CreateCredentialResponse, CreateCredentialException> {
                         override fun onResult(result: CreateCredentialResponse?) {
                             val response = convertToGmsResponse(result)
                             if (response != null) {
-                                // TODO(b/385394695): Remove place holder pending intent affter
+                                // TODO(b/385394695): Remove place holder pending intent after
                                 //  exposing a callback method that does not need pending intent
                                 val placeHolderPendingIntent =
                                     PendingIntent.getService(
@@ -168,6 +188,8 @@ public class CredentialEventsProviderPlayServices() : CredentialEventsProvider {
 
         companion object {
             const val GMS_PACKAGE_NAME: String = "com.google.android.gms"
+            const val EXTRA_CREDENTIAL_CALLING_APP_INFO =
+                "androidx.credentials.providerevents.extra.CALLING_APP_INFO"
         }
     }
 }

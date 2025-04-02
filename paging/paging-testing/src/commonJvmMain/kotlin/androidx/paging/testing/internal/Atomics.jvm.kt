@@ -21,4 +21,14 @@ internal actual typealias AtomicInt = java.util.concurrent.atomic.AtomicInteger
 
 internal actual typealias AtomicBoolean = java.util.concurrent.atomic.AtomicBoolean
 
-internal actual typealias AtomicRef<T> = java.util.concurrent.atomic.AtomicReference<T>
+internal actual class AtomicRef<T> actual constructor(initialValue: T) {
+    private val delegate = java.util.concurrent.atomic.AtomicReference(initialValue)
+
+    actual fun get(): T = delegate.get()
+
+    actual fun set(value: T) {
+        delegate.set(value)
+    }
+
+    actual fun getAndSet(value: T): T = delegate.getAndSet(value)
+}

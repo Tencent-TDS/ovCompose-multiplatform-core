@@ -52,7 +52,6 @@ import kotlin.math.max
  * @param modifier The modifier to be applied to the layout.
  * @param alignment The default alignment of children within the [SpatialBox].
  * @param propagateMinConstraints Whether the incoming min constraints should be passed to content.
- * @param name The name for the [SpatialBox].
  * @param content The content of the [SpatialBox].
  */
 @Composable
@@ -62,21 +61,13 @@ public fun SpatialBox(
     modifier: SubspaceModifier = SubspaceModifier,
     alignment: SpatialAlignment = SpatialAlignment.Center,
     propagateMinConstraints: Boolean = false,
-    name: String = defaultSpatialBoxName(),
     content: @Composable @SubspaceComposable SpatialBoxScope.() -> Unit,
 ) {
     SubspaceLayout(
         modifier = modifier,
         content = { SpatialBoxScopeInstance.content() },
         measurePolicy = SpatialBoxMeasurePolicy(alignment, propagateMinConstraints),
-        name = name,
     )
-}
-
-private var spatialBoxNamePart: Int = 0
-
-private fun defaultSpatialBoxName(): String {
-    return "SpatialBox-${spatialBoxNamePart++}"
 }
 
 /** [MeasurePolicy] for [SpatialBox]. */

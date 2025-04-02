@@ -35,10 +35,15 @@ public final class TrustedWebActivityIntent {
     private final @NonNull Intent mIntent;
 
     private final @NonNull List<Uri> mSharedFileUris;
+    private final @NonNull List<Uri> mFileHandlingUris;
 
-    TrustedWebActivityIntent(@NonNull Intent intent, @NonNull List<Uri> sharedFileUris) {
+    TrustedWebActivityIntent(
+            @NonNull Intent intent,
+            @NonNull List<Uri> sharedFileUris,
+            @NonNull List<Uri> fileHandlingUris) {
         mIntent = intent;
         mSharedFileUris = sharedFileUris;
+        mFileHandlingUris = fileHandlingUris;
     }
 
     /**
@@ -58,6 +63,24 @@ public final class TrustedWebActivityIntent {
                 TrustedWebActivityIntentBuilder.EXTRA_ORIGINAL_LAUNCH_URL, Uri.class);
     }
 
+    public @Nullable FileHandlingData getFileHandlingData() {
+        return FileHandlingData.fromBundle(
+            getIntent().getBundleExtra(TrustedWebActivityIntentBuilder.EXTRA_FILE_HANDLING_DATA));
+    }
+
+    /**
+     * Used for Launch Handler API to provide client mode to a browser.
+     *
+     * {@see https://developer.mozilla.org/en-US/docs/Web/API/Launch_Handler_API}
+     *
+     * @return An integer that represents Launch Handler API client mode.
+     */
+    public @LaunchHandlerClientMode.ClientMode int getLaunchHandlerClientMode() {
+        return getIntent().getIntExtra(
+                TrustedWebActivityIntentBuilder.EXTRA_LAUNCH_HANDLER_CLIENT_MODE,
+                LaunchHandlerClientMode.AUTO);
+    }
+
     /**
      * Launches a Trusted Web Activity.
      */
@@ -70,6 +93,10 @@ public final class TrustedWebActivityIntent {
         for (Uri uri : mSharedFileUris) {
             context.grantUriPermission(mIntent.getPackage(), uri,
                     Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
+        for (Uri uri : mFileHandlingUris) {
+            context.grantUriPermission(mIntent.getPackage(), uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         }
     }
 

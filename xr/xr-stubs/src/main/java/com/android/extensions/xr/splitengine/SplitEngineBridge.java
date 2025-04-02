@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.splitengine;
 
-import androidx.annotation.RestrictTo;
 
 /** Wrapper object around a native SplitEngineBridge. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SplitEngineBridge {
 
     SplitEngineBridge() {

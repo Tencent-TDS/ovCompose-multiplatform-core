@@ -17,6 +17,7 @@
 package androidx.compose.foundation.lazy.layout
 
 import androidx.collection.mutableScatterMapOf
+import androidx.compose.foundation.ComposeFoundationFlags
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.internal.requirePrecondition
@@ -165,8 +166,11 @@ class LazyLayoutPrefetchState(
         /** The amount of placeables composed into this item. */
         val placeablesCount: Int
 
-        /** Retrieves the latest measured size for a given placeable [index] in pixels. */
-        fun getSize(index: Int): IntSize
+        /** The index of the prefetched item. */
+        val index: Int
+
+        /** Retrieves the latest measured size for a given placeable [placeableIndex] in pixels. */
+        fun getSize(placeableIndex: Int): IntSize
     }
 
     private inner class NestedPrefetchScopeImpl : NestedPrefetchScope {
@@ -260,7 +264,7 @@ internal class PrefetchMetrics {
      * is once we encounter a new content type we don't want to start with no averages, instead we
      * use the overall averages initially until we collected more data.
      */
-    private fun getAverage(contentType: Any?): Averages {
+    fun getAverage(contentType: Any?): Averages {
         val lastUsedAverage = this@PrefetchMetrics.lastUsedAverage
         return if (lastUsedContentType === contentType && lastUsedAverage != null) {
             lastUsedAverage
@@ -278,28 +282,34 @@ internal class PrefetchMetrics {
 
     private var lastUsedContentType: Any? = null
     private var lastUsedAverage: Averages? = null
-
-    fun getCompositionTimeNanos(contentType: Any?) = getAverage(contentType).compositionTimeNanos
-
-    fun getMeasureTimeNanos(contentType: Any?) = getAverage(contentType).measureTimeNanos
-
-    fun saveCompositionTime(contentType: Any?, timeNanos: Long) {
-        getAverage(contentType).saveCompositionTimeNanos(timeNanos)
-    }
-
-    fun saveMeasureTime(contentType: Any?, timeNanos: Long) {
-        getAverage(contentType).saveMeasureTimeNanos(timeNanos)
-    }
 }
 
-private class Averages {
+internal class Averages {
     /** Average time the full composition phase has taken. */
     var compositionTimeNanos: Long = 0L
+    /** Average time needed to resume the pausable composition until the next interruption. */
+    var resumeTimeNanos: Long = 0L
+    /** Average time needed to pause the pausable composition. */
+    var pauseTimeNanos: Long = 0L
+    /** Average time the apply phase has taken. */
+    var applyTimeNanos: Long = 0L
     /** Average time the measure phase has taken. */
     var measureTimeNanos: Long = 0L
 
     fun saveCompositionTimeNanos(timeNanos: Long) {
         compositionTimeNanos = calculateAverageTime(timeNanos, compositionTimeNanos)
+    }
+
+    fun saveResumeTimeNanos(timeNanos: Long) {
+        resumeTimeNanos = calculateAverageTime(timeNanos, resumeTimeNanos)
+    }
+
+    fun savePauseTimeNanos(timeNanos: Long) {
+        pauseTimeNanos = calculateAverageTime(timeNanos, pauseTimeNanos)
+    }
+
+    fun saveApplyTimeNanos(timeNanos: Long) {
+        applyTimeNanos = calculateAverageTime(timeNanos, applyTimeNanos)
     }
 
     fun saveMeasureTimeNanos(timeNanos: Long) {
@@ -372,7 +382,7 @@ internal class PrefetchHandleProvider(
 
     @ExperimentalFoundationApi
     private inner class HandleAndRequestImpl(
-        private val index: Int,
+        override val index: Int,
         private val prefetchMetrics: PrefetchMetrics,
         private val onItemPremeasured: (LazyLayoutPrefetchResultScope.() -> Unit)?
     ) : PrefetchHandle, PrefetchRequest, LazyLayoutPrefetchResultScope {
@@ -388,10 +398,10 @@ internal class PrefetchHandleProvider(
 
         private var premeasureConstraints: Constraints? = null
         private var precomposeHandle: SubcomposeLayoutState.PrecomposedSlotHandle? = null
+        private var pausedPrecomposition: SubcomposeLayoutState.PausedPrecomposition? = null
         private var isMeasured = false
         private var isCanceled = false
-        private val isComposed
-            get() = precomposeHandle != null
+        private var isComposed = false
 
         private var hasResolvedNestedPrefetches = false
         private var nestedPrefetchController: NestedPrefetchController? = null
@@ -412,8 +422,8 @@ internal class PrefetchHandleProvider(
         override val placeablesCount: Int
             get() = (precomposeHandle?.placeablesCount ?: 0)
 
-        override fun getSize(index: Int): IntSize {
-            return (precomposeHandle?.getSize(index) ?: IntSize.Zero)
+        override fun getSize(placeableIndex: Int): IntSize {
+            return (precomposeHandle?.getSize(placeableIndex) ?: IntSize.Zero)
         }
 
         private fun shouldExecute(available: Long, average: Long): Boolean {
@@ -430,6 +440,7 @@ internal class PrefetchHandleProvider(
             this.availableTimeNanos = availableTimeNanos
             startTime = markNow()
             elapsedTimeNanos = 0L
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
         }
 
         private fun updateElapsedAndAvailableTime() {
@@ -437,6 +448,7 @@ internal class PrefetchHandleProvider(
             elapsedTimeNanos = (now - startTime).inWholeNanoseconds
             availableTimeNanos -= elapsedTimeNanos
             startTime = now
+            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
         }
 
         override fun PrefetchRequestScope.execute(): Boolean {
@@ -460,23 +472,42 @@ internal class PrefetchHandleProvider(
             }
 
             val contentType = itemProvider.getContentType(index)
+            val average = prefetchMetrics.getAverage(contentType)
 
             // we save the value we get from availableTimeNanos() into a local variable once
             // and manually update it later by calling updateElapsedAndAvailableTime()
             resetAvailableTimeTo(availableTimeNanos())
-            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
             if (!isComposed) {
-                if (
-                    shouldExecute(
-                        availableTimeNanos,
-                        prefetchMetrics.getCompositionTimeNanos(contentType)
-                    )
-                ) {
-                    trace("compose:lazy:prefetch:compose") {
-                        performFullComposition(itemProvider, contentType)
+                if (ComposeFoundationFlags.isPausableCompositionInPrefetchEnabled) {
+                    if (
+                        shouldExecute(
+                            availableTimeNanos,
+                            average.resumeTimeNanos + average.pauseTimeNanos
+                        )
+                    ) {
+                        trace("compose:lazy:prefetch:compose") {
+                            performPausableComposition(itemProvider, contentType, average)
+                        }
                     }
+                } else {
+                    if (shouldExecute(availableTimeNanos, average.compositionTimeNanos)) {
+                        trace("compose:lazy:prefetch:compose") {
+                            performFullComposition(itemProvider, contentType)
+                        }
+                        updateElapsedAndAvailableTime()
+                        average.saveCompositionTimeNanos(elapsedTimeNanos)
+                    }
+                }
+                if (!isComposed) {
+                    return true
+                }
+            }
+
+            if (pausedPrecomposition != null) {
+                if (shouldExecute(availableTimeNanos, average.applyTimeNanos)) {
+                    trace("compose:lazy:prefetch:apply") { performApply() }
                     updateElapsedAndAvailableTime()
-                    prefetchMetrics.saveCompositionTime(contentType, elapsedTimeNanos)
+                    average.saveApplyTimeNanos(elapsedTimeNanos)
                 } else {
                     return true
                 }
@@ -487,7 +518,6 @@ internal class PrefetchHandleProvider(
             // is always an estimation and it could potentially do work we will not need in the end,
             // but the measuring will only do exactly the needed work (including composing nested
             // lazy layouts)
-            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
             if (!isUrgent) {
                 // Nested prefetch logic is best-effort: if nested LazyLayout children are
                 // added/removed/updated after we've resolved nested prefetch states here or
@@ -503,7 +533,6 @@ internal class PrefetchHandleProvider(
                         return true
                     }
                 }
-                traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
                 val hasMoreWork =
                     nestedPrefetchController?.run { executeNestedPrefetches() } ?: false
                 if (hasMoreWork) {
@@ -514,18 +543,12 @@ internal class PrefetchHandleProvider(
                 traceValue("compose:lazy:prefetch:execute:item", index.toLong())
             }
 
-            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
             val constraints = premeasureConstraints
             if (!isMeasured && constraints != null) {
-                if (
-                    shouldExecute(
-                        availableTimeNanos,
-                        prefetchMetrics.getMeasureTimeNanos(contentType)
-                    )
-                ) {
+                if (shouldExecute(availableTimeNanos, average.measureTimeNanos)) {
                     trace("compose:lazy:prefetch:measure") { performMeasure(constraints) }
                     updateElapsedAndAvailableTime()
-                    prefetchMetrics.saveMeasureTime(contentType, elapsedTimeNanos)
+                    average.saveMeasureTimeNanos(elapsedTimeNanos)
                     onItemPremeasured?.invoke(this@HandleAndRequestImpl)
                 } else {
                     return true
@@ -536,6 +559,48 @@ internal class PrefetchHandleProvider(
             return false
         }
 
+        private var pauseRequested = false
+
+        private fun performPausableComposition(
+            itemProvider: LazyLayoutItemProvider,
+            contentType: Any?,
+            averages: Averages
+        ) {
+            val composition =
+                pausedPrecomposition
+                    ?: run {
+                        val key = itemProvider.getKey(index)
+                        val content = itemContentFactory.getContent(index, key, contentType)
+                        subcomposeLayoutState.createPausedPrecomposition(key, content).also {
+                            pausedPrecomposition = it
+                        }
+                    }
+
+            pauseRequested = false
+
+            composition.resume {
+                if (!pauseRequested) {
+                    updateElapsedAndAvailableTime()
+                    averages.saveResumeTimeNanos(elapsedTimeNanos)
+                    pauseRequested =
+                        !shouldExecute(
+                            availableTimeNanos,
+                            averages.resumeTimeNanos + averages.pauseTimeNanos
+                        )
+                }
+                pauseRequested
+            }
+
+            updateElapsedAndAvailableTime()
+            if (pauseRequested) {
+                averages.savePauseTimeNanos(elapsedTimeNanos)
+            } else {
+                averages.saveResumeTimeNanos(elapsedTimeNanos)
+            }
+
+            isComposed = composition.isComplete
+        }
+
         private fun performFullComposition(
             itemProvider: LazyLayoutItemProvider,
             contentType: Any?
@@ -544,6 +609,13 @@ internal class PrefetchHandleProvider(
             val key = itemProvider.getKey(index)
             val content = itemContentFactory.getContent(index, key, contentType)
             precomposeHandle = subcomposeLayoutState.precompose(key, content)
+            isComposed = true
+        }
+
+        private fun performApply() {
+            val precomposition = requireNotNull(pausedPrecomposition) { "Nothing to apply!" }
+            precomposeHandle = precomposition.apply()
+            pausedPrecomposition = null
         }
 
         private fun performMeasure(constraints: Constraints) {

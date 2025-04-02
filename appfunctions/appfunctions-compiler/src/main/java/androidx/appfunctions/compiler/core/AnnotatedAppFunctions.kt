@@ -38,12 +38,12 @@ import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionResponseMetadata
 import androidx.appfunctions.metadata.AppFunctionSchemaMetadata
 import androidx.appfunctions.metadata.CompileTimeAppFunctionMetadata
+import com.google.devtools.ksp.getDeclaredProperties
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.validate
 import com.squareup.kotlinpoet.ClassName
 
@@ -364,14 +364,11 @@ data class AnnotatedAppFunctions(
     // TODO: Document traversal rules.
     private fun addSerializableTypeMetadataToSharedDataTypeMap(
         appFunctionSerializableType: AnnotatedAppFunctionSerializable,
-        unvisitedSerializableProperties: MutableMap<String, KSValueParameter>,
+        unvisitedSerializableProperties: MutableMap<String, AppFunctionPropertyDeclaration>,
         sharedDataTypeMap: MutableMap<String, AppFunctionDataTypeMetadata>,
         seenDataTypeQualifiers: MutableSet<String>,
     ) {
-        val serializableTypeQualifiedName =
-            checkNotNull(
-                appFunctionSerializableType.appFunctionSerializableClass.toClassName().canonicalName
-            )
+        val serializableTypeQualifiedName = appFunctionSerializableType.qualifiedName
         // This type has already been added to the sharedDataMap.
         if (seenDataTypeQualifiers.contains(serializableTypeQualifiedName)) {
             return
@@ -379,7 +376,7 @@ data class AnnotatedAppFunctions(
         seenDataTypeQualifiers.add(serializableTypeQualifiedName)
 
         val superTypesWithSerializableAnnotation =
-            appFunctionSerializableType.appFunctionSerializableClass.superTypes
+            appFunctionSerializableType.superTypes
                 .map { it.resolve().declaration as KSClassDeclaration }
                 .filter {
                     it.annotations.findAnnotation(
@@ -387,12 +384,16 @@ data class AnnotatedAppFunctions(
                     ) != null
                 }
                 .toSet()
-
-        if (superTypesWithSerializableAnnotation.isEmpty()) {
+        val superTypesWithCapabilityAnnotation =
+            appFunctionSerializableType.findSuperTypesWithCapabilityAnnotation()
+        if (
+            superTypesWithSerializableAnnotation.isEmpty() &&
+                superTypesWithCapabilityAnnotation.isEmpty()
+        ) {
             // If there is no super type, then this is a base serializable object.
             sharedDataTypeMap.put(
                 serializableTypeQualifiedName,
-                buildObjectTypeMetadataForSerializableParameters(
+                buildObjectTypeMetadataForObjectParameters(
                     serializableTypeQualifiedName,
                     appFunctionSerializableType.getProperties(),
                     unvisitedSerializableProperties,
@@ -423,11 +424,26 @@ data class AnnotatedAppFunctions(
                     )
                 }
 
+                for (capabilitySuperType in superTypesWithCapabilityAnnotation) {
+                    add(
+                        buildObjectTypeMetadataForObjectParameters(
+                            checkNotNull(capabilitySuperType.toClassName().canonicalName),
+                            capabilitySuperType
+                                .getDeclaredProperties()
+                                .map { AppFunctionPropertyDeclaration(it) }
+                                .toList(),
+                            unvisitedSerializableProperties,
+                            sharedDataTypeMap,
+                            seenDataTypeQualifiers
+                        )
+                    )
+                }
+
                 if (unvisitedSerializableProperties.isNotEmpty()) {
                     // Since all superTypes have been visited, then the remaining parameters in the
                     // unvisitedSerializableParameters map belong to the subclass directly.
                     add(
-                        buildObjectTypeMetadataForSerializableParameters(
+                        buildObjectTypeMetadataForObjectParameters(
                             serializableTypeQualifiedName,
                             unvisitedSerializableProperties.values.toList(),
                             unvisitedSerializableProperties,
@@ -455,18 +471,19 @@ data class AnnotatedAppFunctions(
     }
 
     /**
-     * Builds an [AppFunctionObjectTypeMetadata] for a serializable type.
+     * Builds an [AppFunctionObjectTypeMetadata] for a serializable/capability type.
      *
-     * @param serializableTypeQualifiedName the qualified name of the serializable type being
+     * @param typeQualifiedName the qualified name of the serializable/capability type being
      *   processed. This is the qualified name of the class that is annotated with
-     *   [androidx.appfunctions.AppFunctionSerializable].
-     * @param currentSerializablePropertiesList the list of properties from the serializable class
+     *   [androidx.appfunctions.AppFunctionSerializable] or
+     *   [androidx.appfunctions.AppFunctionSchemaCapability].
+     * @param currentPropertiesList the list of properties from the serializable/capability class
      *   that is being processed.
      * @param unvisitedSerializableProperties a map of unvisited serializable properties. This map
      *   is used to track the properties that have not yet been visited. The map is updated as the
-     *   properties are visited. The map should be a superset of the
-     *   [currentSerializablePropertiesList] as it can contain other properties belonging to a
-     *   subclass of the current [serializableTypeQualifiedName] class being processed.
+     *   properties are visited. The map should be a superset of the [currentPropertiesList] as it
+     *   can contain other properties belonging to a subclass of the current [typeQualifiedName]
+     *   class being processed.
      * @param sharedDataTypeMap a map of shared data types. This map is used to store the
      *   [AppFunctionDataTypeMetadata] for all serializable types that are used in an app function.
      *   This map is used to avoid duplicating the metadata for the same serializable type.
@@ -474,42 +491,50 @@ data class AnnotatedAppFunctions(
      *   processing the same serializable type multiple times.
      * @return an [AppFunctionObjectTypeMetadata] for the serializable type.
      */
-    private fun buildObjectTypeMetadataForSerializableParameters(
+    private fun buildObjectTypeMetadataForObjectParameters(
+        typeQualifiedName: String,
+        currentPropertiesList: List<AppFunctionPropertyDeclaration>,
+        unvisitedSerializableProperties: MutableMap<String, AppFunctionPropertyDeclaration>,
+        sharedDataTypeMap: MutableMap<String, AppFunctionDataTypeMetadata>,
+        seenDataTypeQualifiers: MutableSet<String>,
+    ): AppFunctionObjectTypeMetadata {
+        val currentSerializableProperties: List<AppFunctionPropertyDeclaration> = buildList {
+            for (property in currentPropertiesList) {
+                // This property has now been visited. Remove it from the
+                // unvisitedSerializableProperties map so that we don't visit it again when
+                // processing the rest of a sub-class that implements this superclass.
+                // This is because before processing a subclass we process its superclass first
+                // so the unvisitedSerializableProperties could still contain properties not
+                // directly included in the current class being processed.
+                add(checkNotNull(unvisitedSerializableProperties.remove(property.name)))
+            }
+        }
+        return buildObjectTypeMetadataForObjectProperty(
+            typeQualifiedName,
+            currentSerializableProperties,
+            sharedDataTypeMap,
+            seenDataTypeQualifiers
+        )
+    }
+
+    private fun buildObjectTypeMetadataForObjectProperty(
         serializableTypeQualifiedName: String,
-        currentSerializablePropertiesList: List<KSValueParameter>,
-        unvisitedSerializableProperties: MutableMap<String, KSValueParameter>,
+        currentSerializableProperties: List<AppFunctionPropertyDeclaration>,
         sharedDataTypeMap: MutableMap<String, AppFunctionDataTypeMetadata>,
         seenDataTypeQualifiers: MutableSet<String>,
     ): AppFunctionObjectTypeMetadata {
         val requiredPropertiesList: MutableList<String> = mutableListOf()
         val appFunctionSerializablePropertiesMap: Map<String, AppFunctionDataTypeMetadata> =
             buildMap {
-                for (property in currentSerializablePropertiesList) {
-                    // This property has now been visited. Remove it from the
-                    // unvisitedSerializableProperties map so that we don't visit it again when
-                    // processing the rest of a sub-class that implements this superclass.
-                    // This is because before processing a subclass we process its superclass first
-                    // so the unvisitedSerializableProperties could still contain properties not
-                    // directly included in the current class being processed.
-                    val serializableParameterInSuperType =
-                        checkNotNull(
-                            unvisitedSerializableProperties.remove(
-                                checkNotNull(property.name.toString())
-                            )
-                        )
+                for (property in currentSerializableProperties) {
                     val innerAppFunctionDataTypeMetadata =
-                        serializableParameterInSuperType.type.toAppFunctionDataTypeMetadata(
+                        property.type.toAppFunctionDataTypeMetadata(
                             sharedDataTypeMap,
                             seenDataTypeQualifiers,
                         )
-                    put(
-                        checkNotNull(serializableParameterInSuperType.name).asString(),
-                        innerAppFunctionDataTypeMetadata
-                    )
+                    put(property.name, innerAppFunctionDataTypeMetadata)
                     // TODO(b/394553462): Parse required state from annotation.
-                    requiredPropertiesList.add(
-                        checkNotNull(serializableParameterInSuperType.name).asString()
-                    )
+                    requiredPropertiesList.add(property.name)
                 }
             }
         return AppFunctionObjectTypeMetadata(

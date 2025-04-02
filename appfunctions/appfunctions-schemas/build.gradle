@@ -31,7 +31,13 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    // Add dependencies here
+    api project(":appfunctions:appfunctions-common")
+
+    implementation("androidx.annotation:annotation:1.8.1")
+
+    // Compile only dependencies required for KDoc
+    compileOnly(project(":appfunctions:appfunctions-runtime"))
+    compileOnly(project(":work:work-runtime"))
 }
 
 android {

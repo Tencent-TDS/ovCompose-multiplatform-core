@@ -54,12 +54,12 @@ import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.camera.viewfinder.CameraViewfinder
 import androidx.camera.viewfinder.core.ImplementationMode
 import androidx.camera.viewfinder.core.ScaleType
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest
 import androidx.camera.viewfinder.core.camera2.Camera2TransformationInfo
-import androidx.camera.viewfinder.requestSurfaceSession
+import androidx.camera.viewfinder.view.ViewfinderView
+import androidx.camera.viewfinder.view.requestSurfaceSession
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
@@ -111,7 +111,7 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
 
     private lateinit var cameraManager: CameraManager
 
-    private lateinit var cameraViewfinder: CameraViewfinder
+    private lateinit var mViewfinderView: ViewfinderView
 
     private lateinit var windowInfoTracker: WindowInfoTracker
 
@@ -163,7 +163,7 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
         view.findViewById<View>(R.id.bitmap).setOnClickListener(this)
         view.findViewById<View>(R.id.switch_area).setOnClickListener(this)
 
-        cameraViewfinder = view.findViewById(R.id.view_finder)
+        mViewfinderView = view.findViewById(R.id.view_finder)
         windowInfoTracker = WindowInfoTracker.getOrCreate(requireContext())
         requireActivity().apply {
             cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -184,16 +184,16 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
 
                                 implementationModeState.value = implementationMode
                             }
-                            R.id.fitCenter -> cameraViewfinder.scaleType = ScaleType.FIT_CENTER
-                            R.id.fillCenter -> cameraViewfinder.scaleType = ScaleType.FILL_CENTER
-                            R.id.fitStart -> cameraViewfinder.scaleType = ScaleType.FIT_START
-                            R.id.fitEnd -> cameraViewfinder.scaleType = ScaleType.FIT_END
+                            R.id.fitCenter -> mViewfinderView.scaleType = ScaleType.FIT_CENTER
+                            R.id.fillCenter -> mViewfinderView.scaleType = ScaleType.FILL_CENTER
+                            R.id.fitStart -> mViewfinderView.scaleType = ScaleType.FIT_START
+                            R.id.fitEnd -> mViewfinderView.scaleType = ScaleType.FIT_END
                         }
                         return true
                     }
 
                     override fun onPrepareMenu(menu: Menu) {
-                        val title = "Current impl: ${cameraViewfinder.surfaceImplementationMode}"
+                        val title = "Current impl: ${mViewfinderView.surfaceImplementationMode}"
                         menu.findItem(R.id.implementationMode)?.title = title
                     }
                 }
@@ -217,12 +217,12 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
 
                     layoutChangedListener =
                         ViewTreeObserver.OnGlobalLayoutListener {
-                            cameraViewfinder.viewTreeObserver.removeOnGlobalLayoutListener(
+                            mViewfinderView.viewTreeObserver.removeOnGlobalLayoutListener(
                                 layoutChangedListener
                             )
                             layoutChangedListener = null
                         }
-                    cameraViewfinder.viewTreeObserver.addOnGlobalLayoutListener(
+                    mViewfinderView.viewTreeObserver.addOnGlobalLayoutListener(
                         layoutChangedListener
                     )
 
@@ -289,7 +289,7 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
             )
 
         try {
-            cameraViewfinder
+            mViewfinderView
                 .requestSurfaceSession(viewfinderSurfaceRequest, transformationInfo)
                 .use {
                     initializeCamera(cameraId, it.surface)
@@ -501,7 +501,7 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
 
     // ------------- Save Bitmap ------------
     private fun saveBitmap() {
-        val bitmap: Bitmap? = cameraViewfinder.bitmap
+        val bitmap: Bitmap? = mViewfinderView.bitmap
         bitmap?.let { saveBitmapAsFile(it) }
     }
 
@@ -581,46 +581,44 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
             ?.firstOrNull { it is FoldingFeature }
             ?.let {
                 val rect =
-                    getFeaturePositionInViewRect(it, cameraViewfinder.parent as View) ?: return@let
+                    getFeaturePositionInViewRect(it, mViewfinderView.parent as View) ?: return@let
                 val foldingFeature = it as FoldingFeature
                 if (foldingFeature.state == FoldingFeature.State.HALF_OPENED) {
                     btnSwitchArea.visibility = View.VISIBLE
                     when (foldingFeature.orientation) {
                         FoldingFeature.Orientation.VERTICAL -> {
                             if (isViewfinderInLeftTop) {
-                                cameraViewfinder.moveToLeftOf(rect)
+                                mViewfinderView.moveToLeftOf(rect)
                                 val blankAreaWidth =
                                     (btnSwitchArea.parent as View).width - rect.right
                                 btnSwitchArea.x =
                                     rect.right + (blankAreaWidth - btnSwitchArea.width) / 2f
                                 btnSwitchArea.y =
-                                    (cameraViewfinder.height - btnSwitchArea.height) / 2f
+                                    (mViewfinderView.height - btnSwitchArea.height) / 2f
                             } else {
-                                cameraViewfinder.moveToRightOf(rect)
+                                mViewfinderView.moveToRightOf(rect)
                                 btnSwitchArea.x = (rect.left - btnSwitchArea.width) / 2f
                                 btnSwitchArea.y =
-                                    (cameraViewfinder.height - btnSwitchArea.height) / 2f
+                                    (mViewfinderView.height - btnSwitchArea.height) / 2f
                             }
                         }
                         FoldingFeature.Orientation.HORIZONTAL -> {
                             if (isViewfinderInLeftTop) {
-                                cameraViewfinder.moveToTopOf(rect)
+                                mViewfinderView.moveToTopOf(rect)
                                 val blankAreaHeight =
                                     (btnSwitchArea.parent as View).height - rect.bottom
-                                btnSwitchArea.x =
-                                    (cameraViewfinder.width - btnSwitchArea.width) / 2f
+                                btnSwitchArea.x = (mViewfinderView.width - btnSwitchArea.width) / 2f
                                 btnSwitchArea.y =
                                     rect.bottom + (blankAreaHeight - btnSwitchArea.height) / 2f
                             } else {
-                                cameraViewfinder.moveToBottomOf(rect)
-                                btnSwitchArea.x =
-                                    (cameraViewfinder.width - btnSwitchArea.width) / 2f
+                                mViewfinderView.moveToBottomOf(rect)
+                                btnSwitchArea.x = (mViewfinderView.width - btnSwitchArea.width) / 2f
                                 btnSwitchArea.y = (rect.top - btnSwitchArea.height) / 2f
                             }
                         }
                     }
                 } else {
-                    cameraViewfinder.restore()
+                    mViewfinderView.restore()
                     btnSwitchArea.x = 0f
                     btnSwitchArea.y = 0f
                     btnSwitchArea.visibility = View.INVISIBLE

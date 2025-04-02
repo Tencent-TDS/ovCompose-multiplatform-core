@@ -49,7 +49,7 @@ class CoroutinesTest {
         activityScenarioRule.scenario.onActivity { this.activity = it }
         shadowOf(activity)
             .grantPermissions(
-                "android.permission.SCENE_UNDERSTANDING",
+                "android.permission.SCENE_UNDERSTANDING_COARSE",
                 "android.permission.HAND_TRACKING",
             )
 

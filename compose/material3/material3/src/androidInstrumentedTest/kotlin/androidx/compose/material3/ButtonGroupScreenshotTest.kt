@@ -17,6 +17,7 @@
 package androidx.compose.material3
 
 import android.os.Build
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -305,14 +306,45 @@ class ButtonGroupScreenshotTest {
     @Ignore
     @Test
     fun buttonGroup_firstPressed_lightTheme() {
+        val interactionSources = List(5) { MutableInteractionSource() }
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ButtonGroup {
-                    Button(modifier = Modifier.testTag(aButton), onClick = {}) { Text("A") }
-                    Button(modifier = Modifier.testTag(bButton), onClick = {}) { Text("B") }
-                    Button(modifier = Modifier.testTag(cButton), onClick = {}) { Text("C") }
-                    Button(modifier = Modifier.testTag(dButton), onClick = {}) { Text("D") }
-                    Button(modifier = Modifier.testTag(eButton), onClick = {}) { Text("E") }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[0]).testTag(aButton),
+                        interactionSource = interactionSources[0],
+                        onClick = {}
+                    ) {
+                        Text("A")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[1]).testTag(bButton),
+                        interactionSource = interactionSources[1],
+                        onClick = {}
+                    ) {
+                        Text("B")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[2]).testTag(cButton),
+                        interactionSource = interactionSources[2],
+                        onClick = {}
+                    ) {
+                        Text("C")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[3]).testTag(dButton),
+                        interactionSource = interactionSources[3],
+                        onClick = {}
+                    ) {
+                        Text("D")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[4]).testTag(eButton),
+                        interactionSource = interactionSources[4],
+                        onClick = {}
+                    ) {
+                        Text("E")
+                    }
                 }
             }
         }
@@ -334,14 +366,45 @@ class ButtonGroupScreenshotTest {
     @Ignore("b/355413615")
     @Test
     fun buttonGroup_secondPressed_lightTheme() {
+        val interactionSources = List(5) { MutableInteractionSource() }
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ButtonGroup {
-                    Button(modifier = Modifier.testTag(aButton), onClick = {}) { Text("A") }
-                    Button(modifier = Modifier.testTag(bButton), onClick = {}) { Text("B") }
-                    Button(modifier = Modifier.testTag(cButton), onClick = {}) { Text("C") }
-                    Button(modifier = Modifier.testTag(dButton), onClick = {}) { Text("D") }
-                    Button(modifier = Modifier.testTag(eButton), onClick = {}) { Text("E") }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[0]).testTag(aButton),
+                        interactionSource = interactionSources[0],
+                        onClick = {}
+                    ) {
+                        Text("A")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[1]).testTag(bButton),
+                        interactionSource = interactionSources[1],
+                        onClick = {}
+                    ) {
+                        Text("B")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[2]).testTag(cButton),
+                        interactionSource = interactionSources[2],
+                        onClick = {}
+                    ) {
+                        Text("C")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[3]).testTag(dButton),
+                        interactionSource = interactionSources[3],
+                        onClick = {}
+                    ) {
+                        Text("D")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[4]).testTag(eButton),
+                        interactionSource = interactionSources[4],
+                        onClick = {}
+                    ) {
+                        Text("E")
+                    }
                 }
             }
         }
@@ -363,14 +426,45 @@ class ButtonGroupScreenshotTest {
     @Ignore("b/355413615")
     @Test
     fun buttonGroup_thirdPressed_lightTheme() {
+        val interactionSources = List(5) { MutableInteractionSource() }
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ButtonGroup {
-                    Button(modifier = Modifier.testTag(aButton), onClick = {}) { Text("A") }
-                    Button(modifier = Modifier.testTag(bButton), onClick = {}) { Text("B") }
-                    Button(modifier = Modifier.testTag(cButton), onClick = {}) { Text("C") }
-                    Button(modifier = Modifier.testTag(dButton), onClick = {}) { Text("D") }
-                    Button(modifier = Modifier.testTag(eButton), onClick = {}) { Text("E") }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[0]).testTag(aButton),
+                        interactionSource = interactionSources[0],
+                        onClick = {}
+                    ) {
+                        Text("A")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[1]).testTag(bButton),
+                        interactionSource = interactionSources[1],
+                        onClick = {}
+                    ) {
+                        Text("B")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[2]).testTag(cButton),
+                        interactionSource = interactionSources[2],
+                        onClick = {}
+                    ) {
+                        Text("C")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[3]).testTag(dButton),
+                        interactionSource = interactionSources[3],
+                        onClick = {}
+                    ) {
+                        Text("D")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[4]).testTag(eButton),
+                        interactionSource = interactionSources[4],
+                        onClick = {}
+                    ) {
+                        Text("E")
+                    }
                 }
             }
         }
@@ -392,14 +486,45 @@ class ButtonGroupScreenshotTest {
     @Ignore("b/355413615")
     @Test
     fun buttonGroup_fourthPressed_lightTheme() {
+        val interactionSources = List(5) { MutableInteractionSource() }
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ButtonGroup {
-                    Button(modifier = Modifier.testTag(aButton), onClick = {}) { Text("A") }
-                    Button(modifier = Modifier.testTag(bButton), onClick = {}) { Text("B") }
-                    Button(modifier = Modifier.testTag(cButton), onClick = {}) { Text("C") }
-                    Button(modifier = Modifier.testTag(dButton), onClick = {}) { Text("D") }
-                    Button(modifier = Modifier.testTag(eButton), onClick = {}) { Text("E") }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[0]).testTag(aButton),
+                        interactionSource = interactionSources[0],
+                        onClick = {}
+                    ) {
+                        Text("A")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[1]).testTag(bButton),
+                        interactionSource = interactionSources[1],
+                        onClick = {}
+                    ) {
+                        Text("B")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[2]).testTag(cButton),
+                        interactionSource = interactionSources[2],
+                        onClick = {}
+                    ) {
+                        Text("C")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[3]).testTag(dButton),
+                        interactionSource = interactionSources[3],
+                        onClick = {}
+                    ) {
+                        Text("D")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[4]).testTag(eButton),
+                        interactionSource = interactionSources[4],
+                        onClick = {}
+                    ) {
+                        Text("E")
+                    }
                 }
             }
         }
@@ -421,14 +546,45 @@ class ButtonGroupScreenshotTest {
     @Ignore("b/355413615")
     @Test
     fun buttonGroup_fifthPressed_lightTheme() {
+        val interactionSources = List(5) { MutableInteractionSource() }
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ButtonGroup {
-                    Button(modifier = Modifier.testTag(aButton), onClick = {}) { Text("A") }
-                    Button(modifier = Modifier.testTag(bButton), onClick = {}) { Text("B") }
-                    Button(modifier = Modifier.testTag(cButton), onClick = {}) { Text("C") }
-                    Button(modifier = Modifier.testTag(dButton), onClick = {}) { Text("D") }
-                    Button(modifier = Modifier.testTag(eButton), onClick = {}) { Text("E") }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[0]).testTag(aButton),
+                        interactionSource = interactionSources[0],
+                        onClick = {}
+                    ) {
+                        Text("A")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[1]).testTag(bButton),
+                        interactionSource = interactionSources[1],
+                        onClick = {}
+                    ) {
+                        Text("B")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[2]).testTag(cButton),
+                        interactionSource = interactionSources[2],
+                        onClick = {}
+                    ) {
+                        Text("C")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[3]).testTag(dButton),
+                        interactionSource = interactionSources[3],
+                        onClick = {}
+                    ) {
+                        Text("D")
+                    }
+                    Button(
+                        modifier = Modifier.animateWidth(interactionSources[4]).testTag(eButton),
+                        interactionSource = interactionSources[4],
+                        onClick = {}
+                    ) {
+                        Text("E")
+                    }
                 }
             }
         }

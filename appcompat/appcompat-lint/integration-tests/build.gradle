@@ -14,7 +14,7 @@ plugins {
 dependencies {
     api(libs.jspecify)
     implementation(project(":appcompat:appcompat"))
-    implementation(project(":core:core"))
+    implementation("androidx.core:core:1.15.0")
     api(libs.kotlinStdlib)
 }
 

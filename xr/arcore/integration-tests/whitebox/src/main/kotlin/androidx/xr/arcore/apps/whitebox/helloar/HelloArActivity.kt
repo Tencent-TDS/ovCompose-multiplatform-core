@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,39 +45,26 @@ class HelloArActivity : ComponentActivity() {
 
     private lateinit var jxrCoreSession: JxrCoreSession
 
-    private var planeRenderer: PlaneRenderer? = null
-    private var anchorRenderer: AnchorRenderer? = null
+    private lateinit var planeRenderer: PlaneRenderer
+    private lateinit var anchorRenderer: AnchorRenderer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Create session and renderers.
-        sessionHelper =
-            SessionLifecycleHelper(
-                onCreateCallback = {
-                    session = it
-                    jxrCoreSession = JxrCoreSession.create(this)
-                    planeRenderer = PlaneRenderer(session, jxrCoreSession, lifecycleScope)
-                    anchorRenderer =
-                        AnchorRenderer(
-                            this,
-                            planeRenderer!!,
-                            session,
-                            jxrCoreSession,
-                            lifecycleScope
-                        )
-                    setContent { HelloWorld(session) }
-                },
-                onResumeCallback = {
-                    planeRenderer?.startRendering()
-                    anchorRenderer?.startRendering()
-                },
-                beforePauseCallback = {
-                    planeRenderer?.stopRendering()
-                    anchorRenderer?.stopRendering()
-                },
-            )
+        sessionHelper = SessionLifecycleHelper(this)
+        session = sessionHelper.session
         lifecycle.addObserver(sessionHelper)
+
+        jxrCoreSession = JxrCoreSession.create(this)
+
+        planeRenderer = PlaneRenderer(session, jxrCoreSession, lifecycleScope)
+        anchorRenderer =
+            AnchorRenderer(this, planeRenderer, session, jxrCoreSession, lifecycleScope)
+        session.lifecycle.addObserver(planeRenderer)
+        session.lifecycle.addObserver(anchorRenderer)
+
+        setContent { HelloWorld(session) }
     }
 }
 

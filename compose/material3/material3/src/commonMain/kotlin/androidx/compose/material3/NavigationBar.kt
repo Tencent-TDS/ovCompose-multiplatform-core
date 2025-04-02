@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -565,11 +564,9 @@ private fun NavigationBarItemLayout(
 
             if (label != null) {
                 Box(
-                    Modifier.layoutId(LabelLayoutIdTag)
-                        .graphicsLayer {
-                            alpha = if (alwaysShowLabel) 1f else alphaAnimationProgress()
-                        }
-                        .padding(horizontal = NavigationBarItemHorizontalPadding / 2)
+                    Modifier.layoutId(LabelLayoutIdTag).graphicsLayer {
+                        alpha = if (alwaysShowLabel) 1f else alphaAnimationProgress()
+                    }
                 ) {
                     label()
                 }

@@ -47,6 +47,6 @@
     <string name="wear_m3c_slider_increase_content_description" msgid="3329631766954416834">"Aumentar"</string>
     <string name="wear_m3c_alert_dialog_content_description_confirm_button" msgid="7776845597891182382">"Confirmar"</string>
     <string name="wear_m3c_alert_dialog_content_description_dismiss_button" msgid="3572467833850785688">"Ignorar"</string>
-    <string name="wear_m3c_open_on_phone" msgid="5829463187924353601">"Abrir no tel."</string>
-    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="7845336918219306426">"Ícone Abrir no telemóvel"</string>
+    <string name="wear_m3c_open_on_phone" msgid="3200727397161392122">"Veja o telemóvel"</string>
+    <string name="wear_m3c_open_on_phone_icon_content_description" msgid="5953380527505012363">"Ícone de verificação do telemóvel"</string>
 </resources>

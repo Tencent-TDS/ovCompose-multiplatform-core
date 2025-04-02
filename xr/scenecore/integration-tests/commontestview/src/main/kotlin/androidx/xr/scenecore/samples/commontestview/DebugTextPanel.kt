@@ -19,9 +19,9 @@ package androidx.xr.scenecore.samples.commontestview
 import android.content.Context
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
-import androidx.xr.scenecore.Dimensions
 import androidx.xr.scenecore.Entity
 import androidx.xr.scenecore.PanelEntity
+import androidx.xr.scenecore.PixelDimensions
 import androidx.xr.scenecore.Session
 
 /**
@@ -36,17 +36,15 @@ class DebugTextPanel(
     session: Session,
     /** The parent entity that the Debug panel is attached to. */
     var parent: Entity,
-    surfaceDimensionsPx: Dimensions = Dimensions(550f, 750f),
-    dimensions: Dimensions = Dimensions(0.1f, 0.1f, 0.1f),
-    name: String = "",
+    pixelDimensions: PixelDimensions = PixelDimensions(550, 750),
+    name: String = "DebugTextPanel",
     pose: Pose = Pose(Vector3(0f, -0.1f, 0.1f)),
 ) {
     /** The view that displays the text lines. */
     var view: DebugTextLinearView = DebugTextLinearView(context = context)
 
     /** The panel entity that is created to hold the Debug view. */
-    var panelEntity: PanelEntity =
-        PanelEntity.create(session, view, surfaceDimensionsPx, dimensions, name, pose)
+    var panelEntity = PanelEntity.create(session, view, pixelDimensions, name, pose)
 
     /** Optional entity that the Debug panel is tracking. */
     var trackedEntity: Entity? = null

@@ -18,12 +18,13 @@ package androidx.xr.scenecore.impl;
 
 import android.view.Surface;
 
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity.CanvasShape;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.NodeTransaction;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.androidxr.splitengine.SubspaceNode;
@@ -74,7 +75,7 @@ final class SurfaceEntityImpl extends AndroidXrEntity implements SurfaceEntity {
 
         try (NodeTransaction transaction = extensions.createNodeTransaction()) {
             // Make the Entity node a parent of the subspace node.
-            transaction.setParent(mSubspace.subspaceNode, mNode).apply();
+            transaction.setParent(mSubspace.getSubspaceNodeActual(), mNode).apply();
         }
 
         // This is broken up into two steps to limit the size of the Impress Surface

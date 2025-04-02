@@ -18,6 +18,7 @@ package androidx.privacysandbox.ui.client
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.annotation.GuardedBy
 import androidx.core.util.Consumer
 import androidx.privacysandbox.ui.client.SandboxedUiAdapterFactory.createFromCoreLibInfo
@@ -31,7 +32,13 @@ import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SessionData
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -54,6 +61,10 @@ internal class ClientDelegatingAdapter(
      */
     @GuardedBy("lock") var latestDelegate: SandboxedUiAdapter
 ) : SandboxedUiAdapter {
+    private companion object {
+        private const val TAG = "ClientDelegatingAdapter"
+    }
+
     private val lock = Any()
 
     // Using Dispatcher.Unconfined implies the coroutine may resume on any available thread.
@@ -198,6 +209,7 @@ internal class ClientDelegatingAdapter(
                                 callback.onDelegateChangeResult(overallSuccess)
                             }
                         } catch (e: Exception) {
+                            Log.w(TAG, "Delegate Switch failed: $e")
                             callback.onDelegateChangeResult(false)
                         } finally {
                             toDispatch.clear()

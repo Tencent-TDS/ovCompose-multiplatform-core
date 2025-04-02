@@ -44,7 +44,7 @@ class DpVolumeSizeTest {
 
     @Test
     fun toDimensionsInMeter_returnsCorrectDimensions() {
-        val dpVolumeSize = DpVolumeSize(1151.856f.dp, 1151.856f.dp, 1151.856f.dp)
+        val dpVolumeSize = DpVolumeSize(1.dp, 1.dp, 1.dp)
 
         val dimensions = dpVolumeSize.toDimensionsInMeters()
 
@@ -55,7 +55,7 @@ class DpVolumeSizeTest {
     fun dpVolumeSize_fromMeters_returnsCorrectDpVolumeSize() {
         val dpVolumeSize = Dimensions(1f, 1f, 1f).toDpVolumeSize()
 
-        assertThat(dpVolumeSize).isEqualTo(DpVolumeSize(1151.856f.dp, 1151.856f.dp, 1151.856f.dp))
+        assertThat(dpVolumeSize).isEqualTo(DpVolumeSize(1.dp, 1.dp, 1.dp))
     }
 
     @Test
@@ -76,20 +76,3 @@ class DpVolumeSizeTest {
             .isEqualTo(DpVolumeSize(1111.11f.dp, 1111.11f.dp, 1111.11f.dp))
     }
 }
-
-/**
- * Converts this [DpVolumeSize] to a [Dimensions] object in meters.
- *
- * @return a [Dimensions] object representing the volume size in meters
- */
-internal fun DpVolumeSize.toDimensionsInMeters(): Dimensions =
-    Dimensions(width.toMeter().value, height.toMeter().value, depth.toMeter().value)
-
-/**
- * Creates a [DpVolumeSize] from a [Dimensions] object in meters.
- *
- * @param dimensions the [Dimensions] object in meters.
- * @return a [DpVolumeSize] object representing the same volume size in Dp.
- */
-internal fun Dimensions.toDpVolumeSize(): DpVolumeSize =
-    DpVolumeSize(Meter(width).toDp(), Meter(height).toDp(), Meter(depth).toDp())

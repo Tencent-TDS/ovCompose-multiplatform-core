@@ -124,21 +124,20 @@ class UiAutomatorTestScopeTest {
 
     @Test
     @LargeTest
-    fun dialogActivityTest() = uiAutomator {
-
-        // Test when pressing yes
+    fun pressYesOndialogActivityTest() = uiAutomator {
         startActivity(DialogActivity::class.java)
-        val registrationYes = watchFor(MyDialog()) { clickYes() }
+        watchFor(MyDialog()) { clickYes() }
         onView { view.textAsString == "Show Dialog" }.click()
         onView { view.textAsString == "Dialog Result: Pressed Yes" }
-        registrationYes.unregister()
+    }
 
-        // Test when pressing no
+    @Test
+    @LargeTest
+    fun pressNoOndialogActivityTest() = uiAutomator {
         startActivity(DialogActivity::class.java)
-        val registrationNo = watchFor(MyDialog()) { clickNo() }
+        watchFor(MyDialog()) { clickNo() }
         onView { view.textAsString == "Show Dialog" }.click()
         onView { view.textAsString == "Dialog Result: Pressed No" }
-        registrationNo.unregister()
     }
 }
 

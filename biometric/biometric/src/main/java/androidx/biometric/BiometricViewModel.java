@@ -257,6 +257,18 @@ public class BiometricViewModel extends ViewModel {
     private boolean mIsIdentityCheckAvailable;
 
     /**
+     * The type(s) of authenticators that may be invoked by the biometric prompt.
+     *
+     * <p>If a non-null {@link BiometricPrompt.PromptInfo} has been set by
+     * {@link #setPromptInfo(BiometricPrompt.PromptInfo)}, this is the single consolidated set of
+     * authenticators allowed by the prompt, taking into account the values of
+     * {@link BiometricPrompt.PromptInfo#getAllowedAuthenticators()},
+     * {@link BiometricPrompt.PromptInfo#isDeviceCredentialAllowed()},
+     * {@link #getCryptoObject()} and {@link #mIsIdentityCheckAvailable}.
+     */
+    private int mAllowedAuthenticators;
+
+    /**
      * Information associated with a successful authentication attempt.
      */
     private @Nullable MutableLiveData<BiometricPrompt.AuthenticationResult> mAuthenticationResult;
@@ -340,6 +352,7 @@ public class BiometricViewModel extends ViewModel {
 
     void setPromptInfo(BiometricPrompt.@Nullable PromptInfo promptInfo) {
         mPromptInfo = promptInfo;
+        updateConsolidatedAuthenticators();
     }
 
     /**
@@ -469,8 +482,8 @@ public class BiometricViewModel extends ViewModel {
      * {@link #setPromptInfo(BiometricPrompt.PromptInfo)}, this is the single consolidated set of
      * authenticators allowed by the prompt, taking into account the values of
      * {@link BiometricPrompt.PromptInfo#getAllowedAuthenticators()},
-     * {@link BiometricPrompt.PromptInfo#isDeviceCredentialAllowed()}, and
-     * {@link #getCryptoObject()}.
+     * {@link BiometricPrompt.PromptInfo#isDeviceCredentialAllowed()},
+     * {@link #getCryptoObject()} and {@link #mIsIdentityCheckAvailable}.
      *
      * @return A bit field representing all valid authenticator types that may be invoked by
      * the prompt, or 0 if not set.
@@ -478,8 +491,7 @@ public class BiometricViewModel extends ViewModel {
     @SuppressWarnings("deprecation")
     @BiometricManager.AuthenticatorTypes
     int getAllowedAuthenticators() {
-        return AuthenticatorUtils.getConsolidatedAuthenticators(mPromptInfo, mCryptoObject,
-                mIsIdentityCheckAvailable);
+        return mAllowedAuthenticators;
     }
 
     BiometricPrompt.@Nullable CryptoObject getCryptoObject() {
@@ -492,10 +504,13 @@ public class BiometricViewModel extends ViewModel {
         // Use a fake crypto object to force Strong biometric auth prior to Android 11 (API 30).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
                 && Build.VERSION.SDK_INT < Build.VERSION_CODES.R
-                && getAllowedAuthenticators() == BiometricManager.Authenticators.BIOMETRIC_STRONG
+                && AuthenticatorUtils.isAtLeastStrength(mPromptInfo.getAllowedAuthenticators(),
+                BiometricManager.Authenticators.BIOMETRIC_STRONG)
                 && cryptoObject == null) {
             mCryptoObject = CryptoObjectUtils.createFakeCryptoObject();
         }
+
+        updateConsolidatedAuthenticators();
     }
 
     @NonNull AuthenticationCallbackProvider getAuthenticationCallbackProvider() {
@@ -591,6 +606,7 @@ public class BiometricViewModel extends ViewModel {
 
     void setIsIdentityCheckAvailable(boolean isIdentityCheckAvailable) {
         mIsIdentityCheckAvailable = isIdentityCheckAvailable;
+        updateConsolidatedAuthenticators();
     }
 
     @NonNull LiveData<BiometricPrompt.AuthenticationResult> getAuthenticationResult() {
@@ -758,6 +774,12 @@ public class BiometricViewModel extends ViewModel {
             return BiometricPrompt.AUTHENTICATION_RESULT_TYPE_BIOMETRIC;
         }
         return BiometricPrompt.AUTHENTICATION_RESULT_TYPE_UNKNOWN;
+    }
+
+    private void updateConsolidatedAuthenticators() {
+        mAllowedAuthenticators = AuthenticatorUtils.getConsolidatedAuthenticators(mPromptInfo,
+                mCryptoObject,
+                mIsIdentityCheckAvailable);
     }
 
     /**

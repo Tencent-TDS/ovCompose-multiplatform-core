@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /** Provides new functionality of existing framework APIs needed to Spatialize audio sources. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class XrSpatialAudioExtensions {
 
     XrSpatialAudioExtensions() {

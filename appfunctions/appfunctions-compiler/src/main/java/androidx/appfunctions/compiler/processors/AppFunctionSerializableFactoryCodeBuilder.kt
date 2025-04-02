@@ -18,6 +18,8 @@ package androidx.appfunctions.compiler.processors
 
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializable
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy
+import androidx.appfunctions.compiler.core.AppFunctionPropertyDeclaration
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.PRIMITIVE_ARRAY
 import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionSupportedTypeCategory.PRIMITIVE_LIST
@@ -27,12 +29,11 @@ import androidx.appfunctions.compiler.core.AppFunctionTypeReference.AppFunctionS
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod.APP_FUNCTION_DATA_PARAM_NAME
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.ToAppFunctionDataMethod.APP_FUNCTION_SERIALIZABLE_PARAM_NAME
+import androidx.appfunctions.compiler.core.ProcessingException
 import androidx.appfunctions.compiler.core.ensureQualifiedTypeName
-import androidx.appfunctions.compiler.core.ignoreNullable
 import androidx.appfunctions.compiler.core.isOfType
 import androidx.appfunctions.compiler.core.toTypeName
 import com.google.devtools.ksp.symbol.KSTypeReference
-import com.google.devtools.ksp.symbol.KSValueParameter
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.STRING
@@ -46,33 +47,318 @@ import com.squareup.kotlinpoet.buildCodeBlock
 class AppFunctionSerializableFactoryCodeBuilder(
     val annotatedClass: AnnotatedAppFunctionSerializable
 ) {
-    /** Builds and appends the method body of fromAppFunctionData to the given code block. */
+    /**
+     * Generates the method body of fromAppFunctionData for a non proxy serializable.
+     *
+     * This method uses [appendFromAppFunctionDataMethodBodyCommon] to generate the common code for
+     * iterating through all the properties of a target serializable and extracting its
+     * corresponding value from an [AppFunctionData]. It then returns the serializable itself.
+     *
+     * For example, given the following non proxy serializable class:
+     * ```
+     * @AppFunctionSerializable
+     * class SampleSerializable(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * )
+     * ```
+     *
+     * The generated `fromAppFunctionData` method would look like:
+     * ```
+     * override fun fromAppFunctionData(appFunctionData: AppFunctionData) : SampleSerializable {
+     *     val longParam = checkNotNull(appFunctionData.getLongOrNull("longParam"))
+     *     val doubleParam = checkNotNull(appFunctionData.getDoubleOrNull("doubleParam"))
+     *     val resultSampleSerializable = SampleSerializable(longParam, doubleParam)
+     *     return resultSampleSerializable
+     * }
+     * ```
+     */
     fun appendFromAppFunctionDataMethodBody(): CodeBlock {
         return buildCodeBlock {
-            add(factoryInitStatements)
-            for (property in annotatedClass.getProperties()) {
-                appendGetterStatement(property)
-            }
-            appendGetterReturnStatement(
-                annotatedClass.originalClassName,
-                annotatedClass.getProperties()
+            val getterResultName = getResultParamName(annotatedClass)
+            add(appendFromAppFunctionDataMethodBodyCommon(getterResultName))
+            addStatement(
+                """
+                return %L
+                """
+                    .trimIndent(),
+                getterResultName
             )
         }
     }
 
-    /** Builds and appends the method body of fromAppFunctionData to the given code block. */
-    fun appendToAppFunctionDataMethodBody(): CodeBlock {
+    /**
+     * Generates the method body of fromAppFunctionData for a proxy serializable.
+     *
+     * This method is similar to [appendFromAppFunctionDataMethodBody]. It uses
+     * [appendFromAppFunctionDataMethodBodyCommon] to generate the common code for iterating through
+     * all the properties of a target serializable and extracting its corresponding value from an
+     * [AppFunctionData]. However, It then returns a proxy serializable target class instead of the
+     * serializable itself.
+     *
+     * For example, given the following proxy serializable class:
+     * ```
+     * @AppFunctionSerializableProxy(targetClass = LocalDateTime::class)
+     * class SampleSerializableProxy(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * ) {
+     *     public fun toLocalDateTime(): LocalDateTime {
+     *         return LocalDateTime.of(...)
+     *     }
+     *
+     *     public companion object {
+     *         public fun fromLocalDateTime(localDateTIme: LocalDateTime) : SampleSerializableProxy
+     *         {
+     *             return SampleSerializableProxy(...)
+     *         }
+     *     }
+     * }
+     * ```
+     *
+     * The generated `fromAppFunctionData` method would look like:
+     * ```
+     * override fun fromAppFunctionData(appFunctionData: AppFunctionData) : LocalDateTime {
+     *     val longParam = checkNotNull(appFunctionData.getLongOrNull("longParam"))
+     *     val doubleParam = checkNotNull(appFunctionData.getDoubleOrNull("doubleParam"))
+     *     val resultSampleSerializableProxy = SampleSerializableProxy(longParam, doubleParam)
+     *     return resultSampleSerializableProxy.toLocalDateTime()
+     * }
+     * ```
+     */
+    fun appendFromAppFunctionDataMethodBodyForProxy(): CodeBlock {
+        if (annotatedClass !is AnnotatedAppFunctionSerializableProxy) {
+            throw ProcessingException(
+                "Attempting to generate proxy getter for non proxy serializable.",
+                // TODO(b/403199251): provide KSNode to improve error message
+                null
+            )
+        }
+        return buildCodeBlock {
+            val getterResultName = getResultParamName(annotatedClass)
+            add(appendFromAppFunctionDataMethodBodyCommon(getterResultName))
+            addStatement(
+                """
+                return %L.%L()
+                """
+                    .trimIndent(),
+                getterResultName,
+                annotatedClass.toTargetClassMethodName
+            )
+        }
+    }
+
+    /**
+     * Generates common factory code for iterating through all the properties of a target
+     * serializable and extracting its corresponding value from an [AppFunctionData].
+     *
+     * This function is used to build the `FromAppFunctionData` method of the generated
+     * AppFunctionSerializableFactory.
+     *
+     * For example, given the following serializable class:
+     * ```
+     * @AppFunctionSerializable
+     * class SampleSerializable(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * )
+     * ```
+     *
+     * The generated `fromAppFunctionData` method would look like:
+     * ```
+     * override fun fromAppFunctionData(appFunctionData: AppFunctionData) : SampleSerializable {
+     *     val longParam = checkNotNull(appFunctionData.getLongOrNull("longParam"))
+     *     val doubleParam = checkNotNull(appFunctionData.getDoubleOrNull("doubleParam"))
+     *     val resultSampleSerializable = SampleSerializable(longParam, doubleParam)
+     * }
+     * ```
+     *
+     * Note that this method does not actually populate the value to be returned. It will only
+     * handle extracting the relevant properties from the provided [AppFunctionData] to construct
+     * the relevant [androidx.appfunctions.AppFunctionSerializable] data class. The caller will
+     * append the actual return statement which could return the dataclass itself or a proxy target
+     * class.
+     */
+    private fun appendFromAppFunctionDataMethodBodyCommon(getterResultName: String): CodeBlock {
         return buildCodeBlock {
             add(factoryInitStatements)
-            val qualifiedClassName =
-                checkNotNull(annotatedClass.appFunctionSerializableClass.qualifiedName).asString()
+            for ((paramName, paramType) in annotatedClass.getProperties()) {
+                appendGetterStatement(paramName, paramType)
+            }
+            appendGetterResultConstructorCallStatement(
+                annotatedClass.originalClassName,
+                annotatedClass.getProperties(),
+                getterResultName
+            )
+            add("\n")
+        }
+    }
+
+    /**
+     * Generates the method body of toAppFunctionData for a non proxy serializable.
+     *
+     * This method uses [appendToAppFunctionDataMethodBodyCommon] to generate the common code for
+     * iterating through all the properties of a target serializable and extracting its single
+     * property values. It then returns an [AppFunctionData] instance with the extracted values.
+     *
+     * For example, given the following non proxy serializable class:
+     * ```
+     * @AppFunctionSerializable
+     * class SampleSerializable(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * )
+     * ```
+     *
+     * The generated `toAppFunctionData` method would look like:
+     * ```
+     * override fun toAppFunctionData(appFunctionSerializable: SampleSerializable) : AppFunctionData {
+     *     val sampleSerializable_appFunctionSerializable = appFunctionSerializable
+     *     val longParam = sampleSerializable_appFunctionSerializable.longParam
+     *     val doubleParam = sampleSerializable_appFunctionSerializable.doubleParam
+     *     val builder = AppFunctionData.Builder("...")
+     *     builder.setLong("longParam", longParam)
+     *     builder.setDouble("doubleParam", doubleParam)
+     *     return builder.build()
+     * }
+     * ```
+     */
+    fun appendToAppFunctionDataMethodBody(): CodeBlock {
+        return buildCodeBlock {
+            addStatement(
+                """
+                val %L = %L
+                """
+                    .trimIndent(),
+                getSerializableParamName(annotatedClass),
+                APP_FUNCTION_SERIALIZABLE_PARAM_NAME
+            )
+            add(appendToAppFunctionDataMethodBodyCommon())
+        }
+    }
+
+    /**
+     * Generates the method body of toAppFunctionData for a proxy serializable.
+     *
+     * This method is similar to [appendToAppFunctionDataMethodBody]. It uses
+     * [appendToAppFunctionDataMethodBodyCommon] to generate the common code for iterating through
+     * all the properties of a target serializable and extracting its single property values. It
+     * then returns an [AppFunctionData] instance with the extracted values.
+     *
+     * The key difference from [appendToAppFunctionDataMethodBody] is the `toAppFunctionData`
+     * factory method accepts the target class instead of an AppFunctionSerializable type directly.
+     * The serializable type is obtained using the mandatory factory from the
+     * [AnnotatedAppFunctionSerializableProxy].
+     *
+     * For example, given the following proxy serializable class:
+     * ```
+     * @AppFunctionSerializableProxy(targetClass = LocalDateTime::class)
+     * class SampleSerializableProxy(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * ) {
+     *     public fun toLocalDateTime(): LocalDateTime {
+     *         return LocalDateTime.of(...)
+     *     }
+     *
+     *     public companion object {
+     *         public fun fromLocalDateTime(localDateTIme: LocalDateTime) : SampleSerializableProxy
+     *         {
+     *             return SampleSerializableProxy(...)
+     *         }
+     *     }
+     * }
+     * ```
+     *
+     * The generated `toAppFunctionData` method would look like:
+     * ```
+     * override fun toAppFunctionData(appFunctionSerializable: LocalDateTime) : AppFunctionData {
+     *     val localDateTime_appFunctionSerializable =
+     *         SampleSerializableProxy.fromLocalDateTime(appFunctionSerializable)
+     *     val longParam = localDateTime_appFunctionSerializable.longParam
+     *     val doubleParam = localDateTime_appFunctionSerializable.doubleParam
+     *     val builder = AppFunctionData.Builder("...")
+     *     builder.setLong("longParam", longParam)
+     *     builder.setDouble("doubleParam", doubleParam)
+     *     return builder.build()
+     * }
+     * ```
+     */
+    fun appendToAppFunctionDataMethodBodyForProxy(): CodeBlock {
+        if (annotatedClass !is AnnotatedAppFunctionSerializableProxy) {
+            throw ProcessingException(
+                "Attempting to generate proxy setter for non proxy serializable.",
+                // TODO(b/403199251): provide KSNode to improve error message
+                null
+            )
+        }
+        return buildCodeBlock {
+            addStatement(
+                """
+                val %L = %T.%L(%L)
+                """
+                    .trimIndent(),
+                getSerializableParamName(annotatedClass),
+                annotatedClass.originalClassName,
+                annotatedClass.fromTargetClassMethodName,
+                APP_FUNCTION_SERIALIZABLE_PARAM_NAME
+            )
+            add(appendToAppFunctionDataMethodBodyCommon())
+        }
+    }
+
+    /**
+     * Generates common factory code for iterating through all the properties of an
+     * [androidx.appfunctions.AppFunctionSerializable] to populate an [AppFunctionData] instance.
+     *
+     * This function is used to build the `toAppFunctionData` method of the generated
+     * AppFunctionSerializableFactory.
+     *
+     * For example, given the following serializable class:
+     * ```
+     * @AppFunctionSerializable
+     * class SampleSerializable(
+     *     val longParam: Long,
+     *     val doubleParam: Double,
+     * )
+     * ```
+     *
+     * The generated `toAppFunctionData` method would look like:
+     * ```
+     * override fun toAppFunctionData(sampleSerializable: SampleSerializable) : AppFunctionData {
+     *     val longParam = sampleSerializable.longParam
+     *     val doubleParam = sampleSerializable.doubleParam
+     *     val builder = AppFunctionData.Builder("androidx.appfunctions.compiler.processors.SampleSerializable")
+     *     builder.setLong("longParam", longParam)
+     *     builder.setDouble("doubleParam", doubleParam)
+     *     return builder.build()
+     * }
+     * ```
+     *
+     * Note that this method works directly with an [androidx.appfunctions.AppFunctionSerializable]
+     * class. In a case where the factory is for a proxy, the caller is expected to add the
+     * serializable representation of the proxy to the code block before calling this method.
+     */
+    private fun appendToAppFunctionDataMethodBodyCommon(): CodeBlock {
+        return buildCodeBlock {
+            add(factoryInitStatements)
+            val qualifiedClassName = annotatedClass.qualifiedName
             addStatement("val builder = %T(%S)", AppFunctionData.Builder::class, qualifiedClassName)
             for (property in annotatedClass.getProperties()) {
                 val afType = AppFunctionTypeReference(property.type)
+                val formatStringMap =
+                    mapOf<String, Any>(
+                        "param_name" to property.name,
+                        "annotated_class_instance" to getSerializableParamName(annotatedClass)
+                    )
+                addNamed(
+                    "val %param_name:L = %annotated_class_instance:L.%param_name:L\n",
+                    formatStringMap
+                )
                 if (afType.isNullable) {
-                    appendNullableSetterStatement(property, afType)
+                    appendNullableSetterStatement(property.name, afType)
                 } else {
-                    appendSetterStatement(property, afType)
+                    appendSetterStatement(property.name, afType)
                 }
             }
             add("\nreturn builder.build()")
@@ -80,25 +366,26 @@ class AppFunctionSerializableFactoryCodeBuilder(
     }
 
     private fun CodeBlock.Builder.appendGetterStatement(
-        param: KSValueParameter
+        paramName: String,
+        paramType: KSTypeReference
     ): CodeBlock.Builder {
-        val afType = AppFunctionTypeReference(param.type)
+        val afType = AppFunctionTypeReference(paramType)
         return when (afType.typeCategory) {
             PRIMITIVE_SINGULAR,
             PRIMITIVE_ARRAY,
-            PRIMITIVE_LIST -> appendPrimitiveGetterStatement(param, afType)
-            SERIALIZABLE_SINGULAR -> appendSerializableGetterStatement(param, afType)
-            SERIALIZABLE_LIST -> appendSerializableListGetterStatement(param, afType)
+            PRIMITIVE_LIST -> appendPrimitiveGetterStatement(paramName, afType)
+            SERIALIZABLE_SINGULAR -> appendSerializableGetterStatement(paramName, afType)
+            SERIALIZABLE_LIST -> appendSerializableListGetterStatement(paramName, afType)
         }
     }
 
     private fun CodeBlock.Builder.appendPrimitiveGetterStatement(
-        param: KSValueParameter,
+        paramName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
         val formatStringMap =
             mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
+                "param_name" to paramName,
                 "app_function_data_param_name" to APP_FUNCTION_DATA_PARAM_NAME,
                 "getter_name" to getAppFunctionDataGetterName(afType),
                 "default_value_postfix" to getGetterDefaultValuePostfix(afType)
@@ -118,15 +405,14 @@ class AppFunctionSerializableFactoryCodeBuilder(
     }
 
     private fun CodeBlock.Builder.appendSerializableGetterStatement(
-        param: KSValueParameter,
+        paramName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
-        val paramName = checkNotNull(param.name).asString()
         val typeName = afType.selfTypeReference.getTypeShortName()
         val formatStringMap =
             mapOf<String, Any>(
                 "param_name" to paramName,
-                "param_type" to param.type.toTypeName(),
+                "param_type" to afType.selfTypeReference.toTypeName(),
                 "factory_name" to "${typeName}Factory".lowerFirstChar(),
                 "app_function_data_param_name" to APP_FUNCTION_DATA_PARAM_NAME,
                 "getter_name" to getAppFunctionDataGetterName(afType),
@@ -143,7 +429,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
                 .addNamed("if (%serializable_data_val_name:L != null) {\n", formatStringMap)
                 .indent()
                 .addNamed(
-                    "%param_name:L = %factory_name:L.%from_app_function_data_method_name:L(%serializable_data_val_name:L) as %param_type:T\n",
+                    "%param_name:L = %factory_name:L.%from_app_function_data_method_name:L(%serializable_data_val_name:L)\n",
                     formatStringMap
                 )
                 .unindent()
@@ -162,7 +448,7 @@ class AppFunctionSerializableFactoryCodeBuilder(
     }
 
     private fun CodeBlock.Builder.appendSerializableListGetterStatement(
-        param: KSValueParameter,
+        paramName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
         val parametrizedTypeName = afType.itemTypeReference.getTypeShortName()
@@ -170,8 +456,8 @@ class AppFunctionSerializableFactoryCodeBuilder(
         val factoryInstanceName = factoryName.lowerFirstChar()
         val formatStringMap =
             mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
-                "temp_list_name" to checkNotNull(param.name).asString() + "Data",
+                "param_name" to paramName,
+                "temp_list_name" to "${paramName}Data",
                 "app_function_data_param_name" to APP_FUNCTION_DATA_PARAM_NAME,
                 "factory_instance_name" to factoryInstanceName,
                 "getter_name" to getAppFunctionDataGetterName(afType),
@@ -194,110 +480,103 @@ class AppFunctionSerializableFactoryCodeBuilder(
         return this
     }
 
-    private fun CodeBlock.Builder.appendGetterReturnStatement(
+    private fun CodeBlock.Builder.appendGetterResultConstructorCallStatement(
         originalClassName: ClassName,
-        params: List<KSValueParameter>
+        properties: List<AppFunctionPropertyDeclaration>,
+        getterResultName: String
     ): CodeBlock.Builder {
         val formatStringMap =
             mapOf<String, Any>(
                 "original_class_name" to originalClassName,
-                "params_list" to
-                    params.joinToString(", ") { param -> checkNotNull(param.name).asString() }
+                "params_list" to properties.joinToString(", ") { it.name },
+                "getter_result_name" to getterResultName
             )
 
-        addNamed("\nreturn %original_class_name:T(%params_list:L)", formatStringMap)
-        return this
-    }
-
-    private fun CodeBlock.Builder.appendNullableSetterStatement(
-        param: KSValueParameter,
-        type: AppFunctionTypeReference
-    ): CodeBlock.Builder {
-        val formatStringMap =
-            mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
-                "annotated_class_instance" to APP_FUNCTION_SERIALIZABLE_PARAM_NAME
-            )
-
-        return addNamed(
-                "if (%annotated_class_instance:L.%param_name:L != null) {\n",
-                formatStringMap
-            )
-            .indent()
-            .appendSetterStatement(param, type)
-            .unindent()
-            .addStatement("}")
-    }
-
-    private fun CodeBlock.Builder.appendSetterStatement(
-        param: KSValueParameter,
-        afType: AppFunctionTypeReference
-    ): CodeBlock.Builder {
-        return when (afType.typeCategory) {
-            PRIMITIVE_SINGULAR,
-            PRIMITIVE_ARRAY,
-            PRIMITIVE_LIST -> appendPrimitiveSetterStatement(param, afType)
-            SERIALIZABLE_SINGULAR -> appendSerializableSetterStatement(param, afType)
-            SERIALIZABLE_LIST -> appendSerializableListSetterStatement(param, afType)
-        }
-    }
-
-    private fun CodeBlock.Builder.appendPrimitiveSetterStatement(
-        param: KSValueParameter,
-        afType: AppFunctionTypeReference
-    ): CodeBlock.Builder {
-        val formatStringMap =
-            mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
-                "setter_name" to getAppFunctionDataSetterName(afType),
-                "annotated_class_instance" to APP_FUNCTION_SERIALIZABLE_PARAM_NAME,
-            )
         addNamed(
-            "builder.%setter_name:L(\"%param_name:L\", %annotated_class_instance:L.%param_name:L)\n",
+            "\nval %getter_result_name:L = %original_class_name:T(%params_list:L)",
             formatStringMap
         )
         return this
     }
 
+    private fun CodeBlock.Builder.appendNullableSetterStatement(
+        paramName: String,
+        afType: AppFunctionTypeReference
+    ): CodeBlock.Builder {
+        val formatStringMap =
+            mapOf<String, Any>(
+                "param_name" to paramName,
+            )
+
+        return addNamed("if (%param_name:L != null) {\n", formatStringMap)
+            .indent()
+            .appendSetterStatement(paramName, afType)
+            .unindent()
+            .addStatement("}")
+    }
+
+    private fun CodeBlock.Builder.appendSetterStatement(
+        paramName: String,
+        afType: AppFunctionTypeReference
+    ): CodeBlock.Builder {
+        return when (afType.typeCategory) {
+            PRIMITIVE_SINGULAR,
+            PRIMITIVE_ARRAY,
+            PRIMITIVE_LIST -> appendPrimitiveSetterStatement(paramName, afType)
+            SERIALIZABLE_SINGULAR -> appendSerializableSetterStatement(paramName, afType)
+            SERIALIZABLE_LIST -> appendSerializableListSetterStatement(paramName, afType)
+        }
+    }
+
+    private fun CodeBlock.Builder.appendPrimitiveSetterStatement(
+        paramName: String,
+        afType: AppFunctionTypeReference
+    ): CodeBlock.Builder {
+        val formatStringMap =
+            mapOf<String, Any>(
+                "param_name" to paramName,
+                "setter_name" to getAppFunctionDataSetterName(afType),
+            )
+        addNamed("builder.%setter_name:L(\"%param_name:L\", %param_name:L)\n", formatStringMap)
+        return this
+    }
+
     private fun CodeBlock.Builder.appendSerializableSetterStatement(
-        param: KSValueParameter,
+        paramName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
         val typeName = afType.selfTypeReference.getTypeShortName()
         val formatStringMap =
             mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
-                "param_type" to param.type.toTypeName().ignoreNullable(),
+                "param_name" to paramName,
                 "factory_name" to "${typeName}Factory".lowerFirstChar(),
                 "setter_name" to getAppFunctionDataSetterName(afType),
-                "annotated_class_instance" to APP_FUNCTION_SERIALIZABLE_PARAM_NAME,
             )
 
         addNamed(
-            "builder.%setter_name:L(\"%param_name:L\", %factory_name:L.toAppFunctionData(%annotated_class_instance:L.%param_name:L as %param_type:T))\n",
+            "builder.%setter_name:L(\"%param_name:L\", %factory_name:L.toAppFunctionData(%param_name:L))\n",
             formatStringMap
         )
         return this
     }
 
     private fun CodeBlock.Builder.appendSerializableListSetterStatement(
-        param: KSValueParameter,
+        paramName: String,
         afType: AppFunctionTypeReference
     ): CodeBlock.Builder {
         val parametrizedTypeName = afType.selfOrItemTypeReference.getTypeShortName()
 
         val formatStringMap =
             mapOf<String, Any>(
-                "param_name" to checkNotNull(param.name).asString(),
+                "param_name" to paramName,
                 "factory_name" to "${parametrizedTypeName}Factory".lowerFirstChar(),
                 "setter_name" to getAppFunctionDataSetterName(afType),
-                "annotated_class_instance" to APP_FUNCTION_SERIALIZABLE_PARAM_NAME,
                 "lambda_param_name" to parametrizedTypeName.lowerFirstChar()
             )
 
         addNamed(
                 "builder.%setter_name:L(\"%param_name:L\", " +
-                    "%annotated_class_instance:L.%param_name:L" +
+                    "%param_name:L" +
                     ".map{ %lambda_param_name:L ->\n",
                 formatStringMap
             )
@@ -378,5 +657,14 @@ class AppFunctionSerializableFactoryCodeBuilder(
 
     private fun String.lowerFirstChar(): String {
         return replaceFirstChar { it -> it.lowercase() }
+    }
+
+    private fun getResultParamName(annotatedClass: AnnotatedAppFunctionSerializable): String {
+        return "result${annotatedClass.originalClassName.simpleName}"
+    }
+
+    private fun getSerializableParamName(annotatedClass: AnnotatedAppFunctionSerializable): String {
+        return "${annotatedClass.originalClassName.simpleName.replaceFirstChar {
+                it -> it.lowercase() }}_appFunctionSerializable"
     }
 }

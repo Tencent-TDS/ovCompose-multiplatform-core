@@ -1519,6 +1519,9 @@ public final class CustomTabsIntent {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 setShareIdentityEnabled();
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
+                setAllowPassThroughOnTouchOutside();
+            }
             if (mActivityOptions != null) {
                 bundle = mActivityOptions.toBundle();
             }
@@ -1553,6 +1556,15 @@ public final class CustomTabsIntent {
                 mActivityOptions = Api23Impl.makeBasicActivityOptions();
             }
             Api34Impl.setShareIdentityEnabled(mActivityOptions, mShareIdentity);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.BAKLAVA)
+        private void setAllowPassThroughOnTouchOutside() {
+            if (mActivityOptions == null) {
+                mActivityOptions = Api23Impl.makeBasicActivityOptions();
+            }
+            boolean enabled = isBackgroundInteractionEnabled(mIntent);
+            Api36Impl.setAllowPassThroughOnTouchOutside(mActivityOptions, enabled);
         }
     }
 
@@ -1883,6 +1895,14 @@ public final class CustomTabsIntent {
     private static class Api34Impl {
         static void setShareIdentityEnabled(ActivityOptions activityOptions, boolean enabled) {
             activityOptions.setShareIdentityEnabled(enabled);
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.BAKLAVA)
+    private static class Api36Impl {
+        static void setAllowPassThroughOnTouchOutside(
+                ActivityOptions activityOptions, boolean enabled) {
+            activityOptions.setAllowPassThroughOnTouchOutside(enabled);
         }
     }
 }

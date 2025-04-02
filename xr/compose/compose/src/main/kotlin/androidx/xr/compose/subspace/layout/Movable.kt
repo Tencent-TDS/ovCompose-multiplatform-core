@@ -17,9 +17,29 @@
 package androidx.xr.compose.subspace.layout
 
 import androidx.annotation.RestrictTo
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.xr.compose.platform.LocalSession
+import androidx.xr.compose.subspace.node.CompositionLocalConsumerSubspaceModifierNode
+import androidx.xr.compose.subspace.node.LayoutCoordinatesAwareModifierNode
+import androidx.xr.compose.subspace.node.SubspaceLayoutModifierNode
 import androidx.xr.compose.subspace.node.SubspaceModifierNodeElement
+import androidx.xr.compose.subspace.node.currentValueOf
+import androidx.xr.compose.subspace.node.requestRelayout
 import androidx.xr.compose.unit.IntVolumeSize
+import androidx.xr.compose.unit.VolumeConstraints
+import androidx.xr.compose.unit.toDimensionsInMeters
+import androidx.xr.compose.unit.toIntVolumeSize
 import androidx.xr.runtime.math.Pose
+import androidx.xr.runtime.math.Ray
+import androidx.xr.scenecore.BasePanelEntity
+import androidx.xr.scenecore.Entity
+import androidx.xr.scenecore.MovableComponent
+import androidx.xr.scenecore.MoveListener
+import androidx.xr.scenecore.Session
+import java.util.concurrent.Executor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
 
 /**
  * When the movable modifier is present and enabled, draggable UI controls will be shown that allow
@@ -141,8 +161,179 @@ internal class MovableNode(
     public var stickyPose: Boolean,
     public var scaleWithDistance: Boolean,
     public var onPoseChange: ((PoseChangeEvent) -> Boolean)?,
-) : SubspaceModifier.Node(), CoreEntityNode {
-    override fun modifyCoreEntity(coreEntity: CoreEntity) {
-        coreEntity.movable?.updateState(this)
+) :
+    SubspaceModifier.Node(),
+    CompositionLocalConsumerSubspaceModifierNode,
+    CoreEntityNode,
+    LayoutCoordinatesAwareModifierNode,
+    MoveListener,
+    SubspaceLayoutModifierNode {
+
+    private inline val density: Density
+        get() = currentValueOf(LocalDensity)
+
+    private inline val session: Session
+        get() = checkNotNull(currentValueOf(LocalSession)) { "Movable requires a Session." }
+
+    /** The previous pose of this entity from the last MoveEvent. */
+    private var previousPose: Pose = Pose.Identity
+
+    /** Pose based on user adjustments from MoveEvents from SceneCore. */
+    private var userPose: Pose = Pose.Identity
+
+    /** The scale of this entity when it is moved. */
+    private var scaleFromMovement: Float = 1.0F
+
+    private var component: MovableComponent? = null
+
+    override fun CoreEntityScope.modifyCoreEntity() {
+        updateState()
+        setOrAppendScale(scaleFromMovement)
+    }
+
+    override fun onDetach() {
+        if (component != null) {
+            disableComponent()
+        }
+    }
+
+    override fun MeasureScope.measure(
+        measurable: Measurable,
+        constraints: VolumeConstraints,
+    ): MeasureResult {
+        val placeable = measurable.measure(constraints)
+        return layout(placeable.measuredWidth, placeable.measuredHeight, placeable.measuredDepth) {
+            placeable.place(userPose)
+        }
+    }
+
+    override fun onLayoutCoordinates(coordinates: SubspaceLayoutCoordinates) {
+        // Update the size of the component to match the final size of the layout.
+        component?.size = coordinates.size.toDimensionsInMeters(density)
+    }
+
+    /**
+     * Updates the movable state of the CoreEntity associated with this node. Only update movable
+     * state if [MovableNode] is [enabled] and the [CoreEntity] is a [MovableCoreEntity].
+     */
+    private fun updateState() {
+        if (enabled && component == null && coreEntity is MovableCoreEntity) {
+            enableComponent()
+        } else if (!enabled && component != null) {
+            disableComponent()
+        }
+    }
+
+    /** Enables the MovableComponent for this CoreEntity. */
+    private fun enableComponent() {
+        check(component == null) { "MovableComponent already enabled." }
+        component = MovableComponent.create(session, systemMovable = false)
+        check(component?.let { coreEntity.addComponent(it) } == true) {
+            "Could not add MovableComponent to Core Entity."
+        }
+        component?.addMoveListener(MainExecutor, this)
+    }
+
+    /**
+     * Disables the MovableComponent for this CoreEntity. Takes care of life cycle tasks for the
+     * underlying component in SceneCore.
+     */
+    private fun disableComponent() {
+        check(component != null) { "MovableComponent already disabled." }
+        component?.let { coreEntity.removeComponent(it) }
+        component = null
+        if (!stickyPose) {
+            userPose = Pose.Identity
+            requestRelayout()
+        }
+    }
+
+    override fun onMoveStart(
+        entity: Entity,
+        initialInputRay: Ray,
+        initialPose: Pose,
+        initialScale: Float,
+        initialParent: Entity,
+    ) {
+        // updatePoseOnMove() not called because there is no previous pose to compare to.
+        previousPose = initialPose
+    }
+
+    override fun onMoveUpdate(
+        entity: Entity,
+        currentInputRay: Ray,
+        currentPose: Pose,
+        currentScale: Float,
+    ) {
+        updatePoseOnMove(
+            previousPose,
+            currentPose,
+            currentScale,
+            when (entity) {
+                is BasePanelEntity<*> -> entity.getSize().toIntVolumeSize(density)
+                else -> IntVolumeSize.Zero
+            },
+        )
+        previousPose = currentPose
+    }
+
+    override fun onMoveEnd(
+        entity: Entity,
+        finalInputRay: Ray,
+        finalPose: Pose,
+        finalScale: Float,
+        updatedParent: Entity?,
+    ) {
+        updatePoseOnMove(
+            previousPose,
+            finalPose,
+            finalScale,
+            when (entity) {
+                is BasePanelEntity<*> -> entity.getSize().toIntVolumeSize(density)
+                else -> IntVolumeSize.Zero
+            },
+        )
+        previousPose = Pose.Identity
+    }
+
+    /** Called every time there is a MoveEvent in SceneCore, if this CoreEntity is movable. */
+    private fun updatePoseOnMove(
+        previousPose: Pose,
+        nextPose: Pose,
+        scale: Float,
+        size: IntVolumeSize,
+    ) {
+        if (!enabled) {
+            return
+        }
+
+        // SceneCore uses meters, Compose XR uses pixels.
+        val previousCorePose = previousPose.convertMetersToPixels(density)
+        val corePose = nextPose.convertMetersToPixels(density)
+
+        if (onPoseChange?.invoke(PoseChangeEvent(corePose, scale, size)) == true) {
+            // We're done, the user app will handle the event.
+            return
+        }
+
+        // Find the delta from the previous move event.
+        val coreDeltaPose =
+            Pose(
+                corePose.translation - previousCorePose.translation,
+                previousCorePose.rotation.inverse * corePose.rotation,
+            )
+        userPose =
+            Pose(
+                userPose.translation + coreDeltaPose.translation,
+                userPose.rotation * coreDeltaPose.rotation,
+            )
+        if (scaleWithDistance) {
+            scaleFromMovement = scale
+        }
+        requestRelayout()
+    }
+
+    public companion object {
+        private val MainExecutor: Executor = Dispatchers.Main.asExecutor()
     }
 }

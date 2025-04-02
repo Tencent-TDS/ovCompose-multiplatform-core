@@ -28,11 +28,12 @@ import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.View;
 
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeTransaction;
 
 import java.util.Objects;
 
@@ -102,7 +103,7 @@ class PanelShadowRenderer {
                 getUpdatedPanelPoseInActivitySpace(openXrToProposedPanel, openXrtoPlane);
         try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
             if (!mIsVisible) {
-                transaction.setVisibility(mPanelShadowNode, true);
+                NodeTransaction unused = transaction.setVisibility(mPanelShadowNode, true);
                 mIsVisible = true;
             }
             transaction
@@ -150,12 +151,12 @@ class PanelShadowRenderer {
         // Scale the panel shadow to the size of the PanelEntity in the activity space.
         Vector3 entityScale = panelEntity.getWorldSpaceScale();
         float sizeX =
-                panelEntity.getPixelDimensions().width
+                panelEntity.getSizeInPixels().width
                                 * entityScale.getX()
                                 / mActivitySpaceImpl.getWorldSpaceScale().getX()
                         + PANEL_BORDER_ADDED_MARGIN;
         float sizeZ =
-                panelEntity.getPixelDimensions().height
+                panelEntity.getSizeInPixels().height
                                 * entityScale.getZ()
                                 / mActivitySpaceImpl.getWorldSpaceScale().getX()
                         + PANEL_BORDER_ADDED_MARGIN;

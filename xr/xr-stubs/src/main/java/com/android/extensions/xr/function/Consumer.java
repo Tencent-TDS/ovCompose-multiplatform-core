@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.function;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Represents a function that accepts an argument and produces no result. It is used internally to
@@ -26,7 +25,6 @@ import androidx.annotation.RestrictTo;
  * @see java.util.function.Consumer
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @java.lang.FunctionalInterface
 public interface Consumer<T> {
 

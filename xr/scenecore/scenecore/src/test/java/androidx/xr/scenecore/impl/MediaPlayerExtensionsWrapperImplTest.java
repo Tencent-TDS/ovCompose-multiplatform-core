@@ -24,12 +24,15 @@ import static org.mockito.Mockito.when;
 import android.media.MediaPlayer;
 
 import androidx.xr.extensions.media.SpatializerExtensions;
-import androidx.xr.extensions.media.XrSpatialAudioExtensions;
-import androidx.xr.extensions.node.Node;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.MediaPlayerExtensionsWrapper;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeMediaPlayerExtensions;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.media.MediaPlayerExtensions;
+import com.android.extensions.xr.media.ShadowMediaPlayerExtensions;
+import com.android.extensions.xr.media.XrSpatialAudioExtensions;
+import com.android.extensions.xr.node.Node;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,23 +41,22 @@ import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class MediaPlayerExtensionsWrapperImplTest {
-    FakeXrExtensions mFakeXrExtensions;
+    XrExtensions mXrExtensions;
     XrSpatialAudioExtensions mSpatialAudioExtensions;
-    FakeMediaPlayerExtensions mFakeMediaPlayerExtensions;
+    MediaPlayerExtensions mMediaPlayerExtensions;
 
     @Before
     public void setUp() {
-        mFakeXrExtensions = new FakeXrExtensions();
-        mSpatialAudioExtensions = mFakeXrExtensions.fakeSpatialAudioExtensions;
-        mFakeMediaPlayerExtensions =
-                (FakeMediaPlayerExtensions) mSpatialAudioExtensions.getMediaPlayerExtensions();
+        mXrExtensions = XrExtensionsProvider.getXrExtensions();
+        mSpatialAudioExtensions = mXrExtensions.getXrSpatialAudioExtensions();
+        mMediaPlayerExtensions = mSpatialAudioExtensions.getMediaPlayerExtensions();
     }
 
     @Test
     public void setPointSourceAttr_callsExtensionsSetPointSourceAttr() {
         MediaPlayer mediaPlayer = new MediaPlayer();
 
-        Node fakeNode = new FakeXrExtensions().createNode();
+        Node fakeNode = mXrExtensions.createNode();
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(fakeNode);
 
@@ -62,10 +64,13 @@ public class MediaPlayerExtensionsWrapperImplTest {
                 new JxrPlatformAdapter.PointSourceAttributes(entity);
 
         MediaPlayerExtensionsWrapper wrapper =
-                new MediaPlayerExtensionsWrapperImpl(mFakeMediaPlayerExtensions);
+                new MediaPlayerExtensionsWrapperImpl(mMediaPlayerExtensions);
         wrapper.setPointSourceAttributes(mediaPlayer, expectedRtAttr);
 
-        assertThat(mFakeMediaPlayerExtensions.getPointSourceAttributes().getNode())
+        assertThat(
+                        ShadowMediaPlayerExtensions.extract(mMediaPlayerExtensions)
+                                .getPointSourceAttributes()
+                                .getNode())
                 .isEqualTo(fakeNode);
     }
 
@@ -79,10 +84,13 @@ public class MediaPlayerExtensionsWrapperImplTest {
                         JxrPlatformAdapter.SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
 
         MediaPlayerExtensionsWrapper wrapper =
-                new MediaPlayerExtensionsWrapperImpl(mFakeMediaPlayerExtensions);
+                new MediaPlayerExtensionsWrapperImpl(mMediaPlayerExtensions);
         wrapper.setSoundFieldAttributes(mediaPlayer, expectedRtAttr);
 
-        assertThat(mFakeMediaPlayerExtensions.getSoundFieldAttributes().getAmbisonicsOrder())
+        assertThat(
+                        ShadowMediaPlayerExtensions.extract(mMediaPlayerExtensions)
+                                .getSoundFieldAttributes()
+                                .getAmbisonicsOrder())
                 .isEqualTo(expectedAmbisonicOrder);
     }
 }

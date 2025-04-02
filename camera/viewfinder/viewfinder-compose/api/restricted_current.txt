@@ -27,7 +27,7 @@ package androidx.camera.viewfinder.compose {
   }
 
   public final class ViewfinderKt {
-    method @androidx.compose.runtime.Composable public static void Viewfinder(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest surfaceRequest, optional androidx.compose.ui.Modifier modifier, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, optional androidx.camera.viewfinder.compose.MutableCoordinateTransformer? coordinateTransformer, kotlin.jvm.functions.Function1<? super androidx.camera.viewfinder.compose.ViewfinderInitScope,kotlin.Unit> onInit);
+    method @androidx.compose.runtime.Composable public static void Viewfinder(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest surfaceRequest, optional androidx.compose.ui.Modifier modifier, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, optional androidx.camera.viewfinder.compose.MutableCoordinateTransformer? coordinateTransformer, optional androidx.compose.ui.Alignment alignment, optional androidx.compose.ui.layout.ContentScale contentScale, kotlin.jvm.functions.Function1<? super androidx.camera.viewfinder.compose.ViewfinderInitScope,kotlin.Unit> onInit);
   }
 
 }

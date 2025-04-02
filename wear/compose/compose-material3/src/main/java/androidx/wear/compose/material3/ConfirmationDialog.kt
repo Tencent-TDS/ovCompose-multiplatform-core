@@ -50,13 +50,10 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.wear.compose.foundation.CurvedDirection
 import androidx.wear.compose.foundation.CurvedLayout
@@ -554,13 +551,7 @@ public object ConfirmationDialogDefaults {
 
     /** The default style for curved text content. */
     public val curvedTextStyle: CurvedTextStyle
-        @Composable
-        get() =
-            MaterialTheme.typography.arcLarge.copy(
-                fontSize = CurvedTextFontSize,
-                letterSpacing = CurvedTextLetterSpacing,
-                fontWeight = FontWeight.Medium
-            )
+        @Composable get() = MaterialTheme.typography.arcLarge
 
     /**
      * A default composable used in [SuccessConfirmationDialog] that displays a success icon with an
@@ -995,6 +986,3 @@ private val TextOpacityAnimationSpec: AnimationSpec<Float>
     @Composable get() = MaterialTheme.motionScheme.fastEffectsSpec()
 private val SuccessContainerAnimationSpec: AnimationSpec<Float> =
     spring(dampingRatio = 0.55f, stiffness = 800f)
-
-private val CurvedTextFontSize: TextUnit = 18.sp
-private val CurvedTextLetterSpacing: TextUnit = 1.8f.sp

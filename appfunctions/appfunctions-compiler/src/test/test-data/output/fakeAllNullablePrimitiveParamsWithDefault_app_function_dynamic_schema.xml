@@ -119,12 +119,9 @@
                 <type>0</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>fake_schema_category</schemaCategory>
-            <schemaName>allNullablePrimitiveParamsWithDefault</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>fake_schema_category</schemaCategory>
+        <schemaName>allNullablePrimitiveParamsWithDefault</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.FakeAllNullablePrimitiveParamsWithDefaultValuesImpl#allNullablePrimitiveArrayParamsWithDefault</functionId>
     </appfunction>
     <appfunction>
@@ -201,12 +198,9 @@
                 <type>0</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>fake_schema_category</schemaCategory>
-            <schemaName>allNullablePrimitiveParamsWithDefault</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>fake_schema_category</schemaCategory>
+        <schemaName>allNullablePrimitiveParamsWithDefault</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.FakeAllNullablePrimitiveParamsWithDefaultValuesImpl#allNullablePrimitiveParamsWithDefault</functionId>
     </appfunction>
 </appfunctions>

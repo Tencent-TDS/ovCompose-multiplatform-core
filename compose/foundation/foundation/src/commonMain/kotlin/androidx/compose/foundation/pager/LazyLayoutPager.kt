@@ -102,9 +102,11 @@ internal fun Pager(
     /** The content of the pager */
     pageContent: @Composable PagerScope.(page: Int) -> Unit
 ) {
-    requirePrecondition(beyondViewportPageCount >= 0) {
-        "beyondViewportPageCount should be greater than or equal to 0, " +
-            "you selected $beyondViewportPageCount"
+    requirePrecondition(
+        beyondViewportPageCount >= 0 && beyondViewportPageCount <= state.pageCount
+    ) {
+        "beyondViewportPageCount should be greater than or equal to 0 and smaller than or equal to " +
+            "the total page count. You selected: $beyondViewportPageCount"
     }
 
     val pagerItemProvider =

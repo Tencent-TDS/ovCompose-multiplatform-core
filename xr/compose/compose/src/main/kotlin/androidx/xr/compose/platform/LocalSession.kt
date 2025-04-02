@@ -17,9 +17,11 @@
 package androidx.xr.compose.platform
 
 import androidx.annotation.RestrictTo
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.xr.compose.subspace.layout.CoreMainPanelEntity
 import androidx.xr.scenecore.Session
 
@@ -48,4 +50,5 @@ private val mainPanelEntityMap: MutableMap<Session, CoreMainPanelEntity> = mutab
  * makes it so we don't have to worry about disposing the instance every time it is used.
  */
 internal val Session.coreMainPanelEntity: CoreMainPanelEntity
-    get() = mainPanelEntityMap.getOrPut(this) { CoreMainPanelEntity(this) }
+    @Composable
+    get() = mainPanelEntityMap.getOrPut(this) { CoreMainPanelEntity(this, LocalDensity.current) }

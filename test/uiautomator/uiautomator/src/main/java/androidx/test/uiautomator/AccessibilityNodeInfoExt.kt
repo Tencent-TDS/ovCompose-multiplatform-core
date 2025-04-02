@@ -186,8 +186,8 @@ public fun AccessibilityNodeInfo.onViewOrNull(
             pollIntervalMs = pollIntervalMs,
             rootNodeBlock = { listOf(this) }
         )
-        .first()
-        .toUiObject2()
+        .firstOrNull()
+        ?.toUiObject2()
 
 /**
  * Performs a DFS on the accessibility tree starting from this node and returns all the nodes

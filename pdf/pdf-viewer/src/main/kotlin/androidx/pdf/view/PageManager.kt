@@ -39,13 +39,14 @@ import kotlinx.coroutines.flow.SharedFlow
 internal class PageManager(
     private val pdfDocument: PdfDocument,
     private val backgroundScope: CoroutineScope,
-    private val pagePrefetchRadius: Int,
     /**
      * The maximum size of any single [android.graphics.Bitmap] we render for a page, i.e. the
      * threshold for tiled rendering
      */
     private val maxBitmapSizePx: Point,
-    private val isTouchExplorationEnabled: Boolean
+    private val isTouchExplorationEnabled: Boolean,
+    /** Error flow for propagating error occurred while processing to [PdfView]. */
+    private val errorFlow: MutableSharedFlow<Throwable>
 ) {
     /**
      * Replay at least 1 value in case of an invalidation signal issued while [PdfView] is not
@@ -102,9 +103,9 @@ internal class PageManager(
         // retained. We release all data from pages well outside the viewport
         val nearPages =
             Range(
-                maxOf(0, visiblePageAreas.keyAt(0) - pagePrefetchRadius),
+                maxOf(0, visiblePageAreas.keyAt(0) - PAGE_RETENTION_RADIUS),
                 minOf(
-                    visiblePageAreas.keyAt(visiblePageAreas.size() - 1) + pagePrefetchRadius,
+                    visiblePageAreas.keyAt(visiblePageAreas.size() - 1) + PAGE_RETENTION_RADIUS,
                     pdfDocument.pageCount - 1
                 ),
             )
@@ -138,7 +139,8 @@ internal class PageManager(
                     maxBitmapSizePx,
                     isTouchExplorationEnabled,
                     onPageUpdate = { _invalidationSignalFlow.tryEmit(Unit) },
-                    onPageTextReady = { pageNumber -> _pageTextReadyFlow.tryEmit(pageNumber) }
+                    onPageTextReady = { pageNumber -> _pageTextReadyFlow.tryEmit(pageNumber) },
+                    errorFlow = errorFlow
                 )
                 .apply {
                     // If the page is visible, let it know
@@ -181,3 +183,5 @@ internal class PageManager(
 
 /** Constant empty list to avoid allocations during drawing */
 private val EMPTY_HIGHLIGHTS = listOf<Highlight>()
+
+private val PAGE_RETENTION_RADIUS = 2

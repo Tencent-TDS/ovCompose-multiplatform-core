@@ -74,6 +74,3 @@ androidx {
     kotlinTarget = KotlinTarget.KOTLIN_2_0
 }
 
-ksp {
-    useKsp2 = true
-}

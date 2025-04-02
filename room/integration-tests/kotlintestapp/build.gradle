@@ -139,7 +139,3 @@ tasks.withType(KspTask).configureEach { kspTask ->
         )
     )
 }
-
-ksp {
-    useKsp2 = true
-}

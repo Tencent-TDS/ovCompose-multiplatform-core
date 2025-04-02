@@ -346,8 +346,7 @@ class CallingMainActivity : Activity() {
             val participants = ParticipantsExtensionManager()
             val participantExtension =
                 addParticipantExtension(
-                    initialParticipants =
-                        participants.participants.value.map { it.toParticipant() }.toSet()
+                    initialParticipants = participants.participants.value.map { it.toParticipant() }
                 )
             var raiseHandState: RaiseHandState? = null
             if (isRaiseHandEnabled) {
@@ -400,9 +399,7 @@ class CallingMainActivity : Activity() {
                 // Collect updates
                 participants.participants
                     .onEach {
-                        participantExtension.updateParticipants(
-                            it.map { p -> p.toParticipant() }.toSet()
-                        )
+                        participantExtension.updateParticipants(it.map { p -> p.toParticipant() })
                         participantExtension.updateActiveParticipant(
                             it.firstOrNull { p -> p.isActive }?.toParticipant()
                         )

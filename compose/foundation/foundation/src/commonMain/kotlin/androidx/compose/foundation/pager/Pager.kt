@@ -79,7 +79,8 @@ import kotlinx.coroutines.launch
  *   of pages to be composed, measured and placed which will defeat the purpose of using lazy
  *   loading. This should be used as an optimization to pre-load a couple of pages before and after
  *   the visible ones. This does not include the pages automatically composed and laid out by the
- *   pre-fetcher in the direction of the scroll during scroll events.
+ *   pre-fetcher in the direction of the scroll during scroll events. This number is capped at the
+ *   [state]'s total number of pages.
  * @param pageSpacing The amount of space to be used to separate the pages in this Pager
  * @param verticalAlignment How pages are aligned vertically in this Pager.
  * @param flingBehavior The [TargetedFlingBehavior] to be used for post scroll gestures.
@@ -208,9 +209,8 @@ fun HorizontalPager(
  *   of pages to be composed, measured and placed which will defeat the purpose of using lazy
  *   loading. This should be used as an optimization to pre-load a couple of pages before and after
  *   the visible ones. This does not include the pages automatically composed and laid out by the
- *   pre-fetcher in
- *     * the direction of the scroll during scroll events.
- *
+ *   pre-fetcher in the direction of the scroll during scroll events. This number is capped at the
+ *   [state]'s total number of pages.
  * @param pageSpacing The amount of space to be used to separate the pages in this Pager
  * @param horizontalAlignment How pages are aligned horizontally in this Pager.
  * @param flingBehavior The [TargetedFlingBehavior] to be used for post scroll gestures.

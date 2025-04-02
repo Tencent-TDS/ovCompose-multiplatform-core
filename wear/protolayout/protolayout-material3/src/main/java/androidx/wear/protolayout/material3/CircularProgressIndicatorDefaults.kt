@@ -132,6 +132,13 @@ public object CircularProgressIndicatorDefaults {
      */
     internal const val INDICATOR_STROKE_WIDTH_INCREMENT_PX: Float = 1.5f
 
+    /**
+     * Extra gap size in pixels between track arc segments to make the each track arc segment
+     * slightly shorter than the indicator arc segment on its top, so that it can be fully covered
+     * by the indicator on segment ends to prevent aliasing issue.
+     */
+    internal const val TRACK_GAP_SIZE_INCREMENT_PX: Float = 1f
+
     /** Default size for the fallback implementation. */
     @Dimension(DP) internal const val CPI_DEFAULT_DP_SIZE: Float = 52F
 }

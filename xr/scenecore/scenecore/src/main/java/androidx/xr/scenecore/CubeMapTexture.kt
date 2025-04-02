@@ -19,18 +19,16 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource as RtTextureResource
-import java.lang.ref.WeakReference
 
 /** [CubeMapTexture] represents a cube map texture that can be used with materials. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class CubeMapTexture
-internal constructor(texture: RtTextureResource, session: WeakReference<Session>) :
+public class CubeMapTexture internal constructor(texture: RtTextureResource, session: Session) :
     Texture(texture, TextureSampler.create(), session) {
 
     public companion object {
         internal fun borrowReflectionTexture(
             platformAdapter: JxrPlatformAdapter,
-            session: WeakReference<Session>,
+            session: Session,
         ): CubeMapTexture {
             // TODO(b/396116100): Handle null return from borrow reflection texture.
             return CubeMapTexture(platformAdapter.borrowReflectionTexture()!!, session)
@@ -51,9 +49,7 @@ internal constructor(texture: RtTextureResource, session: WeakReference<Session>
         @MainThread
         @JvmStatic
         public fun borrowReflectionTexture(session: Session): CubeMapTexture {
-            // The WeakReference prevents the Session (and its Activity) from being held in memory
-            // indefinitely.
-            return borrowReflectionTexture(session.platformAdapter, WeakReference(session))
+            return borrowReflectionTexture(session.platformAdapter, session)
         }
     }
 }

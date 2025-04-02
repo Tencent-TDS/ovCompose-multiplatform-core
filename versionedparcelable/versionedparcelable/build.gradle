@@ -42,9 +42,9 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
-    androidTestImplementation(libs.mockitoCore)
-    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(libs.truth)
+    androidTestImplementation(libs.junit)
+
     androidTestAnnotationProcessor(project(":versionedparcelable:versionedparcelable-compiler"))
 }
 

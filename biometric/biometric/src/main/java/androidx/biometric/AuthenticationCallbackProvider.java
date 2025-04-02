@@ -183,6 +183,8 @@ class AuthenticationCallbackProvider {
          * for the given result object.
          */
         @BiometricPrompt.AuthenticationResultType
+        // This is expected because AndroidX and framework annotation are not identical
+        @SuppressWarnings("WrongConstant")
         static int getAuthenticationType(
                 android.hardware.biometrics.BiometricPrompt.@NonNull AuthenticationResult result) {
             return result.getAuthenticationType();

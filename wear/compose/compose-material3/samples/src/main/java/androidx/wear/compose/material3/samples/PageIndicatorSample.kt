@@ -49,7 +49,7 @@ fun HorizontalPageIndicatorWithPagerSample() {
                 flingBehavior =
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(modifier = Modifier.align(Alignment.Center), text = "Page #$page")
                     }
@@ -75,7 +75,7 @@ fun VerticalPageIndicatorWithPagerSample() {
                 flingBehavior =
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState)
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Text(modifier = Modifier.align(Alignment.Center), text = "Page #$page")
                     }

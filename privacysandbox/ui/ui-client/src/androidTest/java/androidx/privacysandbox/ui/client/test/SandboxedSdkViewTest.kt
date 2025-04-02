@@ -33,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.BackwardCompatUtil
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+import androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions
 import androidx.privacysandbox.ui.core.SessionData
 import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
 import androidx.privacysandbox.ui.provider.AbstractSandboxedUiAdapter
@@ -70,6 +71,7 @@ class SandboxedSdkViewTest {
     private lateinit var linearLayout: LinearLayout
     private var mainLayoutWidth = -1
     private var mainLayoutHeight = -1
+    private var signalOptions = setOf(SandboxedUiAdapterSignalOptions.GEOMETRY)
     @get:Rule var activityScenarioRule = ActivityScenarioRule(UiLibActivity::class.java)
 
     @Before
@@ -85,7 +87,7 @@ class SandboxedSdkViewTest {
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
             view.layoutParams = layoutParams
-            testSandboxedUiAdapter = TestSandboxedUiAdapter()
+            testSandboxedUiAdapter = TestSandboxedUiAdapter(signalOptions)
             view.setAdapter(testSandboxedUiAdapter)
         }
         uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
@@ -176,16 +178,14 @@ class SandboxedSdkViewTest {
         val session = testSandboxedUiAdapter.testSession!!
         val adapter = testSandboxedUiAdapter
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
-        assertThat(adapter.isZOrderOnTop).isTrue()
-        // When state changes to false, the provider should be notified.
-        view.orderProviderUiAboveClientUi(false)
-        assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(adapter.isZOrderOnTop).isFalse()
-        // When state changes back to true, the provider should be notified.
-        session.zOrderChangedLatch = CountDownLatch(1)
         view.orderProviderUiAboveClientUi(true)
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(adapter.isZOrderOnTop).isTrue()
+        session.zOrderChangedLatch = CountDownLatch(1)
+        view.orderProviderUiAboveClientUi(false)
+        assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(adapter.isZOrderOnTop).isFalse()
     }
 
     @Test
@@ -195,12 +195,12 @@ class SandboxedSdkViewTest {
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession!!
         val adapter = testSandboxedUiAdapter
-        assertThat(adapter.isZOrderOnTop).isTrue()
+        assertThat(adapter.isZOrderOnTop).isFalse()
         // When Z-order state is unchanged, the provider should not be notified.
         session.zOrderChangedLatch = CountDownLatch(1)
-        view.orderProviderUiAboveClientUi(true)
+        view.orderProviderUiAboveClientUi(false)
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
-        assertThat(adapter.isZOrderOnTop).isTrue()
+        assertThat(adapter.isZOrderOnTop).isFalse()
     }
 
     @Test
@@ -219,14 +219,14 @@ class SandboxedSdkViewTest {
         testSandboxedUiAdapter.delayOpenSessionCallback = true
         addViewToLayout()
         testSandboxedUiAdapter.assertSessionOpened()
-        view.orderProviderUiAboveClientUi(false)
+        view.orderProviderUiAboveClientUi(true)
         val session = testSandboxedUiAdapter.testSession!!
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
         activityScenarioRule.withActivity { testSandboxedUiAdapter.sendOnSessionOpened() }
         // After session has opened, the pending Z order changed made while loading is notified
         // th the session.
         assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
-        assertThat(testSandboxedUiAdapter.isZOrderOnTop).isFalse()
+        assertThat(testSandboxedUiAdapter.isZOrderOnTop).isTrue()
     }
 
     @Test
@@ -532,7 +532,6 @@ class SandboxedSdkViewTest {
         )
     }
 
-    @Ignore // b/356742276
     @Test
     fun signalsOnlyCollectedWhenSignalOptionsNonEmpty() {
         addViewToLayoutAndWaitToBeActive()
@@ -707,6 +706,15 @@ class SandboxedSdkViewTest {
     }
 
     @Test
+    fun supportedSignalOptionsSentWhenUiDisplayed() {
+        addViewToLayoutAndWaitToBeActive()
+        val session = testSandboxedUiAdapter.testSession!!
+        assertThat(session.sessionOpenedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(session.supportedSignalOptions)
+            .containsExactly(SandboxedUiAdapterSignalOptions.GEOMETRY)
+    }
+
+    @Test
     fun addChildViewToSandboxedSdkView_throwsException() {
         addViewToLayout()
         val exception =
@@ -736,16 +744,22 @@ class SandboxedSdkViewTest {
         }
     }
 
-    private fun addViewToLayout(waitToBeActive: Boolean = false, viewToAdd: View = view) {
+    private fun addViewToLayout(
+        waitToBeActive: Boolean = false,
+        viewToAdd: SandboxedSdkView = view
+    ) {
         activityScenarioRule.withActivity {
             linearLayout = findViewById(R.id.mainlayout)
+            if (viewToAdd != view) {
+                linearLayout.removeView(view)
+            }
             mainLayoutWidth = linearLayout.width
             mainLayoutHeight = linearLayout.height
             linearLayout.addView(viewToAdd)
         }
         if (waitToBeActive) {
             val eventListener = TestEventListener()
-            view.setEventListener(eventListener)
+            viewToAdd.setEventListener(eventListener)
             assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
                 .isTrue()
         }
@@ -758,7 +772,7 @@ class SandboxedSdkViewTest {
         }
     }
 
-    private fun addViewToLayoutAndWaitToBeActive(viewToAdd: View = view) {
+    private fun addViewToLayoutAndWaitToBeActive(viewToAdd: SandboxedSdkView = view) {
         addViewToLayout(true, viewToAdd)
     }
 

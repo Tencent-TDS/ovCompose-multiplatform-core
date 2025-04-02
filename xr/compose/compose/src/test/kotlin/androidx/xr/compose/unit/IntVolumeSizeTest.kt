@@ -42,9 +42,9 @@ class IntVolumeSizeTest {
 
         val dimensions = intVolumeSize.toDimensionsInMeters(UNIT_DENSITY)
 
-        assertThat(dimensions.width).isWithin(0.0003f).of(9.0f)
-        assertThat(dimensions.height).isWithin(0.0003f).of(9.0f)
-        assertThat(dimensions.depth).isWithin(0.0003f).of(9.0f)
+        assertThat(dimensions.width).isWithin(0.0003f).of(10367.0f)
+        assertThat(dimensions.height).isWithin(0.0003f).of(10367.0f)
+        assertThat(dimensions.depth).isWithin(0.0003f).of(10367.0f)
     }
 
     @Test
@@ -55,9 +55,9 @@ class IntVolumeSizeTest {
         val dimensions = intVolumeSize.toDimensionsInMeters(DOUBLE_DENSITY)
 
         // When pixels are twice as dense, we expect the Meters equivalent to be half.
-        assertThat(dimensions.width).isWithin(0.0002f).of(4.5f)
-        assertThat(dimensions.height).isWithin(0.0002f).of(4.5f)
-        assertThat(dimensions.depth).isWithin(0.0002f).of(4.5f)
+        assertThat(dimensions.width).isWithin(0.0002f).of(5183.5f)
+        assertThat(dimensions.height).isWithin(0.0002f).of(5183.5f)
+        assertThat(dimensions.depth).isWithin(0.0002f).of(5183.5f)
     }
 
     @Test
@@ -73,7 +73,7 @@ class IntVolumeSizeTest {
 
         val intVolumeSize = dimensions.toIntVolumeSize(UNIT_DENSITY)
 
-        assertThat(intVolumeSize).isEqualTo(IntVolumeSize(10367, 10367, 10367))
+        assertThat(intVolumeSize).isEqualTo(IntVolumeSize(9, 9, 9))
     }
 
     @Test

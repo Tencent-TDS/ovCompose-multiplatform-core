@@ -36,7 +36,7 @@ dependencies {
     implementation(libs.kotlinCoroutinesCore)
     api("androidx.compose.runtime:runtime:1.7.0")
     api("androidx.compose.runtime:runtime-saveable:1.7.0")
-    api(project(":activity:activity-ktx"))
+    api(project(":activity:activity"))
     api("androidx.compose.ui:ui:1.0.1")
     api("androidx.core:core-ktx:1.13.0")
     api("androidx.lifecycle:lifecycle-viewmodel:2.6.1")
@@ -79,6 +79,6 @@ androidx {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = 36
     namespace = "androidx.activity.compose"
 }

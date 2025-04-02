@@ -23,7 +23,9 @@ import androidx.xr.compose.subspace.node.SubspaceSemanticsInfo
 /**
  * Manager for all [SpatialComposeScene]s that are created when the [SceneManager] is running.
  *
- * Enables finding all semantic roots in a spatial scene graph.
+ * Enables finding all semantic roots in a spatial scene graph. This is useful for testing libraries
+ * as well as developer tooling to help semantically identify parts of the compose tree. It is not
+ * intended to be used in individual apps.
  */
 @Suppress("NotCloseable")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)

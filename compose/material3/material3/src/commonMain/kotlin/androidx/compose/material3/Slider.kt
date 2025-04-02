@@ -97,7 +97,10 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.VerticalAlignmentLine
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -841,6 +844,14 @@ private fun SliderImpl(
         val trackOffsetY: Int
         val thumbOffsetX: Int
         var thumbOffsetY: Int
+        val valueAsFraction = state.coercedValueAsFraction
+        val isOnFirstOrLastStep =
+            valueAsFraction == state.tickFractions.firstOrNull() ||
+                valueAsFraction == state.tickFractions.lastOrNull()
+        val trackCornerSize =
+            trackPlaceable[CornerSizeAlignmentLine].let {
+                if (it != AlignmentLine.Unspecified) it else 0
+            }
         if (state.orientation == Vertical) {
             sliderWidth = max(trackPlaceable.width, thumbPlaceable.width)
             sliderHeight = thumbPlaceable.height + trackPlaceable.height
@@ -848,12 +859,11 @@ private fun SliderImpl(
             trackOffsetY = thumbPlaceable.height / 2
             thumbOffsetX = (sliderWidth - thumbPlaceable.width) / 2
             thumbOffsetY =
-                if (state.steps > 0) {
-                    ((trackPlaceable.height - state.trackCornerSize * 2) *
-                            state.coercedValueAsFraction)
-                        .roundToInt() + state.trackCornerSize
+                if (state.steps > 0 && !isOnFirstOrLastStep) {
+                    ((trackPlaceable.height - trackCornerSize * 2) * valueAsFraction).roundToInt() +
+                        trackCornerSize
                 } else {
-                    (trackPlaceable.height * state.coercedValueAsFraction).roundToInt()
+                    (trackPlaceable.height * valueAsFraction).roundToInt()
                 }
             if (state.reverseVerticalDirection) {
                 thumbOffsetY = trackPlaceable.height - thumbOffsetY
@@ -864,12 +874,11 @@ private fun SliderImpl(
             trackOffsetX = thumbPlaceable.width / 2
             trackOffsetY = (sliderHeight - trackPlaceable.height) / 2
             thumbOffsetX =
-                if (state.steps > 0) {
-                    ((trackPlaceable.width - state.trackCornerSize * 2) *
-                            state.coercedValueAsFraction)
-                        .roundToInt() + state.trackCornerSize
+                if (state.steps > 0 && !isOnFirstOrLastStep) {
+                    ((trackPlaceable.width - trackCornerSize * 2) * valueAsFraction).roundToInt() +
+                        trackCornerSize
                 } else {
-                    (trackPlaceable.width * state.coercedValueAsFraction).roundToInt()
+                    (trackPlaceable.width * valueAsFraction).roundToInt()
                 }
             thumbOffsetY = (sliderHeight - thumbPlaceable.height) / 2
         }
@@ -1069,26 +1078,35 @@ private fun RangeSliderImpl(
 
         state.updateMinMaxPx()
 
+        val startValueAsFraction = state.coercedActiveRangeStartAsFraction
+        val isStartOnFirstOrLastStep =
+            startValueAsFraction == state.tickFractions.firstOrNull() ||
+                startValueAsFraction == state.tickFractions.lastOrNull()
+        val endValueAsFraction = state.coercedActiveRangeEndAsFraction
+        val isEndOnFirstOrLastStep =
+            endValueAsFraction == state.tickFractions.firstOrNull() ||
+                endValueAsFraction == state.tickFractions.lastOrNull()
         val trackOffsetX = startThumbPlaceable.width / 2
+        val trackCornerSize =
+            trackPlaceable[CornerSizeAlignmentLine].let {
+                if (it != AlignmentLine.Unspecified) it else 0
+            }
         val startThumbOffsetX =
-            if (state.steps > 0) {
-                ((trackPlaceable.width - state.trackCornerSize * 2) *
-                        state.coercedActiveRangeStartAsFraction)
-                    .roundToInt() + state.trackCornerSize
+            if (state.steps > 0 && !isStartOnFirstOrLastStep) {
+                ((trackPlaceable.width - trackCornerSize * 2) * startValueAsFraction).roundToInt() +
+                    trackCornerSize
             } else {
-                (trackPlaceable.width * state.coercedActiveRangeStartAsFraction).roundToInt()
+                (trackPlaceable.width * startValueAsFraction).roundToInt()
             }
         // When start thumb and end thumb have different widths,
         // we need to add a correction for the centering of the slider.
         val endCorrection = (startThumbPlaceable.width - endThumbPlaceable.width) / 2
         val endThumbOffsetX =
-            if (state.steps > 0) {
-                ((trackPlaceable.width - state.trackCornerSize * 2) *
-                        state.coercedActiveRangeEndAsFraction + endCorrection)
-                    .roundToInt() + state.trackCornerSize
+            if (state.steps > 0 && !isEndOnFirstOrLastStep) {
+                ((trackPlaceable.width - trackCornerSize * 2) * endValueAsFraction + endCorrection)
+                    .roundToInt() + trackCornerSize
             } else {
-                (trackPlaceable.width * state.coercedActiveRangeEndAsFraction + endCorrection)
-                    .roundToInt()
+                (trackPlaceable.width * endValueAsFraction + endCorrection).roundToInt()
             }
         val trackOffsetY = (sliderHeight - trackPlaceable.height) / 2
         val startThumbOffsetY = (sliderHeight - startThumbPlaceable.height) / 2
@@ -1539,27 +1557,40 @@ object SliderDefaults {
         val activeTrackColor = colors.trackColor(enabled = enabled, active = true)
         val inactiveTickColor = colors.tickColor(enabled = enabled, active = false)
         val activeTickColor = colors.tickColor(enabled = enabled, active = true)
+        var cornerSize by remember { mutableIntStateOf(0) }
         Canvas(
             if (sliderState.orientation == Vertical) {
-                modifier.width(TrackHeight).fillMaxHeight().let {
-                    if (sliderState.reverseVerticalDirection) it.scale(1f, -1f) else it
-                }
-            } else {
-                modifier.fillMaxWidth().height(TrackHeight).let {
-                    if (sliderState.isRtl) it.scale(-1f, 1f) else it
-                }
-            }
-        ) {
-            sliderState.trackCornerSize =
-                if (trackCornerSize == Dp.Unspecified) {
-                    if (sliderState.orientation == Vertical) {
-                        size.width.roundToInt() / 2
-                    } else {
-                        size.height.roundToInt() / 2
+                    modifier.width(TrackHeight).fillMaxHeight().let {
+                        if (sliderState.reverseVerticalDirection) it.scale(1f, -1f) else it
                     }
                 } else {
-                    trackCornerSize.roundToPx()
+                    modifier.fillMaxWidth().height(TrackHeight).let {
+                        if (sliderState.isRtl) it.scale(-1f, 1f) else it
+                    }
                 }
+                .then(
+                    Modifier.layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        cornerSize =
+                            if (trackCornerSize == Dp.Unspecified) {
+                                if (sliderState.orientation == Vertical) {
+                                    placeable.width / 2
+                                } else {
+                                    placeable.height / 2
+                                }
+                            } else {
+                                trackCornerSize.roundToPx()
+                            }
+                        layout(
+                            width = placeable.width,
+                            height = placeable.height,
+                            alignmentLines = mapOf(CornerSizeAlignmentLine to cornerSize)
+                        ) {
+                            placeable.place(0, 0)
+                        }
+                    }
+                )
+        ) {
             drawTrack(
                 tickFractions = sliderState.tickFractions,
                 activeRangeStart = 0f,
@@ -1576,7 +1607,7 @@ object SliderDefaults {
                 endThumbHeight = sliderState.thumbHeight.toDp(),
                 thumbTrackGapSize = thumbTrackGapSize,
                 trackInsideCornerSize = trackInsideCornerSize,
-                trackCornerSize = sliderState.trackCornerSize.toDp(),
+                trackCornerSize = cornerSize.toDp(),
                 drawStopIndicator = drawStopIndicator,
                 drawTick = drawTick,
                 isRangeSlider = false,
@@ -1667,13 +1698,24 @@ object SliderDefaults {
         val activeTrackColor = colors.trackColor(enabled, active = true)
         val inactiveTickColor = colors.tickColor(enabled, active = false)
         val activeTickColor = colors.tickColor(enabled, active = true)
+        var trackCornerSize by remember { mutableIntStateOf(0) }
         Canvas(
             modifier
                 .fillMaxWidth()
                 .height(TrackHeight)
                 .rotate(if (rangeSliderState.isRtl) 180f else 0f)
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    trackCornerSize = placeable.height / 2
+                    layout(
+                        width = placeable.width,
+                        height = placeable.height,
+                        alignmentLines = mapOf(CornerSizeAlignmentLine to trackCornerSize)
+                    ) {
+                        placeable.place(0, 0)
+                    }
+                }
         ) {
-            rangeSliderState.trackCornerSize = size.height.roundToInt() / 2
             drawTrack(
                 rangeSliderState.tickFractions,
                 rangeSliderState.coercedActiveRangeStartAsFraction,
@@ -1690,7 +1732,7 @@ object SliderDefaults {
                 rangeSliderState.endThumbHeight.toDp(),
                 thumbTrackGapSize,
                 trackInsideCornerSize,
-                rangeSliderState.trackCornerSize.toDp(),
+                trackCornerSize.toDp(),
                 drawStopIndicator,
                 drawTick,
                 isRangeSlider = true,
@@ -1725,8 +1767,15 @@ object SliderDefaults {
         val cornerSize = trackCornerSize.toPx()
         val sliderStart = 0f
         val sliderEnd = if (isVertical) size.height else size.width
+
+        val isStartOnFirstOrLastStep =
+            activeRangeStart == tickFractions.firstOrNull() ||
+                activeRangeStart == tickFractions.lastOrNull()
+        val isEndOnFirstOrLastStep =
+            activeRangeEnd == tickFractions.firstOrNull() ||
+                activeRangeEnd == tickFractions.lastOrNull()
         val sliderValueEnd =
-            if (tickFractions.isNotEmpty()) {
+            if (tickFractions.isNotEmpty() && !isEndOnFirstOrLastStep) {
                 sliderStart +
                     (sliderEnd - sliderStart - cornerSize * 2) * activeRangeEnd +
                     cornerSize
@@ -1734,7 +1783,7 @@ object SliderDefaults {
                 sliderStart + (sliderEnd - sliderStart) * activeRangeEnd
             }
         val sliderValueStart =
-            if (tickFractions.isNotEmpty()) {
+            if (tickFractions.isNotEmpty() && !isStartOnFirstOrLastStep) {
                 sliderStart +
                     (sliderEnd - sliderStart - cornerSize * 2) * activeRangeStart +
                     cornerSize
@@ -2524,7 +2573,6 @@ class SliderState(
     internal var thumbHeight by mutableIntStateOf(0)
     internal var trackWidth by mutableIntStateOf(0)
     internal var trackHeight by mutableIntStateOf(0)
-    internal var trackCornerSize by mutableIntStateOf(0)
     internal var orientation = Horizontal
     internal var reverseVerticalDirection = false
 
@@ -2721,7 +2769,6 @@ class RangeSliderState(
     internal var totalWidth by mutableIntStateOf(0)
     internal var rawOffsetStart by mutableFloatStateOf(0f)
     internal var rawOffsetEnd by mutableFloatStateOf(0f)
-    internal var trackCornerSize by mutableIntStateOf(0)
 
     internal var isRtl by mutableStateOf(false)
 
@@ -2943,3 +2990,5 @@ internal fun SliderRange(range: ClosedFloatingPointRange<Float>): SliderRange {
 @Stable
 internal val SliderRange.isSpecified: Boolean
     get() = packedValue != SliderRange.Unspecified.packedValue
+
+internal val CornerSizeAlignmentLine = VerticalAlignmentLine(::min)

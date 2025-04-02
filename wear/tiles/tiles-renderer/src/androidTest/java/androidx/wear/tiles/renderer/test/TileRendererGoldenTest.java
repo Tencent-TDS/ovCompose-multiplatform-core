@@ -100,7 +100,7 @@ public class TileRendererGoldenTest {
                     {"image_with_inline_data", false},
                     {"image_with_padding", true},
                     {"line_in_arc", false},
-                    {"line_multi_height", false},
+                    {"line_multi_height", true},
                     {"long_text", false},
                     {"mixed_language_text", false},
                     {"multi_line_text_alignment", false},

@@ -19,6 +19,7 @@ package androidx.appsearch.localstorage.stats;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
+import androidx.appsearch.stats.BaseStats;
 import androidx.core.util.Preconditions;
 
 import org.jspecify.annotations.NonNull;
@@ -30,7 +31,7 @@ import org.jspecify.annotations.NonNull;
  * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public final class PutDocumentStats {
+public final class PutDocumentStats extends BaseStats {
     private final @NonNull String mPackageName;
     private final @NonNull String mDatabase;
     /**
@@ -81,7 +82,7 @@ public final class PutDocumentStats {
     private final int mNativeLiteIndexSortLatencyMillis;
 
     PutDocumentStats(@NonNull Builder builder) {
-        Preconditions.checkNotNull(builder);
+        super(builder);
         mPackageName = builder.mPackageName;
         mDatabase = builder.mDatabase;
         mStatusCode = builder.mStatusCode;
@@ -182,7 +183,7 @@ public final class PutDocumentStats {
     }
 
     /** Builder for {@link PutDocumentStats}. */
-    public static class Builder {
+    public static class Builder extends BaseStats.Builder<PutDocumentStats.Builder> {
         final @NonNull String mPackageName;
         final @NonNull String mDatabase;
         @AppSearchResult.ResultCode
@@ -319,6 +320,7 @@ public final class PutDocumentStats {
          * Creates a new {@link PutDocumentStats} object from the contents of this
          * {@link Builder} instance.
          */
+        @Override
         public @NonNull PutDocumentStats build() {
             return new PutDocumentStats(/* builder= */ this);
         }

@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Triggers when there is a bounds change. For example, resize the panel in home space, or
@@ -25,7 +24,6 @@ import androidx.annotation.RestrictTo;
  * @deprecated Use SpatialState instead.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Deprecated
 public final class BoundsChangeEvent implements com.android.extensions.xr.space.SpatialStateEvent {
 

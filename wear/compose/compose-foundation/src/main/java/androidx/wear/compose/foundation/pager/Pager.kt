@@ -58,7 +58,6 @@ import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableBehavior
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
-import kotlinx.coroutines.coroutineScope
 
 /**
  * A horizontally scrolling Pager optimized for Wear OS devices. This component wraps the standard
@@ -115,7 +114,7 @@ public fun HorizontalPager(
     content: @Composable PagerScope.(page: Int) -> Unit
 ) {
     var allowPaging by remember { mutableStateOf(true) }
-    var pagerCoordinates: LayoutCoordinates? by remember { mutableStateOf(null) }
+    var pagerCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val originalTouchSlop = LocalViewConfiguration.current.touchSlop
     CustomTouchSlopProvider(newTouchSlop = originalTouchSlop * CustomTouchSlopMultiplier) {
@@ -132,24 +131,21 @@ public fun HorizontalPager(
             state = state.pagerState,
             modifier =
                 modifier
-                    .onPlaced { layoutCoordinates -> pagerCoordinates = layoutCoordinates }
-                    .pointerInput(pagerCoordinates, gestureInclusion, userScrollEnabled) {
-                        coroutineScope {
-                            awaitEachGesture {
-                                if (!userScrollEnabled || pagerCoordinates == null) {
-                                    allowPaging = false
-                                    return@awaitEachGesture
-                                }
+                    .onPlaced { layoutCoordinates -> pagerCoordinates.value = layoutCoordinates }
+                    .pointerInput(gestureInclusion, userScrollEnabled) {
+                        if (!userScrollEnabled || pagerCoordinates.value == null) {
+                            allowPaging = false
+                            return@pointerInput
+                        }
+                        awaitEachGesture {
+                            allowPaging = true
+                            val firstDown = awaitFirstDown(false, PointerEventPass.Initial)
 
-                                allowPaging = true
-                                val firstDown = awaitFirstDown(false, PointerEventPass.Initial)
-
-                                allowPaging =
-                                    !gestureInclusion.ignoreGestureStart(
-                                        firstDown.position,
-                                        pagerCoordinates!!
-                                    )
-                            }
+                            allowPaging =
+                                !gestureInclusion.ignoreGestureStart(
+                                    firstDown.position,
+                                    pagerCoordinates.value!!
+                                )
                         }
                     }
                     .semantics {

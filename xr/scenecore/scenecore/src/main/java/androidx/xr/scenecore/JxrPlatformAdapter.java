@@ -35,7 +35,6 @@ import androidx.xr.arcore.Anchor;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.runtime.math.Vector4;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -109,11 +108,38 @@ public interface JxrPlatformAdapter {
     @Nullable
     ListenableFuture<GltfModelResource> loadGltfByAssetNameSplitEngine(@NonNull String assetName);
 
+    /**
+     * Loads glTF Asset from a provided byte array. The future returned by this method will fire
+     * listeners on the UI thread if Runnable::run is supplied.
+     */
+    // TODO(b/397746548): Add InputStream support for loading glTFs.
+    // Suppressed to allow CompletableFuture.
+    @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
+    @Nullable
+    ListenableFuture<GltfModelResource> loadGltfByByteArray(
+            @NonNull byte[] assetData, @NonNull String assetKey);
+
     /** Loads an ExrImage for the given asset name from the assets folder. */
     // Suppressed to allow CompletableFuture.
     @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
     @Nullable
     ListenableFuture<ExrImageResource> loadExrImageByAssetName(@NonNull String assetName);
+
+    /**
+     * Loads an ExrImage for the given asset name from the assets folder using the Split Engine
+     * route.
+     */
+    @SuppressWarnings("AsyncSuffixFuture")
+    @Nullable
+    ListenableFuture<ExrImageResource> loadExrImageByAssetNameSplitEngine(
+            @NonNull String assetName);
+
+    /** Loads an ExrImage from a provided byte array using the Split Engine route. */
+    // Suppressed to allow CompletableFuture.
+    @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
+    @Nullable
+    ListenableFuture<ExrImageResource> loadExrImageByByteArraySplitEngine(
+            @NonNull byte[] assetData, @NonNull String assetKey);
 
     /**
      * Loads a texture resource for the given asset name or URL. The future returned by this method
@@ -131,13 +157,17 @@ public interface JxrPlatformAdapter {
     /** Destroys the given texture resource. */
     void destroyTexture(@NonNull TextureResource texture);
 
+    /** Returns the reflection texture from the given IBL. */
+    @Nullable
+    TextureResource getReflectionTextureFromIbl(@NonNull ExrImageResource iblToken);
+
     /**
      * Creates a water material by querying it from the system's built-in materials. The future
      * returned by this method will fire listeners on the UI thread if Runnable::run is supplied.
      */
     @SuppressWarnings({"AndroidJdkLibsChecker", "AsyncSuffixFuture"})
     @Nullable
-    ListenableFuture<MaterialResource> createWaterMaterial(boolean transparent);
+    ListenableFuture<MaterialResource> createWaterMaterial(boolean isAlphaMapVersion);
 
     /** Destroys the given water material resource. */
     void destroyWaterMaterial(@NonNull MaterialResource material);
@@ -155,14 +185,17 @@ public interface JxrPlatformAdapter {
     /** Sets the normal speed for the water material. */
     void setNormalSpeed(@NonNull MaterialResource material, float normalSpeed);
 
-    /** Sets the alpha step of the U coordinate for the water material. */
-    void setAlphaStepU(@NonNull MaterialResource material, @NonNull Vector4 alphaStepU);
-
-    /** Sets the alpha step of the V coordinate for the water material. */
-    void setAlphaStepV(@NonNull MaterialResource material, @NonNull Vector4 alphaStepV);
-
     /** Sets the alpha step multiplier for the water material. */
     void setAlphaStepMultiplier(@NonNull MaterialResource material, float alphaStepMultiplier);
+
+    /** Sets the alpha map for the water material. */
+    void setAlphaMap(@NonNull MaterialResource material, @NonNull TextureResource alphaMap);
+
+    /** Sets the normal z for the water material. */
+    void setNormalZ(@NonNull MaterialResource material, float normalZ);
+
+    /** Sets the normal boundary for the water material. */
+    void setNormalBoundary(@NonNull MaterialResource material, float normalBoundary);
 
     /**
      * A factory function to create a SceneCore GltfEntity. The parent may be the activity space or
@@ -216,22 +249,39 @@ public interface JxrPlatformAdapter {
     /**
      * A factory function to create a platform PanelEntity. The parent can be any entity.
      *
+     * @param context Application Context.
      * @param pose Initial pose of the panel.
      * @param view View inflating this panel.
-     * @param surfaceDimensionsPx Dimensions for the underlying surface for the given view.
      * @param dimensions Size of the panel in meters.
      * @param name Name of the panel.
-     * @param context Application Context.
      * @param parent Parent entity.
      */
     @NonNull
     PanelEntity createPanelEntity(
+            @NonNull Context context,
             @NonNull Pose pose,
             @NonNull View view,
-            @NonNull PixelDimensions surfaceDimensionsPx,
             @NonNull Dimensions dimensions,
             @NonNull String name,
-            @SuppressWarnings("ContextFirst") @NonNull Context context,
+            @NonNull Entity parent);
+
+    /**
+     * A factory function to create a platform PanelEntity. The parent can be any entity.
+     *
+     * @param context Application Context.
+     * @param pose Initial pose of the panel.
+     * @param view View inflating this panel.
+     * @param pixelDimensions Dimensions for the underlying surface for the given view in pixels.
+     * @param name Name of the panel.
+     * @param parent Parent entity.
+     */
+    @NonNull
+    PanelEntity createPanelEntity(
+            @NonNull Context context,
+            @NonNull Pose pose,
+            @NonNull View view,
+            @NonNull PixelDimensions pixelDimensions,
+            @NonNull String name,
             @NonNull Entity parent);
 
     /** Get the PanelEntity associated with the main window for the Activity. */
@@ -866,21 +916,50 @@ public interface JxrPlatformAdapter {
     /** Interface for a SceneCore Entity */
     interface Entity extends ActivityPose {
 
+        /** Returns the pose for this entity, relative to the given space. */
+        @NonNull
+        Pose getPose(@SpaceValue int relativeTo);
+
         /** Returns the pose for this entity, relative to its parent. */
         @NonNull
-        Pose getPose();
+        default Pose getPose() {
+            return getPose(Space.PARENT);
+        }
+
+        /** Updates the pose (position and rotation) of the Entity relative to the given space. */
+        void setPose(@NonNull Pose pose, @SpaceValue int relativeTo);
 
         /** Updates the pose (position and rotation) of the Entity relative to its parent. */
-        void setPose(@NonNull Pose pose);
+        default void setPose(@NonNull Pose pose) {
+            setPose(pose, Space.PARENT);
+        }
 
         /**
-         * Returns the scale of this entity, relative to its parent. Note that this doesn't include
-         * the parent's scale.
+         * Returns the scale of this entity, relative to the given space.
          *
-         * @return Current [Vector3] scale applied to self and children.
+         * @return Current [Vector3] scale relative to the given space.
          */
         @NonNull
-        Vector3 getScale();
+        Vector3 getScale(@SpaceValue int relativeTo);
+
+        /**
+         * Returns the scale of this entity, relative to its parent.
+         *
+         * @return Current [Vector3] scale relative to the parent.
+         */
+        @NonNull
+        default Vector3 getScale() {
+            return getScale(Space.PARENT);
+        }
+
+        /**
+         * Sets the scale of this entity relative to the given space. This value will affect the
+         * rendering of this Entity's children. As the scale increases, this will stretch the
+         * content of the Entity.
+         *
+         * @param scale The [Vector3] scale factor relative to the given space.
+         */
+        void setScale(@NonNull Vector3 scale, @SpaceValue int relativeTo);
 
         /**
          * Sets the scale of this entity relative to its parent. This value will affect the
@@ -889,7 +968,9 @@ public interface JxrPlatformAdapter {
          *
          * @param scale The [Vector3] scale factor from the parent.
          */
-        void setScale(@NonNull Vector3 scale);
+        default void setScale(@NonNull Vector3 scale) {
+            setScale(scale, Space.PARENT);
+        }
 
         /**
          * Add given Entity as child. The child Entity's pose will be relative to the pose of its
@@ -922,24 +1003,33 @@ public interface JxrPlatformAdapter {
         List<Entity> getChildren();
 
         /**
-         * Sets the size for the given Entity.
+         * Returns the effective alpha transparency level of the entity, relative to the given
+         * space.
          *
-         * @param dimensions Dimensions for the Entity in meters.
+         * @param relativeTo The space in which to evaluate the alpha.
          */
-        void setSize(@NonNull Dimensions dimensions);
+        float getAlpha(@SpaceValue int relativeTo);
 
         /** Returns the set alpha transparency level for this Entity. */
-        float getAlpha();
+        default float getAlpha() {
+            return getAlpha(Space.PARENT);
+        }
+
+        /**
+         * Sets the alpha transparency for the given Entity, relative to the given space.
+         *
+         * @param alpha Alpha transparency level for the Entity.
+         */
+        void setAlpha(float alpha, @SpaceValue int relativeTo);
 
         /**
          * Sets the alpha transparency for the given Entity.
          *
          * @param alpha Alpha transparency level for the Entity.
          */
-        void setAlpha(float alpha);
-
-        /** Returns the total alpha transparency level for this Entity. */
-        float getActivitySpaceAlpha();
+        default void setAlpha(float alpha) {
+            setAlpha(alpha, Space.PARENT);
+        }
 
         /**
          * Sets the local hidden state of this Entity. When true, this Entity and all descendants
@@ -1023,10 +1113,44 @@ public interface JxrPlatformAdapter {
              */
             @Nullable public final ExrImageResource skybox;
 
+            /**
+             * The material to override a given mesh in the geometry. If null, the material will not
+             * override any mesh.
+             */
+            @Nullable public final MaterialResource geometryMaterial;
+
+            /**
+             * The name of the mesh to override with the material. If null, the material will not
+             * override any mesh.
+             */
+            @Nullable public final String geometryMeshName;
+
+            /**
+             * The name of the animation to play on the geometry. If null, the geometry will not
+             * play any animation. Note that the animation will be played in loop.
+             */
+            @Nullable public final String geometryAnimationName;
+
             public SpatialEnvironmentPreference(
                     @Nullable ExrImageResource skybox, @Nullable GltfModelResource geometry) {
                 this.skybox = skybox;
                 this.geometry = geometry;
+                this.geometryMaterial = null;
+                this.geometryMeshName = null;
+                this.geometryAnimationName = null;
+            }
+
+            public SpatialEnvironmentPreference(
+                    @Nullable ExrImageResource skybox,
+                    @Nullable GltfModelResource geometry,
+                    @Nullable MaterialResource geometryMaterial,
+                    @Nullable String geometryMeshName,
+                    @Nullable String geometryAnimationName) {
+                this.skybox = skybox;
+                this.geometry = geometry;
+                this.geometryMaterial = geometryMaterial;
+                this.geometryMeshName = geometryMeshName;
+                this.geometryAnimationName = geometryAnimationName;
             }
 
             @Override
@@ -1037,7 +1161,10 @@ public interface JxrPlatformAdapter {
                 if (o instanceof SpatialEnvironmentPreference) {
                     SpatialEnvironmentPreference other = (SpatialEnvironmentPreference) o;
                     return Objects.equals(other.skybox, skybox)
-                            && Objects.equals(other.geometry, geometry);
+                            && Objects.equals(other.geometry, geometry)
+                            && Objects.equals(other.geometryMaterial, geometryMaterial)
+                            && Objects.equals(other.geometryMeshName, geometryMeshName)
+                            && Objects.equals(other.geometryAnimationName, geometryAnimationName);
                 }
                 return false;
             }
@@ -1325,7 +1452,7 @@ public interface JxrPlatformAdapter {
          * @return The current [PixelDimensions] of the underlying surface.
          */
         @NonNull
-        PixelDimensions getPixelDimensions();
+        PixelDimensions getSizeInPixels();
 
         /**
          * Sets the pixel (not Dp) dimensions of the view underlying this PanelEntity. Calling this
@@ -1334,7 +1461,7 @@ public interface JxrPlatformAdapter {
          *
          * @param dimensions The [PixelDimensions] of the underlying surface to set.
          */
-        void setPixelDimensions(@NonNull PixelDimensions dimensions);
+        void setSizeInPixels(@NonNull PixelDimensions dimensions);
 
         /**
          * Sets a corner radius on all four corners of this PanelEntity.
@@ -1352,8 +1479,10 @@ public interface JxrPlatformAdapter {
          * including parent scale.
          *
          * @return Vector3 scale applied to pixels within the Panel. (Z will be 0)
+         * @deprecated This method will be removed in a future release.
          */
         @NonNull
+        @Deprecated
         Vector3 getPixelDensity();
 
         /**
@@ -1364,6 +1493,13 @@ public interface JxrPlatformAdapter {
          */
         @NonNull
         Dimensions getSize();
+
+        /**
+         * Sets the spatial size of this Panel in meters.
+         *
+         * @param dimensions [Dimensions] size of this panel in meters. (Z will be 0)
+         */
+        void setSize(@NonNull Dimensions dimensions);
     }
 
     /** Interface for a SceneCore ActivityPanel entity. */
@@ -1466,6 +1602,10 @@ public interface JxrPlatformAdapter {
             int TOP_BOTTOM = 1;
             // The [left, right] halves of the surface will map to [left, right] eyes
             int SIDE_BY_SIDE = 2;
+            // Multiview video, [primary, auxiliary] views will map to [left, right] eyes
+            int MULTIVIEW_LEFT_PRIMARY = 4;
+            // Multiview video, [primary, auxiliary] views will map to [right, left] eyes
+            int MULTIVIEW_RIGHT_PRIMARY = 5;
         }
 
         /**
@@ -2561,4 +2701,26 @@ public interface JxrPlatformAdapter {
     /** Returns a [MediaPlayerExtensionsWrapper] instance. */
     @NonNull
     MediaPlayerExtensionsWrapper getMediaPlayerExtensionsWrapper();
+
+    /** Specifies the coordinate space for pose and scale transformations. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({Space.PARENT, Space.ACTIVITY, Space.REAL_WORLD})
+    public @interface SpaceValue {}
+
+    /** Coordinate spaces in which to apply the transformation values. */
+    public class Space {
+        /** The local coordinate space of an [Entity], relative to its parent. */
+        public static final int PARENT = 0;
+
+        /** The global coordinate space, at the root of the scene graph for the activity. */
+        public static final int ACTIVITY = 1;
+
+        /**
+         * The global coordinate space, unscaled, at the root of the scene graph of the activity.
+         */
+        public static final int REAL_WORLD = 2;
+
+        private Space() {}
+    }
 }

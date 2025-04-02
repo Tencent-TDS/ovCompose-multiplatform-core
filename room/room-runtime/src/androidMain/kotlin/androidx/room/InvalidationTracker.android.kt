@@ -23,13 +23,13 @@ import androidx.lifecycle.LiveData
 import androidx.room.InvalidationTracker.Observer
 import androidx.room.concurrent.ReentrantLock
 import androidx.room.concurrent.withLock
+import androidx.room.coroutines.runBlockingUninterruptible
 import androidx.room.support.AutoCloser
 import androidx.sqlite.SQLiteConnection
 import java.lang.ref.WeakReference
 import java.util.concurrent.Callable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.runBlocking
 
 /**
  * The invalidation tracker keeps track of tables modified by queries and notifies its subscribed
@@ -152,7 +152,7 @@ actual constructor(
     }
 
     // TODO(b/309990302): Needed for compatibility with internalBeginTransaction(), not great.
-    @WorkerThread internal fun syncBlocking(): Unit = runBlocking { sync() }
+    @WorkerThread internal fun syncBlocking(): Unit = runBlockingUninterruptible { sync() }
 
     /**
      * Refresh subscribed [Observer]s and [Flow]s asynchronously, invoking [Observer.onInvalidated]
@@ -250,7 +250,7 @@ actual constructor(
     open fun addObserver(observer: Observer) {
         val shouldSync = addObserverOnly(observer)
         if (shouldSync) {
-            runBlocking { implementation.syncTriggers() }
+            runBlockingUninterruptible { implementation.syncTriggers() }
         }
     }
 
@@ -307,7 +307,7 @@ actual constructor(
     open fun removeObserver(observer: Observer): Unit {
         val shouldSync = removeObserverOnly(observer)
         if (shouldSync) {
-            runBlocking { implementation.syncTriggers() }
+            runBlockingUninterruptible { implementation.syncTriggers() }
         }
     }
 
@@ -341,7 +341,7 @@ actual constructor(
      */
     @WorkerThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
-    open fun refreshVersionsSync(): Unit = runBlocking {
+    open fun refreshVersionsSync(): Unit = runBlockingUninterruptible {
         implementation.refreshInvalidation(emptyArray(), onRefreshScheduled, onRefreshCompleted)
     }
 

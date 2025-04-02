@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.widget.FrameLayout
 import androidx.annotation.RequiresExtension
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -44,6 +45,8 @@ internal class TestPdfViewerFragment : PdfViewerFragment() {
     val pdfLoadingIdlingResource = PdfIdlingResource(PDF_LOAD_RESOURCE_NAME)
     val pdfScrollIdlingResource = PdfIdlingResource(PDF_SCROLL_RESOURCE_NAME)
     val pdfSearchFocusIdlingResource = PdfIdlingResource(PDF_SEARCH_FOCUS_RESOURCE_NAME)
+    val pdfSearchViewVisibleIdlingResource =
+        PdfIdlingResource(PDF_SEARCH_VIEW_VISIBLE_RESOURCE_NAME)
 
     private var hostView: FrameLayout? = null
     private var search: FloatingActionButton? = null
@@ -77,7 +80,10 @@ internal class TestPdfViewerFragment : PdfViewerFragment() {
         if (isToolboxVisible) search?.show() else search?.hide()
 
         // Set up search button click listener
-        search?.setOnClickListener { isTextSearchActive = true }
+        search?.setOnClickListener {
+            pdfSearchViewVisibleIdlingResource.increment()
+            isTextSearchActive = true
+        }
 
         pdfView.scrollStateChangedListener =
             object : OnScrollStateChangedListener {
@@ -95,6 +101,19 @@ internal class TestPdfViewerFragment : PdfViewerFragment() {
                     }
                 }
             }
+
+        pdfSearchView
+            .getViewTreeObserver()
+            .addOnGlobalLayoutListener(
+                object : ViewTreeObserver.OnGlobalLayoutListener {
+                    override fun onGlobalLayout() {
+                        if (pdfSearchView.visibility != View.VISIBLE) {
+                            pdfSearchViewVisibleIdlingResource.decrement()
+                            pdfSearchView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                        }
+                    }
+                }
+            )
     }
 
     override fun onRequestImmersiveMode(enterImmersive: Boolean) {
@@ -117,6 +136,8 @@ internal class TestPdfViewerFragment : PdfViewerFragment() {
         private val PDF_LOAD_RESOURCE_NAME = "PdfLoad-${UUID.randomUUID()}"
         private val PDF_SCROLL_RESOURCE_NAME = "PdfScroll-${UUID.randomUUID()}"
         private val PDF_SEARCH_FOCUS_RESOURCE_NAME = "PdfSearchFocus-${UUID.randomUUID()}"
+        private val PDF_SEARCH_VIEW_VISIBLE_RESOURCE_NAME =
+            "PdfSearchViewVisible-${UUID.randomUUID()}"
 
         fun handleInsets(hostView: View) {
             ViewCompat.setOnApplyWindowInsetsListener(hostView) { view, insets ->

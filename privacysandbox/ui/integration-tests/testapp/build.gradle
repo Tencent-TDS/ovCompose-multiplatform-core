@@ -75,4 +75,7 @@ dependencies {
     implementation(libs.media3Ui)
     implementation(libs.media3Common)
     implementation(libs.media3Exoplayer)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.truth)
 }

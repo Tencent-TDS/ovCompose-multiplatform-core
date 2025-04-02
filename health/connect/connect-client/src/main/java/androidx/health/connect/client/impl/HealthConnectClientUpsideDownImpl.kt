@@ -29,6 +29,8 @@ import android.os.Build
 import android.os.RemoteException
 import android.os.ext.SdkExtensions
 import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresExtension
+import androidx.annotation.RequiresPermission
 import androidx.annotation.VisibleForTesting
 import androidx.core.os.asOutcomeReceiver
 import androidx.health.connect.client.ExperimentalDeduplicationApi
@@ -41,11 +43,15 @@ import androidx.health.connect.client.aggregate.AggregationResultGroupedByDurati
 import androidx.health.connect.client.aggregate.AggregationResultGroupedByPeriod
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
 import androidx.health.connect.client.feature.HealthConnectFeaturesPlatformImpl
+import androidx.health.connect.client.feature.withPhrFeatureCheckSuspend
 import androidx.health.connect.client.impl.platform.aggregate.aggregateFallback
 import androidx.health.connect.client.impl.platform.aggregate.isPlatformSupportedMetric
 import androidx.health.connect.client.impl.platform.records.toPlatformRecord
 import androidx.health.connect.client.impl.platform.records.toPlatformRecordClass
+import androidx.health.connect.client.impl.platform.records.toSdkMedicalDataSource
+import androidx.health.connect.client.impl.platform.records.toSdkMedicalResource
 import androidx.health.connect.client.impl.platform.records.toSdkRecord
 import androidx.health.connect.client.impl.platform.request.toPlatformLocalTimeRangeFilter
 import androidx.health.connect.client.impl.platform.request.toPlatformRequest
@@ -54,15 +60,24 @@ import androidx.health.connect.client.impl.platform.response.toKtResponse
 import androidx.health.connect.client.impl.platform.response.toSdkResponse
 import androidx.health.connect.client.impl.platform.toKtException
 import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_PREFIX
+import androidx.health.connect.client.records.MedicalDataSource
+import androidx.health.connect.client.records.MedicalResource
+import androidx.health.connect.client.records.MedicalResourceId
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.request.AggregateGroupByDurationRequest
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.request.ChangesTokenRequest
+import androidx.health.connect.client.request.CreateMedicalDataSourceRequest
+import androidx.health.connect.client.request.DeleteMedicalResourcesRequest
+import androidx.health.connect.client.request.GetMedicalDataSourcesRequest
+import androidx.health.connect.client.request.ReadMedicalResourcesRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.request.ReadRecordsRequest.Companion.DEDUPLICATION_STRATEGY_DISABLED
+import androidx.health.connect.client.request.UpsertMedicalResourceRequest
 import androidx.health.connect.client.response.ChangesResponse
 import androidx.health.connect.client.response.InsertRecordsResponse
+import androidx.health.connect.client.response.ReadMedicalResourcesResponse
 import androidx.health.connect.client.response.ReadRecordResponse
 import androidx.health.connect.client.response.ReadRecordsResponse
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -423,6 +438,187 @@ class HealthConnectClientUpsideDownImpl : HealthConnectClient, PermissionControl
         val allHealthPermissions = requestedPermissions.filter { it.startsWith(PERMISSION_PREFIX) }
         if (allHealthPermissions.isNotEmpty()) {
             revokePermissionsFunction(allHealthPermissions)
+        }
+    }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA")
+    @RequiresExtension(extension = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, version = 16)
+    override suspend fun createMedicalDataSource(
+        request: CreateMedicalDataSourceRequest
+    ): MedicalDataSource =
+        withPhrFeatureCheckSuspend(
+            this::class,
+            "createMedicalDataSource(request: CreateMedicalDataSourceRequest)"
+        ) {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.createMedicalDataSource(
+                            request.platformCreateMedicalDataSourceRequest,
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .toSdkMedicalDataSource()
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA")
+    @RequiresExtension(extension = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, version = 16)
+    override suspend fun deleteMedicalDataSourceWithData(id: String) {
+        withPhrFeatureCheckSuspend(this::class, "deleteMedicalDataSourceWithData(id: String)") {
+            wrapPlatformException {
+                suspendCancellableCoroutine { continuation ->
+                    healthConnectManager.deleteMedicalDataSourceWithData(
+                        id,
+                        executor,
+                        continuation.asOutcomeReceiver()
+                    )
+                }
+            }
+        }
+    }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresExtension(extension = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, version = 16)
+    override suspend fun getMedicalDataSources(
+        request: GetMedicalDataSourcesRequest
+    ): List<MedicalDataSource> =
+        withPhrFeatureCheckSuspend(
+            this::class,
+            "getMedicalDataSources(request: GetMedicalDataSourcesRequest)"
+        ) {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.getMedicalDataSources(
+                            request.platformGetMedicalDataSourcesRequest,
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .map { it.toSdkMedicalDataSource() }
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresExtension(extension = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, version = 16)
+    override suspend fun getMedicalDataSources(ids: List<String>): List<MedicalDataSource> =
+        withPhrFeatureCheckSuspend(this::class, "getMedicalDataSources(ids: List<String>)") {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.getMedicalDataSources(
+                            ids,
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .map { it.toSdkMedicalDataSource() }
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA")
+    @RequiresExtension(Build.VERSION_CODES.UPSIDE_DOWN_CAKE, 16)
+    override suspend fun upsertMedicalResources(
+        requests: List<UpsertMedicalResourceRequest>
+    ): List<MedicalResource> =
+        withPhrFeatureCheckSuspend(this::class, "upsertMedicalResources()") {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.upsertMedicalResources(
+                            requests.map { it.platformUpsertMedicalResourceRequest },
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .map { it.toSdkMedicalResource() }
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresExtension(Build.VERSION_CODES.UPSIDE_DOWN_CAKE, 16)
+    override suspend fun readMedicalResources(
+        request: ReadMedicalResourcesRequest
+    ): ReadMedicalResourcesResponse =
+        withPhrFeatureCheckSuspend(
+            this::class,
+            "readMedicalResources(request: ReadMedicalResourcesRequest)"
+        ) {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.readMedicalResources(
+                            request.platformReadMedicalResourcesRequest,
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .let { platformResponse ->
+                    ReadMedicalResourcesResponse(
+                        platformResponse.medicalResources.map { it.toSdkMedicalResource() },
+                        platformResponse.nextPageToken,
+                        platformResponse.remainingCount
+                    )
+                }
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresExtension(Build.VERSION_CODES.UPSIDE_DOWN_CAKE, 16)
+    override suspend fun readMedicalResources(ids: List<MedicalResourceId>): List<MedicalResource> =
+        withPhrFeatureCheckSuspend(
+            this::class,
+            "readMedicalResources(ids: List<MedicalResourceId>)"
+        ) {
+            wrapPlatformException {
+                    suspendCancellableCoroutine { continuation ->
+                        healthConnectManager.readMedicalResources(
+                            ids.map { it.platformMedicalResourceId },
+                            executor,
+                            continuation.asOutcomeReceiver()
+                        )
+                    }
+                }
+                .map { it.toSdkMedicalResource() }
+        }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA")
+    @RequiresExtension(Build.VERSION_CODES.UPSIDE_DOWN_CAKE, 16)
+    override suspend fun deleteMedicalResources(ids: List<MedicalResourceId>) {
+        withPhrFeatureCheckSuspend(
+            HealthConnectClientUpsideDownImpl::class,
+            "deleteMedicalResources(ids: List<MedicalResourceId>)"
+        ) {
+            wrapPlatformException {
+                suspendCancellableCoroutine { continuation ->
+                    healthConnectManager.deleteMedicalResources(
+                        ids.map { it.platformMedicalResourceId },
+                        executor,
+                        continuation.asOutcomeReceiver()
+                    )
+                }
+            }
+        }
+    }
+
+    @ExperimentalPersonalHealthRecordApi
+    @RequiresPermission("android.permission.health.WRITE_MEDICAL_DATA")
+    @RequiresExtension(Build.VERSION_CODES.UPSIDE_DOWN_CAKE, 16)
+    override suspend fun deleteMedicalResources(request: DeleteMedicalResourcesRequest) {
+        withPhrFeatureCheckSuspend(
+            HealthConnectClientUpsideDownImpl::class,
+            "deleteMedicalResources(request: DeleteMedicalResourcesRequest)"
+        ) {
+            wrapPlatformException {
+                suspendCancellableCoroutine { continuation ->
+                    healthConnectManager.deleteMedicalResources(
+                        request.platformReadMedicalResourcesRequest,
+                        executor,
+                        continuation.asOutcomeReceiver()
+                    )
+                }
+            }
         }
     }
 

@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.environment;
 
-import androidx.annotation.RestrictTo;
 
 /** Visibility states of an environment. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class EnvironmentVisibilityState {
 
     EnvironmentVisibilityState() {
@@ -54,8 +52,8 @@ public class EnvironmentVisibilityState {
     public static final int HOME_VISIBLE = 1; // 0x1
 
     /**
-     * No environment is shown. This could mean Passthrough is on with 100% opacity or the
-     * home environment app has crashed.
+     * No environment is shown. This could mean Passthrough is on with 100% opacity or the home
+     * environment app has crashed.
      */
     public static final int INVISIBLE = 0; // 0x0
 }

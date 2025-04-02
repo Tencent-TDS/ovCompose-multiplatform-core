@@ -682,6 +682,8 @@ abstract interface androidx.compose.ui.layout/SubcomposeSlotReusePolicy { // and
     abstract fun getSlotsToRetain(androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet) // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.getSlotsToRetain|getSlotsToRetain(androidx.compose.ui.layout.SubcomposeSlotReusePolicy.SlotIdsSet){}[0]
 
     final class SlotIdsSet : kotlin.collections/Collection<kotlin/Any?> { // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet|null[0]
+        final val set // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.set|{}set[0]
+            final fun <get-set>(): androidx.collection/MutableOrderedScatterSet<kotlin/Any?> // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.set.<get-set>|<get-set>(){}[0]
         final val size // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.size|{}size[0]
             final fun <get-size>(): kotlin/Int // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.size.<get-size>|<get-size>(){}[0]
 
@@ -697,6 +699,7 @@ abstract interface androidx.compose.ui.layout/SubcomposeSlotReusePolicy { // and
         final fun retainAll(kotlin.collections/Collection<kotlin/Any?>): kotlin/Boolean // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.retainAll|retainAll(kotlin.collections.Collection<kotlin.Any?>){}[0]
         final fun retainAll(kotlin/Function1<kotlin/Any?, kotlin/Boolean>): kotlin/Boolean // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.retainAll|retainAll(kotlin.Function1<kotlin.Any?,kotlin.Boolean>){}[0]
         final fun trimToSize(kotlin/Int) // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.trimToSize|trimToSize(kotlin.Int){}[0]
+        final inline fun fastForEach(kotlin/Function1<kotlin/Any?, kotlin/Unit>) // androidx.compose.ui.layout/SubcomposeSlotReusePolicy.SlotIdsSet.fastForEach|fastForEach(kotlin.Function1<kotlin.Any?,kotlin.Unit>){}[0]
     }
 }
 
@@ -1728,6 +1731,7 @@ final class androidx.compose.ui.layout/SubcomposeLayoutState { // androidx.compo
     constructor <init>(androidx.compose.ui.layout/SubcomposeSlotReusePolicy) // androidx.compose.ui.layout/SubcomposeLayoutState.<init>|<init>(androidx.compose.ui.layout.SubcomposeSlotReusePolicy){}[0]
     constructor <init>(kotlin/Int) // androidx.compose.ui.layout/SubcomposeLayoutState.<init>|<init>(kotlin.Int){}[0]
 
+    final fun createPausedPrecomposition(kotlin/Any?, kotlin/Function0<kotlin/Unit>): androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition // androidx.compose.ui.layout/SubcomposeLayoutState.createPausedPrecomposition|createPausedPrecomposition(kotlin.Any?;kotlin.Function0<kotlin.Unit>){}[0]
     final fun precompose(kotlin/Any?, kotlin/Function0<kotlin/Unit>): androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle // androidx.compose.ui.layout/SubcomposeLayoutState.precompose|precompose(kotlin.Any?;kotlin.Function0<kotlin.Unit>){}[0]
 
     abstract interface PrecomposedSlotHandle { // androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle|null[0]
@@ -1738,6 +1742,15 @@ final class androidx.compose.ui.layout/SubcomposeLayoutState { // androidx.compo
         open fun getSize(kotlin/Int): androidx.compose.ui.unit/IntSize // androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle.getSize|getSize(kotlin.Int){}[0]
         open fun premeasure(kotlin/Int, androidx.compose.ui.unit/Constraints) // androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle.premeasure|premeasure(kotlin.Int;androidx.compose.ui.unit.Constraints){}[0]
         open fun traverseDescendants(kotlin/Any?, kotlin/Function1<androidx.compose.ui.node/TraversableNode, androidx.compose.ui.node/TraversableNode.Companion.TraverseDescendantsAction>) // androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle.traverseDescendants|traverseDescendants(kotlin.Any?;kotlin.Function1<androidx.compose.ui.node.TraversableNode,androidx.compose.ui.node.TraversableNode.Companion.TraverseDescendantsAction>){}[0]
+    }
+
+    sealed interface PausedPrecomposition { // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition|null[0]
+        abstract val isComplete // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition.isComplete|{}isComplete[0]
+            abstract fun <get-isComplete>(): kotlin/Boolean // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition.isComplete.<get-isComplete>|<get-isComplete>(){}[0]
+
+        abstract fun apply(): androidx.compose.ui.layout/SubcomposeLayoutState.PrecomposedSlotHandle // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition.apply|apply(){}[0]
+        abstract fun cancel() // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition.cancel|cancel(){}[0]
+        abstract fun resume(androidx.compose.runtime/ShouldPauseCallback): kotlin/Boolean // androidx.compose.ui.layout/SubcomposeLayoutState.PausedPrecomposition.resume|resume(androidx.compose.runtime.ShouldPauseCallback){}[0]
     }
 }
 
@@ -3614,7 +3627,7 @@ final fun (androidx.compose.ui.semantics/SemanticsPropertyReceiver).androidx.com
 final fun (androidx.compose.ui.semantics/SemanticsPropertyReceiver).androidx.compose.ui.semantics/setText(kotlin/String? = ..., kotlin/Function1<androidx.compose.ui.text/AnnotatedString, kotlin/Boolean>?) // androidx.compose.ui.semantics/setText|setText@androidx.compose.ui.semantics.SemanticsPropertyReceiver(kotlin.String?;kotlin.Function1<androidx.compose.ui.text.AnnotatedString,kotlin.Boolean>?){}[0]
 final fun (androidx.compose.ui.semantics/SemanticsPropertyReceiver).androidx.compose.ui.semantics/setTextSubstitution(kotlin/String? = ..., kotlin/Function1<androidx.compose.ui.text/AnnotatedString, kotlin/Boolean>?) // androidx.compose.ui.semantics/setTextSubstitution|setTextSubstitution@androidx.compose.ui.semantics.SemanticsPropertyReceiver(kotlin.String?;kotlin.Function1<androidx.compose.ui.text.AnnotatedString,kotlin.Boolean>?){}[0]
 final fun (androidx.compose.ui.semantics/SemanticsPropertyReceiver).androidx.compose.ui.semantics/showTextSubstitution(kotlin/String? = ..., kotlin/Function1<kotlin/Boolean, kotlin/Boolean>?) // androidx.compose.ui.semantics/showTextSubstitution|showTextSubstitution@androidx.compose.ui.semantics.SemanticsPropertyReceiver(kotlin.String?;kotlin.Function1<kotlin.Boolean,kotlin.Boolean>?){}[0]
-final fun (androidx.compose.ui/Modifier).androidx.compose.ui.autofill/autofillContentType(androidx.compose.ui.autofill/ContentType): androidx.compose.ui/Modifier // androidx.compose.ui.autofill/autofillContentType|autofillContentType@androidx.compose.ui.Modifier(androidx.compose.ui.autofill.ContentType){}[0]
+final fun (androidx.compose.ui/Modifier).androidx.compose.ui.autofill/contentType(androidx.compose.ui.autofill/ContentType): androidx.compose.ui/Modifier // androidx.compose.ui.autofill/contentType|contentType@androidx.compose.ui.Modifier(androidx.compose.ui.autofill.ContentType){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.draw/alpha(kotlin/Float): androidx.compose.ui/Modifier // androidx.compose.ui.draw/alpha|alpha@androidx.compose.ui.Modifier(kotlin.Float){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.draw/blur(androidx.compose.ui.unit/Dp, androidx.compose.ui.draw/BlurredEdgeTreatment = ...): androidx.compose.ui/Modifier // androidx.compose.ui.draw/blur|blur@androidx.compose.ui.Modifier(androidx.compose.ui.unit.Dp;androidx.compose.ui.draw.BlurredEdgeTreatment){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.draw/blur(androidx.compose.ui.unit/Dp, androidx.compose.ui.unit/Dp, androidx.compose.ui.draw/BlurredEdgeTreatment = ...): androidx.compose.ui/Modifier // androidx.compose.ui.draw/blur|blur@androidx.compose.ui.Modifier(androidx.compose.ui.unit.Dp;androidx.compose.ui.unit.Dp;androidx.compose.ui.draw.BlurredEdgeTreatment){}[0]

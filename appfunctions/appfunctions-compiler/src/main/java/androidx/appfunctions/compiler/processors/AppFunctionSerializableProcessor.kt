@@ -20,12 +20,14 @@ import androidx.annotation.VisibleForTesting
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.compiler.AppFunctionCompiler
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializable
-import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableAnnotation
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy
+import androidx.appfunctions.compiler.core.AppFunctionSymbolResolver
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod.APP_FUNCTION_DATA_PARAM_NAME
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.ToAppFunctionDataMethod.APP_FUNCTION_SERIALIZABLE_PARAM_NAME
 import androidx.appfunctions.compiler.core.ProcessingException
 import androidx.appfunctions.compiler.core.logException
+import androidx.appfunctions.compiler.core.toClassName
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -34,7 +36,6 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
-import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -45,8 +46,9 @@ import com.squareup.kotlinpoet.asTypeName
 
 /**
  * Generates a factory class with methods to convert classes annotated with
- * [androidx.appfunctions.AppFunctionSerializable] to [androidx.appfunctions.AppFunctionData], and
- * vice-versa.
+ * [androidx.appfunctions.AppFunctionSerializable] or
+ * [androidx.appfunctions.AppFunctionSerializableProxy] to [androidx.appfunctions.AppFunctionData],
+ * and vice-versa.
  *
  * **Example:**
  *
@@ -81,36 +83,27 @@ class AppFunctionSerializableProcessor(
     private val codeGenerator: CodeGenerator,
     private val logger: KSPLogger,
 ) : SymbolProcessor {
+    private var hasProcessed = false
+
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        if (hasProcessed) return emptyList()
+        hasProcessed = true
+
         try {
-            val entityClasses = resolveAppFunctionSerializables(resolver)
+            val entitySymbolResolver = AppFunctionSymbolResolver(resolver)
+            val entityClasses = entitySymbolResolver.resolveAnnotatedAppFunctionSerializables()
+            val entityProxyClasses =
+                entitySymbolResolver.resolveAnnotatedAppFunctionSerializableProxies()
             for (entity in entityClasses) {
                 buildAppFunctionSerializableFactoryClass(entity)
+            }
+            for (entityProxy in entityProxyClasses) {
+                buildAppFunctionSerializableProxyFactoryClass(entityProxy)
             }
         } catch (e: ProcessingException) {
             logger.logException(e)
         }
         return emptyList()
-    }
-
-    fun resolveAppFunctionSerializables(
-        resolver: Resolver
-    ): List<AnnotatedAppFunctionSerializable> {
-        val annotatedAppFunctionSerializables =
-            resolver.getSymbolsWithAnnotation(
-                AppFunctionSerializableAnnotation.CLASS_NAME.canonicalName
-            )
-        return annotatedAppFunctionSerializables
-            .map {
-                if (it !is KSClassDeclaration) {
-                    throw ProcessingException(
-                        "Only classes can be annotated with @AppFunctionSerializable",
-                        it
-                    )
-                }
-                AnnotatedAppFunctionSerializable(it).validate()
-            }
-            .toList()
     }
 
     private fun buildAppFunctionSerializableFactoryClass(
@@ -154,6 +147,47 @@ class AppFunctionSerializableProcessor(
             .use { fileSpec.writeTo(it) }
     }
 
+    private fun buildAppFunctionSerializableProxyFactoryClass(
+        annotatedProxyClass: AnnotatedAppFunctionSerializableProxy
+    ) {
+        val proxySuperInterfaceClass =
+            AppFunctionSerializableFactoryClass.CLASS_NAME.parameterizedBy(
+                annotatedProxyClass.targetClassDeclaration.toClassName()
+            )
+        val generatedSerializableProxyFactoryClassName =
+            "\$${checkNotNull(
+                annotatedProxyClass.targetClassDeclaration.simpleName).asString()}Factory"
+        val serializableProxyClassBuilder =
+            TypeSpec.classBuilder(generatedSerializableProxyFactoryClassName)
+        val factoryCodeBuilder = AppFunctionSerializableFactoryCodeBuilder(annotatedProxyClass)
+        serializableProxyClassBuilder.addAnnotation(AppFunctionCompiler.GENERATED_ANNOTATION)
+        serializableProxyClassBuilder.addSuperinterface(proxySuperInterfaceClass)
+        serializableProxyClassBuilder.addFunction(
+            buildProxyFromAppFunctionDataFunction(annotatedProxyClass, factoryCodeBuilder)
+        )
+        serializableProxyClassBuilder.addFunction(
+            buildProxyToAppFunctionDataFunction(annotatedProxyClass, factoryCodeBuilder)
+        )
+        val fileSpec =
+            FileSpec.builder(
+                    annotatedProxyClass.originalClassName.packageName,
+                    generatedSerializableProxyFactoryClassName
+                )
+                .addType(serializableProxyClassBuilder.build())
+                .build()
+        codeGenerator
+            .createNewFile(
+                Dependencies(
+                    aggregating = true,
+                    *annotatedProxyClass.getSerializableSourceFiles().toTypedArray()
+                ),
+                annotatedProxyClass.originalClassName.packageName,
+                generatedSerializableProxyFactoryClassName
+            )
+            .bufferedWriter()
+            .use { fileSpec.writeTo(it) }
+    }
+
     private fun buildFromAppFunctionDataFunction(
         annotatedClass: AnnotatedAppFunctionSerializable,
         factoryCodeBuilder: AppFunctionSerializableFactoryCodeBuilder,
@@ -167,6 +201,23 @@ class AppFunctionSerializableProcessor(
             )
             .addCode(factoryCodeBuilder.appendFromAppFunctionDataMethodBody())
             .returns(annotatedClass.originalClassName)
+            .build()
+    }
+
+    // Todo(b/403199251): Remove temp method
+    private fun buildProxyFromAppFunctionDataFunction(
+        annotatedProxyClass: AnnotatedAppFunctionSerializableProxy,
+        factoryCodeBuilder: AppFunctionSerializableFactoryCodeBuilder,
+    ): FunSpec {
+        return FunSpec.builder(
+                AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod.METHOD_NAME
+            )
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter(
+                ParameterSpec.builder(APP_FUNCTION_DATA_PARAM_NAME, AppFunctionData::class).build()
+            )
+            .addCode(factoryCodeBuilder.appendFromAppFunctionDataMethodBodyForProxy())
+            .returns(annotatedProxyClass.targetClassDeclaration.toClassName())
             .build()
     }
 
@@ -186,6 +237,27 @@ class AppFunctionSerializableProcessor(
                     .build()
             )
             .addCode(factoryCodeBuilder.appendToAppFunctionDataMethodBody())
+            .returns(AppFunctionData::class.asTypeName())
+            .build()
+    }
+
+    // Todo(b/403199251): Remove temp method
+    private fun buildProxyToAppFunctionDataFunction(
+        annotatedProxyClass: AnnotatedAppFunctionSerializableProxy,
+        factoryCodeBuilder: AppFunctionSerializableFactoryCodeBuilder
+    ): FunSpec {
+        return FunSpec.builder(
+                AppFunctionSerializableFactoryClass.ToAppFunctionDataMethod.METHOD_NAME
+            )
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter(
+                ParameterSpec.builder(
+                        APP_FUNCTION_SERIALIZABLE_PARAM_NAME,
+                        annotatedProxyClass.targetClassDeclaration.toClassName()
+                    )
+                    .build()
+            )
+            .addCode(factoryCodeBuilder.appendToAppFunctionDataMethodBodyForProxy())
             .returns(AppFunctionData::class.asTypeName())
             .build()
     }

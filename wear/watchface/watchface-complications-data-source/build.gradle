@@ -46,6 +46,7 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinTest)
+    testImplementation(libs.kotlinCoroutinesTest)
 
     compileOnly files("../../wear_sdk/wear-sdk.jar")
     testImplementation files("../../wear_sdk/wear-sdk.jar")

@@ -137,10 +137,10 @@ internal class BasePaddingElement(
     val end: Float = Float.NaN,
     val bottom: Float = Float.NaN,
     val rtlAware: Boolean = true
-) : LayoutModifier.Element {
+) : BaseProtoLayoutModifiersElement<Padding.Builder> {
 
-    fun mergeTo(initial: Padding.Builder?): Padding.Builder =
-        (initial ?: Padding.Builder()).apply {
+    override fun mergeTo(initialBuilder: Padding.Builder?): Padding.Builder =
+        (initialBuilder ?: Padding.Builder()).apply {
             if (!start.isNaN()) {
                 setStart(start.dp)
             }

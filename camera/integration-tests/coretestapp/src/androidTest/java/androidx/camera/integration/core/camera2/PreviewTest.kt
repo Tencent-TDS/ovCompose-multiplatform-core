@@ -1537,6 +1537,8 @@ class PreviewTest(private val implName: String, private val cameraConfig: Camera
     @Test
     @SdkSuppress(minSdkVersion = 21, maxSdkVersion = 32)
     fun setMirrorModeIsNoOp_priorToAPI33() = runBlocking {
+        // Skip for b/404348154
+        assumeFalse("Skip test for API 26.", Build.VERSION.SDK_INT == 26)
         verifyMirrorMode(
             CameraSelector.DEFAULT_BACK_CAMERA,
             mirrorMode = MirrorMode.MIRROR_MODE_ON,

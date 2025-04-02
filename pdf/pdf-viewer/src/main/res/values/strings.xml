@@ -164,4 +164,7 @@
     <!-- User visible label attached to text copied from a PDF when submitting it to the system
          clipboard -->
     <string name="clipboard_label">Content copied from PDF</string>
+
+    <!-- Content description of the fast scroller thumb -->
+    <string name="fast_scroller_thumb">Scroll Bar</string>
 </resources>

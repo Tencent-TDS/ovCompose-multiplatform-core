@@ -60,12 +60,9 @@
                 <type>10</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>diff_package_schemas_category</schemaCategory>
-            <schemaName>diffPackageOutputSchemas</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>diff_package_schemas_category</schemaCategory>
+        <schemaName>diffPackageOutputSchemas</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.AppFunctionWithOutputFromDifferentPackage#functionWithAnotherDiffPackageOutput</functionId>
     </appfunction>
     <appfunction>
@@ -123,12 +120,9 @@
                 <type>11</type>
             </valueType>
         </response>
-        <schema>
-            <id>unused</id>
-            <schemaCategory>diff_package_schemas_category</schemaCategory>
-            <schemaName>diffPackageOutputSchemas</schemaName>
-            <schemaVersion>1</schemaVersion>
-        </schema>
+        <schemaCategory>diff_package_schemas_category</schemaCategory>
+        <schemaName>diffPackageOutputSchemas</schemaName>
+        <schemaVersion>1</schemaVersion>
         <functionId>com.testdata.AppFunctionWithOutputFromDifferentPackage#functionWithDiffPackageOutput</functionId>
     </appfunction>
 </appfunctions>

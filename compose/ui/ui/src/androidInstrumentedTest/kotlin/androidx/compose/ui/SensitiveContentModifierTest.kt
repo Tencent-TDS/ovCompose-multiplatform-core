@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.test.TestActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
@@ -102,6 +103,7 @@ class SensitiveContentModifierTest {
         }
     }
 
+    @FlakyTest(bugId = 402192279)
     @Test
     fun testDynamicSensitiveModifier() {
         var isContentSensitive by mutableStateOf(true)

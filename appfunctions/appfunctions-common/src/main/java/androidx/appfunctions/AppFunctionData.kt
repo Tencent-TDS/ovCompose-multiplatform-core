@@ -16,6 +16,7 @@
 
 package androidx.appfunctions
 
+import android.app.PendingIntent
 import android.app.appsearch.GenericDocument
 import android.os.Build
 import android.os.Bundle
@@ -98,7 +99,7 @@ internal constructor(
      *
      * @param key The key to retrieve the value for.
      * @return The value associated with the [key]. It would return a default value false if the
-     *   associated value is not required and it is not found.
+     *   associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -108,11 +109,10 @@ internal constructor(
 
     /**
      * Retrieves a [Boolean] value associated with the specified [key], or returns [defaultValue] if
-     * the associated value is not required and it is not found.
+     * the associated value is not found.
      *
      * @param key The key to retrieve the value for.
-     * @param defaultValue The default value if the associated value is not required and it is not
-     *   found.
+     * @param defaultValue The default value if the associated value is not found.
      * @return The value associated with the [key], or the [defaultValue] if the associated value is
      *   not required and it is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
@@ -126,8 +126,7 @@ internal constructor(
      * Retrieves a [Boolean] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key], or the null if the associated value is not
-     *   required and it is not found.
+     * @return The value associated with the [key], or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -149,11 +148,71 @@ internal constructor(
     }
 
     /**
+     * Retrieves a [Float] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. It would return a default value 0.0 if the
+     *   associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getFloat(key: String): Float {
+        return getFloat(key, DEFAULT_FLOAT)
+    }
+
+    /**
+     * Retrieves a [Float] value associated with the specified [key], or returns [defaultValue] if
+     * the associated value is not found.
+     *
+     * @param key The key to retrieve the value for.
+     * @param defaultValue The default value if the associated value is not found.
+     * @return The value associated with the [key], or the [defaultValue] if the associated is not
+     *   found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getFloat(key: String, defaultValue: Float): Float {
+        return getFloatOrNull(key) ?: defaultValue
+    }
+
+    /**
+     * Retrieves a [Float] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key], or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    @RestrictTo(LIBRARY_GROUP)
+    public fun getFloatOrNull(key: String): Float? {
+        val array = unsafeGetProperty(key, DoubleArray::class.java)
+        val doubleValue =
+            if (array == null || array.isEmpty()) {
+                null
+            } else {
+                array[0]
+            }
+        spec?.validateReadRequest(
+            key,
+            Float::class.java,
+            isCollection = false,
+        )
+        if (doubleValue != null && !isDoubleWithinFloatRange(doubleValue)) {
+            // This should never happen because the setters forbid such value to exist in the
+            // first place.
+            throw IllegalStateException(
+                "The value associated with $key is not within the range of Float"
+            )
+        }
+        return doubleValue?.toFloat()
+    }
+
+    /**
      * Retrieves a [Double] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
      * @return The value associated with the [key]. It would return a default value 0.0 if the
-     *   associated value is not required and it is not found.
+     *   associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -163,13 +222,12 @@ internal constructor(
 
     /**
      * Retrieves a [Double] value associated with the specified [key], or returns [defaultValue] if
-     * the associated value is not required and it is not found.
+     * the associated value is not found.
      *
      * @param key The key to retrieve the value for.
-     * @param defaultValue The default value if the associated value is not required and it is not
-     *   found.
+     * @param defaultValue The default value if the associated value is not found.
      * @return The value associated with the [key], or the [defaultValue] if the associated value is
-     *   not required and it is not found.
+     *   not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -181,8 +239,7 @@ internal constructor(
      * Retrieves a [Double] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key], or the null if the associated value is not
-     *   required and it is not found.
+     * @return The value associated with the [key], or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -204,11 +261,71 @@ internal constructor(
     }
 
     /**
+     * Retrieves an [Int] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. It would return a default value 0L if the
+     *   associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getInt(key: String): Int {
+        return getInt(key, DEFAULT_INT)
+    }
+
+    /**
+     * Retrieves an [Int] value associated with the specified [key], or returns [defaultValue] if
+     * the associated value is not found.
+     *
+     * @param key The key to retrieve the value for.
+     * @param defaultValue The default value if the associated value is not found.
+     * @return The value associated with the [key], or the [defaultValue] if the associated value is
+     *   not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getInt(key: String, defaultValue: Int): Int {
+        return getIntOrNull(key) ?: defaultValue
+    }
+
+    /**
+     * Retrieves an [Int] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key], or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    @RestrictTo(LIBRARY_GROUP)
+    public fun getIntOrNull(key: String): Int? {
+        val array = unsafeGetProperty(key, LongArray::class.java)
+        val longValue =
+            if (array == null || array.isEmpty()) {
+                null
+            } else {
+                array[0]
+            }
+        spec?.validateReadRequest(
+            key,
+            Int::class.java,
+            isCollection = false,
+        )
+        if (longValue != null && !isLongWithinLongRange(longValue)) {
+            // This should never happen because the setters forbid such value to exist in the
+            // first place.
+            throw IllegalStateException(
+                "The value associated with $key is not within the range of Int"
+            )
+        }
+        return longValue?.toInt()
+    }
+
+    /**
      * Retrieves a [Long] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
      * @return The value associated with the [key]. It would return a default value 0L if the
-     *   associated value is not required and it is not found.
+     *   associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -218,13 +335,12 @@ internal constructor(
 
     /**
      * Retrieves a [Long] value associated with the specified [key], or returns [defaultValue] if
-     * the associated value is not required and it is not found.
+     * the associated value is not found.
      *
      * @param key The key to retrieve the value for.
-     * @param defaultValue The default value if the associated value is not required and it is not
-     *   found.
+     * @param defaultValue The default value if the associated value is not found.
      * @return The value associated with the [key], or the [defaultValue] if the associated value is
-     *   not required and it is not found.
+     *   not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -236,8 +352,7 @@ internal constructor(
      * Retrieves a [Long] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key], or the null if the associated value is not
-     *   required and it is not found.
+     * @return The value associated with the [key], or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -262,8 +377,7 @@ internal constructor(
      * Retrieves a [String] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key], or the null if the associated value is not
-     *   required and it is not found.
+     * @return The value associated with the [key], or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -287,8 +401,7 @@ internal constructor(
      * Retrieves an [AppFunctionData] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key], or the null if the associated value is not
-     *   required and it is not found.
+     * @return The value associated with the [key], or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -315,11 +428,23 @@ internal constructor(
     }
 
     /**
+     * Retrieves a [PendingIntent] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key], or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getPendingIntent(key: String): PendingIntent? {
+        spec?.validateReadRequest(key, PendingIntent::class.java, isCollection = false)
+        return extras.getParcelable(key, PendingIntent::class.java)
+    }
+
+    /**
      * Retrieves a [BooleanArray] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key]. Or null if the associated value is not required
-     *   and it is not found.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -334,11 +459,39 @@ internal constructor(
     }
 
     /**
+     * Retrieves a [FloatArray] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getFloatArray(key: String): FloatArray? {
+        val doubleArrayValue = unsafeGetProperty(key, DoubleArray::class.java)
+        spec?.validateReadRequest(
+            key,
+            Float::class.java,
+            isCollection = true,
+        )
+        return doubleArrayValue
+            ?.map { doubleValue ->
+                if (!isDoubleWithinFloatRange(doubleValue)) {
+                    // This should never happen because the setters forbid such value to exist in
+                    // the first place.
+                    throw IllegalStateException(
+                        "One of the value associated with $key is not within the range of Float"
+                    )
+                }
+                doubleValue.toFloat()
+            }
+            ?.toFloatArray()
+    }
+
+    /**
      * Retrieves a [DoubleArray] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key]. Or null if the associated value is not required
-     *   and it is not found.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -353,11 +506,39 @@ internal constructor(
     }
 
     /**
+     * Retrieves an [IntArray] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getIntArray(key: String): IntArray? {
+        val longArrayValue = unsafeGetProperty(key, LongArray::class.java)
+        spec?.validateReadRequest(
+            key,
+            Int::class.java,
+            isCollection = true,
+        )
+        return longArrayValue
+            ?.map { longValue ->
+                if (!isLongWithinLongRange(longValue)) {
+                    // This should never happen because the setters forbid such value to exist in
+                    // the first place.
+                    throw IllegalStateException(
+                        "One of the value associated with $key is not within the range of Int"
+                    )
+                }
+                longValue.toInt()
+            }
+            ?.toIntArray()
+    }
+
+    /**
      * Retrieves a [LongArray] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key]. Or null if the associated value is not required
-     *   and it is not found.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -372,11 +553,32 @@ internal constructor(
     }
 
     /**
+     * Retrieves a [ByteArray] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    public fun getByteArray(key: String): ByteArray? {
+        val byteArrayValue = unsafeGetProperty(key, Array<ByteArray>::class.java)
+        spec?.validateReadRequest(
+            key,
+            Byte::class.java,
+            isCollection = true,
+        )
+        return if (byteArrayValue == null || byteArrayValue.isEmpty()) {
+            null
+        } else {
+            byteArrayValue[0]
+        }
+    }
+
+    /**
      * Retrieves a [List] of [String] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key]. Or null if the associated value is not required
-     *   and it is not found.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -395,8 +597,7 @@ internal constructor(
      * Retrieves a [List] of [AppFunctionData] value associated with the specified [key].
      *
      * @param key The key to retrieve the value for.
-     * @return The value associated with the [key]. Or null if the associated value is not required
-     *   and it is not found.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
      * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
      *   according to the metadata specification.
      */
@@ -422,9 +623,39 @@ internal constructor(
         return dataArrayValue
     }
 
+    /**
+     * Retrieves a [List] of [PendingIntent] value associated with the specified [key].
+     *
+     * @param key The key to retrieve the value for.
+     * @return The value associated with the [key]. Or null if the associated value is not found.
+     * @throws IllegalArgumentException if the [key] is not allowed or the value type is incorrect
+     *   according to the metadata specification.
+     */
+    @Suppress("NullableCollection")
+    public fun getPendingIntentList(key: String): List<PendingIntent>? {
+        spec?.validateReadRequest(key, PendingIntent::class.java, isCollection = true)
+        return extras.getParcelableArrayList(key, PendingIntent::class.java)
+    }
+
     override fun toString(): String {
         // TODO(b/391419368): Improve output to avoid reference to underlying GenericDocument
         return "AppFunctionData(genericDocument=$genericDocument, extras=$extras)"
+    }
+
+    private fun isDoubleWithinFloatRange(doubleValue: Double): Boolean {
+        if (doubleValue.isInfinite() || doubleValue.isNaN()) {
+            // Float also has NaN and Infinity representation
+            return true
+        }
+        if (doubleValue > Float.MAX_VALUE || doubleValue < -Float.MAX_VALUE) {
+            // The double value is not within the range of a Float.
+            return false
+        }
+        return true
+    }
+
+    private fun isLongWithinLongRange(longValue: Long): Boolean {
+        return longValue >= Int.MIN_VALUE && longValue <= Int.MAX_VALUE
     }
 
     /**
@@ -572,8 +803,8 @@ internal constructor(
          *
          * @param key The key to set the [Boolean] value for.
          * @param value The [Boolean] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setBoolean(key: String, value: Boolean): Builder {
             spec?.validateWriteRequest(key, Boolean::class.java, isCollection = false)
@@ -582,12 +813,26 @@ internal constructor(
         }
 
         /**
+         * Sets a [Float] value for the given [key].
+         *
+         * @param key The key to set the [Float] value for.
+         * @param value The [Float] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setFloat(key: String, value: Float): Builder {
+            spec?.validateWriteRequest(key, Float::class.java, isCollection = false)
+            genericDocumentBuilder.setPropertyDouble(key, value.toDouble())
+            return this
+        }
+
+        /**
          * Sets a [Double] value for the given [key].
          *
          * @param key The key to set the [Double] value for.
          * @param value The [Double] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setDouble(key: String, value: Double): Builder {
             spec?.validateWriteRequest(key, Double::class.java, isCollection = false)
@@ -596,12 +841,26 @@ internal constructor(
         }
 
         /**
+         * Sets an [Int] value for the given [key].
+         *
+         * @param key The key to set the [Int] value for.
+         * @param value The [Int] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setInt(key: String, value: Int): Builder {
+            spec?.validateWriteRequest(key, Int::class.java, isCollection = false)
+            genericDocumentBuilder.setPropertyLong(key, value.toLong())
+            return this
+        }
+
+        /**
          * Sets a [Long] value for the given [key].
          *
          * @param key The key to set the [Long] value for.
          * @param value The [Long] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setLong(key: String, value: Long): Builder {
             spec?.validateWriteRequest(key, Long::class.java, isCollection = false)
@@ -614,8 +873,8 @@ internal constructor(
          *
          * @param key The key to set the [String] value for.
          * @param value The [String] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setString(key: String, value: String): Builder {
             spec?.validateWriteRequest(key, String::class.java, isCollection = false)
@@ -628,8 +887,8 @@ internal constructor(
          *
          * @param key The key to set the [AppFunctionData] value for.
          * @param value The [AppFunctionData] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setAppFunctionData(key: String, value: AppFunctionData): Builder {
             spec?.validateWriteRequest(key, AppFunctionData::class.java, isCollection = false)
@@ -643,12 +902,26 @@ internal constructor(
         }
 
         /**
-         * Sets an [BooleanArray] value for the given [key].
+         * Sets a [PendingIntent] value for the given [key].
+         *
+         * @param key The key to set the [AppFunctionData] value for.
+         * @param value The [AppFunctionData] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setPendingIntent(key: String, value: PendingIntent): Builder {
+            spec?.validateWriteRequest(key, PendingIntent::class.java, isCollection = false)
+            extrasBuilder.putParcelable(key, value)
+            return this
+        }
+
+        /**
+         * Sets a [BooleanArray] value for the given [key].
          *
          * @param key The key to set the [BooleanArray] value for.
          * @param value The [BooleanArray] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setBooleanArray(key: String, value: BooleanArray): Builder {
             spec?.validateWriteRequest(key, Boolean::class.java, isCollection = true)
@@ -657,12 +930,29 @@ internal constructor(
         }
 
         /**
-         * Sets an [DoubleArray] value for the given [key].
+         * Sets a [FloatArray] value for the given [key].
+         *
+         * @param key The key to set the [DoubleArray] value for.
+         * @param value The [FloatArray] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setFloatArray(key: String, value: FloatArray): Builder {
+            spec?.validateWriteRequest(key, Float::class.java, isCollection = true)
+            genericDocumentBuilder.setPropertyDouble(
+                key,
+                *(value.asList().map { it.toDouble() }.toDoubleArray())
+            )
+            return this
+        }
+
+        /**
+         * Sets a [DoubleArray] value for the given [key].
          *
          * @param key The key to set the [DoubleArray] value for.
          * @param value The [DoubleArray] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setDoubleArray(key: String, value: DoubleArray): Builder {
             spec?.validateWriteRequest(key, Double::class.java, isCollection = true)
@@ -671,12 +961,29 @@ internal constructor(
         }
 
         /**
-         * Sets an [LongArray] value for the given [key].
+         * Sets an [IntArray] value for the given [key].
+         *
+         * @param key The key to set the [IntArray] value for.
+         * @param value The [IntArray] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setIntArray(key: String, value: IntArray): Builder {
+            spec?.validateWriteRequest(key, Int::class.java, isCollection = true)
+            genericDocumentBuilder.setPropertyLong(
+                key,
+                *(value.asList().map { it.toLong() }.toLongArray())
+            )
+            return this
+        }
+
+        /**
+         * Sets a [LongArray] value for the given [key].
          *
          * @param key The key to set the [LongArray] value for.
          * @param value The [LongArray] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setLongArray(key: String, value: LongArray): Builder {
             spec?.validateWriteRequest(key, Long::class.java, isCollection = true)
@@ -685,12 +992,26 @@ internal constructor(
         }
 
         /**
-         * Sets an [List] of [String] value for the given [key].
+         * Sets a [ByteArray] value for the given [key].
+         *
+         * @param key The key to set the [ByteArray] value for.
+         * @param value The [ByteArray] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setByteArray(key: String, value: ByteArray): Builder {
+            spec?.validateWriteRequest(key, Byte::class.java, isCollection = true)
+            genericDocumentBuilder.setPropertyBytes(key, value)
+            return this
+        }
+
+        /**
+         * Sets a [List] of [String] value for the given [key].
          *
          * @param key The key to set the [List] of [String] value for.
          * @param value The [List] of [String] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setStringList(key: String, value: List<String>): Builder {
             spec?.validateWriteRequest(key, String()::class.java, isCollection = true)
@@ -699,12 +1020,12 @@ internal constructor(
         }
 
         /**
-         * Sets an [List] of [AppFunctionData] value for the given [key].
+         * Sets a [List] of [AppFunctionData] value for the given [key].
          *
          * @param key The key to set the [List] of [AppFunctionData] value for.
          * @param value The [List] of [AppFunctionData] value to set.
-         * @throws IllegalArgumentException if the [key] is not allowed or the value type is
-         *   incorrect according to the metadata specification.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
          */
         public fun setAppFunctionDataList(key: String, value: List<AppFunctionData>): Builder {
             spec?.validateWriteRequest(key, AppFunctionData::class.java, isCollection = true)
@@ -718,6 +1039,20 @@ internal constructor(
                     extrasBuilder.putBundle(extrasKey(key, index), element.extras)
                 }
             }
+            return this
+        }
+
+        /**
+         * Sets a [List] of [PendingIntent] value for the given [key].
+         *
+         * @param key The key to set the [List] of [AppFunctionData] value for.
+         * @param value The [List] of [AppFunctionData] value to set.
+         * @throws IllegalArgumentException if the [key] is not allowed or the [value] does not
+         *   match the metadata specification associated with the [key].
+         */
+        public fun setPendingIntentList(key: String, value: List<PendingIntent>): Builder {
+            spec?.validateWriteRequest(key, PendingIntent::class.java, isCollection = true)
+            extrasBuilder.putParcelableArrayList(key, ArrayList<PendingIntent>(value))
             return this
         }
 

@@ -54,8 +54,8 @@ private class ScaleElement(private val scale: Float) : SubspaceModifierNodeEleme
     }
 }
 
-private class ScaleNode(public var scale: Float) : SubspaceModifier.Node(), CoreEntityNode {
-    override fun modifyCoreEntity(coreEntity: CoreEntity) {
-        coreEntity.scale = scale
+private class ScaleNode(var scale: Float) : SubspaceModifier.Node(), CoreEntityNode {
+    override fun CoreEntityScope.modifyCoreEntity() {
+        setOrAppendScale(scale)
     }
 }

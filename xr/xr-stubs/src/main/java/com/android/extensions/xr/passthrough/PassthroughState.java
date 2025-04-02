@@ -16,11 +16,9 @@
 
 package com.android.extensions.xr.passthrough;
 
-import androidx.annotation.RestrictTo;
 
 /** Allows to configure the passthrough when the application is in full-space mode. */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class PassthroughState {
 
     PassthroughState() {

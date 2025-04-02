@@ -66,9 +66,9 @@ package @RequiresApi(34) androidx.xr.compose.testing {
 
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class SubspaceTestingActivity extends androidx.activity.ComponentActivity {
     ctor public SubspaceTestingActivity();
-    method public androidx.xr.scenecore.testing.FakeXrExtensions getExtensions();
+    method public com.android.extensions.xr.XrExtensions getExtensions();
     method public androidx.xr.scenecore.Session getSession();
-    property public androidx.xr.scenecore.testing.FakeXrExtensions extensions;
+    property public com.android.extensions.xr.XrExtensions extensions;
     property public androidx.xr.scenecore.Session session;
   }
 

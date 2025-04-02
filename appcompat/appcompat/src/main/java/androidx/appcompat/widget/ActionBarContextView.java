@@ -260,12 +260,11 @@ public class ActionBarContextView extends AbsActionBarView {
 
         final int contentWidth = MeasureSpec.getSize(widthMeasureSpec);
 
-        int maxHeight = mContentHeight > 0 ?
-                mContentHeight : MeasureSpec.getSize(heightMeasureSpec);
+        final int maxHeight = MeasureSpec.getSize(heightMeasureSpec);
 
         final int verticalPadding = getPaddingTop() + getPaddingBottom();
         int availableWidth = contentWidth - getPaddingLeft() - getPaddingRight();
-        final int height = maxHeight - verticalPadding;
+        final int height = mContentHeight > 0 ? mContentHeight : maxHeight;
         final int childSpecHeight = MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST);
 
         if (mClose != null) {
@@ -320,7 +319,7 @@ public class ActionBarContextView extends AbsActionBarView {
             }
             setMeasuredDimension(contentWidth, measuredHeight);
         } else {
-            setMeasuredDimension(contentWidth, maxHeight);
+            setMeasuredDimension(contentWidth, mContentHeight + verticalPadding);
         }
     }
 

@@ -24,14 +24,12 @@ import androidx.fragment.app.testing.FragmentScenario
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.lifecycle.Lifecycle
 import androidx.pdf.TestUtils.waitFor
-import androidx.pdf.matchers.PdfViewAssertions
 import androidx.pdf.util.AnnotationUtils
 import androidx.pdf.view.ToolBoxView
 import androidx.pdf.view.ToolBoxView.Companion.EXTRA_STARTING_PAGE
-import androidx.pdf.viewer.fragment.PdfViewerFragment
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
@@ -48,6 +46,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.hamcrest.core.AllOf.allOf
 import org.junit.After
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -57,21 +56,35 @@ import org.junit.runner.RunWith
 @RequiresExtension(extension = Build.VERSION_CODES.S, version = 13)
 class ToolBoxViewTest {
 
-    private lateinit var scenario: FragmentScenario<PdfViewerFragment>
+    private lateinit var scenario: FragmentScenario<TestPdfViewerFragment>
 
     @Before
     fun setup() {
         Intents.init()
         scenario =
-            launchFragmentInContainer<PdfViewerFragment>(
+            launchFragmentInContainer<TestPdfViewerFragment>(
                 themeResId =
                     com.google.android.material.R.style.Theme_Material3_DayNight_NoActionBar,
                 initialState = Lifecycle.State.INITIALIZED
             )
+
+        scenario.onFragment { fragment ->
+            IdlingRegistry.getInstance()
+                .register(fragment.pdfLoadingIdlingResource.countingIdlingResource)
+            IdlingRegistry.getInstance()
+                .register(fragment.pdfSearchFocusIdlingResource.countingIdlingResource)
+        }
     }
 
     @After
     fun cleanup() {
+        scenario.onFragment { fragment ->
+            // Un-register idling resource
+            IdlingRegistry.getInstance()
+                .unregister(fragment.pdfLoadingIdlingResource.countingIdlingResource)
+            IdlingRegistry.getInstance()
+                .unregister(fragment.pdfSearchFocusIdlingResource.countingIdlingResource)
+        }
         Intents.release()
         scenario.close()
     }
@@ -80,7 +93,7 @@ class ToolBoxViewTest {
         filename: String,
         nextState: Lifecycle.State,
         orientation: Int
-    ): FragmentScenario<PdfViewerFragment> {
+    ): FragmentScenario<TestPdfViewerFragment> {
         val context = InstrumentationRegistry.getInstrumentation().context
         val inputStream = context.assets.open(filename)
 
@@ -95,6 +108,7 @@ class ToolBoxViewTest {
         return scenario
     }
 
+    @Ignore("Annotation intent resolution will fail with file scheme. Convert to content scheme")
     @Test
     fun testEditButtonOnClickListener() {
         scenarioLoadDocument(
@@ -120,6 +134,7 @@ class ToolBoxViewTest {
         intended(expectedIntent)
     }
 
+    @Ignore("Annotation intent resolution will fail with file scheme. Convert to content scheme")
     @Test
     fun testEditButtonOnClickListener_onSpecificPage() {
         scenarioLoadDocument(
@@ -153,33 +168,6 @@ class ToolBoxViewTest {
                 hasExtra(EXTRA_STARTING_PAGE, pageNum)
             )
         intended(expectedIntent)
-    }
-
-    @Test
-    fun testFastScrollerVisibility_withFindInFile() {
-        scenarioLoadDocument(
-            TEST_DOCUMENT_FILE,
-            Lifecycle.State.STARTED,
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        )
-
-        // TODO(b/387444890): Remove this once IdlingResources is used
-        onView(isRoot()).perform(waitFor(2000))
-
-        val pdfViewAssertions = PdfViewAssertions()
-
-        // Enable FindInFile and verify the fast scroller visibility (i.e. should be hidden)
-        scenario.onFragment { it.isTextSearchActive = true }
-        onView(withId(androidx.pdf.viewer.fragment.R.id.pdfSearchView))
-            .check(matches(isDisplayed()))
-        onView(withId(R.id.searchQueryBox)).perform(typeText(SEARCH_QUERY))
-        onView(withId(androidx.pdf.viewer.fragment.R.id.pdfView))
-            .check(pdfViewAssertions.isFastScrollerHidden())
-
-        // Disable FindInFile and verify the fast scroller visibility (i.e. should be shown)
-        onView(withId(R.id.closeButton)).perform(click())
-        onView(withId(androidx.pdf.viewer.fragment.R.id.pdfView))
-            .check(pdfViewAssertions.isFastScrollerShown())
     }
 
     companion object {

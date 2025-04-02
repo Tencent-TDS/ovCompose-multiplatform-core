@@ -27,6 +27,7 @@ import androidx.annotation.RestrictTo
 import androidx.room.RoomDatabase
 import androidx.room.TransactionElement
 import androidx.room.coroutines.RawConnectionAccessor
+import androidx.room.coroutines.runBlockingUninterruptible
 import androidx.room.driver.SupportSQLiteConnection
 import androidx.room.withTransactionContext
 import androidx.sqlite.SQLiteConnection
@@ -38,7 +39,6 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
 /** Performs a database operation. */
@@ -66,7 +66,7 @@ fun <R> performBlocking(
 ): R {
     db.assertNotMainThread()
     db.assertNotSuspendingTransaction()
-    return runBlocking {
+    return runBlockingUninterruptible {
         db.internalPerform(isReadOnly, inTransaction) { connection ->
             val rawConnection = (connection as RawConnectionAccessor).rawConnection
             block.invoke(rawConnection)

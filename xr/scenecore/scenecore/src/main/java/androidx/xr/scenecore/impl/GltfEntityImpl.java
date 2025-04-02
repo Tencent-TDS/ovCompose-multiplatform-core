@@ -20,11 +20,12 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.NodeTransaction;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
 import androidx.xr.scenecore.JxrPlatformAdapter.GltfEntity;
 import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.NodeTransaction;
 
 import java.util.concurrent.ScheduledExecutorService;
 

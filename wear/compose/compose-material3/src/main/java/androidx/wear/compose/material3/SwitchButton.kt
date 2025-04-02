@@ -55,6 +55,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -109,6 +111,8 @@ import androidx.wear.compose.materialcore.isLayoutDirectionRtl
  *   emitting [Interaction]s for this button's "toggleable" tap area. You can use this to change the
  *   button's appearance or preview the button in different states. Note that if `null` is provided,
  *   interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param icon An optional slot for providing an icon to indicate the purpose of the button. The
  *   contents are expected to be a horizontally and vertically center aligned icon of size 24.dp.
  * @param secondaryLabel A slot for providing the button's secondary label. The contents are
@@ -126,6 +130,7 @@ public fun SwitchButton(
     colors: SwitchButtonColors = SwitchButtonDefaults.switchButtonColors(),
     contentPadding: PaddingValues = SwitchButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     icon: @Composable (BoxScope.() -> Unit)? = null,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
     label: @Composable RowScope.() -> Unit
@@ -193,7 +198,11 @@ public fun SwitchButton(
             val backgroundColor =
                 colors.containerColor(enabled = isEnabled, checked = isChecked).value
 
-            Modifier.background(backgroundColor)
+            Modifier.surface(
+                transformation = transformation,
+                shape = shape,
+                painter = ColorPainter(backgroundColor)
+            )
         },
         enabled = enabled,
         interactionSource = interactionSource,
@@ -256,6 +265,8 @@ public fun SwitchButton(
  *   and emitting [Interaction]s for this button's main body "clickable" tap area. You can use this
  *   to change the button's appearance or preview the button in different states. Note that if
  *   `null` is provided, interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param containerClickLabel Optional click label on the main body of the button for accessibility.
  * @param contentPadding The spacing values to apply internally between the container and the
  *   content.
@@ -276,6 +287,7 @@ public fun SplitSwitchButton(
     colors: SplitSwitchButtonColors = SwitchButtonDefaults.splitSwitchButtonColors(),
     toggleInteractionSource: MutableInteractionSource? = null,
     containerInteractionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     containerClickLabel: String? = null,
     contentPadding: PaddingValues = SwitchButtonDefaults.ContentPadding,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
@@ -290,7 +302,12 @@ public fun SplitSwitchButton(
                 .defaultMinSize(minHeight = MIN_HEIGHT)
                 .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
-                .clip(shape = shape)
+                .graphicsLayer {
+                    clip = true
+                    this.shape = shape
+                    val transformation = transformation ?: return@graphicsLayer
+                    with(transformation) { applyContainerTransformation() }
+                }
     ) {
         Row(
             modifier =

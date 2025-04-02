@@ -105,7 +105,7 @@ internal class ParticipantActionsRemote(binder: IParticipantActions) :
  */
 @ExperimentalAppActions
 internal class ParticipantStateListenerRemote(private val binder: IParticipantStateListener) {
-    fun updateParticipants(participants: Set<Participant>) {
+    fun updateParticipants(participants: List<Participant>) {
         binder.updateParticipants(
             participants.map(Participant::toParticipantParcelable).toTypedArray()
         )

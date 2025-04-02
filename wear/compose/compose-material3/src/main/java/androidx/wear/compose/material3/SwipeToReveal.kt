@@ -130,9 +130,9 @@ public fun SwipeToReveal(
     actionButtonHeight: Dp = SwipeToRevealDefaults.SmallActionButtonHeight,
     gestureInclusion: GestureInclusion =
         if (revealState.hasBidirectionalAnchors()) {
-            bidirectionalGestureInclusion()
+            bidirectionalGestureInclusion
         } else {
-            gestureInclusion()
+            gestureInclusion(revealState)
         },
     content: @Composable () -> Unit,
 ) {
@@ -646,7 +646,7 @@ internal data class SwipeToRevealAction(
 /** Rapid animation length in milliseconds. */
 internal const val RAPID_ANIMATION = 200
 
-private val ICON_AND_TEXT_PADDING = 6.dp
+private val ICON_AND_TEXT_PADDING = 4.dp
 
 private val ACTION_BUTTON_CONTENT_PADDING = 4.dp
 

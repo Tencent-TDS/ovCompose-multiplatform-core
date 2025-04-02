@@ -23,6 +23,7 @@ import androidx.pdf.PdfDocument
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
 import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import org.junit.Before
@@ -54,6 +55,7 @@ class BitmapFetcherTest {
 
     private lateinit var bitmapFetcher: BitmapFetcher
     private lateinit var tileSizePx: Point
+    private val errorFlow = MutableSharedFlow<Throwable>()
 
     @Before
     fun setup() {
@@ -68,6 +70,7 @@ class BitmapFetcherTest {
                 testScope,
                 maxBitmapSizePx,
                 invalidationTracker,
+                errorFlow
             )
         tileSizePx = BitmapFetcher.tileSizePx
     }

@@ -28,20 +28,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.Activity;
+import android.util.Size;
 
-import androidx.xr.extensions.space.Bounds;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeSpatialState;
+
+import com.android.extensions.xr.ShadowXrExtensions;
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.environment.EnvironmentVisibilityState;
+import com.android.extensions.xr.environment.PassthroughVisibilityState;
+import com.android.extensions.xr.environment.ShadowEnvironmentVisibilityState;
+import com.android.extensions.xr.environment.ShadowPassthroughVisibilityState;
+import com.android.extensions.xr.space.Bounds;
+import com.android.extensions.xr.space.ShadowSpatialCapabilities;
+import com.android.extensions.xr.space.ShadowSpatialState;
+import com.android.extensions.xr.space.SpatialCapabilities;
+import com.android.extensions.xr.space.SpatialState;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
@@ -69,14 +80,14 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
     private final ImpSplitEngineRenderer mSplitEngineRenderer =
             Mockito.mock(ImpSplitEngineRenderer.class);
 
-    private FakeXrExtensions mFakeExtensions;
+    private XrExtensions mXrExtensions;
     private FakeImpressApi mFakeImpressApi;
     private JxrPlatformAdapter mTestRuntime;
     private ActivitySpace mActivitySpace;
 
     @Before
     public void setUp() {
-        mFakeExtensions = new FakeXrExtensions();
+        mXrExtensions = XrExtensionsProvider.getXrExtensions();
         mFakeImpressApi = new FakeImpressApi();
         when(mPerceptionLibrary.initSession(eq(mActivity), anyInt(), eq(mFakeExecutor)))
                 .thenReturn(immediateFuture(Mockito.mock(Session.class)));
@@ -85,7 +96,7 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
-                        mFakeExtensions,
+                        mXrExtensions,
                         mFakeImpressApi,
                         new EntityManager(),
                         mPerceptionLibrary,
@@ -130,15 +141,36 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
         return (ActivitySpaceImpl) mActivitySpace;
     }
 
+    private SpatialState createSpatialState(Bounds bounds) {
+        boolean isUnbounded =
+                bounds.getWidth() == Float.POSITIVE_INFINITY
+                        && bounds.getHeight() == Float.POSITIVE_INFINITY
+                        && bounds.getDepth() == Float.POSITIVE_INFINITY;
+        SpatialCapabilities capabilities =
+                isUnbounded
+                        ? ShadowSpatialCapabilities.createAll()
+                        : ShadowSpatialCapabilities.create();
+        return ShadowSpatialState.create(
+                /* bounds= */ bounds,
+                /* capabilities= */ capabilities,
+                /* environmentVisibilityState= */ ShadowEnvironmentVisibilityState.create(
+                        /* state= */ EnvironmentVisibilityState.INVISIBLE),
+                /* passthroughVisibilityState= */ ShadowPassthroughVisibilityState.create(
+                        /* state= */ PassthroughVisibilityState.DISABLED, /* opacity= */ 0.0f),
+                /* isEnvironmentInherited= */ false,
+                /* mainWindowSize= */ new Size(100, 100),
+                /* preferredAspectRatio= */ 1.0f);
+    }
+
     @Test
     public void getBounds_returnsBounds() {
         assertThat(mActivitySpace.getBounds().width).isPositiveInfinity();
         assertThat(mActivitySpace.getBounds().height).isPositiveInfinity();
         assertThat(mActivitySpace.getBounds().depth).isPositiveInfinity();
 
-        FakeSpatialState spatialState = new FakeSpatialState();
-        spatialState.setBounds(new Bounds(100.0f, 200.0f, 300.0f));
-        mFakeExtensions.sendSpatialState(spatialState);
+        SpatialState spatialState =
+                createSpatialState(/* bounds= */ new Bounds(100.0f, 200.0f, 300.0f));
+        ShadowXrExtensions.extract(mXrExtensions).sendSpatialState(mActivity, spatialState);
 
         assertThat(mActivitySpace.getBounds().width).isEqualTo(100f);
         assertThat(mActivitySpace.getBounds().height).isEqualTo(200f);
@@ -150,10 +182,10 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
         JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener listener =
                 Mockito.mock(JxrPlatformAdapter.ActivitySpace.OnBoundsChangedListener.class);
 
-        FakeSpatialState spatialState = new FakeSpatialState();
-        spatialState.setBounds(new Bounds(100.0f, 200.0f, 300.0f));
+        SpatialState spatialState =
+                createSpatialState(/* bounds= */ new Bounds(100.0f, 200.0f, 300.0f));
         mActivitySpace.addOnBoundsChangedListener(listener);
-        mFakeExtensions.sendSpatialState(spatialState);
+        ShadowXrExtensions.extract(mXrExtensions).sendSpatialState(mActivity, spatialState);
 
         verify(listener).onBoundsChanged(Mockito.refEq(new Dimensions(100.0f, 200.0f, 300.0f)));
     }
@@ -165,9 +197,9 @@ public final class ActivitySpaceImplTest extends SystemSpaceEntityImplTest {
 
         mActivitySpace.addOnBoundsChangedListener(listener);
         mActivitySpace.removeOnBoundsChangedListener(listener);
-        FakeSpatialState spatialState = new FakeSpatialState();
-        spatialState.setBounds(new Bounds(100.0f, 200.0f, 300.0f));
-        mFakeExtensions.sendSpatialState(spatialState);
+        SpatialState spatialState =
+                createSpatialState(/* bounds= */ new Bounds(100.0f, 200.0f, 300.0f));
+        ShadowXrExtensions.extract(mXrExtensions).sendSpatialState(mActivity, spatialState);
 
         verify(listener, Mockito.never()).onBoundsChanged(Mockito.any());
     }

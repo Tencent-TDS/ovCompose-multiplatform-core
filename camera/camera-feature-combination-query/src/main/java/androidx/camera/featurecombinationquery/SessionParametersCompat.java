@@ -17,6 +17,7 @@
 package androidx.camera.featurecombinationquery;
 
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.SessionConfiguration;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -36,6 +37,13 @@ import java.util.Set;
  * For device that support {@link android.hardware.camera2.CameraDevice.CameraDeviceSetup}, use
  * {@link android.hardware.camera2.CameraDevice.CameraDeviceSetup#createCaptureRequest} for
  * session parameters instead.
+ * <p>
+ * In situations where {@link android.hardware.camera2.CameraDevice} object is available, it is
+ * strongly recommended to use
+ * {@link CameraDeviceSetupCompat#isSessionConfigurationSupported(SessionConfiguration)} instead of
+ * {@link CameraDeviceSetupCompat#isSessionConfigurationSupported(SessionConfigurationCompat)} as
+ * {@link CameraDeviceSetupCompat#isSessionConfigurationSupported(SessionConfigurationCompat)} may
+ * lead to inaccurate results if not constructed accurately.
  */
 public class SessionParametersCompat {
     @NonNull
@@ -43,14 +51,6 @@ public class SessionParametersCompat {
 
     private SessionParametersCompat(@NonNull Map<CaptureRequest.Key<?>, Object> keyValMap) {
         mKeyVal = keyValMap;
-    }
-
-    /**
-     * @return an instance of the {@link Builder} class.
-     */
-    @NonNull
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**
@@ -83,14 +83,13 @@ public class SessionParametersCompat {
     }
 
     /**
-     * Simple builder class to build a {@link SessionParametersCompat} object. A {@code Builder}
-     * object can be obtained using the {@link SessionParametersCompat#builder()} call.
+     * Simple builder class to build a {@link SessionParametersCompat} object.
      */
     public static final class Builder {
         @NonNull
         private final HashMap<CaptureRequest.Key<?>, Object> mKeyVal = new HashMap<>();
 
-        private Builder() {
+        public Builder() {
         }
 
         /**

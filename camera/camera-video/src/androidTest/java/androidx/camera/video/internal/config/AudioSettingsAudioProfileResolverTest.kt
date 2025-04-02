@@ -107,6 +107,12 @@ class AudioSettingsAudioProfileResolverTest(
             Build.VERSION.SDK_INT == 30 && isEmulator()
         )
 
+        // Skip for b/399704074
+        assumeFalse(
+            "Emulator API 26 crashes running this test.",
+            Build.VERSION.SDK_INT == 26 && isEmulator()
+        )
+
         Assume.assumeTrue(CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_BACK))
         // Skip for b/168175357
         Assume.assumeTrue(AudioUtil.canStartAudioRecord(MediaRecorder.AudioSource.CAMCORDER))

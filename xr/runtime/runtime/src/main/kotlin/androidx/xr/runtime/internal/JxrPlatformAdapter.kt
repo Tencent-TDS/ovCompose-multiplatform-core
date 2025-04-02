@@ -89,9 +89,68 @@ public interface JxrPlatformAdapter {
         assetName: String
     ): ListenableFuture<GltfModelResource>
 
+    /**
+     * Loads glTF Asset from a provided byte array. The future returned by this method will fire
+     * listeners on the UI thread if Runnable::run is supplied.
+     */
+    // TODO(b/397746548): Add InputStream support for loading glTFs.
+    // Suppressed to allow CompletableFuture.
+    public fun loadGltfByByteArray(
+        assetData: List<Byte>,
+        assetKey: String,
+    ): ListenableFuture<GltfModelResource>
+
     /** Loads an ExrImage for the given asset name from the assets folder. */
     // Suppressed to allow CompletableFuture.
     public fun loadExrImageByAssetName(assetName: String): ListenableFuture<ExrImageResource>
+
+    /**
+     * Loads a texture resource for the given asset name or URL. The future returned by this method
+     * will fire listeners on the UI thread if Runnable::run is supplied.
+     */
+    public fun loadTexture(
+        assetName: String,
+        sampler: TextureSampler,
+    ): ListenableFuture<TextureResource>?
+
+    /** Borrows the reflection texture from the currently set environment IBL. */
+    public fun borrowReflectionTexture(): TextureResource?
+
+    /** Destroys the given texture resource. */
+    public fun destroyTexture(texture: TextureResource)
+
+    /**
+     * Creates a water material by querying it from the system's built-in materials. The future
+     * returned by this method will fire listeners on the UI thread if Runnable::run is supplied.
+     */
+    public fun createWaterMaterial(isAlphaMapVersion: Boolean): ListenableFuture<MaterialResource>
+
+    /** Destroys the given water material resource. */
+    public fun destroyWaterMaterial(material: MaterialResource)
+
+    /** Sets the reflection cube texture for the water material. */
+    public fun setReflectionCube(material: MaterialResource, reflectionCube: TextureResource)
+
+    /** Sets the normal map texture for the water material. */
+    public fun setNormalMap(material: MaterialResource, normalMap: TextureResource)
+
+    /** Sets the normal tiling for the water material. */
+    public fun setNormalTiling(material: MaterialResource, normalTiling: Float)
+
+    /** Sets the normal speed for the water material. */
+    public fun setNormalSpeed(material: MaterialResource, normalSpeed: Float)
+
+    /** Sets the alpha step multiplier for the water material. */
+    public fun setAlphaStepMultiplier(material: MaterialResource, alphaStepMultiplier: Float)
+
+    /** Sets the alpha map for the water material. */
+    public fun setAlphaMap(material: MaterialResource, alphaMap: TextureResource)
+
+    /** Sets the normal z for the water material. */
+    public fun setNormalZ(material: MaterialResource, normalZ: Float)
+
+    /** Sets the normal boundary for the water material. */
+    public fun setNormalBoundary(material: MaterialResource, normalBoundary: Float)
 
     /**
      * A factory function to create a SceneCore GltfEntity. The parent may be the activity space or
@@ -146,21 +205,38 @@ public interface JxrPlatformAdapter {
     /**
      * A factory function to create a platform PanelEntity. The parent can be any entity.
      *
+     * @param context Application Context.
      * @param pose Initial pose of the panel.
      * @param view View inflating this panel.
-     * @param surfaceDimensionsPx Dimensions for the underlying surface for the given view.
      * @param dimensions Size of the panel in meters.
      * @param name Name of the panel.
-     * @param context Application Context.
      * @param parent Parent entity.
      */
     public fun createPanelEntity(
+        context: Context,
         pose: Pose,
         view: View,
-        surfaceDimensionsPx: PixelDimensions,
         dimensions: Dimensions,
         name: String,
+        parent: Entity,
+    ): PanelEntity
+
+    /**
+     * A factory function to create a platform PanelEntity. The parent can be any entity.
+     *
+     * @param context Application Context.
+     * @param pose Initial pose of the panel.
+     * @param view View inflating this panel.
+     * @param pixelDimensions Dimensions for the underlying surface for the given view in pixels.
+     * @param name Name of the panel.
+     * @param parent Parent entity.
+     */
+    public fun createPanelEntity(
         context: Context,
+        pose: Pose,
+        view: View,
+        pixelDimensions: PixelDimensions,
+        name: String,
         parent: Entity,
     ): PanelEntity
 

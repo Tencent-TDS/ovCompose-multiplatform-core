@@ -260,8 +260,7 @@ private fun IconButtonImpl(
                     interactionSource = interactionSource,
                     indication = ripple()
                 )
-                .childSemantics()
-                .interactionSourceData(interactionSource),
+                .childSemantics(),
         contentAlignment = Alignment.Center
     ) {
         val contentColor = colors.contentColor(enabled)
@@ -468,8 +467,7 @@ private fun IconToggleButtonImpl(
                     role = Role.Checkbox,
                     interactionSource = interactionSource,
                     indication = ripple()
-                )
-                .interactionSourceData(interactionSource),
+                ),
         contentAlignment = Alignment.Center
     ) {
         val contentColor = colors.contentColor(enabled, checked).value

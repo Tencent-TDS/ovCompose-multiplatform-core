@@ -28,10 +28,11 @@ import androidx.xr.compose.subspace.SubspaceComposable
 import androidx.xr.scenecore.JxrPlatformAdapter
 import androidx.xr.scenecore.Session
 import androidx.xr.scenecore.impl.JxrPlatformAdapterAxr
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary
 import androidx.xr.scenecore.testing.FakeImpressApi
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService
-import androidx.xr.scenecore.testing.FakeXrExtensions
+import com.android.extensions.xr.XrExtensions
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer
 import org.mockito.Mockito.mock
@@ -41,7 +42,7 @@ import org.robolectric.shadows.ShadowDisplay
 @Suppress("ForbiddenSuperClass")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SubspaceTestingActivity : ComponentActivity() {
-    public val extensions: FakeXrExtensions = FakeXrExtensions()
+    public val extensions: XrExtensions = XrExtensionsProvider.getXrExtensions()!!
     public val session: Session by lazy { createFakeSession(this) }
 
     /** Throws an exception by default under test; return Robolectric Display impl instead. */
@@ -106,7 +107,11 @@ public fun AndroidComposeTestRule<*, SubspaceTestingActivity>.onAllSubspaceNodes
 /**
  * Create a fake [Session] for testing.
  *
- * TODO(b/370856223) Update documentation to include params
+ * A convenience method that creates a fake [Session] for testing. If runtime is not provided, a
+ * fake [JxrPlatformAdapter] will be created by default.
+ *
+ * @param activity The [SubspaceTestingActivity] to use for the [Session].
+ * @param runtime The [JxrPlatformAdapter] to use for the [Session].
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun createFakeSession(
@@ -117,7 +122,9 @@ public fun createFakeSession(
 /**
  * Create a fake [JxrPlatformAdapter] for testing.
  *
- * TODO(b/370856223) Update documentation to include params
+ * A convenience method that creates a fake [JxrPlatformAdapter] for testing.
+ *
+ * @param activity The [SubspaceTestingActivity] to use for the [JxrPlatformAdapter].
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun createFakeRuntime(activity: SubspaceTestingActivity): JxrPlatformAdapter =

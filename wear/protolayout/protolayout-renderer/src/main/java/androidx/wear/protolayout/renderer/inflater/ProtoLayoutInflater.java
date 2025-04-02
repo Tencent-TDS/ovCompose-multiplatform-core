@@ -44,6 +44,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.content.res.Resources.Theme;
 import android.graphics.Color;
+import android.graphics.Outline;
 import android.graphics.Paint.Cap;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.Rect;
@@ -453,7 +454,7 @@ public final class ProtoLayoutInflater {
                 return false;
             }
             ViewGroup sourceGroup = (ViewGroup) source;
-            if (sourceGroup.getChildCount() != mNumMissingChildren) {
+            if (getEffectiveChildCount(sourceGroup) != mNumMissingChildren) {
                 Log.w(
                         TAG,
                         String.format(
@@ -479,6 +480,20 @@ public final class ProtoLayoutInflater {
                         destinationGroup, (TouchDelegateComposite) source.getTouchDelegate());
             }
             return true;
+        }
+
+        /**
+         * Returns the number of children that the given {@link ViewGroup} has, ignoring the
+         * children that are {@link IgnorableSpace} type.
+         */
+        private static int getEffectiveChildCount(ViewGroup viewGroup) {
+            int nonIgnoredChildrenCnt = 0;
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                if (!(viewGroup.getChildAt(i) instanceof IgnorableSpace)) {
+                    nonIgnoredChildrenCnt++;
+                }
+            }
+            return nonIgnoredChildrenCnt;
         }
 
         @Nullable String getTag() {
@@ -1649,6 +1664,8 @@ public final class ProtoLayoutInflater {
         // apply corner
         final Corner corner = background.getCorner();
         final int radiusPx = corner.hasRadius() ? safeDpToPx(corner.getRadius()) : 0;
+
+        // Sort out specific corner radii.
         float[] radii = new float[8];
         Arrays.fill(radii, radiusPx);
         if (corner.hasTopLeftRadius()) {
@@ -1664,19 +1681,33 @@ public final class ProtoLayoutInflater {
             setCornerRadiusToArray(corner.getBottomLeftRadius(), radii, /* index= */ 6);
         }
 
-        if (areAllEqual(radii, /* count= */ 8)) {
+        boolean isCornerWithEqualRadii = areAllEqual(radii, /* count= */ 8);
+        if (isCornerWithEqualRadii) {
             if (radii[0] == 0) {
                 return;
             }
-            // The implementation in BackgroundDrawable is more efficient by calling setCornerRadius
-            // than calling setCornerRadii with an array of all equal items.
+            // We will clip the drawable view with all equal corner radii by using outline, but we
+            // still
+            // need to set corners for cases when we use border.
             drawable.setCornerRadius(radii[0]);
+
+            // Set outline provider to correctly clip to the given corner, when it's some form of
+            // rounded
+            // rectangular (i.e. all equal corner radii). This can't be done automatically by the
+            // drawable
+            // due to the aliasing issues. See b/357061501 for more details.
+            view.setOutlineProvider(
+                    new ViewOutlineProvider() {
+                        @Override
+                        public void getOutline(View view, Outline outline) {
+                            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radii[0]);
+                            outline.setAlpha(0.0f);
+                        }
+                    });
+            view.setClipToOutline(true);
         } else {
             drawable.setCornerRadii(radii);
         }
-
-        view.setClipToOutline(true);
-        view.setOutlineProvider(ViewOutlineProvider.BACKGROUND);
     }
 
     private void setCornerRadiusToArray(
@@ -2503,10 +2534,11 @@ public final class ProtoLayoutInflater {
         // bottom of FrameLayout#onMeasure).
         //
         // To work around this (without copying the whole of FrameLayout just to change a "1" to
-        // "0"),
-        // we add a Space element in if there is one MATCH_PARENT child. This has a tiny cost to the
-        // measure pass, and negligible cost to layout/draw (since it doesn't take part in those
-        // passes).
+        // "0"), we add a specific IgnorableSpace element in if there is one MATCH_PARENT child.
+        // This has a tiny cost to the measure pass, and negligible cost to layout/draw (since it
+        // doesn't take part in those passes).
+        // This element needs to be specific class that won't be counted towards the effective
+        // children of the parent when doing layout mutation. See b/345186544
         int numMatchParentChildren = 0;
         for (int i = 0; i < frame.getChildCount(); i++) {
             LayoutParams lp = frame.getChildAt(i).getLayoutParams();
@@ -2516,7 +2548,7 @@ public final class ProtoLayoutInflater {
         }
 
         if (numMatchParentChildren == 1) {
-            Space hackSpace = new Space(mUiContext);
+            IgnorableSpace hackSpace = new IgnorableSpace(mUiContext);
             LayoutParams hackSpaceLp =
                     new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
             frame.addView(hackSpace, hackSpaceLp);

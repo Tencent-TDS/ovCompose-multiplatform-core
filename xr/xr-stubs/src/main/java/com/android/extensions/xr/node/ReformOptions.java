@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.node;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * Configuration options for reform (move/resize) UX. To create a ReformOptions instance, call
  * {@code XrExtensions.createReformOptions()}.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ReformOptions {
 
     ReformOptions() {

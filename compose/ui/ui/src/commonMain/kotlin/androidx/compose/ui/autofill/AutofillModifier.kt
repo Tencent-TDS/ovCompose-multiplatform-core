@@ -27,12 +27,14 @@ import androidx.compose.ui.semantics.semantics
  * the hint to be associated with this composable. This allows autofill frameworks to provide
  * relevant suggestions to users.
  *
- * Using `autofillContentType` is equivalent to simply setting the `contentType` semantic property,
- * i.e. `Modifier.autofillContentType(ContentType.NewUsername)` is equivalent to setting
- * `Modifier.semantics { contentType = ContentType.NewUsername }`.
+ * Using `contentType` is equivalent to simply setting the `contentType` semantic property, i.e.
+ * `Modifier.contentType(ContentType.NewUsername)` is equivalent to setting `Modifier.semantics {
+ * contentType = ContentType.NewUsername }`.
  *
+ * @sample androidx.compose.ui.samples.AutofillableTextFieldWithAutofillModifier
+ * @sample androidx.compose.ui.samples.AutofillableTextFieldWithContentTypeSemantics
  * @param contentType The [ContentType] to apply to the component's semantics.
  * @return The [Modifier] with the specified [ContentType] semantics set.
  */
-fun Modifier.autofillContentType(contentType: ContentType): Modifier =
+fun Modifier.contentType(contentType: ContentType): Modifier =
     this.semantics { this.contentType = contentType }

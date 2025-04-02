@@ -110,12 +110,12 @@ package androidx.compose.foundation {
 
   @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public final class ComposeFoundationFlags {
     property public boolean DragGesturePickUpEnabled;
-    property public boolean NewNestedFlingPropagationEnabled;
     property public boolean isDetectTapGesturesImmediateCoroutineDispatchEnabled;
+    property public boolean isPausableCompositionInPrefetchEnabled;
     field public static boolean DragGesturePickUpEnabled;
     field public static final androidx.compose.foundation.ComposeFoundationFlags INSTANCE;
-    field public static boolean NewNestedFlingPropagationEnabled;
     field public static boolean isDetectTapGesturesImmediateCoroutineDispatchEnabled;
+    field public static boolean isPausableCompositionInPrefetchEnabled;
   }
 
   public final class DarkThemeKt {
@@ -937,6 +937,7 @@ package androidx.compose.foundation.lazy {
 
   @androidx.compose.runtime.Stable public final class LazyListState implements androidx.compose.foundation.gestures.ScrollableState {
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyListState();
+    ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyListState(androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow cacheWindow, optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset);
     ctor public LazyListState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset);
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyListState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.LazyListPrefetchStrategy prefetchStrategy);
     method public suspend Object? animateScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -967,6 +968,7 @@ package androidx.compose.foundation.lazy {
   }
 
   public final class LazyListStateKt {
+    method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.LazyListState rememberLazyListState(androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow cacheWindow, optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset);
     method @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.LazyListState rememberLazyListState(optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset);
     method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.LazyListState rememberLazyListState(optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.LazyListPrefetchStrategy prefetchStrategy);
   }
@@ -1079,6 +1081,7 @@ package androidx.compose.foundation.lazy.grid {
 
   @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public interface LazyGridPrefetchScope {
     method public java.util.List<androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState.PrefetchHandle> scheduleLinePrefetch(int lineIndex);
+    method public default java.util.List<androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState.PrefetchHandle> scheduleLinePrefetch(int lineIndex, kotlin.jvm.functions.Function1<? super java.util.List<java.lang.Integer>,kotlin.Unit>? onPrefetchFinished);
   }
 
   @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public interface LazyGridPrefetchStrategy {
@@ -1112,6 +1115,7 @@ package androidx.compose.foundation.lazy.grid {
 
   @androidx.compose.runtime.Stable public final class LazyGridState implements androidx.compose.foundation.gestures.ScrollableState {
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyGridState();
+    ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyGridState(androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow cacheWindow, optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset);
     ctor public LazyGridState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset);
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyGridState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.grid.LazyGridPrefetchStrategy prefetchStrategy);
     method public suspend Object? animateScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -1142,6 +1146,7 @@ package androidx.compose.foundation.lazy.grid {
   }
 
   public final class LazyGridStateKt {
+    method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.grid.LazyGridState rememberLazyGridState(androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow cacheWindow, optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset);
     method @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.grid.LazyGridState rememberLazyGridState(optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset);
     method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi @androidx.compose.runtime.Composable public static androidx.compose.foundation.lazy.grid.LazyGridState rememberLazyGridState(optional int initialFirstVisibleItemIndex, optional int initialFirstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.grid.LazyGridPrefetchStrategy prefetchStrategy);
   }
@@ -1164,6 +1169,16 @@ package androidx.compose.foundation.lazy.layout {
     property public int size;
     property public int startIndex;
     property public T value;
+  }
+
+  @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi @androidx.compose.runtime.Stable public interface LazyLayoutCacheWindow {
+    method public default int calculateAheadWindow(androidx.compose.ui.unit.Density, int viewport);
+    method public default int calculateBehindWindow(androidx.compose.ui.unit.Density, int viewport);
+  }
+
+  public final class LazyLayoutCacheWindowKt {
+    method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public static androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow LazyLayoutCacheWindow(optional float ahead, optional float behind);
+    method @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public static androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow LazyLayoutCacheWindow(optional @FloatRange(from=0.0) float aheadFraction, optional @FloatRange(from=0.0) float behindFraction);
   }
 
   public abstract class LazyLayoutIntervalContent<Interval extends androidx.compose.foundation.lazy.layout.LazyLayoutIntervalContent.Interval> {
@@ -1234,8 +1249,10 @@ package androidx.compose.foundation.lazy.layout {
   }
 
   public static interface LazyLayoutPrefetchState.LazyLayoutPrefetchResultScope {
+    method public int getIndex();
     method public int getPlaceablesCount();
-    method public long getSize(int index);
+    method public long getSize(int placeableIndex);
+    property public abstract int index;
     property public abstract int placeablesCount;
   }
 
@@ -1715,6 +1732,11 @@ package androidx.compose.foundation.text {
     method @Deprecated @androidx.compose.runtime.Composable public static void BasicText(String text, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.ui.text.TextStyle style, optional kotlin.jvm.functions.Function1<? super androidx.compose.ui.text.TextLayoutResult,kotlin.Unit>? onTextLayout, optional int overflow, optional boolean softWrap, optional int maxLines, optional int minLines);
     method @Deprecated @androidx.compose.runtime.Composable public static void BasicText(String text, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.ui.text.TextStyle style, optional kotlin.jvm.functions.Function1<? super androidx.compose.ui.text.TextLayoutResult,kotlin.Unit>? onTextLayout, optional int overflow, optional boolean softWrap, optional int maxLines, optional int minLines, optional androidx.compose.ui.graphics.ColorProducer? color);
     method @androidx.compose.runtime.Composable public static void BasicText(String text, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.ui.text.TextStyle style, optional kotlin.jvm.functions.Function1<? super androidx.compose.ui.text.TextLayoutResult,kotlin.Unit>? onTextLayout, optional int overflow, optional boolean softWrap, optional int maxLines, optional int minLines, optional androidx.compose.ui.graphics.ColorProducer? color, optional androidx.compose.foundation.text.TextAutoSize? autoSize);
+  }
+
+  public final class BasicText_androidKt {
+    method public static androidx.compose.runtime.ProvidableCompositionLocal<java.util.concurrent.Executor?> getLocalBackgroundTextMeasurementExecutor();
+    property public static androidx.compose.runtime.ProvidableCompositionLocal<java.util.concurrent.Executor?> LocalBackgroundTextMeasurementExecutor;
   }
 
   public final class ClickableTextKt {

@@ -148,6 +148,12 @@ class WindowSizeClass(
         /** A lower bound for a size class with Expanded width in dp. */
         const val WIDTH_DP_EXPANDED_LOWER_BOUND = 840
 
+        /** A lower bound for a size class with Large width in dp. */
+        const val WIDTH_DP_LARGE_LOWER_BOUND = 1200
+
+        /** A lower bound for a size class width Extra Large width in dp. */
+        const val WIDTH_DP_EXTRA_LARGE_LOWER_BOUND = 1600
+
         /** A lower bound for a size class with Medium height in dp. */
         const val HEIGHT_DP_MEDIUM_LOWER_BOUND = 480
 
@@ -157,8 +163,27 @@ class WindowSizeClass(
         private val WIDTH_DP_BREAKPOINTS_V1 =
             listOf(0, WIDTH_DP_MEDIUM_LOWER_BOUND, WIDTH_DP_EXPANDED_LOWER_BOUND)
 
+        private val WIDTH_DP_BREAKPOINTS_V2 =
+            WIDTH_DP_BREAKPOINTS_V1 +
+                listOf(WIDTH_DP_LARGE_LOWER_BOUND, WIDTH_DP_EXTRA_LARGE_LOWER_BOUND)
+
         private val HEIGHT_DP_BREAKPOINTS_V1 =
             listOf(0, HEIGHT_DP_MEDIUM_LOWER_BOUND, HEIGHT_DP_EXPANDED_LOWER_BOUND)
+
+        private val HEIGHT_DP_BREAKPOINTS_V2 = HEIGHT_DP_BREAKPOINTS_V1
+
+        private fun createBreakpointSet(
+            widthBreakpoints: List<Int>,
+            heightBreakpoints: List<Int>
+        ): Set<WindowSizeClass> {
+            return widthBreakpoints
+                .flatMap { widthBp ->
+                    heightBreakpoints.map { heightBp ->
+                        WindowSizeClass(minWidthDp = widthBp, minHeightDp = heightBp)
+                    }
+                }
+                .toSet()
+        }
 
         /**
          * The recommended breakpoints for window size classes.
@@ -166,13 +191,17 @@ class WindowSizeClass(
          * @sample androidx.window.core.samples.layout.calculateWindowSizeClass
          */
         @JvmField
-        val BREAKPOINTS_V1 =
-            WIDTH_DP_BREAKPOINTS_V1.flatMap { widthBp ->
-                    HEIGHT_DP_BREAKPOINTS_V1.map { heightBp ->
-                        WindowSizeClass(minWidthDp = widthBp, minHeightDp = heightBp)
-                    }
-                }
-                .toSet()
+        val BREAKPOINTS_V1 = createBreakpointSet(WIDTH_DP_BREAKPOINTS_V1, HEIGHT_DP_BREAKPOINTS_V1)
+
+        /**
+         * The recommended breakpoints for window size classes. This includes all the breakpoints
+         * from [BREAKPOINTS_V1] plus new breakpoints to account for the Large and Extra Large width
+         * breakpoints.
+         *
+         * @sample androidx.window.core.samples.layout.calculateWindowSizeClass
+         */
+        @JvmField
+        val BREAKPOINTS_V2 = createBreakpointSet(WIDTH_DP_BREAKPOINTS_V2, HEIGHT_DP_BREAKPOINTS_V2)
 
         /**
          * Computes the recommended [WindowSizeClass] for the given width and height in DP.

@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.text.contextmenu.provider
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -181,8 +182,7 @@ class BasicTextContextMenuProviderTest {
 
             assertContextMenuExistsWithNumbers(1)
             assertThatJob(contextMenuCoroutine).isActive()
-            val initialBounds =
-                assertNotNull(anchorLayoutCoordinates).boundsInRoot().roundToIntRect()
+            val initialBounds = anchorLayoutCoordinates.boundsInRoot().roundToIntRect()
 
             length = 50
             rule.waitForIdle()
@@ -190,7 +190,7 @@ class BasicTextContextMenuProviderTest {
             assertContextMenuExistsWithNumbers(1)
             assertThatJob(contextMenuCoroutine).isActive()
 
-            val finalBounds = assertNotNull(anchorLayoutCoordinates).boundsInRoot().roundToIntRect()
+            val finalBounds = anchorLayoutCoordinates.boundsInRoot().roundToIntRect()
             val expectedBounds = initialBounds.translate(IntOffset(50, 50))
             assertThat(finalBounds).isEqualTo(expectedBounds)
         }
@@ -207,7 +207,7 @@ class BasicTextContextMenuProviderTest {
         (
             session: TextContextMenuSession,
             dataProvider: TextContextMenuDataProvider,
-            anchorLayoutCoordinates: LayoutCoordinates,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
         ) -> Unit = { _, _, _ ->
             Box(modifier = Modifier.background(Color.LightGray).size(50.dp).testTag(tag))
         }
@@ -273,7 +273,7 @@ class BasicTextContextMenuProviderTest {
                     ProvideTestBasicTextContextMenu(
                         onContextMenuComposition = { session, anchorLayoutCoordinates ->
                             testScope.session = session
-                            testScope.anchorLayoutCoordinates = anchorLayoutCoordinates
+                            testScope.anchorLayoutCoordinatesFunction = anchorLayoutCoordinates
                         }
                     ) {
                         testScope.provider = LocalTestContextMenuProvider.current
@@ -289,10 +289,13 @@ class BasicTextContextMenuProviderTest {
     }
 
     private inner class TestScope {
+        var anchorLayoutCoordinatesFunction: (() -> LayoutCoordinates)? = null
+        val anchorLayoutCoordinates: LayoutCoordinates
+            get() = assertNotNull(anchorLayoutCoordinatesFunction).invoke()
+
         var coroutineScope: CoroutineScope? = null
         var provider: TextContextMenuProvider? = null
         var session: TextContextMenuSession? = null
-        var anchorLayoutCoordinates: LayoutCoordinates? = null
         var enabled by mutableStateOf(true)
 
         fun launch(block: suspend CoroutineScope.() -> Unit): Job =
@@ -325,6 +328,7 @@ private const val AnchorLayoutTag = "AnchorLayout"
 private const val ContextMenuTag = "ContextMenu"
 
 @Composable
+@SuppressLint("ModifierParameter")
 private fun OuterBox(modifier: Modifier = Modifier.fillMaxSize(), content: @Composable () -> Unit) {
     Box(modifier, Alignment.Center) { content() }
 }
@@ -342,7 +346,7 @@ private fun ProvideTestBasicTextContextMenu(
     onContextMenuComposition:
         (
             session: TextContextMenuSession?,
-            anchorLayoutCoordinates: LayoutCoordinates?,
+            anchorLayoutCoordinates: () -> LayoutCoordinates,
         ) -> Unit,
     content: @Composable () -> Unit
 ) {

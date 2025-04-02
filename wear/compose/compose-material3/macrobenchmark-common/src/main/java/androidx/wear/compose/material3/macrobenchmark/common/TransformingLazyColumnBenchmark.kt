@@ -37,7 +37,7 @@ import androidx.wear.compose.material3.EdgeButton
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.lazy.rememberResponsiveTransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import kotlinx.coroutines.launch
 
 val TransformingLazyColumnBenchmark =
@@ -45,7 +45,7 @@ val TransformingLazyColumnBenchmark =
         override val content: @Composable (BoxScope.() -> Unit)
             get() = {
                 val state = rememberTransformingLazyColumnState()
-                val transformationSpec = rememberResponsiveTransformationSpec()
+                val transformationSpec = rememberTransformationSpec()
                 val coroutineScope = rememberCoroutineScope()
                 AppScaffold {
                     ScreenScaffold(

@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import androidx.build.AndroidXConfig
+
 plugins {
     id("com.android.application")
     id("AndroidXPlugin")
@@ -46,4 +49,6 @@ dependencies {
     implementation("androidx.compose.runtime:runtime:1.8.0-alpha06")
     implementation("androidx.compose.foundation:foundation-layout:1.8.0-alpha06")
     implementation(libs.kotlinCoroutinesGuava)
+
+    compileOnly(files(new File(AndroidXConfig.getPrebuiltsRoot(project), "androidx/xr/extensions/com.android.extensions.xr.jar")))
 }

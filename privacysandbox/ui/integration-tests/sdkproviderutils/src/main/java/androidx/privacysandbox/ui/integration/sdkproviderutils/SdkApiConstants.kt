@@ -80,6 +80,7 @@ class SdkApiConstants {
                 const val RESIZE = 0
                 const val SCROLL = 1
                 const val POOLING_CONTAINER = 2
+                const val RESIZE_HIDDEN = 3
             }
         }
 

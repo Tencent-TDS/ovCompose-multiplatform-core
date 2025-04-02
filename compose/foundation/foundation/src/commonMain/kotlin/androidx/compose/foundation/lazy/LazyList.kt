@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.lazy.layout.CacheWindowLogic
 import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScope
 import androidx.compose.foundation.lazy.layout.StickyItemsPlacement
@@ -389,7 +390,7 @@ private fun rememberLazyListMeasurePolicy(
 
             state.applyMeasureResult(measureResult, isLookingAhead)
             // apply keep around after updating the strategy with measure result.
-            (state.prefetchStrategy as? CacheWindowListPrefetchStrategy)?.keepAroundItems(
+            (state.prefetchStrategy as? CacheWindowLogic)?.keepAroundItems(
                 measureResult.visibleItemsInfo,
                 measuredItemProvider
             )
@@ -398,7 +399,7 @@ private fun rememberLazyListMeasurePolicy(
     }
 
 @OptIn(ExperimentalFoundationApi::class)
-private fun CacheWindowListPrefetchStrategy.keepAroundItems(
+private fun CacheWindowLogic.keepAroundItems(
     visibleItemsList: List<LazyListMeasuredItem>,
     measuredItemProvider: LazyListMeasuredItemProvider
 ) {
@@ -409,11 +410,11 @@ private fun CacheWindowListPrefetchStrategy.keepAroundItems(
             val lastVisibleItemIndex = visibleItemsList.last().index
             // we must send a message in case of changing directions for items
             // that were keep around and become prefetch forward
-            for (item in prefetchWindowStartIndex..<firstVisibleItemIndex) {
+            for (item in prefetchWindowStartLine..<firstVisibleItemIndex) {
                 measuredItemProvider.keepAround(item)
             }
 
-            for (item in (lastVisibleItemIndex + 1)..prefetchWindowEndIndex) {
+            for (item in (lastVisibleItemIndex + 1)..prefetchWindowEndLine) {
                 measuredItemProvider.keepAround(item)
             }
         }

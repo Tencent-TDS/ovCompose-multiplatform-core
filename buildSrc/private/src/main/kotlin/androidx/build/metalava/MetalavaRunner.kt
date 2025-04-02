@@ -181,7 +181,8 @@ fun getApiLintArgs(targetsJavaConsumers: Boolean): List<String> {
                     "StaticFinalBuilder",
                     "MissingGetterMatchingBuilder",
                     "HiddenSuperclass",
-                    "KotlinOperator"
+                    "KotlinOperator",
+                    "DataClassDefinition",
                 )
                 .joinToString()
         )

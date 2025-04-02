@@ -24,7 +24,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import perfetto.protos.AppendTraceDataResult
 import perfetto.protos.ComputeMetricArgs
@@ -34,7 +33,8 @@ import perfetto.protos.StatusResult
 
 @OptIn(ExperimentalTraceProcessorApi::class)
 internal class TraceProcessorHttpServer(
-    private val serverLifecycleManager: ServerLifecycleManager
+    private val serverLifecycleManager: ServerLifecycleManager,
+    private val timeout: Duration,
 ) {
     companion object {
         private const val HTTP_ADDRESS = "http://localhost"
@@ -47,7 +47,6 @@ internal class TraceProcessorHttpServer(
         private const val PATH_STATUS = "/status"
         private const val PATH_RESTORE_INITIAL_TABLES = "/restore_initial_tables"
         private val WAIT_INTERVAL = 5.milliseconds
-        private val READ_TIMEOUT = 30.seconds
 
         // Note that trace processor http server has a hard limit of 64Mb for payload size.
         // https://cs.android.com/android/platform/superproject/+/master:external/perfetto/src/base/http/http_server.cc;l=33
@@ -63,7 +62,7 @@ internal class TraceProcessorHttpServer(
      * @throws IllegalStateException if the server is not running by the end of the timeout.
      */
     @Suppress("BanThreadSleep") // needed for awaiting trace processor instance
-    fun startServer(timeout: Duration) {
+    fun startServer() {
         if (hasStarted) {
             log("Tried to start a trace shell processor that is already running.")
         } else {
@@ -191,7 +190,7 @@ internal class TraceProcessorHttpServer(
     ): T {
         with(URL("$HTTP_ADDRESS:${port}$url").openConnection() as HttpURLConnection) {
             requestMethod = method
-            readTimeout = READ_TIMEOUT.toInt(DurationUnit.MILLISECONDS)
+            readTimeout = timeout.toInt(DurationUnit.MILLISECONDS)
             setRequestProperty("Content-Type", contentType)
             if (encodeBlock != null) {
                 doOutput = true

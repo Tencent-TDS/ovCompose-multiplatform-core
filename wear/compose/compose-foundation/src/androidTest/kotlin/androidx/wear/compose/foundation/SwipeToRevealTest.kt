@@ -16,15 +16,19 @@
 
 package androidx.wear.compose.foundation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -40,6 +44,7 @@ import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.dp
 import junit.framework.TestCase.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlinx.coroutines.launch
 import org.junit.Rule
 import org.junit.Test
@@ -152,9 +157,8 @@ class SwipeToRevealTest {
         verifyGesture(
             revealValue = RevealValue.Covered,
             onFullSwipe = { onFullSwipeTriggered = true },
-            revealDirection = RevealDirection.Both,
             gesture = { swipeRight() },
-            edgeSwipeEnabled = false,
+            bidirectionalGestureInclusion = false,
         )
 
         assertFalse(onFullSwipeTriggered)
@@ -166,8 +170,9 @@ class SwipeToRevealTest {
         verifyGesture(
             revealValue = RevealValue.Covered,
             onFullSwipe = { onFullSwipeTriggered = true },
+            revealDirection = RevealDirection.Both,
             gesture = { swipeRight() },
-            edgeSwipeEnabled = false,
+            bidirectionalGestureInclusion = false,
         )
 
         assertFalse(onFullSwipeTriggered)
@@ -179,8 +184,71 @@ class SwipeToRevealTest {
             revealValue = RevealValue.LeftRevealing,
             revealDirection = RevealDirection.Both,
             gesture = { swipeRight(startX = width / 2f, endX = width.toFloat()) },
-            edgeSwipeEnabled = false,
+            bidirectionalGestureInclusion = false,
         )
+    }
+
+    @Test
+    fun navigationSwipe_singleDirectionSwipeOnTheEdgeDisabled_onFullSwipeRight() {
+        var onSwipeToDismissBoxDismissed = false
+        verifyGesture(
+            initialValue = RevealValue.Covered,
+            revealValue = RevealValue.Covered,
+            gesture = { swipeRight() },
+            bidirectionalGestureInclusion = false,
+            wrappedInSwipeToDismissBox = true,
+            onSwipeToDismissBoxDismissed = { onSwipeToDismissBoxDismissed = true },
+        )
+
+        assertTrue(onSwipeToDismissBoxDismissed)
+    }
+
+    @Test
+    fun stateToCovered_singleDirectionRevealingSwipeOnTheEdgeDisabled_onFullSwipeRight() {
+        var onSwipeToDismissBoxDismissed = false
+
+        verifyGesture(
+            initialValue = RevealValue.RightRevealing,
+            revealValue = RevealValue.Covered,
+            gesture = { swipeRight() },
+            bidirectionalGestureInclusion = false,
+            wrappedInSwipeToDismissBox = true,
+            onSwipeToDismissBoxDismissed = { onSwipeToDismissBoxDismissed = true },
+        )
+
+        assertFalse(onSwipeToDismissBoxDismissed)
+    }
+
+    @Test
+    fun stateToCovered_singleDirectionRevealingSwipeOnTheEdgeDisabled_onPartialSwipeRight() {
+        var onSwipeToDismissBoxDismissed = false
+
+        verifyGesture(
+            initialValue = RevealValue.RightRevealing,
+            revealValue = RevealValue.Covered,
+            gesture = { swipeRight(startX = width / 2f, endX = width.toFloat()) },
+            bidirectionalGestureInclusion = false,
+            wrappedInSwipeToDismissBox = true,
+            onSwipeToDismissBoxDismissed = { onSwipeToDismissBoxDismissed = true },
+        )
+
+        assertFalse(onSwipeToDismissBoxDismissed)
+    }
+
+    @Test
+    fun stateToCovered_singleDirectionRevealing_onFullSwipeRight() {
+        var onSwipeToDismissBoxDismissed = false
+
+        verifyGesture(
+            initialValue = RevealValue.RightRevealing,
+            revealValue = RevealValue.Covered,
+            gesture = { swipeRight() },
+            bidirectionalGestureInclusion = true,
+            wrappedInSwipeToDismissBox = true,
+            onSwipeToDismissBoxDismissed = { onSwipeToDismissBoxDismissed = true },
+        )
+
+        assertFalse(onSwipeToDismissBoxDismissed)
     }
 
     @Test
@@ -496,24 +564,50 @@ class SwipeToRevealTest {
     }
 
     private fun verifyGesture(
+        initialValue: RevealValue = RevealValue.Covered,
         revealValue: RevealValue,
         gesture: TouchInjectionScope.() -> Unit,
         onFullSwipe: () -> Unit = {},
         revealDirection: RevealDirection = RevealDirection.RightToLeft,
-        edgeSwipeEnabled: Boolean = true,
+        bidirectionalGestureInclusion: Boolean = true,
+        wrappedInSwipeToDismissBox: Boolean = false,
+        onSwipeToDismissBoxDismissed: () -> Unit = {},
     ) {
         lateinit var revealState: RevealState
         rule.setContent {
             revealState =
                 rememberRevealState(
+                    initialValue = initialValue,
                     anchors = createRevealAnchors(revealDirection = revealDirection)
                 )
-            swipeToRevealWithDefaults(
-                state = revealState,
-                onFullSwipe = onFullSwipe,
-                modifier = Modifier.testTag(TEST_TAG),
-                edgeSwipeEnabled = edgeSwipeEnabled,
-            )
+            if (!wrappedInSwipeToDismissBox) {
+                swipeToRevealWithDefaults(
+                    state = revealState,
+                    onFullSwipe = onFullSwipe,
+                    modifier = Modifier.testTag(TEST_TAG),
+                    bidirectionalGestureInclusion = bidirectionalGestureInclusion,
+                )
+            } else {
+                BasicSwipeToDismissBox(
+                    onDismissed = onSwipeToDismissBoxDismissed,
+                    state = rememberSwipeToDismissBoxState(),
+                ) { isBackground ->
+                    if (isBackground) {
+                        Box(
+                            modifier = Modifier.fillMaxSize().background(Color.Red),
+                        )
+                    } else {
+                        Box(contentAlignment = Alignment.Center) {
+                            swipeToRevealWithDefaults(
+                                state = revealState,
+                                onFullSwipe = onFullSwipe,
+                                modifier = Modifier.testTag(TEST_TAG),
+                                bidirectionalGestureInclusion = bidirectionalGestureInclusion,
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         rule.onNodeWithTag(TEST_TAG).performTouchInput(gesture)
@@ -529,7 +623,7 @@ class SwipeToRevealTest {
         secondaryAction: (@Composable () -> Unit)? = null,
         undoAction: (@Composable () -> Unit)? = null,
         onFullSwipe: () -> Unit = {},
-        edgeSwipeEnabled: Boolean = true,
+        bidirectionalGestureInclusion: Boolean = true,
         content: @Composable () -> Unit = { getBoxContent() }
     ) {
         SwipeToReveal(
@@ -540,10 +634,10 @@ class SwipeToRevealTest {
             undoAction = undoAction,
             onFullSwipe = onFullSwipe,
             gestureInclusion =
-                if (edgeSwipeEnabled) {
-                    SwipeToRevealDefaults.bidirectionalGestureInclusion()
+                if (bidirectionalGestureInclusion) {
+                    SwipeToRevealDefaults.bidirectionalGestureInclusion
                 } else {
-                    SwipeToRevealDefaults.gestureInclusion()
+                    SwipeToRevealDefaults.gestureInclusion(state)
                 },
             content = content
         )

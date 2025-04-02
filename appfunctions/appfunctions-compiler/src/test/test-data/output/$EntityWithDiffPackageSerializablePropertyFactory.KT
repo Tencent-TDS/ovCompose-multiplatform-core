@@ -2,7 +2,6 @@ package com.testdata
 
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.`internal`.AppFunctionSerializableFactory
-import com.testdata.differentPackage.DiffPackageSerializable
 import com.testdata.differentPackage.`$DiffPackageSerializableFactory`
 import javax.`annotation`.processing.Generated
 
@@ -18,15 +17,19 @@ public class `$EntityWithDiffPackageSerializablePropertyFactory` : AppFunctionSe
       diffPackageSerializableFactory.fromAppFunctionData(data)
     }
 
-    return EntityWithDiffPackageSerializableProperty(inputSerializable, serializableList)
+    val resultEntityWithDiffPackageSerializableProperty = EntityWithDiffPackageSerializableProperty(inputSerializable, serializableList)
+    return resultEntityWithDiffPackageSerializableProperty
   }
 
   override fun toAppFunctionData(appFunctionSerializable: EntityWithDiffPackageSerializableProperty): AppFunctionData {
+    val entityWithDiffPackageSerializableProperty_appFunctionSerializable = appFunctionSerializable
     val diffPackageSerializableFactory = `$DiffPackageSerializableFactory`()
 
     val builder = AppFunctionData.Builder("com.testdata.EntityWithDiffPackageSerializableProperty")
-    builder.setAppFunctionData("inputSerializable", diffPackageSerializableFactory.toAppFunctionData(appFunctionSerializable.inputSerializable as DiffPackageSerializable))
-    builder.setAppFunctionDataList("serializableList", appFunctionSerializable.serializableList.map{ diffPackageSerializable ->
+    val inputSerializable = entityWithDiffPackageSerializableProperty_appFunctionSerializable.inputSerializable
+    builder.setAppFunctionData("inputSerializable", diffPackageSerializableFactory.toAppFunctionData(inputSerializable))
+    val serializableList = entityWithDiffPackageSerializableProperty_appFunctionSerializable.serializableList
+    builder.setAppFunctionDataList("serializableList", serializableList.map{ diffPackageSerializable ->
       diffPackageSerializableFactory.toAppFunctionData(diffPackageSerializable)
     })
 

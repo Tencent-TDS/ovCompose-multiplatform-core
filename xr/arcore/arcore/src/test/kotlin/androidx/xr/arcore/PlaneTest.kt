@@ -59,7 +59,7 @@ class PlaneTest {
     @get:Rule
     val grantPermissionRule =
         GrantPermissionRule.grant(
-            "android.permission.SCENE_UNDERSTANDING",
+            "android.permission.SCENE_UNDERSTANDING_COARSE",
             "android.permission.HAND_TRACKING",
         )
 

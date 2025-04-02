@@ -1167,10 +1167,11 @@ internal class LayoutNode(
         requireOwner().requestOnPositionedCallback(this)
     }
 
-    internal inline fun ignoreRemeasureRequests(block: () -> Unit) {
+    internal inline fun <T> ignoreRemeasureRequests(block: () -> T): T {
         ignoreRemeasureRequests = true
-        block()
+        val result = block()
         ignoreRemeasureRequests = false
+        return result
     }
 
     /** Used to request a new layout pass from the owner. */
@@ -1389,8 +1390,10 @@ internal class LayoutNode(
 
     override fun onReuse() {
         requirePrecondition(isAttached) { "onReuse is only expected on attached node" }
-        interopViewFactoryHolder?.onReuse()
-        subcompositionsState?.onReuse()
+        if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onReuse()
+            subcompositionsState?.onReuse()
+        }
         isCurrentlyCalculatingSemanticsConfiguration = false
         if (isDeactivated) {
             isDeactivated = false
@@ -1404,6 +1407,10 @@ internal class LayoutNode(
         val oldSemanticsId = semanticsId
         semanticsId = generateSemanticsId()
         owner?.onPreLayoutNodeReused(this, oldSemanticsId)
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onReuse()
+            subcompositionsState?.onReuse()
+        }
         // resetModifierState detaches all nodes, so we need to re-attach them upon reuse.
         nodes.markAsAttached()
         nodes.runAttachLifecycle()
@@ -1416,8 +1423,10 @@ internal class LayoutNode(
     }
 
     override fun onDeactivate() {
-        interopViewFactoryHolder?.onDeactivate()
-        subcompositionsState?.onDeactivate()
+        if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onDeactivate()
+            subcompositionsState?.onDeactivate()
+        }
         isDeactivated = true
         resetModifierState()
         // if the node is detached the semantics were already updated without this node.
@@ -1430,12 +1439,22 @@ internal class LayoutNode(
             }
         }
         owner?.onLayoutNodeDeactivated(this)
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onDeactivate()
+            subcompositionsState?.onDeactivate()
+        }
     }
 
     override fun onRelease() {
-        interopViewFactoryHolder?.onRelease()
-        subcompositionsState?.onRelease()
+        if (@OptIn(ExperimentalComposeUiApi::class) !ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onRelease()
+            subcompositionsState?.onRelease()
+        }
         forEachCoordinatorIncludingInner { it.onRelease() }
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled) {
+            interopViewFactoryHolder?.onRelease()
+            subcompositionsState?.onRelease()
+        }
     }
 
     internal companion object {

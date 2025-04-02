@@ -32,11 +32,12 @@ class BackEventCompatTest {
 
     @Test
     fun testCreateBackEventCompat() {
-        val event = BackEventCompat(1f, 2f, 3f, BackEventCompat.EDGE_LEFT)
+        val event = BackEventCompat(1f, 2f, 3f, BackEventCompat.EDGE_LEFT, 2)
         assertThat(event.touchX).isEqualTo(1f)
         assertThat(event.touchY).isEqualTo(2f)
         assertThat(event.progress).isEqualTo(3f)
         assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
+        assertThat(event.frameTimeMillis).isEqualTo(2)
     }
 
     @RequiresApi(34)
@@ -59,5 +60,29 @@ class BackEventCompatTest {
         assertThat(event.touchY).isEqualTo(2f)
         assertThat(event.progress).isEqualTo(3f)
         assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
+    }
+
+    @RequiresApi(36)
+    @SdkSuppress(minSdkVersion = 36)
+    @Test
+    fun testCreateBackEventCompatFromBackEventWithFrameTimeMillis() {
+        val event = BackEventCompat(BackEvent(1f, 2f, 3f, EDGE_LEFT, 5))
+        assertThat(event.touchX).isEqualTo(1f)
+        assertThat(event.touchY).isEqualTo(2f)
+        assertThat(event.progress).isEqualTo(3f)
+        assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
+        assertThat(event.frameTimeMillis).isEqualTo(5)
+    }
+
+    @RequiresApi(36)
+    @SdkSuppress(minSdkVersion = 36)
+    @Test
+    fun testToBackEventFromBackEventCompatWithFrameTimeMillis() {
+        val event = BackEventCompat(1f, 2f, 3f, BackEventCompat.EDGE_LEFT, 5).toBackEvent()
+        assertThat(event.touchX).isEqualTo(1f)
+        assertThat(event.touchY).isEqualTo(2f)
+        assertThat(event.progress).isEqualTo(3f)
+        assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
+        assertThat(event.frameTimeMillis).isEqualTo(5)
     }
 }

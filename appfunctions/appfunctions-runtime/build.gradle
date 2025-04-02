@@ -41,14 +41,20 @@ dependencies {
     implementation(libs.kotlinCoroutinesGuava) {
         exclude group: "com.google.guava", module: "guava"
     }
-
     // Compile only dependencies
     compileOnly(project(":appfunctions:appfunctions-stubs"))
 
     // Test dependencies
     testImplementation(libs.junit)
     testImplementation(libs.truth)
-    testImplementation(libs.mockitoCore4)
+    testImplementation(libs.testMonitor)
+    testImplementation(libs.kotlinCoroutinesTest)
+    testImplementation(libs.testRunner)
+    testImplementation(project(":appfunctions:appfunctions-stubs"))
+    testImplementation(libs.mockitoCore)
+    testImplementation(libs.testCore)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinTest)
 
     androidTestCompileOnly(project(":appfunctions:appfunctions-stubs"))
     androidTestImplementation("androidx.appsearch:appsearch:1.1.0-beta01")
@@ -61,10 +67,14 @@ dependencies {
     androidTestImplementation(libs.guavaAndroid)
     androidTestImplementation(libs.testMonitor)
     androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.kotlinTest)
 }
 
 android {
     compileSdk = 35
+    buildTypes.configureEach {
+        consumerProguardFiles "proguard-rules.pro"
+    }
     namespace = "androidx.appfunctions.runtime"
 }
 

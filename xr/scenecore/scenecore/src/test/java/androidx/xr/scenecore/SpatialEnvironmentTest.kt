@@ -154,15 +154,24 @@ class SpatialEnvironmentTest {
     fun spatialEnvironmentPreferenceEqualsHashcode_returnsTrueIfAllPropertiesAreEqual() {
         val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
         val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
+        val rtMaterialMock = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtMeshName = "meshName"
+        val rtAnimationName = "animationName"
         val rtPreference =
             JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference(
                 rtImageMock,
-                rtModelMock
+                rtModelMock,
+                rtMaterialMock,
+                rtMeshName,
+                rtAnimationName,
             )
         val preference =
             SpatialEnvironment.SpatialEnvironmentPreference(
                 ExrImage(rtImageMock),
-                GltfModel(rtModelMock)
+                GltfModel(rtModelMock),
+                Material(rtMaterialMock),
+                rtMeshName,
+                rtAnimationName,
             )
 
         assertThat(preference).isEqualTo(rtPreference.toSpatialEnvironmentPreference())
@@ -174,18 +183,30 @@ class SpatialEnvironmentTest {
     fun spatialEnvironmentPreferenceEqualsHashcode_returnsFalseIfAnyPropertiesAreNotEqual() {
         val rtImageMock = mock<JxrPlatformAdapter.ExrImageResource>()
         val rtModelMock = mock<JxrPlatformAdapter.GltfModelResource>()
+        val rtMaterialMock = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtMeshName = "meshName"
+        val rtAnimationName = "animationName"
         val rtImageMock2 = mock<JxrPlatformAdapter.ExrImageResource>()
         val rtModelMock2 = mock<JxrPlatformAdapter.GltfModelResource>()
+        val rtMaterialMock2 = mock<JxrPlatformAdapter.MaterialResource>()
+        val rtMeshName2 = "meshName2"
+        val rtAnimationName2 = "animationName2"
         val rtPreference =
             JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference(
                 rtImageMock,
-                rtModelMock
+                rtModelMock,
+                rtMaterialMock,
+                rtMeshName,
+                rtAnimationName,
             )
 
         val preferenceDiffGeometry =
             SpatialEnvironment.SpatialEnvironmentPreference(
                 ExrImage(rtImageMock),
                 GltfModel(rtModelMock2),
+                Material(rtMaterialMock2),
+                rtMeshName2,
+                rtAnimationName2,
             )
         assertThat(preferenceDiffGeometry)
             .isNotEqualTo(rtPreference.toSpatialEnvironmentPreference())
@@ -196,6 +217,9 @@ class SpatialEnvironmentTest {
             SpatialEnvironment.SpatialEnvironmentPreference(
                 ExrImage(rtImageMock2),
                 GltfModel(rtModelMock),
+                Material(rtMaterialMock),
+                rtMeshName,
+                rtAnimationName,
             )
         assertThat(preferenceDiffSkybox).isNotEqualTo(rtPreference.toSpatialEnvironmentPreference())
         assertThat(preferenceDiffSkybox.hashCode())

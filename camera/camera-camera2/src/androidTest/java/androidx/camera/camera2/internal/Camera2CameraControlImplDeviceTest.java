@@ -438,7 +438,7 @@ public final class Camera2CameraControlImplDeviceTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void setTorchStrengthLevel_valueUpdated()
             throws ExecutionException, InterruptedException {
-        assumeTrue(mHasFlashUnit);
+        assumeTrue(mCameraCharacteristicsCompat.isTorchStrengthLevelSupported());
 
         // Arrange
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
@@ -469,7 +469,7 @@ public final class Camera2CameraControlImplDeviceTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void setTorchStrengthLevel_throwExceptionIfLessThanOne()
             throws ExecutionException, InterruptedException {
-        assumeTrue(mHasFlashUnit);
+        assumeTrue(mCameraCharacteristicsCompat.isTorchStrengthLevelSupported());
 
         // Arrange
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
@@ -496,7 +496,7 @@ public final class Camera2CameraControlImplDeviceTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void setTorchStrengthLevel_throwExceptionIfLargerThanMax()
             throws ExecutionException, InterruptedException {
-        assumeTrue(mHasFlashUnit);
+        assumeTrue(mCameraCharacteristicsCompat.isTorchStrengthLevelSupported());
 
         // Arrange
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder().build();
@@ -610,7 +610,7 @@ public final class Camera2CameraControlImplDeviceTest {
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
     public void capture_torchAsFlash_shouldUseDefaultTorchStrength()
             throws ExecutionException, InterruptedException, TimeoutException {
-        assumeTrue(mHasFlashUnit);
+        assumeTrue(mCameraCharacteristicsCompat.isTorchStrengthLevelSupported());
 
         // Arrange: explicitly set flash type to use torch as flash
         ImageCapture.Builder imageCaptureBuilder = new ImageCapture.Builder().setFlashType(

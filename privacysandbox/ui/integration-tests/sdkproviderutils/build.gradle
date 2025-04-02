@@ -23,6 +23,10 @@ plugins {
 android {
     namespace = "androidx.privacysandbox.ui.integration.sdkproviderutils"
     compileSdk = 35
+
+    buildFeatures {
+        aidl = true
+    }
 }
 
 dependencies {

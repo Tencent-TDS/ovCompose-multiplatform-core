@@ -21,16 +21,15 @@ import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource as RtTextureResource
 import com.google.common.util.concurrent.ListenableFuture
-import java.lang.ref.WeakReference
 
 /** [Texture] represents a texture that can be used with materials. */
 @Suppress("NotCloseable")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public open class Texture
 internal constructor(
-    public val texture: RtTextureResource,
-    public val sampler: TextureSampler = TextureSampler.create(),
-    public val session: WeakReference<Session>,
+    internal val texture: RtTextureResource,
+    internal val sampler: TextureSampler = TextureSampler.create(),
+    internal val session: Session,
 ) {
 
     /**
@@ -46,7 +45,7 @@ internal constructor(
     // TODO(b/376277201): Provide Session.GltfModel.dispose().
     @MainThread
     public open fun dispose() {
-        session.get()!!.platformAdapter.destroyTexture(texture)
+        session.platformAdapter.destroyTexture(texture)
     }
 
     public companion object {
@@ -55,7 +54,7 @@ internal constructor(
             platformAdapter: JxrPlatformAdapter,
             name: String,
             sampler: TextureSampler,
-            session: WeakReference<Session>,
+            session: Session,
         ): ListenableFuture<Texture> {
             val textureResourceFuture =
                 platformAdapter.loadTexture(name, sampler.toRtTextureSampler())
@@ -97,9 +96,7 @@ internal constructor(
             name: String,
             sampler: TextureSampler,
         ): ListenableFuture<Texture> {
-            // The WeakReference prevents the Session (and its Activity) from being held in memory
-            // indefinitely.
-            return createAsync(session.platformAdapter, name, sampler, WeakReference(session))
+            return createAsync(session.platformAdapter, name, sampler, session)
         }
     }
 }

@@ -17,10 +17,12 @@
 package androidx.camera.featurecombinationquery;
 
 import android.hardware.camera2.params.OutputConfiguration;
+import android.hardware.camera2.params.SessionConfiguration;
 
 import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -36,6 +38,12 @@ import java.util.List;
  * {@link android.hardware.camera2.CameraDevice.CameraDeviceSetup}. Use
  * {@link android.hardware.camera2.CameraDevice.CameraDeviceSetup#createCaptureRequest} and
  * {@link android.hardware.camera2.params.SessionConfiguration} for those devices instead.
+ * <p>
+ * In situations where {@link android.hardware.camera2.CameraDevice} object is available, it is
+ * strongly recommended to use
+ * {@link CameraDeviceSetupCompat#isSessionConfigurationSupported(SessionConfiguration)} instead of
+ * {@link CameraDeviceSetupCompat#isSessionConfigurationSupported(SessionConfigurationCompat)} may
+ * lead to inaccurate results if not constructed accurately.
  */
 public class SessionConfigurationCompat {
     private final List<OutputConfiguration> mOutputConfigs;
@@ -45,14 +53,6 @@ public class SessionConfigurationCompat {
             SessionParametersCompat sessionParams) {
         mOutputConfigs = outputConfigs;
         mSessionParams = sessionParams;
-    }
-
-    /**
-     * @return an instance of the {@link Builder} class.
-     */
-    @NonNull
-    public static Builder builder() {
-        return new Builder();
     }
 
     /**
@@ -72,16 +72,16 @@ public class SessionConfigurationCompat {
     }
 
     /**
-     * Simple builder class for {@link SessionConfigurationCompat}. Use
-     * {@link SessionConfigurationCompat#builder()} to obtain a builder object.
+     * Simple builder class for {@link SessionConfigurationCompat}.
      */
     public static final class Builder {
         @NonNull
         private final ArrayList<OutputConfiguration> mOutputConfigs = new ArrayList<>();
         @NonNull
-        private SessionParametersCompat mSessionParams = SessionParametersCompat.builder().build();
+        private SessionParametersCompat mSessionParams =
+                new SessionParametersCompat.Builder().build();
 
-        private Builder() {
+        public Builder() {
         }
 
         /**
@@ -93,6 +93,19 @@ public class SessionConfigurationCompat {
         @NonNull
         public Builder addOutputConfiguration(@NonNull OutputConfiguration outputConfig) {
             mOutputConfigs.add(outputConfig);
+            return this;
+        }
+
+        /**
+         * Add a collection of {@link OutputConfiguration}s to the session configuration.
+         *
+         * @param outputConfigs {@link Collection} of {@link OutputConfiguration}s to add.
+         * @return the current builder
+         */
+        @NonNull
+        public Builder addOutputConfigurations(
+                @NonNull Collection<@NonNull OutputConfiguration> outputConfigs) {
+            mOutputConfigs.addAll(outputConfigs);
             return this;
         }
 

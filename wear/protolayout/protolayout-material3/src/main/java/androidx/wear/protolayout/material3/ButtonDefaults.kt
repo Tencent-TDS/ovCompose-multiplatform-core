@@ -100,7 +100,7 @@ public object ButtonDefaults {
         val row: Row.Builder = Row.Builder()
 
         ContainerWithSpacersBuilder<LayoutElement>(labels::addContent, label)
-            .addElement(secondaryLabel, horizontalSpacer(style.labelsSpaceDp))
+            .addElement(secondaryLabel)
 
         ContainerWithSpacersBuilder<LayoutElement>(row::addContent, icon)
             .addElement(labels.build(), verticalSpacer(style.iconToLabelsSpaceDp))
@@ -137,7 +137,7 @@ public object ButtonDefaults {
                 { element: LayoutElement? -> verticalElementBuilder.addContent(element!!) },
                 label
             )
-            .addElement(secondaryLabel, horizontalSpacer(style.labelsSpaceDp))
+            .addElement(secondaryLabel)
 
         // Side padding - start
         horizontalElementBuilder.addContent(
@@ -357,7 +357,6 @@ internal constructor(
     @TypographyToken internal val secondaryLabelTypography: Int,
     @Dimension(DP) internal val iconSize: Float,
     internal val innerPadding: Padding,
-    @Dimension(DP) internal val labelsSpaceDp: Int,
     @Dimension(DP) internal val iconToLabelsSpaceDp: Int,
 ) {
     public companion object {
@@ -371,7 +370,6 @@ internal constructor(
                 secondaryLabelTypography = Typography.BODY_SMALL,
                 iconSize = 24f,
                 innerPadding = padding(horizontal = 14f, vertical = 10f),
-                labelsSpaceDp = 2,
                 iconToLabelsSpaceDp = 6
             )
 
@@ -385,7 +383,6 @@ internal constructor(
                 secondaryLabelTypography = Typography.LABEL_SMALL,
                 iconSize = 26f,
                 innerPadding = padding(horizontal = 14f, vertical = 6f),
-                labelsSpaceDp = 0,
                 iconToLabelsSpaceDp = 8
             )
 
@@ -399,7 +396,6 @@ internal constructor(
                 secondaryLabelTypography = Typography.LABEL_SMALL,
                 iconSize = 32f,
                 innerPadding = padding(horizontal = 14f, vertical = 8f),
-                labelsSpaceDp = 0,
                 iconToLabelsSpaceDp = 10
             )
     }
@@ -415,7 +411,6 @@ internal constructor(
     @FloatRange(from = 0.0, to = 100.0) internal val labelsPaddingWeight: Float,
     internal val innerVerticalPadding: Padding,
     @Dimension(DP) internal val avatarToLabelsSpaceDp: Int,
-    @Dimension(DP) internal val labelsSpaceDp: Int,
 ) {
     public companion object {
         /**
@@ -426,12 +421,11 @@ internal constructor(
             AvatarButtonStyle(
                 labelTypography = Typography.LABEL_MEDIUM,
                 secondaryLabelTypography = Typography.BODY_SMALL,
-                avatarSizeWeight = 19.6f,
-                avatarPaddingWeight = 4.16f,
-                labelsPaddingWeight = 7.1f,
+                avatarSizeWeight = 25f,
+                avatarPaddingWeight = 5.51f,
+                labelsPaddingWeight = 9.4f,
                 innerVerticalPadding = padding(vertical = 8f, horizontal = Float.NaN),
                 avatarToLabelsSpaceDp = 6,
-                labelsSpaceDp = 0
             )
 
         /**
@@ -442,12 +436,11 @@ internal constructor(
             AvatarButtonStyle(
                 labelTypography = Typography.TITLE_MEDIUM,
                 secondaryLabelTypography = Typography.LABEL_SMALL,
-                avatarSizeWeight = 23.15f,
-                avatarPaddingWeight = 2.1f,
-                labelsPaddingWeight = 6f,
+                avatarSizeWeight = 29.6f,
+                avatarPaddingWeight = 2.78f,
+                labelsPaddingWeight = 7.95f,
                 innerVerticalPadding = padding(vertical = 6f, horizontal = Float.NaN),
-                avatarToLabelsSpaceDp = 8,
-                labelsSpaceDp = 0
+                avatarToLabelsSpaceDp = 6,
             )
     }
 }

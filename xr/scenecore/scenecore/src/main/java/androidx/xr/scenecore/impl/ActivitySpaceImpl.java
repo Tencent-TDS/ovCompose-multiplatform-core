@@ -19,15 +19,17 @@ package androidx.xr.scenecore.impl;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.xr.extensions.XrExtensions;
-import androidx.xr.extensions.node.Node;
-import androidx.xr.extensions.space.Bounds;
-import androidx.xr.extensions.space.SpatialState;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
 import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
 import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
 import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
+import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
+
+import com.android.extensions.xr.XrExtensions;
+import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.space.Bounds;
+import com.android.extensions.xr.space.SpatialState;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,7 +43,7 @@ import java.util.function.Supplier;
  *
  * <p>This is used to create an entity that contains the task node.
  */
-@SuppressWarnings({"deprecation", "UnnecessarilyFullyQualified"}) // TODO(b/373435470): Remove
+@SuppressWarnings({"UnnecessarilyFullyQualified"})
 final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivitySpace {
 
     private static final String TAG = "ActivitySpaceImpl";
@@ -89,7 +91,7 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
     }
 
     @Override
-    public void setScale(@NonNull Vector3 scale) {
+    public void setScale(@NonNull Vector3 scale, @SpaceValue int relativeTo) {
         // TODO(b/349391097): make this behavior consistent with AnchorEntityImpl
         Log.e(TAG, "Cannot set scale for the ActivitySpace.");
     }
@@ -101,6 +103,7 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
         super.dispose();
     }
 
+    @NonNull
     @Override
     public Dimensions getBounds() {
         // The bounds are kept in sync with the Extensions in the onBoundsChangedEvent callback. We
@@ -110,7 +113,8 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
                 oldBounds -> {
                     if (oldBounds == null) {
                         Bounds bounds = mSpatialStateProvider.get().getBounds();
-                        return new Dimensions(bounds.width, bounds.height, bounds.depth);
+                        return new Dimensions(
+                                bounds.getWidth(), bounds.getHeight(), bounds.getDepth());
                     }
                     return oldBounds;
                 });
@@ -137,7 +141,10 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
         Dimensions newDimensions =
                 mBounds.updateAndGet(
                         oldBounds ->
-                                new Dimensions(newBounds.width, newBounds.height, newBounds.depth));
+                                new Dimensions(
+                                        newBounds.getWidth(),
+                                        newBounds.getHeight(),
+                                        newBounds.getDepth()));
         for (OnBoundsChangedListener listener : mBoundsListeners) {
             listener.onBoundsChanged(newDimensions);
         }

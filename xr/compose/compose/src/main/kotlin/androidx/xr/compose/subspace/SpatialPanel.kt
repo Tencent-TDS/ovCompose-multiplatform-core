@@ -37,17 +37,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
 import androidx.compose.ui.graphics.Color as UiColor
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import androidx.xr.compose.platform.LocalCoreEntity
 import androidx.xr.compose.platform.LocalDialogManager
+import androidx.xr.compose.platform.LocalOpaqueEntity
 import androidx.xr.compose.platform.LocalSession
+import androidx.xr.compose.subspace.layout.CoreBasePanelEntity
 import androidx.xr.compose.subspace.layout.CorePanelEntity
 import androidx.xr.compose.subspace.layout.SpatialRoundedCornerShape
 import androidx.xr.compose.subspace.layout.SpatialShape
 import androidx.xr.compose.subspace.layout.SubspaceLayout
 import androidx.xr.compose.subspace.layout.SubspaceModifier
-import androidx.xr.compose.unit.IntVolumeSize
 import androidx.xr.compose.unit.Meter.Companion.millimeters
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
@@ -71,7 +70,6 @@ public object SpatialPanelDefaults {
  *
  * @param view Content view to be displayed within the SpatialPanel.
  * @param modifier SubspaceModifiers to apply to the SpatialPanel.
- * @param name A name for the SpatialPanel, useful for debugging.
  * @param shape The shape of this Spatial Panel.
  */
 @Composable
@@ -80,10 +78,9 @@ public object SpatialPanelDefaults {
 public fun SpatialPanel(
     view: View,
     modifier: SubspaceModifier = SubspaceModifier,
-    name: String = defaultSpatialPanelName(),
     shape: SpatialShape = SpatialPanelDefaults.shape,
 ) {
-    SpatialPanel(modifier, name, view, shape) {}
+    SpatialPanel(modifier, view, shape) {}
 }
 
 /**
@@ -91,7 +88,6 @@ public fun SpatialPanel(
  * content.
  *
  * @param modifier SubspaceModifiers to apply to the SpatialPanel.
- * @param name A name for the SpatialPanel, useful for debugging.
  * @param shape The shape of this Spatial Panel.
  * @param content The composable content to render within the SpatialPanel.
  */
@@ -100,7 +96,6 @@ public fun SpatialPanel(
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SpatialPanel(
     modifier: SubspaceModifier = SubspaceModifier,
-    name: String = defaultSpatialPanelName(),
     shape: SpatialShape = SpatialPanelDefaults.shape,
     content: @Composable @UiComposable () -> Unit,
 ) {
@@ -108,13 +103,12 @@ public fun SpatialPanel(
 
     SpatialPanel(
         modifier = modifier,
-        name = name,
         view = composeView,
         shape = shape,
         onCorePanelEntityCreated = { corePanelEntity ->
             composeView.setContent {
                 CompositionLocalProvider(
-                    LocalCoreEntity provides corePanelEntity,
+                    LocalOpaqueEntity provides corePanelEntity,
                     content = content
                 )
             }
@@ -156,20 +150,14 @@ public fun MainPanel(
     modifier: SubspaceModifier = SubspaceModifier,
     shape: SpatialShape = SpatialPanelDefaults.shape,
 ) {
-    val session = checkNotNull(LocalSession.current) { "session must be initialized" }
+    val mainPanel = rememberCoreMainPanelEntity(shape = shape)
 
     DisposableEffect(Unit) {
-        session.mainPanelEntity.setHidden(false)
-        onDispose { session.mainPanelEntity.setHidden(true) }
+        mainPanel.hidden = false
+        onDispose { mainPanel.hidden = true }
     }
 
-    LayoutPanelEntity(
-        // Do not use rememberCorePanelEntity since we do not want to dispose the main panel entity.
-        remember { CorePanelEntity(session, session.mainPanelEntity) },
-        "MainPanel",
-        shape,
-        modifier,
-    )
+    LayoutPanelEntity(mainPanel, modifier)
 }
 
 /**
@@ -187,7 +175,6 @@ public fun MainPanel(
  *
  * @param intent The intent of an Activity to launch within this panel.
  * @param modifier SubspaceModifiers to apply to the SpatialPanel.
- * @param name A name for the SpatialPanel, useful for debugging.
  * @param shape The shape of this Spatial Panel.
  */
 @Composable
@@ -196,7 +183,6 @@ public fun MainPanel(
 public fun SpatialPanel(
     intent: Intent,
     modifier: SubspaceModifier = SubspaceModifier,
-    name: String = "ActivityPanel-${intent.action}",
     shape: SpatialShape = SpatialPanelDefaults.shape,
 ) {
 
@@ -206,11 +192,12 @@ public fun SpatialPanel(
     val minimumPanelDimension = Dimensions(10f, 10f, 10f)
     val rect = Rect(0, 0, DEFAULT_SIZE_PX, DEFAULT_SIZE_PX)
     val activityPanelEntity = rememberCorePanelEntity {
-        ActivityPanelEntity.create(session, rect, name).also { it.launchActivity(intent) }
+        ActivityPanelEntity.create(session, rect, entityName("ActivityPanel-${intent.action}"))
+            .also { it.launchActivity(intent) }
     }
 
     SpatialBox {
-        LayoutPanelEntity(activityPanelEntity, name, shape, modifier)
+        LayoutPanelEntity(activityPanelEntity, modifier)
 
         if (dialogManager.isSpatialDialogActive.value) {
             val scrimView = rememberComposeView()
@@ -228,35 +215,24 @@ public fun SpatialPanel(
                 ) {}
             }
 
-            val scrimPanelEntity = rememberCorePanelEntity {
-                PanelEntity.create(
-                        session = session,
-                        view = scrimView,
-                        surfaceDimensionsPx = minimumPanelDimension,
-                        dimensions = minimumPanelDimension,
-                        name = "scrim view",
-                        pose = Pose.Identity,
-                    )
-                    .also {
-                        it.setParent(activityPanelEntity.entity)
-                        it.setPose(Pose(translation = Vector3(0f, 0f, 3.millimeters.toM())))
-                    }
-            }
+            val scrimPanelEntity =
+                rememberCorePanelEntity(shape = shape) {
+                    PanelEntity.create(
+                            session = session,
+                            view = scrimView,
+                            dimensions = minimumPanelDimension,
+                            name = entityName("ScrimPanel"),
+                            pose = Pose.Identity,
+                        )
+                        .also {
+                            it.setParent(activityPanelEntity.entity)
+                            it.setPose(Pose(translation = Vector3(0f, 0f, 3.millimeters.toM())))
+                        }
+                }
 
-            val density = LocalDensity.current
             LaunchedEffect(activityPanelEntity.size) {
                 val size = activityPanelEntity.size
                 scrimPanelEntity.size = size
-                if (shape is SpatialRoundedCornerShape) {
-                    scrimPanelEntity.setCornerRadius(
-                        shape.computeCornerRadius(
-                            size.width.toFloat(),
-                            size.height.toFloat(),
-                            density
-                        ),
-                        density,
-                    )
-                }
             }
         }
     }
@@ -266,7 +242,6 @@ public fun SpatialPanel(
  * Private [SpatialPanel] implementation that reports its created PanelEntity.
  *
  * @param modifier SubspaceModifiers.
- * @param name A name for the SpatialPanel, useful for debugging.
  * @param view content view to render inside the SpatialPanel
  * @param shape The shape of this Spatial Panel.
  * @param onCorePanelEntityCreated callback to consume the [CorePanelEntity] when it is created
@@ -275,7 +250,6 @@ public fun SpatialPanel(
 @SubspaceComposable
 private fun SpatialPanel(
     modifier: SubspaceModifier,
-    name: String,
     view: View,
     shape: SpatialShape,
     onCorePanelEntityCreated: (CorePanelEntity) -> Unit,
@@ -293,13 +267,12 @@ private fun SpatialPanel(
     val scrim = remember { View(view.context) }
     val dialogManager = LocalDialogManager.current
     val corePanelEntity =
-        rememberCorePanelEntity(onCorePanelEntityCreated) {
+        rememberCorePanelEntity(onCoreEntityCreated = onCorePanelEntityCreated, shape = shape) {
             PanelEntity.create(
                 session = this,
                 view = frameLayout,
-                surfaceDimensionsPx = minimumPanelDimension,
                 dimensions = minimumPanelDimension,
-                name = name,
+                name = entityName("SpatialPanel"),
                 pose = Pose.Identity,
             )
         }
@@ -323,63 +296,21 @@ private fun SpatialPanel(
         }
     }
 
-    LayoutPanelEntity(corePanelEntity, name, shape, modifier)
+    LayoutPanelEntity(corePanelEntity, modifier)
 }
 
 /**
- * Lay out the SpatialPanel using the provided [CorePanelEntity].
+ * Lay out the SpatialPanel using the provided [CoreBasePanelEntity].
  *
- * @param coreEntity The [CorePanelEntity] associated with this SpatialPanel. It should be based on
- *   a SceneCore panel entity.
- * @param name The name of the panel for debugging purposes.
- * @param shape The shape of this Spatial Panel.
+ * @param coreEntity The [CoreBasePanelEntity] associated with this SpatialPanel.
  * @param modifier The [SubspaceModifier] attached to this compose node.
  */
 @Composable
-private fun LayoutPanelEntity(
-    coreEntity: CorePanelEntity,
-    name: String,
-    shape: SpatialShape,
-    modifier: SubspaceModifier,
-) {
-    val density = LocalDensity.current
-    SubspaceLayout(modifier = modifier, name = name, coreEntity = coreEntity) {
-        measurables,
-        constraints ->
-        val initialWidth = DEFAULT_SIZE_PX.coerceIn(constraints.minWidth, constraints.maxWidth)
-        val initialHeight = DEFAULT_SIZE_PX.coerceIn(constraints.minHeight, constraints.maxHeight)
-        val initialDepth = DEFAULT_SIZE_PX.coerceIn(constraints.minDepth, constraints.maxDepth)
-
-        val placeables = measurables.map { it.measure(constraints) }
-
-        val maxSize =
-            placeables.fold(IntVolumeSize(initialWidth, initialHeight, initialDepth)) {
-                currentMax,
-                placeable ->
-                IntVolumeSize(
-                    width = maxOf(currentMax.width, placeable.measuredWidth),
-                    height = maxOf(currentMax.height, placeable.measuredHeight),
-                    depth = maxOf(currentMax.depth, placeable.measuredDepth),
-                )
-            }
-
-        val maxWidth = maxSize.width
-        val maxHeight = maxSize.height
-
-        if (shape is SpatialRoundedCornerShape) {
-            coreEntity.setCornerRadius(
-                shape.computeCornerRadius(maxWidth.toFloat(), maxHeight.toFloat(), density),
-                density,
-            )
-        }
-
-        // Reserve space in the original composition
-        layout(maxWidth, maxHeight, maxSize.depth) { placeables.forEach { it.place(Pose()) } }
+private fun LayoutPanelEntity(coreEntity: CoreBasePanelEntity, modifier: SubspaceModifier) {
+    SubspaceLayout(modifier = modifier, coreEntity = coreEntity) { _, constraints ->
+        val width = DEFAULT_SIZE_PX.coerceIn(constraints.minWidth, constraints.maxWidth)
+        val height = DEFAULT_SIZE_PX.coerceIn(constraints.minHeight, constraints.maxHeight)
+        val depth = DEFAULT_SIZE_PX.coerceIn(constraints.minDepth, constraints.maxDepth)
+        layout(width, height, depth) {}
     }
-}
-
-private var spatialPanelNamePart: Int = 0
-
-private fun defaultSpatialPanelName(): String {
-    return "Panel-${spatialPanelNamePart++}"
 }

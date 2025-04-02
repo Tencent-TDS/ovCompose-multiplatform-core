@@ -82,7 +82,6 @@ class PerfettoHelper(
 
         try {
             // Cleanup already existing perfetto process.
-            Log.i(LOG_TAG, "Cleanup perfetto before starting.")
             cleanupPerfettoState()
 
             // The actual location of the config path.
@@ -482,6 +481,18 @@ class PerfettoHelper(
                             // Failing to kill perfetto processes we don't own is non-fatal, as
                             // shell may not have permission to kill them
                             Log.d(LOG_TAG, errorMessage)
+                        },
+                        processKiller = { processes ->
+                            // We log here to make this behavior/interference with the
+                            // test environment more discoverable.
+                            processes.forEach {
+                                Log.d(
+                                    LOG_TAG,
+                                    "killing existing perfetto recording:" +
+                                        " ${it.processName} (pid=${it.pid})"
+                                )
+                            }
+                            Shell.killTerm(processes)
                         }
                     )
                 }

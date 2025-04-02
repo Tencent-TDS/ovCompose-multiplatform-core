@@ -7,7 +7,9 @@ package androidx.wear.compose.material3 {
     method @androidx.compose.runtime.Composable public void EdgeButton(kotlin.jvm.functions.Function0<kotlin.Unit> onClick, optional androidx.compose.ui.Modifier modifier, optional androidx.wear.compose.material3.ButtonColors colors, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public void GroupSeparator();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.PaddingValues confirmDismissContentPadding();
+    method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.PaddingValues confirmDismissWithIconContentPadding();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.PaddingValues contentPadding();
+    method @androidx.compose.runtime.Composable public androidx.compose.foundation.layout.PaddingValues contentWithIconPadding();
     method public kotlin.jvm.functions.Function1<androidx.compose.foundation.layout.RowScope,kotlin.Unit> getConfirmIcon();
     method public kotlin.jvm.functions.Function1<androidx.compose.foundation.layout.RowScope,kotlin.Unit> getDismissIcon();
     method public androidx.compose.foundation.layout.Arrangement.Vertical getVerticalArrangement();
@@ -53,7 +55,7 @@ package androidx.wear.compose.material3 {
   }
 
   public final class AppScaffoldKt {
-    method @androidx.compose.runtime.Composable public static void AppScaffold(optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> timeText, optional long backgroundColor, optional long contentColor, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void AppScaffold(optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function0<kotlin.Unit> timeText, optional long containerColor, optional long contentColor, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit> content);
   }
 
   public final class ArcProgressIndicatorDefaults {
@@ -297,8 +299,8 @@ package androidx.wear.compose.material3 {
   }
 
   public final class CheckboxButtonKt {
-    method @androidx.compose.runtime.Composable public static void CheckboxButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.CheckboxButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
-    method @androidx.compose.runtime.Composable public static void SplitCheckboxButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, String? toggleContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitCheckboxButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? toggleInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void CheckboxButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.CheckboxButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void SplitCheckboxButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, String? toggleContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitCheckboxButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? toggleInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
   }
 
   public final class CircularProgressIndicatorDefaults {
@@ -840,14 +842,14 @@ package androidx.wear.compose.material3 {
   }
 
   public final class PagerScaffoldDefaults {
-    method public androidx.compose.animation.core.AnimationSpec<java.lang.Float> getFadeOutAnimation();
+    method public androidx.compose.animation.core.AnimationSpec<java.lang.Float> getFadeOutAnimationSpec();
     method @androidx.compose.runtime.Composable public androidx.compose.foundation.gestures.TargetedFlingBehavior snapWithSpringFlingBehavior(androidx.wear.compose.foundation.pager.PagerState state);
-    property public androidx.compose.animation.core.AnimationSpec<java.lang.Float> FadeOutAnimation;
+    property public androidx.compose.animation.core.AnimationSpec<java.lang.Float> FadeOutAnimationSpec;
     field public static final androidx.wear.compose.material3.PagerScaffoldDefaults INSTANCE;
   }
 
   public final class PagerScaffoldKt {
-    method @androidx.compose.runtime.Composable public static void AnimatedPage(int page, androidx.wear.compose.foundation.pager.PagerState pagerState, optional long contentScrimColor, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void AnimatedPage(int pageIndex, androidx.wear.compose.foundation.pager.PagerState pagerState, optional long contentScrimColor, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void HorizontalPagerScaffold(androidx.wear.compose.foundation.pager.PagerState pagerState, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? pageIndicator, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float>? pageIndicatorAnimationSpec, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void VerticalPagerScaffold(androidx.wear.compose.foundation.pager.PagerState pagerState, optional androidx.compose.ui.Modifier modifier, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? pageIndicator, optional androidx.compose.animation.core.AnimationSpec<java.lang.Float>? pageIndicatorAnimationSpec, kotlin.jvm.functions.Function0<kotlin.Unit> content);
   }
@@ -1012,8 +1014,8 @@ package androidx.wear.compose.material3 {
   }
 
   public final class RadioButtonKt {
-    method @androidx.compose.runtime.Composable public static void RadioButton(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onSelect, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.RadioButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
-    method @androidx.compose.runtime.Composable public static void SplitRadioButton(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onSelectionClick, String? selectionContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitRadioButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? selectionInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void RadioButton(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onSelect, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.RadioButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void SplitRadioButton(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onSelectionClick, String? selectionContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitRadioButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? selectionInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
   }
 
   public final class RangeSemanticsKt {
@@ -1365,8 +1367,9 @@ package androidx.wear.compose.material3 {
   }
 
   public interface SurfaceTransformation {
-    method public void applyTransformation(androidx.compose.ui.graphics.GraphicsLayerScope);
-    method public androidx.compose.ui.graphics.painter.Painter createBackgroundPainter(androidx.compose.ui.graphics.painter.Painter painter, androidx.compose.ui.graphics.Shape shape, optional androidx.compose.foundation.BorderStroke? border);
+    method public void applyContainerTransformation(androidx.compose.ui.graphics.GraphicsLayerScope);
+    method public void applyContentTransformation(androidx.compose.ui.graphics.GraphicsLayerScope);
+    method public androidx.compose.ui.graphics.painter.Painter createContainerPainter(androidx.compose.ui.graphics.painter.Painter painter, androidx.compose.ui.graphics.Shape shape, optional androidx.compose.foundation.BorderStroke? border);
   }
 
   public final class SurfaceTransformationKt {
@@ -1482,8 +1485,8 @@ package androidx.wear.compose.material3 {
   }
 
   public final class SwitchButtonKt {
-    method @androidx.compose.runtime.Composable public static void SplitSwitchButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, String? toggleContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitSwitchButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? toggleInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
-    method @androidx.compose.runtime.Composable public static void SwitchButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SwitchButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void SplitSwitchButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, String? toggleContentDescription, kotlin.jvm.functions.Function0<kotlin.Unit> onContainerClick, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SplitSwitchButtonColors colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? toggleInteractionSource, optional androidx.compose.foundation.interaction.MutableInteractionSource? containerInteractionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional String? containerClickLabel, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
+    method @androidx.compose.runtime.Composable public static void SwitchButton(boolean checked, kotlin.jvm.functions.Function1<? super java.lang.Boolean,kotlin.Unit> onCheckedChange, optional androidx.compose.ui.Modifier modifier, optional boolean enabled, optional androidx.compose.ui.graphics.Shape shape, optional androidx.wear.compose.material3.SwitchButtonColors colors, optional androidx.compose.foundation.layout.PaddingValues contentPadding, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource, optional androidx.wear.compose.material3.SurfaceTransformation? transformation, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.BoxScope,kotlin.Unit>? icon, optional kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit>? secondaryLabel, kotlin.jvm.functions.Function1<? super androidx.compose.foundation.layout.RowScope,kotlin.Unit> label);
   }
 
   @androidx.compose.runtime.Immutable public final class TextButtonColors {
@@ -1768,20 +1771,25 @@ package androidx.wear.compose.material3 {
 package androidx.wear.compose.material3.lazy {
 
   public sealed interface ResponsiveTransformationSpec extends androidx.wear.compose.material3.lazy.TransformationSpec {
+    field public static final androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec.Companion Companion;
+  }
+
+  public static final class ResponsiveTransformationSpec.Companion {
+    method public androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec largeScreen(optional float screenSize, optional @FloatRange(from=0.0, to=1.0) float minElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float minTransitionAreaHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxTransitionAreaHeightFraction, optional androidx.compose.animation.core.Easing easing, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec containerAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec contentAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec scale);
+    method public androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec smallScreen(optional float screenSize, optional @FloatRange(from=0.0, to=1.0) float minElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float minTransitionAreaHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxTransitionAreaHeightFraction, optional androidx.compose.animation.core.Easing easing, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec containerAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec contentAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec scale);
   }
 
   public final class ResponsiveTransformationSpecDefaults {
-    method public int getLargeScreenSizeDp();
-    method public int getSmallScreenSizeDp();
-    method public androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec largeScreenSpec(optional int screenSizeDp, optional @FloatRange(from=0.0, to=1.0) float minElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float minTransitionAreaHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxTransitionAreaHeightFraction, optional androidx.compose.animation.core.Easing easing, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec containerAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec contentAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec scale);
-    method public androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec smallScreenSpec(optional int screenSizeDp, optional @FloatRange(from=0.0, to=1.0) float minElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxElementHeightFraction, optional @FloatRange(from=0.0, to=1.0) float minTransitionAreaHeightFraction, optional @FloatRange(from=0.0, to=1.0) float maxTransitionAreaHeightFraction, optional androidx.compose.animation.core.Easing easing, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec containerAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec contentAlpha, optional androidx.wear.compose.material3.lazy.TransformationVariableSpec scale);
-    property public int LargeScreenSizeDp;
-    property public int SmallScreenSizeDp;
+    method public float getLargeScreenSize();
+    method public float getSmallScreenSize();
+    property public float LargeScreenSize;
+    property public float SmallScreenSize;
     field public static final androidx.wear.compose.material3.lazy.ResponsiveTransformationSpecDefaults INSTANCE;
   }
 
   public final class ResponsiveTransformationSpecKt {
-    method @androidx.compose.runtime.Composable public static androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec rememberResponsiveTransformationSpec(androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec... specs);
+    method @androidx.compose.runtime.Composable public static androidx.wear.compose.material3.lazy.TransformationSpec rememberTransformationSpec();
+    method @androidx.compose.runtime.Composable public static androidx.wear.compose.material3.lazy.TransformationSpec rememberTransformationSpec(androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec... specs);
   }
 
   public final class ScrollTransformKt {
@@ -1793,12 +1801,13 @@ package androidx.wear.compose.material3.lazy {
   public interface TransformationSpec {
     method public void applyContainerTransformation(androidx.compose.ui.graphics.GraphicsLayerScope, long scrollProgress);
     method public void applyContentTransformation(androidx.compose.ui.graphics.GraphicsLayerScope, long scrollProgress);
-    method public androidx.compose.ui.graphics.painter.Painter createTransformedPainter(androidx.wear.compose.material3.lazy.TransformedPainterScope, androidx.compose.ui.graphics.painter.Painter painter, androidx.compose.ui.graphics.Shape shape, androidx.compose.foundation.BorderStroke? border);
+    method public androidx.compose.ui.graphics.painter.Painter createTransformedContainerPainter(androidx.wear.compose.material3.lazy.TransformedContainerPainterScope, androidx.compose.ui.graphics.painter.Painter painter, androidx.compose.ui.graphics.Shape shape, androidx.compose.foundation.BorderStroke? border);
     method public int getTransformedHeight(int measuredHeight, long scrollProgress);
   }
 
   public final class TransformationSpecKt {
     method public static androidx.wear.compose.material3.lazy.TransformationVariableSpec lerp(androidx.wear.compose.material3.lazy.TransformationVariableSpec start, androidx.wear.compose.material3.lazy.TransformationVariableSpec stop, float progress);
+    method public static androidx.compose.ui.Modifier transformedHeight(androidx.compose.ui.Modifier, androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope scope, androidx.wear.compose.material3.lazy.TransformationSpec transformationSpec);
   }
 
   public final class TransformationVariableSpec {
@@ -1816,7 +1825,7 @@ package androidx.wear.compose.material3.lazy {
     property @FloatRange(from=0.0, to=1.0) public float transformationZoneExitFraction;
   }
 
-  public interface TransformedPainterScope {
+  public interface TransformedContainerPainterScope {
     method public float getItemHeight(androidx.compose.ui.graphics.drawscope.DrawScope);
     method public long getScrollProgress();
     property public abstract float androidx.compose.ui.graphics.drawscope.DrawScope.itemHeight;

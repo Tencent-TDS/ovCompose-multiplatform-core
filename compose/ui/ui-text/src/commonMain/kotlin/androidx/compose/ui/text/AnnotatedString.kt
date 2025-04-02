@@ -379,6 +379,7 @@ internal constructor(internal val annotations: List<Range<out Annotation>>?, val
      *   [getStringAnnotations].
      */
     @Immutable
+    @Suppress("DataClassDefinition")
     data class Range<T>(val item: T, val start: Int, val end: Int, val tag: String) {
         constructor(item: T, start: Int, end: Int) : this(item, start, end, "")
 

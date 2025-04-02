@@ -115,7 +115,7 @@ private fun unsafeBuildSingleReturnValue(
             )
         }
         TYPE_INT -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setInt API")
+            builder.setInt(ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE, result as Int)
         }
         TYPE_DOUBLE -> {
             builder.setDouble(
@@ -124,7 +124,10 @@ private fun unsafeBuildSingleReturnValue(
             )
         }
         TYPE_FLOAT -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setFloat API")
+            builder.setFloat(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as Float
+            )
         }
         TYPE_BOOLEAN -> {
             builder.setBoolean(
@@ -139,7 +142,7 @@ private fun unsafeBuildSingleReturnValue(
             )
         }
         TYPE_BYTES -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setBytes API")
+            throw IllegalStateException("Type of a single byte is not supported")
         }
         TYPE_OBJECT -> {
             builder.setAppFunctionData(
@@ -172,7 +175,10 @@ private fun unsafeBuildCollectionReturnValue(
             )
         }
         TYPE_INT -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setIntArray API")
+            builder.setIntArray(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as IntArray
+            )
         }
         TYPE_DOUBLE -> {
             builder.setDoubleArray(
@@ -181,7 +187,10 @@ private fun unsafeBuildCollectionReturnValue(
             )
         }
         TYPE_FLOAT -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setFloatArray API")
+            builder.setFloatArray(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as FloatArray
+            )
         }
         TYPE_BOOLEAN -> {
             builder.setBooleanArray(
@@ -197,7 +206,10 @@ private fun unsafeBuildCollectionReturnValue(
             )
         }
         TYPE_BYTES -> {
-            TODO("Not implemented yet - clarify AppFunctionData.Builder#setBytesList API")
+            builder.setByteArray(
+                ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE,
+                result as ByteArray
+            )
         }
         TYPE_OBJECT -> {
             @Suppress("UNCHECKED_CAST")

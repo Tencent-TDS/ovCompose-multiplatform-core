@@ -118,7 +118,13 @@ constructor(
         return this.x == other.x && this.y == other.y && this.z == other.z && this.w == other.w
     }
 
-    override fun hashCode(): Int = 31 * x.hashCode() + y.hashCode() + z.hashCode() + w.hashCode()
+    override fun hashCode(): Int {
+        var result = x.hashCode()
+        result = 31 * result + y.hashCode()
+        result = 31 * result + z.hashCode()
+        result = 31 * result + w.hashCode()
+        return result
+    }
 
     override fun toString(): String = "[x=$x, y=$y, z=$z, w=$w]"
 

@@ -21,8 +21,8 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
+import androidx.appsearch.stats.BaseStats;
 import androidx.collection.ArraySet;
-import androidx.core.util.Preconditions;
 
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
@@ -45,7 +45,7 @@ import java.util.Set;
  * <!--@exportToFramework:hide-->
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public class CallStats {
+public class CallStats extends BaseStats {
     /** Call types. */
     @IntDef(value = {
             CALL_TYPE_UNKNOWN,
@@ -185,7 +185,7 @@ public class CallStats {
     private final int mNumOperationsFailed;
 
     CallStats(@NonNull Builder builder) {
-        Preconditions.checkNotNull(builder);
+        super(builder);
         mPackageName = builder.mPackageName;
         mDatabase = builder.mDatabase;
         mStatusCode = builder.mStatusCode;
@@ -264,7 +264,7 @@ public class CallStats {
     }
 
     /** Builder for {@link CallStats}. */
-    public static class Builder {
+    public static class Builder extends BaseStats.Builder<CallStats.Builder> {
         @Nullable String mPackageName;
         @Nullable String mDatabase;
         @AppSearchResult.ResultCode
@@ -358,6 +358,7 @@ public class CallStats {
         }
 
         /** Creates {@link CallStats} object from {@link Builder} instance. */
+        @Override
         public @NonNull CallStats build() {
             return new CallStats(/* builder= */ this);
         }

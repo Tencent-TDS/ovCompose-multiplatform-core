@@ -51,11 +51,11 @@ public interface SubspaceLayoutModifierNode {
  * Requests a relayout of the [SubspaceLayoutModifierNode] composition tree.
  *
  * This is used to request a relayout in stateful layout modifiers that are impacted by events that
- * don't trigger a recomposition. *Do not* call this from [measure].
+ * don't trigger a recomposition. *Do not* call this from [SubspaceLayoutModifierNode.measure].
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public fun SubspaceLayoutModifierNode.requestRelayout() {
-    coordinator.layoutNode?.requestRelayout()
+    requireCoordinator().layoutNode?.requestRelayout()
 }
 
 /**
@@ -65,10 +65,10 @@ public fun SubspaceLayoutModifierNode.requestRelayout() {
  * This is used to traverse the modifier node tree to find the correct [SubspaceLayoutCoordinates]
  * for a given [SubspaceLayoutModifierNode].
  */
-internal val SubspaceLayoutModifierNode.coordinator: SubspaceLayoutModifierNodeCoordinator
-    get() {
-        check(this is SubspaceModifier.Node && this.coordinator != null) {
-            "SubspaceLayoutModifierNode must be a SubspaceModifier.Node and have a non-null coordinator."
-        }
-        return (this as SubspaceModifier.Node).coordinator!!
+internal fun SubspaceLayoutModifierNode.requireCoordinator():
+    SubspaceLayoutModifierNodeCoordinator {
+    check(this is SubspaceModifier.Node && coordinator != null) {
+        "SubspaceLayoutModifierNode must also be a SubspaceModifier.Node and have a coordinator."
     }
+    return coordinator
+}

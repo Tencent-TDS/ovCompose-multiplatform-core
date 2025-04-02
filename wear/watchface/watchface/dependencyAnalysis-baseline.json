@@ -36,6 +36,14 @@
     {
       "coordinates": {
         "type": "module",
+        "identifier": "androidx.versionedparcelable:versionedparcelable",
+        "resolvedVersion": "1.1.1"
+      },
+      "toConfiguration": "testImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "module",
         "identifier": "com.linkedin.dexmaker:dexmaker-mockito",
         "resolvedVersion": "2.28.4"
       },
@@ -63,7 +71,23 @@
         "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
         "resolvedVersion": "1.7.3"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "module",
+        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+        "resolvedVersion": "1.7.3"
+      },
       "toConfiguration": "api"
+    },
+    {
+      "coordinates": {
+        "type": "module",
+        "identifier": "org.jetbrains.kotlinx:kotlinx-coroutines-core",
+        "resolvedVersion": "1.7.3"
+      },
+      "toConfiguration": "testImplementation"
     },
     {
       "coordinates": {
@@ -94,7 +118,21 @@
         "type": "project",
         "identifier": ":wear:watchface:watchface-complications"
       },
+      "toConfiguration": "androidTestImplementation"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications"
+      },
       "toConfiguration": "api"
+    },
+    {
+      "coordinates": {
+        "type": "project",
+        "identifier": ":wear:watchface:watchface-complications"
+      },
+      "toConfiguration": "testImplementation"
     }
   ]
 }

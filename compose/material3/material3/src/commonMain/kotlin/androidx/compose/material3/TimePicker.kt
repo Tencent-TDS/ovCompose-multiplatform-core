@@ -1802,7 +1802,12 @@ private fun timeInputOnChange(
 
         if (newValue <= max) {
             if (selection == TimePickerSelectionMode.Hour) {
-                state.hour = newValue + if (state.isPm && !state.is24hour) 12 else 0
+                state.hour =
+                    if (newValue == 12 && !state.isPm && !state.is24hour) {
+                        0
+                    } else {
+                        newValue + if (state.isPm && !state.is24hour) 12 else 0
+                    }
                 if (newValue > 1 && !state.is24hour) {
                     state.selection = TimePickerSelectionMode.Minute
                 }

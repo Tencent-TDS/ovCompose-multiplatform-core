@@ -20,6 +20,7 @@ import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
 import android.graphics.RectF
+import android.os.DeadObjectException
 import android.util.Range
 import android.util.SparseArray
 import androidx.pdf.PdfDocument
@@ -45,11 +46,11 @@ import kotlinx.coroutines.withContext
 internal class PageLayoutManager(
     private val pdfDocument: PdfDocument,
     private val backgroundScope: CoroutineScope,
-    private val pagePrefetchRadius: Int,
-    // TODO(b/376299551) - Make page margin configurable via XML attribute
+    topPageMarginPx: Int = 0,
     pageSpacingPx: Int = DEFAULT_PAGE_SPACING_PX,
     internal val paginationModel: PaginationModel =
-        PaginationModel(pageSpacingPx, pdfDocument.pageCount)
+        PaginationModel(pageSpacingPx, pdfDocument.pageCount, topPageMarginPx),
+    private val errorFlow: MutableSharedFlow<Throwable>
 ) {
     /** The 0-indexed maximum page number whose dimensions are known to this model */
     val reach
@@ -104,7 +105,7 @@ internal class PageLayoutManager(
             }
         }
 
-        increaseReach(pagePrefetchRadius - 1)
+        increaseReach(DEFAULT_PREFETCH_RADIUS)
     }
 
     /**
@@ -199,13 +200,16 @@ internal class PageLayoutManager(
             _fullyVisiblePages.tryEmit(fullyVisiblePageRange.pages)
         }
 
-        if (prevVisiblePages != newVisiblePages) {
+        if (prevVisiblePages != newVisiblePages || newVisiblePages.layoutInProgress) {
             _visiblePages.tryEmit(newVisiblePages)
+            val peekAhead =
+                if (newVisiblePages.layoutInProgress) {
+                    minOf(newVisiblePages.pages.upper + 2, 100)
+                } else {
+                    DEFAULT_PREFETCH_RADIUS
+                }
             increaseReach(
-                minOf(
-                    newVisiblePages.pages.upper + pagePrefetchRadius,
-                    paginationModel.numPages - 1
-                )
+                minOf(newVisiblePages.pages.upper + peekAhead, paginationModel.numPages - 1)
             )
         }
     }
@@ -229,16 +233,22 @@ internal class PageLayoutManager(
         currentDimensionsJob =
             backgroundScope.launch {
                 previousDimensionsJob?.join()
-                val pageMetadata = pdfDocument.getPageInfo(pageNum)
-                val size = Point(pageMetadata.width, pageMetadata.height)
-                // Add the value to the model before emitting, and on the main thread
-                withContext(Dispatchers.Main) { paginationModel.addPage(pageNum, size) }
-                _dimensions.emit(pageNum to Point(pageMetadata.width, pageMetadata.height))
+                try {
+                    val pageMetadata = pdfDocument.getPageInfo(pageNum)
+                    val size = Point(pageMetadata.width, pageMetadata.height)
+                    // Add the value to the model before emitting, and on the main thread
+                    withContext(Dispatchers.Main) { paginationModel.addPage(pageNum, size) }
+                    _dimensions.emit(pageNum to Point(pageMetadata.width, pageMetadata.height))
+                } catch (e: DeadObjectException) {
+                    // An exception happened above because of service disconnection. Propagate
+                    // error event to UI to take appropriate action.
+                    errorFlow.emit(e)
+                }
             }
     }
 
     companion object {
-        private const val DEFAULT_PAGE_SPACING_PX: Int = 20
-        private const val INVALID_ID = -1
+        internal const val DEFAULT_PREFETCH_RADIUS = 4
+        private const val DEFAULT_PAGE_SPACING_PX = 20
     }
 }

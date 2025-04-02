@@ -16,14 +16,12 @@
 
 package com.android.extensions.xr.media;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * {@link com.android.extensions.xr.media.SoundFieldAttributes SoundFieldAttributes} is used to
  * configure ambisonic sound sources.
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SoundFieldAttributes {
 
     SoundFieldAttributes() {
@@ -43,7 +41,6 @@ public class SoundFieldAttributes {
      * SoundFieldAttributes}
      */
     @SuppressWarnings({"unchecked", "deprecation", "all"})
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public static final class Builder {
 
         public Builder() {

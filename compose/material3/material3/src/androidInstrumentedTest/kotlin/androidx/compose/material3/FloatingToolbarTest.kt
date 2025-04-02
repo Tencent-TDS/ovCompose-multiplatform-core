@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -113,7 +114,9 @@ class FloatingToolbarTest {
                 scrollBehavior = scrollBehavior,
                 shape = RectangleShape,
                 content = {
-                    IconButton(onClick = { /* doSomething() */ }) {
+                    // Use a 48dp IconButton to test this without any additional paddings that the
+                    // minimumInteractiveBalancedPadding might have added.
+                    IconButton(onClick = { /* doSomething() */ }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Filled.Check, contentDescription = "Localized description")
                     }
                 }
@@ -151,7 +154,9 @@ class FloatingToolbarTest {
                 scrollBehavior = scrollBehavior,
                 shape = RectangleShape,
                 content = {
-                    IconButton(onClick = { /* doSomething() */ }) {
+                    // Use a 48dp IconButton to test this without any additional paddings that the
+                    // minimumInteractiveBalancedPadding might have added.
+                    IconButton(onClick = { /* doSomething() */ }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Filled.Check, contentDescription = "Localized description")
                     }
                 }
@@ -179,7 +184,9 @@ class FloatingToolbarTest {
                 scrollBehavior = scrollBehavior,
                 shape = RectangleShape,
                 content = {
-                    IconButton(onClick = { /* doSomething() */ }) {
+                    // Use a 48dp IconButton to test this without any additional paddings that the
+                    // minimumInteractiveBalancedPadding might have added.
+                    IconButton(onClick = { /* doSomething() */ }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Filled.Check, contentDescription = "Localized description")
                     }
                 }
@@ -217,7 +224,9 @@ class FloatingToolbarTest {
                 scrollBehavior = scrollBehavior,
                 shape = RectangleShape,
                 content = {
-                    IconButton(onClick = { /* doSomething() */ }) {
+                    // Use a 48dp IconButton to test this without any additional paddings that the
+                    // minimumInteractiveBalancedPadding might have added.
+                    IconButton(onClick = { /* doSomething() */ }, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Filled.Check, contentDescription = "Localized description")
                     }
                 }

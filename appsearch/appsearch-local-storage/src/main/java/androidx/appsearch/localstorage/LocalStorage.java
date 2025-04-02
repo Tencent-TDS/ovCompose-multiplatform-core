@@ -28,6 +28,7 @@ import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchEnvironmentFactory;
 import androidx.appsearch.app.AppSearchSession;
 import androidx.appsearch.app.ExperimentalAppSearchApi;
+import androidx.appsearch.app.Features;
 import androidx.appsearch.app.GlobalSearchSession;
 import androidx.appsearch.exceptions.AppSearchException;
 import androidx.appsearch.flags.Flags;
@@ -321,6 +322,15 @@ public class LocalStorage {
                     context.mLogger, /*persistToDiskRecoveryProof=*/false);
             return instance.doCreateGlobalSearchSession(context);
         });
+    }
+
+    /**
+     * Returns the {@link Features} to check for the availability of certain features for this
+     * AppSearch storage.
+     */
+    @ExperimentalAppSearchApi
+    public static @NonNull Features getFeatures() {
+        return new FeaturesImpl();
     }
 
     /**

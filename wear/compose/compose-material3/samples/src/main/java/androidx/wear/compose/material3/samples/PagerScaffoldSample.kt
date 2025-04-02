@@ -52,7 +52,7 @@ fun HorizontalPagerScaffoldSample(navigateBack: () -> Unit) {
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState),
                 rotaryScrollableBehavior = null,
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     ScreenScaffold {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -88,7 +88,7 @@ fun VerticalPagerScaffoldSample() {
                     PagerScaffoldDefaults.snapWithSpringFlingBehavior(state = pagerState),
                 rotaryScrollableBehavior = RotaryScrollableDefaults.snapBehavior(pagerState)
             ) { page ->
-                AnimatedPage(page = page, pagerState = pagerState) {
+                AnimatedPage(pageIndex = page, pagerState = pagerState) {
                     ScreenScaffold {
                         Box(
                             modifier = Modifier.fillMaxSize(),

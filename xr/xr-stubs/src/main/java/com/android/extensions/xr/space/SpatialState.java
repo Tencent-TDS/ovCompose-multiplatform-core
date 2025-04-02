@@ -16,7 +16,6 @@
 
 package com.android.extensions.xr.space;
 
-import androidx.annotation.RestrictTo;
 
 /**
  * An interface that represents an activity's spatial state.
@@ -28,7 +27,6 @@ import androidx.annotation.RestrictTo;
  * @see androidx.xr.extensions.XrExtensions#registerSpatialStateCallback
  */
 @SuppressWarnings({"unchecked", "deprecation", "all"})
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class SpatialState {
 
     SpatialState() {
