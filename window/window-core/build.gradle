@@ -22,37 +22,51 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
-import androidx.build.SoftwareType
+import androidx.build.JetbrainsAndroidXPlugin
+import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
+    id("com.android.library")
+    id("JetbrainsAndroidXPlugin")
 }
 
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
+
 androidXMultiplatform {
-    jvm()
-    androidLibrary {
-        namespace = "androidx.window.core"
-        withAndroidTestOnDeviceBuilder {
-            it.compilationName = "instrumentedTest"
-            it.defaultSourceSetName = "androidInstrumentedTest"
-            it.sourceSetTreeName = "test"
-        }
-    }
+    desktop()
+    android()
     mac()
     linux()
     ios()
-    watchos()
-    tvos()
+    js()
+    wasm()
 
-    defaultPlatform(PlatformIdentifier.JVM)
+    defaultPlatform(PlatformIdentifier.ANDROID)
+}
+
+kotlin {
+    js {
+        browser()
+    }
+    wasmJs()
+
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+    mingwX64()
 
     sourceSets {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.9.1")
+                api("org.jetbrains.compose.annotation-internal:annotation:1.7.1")
             }
         }
 
@@ -63,26 +77,38 @@ androidXMultiplatform {
                 implementation(libs.kotlinCoroutinesCore)
                 // TODO remove when https://youtrack.jetbrains.com/issue/KT-62368/Kotlin-1.9.X-fails-to-detect-kotlin.test.Test-annotation-reference-on-commonTest-source-set-when-targeting-JVMAndroid
                 // is fixed
-                implementation(libs.kotlinTestJunit)
+                implementation(libs.kotlinTest)
             }
         }
 
-        androidInstrumentedTest {
-            dependencies {
-                implementation(libs.testRunner)
+        jvmMain.dependsOn(commonMain)
+        androidMain.dependsOn(jvmMain)
+        desktopMain.dependsOn(jvmMain)
+        nonJvmMain.dependsOn(commonMain)
+
+        targets.all { target ->
+            if (target.platformType !in [KotlinPlatformType.jvm, KotlinPlatformType.androidJvm, KotlinPlatformType.common]) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nonJvmMain)
+                }
             }
         }
     }
+}
 
-    enableBinaryCompatibilityValidator = false
+android {
+    namespace "androidx.window.core"
 }
 
 androidx {
     name = "WindowManager Core"
-    type = SoftwareType.PUBLISHED_LIBRARY
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "WindowManager Core Library."
     legacyDisableKotlinStrictApiMode = true
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
-    samples(project(":window:window-core-samples"))
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }

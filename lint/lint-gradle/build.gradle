@@ -21,9 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-
-import androidx.build.KotlinTarget
-import androidx.build.SoftwareType
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -38,13 +36,11 @@ dependencies {
     testImplementation(libs.androidLintPrevKotlin)
     testImplementation(libs.androidLintTestsPrevKotlin)
     testImplementation(libs.junit)
-    testImplementation(libs.truth)
 }
 
 androidx {
     name = "Gradle lint checks"
-    type = SoftwareType.STANDALONE_PUBLISHED_LINT
+    type = LibraryType.STANDALONE_PUBLISHED_LINT
     inceptionYear = "2024"
     description = "Lint checks to verify usage of Gradle APIs."
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }
