@@ -414,6 +414,7 @@ internal class UIKitTextInputService(
 
     private fun attachIntermediateTextInputView() {
         detachIntermediateTextInputView()
+        showMenuOrUpdatePosition = {}
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
@@ -427,6 +428,7 @@ internal class UIKitTextInputService(
     }
 
     private fun detachIntermediateTextInputView() {
+        showMenuOrUpdatePosition = {}
         textUIView?.let { view ->
             val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
             // Set out-of-bounds non-empty frame to hide text keyboard focus frame
