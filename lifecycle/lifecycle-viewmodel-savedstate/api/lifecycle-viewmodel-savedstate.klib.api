@@ -6,14 +6,6 @@
 // - Show declarations: true
 
 // Library unique name: <org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate>
-abstract class androidx.lifecycle/AbstractSavedStateViewModelFactory : androidx.lifecycle/ViewModelProvider.Factory { // androidx.lifecycle/AbstractSavedStateViewModelFactory|null[0]
-    constructor <init>() // androidx.lifecycle/AbstractSavedStateViewModelFactory.<init>|<init>(){}[0]
-    constructor <init>(androidx.savedstate/SavedStateRegistryOwner, androidx.savedstate/SavedState?) // androidx.lifecycle/AbstractSavedStateViewModelFactory.<init>|<init>(androidx.savedstate.SavedStateRegistryOwner;androidx.savedstate.SavedState?){}[0]
-
-    open fun <#A1: androidx.lifecycle/ViewModel> create(kotlin.reflect/KClass<#A1>, androidx.lifecycle.viewmodel/CreationExtras): #A1 // androidx.lifecycle/AbstractSavedStateViewModelFactory.create|create(kotlin.reflect.KClass<0:0>;androidx.lifecycle.viewmodel.CreationExtras){0§<androidx.lifecycle.ViewModel>}[0]
-    open fun <#A1: androidx.lifecycle/ViewModel> create(kotlin/String, kotlin.reflect/KClass<#A1>, androidx.lifecycle/SavedStateHandle): #A1 // androidx.lifecycle/AbstractSavedStateViewModelFactory.create|create(kotlin.String;kotlin.reflect.KClass<0:0>;androidx.lifecycle.SavedStateHandle){0§<androidx.lifecycle.ViewModel>}[0]
-}
-
 final class androidx.lifecycle/SavedStateHandle { // androidx.lifecycle/SavedStateHandle|null[0]
     constructor <init>() // androidx.lifecycle/SavedStateHandle.<init>|<init>(){}[0]
     constructor <init>(kotlin.collections/Map<kotlin/String, kotlin/Any?>) // androidx.lifecycle/SavedStateHandle.<init>|<init>(kotlin.collections.Map<kotlin.String,kotlin.Any?>){}[0]
