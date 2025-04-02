@@ -23,13 +23,19 @@ import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.TextEditingScope
+import androidx.compose.ui.text.input.TextEditorState
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.flow.Flow
 
 actual interface PlatformTextInputMethodRequest {
     /** The editor state. */
     @ExperimentalComposeUiApi
-    val state: TextFieldValue
+    val value: () -> TextFieldValue
+
+    /** The editor state. */
+    @ExperimentalComposeUiApi
+    val state: TextEditorState
 
     /** Keyboard configuration such as single line, autocorrect etc. */
     @ExperimentalComposeUiApi
@@ -46,6 +52,9 @@ actual interface PlatformTextInputMethodRequest {
     /** The edit processor. */
     @ExperimentalComposeUiApi
     val editProcessor: EditProcessor?
+
+    @ExperimentalComposeUiApi
+    val outputValue: Flow<TextFieldValue>
 
     /**
      * A flow with the layout of text in the editor's.
@@ -80,4 +89,10 @@ actual interface PlatformTextInputMethodRequest {
      */
     @ExperimentalComposeUiApi
     val textClippingRectInRoot: Flow<Rect>
+
+    /**
+     * Allows the text input service to edit the text.
+     */
+    @ExperimentalComposeUiApi
+    val editText: (block: TextEditingScope.() -> Unit) -> Unit
 }

@@ -19,9 +19,10 @@ CAMERA_PIPE = "1.0.0-alpha01"
 CAMERA_TESTING = "1.0.0-alpha01"
 CAMERA_VIEWFINDER = "1.4.0-beta01"
 CARDVIEW = "1.1.0-alpha01"
-CAR_APP = "1.8.0-alpha01"
+CAR_APP = "1.7.0-beta02"
 COLLECTION = "1.5.0"
-COMPOSE = "1.9.0-alpha01"
+COMPOSE = "1.8.0-rc02"
+COMPOSE_MATERIAL_NAVIGATION = "1.8.0-rc02"
 COMPOSE_MATERIAL3 = "1.4.0-alpha11"
 COMPOSE_MATERIAL3_ADAPTIVE = "1.2.0-alpha02"
 COMPOSE_MATERIAL3_COMMON = "1.0.0-alpha01"
@@ -337,6 +338,7 @@ ANNOTATION_JETBRAINS = { group = "org.jetbrains.compose.annotation-internal", at
 COLLECTION_JETBRAINS = { group = "org.jetbrains.compose.collection-internal", atomicGroupVersion = "versions.COMPOSE", overrideInclude = [ ":collection:collection" ] }
 COMPOSE_COMPILER = { group = "org.jetbrains.compose.compiler", atomicGroupVersion = "versions.COMPOSE" }
 COMPOSE_DESKTOP = { group = "org.jetbrains.compose.desktop", atomicGroupVersion = "versions.COMPOSE" }
+COMPOSE_MATERIAL_NAVIGATION = { group = "org.jetbrains.compose.material", atomicGroupVersion = "versions.COMPOSE_MATERIAL_NAVIGATION", overrideInclude = [ ":compose:material:material-navigation" ] }
 COMPOSE_MATERIAL3_COMMON = { group = "org.jetbrains.compose.material3.common", atomicGroupVersion = "versions.COMPOSE_MATERIAL3_COMMON", overrideInclude = [ ":compose:material3:material3-common" ] }
 
 GRAPHICS_SHAPES_JETBRAINS = { group = "org.jetbrains.androidx.graphics", atomicGroupVersion = "versions.GRAPHICS_SHAPES", overrideInclude = [ ":graphics:graphics-shapes" ] }

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicSecureTextField
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.material.Text
@@ -80,10 +81,12 @@ open class BaseWindowTextFieldTest {
     }
 
     internal abstract class TextFieldTestScope(
-        val windowTestScope: WindowTestScope,
+        private val windowTestScope: WindowTestScope,
         val window: ComposeWindow
     ) {
         abstract val text: String
+        abstract val selection: TextRange
+        abstract val composition: TextRange?
 
         @Composable
         abstract fun TextField()
@@ -92,7 +95,19 @@ open class BaseWindowTextFieldTest {
             windowTestScope.awaitIdle()
         }
 
-        abstract suspend fun assertStateEquals(actual: String, selection: TextRange, composition: TextRange?)
+        suspend fun assertStateEquals(
+            actual: String,
+            selection: TextRange,
+            composition: TextRange?,
+            awaitIdle: Boolean = true
+        ) {
+            if (awaitIdle) {
+                windowTestScope.awaitIdle()
+            }
+            assertThat(text).isEqualTo(actual)
+            assertThat(selection).isEqualTo(selection)
+            assertThat(composition).isEqualTo(composition)
+        }
     }
 
     internal abstract class TextField1Scope(
@@ -105,16 +120,11 @@ open class BaseWindowTextFieldTest {
         override val text: String
             get() = textFieldValue.text
 
-        override suspend fun assertStateEquals(
-            actual: String,
-            selection: TextRange,
-            composition: TextRange?
-        ) {
-            windowTestScope.awaitIdle()
-            assertThat(textFieldValue.text).isEqualTo(actual)
-            assertThat(textFieldValue.selection).isEqualTo(selection)
-            assertThat(textFieldValue.composition).isEqualTo(composition)
-        }
+        override val selection: TextRange
+            get() = textFieldValue.selection
+
+        override val composition: TextRange?
+            get() = textFieldValue.composition
 
         override fun toString() = "TextField1"
     }
@@ -124,20 +134,16 @@ open class BaseWindowTextFieldTest {
         window: ComposeWindow
     ): TextFieldTestScope(windowTestScope, window) {
         protected val textFieldState = TextFieldState()
+        var inputTransformation: InputTransformation? by mutableStateOf(null)
 
         override val text: String
             get() = textFieldState.text.toString()
 
-        override suspend fun assertStateEquals(
-            actual: String,
-            selection: TextRange,
-            composition: TextRange?
-        ) {
-            windowTestScope.awaitIdle()
-            assertThat(textFieldState.text.toString()).isEqualTo(actual)
-            assertThat(textFieldState.selection).isEqualTo(selection)
-            assertThat(textFieldState.composition).isEqualTo(composition)
-        }
+        override val selection: TextRange
+            get() = textFieldState.selection
+
+        override val composition: TextRange?
+            get() = textFieldState.composition
     }
 
     internal abstract class SecureTextFieldScope(
@@ -186,6 +192,7 @@ open class BaseWindowTextFieldTest {
                     val focusRequester = FocusRequester()
                     BasicTextField(
                         state = textFieldState,
+                        inputTransformation = inputTransformation,
                         modifier = Modifier.focusRequester(focusRequester)
                     )
 

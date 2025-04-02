@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.OffsetMapping
@@ -51,7 +52,7 @@ internal fun TextFieldDelegate.Companion.cupertinoSetCursorOffsetFocused(
     val cursorDesiredOffset = determineCursorDesiredOffset(
         offset,
         previousOffset,
-        textLayoutResult,
+        textLayoutResult.value,
         currentText
     )
 
@@ -74,26 +75,26 @@ internal fun TextFieldDelegate.Companion.cupertinoSetCursorOffsetFocused(
  * - If you tap at the caret placed in the middle of the word, it will jump to the end of the word.
  * @param offset The current offset position.
  * @param previousOffset The previous offset position (where caret was before incoming tap).
- * @param textLayoutResult The TextLayoutResultProxy representing the layout of the text.
+ * @param textLayoutResult The TextLayoutResult representing the layout of the text.
  * @param currentText The current text in the TextField.
  * @return The desired cursor position after evaluating the given parameters.
  */
 internal fun determineCursorDesiredOffset(
     offset: Int,
     previousOffset: Int,
-    textLayoutResult: TextLayoutResultProxy,
+    textLayoutResult: TextLayoutResult,
     currentText: String
 ): Int {
     val caretOffsetPosition = when {
         offset == previousOffset -> offset
-        textLayoutResult.isLeftEdgeTapped(offset) -> {
-            val lineNumber = textLayoutResult.value.getLineForOffset(offset)
-            textLayoutResult.value.getLineStart(lineNumber)
+        isLeftEdgeTapped(textLayoutResult, offset) -> {
+            val lineNumber = textLayoutResult.getLineForOffset(offset)
+            textLayoutResult.getLineStart(lineNumber)
         }
 
-        textLayoutResult.isRightEdgeTapped(offset) -> {
-            val lineNumber = textLayoutResult.value.getLineForOffset(offset)
-            textLayoutResult.value.getLineEnd(lineNumber)
+        isRightEdgeTapped(textLayoutResult, offset) -> {
+            val lineNumber = textLayoutResult.getLineForOffset(offset)
+            textLayoutResult.getLineEnd(lineNumber)
         }
 
         currentText.isWhitespaceOrPunctuation(offset) -> findNextNonWhitespaceSymbolsSubsequenceStartOffset(
@@ -101,35 +102,37 @@ internal fun determineCursorDesiredOffset(
             currentText
         )
 
-        textLayoutResult.isFirstHalfOfWordTapped(
+        isFirstHalfOfWordTapped(
+            textLayoutResult,
             offset,
             currentText
-        ) -> textLayoutResult.value.getWordBoundary(offset).start
+        ) -> textLayoutResult.getWordBoundary(offset).start
 
-        else -> textLayoutResult.value.getWordBoundary(offset).end
+        else -> textLayoutResult.getWordBoundary(offset).end
     }
     return caretOffsetPosition
 }
 
-private fun TextLayoutResultProxy.isFirstHalfOfWordTapped(
+private fun isFirstHalfOfWordTapped(
+    textLayoutResult: TextLayoutResult,
     caretOffset: Int,
     currentText: String
 ): Boolean {
-    val wordBoundary = value.getWordBoundary(caretOffset)
+    val wordBoundary = textLayoutResult.getWordBoundary(caretOffset)
     // current text is taken from value.layoutInput.text, so value.getWordBoundary() should work correctly.
     val word = currentText.substring(wordBoundary.start, wordBoundary.end)
     val middleIndex = wordBoundary.start + word.midpointPositionWithUnicodeSymbols()
     return caretOffset < middleIndex
 }
 
-private fun TextLayoutResultProxy.isLeftEdgeTapped(caretOffset: Int): Boolean {
-    val lineNumber = value.getLineForOffset(caretOffset)
-    val lineStartOffset = value.getLineStart(lineNumber)
+private fun isLeftEdgeTapped(textLayoutResult: TextLayoutResult, caretOffset: Int): Boolean {
+    val lineNumber = textLayoutResult.getLineForOffset(caretOffset)
+    val lineStartOffset = textLayoutResult.getLineStart(lineNumber)
     return lineStartOffset == caretOffset
 }
 
-private fun TextLayoutResultProxy.isRightEdgeTapped(caretOffset: Int): Boolean {
-    val lineNumber = value.getLineForOffset(caretOffset)
-    val lineEndOffset = value.getLineEnd(lineNumber)
+private fun isRightEdgeTapped(textLayoutResult: TextLayoutResult, caretOffset: Int): Boolean {
+    val lineNumber = textLayoutResult.getLineForOffset(caretOffset)
+    val lineEndOffset = textLayoutResult.getLineEnd(lineNumber)
     return lineEndOffset == caretOffset
 }

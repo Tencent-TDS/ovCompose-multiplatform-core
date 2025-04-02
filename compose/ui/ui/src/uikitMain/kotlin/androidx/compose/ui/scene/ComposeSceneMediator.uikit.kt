@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
@@ -628,6 +627,7 @@ internal class ComposeSceneMediator(
         userInputView.dispose()
 
         view.removeFromSuperview()
+        userInputView.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
@@ -733,7 +733,13 @@ internal class ComposeSceneMediator(
             innerSessionMutex.withSessionCancellingPrevious(
                 sessionInitializer = { null }
             ) {
+                // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7832/iOS-Adopt-PlatformTextInputService2)
                 coroutineScope {
+                    launch {
+                        request.outputValue.collect {
+                            textInputService.updateState(oldValue = null, newValue = it)
+                        }
+                    }
                     launch {
                         request.textLayoutResult.collect {
                             textInputService.updateTextLayoutResult(it)
@@ -746,7 +752,7 @@ internal class ComposeSceneMediator(
                     }
                     suspendCancellableCoroutine<Nothing> { continuation ->
                         textInputService.startInput(
-                            value = request.state,
+                            value = request.value(),
                             imeOptions = request.imeOptions,
                             editProcessor = request.editProcessor,
                             onEditCommand = request.onEditCommand,
@@ -759,10 +765,6 @@ internal class ComposeSceneMediator(
                     }
                 }
             }
-
-        override fun updateTextFieldValue(newValue: TextFieldValue) {
-            textInputService.updateState(oldValue = null, newValue = newValue)
-        }
     }
 }
 

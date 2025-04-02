@@ -32,7 +32,7 @@ import java.awt.GraphicsConfiguration
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
-import java.util.*
+import java.util.Locale
 import javax.accessibility.Accessible
 import javax.swing.JFrame
 import org.jetbrains.skiko.GraphicsApi
@@ -186,7 +186,12 @@ class ComposeWindow @ExperimentalComposeUiApi constructor(
      * Transparency should be set only if window is not showing and `isUndecorated` is set to
      * `true`, otherwise AWT will throw an exception.
      */
-    var isTransparent: Boolean by composePanel::isWindowTransparent
+    var isTransparent: Boolean
+        get() = composePanel.isWindowTransparent
+        set(value) {
+            composePanel.isWindowTransparent = value
+            hasMacOsShadow = !value
+        }
 
     var placement: WindowPlacement
         get() = when {

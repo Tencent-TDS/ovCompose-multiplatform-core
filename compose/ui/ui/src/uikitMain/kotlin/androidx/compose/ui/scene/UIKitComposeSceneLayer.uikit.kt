@@ -59,7 +59,8 @@ internal class UIKitComposeSceneLayer(
     focusStack: FocusStack?,
     windowContext: PlatformWindowContext,
     compositionContext: CompositionContext,
-    private val coroutineContext: CoroutineContext
+    private val coroutineContext: CoroutineContext,
+    private val enableBackGesture: Boolean,
 ) : ComposeSceneLayer {
 
     override var focusable: Boolean = focusStack != null
@@ -79,6 +80,7 @@ internal class UIKitComposeSceneLayer(
     val interopContainerView = UIKitTransparentContainerView()
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        enableBackGesture = enableBackGesture,
         density = view.density,
         getTopLeftOffsetInWindow = { boundsInWindow.topLeft }
     )
