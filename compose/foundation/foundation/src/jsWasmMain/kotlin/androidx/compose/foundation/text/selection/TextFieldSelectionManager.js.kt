@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.selection
 
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.CoroutineScope
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier = this
 
@@ -26,3 +27,9 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
     isStartHandle: Boolean
 ): Boolean = isSelectionHandleInVisibleBoundDefault(isStartHandle)
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    manager: TextFieldSelectionManager,
+    coroutineScope: CoroutineScope,
+): Modifier = this

@@ -44,6 +44,7 @@ import androidx.compose.ui.uikit.LocalInterfaceOrientation
 import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.uikit.PlistSanityCheck
 import androidx.compose.ui.uikit.density
+import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.uikit.utils.CMPViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -64,6 +65,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.native.runtime.GC
 import kotlin.native.runtime.NativeRuntimeApi
 import kotlin.test.assertNotNull
+import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 import kotlinx.cinterop.BetaInteropApi
@@ -83,6 +85,7 @@ import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UITraitCollection
 import platform.UIKit.UIUserInterfaceLayoutDirection
 import platform.UIKit.UIUserInterfaceStyle
+import platform.UIKit.UIView
 import platform.UIKit.UIViewControllerTransitionCoordinatorProtocol
 import platform.UIKit.UIWindow
 import platform.darwin.dispatch_async
@@ -102,6 +105,9 @@ internal class ComposeHostingViewController(
         transparentForTouches = false,
         useOpaqueConfiguration = configuration.opaque,
     )
+    private val interopContainerView = UIView().also {
+        rootView.embedSubview(it)
+    }
     private var mediator: ComposeSceneMediator? = null
     private val windowContext = PlatformWindowContext()
     private var layers: UIKitComposeSceneLayersHolder? = null
@@ -115,6 +121,7 @@ internal class ComposeHostingViewController(
     )
 
     private val backGestureDispatcher = UIKitBackGestureDispatcher(
+        enableBackGesture = configuration.enableBackGesture,
         density = rootView.density,
         getTopLeftOffsetInWindow = { IntOffset.Zero } //full screen
     )
@@ -278,6 +285,7 @@ internal class ComposeHostingViewController(
                 mediator?.render(canvas.asComposeCanvas(), nanoTime)
             }
         )
+        rootView.updateMetalView(metalView, ::onDidMoveToWindow)
         metalView.canBeOpaque = configuration.opaque
 
         val layers = UIKitComposeSceneLayersHolder(windowContext, configuration.parallelRendering)
@@ -286,6 +294,7 @@ internal class ComposeHostingViewController(
 
         mediator = ComposeSceneMediator(
             parentView = rootView,
+            interopContainerView = interopContainerView,
             onFocusBehavior = configuration.onFocusBehavior,
             focusStack = focusStack,
             windowContext = windowContext,
@@ -308,7 +317,6 @@ internal class ComposeHostingViewController(
             }
         }
 
-        rootView.updateMetalView(metalView, ::onDidMoveToWindow)
         onAccessibilityChanged()
     }
 
@@ -360,11 +368,13 @@ internal class ComposeHostingViewController(
     private fun animateSizeTransition(
         transitionCoordinator: UIViewControllerTransitionCoordinatorProtocol
     ) {
+        val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
+        if (duration == Duration.ZERO) return
+
         val displayLinkListener = DisplayLinkListener()
         val sizeTransitionScope = CoroutineScope(
             composeCoroutineContext + displayLinkListener.frameClock
         )
-        val duration = transitionCoordinator.transitionDuration.toDuration(DurationUnit.SECONDS)
         displayLinkListener.start()
 
         val animations = mediator?.prepareAndGetSizeTransitionAnimation()
@@ -407,7 +417,8 @@ internal class ComposeHostingViewController(
                     focusStack = if (focusable) focusStack else null,
                     windowContext = windowContext,
                     compositionContext = compositionContext,
-                    coroutineContext = composeCoroutineContext
+                    coroutineContext = composeCoroutineContext,
+                    enableBackGesture = configuration.enableBackGesture,
                 )
 
                 attachLayer(layer)

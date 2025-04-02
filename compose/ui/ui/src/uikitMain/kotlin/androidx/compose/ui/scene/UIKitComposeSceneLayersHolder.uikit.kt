@@ -18,6 +18,7 @@ package androidx.compose.ui.scene
 
 import androidx.compose.ui.graphics.asComposeCanvas
 import androidx.compose.ui.platform.PlatformWindowContext
+import androidx.compose.ui.uikit.addLayoutConstraintsToMatch
 import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.UIKitInteropTransaction
@@ -122,17 +123,12 @@ internal class UIKitComposeSceneLayersHolder(
         val isFirstLayer = layers.isEmpty()
 
         layers.add(layer)
+        view.insertSubview(layer.interopContainerView, belowSubview = metalView)
+        layer.interopContainerView.addLayoutConstraintsToMatch(view)
         view.embedSubview(layer.view)
-        view.bringSubviewToFront(metalView)
 
         if (isFirstLayer) {
-            // The content of previous layers drawn on the Metal view should be cleared and
-            // redrawn synchronously after the new layer is attached to avoid flickering.
-
-            metalView.setNeedsSynchronousDrawOnNextLayout()
-
             window?.embedSubview(view)
-            window?.layoutIfNeeded()
         }
 
         if (hasViewAppeared) {
@@ -155,6 +151,9 @@ internal class UIKitComposeSceneLayersHolder(
             view.removeFromSuperview()
 
             transaction.actions.fastForEach { it.invoke() }
+
+            // If the layers list is empty, the draw call will clear the canvas.
+            metalView.redrawer.draw(waitUntilCompletion = false)
         } else {
             // It wasn't the last layer, pending transactions should be added to the list
             removedLayersTransactions.add(transaction)

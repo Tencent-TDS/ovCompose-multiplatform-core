@@ -61,7 +61,6 @@ import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.lerp
 import androidx.compose.ui.semantics.SemanticsOwner
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.LocalKeyboardOverlapHeight
 import androidx.compose.ui.uikit.OnFocusBehavior
 import androidx.compose.ui.uikit.density
@@ -120,12 +119,12 @@ import platform.UIKit.UIView
 /**
  * iOS specific-implementation of [PlatformContext.SemanticsOwnerListener] used to track changes in [SemanticsOwner].
  *
- * @property rootView The UI container associated with the semantics owner.
+ * @property view The UI container associated with the semantics owner.
  * @property coroutineContext The coroutine context to use for handling semantics changes.
  * @property performEscape A lambda to delegate accessibility escape operation. Returns true if the escape was handled, false otherwise.
  */
 private class SemanticsOwnerListenerImpl(
-    private val rootView: UIView,
+    private val view: UIView,
     private val coroutineContext: CoroutineContext,
     private val performEscape: () -> Boolean,
     private val onKeyboardPresses: (Set<*>) -> Unit,
@@ -143,7 +142,7 @@ private class SemanticsOwnerListenerImpl(
     override fun onSemanticsOwnerAppended(semanticsOwner: SemanticsOwner) {
         if (accessibilityMediator == null) {
             accessibilityMediator = AccessibilityMediator(
-                rootView,
+                view,
                 semanticsOwner,
                 coroutineContext,
                 performEscape,
@@ -185,6 +184,7 @@ private class SemanticsOwnerListenerImpl(
 
 internal class ComposeSceneMediator(
     parentView: UIView,
+    interopContainerView: UIView,
     private val onFocusBehavior: OnFocusBehavior,
     private val focusStack: FocusStack?,
     private val windowContext: PlatformWindowContext,
@@ -269,7 +269,7 @@ internal class ComposeSceneMediator(
     /**
      * View wrapping the hierarchy managed by this Mediator.
      */
-    private val view = ComposeSceneMediatorView(
+    private val view = UIKitTransparentContainerView(
         onLayoutSubviews = ::updateLayout
     )
 
@@ -312,7 +312,7 @@ internal class ComposeSceneMediator(
 
     private val semanticsOwnerListener by lazy {
         SemanticsOwnerListenerImpl(
-            rootView = parentView,
+            view = view,
             coroutineContext = coroutineContext,
             performEscape = {
                 val down = onKeyboardEvent(KeyEvent(Key.Escape, KeyEventType.KeyDown))
@@ -345,7 +345,7 @@ internal class ComposeSceneMediator(
                 redrawer.setNeedsRedraw()
                 CATransaction.flush() // clear all animations
             },
-            rootView = view,
+            view = view,
             viewConfiguration = viewConfiguration,
             focusStack = focusStack,
             onInputStarted = {
@@ -510,7 +510,7 @@ internal class ComposeSceneMediator(
 
     init {
         parentView.embedSubview(view)
-        view.embedSubview(userInputView)
+        interopContainerView.embedSubview(userInputView)
     }
 
     private var lastFocusedRect: Rect? = null
@@ -627,6 +627,7 @@ internal class ComposeSceneMediator(
         userInputView.dispose()
 
         view.removeFromSuperview()
+        userInputView.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
@@ -732,15 +733,26 @@ internal class ComposeSceneMediator(
             innerSessionMutex.withSessionCancellingPrevious(
                 sessionInitializer = { null }
             ) {
+                // TODO: Adopt PlatformTextInputService2 (https://youtrack.jetbrains.com/issue/CMP-7832/iOS-Adopt-PlatformTextInputService2)
                 coroutineScope {
+                    launch {
+                        request.outputValue.collect {
+                            textInputService.updateState(oldValue = null, newValue = it)
+                        }
+                    }
                     launch {
                         request.textLayoutResult.collect {
                             textInputService.updateTextLayoutResult(it)
                         }
                     }
+                    launch {
+                        request.textFieldRectInRoot.collect {
+                            textInputService.updateTextFrame(it)
+                        }
+                    }
                     suspendCancellableCoroutine<Nothing> { continuation ->
                         textInputService.startInput(
-                            value = request.state,
+                            value = request.value(),
                             imeOptions = request.imeOptions,
                             editProcessor = request.editProcessor,
                             onEditCommand = request.onEditCommand,
@@ -753,10 +765,6 @@ internal class ComposeSceneMediator(
                     }
                 }
             }
-
-        override fun updateTextFieldValue(newValue: TextFieldValue) {
-            textInputService.updateState(oldValue = null, newValue = newValue)
-        }
     }
 }
 

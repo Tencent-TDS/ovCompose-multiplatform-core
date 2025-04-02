@@ -42,5 +42,10 @@ internal actual fun isCopyKeyEvent(keyEvent: KeyEvent): Boolean {
 internal actual fun Modifier.selectionMagnifier(manager: SelectionManager): Modifier =
     this // TODO for mobile web: https://youtrack.jetbrains.com/issue/CMP-6645
 
+// TODO https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addSelectionContainerTextContextMenuComponents(
+    selectionManager: SelectionManager
+): Modifier = this
+
 internal actual val SelectionManager.skipCopyKeyEvent: Boolean
     get() = true

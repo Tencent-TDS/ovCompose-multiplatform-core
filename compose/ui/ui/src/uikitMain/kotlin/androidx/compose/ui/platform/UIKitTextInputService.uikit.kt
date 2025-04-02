@@ -28,6 +28,7 @@ import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
@@ -40,24 +41,28 @@ import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
-    private val rootView: UIView,
+    private val view: UIView,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack?,
     private val onInputStarted: () -> Unit,
@@ -152,7 +157,9 @@ internal class UIKitTextInputService(
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
         currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = editProcessor
+        _tempCurrentInputSession = EditProcessor().apply {
+            reset(value, null)
+        }
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
@@ -241,6 +248,15 @@ internal class UIKitTextInputService(
             decorationBoxBounds
         )
         updateTextLayoutResult(textLayoutResult)
+
+        val matrix = Matrix()
+        textFieldToRootTransform(matrix)
+        updateTextFrame(matrix.map(decorationBoxBounds))
+    }
+
+    fun updateTextFrame(rect: Rect) {
+        textUIView?.setFrame(rect.toDpRect(view.density).asCGRect())
+        showMenuOrUpdatePosition()
     }
 
     fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
@@ -343,6 +359,8 @@ internal class UIKitTextInputService(
 
     private fun getState(): TextFieldValue? = currentInput?.value
 
+    // Fixes a problem where the menu is shown before the textUIView gets its final layout.
+    private var showMenuOrUpdatePosition = {}
     override fun showMenu(
         rect: Rect,
         onCopyRequested: (() -> Unit)?,
@@ -357,21 +375,30 @@ internal class UIKitTextInputService(
             attachIntermediateTextInputView()
             updateView()
         }
-        textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(rootView.density).asCGRect(),
-            textActions = object : TextActions {
-                override val copy: (() -> Unit)? = onCopyRequested
-                override val cut: (() -> Unit)? = onCutRequested
-                override val paste: (() -> Unit)? = onPasteRequested
-                override val selectAll: (() -> Unit)? = onSelectAllRequested
+        showMenuOrUpdatePosition = {
+            textUIView?.let { textUIView ->
+                val density = view.density
+                val offset = textUIView.frame.useContents { origin.asDpOffset().toOffset(density) }
+                val target = rect.translate(-offset).toDpRect(density).asCGRect()
+                textUIView.showTextMenu(
+                    targetRect = target,
+                    textActions = object : TextActions {
+                        override val copy: (() -> Unit)? = onCopyRequested
+                        override val cut: (() -> Unit)? = onCutRequested
+                        override val paste: (() -> Unit)? = onPasteRequested
+                        override val selectAll: (() -> Unit)? = onSelectAllRequested
+                    }
+                )
             }
-        )
+        }
+        showMenuOrUpdatePosition()
     }
 
     /**
      * TODO on UIKit native behaviour is hide text menu, when touch outside
      */
     override fun hide() {
+        showMenuOrUpdatePosition = {}
         textUIView?.hideTextMenu()
         if ((textUIView != null) && (currentInput == null)) { // means that editing context menu shown in selection container
             textUIView?.resignFirstResponder()
@@ -386,17 +413,25 @@ internal class UIKitTextInputService(
             TextToolbarStatus.Hidden
 
     private fun attachIntermediateTextInputView() {
-        textUIView?.removeFromSuperview()
+        detachIntermediateTextInputView()
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
+            it.setAutoresizingMask(
+                UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+            )
             it.onKeyboardPresses = onKeyboardPresses
-            rootView.embedSubview(it)
+            view.addSubview(it)
+            it.setFrame(view.bounds)
         }
     }
 
     private fun detachIntermediateTextInputView() {
         textUIView?.let { view ->
+            val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
+            // Set out-of-bounds non-empty frame to hide text keyboard focus frame
+            view.setFrame(outOfBoundsFrame)
+
             view.resetOnKeyboardPressesCallback()
             mainScope.launch {
                 view.removeFromSuperview()
@@ -412,12 +447,12 @@ internal class UIKitTextInputService(
         override fun beginFloatingCursor(offset: DpOffset) {
             val cursorPos = getCursorPos() ?: getState()?.selection?.start ?: return
             val cursorRect = textLayoutResult?.getCursorRect(cursorPos) ?: return
-            floatingCursorTranslation = cursorRect.center - offset.toOffset(rootView.density)
+            floatingCursorTranslation = cursorRect.center - offset.toOffset(view.density)
         }
 
         override fun updateFloatingCursor(offset: DpOffset) {
             val translation = floatingCursorTranslation ?: return
-            val offsetPx = offset.toOffset(rootView.density)
+            val offsetPx = offset.toOffset(view.density)
             val pos = textLayoutResult
                 ?.getOffsetForPosition(offsetPx + translation) ?: return
 
@@ -466,11 +501,13 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
          */
         override fun deleteBackward() {
-            // Before this function calls, iOS changes selection in setSelectedTextRange.
-            // All needed characters should be already selected, and we can just remove them.
-            sendEditCommand(
-                CommitTextCommand("", 0)
-            )
+            val deleteCommand =
+                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
+                    DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
+                } else {
+                    CommitTextCommand("", 0)
+                }
+            sendEditCommand(deleteCommand)
         }
 
         /**

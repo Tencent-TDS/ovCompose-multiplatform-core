@@ -35,7 +35,7 @@ import java.awt.Window
 import java.awt.event.MouseListener
 import java.awt.event.MouseMotionListener
 import java.awt.event.MouseWheelListener
-import java.util.*
+import java.util.Locale
 import javax.swing.JDialog
 import org.jetbrains.skiko.GraphicsApi
 import org.jetbrains.skiko.SkiaLayerAnalytics
@@ -250,6 +250,7 @@ class ComposeDialog : JDialog {
         get() = composePanel.isWindowTransparent
         set(value) {
             composePanel.isWindowTransparent = value
+            hasMacOsShadow = !value
         }
 
     /**

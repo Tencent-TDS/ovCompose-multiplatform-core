@@ -48,8 +48,6 @@ internal expect fun PredictiveBackHandler(
 internal expect object DefaultNavTransitions {
     val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
     val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
-    val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition
-    val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition
     val sizeTransform: (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)?
 }
 
@@ -62,10 +60,6 @@ internal object StandardDefaultNavTransitions {
         AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         fadeOut(animationSpec = tween(700))
     }
-    val popEnterTransition:
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = enterTransition
-    val popExitTransition:
-        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = exitTransition
     val sizeTransform:
         (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? = null
 }

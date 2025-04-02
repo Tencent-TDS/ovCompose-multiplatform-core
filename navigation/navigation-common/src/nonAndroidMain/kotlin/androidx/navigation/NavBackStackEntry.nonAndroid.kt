@@ -19,7 +19,6 @@ package androidx.navigation
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.savedstate.SavedState
-import androidx.lifecycle.AbstractSavedStateViewModelFactory
 import androidx.lifecycle.DEFAULT_ARGS_KEY
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.Lifecycle
@@ -32,9 +31,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.enableSavedStateHandles
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
@@ -120,7 +122,7 @@ private constructor(
             "You cannot access the NavBackStackEntry's SavedStateHandle after the " +
                 "NavBackStackEntry is destroyed."
         }
-        ViewModelProvider.create(this, NavResultSavedStateFactory(this))
+        ViewModelProvider.create(this, navResultSavedStateFactory)
             .get(SavedStateViewModel::class)
             .handle
     }
@@ -234,16 +236,9 @@ private constructor(
         return sb.toString()
     }
 
-    private class NavResultSavedStateFactory(owner: SavedStateRegistryOwner) :
-        AbstractSavedStateViewModelFactory(owner, null) {
-        @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(
-            key: String,
-            modelClass: KClass<T>,
-            handle: SavedStateHandle
-        ): T {
-            return SavedStateViewModel(handle) as T
-        }
+    /** Used to create the {SavedStateViewModel} */
+    private val navResultSavedStateFactory by lazy {
+        viewModelFactory { initializer { SavedStateViewModel(createSavedStateHandle()) } }
     }
 
     private class SavedStateViewModel(val handle: SavedStateHandle) : ViewModel()

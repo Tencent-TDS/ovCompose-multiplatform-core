@@ -190,7 +190,9 @@ internal class IntermediateTextInputUIView(
     }
 
     override fun setSelectedTextRange(selectedTextRange: UITextRange?) {
-        input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+        input?.withBatch {
+            input?.setSelectedTextRange(selectedTextRange?.toTextRange())
+        }
     }
 
     /**

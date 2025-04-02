@@ -1210,6 +1210,8 @@ public abstract interface class androidx/compose/runtime/snapshots/tooling/Snaps
 	public fun onCreated (Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/Snapshot;Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;)V
 	public fun onCreating (Landroidx/compose/runtime/snapshots/Snapshot;Z)Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;
 	public fun onDisposing (Landroidx/compose/runtime/snapshots/Snapshot;)V
+	public fun onPreCreate (Landroidx/compose/runtime/snapshots/Snapshot;Z)Landroidx/compose/runtime/snapshots/tooling/SnapshotInstanceObservers;
+	public fun onPreDispose (Landroidx/compose/runtime/snapshots/Snapshot;)V
 }
 
 public final class androidx/compose/runtime/snapshots/tooling/SnapshotObserverKt {

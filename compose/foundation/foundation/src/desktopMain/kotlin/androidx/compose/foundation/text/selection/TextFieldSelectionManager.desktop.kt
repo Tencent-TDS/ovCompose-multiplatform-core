@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.selection
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.awtEventOrNull
 import androidx.compose.ui.input.pointer.PointerEvent
+import kotlinx.coroutines.CoroutineScope
 
 /**
  * Magnification is not supported on desktop.
@@ -31,3 +32,10 @@ internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManag
 internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
     isStartHandle: Boolean
 ): Boolean = isSelectionHandleInVisibleBoundDefault(isStartHandle)
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    manager: TextFieldSelectionManager,
+    coroutineScope: CoroutineScope,
+): Modifier = this
+

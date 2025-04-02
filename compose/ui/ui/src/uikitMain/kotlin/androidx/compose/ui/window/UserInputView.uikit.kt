@@ -59,6 +59,7 @@ import platform.UIKit.UIScrollTypeMaskAll
 import platform.UIKit.UIScrollView
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
+import platform.UIKit.endEditing
 import platform.UIKit.setState
 
 /**
@@ -281,10 +282,16 @@ private class TouchesGestureRecognizer(
         }
     }
 
+    private val activeGestureStates = listOf(
+        UIGestureRecognizerStatePossible,
+        UIGestureRecognizerStateBegan,
+        UIGestureRecognizerStateChanged
+    )
     override fun shouldRequireFailureOfGestureRecognizer(
         otherGestureRecognizer: UIGestureRecognizer
     ): Boolean {
-        return (otherGestureRecognizer is UIKitBackGestureRecognizer) ||
+        return (otherGestureRecognizer is UIKitBackGestureRecognizer &&
+            otherGestureRecognizer.state in activeGestureStates) ||
             super.shouldRequireFailureOfGestureRecognizer(otherGestureRecognizer)
     }
 
@@ -581,6 +588,7 @@ internal class UserInputView(
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
+        endEditing(force = true)
         removeGestureRecognizer(touchesGestureRecognizer)
         touchesGestureRecognizer.dispose()
         scrollGestureRecognizer?.let {

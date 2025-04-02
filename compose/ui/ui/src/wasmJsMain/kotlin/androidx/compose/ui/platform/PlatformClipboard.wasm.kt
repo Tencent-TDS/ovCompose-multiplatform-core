@@ -18,6 +18,7 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import kotlin.js.Promise
+import kotlinx.browser.window
 import kotlinx.coroutines.await
 import org.w3c.files.Blob
 
@@ -60,7 +61,11 @@ private fun getW3CClipboard(): W3CTemporaryClipboard =
     js("window.navigator.clipboard")
 
 internal actual fun createPlatformClipboard(): Clipboard {
-    return WasmPlatformClipboard()
+    return if (isSecureContext().toBoolean()) {
+        WasmPlatformClipboard()
+    } else {
+        DumbInsecureContextClipboard()
+    }
 }
 
 actual class ClipEntry
@@ -73,6 +78,10 @@ constructor(val clipboardItems: JsArray<ClipboardItem>) {
 
     companion object {
         fun withPlainText(text: String): ClipEntry {
+            if (!isSecureContext().toBoolean()) {
+                println("ClipboardItem is not available in insecure contexts.")
+                return ClipEntry(invalidClipboardItems())
+            }
             return ClipEntry(createClipboardItemWithPlainText(text))
         }
     }
@@ -85,6 +94,13 @@ private fun createClipboardItemWithPlainText(text: String): JsArray<ClipboardIte
 // Can't truly clear the clipboard, so setting the empty text
 private fun emptyClipboardItems(): JsArray<ClipboardItem> =
     js("[new ClipboardItem({'text/plain': new Blob([''], { type: 'text/plain' })})]")
+
+private fun isSecureContext(): JsBoolean = js("window.isSecureContext")
+
+// We use it when we detect isSecureContext() != true,
+// because we can't call ClipboardItem constructor - it's undefined.
+private fun invalidClipboardItems(): JsArray<ClipboardItem> =
+    js("[]")
 
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API
@@ -112,4 +128,29 @@ external class W3CTemporaryClipboard {
 external interface ClipboardItem : JsAny {
     val types: JsArray<JsString>
     fun getType(type: JsString): Promise<Blob>
+}
+
+/**
+ * This Clipboard implementation is dumb.
+ * It's created when window.isSecureContext != true.
+ * See https://developer.mozilla.org/en-US/docs/Web/API/Clipboard
+ */
+private class DumbInsecureContextClipboard : Clipboard {
+
+    override suspend fun getClipEntry(): ClipEntry? {
+        println("Clipboard is not available in insecure contexts.")
+        return null
+    }
+
+    override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+        println("Clipboard is not available in insecure contexts.")
+    }
+
+    private val browserClipboard by lazy {
+        println("Clipboard is not available in insecure contexts.")
+        getW3CClipboard()
+    }
+
+    override val nativeClipboard: NativeClipboard
+        get() = browserClipboard
 }

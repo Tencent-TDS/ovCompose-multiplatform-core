@@ -53,8 +53,8 @@ actual fun NavHost(
 ) {
     val isDefaultTransition = enterTransition == DefaultNavTransitions.enterTransition &&
         exitTransition == DefaultNavTransitions.exitTransition &&
-        popEnterTransition == DefaultNavTransitions.popEnterTransition &&
-        popExitTransition == DefaultNavTransitions.popExitTransition &&
+        popEnterTransition == DefaultNavTransitions.enterTransition &&
+        popExitTransition == DefaultNavTransitions.exitTransition &&
         sizeTransform == DefaultNavTransitions.sizeTransform
 
     if (isDefaultTransition) {

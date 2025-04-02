@@ -51,8 +51,6 @@ actual constructor(public actual open val isNullableAllowed: Boolean) {
     public actual open fun valueEquals(value: T, other: T): Boolean = value == other
 
     public actual companion object {
-        @Suppress("NON_FINAL_MEMBER_IN_OBJECT", "UNCHECKED_CAST") // this needs to be open to
-        // maintain api compatibility and type cast are unchecked
         @JvmStatic
         @Suppress("NON_FINAL_MEMBER_IN_OBJECT")
         public actual open fun fromArgType(type: String?, packageName: String?): NavType<*> =
