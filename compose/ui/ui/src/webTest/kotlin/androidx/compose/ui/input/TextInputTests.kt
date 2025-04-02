@@ -199,6 +199,48 @@ class TextInputTests : OnCanvasTests  {
         assertEquals("啊b", textInputChannel.receive())
     }
 
+    @Test
+    fun mobileInput() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            mobileKeyDown(),
+            compositionStart(),
+            beforeInput("insertCompositionText", "a"),
+            mobileKeyUp(),
+            mobileKeyDown(),
+            beforeInput("insertCompositionText", "ab"),
+            mobileKeyUp(),
+            mobileKeyDown(),
+            beforeInput("insertCompositionText", "abc"),
+            mobileKeyUp()
+        )
+
+        assertEquals("abc", textInputChannel.receive())
+    }
+
 
     @Test
     fun singleInputRepeatedAccent() = runTest {
@@ -445,4 +487,5 @@ private fun compositionStart(data: String = "")  = CompositionEvent("composition
 private fun compositionEnd(data: String) = CompositionEvent("compositionend", CompositionEventInit(data = data))
 private fun beforeInput(inputType: String, data: String?) = InputEvent("beforeinput", InputEventInit(inputType = inputType, data = data))
 
-
+private fun mobileKeyDown() = keyEvent(type = "keydown", key = "Unidentified", code = "")
+private fun mobileKeyUp() = keyEvent(type = "keydown", key = "Unidentified", code = "")
