@@ -65,7 +65,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         )
         val newValue = editProcessor.apply(commands)
 
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             // Update text
             replace(0, length, newValue.text)
 
@@ -84,7 +84,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     }
 
     fun editText(block: TextEditingScope.() -> Unit) {
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             with(TextEditingScope(this)) {
                 block()
             }
