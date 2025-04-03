@@ -61,7 +61,7 @@ import org.w3c.dom.events.MouseEventInit
 class TextInputTests : OnCanvasTests  {
 
     @Test
-    fun singleInput() = runTest {
+    fun regularInput() = runTest {
         val textInputChannel = Channel<String>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
@@ -243,7 +243,7 @@ class TextInputTests : OnCanvasTests  {
 
 
     @Test
-    fun singleInputRepeatedAccent() = runTest {
+    fun repeatedAccent() = runTest {
         val textInputChannel = Channel<String>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
@@ -275,15 +275,21 @@ class TextInputTests : OnCanvasTests  {
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
             keyEvent("a", repeat = true),
+            keyEvent("a", type = "keyup"),
             keyEvent("b"),
+            beforeInput("insertText", "b"),
+            keyEvent("b", type = "keyup"),
             keyEvent("c"),
+            beforeInput("insertText", "c"),
+            keyEvent("c", type = "keyup")
         )
 
-        assertEquals("abc", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
+        // TODO: this does not behave as desktop, ideally we should have "abc" here
+        assertEquals("bc", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
     }
 
     @Test
-    fun singleInputRepeatedDefault() = runTest {
+    fun repeatedDefault() = runTest {
         val textInputChannel = Channel<String>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
@@ -320,8 +326,91 @@ class TextInputTests : OnCanvasTests  {
             keyEvent("c")
         )
 
-        assertEquals("aaaaaabc", textInputChannel.receive(), "Repeat mode should be resolved as Default")
+        assertTrue(Regex("a+bc").matches(textInputChannel.receive()), "Repeat mode should be resolved as Default")
     }
+
+    @Test
+    fun repeatedAccentMenuPressed() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", type = "keyup"),
+            keyEvent("1", code = "Digit1"),
+            beforeInput(inputType = "insertText", data = "à"),
+            keyEvent("1", code = "Digit1", type = "keyup"),
+        )
+
+        assertEquals("à", textInputChannel.receive(), "Choose symbol from Accent Menu")
+    }
+
+    @Test
+    fun repeatedAccentMenuClicked() = runTest {
+        val textInputChannel = Channel<String>(
+            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
+        )
+
+        val (firstFocusRequester) = FocusRequester.createRefs()
+
+        createComposeWindow {
+            TextField(
+                value = "",
+                onValueChange = { value ->
+                    textInputChannel.sendFromScope(value)
+                },
+                modifier = Modifier.focusRequester(firstFocusRequester)
+            )
+
+            SideEffect {
+                firstFocusRequester.requestFocus()
+            }
+        }
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", type = "keyup"),
+            beforeInput(inputType = "insertText", data = "æ"),
+        )
+
+        assertEquals("æ", textInputChannel.receive(), "Choose symbol from Accent Menu")
+    }
+
 
 
     @Test

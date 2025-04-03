@@ -73,6 +73,7 @@ internal class DomInputStrategy(
                 return@addEventListener
             }
 
+
             if (evt.repeat) {
                 if (repeatDetector.repeatMode == RepeatMode.Accent) {
                     editState = EditState.AccentDialogue
@@ -81,10 +82,10 @@ internal class DomInputStrategy(
                 if (repeatDetector.repeatMode == RepeatMode.Unknown) {
                     return@addEventListener
                 }
-            } else {
-                if (editState is EditState.AccentDialogue) {
-                    editState = EditState.Default
-                }
+            }
+
+            if (editState is EditState.AccentDialogue) {
+                return@addEventListener
             }
 
             if (evt.timeStamp.toInt() <= lastActualCompositionTimestamp) {
