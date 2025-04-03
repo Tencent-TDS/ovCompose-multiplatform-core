@@ -149,27 +149,6 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
-    fun startInput(
-        value: TextFieldValue,
-        imeOptions: ImeOptions,
-        editProcessor: EditProcessor?,
-        onEditCommand: (List<EditCommand>) -> Unit,
-        onImeActionPerformed: (ImeAction) -> Unit
-    ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
-            reset(value, null)
-        }
-        currentImeOptions = imeOptions
-        currentImeActionHandler = onImeActionPerformed
-
-        attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
-
-        showSoftwareKeyboard()
-    }
-
     override fun stopInput() {
         flushEditCommandsIfNeeded(force = true)
         currentInput = null
@@ -525,8 +504,10 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): TextRange? {
-            return getState()?.selection
+        override fun getSelectedTextRange(): TextRange? = if (editBatchDepth == 0) {
+            getState()?.selection
+        } else {
+            _tempCurrentInputSession?.toTextFieldValue()?.selection
         }
 
         override fun setSelectedTextRange(range: TextRange?) {
