@@ -149,27 +149,6 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
-    fun startInput(
-        value: TextFieldValue,
-        imeOptions: ImeOptions,
-        editProcessor: EditProcessor?,
-        onEditCommand: (List<EditCommand>) -> Unit,
-        onImeActionPerformed: (ImeAction) -> Unit
-    ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
-            reset(value, null)
-        }
-        currentImeOptions = imeOptions
-        currentImeActionHandler = onImeActionPerformed
-
-        attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
-
-        showSoftwareKeyboard()
-    }
-
     override fun stopInput() {
         flushEditCommandsIfNeeded(force = true)
         currentInput = null
@@ -357,7 +336,11 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = currentInput?.value
+    private fun getState(): TextFieldValue? = if (editBatchDepth == 0) {
+        currentInput?.value
+    } else {
+        _tempCurrentInputSession?.toTextFieldValue()
+    }
 
     // Fixes a problem where the menu is shown before the textUIView gets its final layout.
     private var showMenuOrUpdatePosition = {}
@@ -502,7 +485,7 @@ internal class UIKitTextInputService(
          */
         override fun deleteBackward() {
             val deleteCommand =
-                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
+                if (getState()?.selection?.collapsed == true) {
                     DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
                 } else {
                     CommitTextCommand("", 0)
