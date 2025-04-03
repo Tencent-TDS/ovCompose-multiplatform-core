@@ -85,8 +85,8 @@ actual fun NavHost(
             contentAlignment,
             enterTransition,
             exitTransition,
-            popEnterTransition,
-            popExitTransition,
+            DefaultNavTransitions.popEnterTransition,
+            DefaultNavTransitions.popExitTransition,
             sizeTransform,
             drawOnBottomEntryDuringAnimation = iosBlackout,
             limitBackGestureSwipeEdge = backEventEdge
