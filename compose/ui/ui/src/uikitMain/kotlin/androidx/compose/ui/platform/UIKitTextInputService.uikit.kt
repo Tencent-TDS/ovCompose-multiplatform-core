@@ -336,11 +336,7 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = if (editBatchDepth == 0) {
-        currentInput?.value
-    } else {
-        _tempCurrentInputSession?.toTextFieldValue()
-    }
+    private fun getState(): TextFieldValue? = currentInput?.value
 
     // Fixes a problem where the menu is shown before the textUIView gets its final layout.
     private var showMenuOrUpdatePosition = {}
@@ -485,7 +481,7 @@ internal class UIKitTextInputService(
          */
         override fun deleteBackward() {
             val deleteCommand =
-                if (getState()?.selection?.collapsed == true) {
+                if (_tempCurrentInputSession?.toTextFieldValue()?.selection?.collapsed == true) {
                     DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
                 } else {
                     CommitTextCommand("", 0)
@@ -506,8 +502,10 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): TextRange? {
-            return getState()?.selection
+        override fun getSelectedTextRange(): TextRange? = if (editBatchDepth == 0) {
+            getState()?.selection
+        } else {
+            _tempCurrentInputSession?.toTextFieldValue()?.selection
         }
 
         override fun setSelectedTextRange(range: TextRange?) {
