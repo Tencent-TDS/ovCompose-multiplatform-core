@@ -20,6 +20,7 @@ import androidx.compose.foundation.assertThat
 import androidx.compose.foundation.isEqualTo
 import androidx.compose.foundation.isFalse
 import androidx.compose.foundation.isNotNull
+import androidx.compose.foundation.isNull
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +30,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.InterceptPlatformTextInput
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithTag
@@ -119,21 +121,12 @@ class LegacyPlatformTextInputServiceAdapterTest {
 
     @OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
     @Test
-    fun testTextEditingWithEditText() = runComposeUiTest {
-        var text by mutableStateOf(TextFieldValue("abc"))
+    fun testTextEditing() = runComposeUiTest {
+        var text by mutableStateOf(TextFieldValue(""))
+        lateinit var request: PlatformTextInputMethodRequest
         setContent {
-            InterceptPlatformTextInput({ request, nextHandler ->
-                coroutineScope {
-                    request.editText {
-                        commitText("abc", 1)
-                    }
-                    request.onEditCommand(
-                        listOf(CommitTextCommand("def", 1))
-                    )
-                    request.editText {
-                        setComposingText("gh", 1)
-                    }
-                }
+            InterceptPlatformTextInput({ r, nextHandler ->
+                request = r
                 awaitCancellation()
             }) {
                 BasicTextField(
@@ -145,9 +138,34 @@ class LegacyPlatformTextInputServiceAdapterTest {
         }
         onNodeWithTag("input").requestFocus()
 
+        request.editText {
+            commitText("abc", 1)
+        }
+        request.onEditCommand(
+            listOf(CommitTextCommand("def", 1))
+        )
+
         waitForIdle()
 
-        assertThat(text.text).isEqualTo("abcdefgh")
-        assertThat(text.composition).isEqualTo("abcdef")
+        assertThat(text.text).isEqualTo("abcdef")
+        assertThat(text.selection).isEqualTo(TextRange(6, 6))
+        assertThat(text.composition).isNull()
+
+        request.editText {
+            this.setComposingText("qwe", 1)
+        }
+        waitForIdle()
+
+        assertThat(text.text).isEqualTo("abcdefqwe")
+        assertThat(text.selection).isEqualTo(TextRange(9, 9))
+        assertThat(text.composition).isEqualTo(TextRange(6, 9))
+
+        request.editText {
+            this.deleteSurroundingTextInCodePoints(lengthBeforeCursor = 1, lengthAfterCursor = 0)
+        }
+        waitForIdle()
+
+        assertThat(text.text).isEqualTo("abcdefqw")
+        assertThat(text.selection).isEqualTo(TextRange(8, 8))
     }
 }
