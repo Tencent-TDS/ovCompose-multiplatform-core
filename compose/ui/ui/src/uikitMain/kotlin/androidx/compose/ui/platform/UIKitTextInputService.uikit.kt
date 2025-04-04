@@ -367,6 +367,7 @@ internal class UIKitTextInputService(
 
     private fun attachIntermediateTextInputView() {
         detachIntermediateTextInputView()
+        showMenuOrUpdatePosition = {}
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
@@ -380,6 +381,7 @@ internal class UIKitTextInputService(
     }
 
     private fun detachIntermediateTextInputView() {
+        showMenuOrUpdatePosition = {}
         textUIView?.let { view ->
             val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
             // Set out-of-bounds non-empty frame to hide text keyboard focus frame
@@ -476,8 +478,10 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): TextRange? {
-            return getState()?.selection
+        override fun getSelectedTextRange(): TextRange? = if (editBatchDepth == 0) {
+            getState()?.selection
+        } else {
+            _tempCurrentInputSession?.toTextFieldValue()?.selection
         }
 
         override fun setSelectedTextRange(range: TextRange?) {
