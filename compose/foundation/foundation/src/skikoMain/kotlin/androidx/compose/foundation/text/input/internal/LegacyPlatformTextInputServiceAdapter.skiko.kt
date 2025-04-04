@@ -16,6 +16,8 @@
 
 package androidx.compose.foundation.text.input.internal
 
+import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.focusedRectInRoot
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +41,6 @@ import androidx.compose.ui.text.input.TextEditorState
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextInputService
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.filterNotNull
 
 // TODO remove after https://youtrack.jetbrains.com/issue/COMPOSE-740/Implement-BasicTextField2
@@ -67,15 +68,13 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 val node = textInputModifierNode ?: return
 
                 job = node.launchTextInputSession {
-                    coroutineScope {
-                        startInputMethod(
-                            makeRequest(
-                                imeOptions = imeOptions,
-                                onEditCommand = onEditCommand,
-                                onImeActionPerformed = onImeActionPerformed
-                            )
+                    startInputMethod(
+                        makeRequest(
+                            imeOptions = imeOptions,
+                            onEditCommand = onEditCommand,
+                            onImeActionPerformed = onImeActionPerformed
                         )
-                    }
+                    )
                 }
             }
 
@@ -100,14 +99,20 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 this.textFieldValue = textFieldValue
                 this.textLayoutResult = textLayoutResult
 
-
                 val matrix = Matrix()
                 textFieldToRootTransform(matrix)
                 textFieldRectInRoot = matrix.map(decorationBoxBounds)
-
-                // TODO: Implement
-                // focusedRectInRoot = ...
-                // textClippingRectInRoot = ...
+                textClippingRectInRoot = matrix.map(innerTextFieldBounds)
+                focusedRectInRoot = focusedRectInRoot(
+                    layoutResult = textLayoutResult,
+                    focusOffset = textFieldValue.selection.max,
+                    sizeForDefaultText = {
+                        textLayoutResult.layoutInput.let {
+                            computeSizeForDefaultText(it.style, it.density, it.fontFamilyResolver)
+                        }
+                    },
+                    convertLocalToRoot = matrix::map
+                )
             }
 
             override fun startStylusHandwriting() {}
@@ -167,7 +172,6 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                     imeOptions = imeOptions,
                     onEditCommand = onEditCommand,
                     onImeAction = onImeActionPerformed,
-                    editProcessor = null,
                     outputValue = snapshotFlow { textFieldValue },
                     textLayoutResult = snapshotFlow { textLayoutResult }.filterNotNull(),
                     focusedRectInRoot = snapshotFlow { focusedRectInRoot },

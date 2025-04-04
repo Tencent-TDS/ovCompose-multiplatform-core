@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
+import androidx.compose.ui.SessionMutex
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -32,9 +33,11 @@ import androidx.compose.ui.platform.InfiniteAnimationPolicy
 import androidx.compose.ui.platform.PlatformContext
 import androidx.compose.ui.platform.PlatformDragAndDropManager
 import androidx.compose.ui.platform.PlatformDragAndDropSource
+import androidx.compose.ui.platform.PlatformTextInputMethodRequest
+import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.WindowInfo
-import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.scene.CanvasLayersComposeScene
+import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
@@ -49,6 +52,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -430,6 +434,19 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
         override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
     }
 
+    private inner class TextInputSession(
+        coroutineScope: CoroutineScope
+    ) : PlatformTextInputSessionScope, CoroutineScope by coroutineScope {
+        private val innerSessionMutex = SessionMutex<Nothing?>()
+
+        override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing =
+            innerSessionMutex.withSessionCancellingPrevious(
+                sessionInitializer = { null }
+            ) {
+                awaitCancellation()
+            }
+    }
+
     private inner class TestDragAndDropManager : PlatformDragAndDropManager {
         override val isRequestDragAndDropTransferRequired: Boolean
             get() = true
@@ -469,6 +486,14 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
             get() = this@SkikoComposeUiTest.semanticsOwnerListener
 
         override val dragAndDropManager: PlatformDragAndDropManager = TestDragAndDropManager()
+
+        private val textInputSessionMutex = SessionMutex<TextInputSession>()
+
+        override suspend fun textInputSession(
+            session: suspend PlatformTextInputSessionScope.() -> Nothing
+        ): Nothing = textInputSessionMutex.withSessionCancellingPrevious(
+            sessionInitializer = { TextInputSession(it) }, session = session
+        )
     }
 }
 
