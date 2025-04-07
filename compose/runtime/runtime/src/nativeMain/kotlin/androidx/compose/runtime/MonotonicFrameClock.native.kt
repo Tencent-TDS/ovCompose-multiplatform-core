@@ -16,7 +16,7 @@
 
 package androidx.compose.runtime
 
-import kotlin.system.getTimeNanos
+import kotlin.time.TimeSource
 import kotlinx.coroutines.yield
 
 /**
@@ -35,6 +35,6 @@ actual val DefaultMonotonicFrameClock: MonotonicFrameClock = object : MonotonicF
         onFrame: (Long) -> R
     ): R {
         yield()
-        return onFrame(getTimeNanos())
+        return onFrame(TimeSource.Monotonic.markNow().elapsedNow().inWholeNanoseconds)
     }
 }
