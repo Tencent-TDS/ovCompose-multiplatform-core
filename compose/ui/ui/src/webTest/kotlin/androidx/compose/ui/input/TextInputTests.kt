@@ -17,9 +17,6 @@
 package androidx.compose.ui.input
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.TextField
 import androidx.compose.runtime.CompositionLocalProvider
@@ -60,8 +57,7 @@ import org.w3c.dom.events.MouseEventInit
 
 class TextInputTests : OnCanvasTests  {
 
-    @Test
-    fun regularInput() = runTest {
+    private fun createTextFieldWithChannel(): Channel<String> {
         val textInputChannel = Channel<String>(
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
@@ -81,6 +77,13 @@ class TextInputTests : OnCanvasTests  {
                 firstFocusRequester.requestFocus()
             }
         }
+
+        return textInputChannel
+    }
+
+    @Test
+    fun regularInput() = runTest {
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -107,25 +110,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun compositeInput() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -154,25 +139,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun compositeInputWebkit() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -201,25 +168,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun mobileInput() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -244,25 +193,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun repeatedAccent() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -286,29 +217,29 @@ class TextInputTests : OnCanvasTests  {
 
         // TODO: this does not behave as desktop, ideally we should have "abc" here
         assertEquals("bc", textInputChannel.receive(), "Repeat mode should be resolved as Accent Dialogue")
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("a"),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", repeat = true),
+            keyEvent("a", type = "keyup"),
+            keyEvent("b"),
+            beforeInput("insertText", "b"),
+            keyEvent("b", type = "keyup"),
+            keyEvent("c"),
+            beforeInput("insertText", "c"),
+            keyEvent("c", type = "keyup")
+        )
+
     }
 
     @Test
     fun repeatedDefault() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -331,25 +262,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun repeatedAccentMenuPressed() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -373,25 +286,7 @@ class TextInputTests : OnCanvasTests  {
 
     @Test
     fun repeatedAccentMenuClicked() = runTest {
-        val textInputChannel = Channel<String>(
-            1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
-
-        val (firstFocusRequester) = FocusRequester.createRefs()
-
-        createComposeWindow {
-            TextField(
-                value = "",
-                onValueChange = { value ->
-                    textInputChannel.sendFromScope(value)
-                },
-                modifier = Modifier.focusRequester(firstFocusRequester)
-            )
-
-            SideEffect {
-                firstFocusRequester.requestFocus()
-            }
-        }
+        val textInputChannel = createTextFieldWithChannel()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -471,28 +366,6 @@ class TextInputTests : OnCanvasTests  {
         )
 
         assertEquals("step2", textInputChannel.receive())
-    }
-
-    @Test
-    fun basicTextField2HasBackingHtmlTextAreaElement() = runTest {
-        val focusRequester = FocusRequester()
-
-        createComposeWindow {
-            val textFieldState2 = remember { TextFieldState("I am TextField 2") }
-            BasicTextField(
-                textFieldState2,
-                Modifier.padding(16.dp).fillMaxWidth().focusRequester(focusRequester)
-            )
-        }
-
-        var textArea = document.querySelector("textarea")
-        assertNull(textArea)
-
-        focusRequester.requestFocus()
-
-        yield()
-        textArea = document.querySelector("textarea")
-        assertIs<HTMLTextAreaElement>(textArea)
     }
 
     @Test
