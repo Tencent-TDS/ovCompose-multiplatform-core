@@ -35,11 +35,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.browser.document
 import kotlinx.coroutines.Dispatchers
@@ -285,6 +283,32 @@ class TextInputTests : OnCanvasTests  {
     }
 
     @Test
+    fun repeatedAccentMenuIgnoreNonTyped() = runTest {
+        val textInputChannel = createTextFieldWithChannel()
+
+        val backingTextField = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(backingTextField)
+
+        dispatchEvents(
+            backingTextField,
+            keyEvent("ArrowLeft", code = "ArrowLeft"),
+            keyEvent("ArrowLeft", code = "ArrowLeft", repeat = true),
+            keyEvent("ArrowLeft", code = "ArrowLeft", repeat = true),
+            keyEvent("ArrowLeft", code = "ArrowLeft", repeat = true),
+            keyEvent("ArrowLeft", code = "ArrowLeft", repeat = true),
+            keyEvent("ArrowLeft", code = "ArrowLeft", repeat = true),
+            keyEvent("ArrowLeft", code = "ArrowLeft", type = "keyup"),
+            keyEvent("a"),
+            keyEvent("a", type = "keyup"),
+            keyEvent("b"),
+            keyEvent("b", type = "keyup"),
+            keyEvent("c"),
+            keyEvent("c", type = "keyup"),
+        )
+
+        assertEquals("abc", textInputChannel.receive(), "XXX")
+    }
+
     fun repeatedAccentMenuClicked() = runTest {
         val textInputChannel = createTextFieldWithChannel()
 
