@@ -87,8 +87,6 @@ class TextInputTests : OnCanvasTests  {
             }
         }
 
-        yield()
-
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
 
@@ -146,12 +144,11 @@ class TextInputTests : OnCanvasTests  {
             1, onBufferOverflow = BufferOverflow.DROP_OLDEST
         )
 
-        val focusRequester = FocusRequester()
-
         var textFieldWidth = 0
 
         createComposeWindow {
             val textState = remember { TextFieldState("qwerty 1234567") }
+            val focusRequester = remember { FocusRequester() }
 
             CompositionLocalProvider(LocalDensity provides Density(2f)) {
                 Column {
@@ -164,9 +161,12 @@ class TextInputTests : OnCanvasTests  {
                     }
                 }
             }
+
+            SideEffect {
+                focusRequester.requestFocus()
+            }
         }
 
-        focusRequester.requestFocus()
         yield()
 
         val textArea = document.querySelector("textarea")

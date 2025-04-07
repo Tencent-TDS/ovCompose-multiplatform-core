@@ -373,13 +373,13 @@ internal class RootNodeOwner(
             coroutineScope {
                 textInputService.startInput()
                 launch {
-                    platformContext.textInputSession(session)
-                }
-                suspendCancellableCoroutine<Nothing> {
-                    it.invokeOnCancellation {
-                        textInputService.stopInput()
+                    suspendCancellableCoroutine<Nothing> {
+                        it.invokeOnCancellation {
+                            textInputService.stopInput()
+                        }
                     }
                 }
+                platformContext.textInputSession(session)
             }
         }
 
