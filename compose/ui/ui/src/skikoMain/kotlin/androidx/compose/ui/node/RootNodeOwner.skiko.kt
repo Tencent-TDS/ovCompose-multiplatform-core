@@ -79,6 +79,7 @@ import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.spatial.RectManager
+import androidx.compose.ui.text.InternalTextApi
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.input.TextInputService
 import androidx.compose.ui.unit.Constraints
@@ -98,7 +99,9 @@ import kotlin.math.min
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
  * Owner of root [LayoutNode].
@@ -363,9 +366,22 @@ internal class RootNodeOwner(
         override val softwareKeyboardController =
             DelegatingSoftwareKeyboardController(textInputService)
 
+        @OptIn(InternalTextApi::class)
         override suspend fun textInputSession(
             session: suspend PlatformTextInputSessionScope.() -> Nothing
-        ) = platformContext.textInputSession(session)
+        ) : Nothing {
+            coroutineScope {
+                textInputService.startInput()
+                launch {
+                    platformContext.textInputSession(session)
+                }
+                suspendCancellableCoroutine<Nothing> {
+                    it.invokeOnCancellation {
+                        textInputService.stopInput()
+                    }
+                }
+            }
+        }
 
         override val dragAndDropManager = this@RootNodeOwner.dragAndDropOwner
         override val pointerIconService = PointerIconServiceImpl()
