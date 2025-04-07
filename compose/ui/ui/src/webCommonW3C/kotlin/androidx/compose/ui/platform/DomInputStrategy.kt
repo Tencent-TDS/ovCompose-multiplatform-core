@@ -252,9 +252,23 @@ private external interface HTMLElementWithValue  {
     fun setSelectionRange(start: Int, end: Int, direction: String = definedExternally)
 }
 
+/**
+ * Represents the mode of key input repetition handling during text input.
+ */
 private sealed interface RepeatMode {
+    /**
+     * The repetition behavior of a key input event cannot be determined so far
+     */
     data object Unknown: RepeatMode
+
+    /**
+     * Repetition triggers Accent Dialogue
+     */
     data object Accent: RepeatMode
+
+    /**
+     * Repetition does not trigger Accent Dialogue
+     */
     data object Default: RepeatMode
 }
 
