@@ -32,7 +32,7 @@ internal interface InputAwareInputService {
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
 
-    private var mBackingDomInput: BackingDomInput? = null
+    private var backingDomInput: BackingDomInput? = null
         set(value) {
             field?.dispose()
             field = value
@@ -44,7 +44,7 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        mBackingDomInput =
+        backingDomInput =
             BackingDomInput(
                 imeOptions = imeOptions,
                 composeCommunicator = object : ComposeCommandCommunicator {
@@ -57,30 +57,30 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
                     }
                 }
             )
-        mBackingDomInput?.register()
+        backingDomInput?.register()
 
         showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        mBackingDomInput?.dispose()
+        backingDomInput?.dispose()
     }
 
     override fun showSoftwareKeyboard() {
-        mBackingDomInput?.focus()
+        backingDomInput?.focus()
     }
 
     override fun hideSoftwareKeyboard() {
-        mBackingDomInput?.blur()
+        backingDomInput?.blur()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        mBackingDomInput?.updateState(newValue)
+        backingDomInput?.updateState(newValue)
     }
 
     override fun notifyFocusedRect(rect: Rect) {
         super.notifyFocusedRect(rect)
-        mBackingDomInput?.updateHtmlInputPosition(getOffset(rect))
+        backingDomInput?.updateHtmlInputPosition(getOffset(rect))
     }
 
 }
