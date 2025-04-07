@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
+import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.SetComposingRegionCommand
 import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
@@ -69,7 +70,7 @@ internal class UIKitTextInputService(
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
     private val focusManager: () -> ComposeSceneFocusManager
-) : TextToolbar {
+) : PlatformTextInputService, TextToolbar {
 
     private var currentInput: CurrentInput? = null
     private var currentImeOptions: ImeOptions? = null
@@ -125,7 +126,7 @@ internal class UIKitTextInputService(
     private var _tempCursorPos: Int? = null
     private val mainScope = MainScope()
 
-    fun startInput(
+    override fun startInput(
         value: TextFieldValue,
         imeOptions: ImeOptions,
         onEditCommand: (List<EditCommand>) -> Unit,
@@ -146,7 +147,7 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
-    fun stopInput() {
+    override fun stopInput() {
         flushEditCommandsIfNeeded(force = true)
         currentInput = null
         _tempCurrentInputSession = null
@@ -159,19 +160,19 @@ internal class UIKitTextInputService(
         detachIntermediateTextInputView()
     }
 
-    private fun showSoftwareKeyboard() {
+    override fun showSoftwareKeyboard() {
         textUIView?.let {
             focusStack?.pushAndFocus(it)
         }
     }
 
-    private fun hideSoftwareKeyboard() {
+    override fun hideSoftwareKeyboard() {
         textUIView?.let {
             focusStack?.popUntilNext(it)
         }
     }
 
-    fun updateState(newValue: TextFieldValue) {
+    override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
         val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
         val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
         val selectionChanged =

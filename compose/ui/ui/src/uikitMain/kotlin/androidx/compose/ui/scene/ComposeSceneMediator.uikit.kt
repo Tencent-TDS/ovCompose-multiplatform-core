@@ -708,6 +708,7 @@ internal class ComposeSceneMediator(
 
         override val viewConfiguration get() = this@ComposeSceneMediator.viewConfiguration
         override val inputModeManager = DefaultInputModeManager(InputMode.Touch)
+        override val textInputService get() = this@ComposeSceneMediator.textInputService
         override val textToolbar get() = this@ComposeSceneMediator.textInputService
         override val semanticsOwnerListener get() = this@ComposeSceneMediator.semanticsOwnerListener
         override val dragAndDropManager get() = this@ComposeSceneMediator.dragAndDropManager
@@ -736,7 +737,7 @@ internal class ComposeSceneMediator(
                 coroutineScope {
                     launch {
                         request.outputValue.collect {
-                            textInputService.updateState(newValue = it)
+                            textInputService.updateState(oldValue = null, newValue = it)
                         }
                     }
                     launch {
