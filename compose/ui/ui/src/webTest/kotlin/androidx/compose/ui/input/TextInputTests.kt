@@ -87,6 +87,8 @@ class TextInputTests : OnCanvasTests  {
             }
         }
 
+        yield()
+
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
 
