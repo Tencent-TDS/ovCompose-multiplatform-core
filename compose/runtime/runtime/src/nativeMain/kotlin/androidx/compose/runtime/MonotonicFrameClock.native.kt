@@ -25,7 +25,6 @@ import kotlinx.coroutines.yield
  *
  * This value is no longer used by compose runtime.
  */
-@Suppress("DEPRECATION")
 @Deprecated(
     "MonotonicFrameClocks are not globally applicable across platforms. " +
         "Use an appropriate local clock."
