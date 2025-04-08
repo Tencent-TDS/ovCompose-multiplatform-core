@@ -940,11 +940,10 @@ internal class AccessibilityMediator(
         accessibilityElementsMap.clear()
     }
 
-    private var focusedScrollableParentsIdsUpdateJob = Job()
+    private var focusedScrollableParentsIdsUpdateJob: Job? = null
     private fun scheduleFocusedScrollableParentsIdsUpdate() {
-        focusedScrollableParentsIdsUpdateJob.cancel()
-        focusedScrollableParentsIdsUpdateJob = Job()
-        CoroutineScope(coroutineContext + focusedScrollableParentsIdsUpdateJob).launch {
+        focusedScrollableParentsIdsUpdateJob?.cancel()
+        focusedScrollableParentsIdsUpdateJob = coroutineScope.launch {
             // Throttle the recalculation of scrollable parent node IDs to avoid unnecessary
             // reloading of the accessibility tree when the focusMode changes quickly.
             delay(10)
