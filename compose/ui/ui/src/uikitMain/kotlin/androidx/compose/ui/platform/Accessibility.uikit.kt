@@ -742,20 +742,7 @@ internal class AccessibilityMediator(
             field = value
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
 
-            val ids = (focusMode as? AccessibilityElementFocusMode.KeepFocus)?.key?.let {
-                accessibilityElementsMap[it]?.node?.semanticsNode?.allScrollableParentNodeIds
-            } ?: emptySet()
-
-            if (focusedNodesScrollableParentsIds != ids) {
-                focusedNodesScrollableParentsIds = ids
-                invalidationChannel.trySend(Unit)
-
-                if (ids.isNotEmpty()) {
-                    // Hack to fix an issue where iOS accessibility only reads the items visible
-                    // at the moment of the beginning of the "Speak Screen" command.
-                    UIAccessibilityPostNotification(UIAccessibilityPageScrolledNotification, null)
-                }
-            }
+            scheduleFocusedScrollableParentsIdsUpdate()
         }
 
     var focusedNodesScrollableParentsIds = setOf<Int>()
@@ -951,6 +938,31 @@ internal class AccessibilityMediator(
 
         root.element = null
         accessibilityElementsMap.clear()
+    }
+
+    private var focusedScrollableParentsIdsUpdateJob = Job()
+    private fun scheduleFocusedScrollableParentsIdsUpdate() {
+        focusedScrollableParentsIdsUpdateJob.cancel()
+        focusedScrollableParentsIdsUpdateJob = Job()
+        CoroutineScope(coroutineContext + focusedScrollableParentsIdsUpdateJob).launch {
+            // Throttle the recalculation of scrollable parent node IDs to avoid unnecessary
+            // reloading of the accessibility tree when the focusMode changes quickly.
+            delay(10)
+            val ids = (focusMode as? AccessibilityElementFocusMode.KeepFocus)?.key?.let {
+                accessibilityElementsMap[it]?.node?.semanticsNode?.allScrollableParentNodeIds
+            } ?: emptySet()
+
+            if (focusedNodesScrollableParentsIds != ids) {
+                focusedNodesScrollableParentsIds = ids
+                invalidationChannel.trySend(Unit)
+
+                if (ids.isNotEmpty()) {
+                    // Hack to fix an issue where iOS accessibility only reads the items visible
+                    // at the moment of the beginning of the "Speak Screen" command.
+                    UIAccessibilityPostNotification(UIAccessibilityPageScrolledNotification, null)
+                }
+            }
+        }
     }
 
     private fun createOrUpdateAccessibilityElement(
