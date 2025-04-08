@@ -73,7 +73,7 @@ internal class DomInputStrategy(
                 return@addEventListener
             }
 
-            if (evt.repeat && evt.isTypedEvent) {
+            if (evt.repeat && isTypedEvent(evt)) {
                 if (repeatDetector.repeatMode == RepeatMode.Accent) {
                     editState = EditState.AccentDialogue
                     return@addEventListener
@@ -286,7 +286,7 @@ private class RepeatDetector(private val input: HTMLElement) {
             evt as KeyboardEvent
             if (evt.repeat && this.repeatMode === RepeatMode.Unknown) {
                 // we can not deduce anything if event is not typed
-                if (!evt.isTypedEvent) return@addEventListener
+                if (!isTypedEvent(evt)) return@addEventListener
                 if (resolving) {
                     repeatMode = RepeatMode.Accent;
                     resolving = false;
@@ -305,9 +305,5 @@ private class RepeatDetector(private val input: HTMLElement) {
     }
 }
 
-// TODO: Ideally we should reuse KeyEvent.isTypedEvent
-private val KeyboardEvent.isTypedEvent: Boolean
-    get() = type == "keydown"
-        && !metaKey
-        && !ctrlKey
-        && key.firstOrNull()?.toString() == key
+private fun isTypedEvent(evt: KeyboardEvent): Boolean = js("!evt.metaKey && !evt.ctrlKey && evt.key.charAt(0) === evt.key")
+
