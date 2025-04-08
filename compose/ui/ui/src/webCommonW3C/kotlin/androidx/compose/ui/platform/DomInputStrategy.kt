@@ -88,8 +88,8 @@ internal class DomInputStrategy(
             }
 
             val timeStamp = evt.timeStamp.toInt()
-            // We ignore timestamps that zero because that means that host OS/browser ju
-            if (timeStamp !== 0  && timeStamp <= lastActualCompositionTimestamp) {
+            // We ignore timestamps that zero because that means that host OS/browser just doesn't provide this information
+            if (timeStamp != 0  && timeStamp <= lastActualCompositionTimestamp) {
                 evt.preventDefault()
                 return@addEventListener
             }
