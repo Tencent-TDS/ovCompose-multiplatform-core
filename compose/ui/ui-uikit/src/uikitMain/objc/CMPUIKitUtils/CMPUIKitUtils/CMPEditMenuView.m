@@ -61,10 +61,9 @@ id _editInteraction;
     self.cutBlock = cutBlock;
     self.pasteBlock = pasteBlock;
     self.selectAllBlock = selectAllBlock;
-    self.isEditMenuShown = YES;
 
     if (@available(iOS 16, *)) {
-        if (self.editInteraction == nil || contextMenuItemsChanged) {
+        if (self.editInteraction == nil || contextMenuItemsChanged || !self.isEditMenuShown) {
             [self cancelPresentEditMenuInteraction];
             NSTimeInterval delay = self.presentInteractionBlock == nil ? 0 : [self editMenuDelay];
             [self schedulePresentEditMenuInteractionWithDelay:delay];
@@ -72,6 +71,7 @@ id _editInteraction;
             [self.editInteraction updateVisibleMenuPositionAnimated:NO];
         }
     } else {
+        self.isEditMenuShown = YES;
         if (contextMenuItemsChanged || positionChanged) {
             [self hideEditMenu];
             [self scheduleShowMenuController];
@@ -152,7 +152,6 @@ id _editInteraction;
 }
 
 - (void)hideEditMenu {
-    self.isEditMenuShown = NO;
     if (@available(iOS 16, *)) {
         [self cancelPresentEditMenuInteraction];
 
@@ -162,9 +161,11 @@ id _editInteraction;
             self.editInteraction = nil;
         }
     } else if (@available(iOS 13, *)) {
+        self.isEditMenuShown = NO;
         [self cancelShowMenuController];
         [[UIMenuController sharedMenuController] hideMenu];
     } else {
+        self.isEditMenuShown = NO;
         [self cancelShowMenuController];
         [[UIMenuController sharedMenuController] setMenuVisible:NO];
     }
@@ -214,6 +215,30 @@ id _editInteraction;
 - (CGRect)editMenuInteraction:(UIEditMenuInteraction *)interaction
    targetRectForConfiguration:(UIEditMenuConfiguration *)configuration API_AVAILABLE(ios(16.0)) {
     return self.targetRect;
+}
+
+- (void)editMenuInteraction:(UIEditMenuInteraction *)interaction
+willDismissMenuForConfiguration:(UIEditMenuConfiguration *)configuration
+                   animator:(id<UIEditMenuInteractionAnimating>)animator API_AVAILABLE(ios(16.0)) {
+    __weak __auto_type weak_self = self;
+    [animator addCompletion:^{
+        __auto_type self = weak_self;
+        if (self.editInteraction == interaction) {
+            self.isEditMenuShown = NO;
+        }
+    }];
+}
+
+- (void)editMenuInteraction:(UIEditMenuInteraction *)interaction
+willPresentMenuForConfiguration:(UIEditMenuConfiguration *)configuration
+                   animator:(id<UIEditMenuInteractionAnimating>)animator API_AVAILABLE(ios(16.0)) {
+    __weak __auto_type weak_self = self;
+    [animator addCompletion:^{
+        __auto_type self = weak_self;
+        if (self.editInteraction == interaction) {
+            self.isEditMenuShown = YES;
+        }
+    }];
 }
 
 @end

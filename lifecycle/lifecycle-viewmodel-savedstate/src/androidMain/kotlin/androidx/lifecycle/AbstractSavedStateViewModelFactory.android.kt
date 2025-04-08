@@ -24,16 +24,16 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryOwner
 import kotlin.reflect.KClass
 
-public actual abstract class AbstractSavedStateViewModelFactory :
+public abstract class AbstractSavedStateViewModelFactory :
     ViewModelProvider.OnRequeryFactory, ViewModelProvider.Factory {
 
     private var savedStateRegistry: SavedStateRegistry? = null
     private var lifecycle: Lifecycle? = null
     private var defaultArgs: SavedState? = null
 
-    actual constructor() {}
+    constructor() {}
 
-    actual constructor(owner: SavedStateRegistryOwner, defaultArgs: SavedState?) {
+    constructor(owner: SavedStateRegistryOwner, defaultArgs: SavedState?) {
         savedStateRegistry = owner.savedStateRegistry
         lifecycle = owner.lifecycle
         this.defaultArgs = defaultArgs
@@ -116,7 +116,7 @@ public actual abstract class AbstractSavedStateViewModelFactory :
         handle: SavedStateHandle
     ): T
 
-    protected actual open fun <T : ViewModel> create(
+    protected open fun <T : ViewModel> create(
         key: String,
         modelClass: KClass<T>,
         handle: SavedStateHandle

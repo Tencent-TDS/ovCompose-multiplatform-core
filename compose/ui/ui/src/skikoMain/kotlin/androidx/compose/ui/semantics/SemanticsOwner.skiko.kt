@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.roundToIntRect
 internal fun SemanticsNode.isImportantForAccessibility() =
     !isHidden &&
         (unmergedConfig.isMergingSemanticsOfDescendants ||
+            unmergedConfig.contains(SemanticsProperties.TestTag) ||
             unmergedConfig.containsImportantForAccessibility())
 
 @Suppress("DEPRECATION")
