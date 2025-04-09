@@ -71,7 +71,7 @@ class TextInputTests : OnCanvasTests  {
                 modifier = Modifier.focusRequester(firstFocusRequester)
             )
 
-            SideEffect {
+            LaunchedEffect(Unit) {
                 firstFocusRequester.requestFocus()
             }
         }
@@ -424,21 +424,18 @@ class TextInputTests : OnCanvasTests  {
                     })
 
                     LaunchedEffect(textState.selection) {
+                        focusRequester.requestFocus()
                         syncChannel.send(textState.selection)
                     }
                 }
             }
         }
 
-        focusRequester.requestFocus()
         yield()
-
-        val textArea = document.querySelector("textarea")
-        assertIs<HTMLTextAreaElement>(textArea)
 
         var selection = syncChannel.receive()
         assertEquals(TextRange(14, 14), selection)
-        assertTrue(textFieldWidth > 0)
+        assertTrue(textFieldWidth > 0, "TextField width should be positive")
 
         val canvas = getCanvas()
         canvas.dispatchEvent(MouseEvent("mouseenter"))
@@ -449,6 +446,9 @@ class TextInputTests : OnCanvasTests  {
 
         selection = syncChannel.receive()
         assertEquals(TextRange(0, 0), selection)
+
+        val textArea = document.querySelector("textarea")
+        assertIs<HTMLTextAreaElement>(textArea)
 
         val textAreaRect = textArea.getBoundingClientRect()
         // Do a manual hit-test
