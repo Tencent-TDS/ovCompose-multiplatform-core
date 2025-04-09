@@ -31,6 +31,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CoroutineScope
 
 internal actual fun Modifier.textFieldMagnifier(manager: TextFieldSelectionManager): Modifier {
     if (!isPlatformMagnifierSupported()) {
@@ -174,3 +175,9 @@ internal fun isSelectionHandleIsVisible(isStartHandle: Boolean, position: Offset
 
     return containsHorizontal && containsVertical
 }
+
+// TODO: https://youtrack.jetbrains.com/issue/CMP-7819
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    manager: TextFieldSelectionManager,
+    coroutineScope: CoroutineScope,
+): Modifier = this
