@@ -83,6 +83,8 @@ class TextInputTests : OnCanvasTests  {
     fun regularInput() = runTest {
         val textInputChannel = createTextFieldWithChannel()
 
+        yield()
+
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
 
@@ -109,6 +111,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun compositeInput() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -138,6 +141,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun compositeInputWebkit() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -167,6 +171,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun mobileInput() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -192,6 +197,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun repeatedAccent() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -238,6 +244,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun repeatedDefault() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -261,6 +268,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun repeatedAccentMenuPressed() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -285,6 +293,7 @@ class TextInputTests : OnCanvasTests  {
     @Test
     fun repeatedAccentMenuIgnoreNonTyped() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -311,6 +320,7 @@ class TextInputTests : OnCanvasTests  {
 
     fun repeatedAccentMenuClicked() = runTest {
         val textInputChannel = createTextFieldWithChannel()
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
@@ -362,6 +372,8 @@ class TextInputTests : OnCanvasTests  {
                 firstFocusRequester.requestFocus()
             }
         }
+
+        yield()
 
         val backingTextField = document.querySelector("textarea")
         assertIs<HTMLTextAreaElement>(backingTextField)
