@@ -329,12 +329,8 @@ private sealed interface AccessibilityNode {
 
         override val isAccessibilityElement = false
 
-        override val accessibilityContainerType: UIAccessibilityContainerType
-            get() = if (semanticsNode.isTraversalGroup) {
-                UIAccessibilityContainerTypeSemanticGroup
-            } else {
-                UIAccessibilityContainerTypeNone
-            }
+        override val accessibilityContainerType: UIAccessibilityContainerType =
+            UIAccessibilityContainerTypeSemanticGroup
     }
 }
 
@@ -598,6 +594,9 @@ private class AccessibilityElement(
             super.accessibilityPerformEscape()
         }
     }
+
+    override fun accessibilityContainerType(): UIAccessibilityContainerType =
+        node.accessibilityContainerType
 
     private fun debugContainmentChain() = debugContainmentChain(this)
 
