@@ -65,7 +65,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         )
         val newValue = editProcessor.apply(commands)
 
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             // Update text
             replace(0, length, newValue.text)
 
@@ -84,7 +84,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
     }
 
     fun editText(block: TextEditingScope.() -> Unit) {
-        state.editUntransformedTextAsUser {
+        state.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
             with(TextEditingScope(this)) {
                 block()
             }
@@ -126,7 +126,7 @@ internal actual suspend fun PlatformTextInputSession.platformSpecificTextInputSe
         startInputMethod(
             SkikoPlatformTextInputMethodRequest(
                 value = { state.untransformedText.toTextFieldValue() },
-                state = state.untransformedText.asTextEditorState(),
+                state = state::untransformedText.asTextEditorState(),
                 imeOptions = imeOptions,
                 onEditCommand = ::onEditCommand,
                 onImeAction = onImeAction,
@@ -146,22 +146,24 @@ private fun TextFieldCharSequence.toTextFieldValue() =
     TextFieldValue(toString(), selection, composition)
 
 @OptIn(ExperimentalComposeUiApi::class)
-private fun TextFieldCharSequence.asTextEditorState() = object : TextEditorState {
+private inline fun (() -> TextFieldCharSequence).asTextEditorState() = object : TextEditorState {
 
     override val length: Int
-        get() = this@asTextEditorState.length
+        get() = this@asTextEditorState().length
 
-    override fun get(index: Int): Char = this@asTextEditorState[index]
+    override fun get(index: Int): Char = this@asTextEditorState()[index]
 
     override fun subSequence(startIndex: Int, endIndex: Int): CharSequence {
-        return this@asTextEditorState.subSequence(startIndex, endIndex)
+        return this@asTextEditorState().subSequence(startIndex, endIndex)
     }
 
     override val selection: TextRange
-        get() = this@asTextEditorState.selection
+        get() = this@asTextEditorState().selection
 
     override val composition: TextRange?
-        get() = this@asTextEditorState.composition
+        get() = this@asTextEditorState().composition
+
+    override fun toString(): String = this@asTextEditorState().toString()
 
 }
 

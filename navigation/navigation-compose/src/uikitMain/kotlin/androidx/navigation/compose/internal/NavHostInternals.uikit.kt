@@ -46,6 +46,27 @@ internal actual object DefaultNavTransitions {
                 targetOffset = { fullOffset -> (fullOffset * 0.3f).toInt() }
             )
         }
+    val popEnterTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = tween(
+                durationMillis = 200,
+                easing = LinearEasing
+            ),
+            initialOffset = { fullOffset -> (fullOffset * 0.3f).toInt() }
+        )
+    }
+    val popExitTransition:
+        AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = tween(
+                durationMillis = 200,
+                easing = LinearEasing
+            )
+        )
+    }
     actual val sizeTransform:
         (AnimatedContentTransitionScope<NavBackStackEntry>.() -> SizeTransform?)? = null
 }

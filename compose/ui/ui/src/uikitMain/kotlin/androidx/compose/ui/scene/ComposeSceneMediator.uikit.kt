@@ -754,7 +754,6 @@ internal class ComposeSceneMediator(
                         textInputService.startInput(
                             value = request.value(),
                             imeOptions = request.imeOptions,
-                            editProcessor = request.editProcessor,
                             onEditCommand = request.onEditCommand,
                             onImeActionPerformed = request.onImeAction ?: {}
                         )
