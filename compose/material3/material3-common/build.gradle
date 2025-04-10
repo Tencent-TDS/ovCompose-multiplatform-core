@@ -41,7 +41,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlib)
+                implementation(libs.kotlinStdlibCommon)
                 implementation(project(":compose:ui:ui-util"))
                 api(project(":compose:foundation:foundation"))
                 api(project(":compose:foundation:foundation-layout"))
