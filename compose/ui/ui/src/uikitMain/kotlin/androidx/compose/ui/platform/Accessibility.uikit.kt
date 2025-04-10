@@ -382,9 +382,7 @@ private class AccessibilityRoot(
 
     // UIFocusItemContainerProtocol
 
-    override fun coordinateSpace(): UICoordinateSpaceProtocol {
-        return mediator.view.window ?: mediator.view
-    }
+    override fun coordinateSpace(): UICoordinateSpaceProtocol = mediator.view
 
     override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
         return if (mediator.isEnabled) {
@@ -664,7 +662,7 @@ private class AccessibilityElement(
         var component: Any? = accessibilityContainer
         while (component != null) {
             when (component) {
-                is UIView -> return component.window ?: component
+                is UIView -> return component
                 is CMPAccessibilityElement -> component = component.accessibilityContainer
                 else -> error("Unexpected coordinate space.")
             }
