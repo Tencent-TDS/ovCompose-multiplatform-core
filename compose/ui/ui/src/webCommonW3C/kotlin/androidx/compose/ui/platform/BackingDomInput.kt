@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.browser.document
+import kotlinx.browser.window
 
 
 internal interface ComposeCommandCommunicator {
@@ -53,7 +54,9 @@ internal class BackingDomInput(
     }
 
     fun focus() {
-        backingElement.focus()
+        window.requestAnimationFrame {
+            backingElement.focus()
+        }
     }
 
     fun blur() {
@@ -63,12 +66,11 @@ internal class BackingDomInput(
     fun updateHtmlInputPosition(offset: Offset) {
         backingElement.style.left = "${offset.x}px"
         backingElement.style.top = "${offset.y}px"
-
-        focus()
     }
 
     fun updateState(textFieldValue: TextFieldValue) {
         inputStrategy.updateState(textFieldValue)
+        focus()
     }
 
     fun dispose() {
