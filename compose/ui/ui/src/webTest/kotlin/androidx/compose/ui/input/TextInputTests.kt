@@ -17,6 +17,7 @@
 package androidx.compose.ui.input
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.TextField
 import androidx.compose.runtime.CompositionLocalProvider
@@ -63,7 +64,7 @@ class TextInputTests : OnCanvasTests  {
         val (firstFocusRequester) = FocusRequester.createRefs()
 
         createComposeWindow {
-            TextField(
+            BasicTextField(
                 value = "",
                 onValueChange = { value ->
                     textInputChannel.sendFromScope(value)
