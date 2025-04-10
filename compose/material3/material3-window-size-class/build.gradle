@@ -40,7 +40,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.kotlinStdlib)
+                implementation(libs.kotlinStdlibCommon)
                 implementation(project(":compose:ui:ui-util"))
                 api(project(":compose:runtime:runtime"))
                 api(project(":compose:ui:ui"))
