@@ -348,14 +348,6 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
         }
     }
 
-    override fun enableAccessibilityChecks() {
-        // TODO(CMP-6719): Implement accessibility checks
-    }
-
-    override fun disableAccessibilityChecks() {
-        // TODO(CMP-6719): Implement accessibility checks
-    }
-
     override fun onNode(
         matcher: SemanticsMatcher,
         useUnmergedTree: Boolean
@@ -494,9 +486,6 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
         condition: () -> Boolean
     )
     actual fun setContent(composable: @Composable () -> Unit)
-
-    actual fun enableAccessibilityChecks()
-    actual fun disableAccessibilityChecks()
 }
 
 private const val FRAME_DELAY_MILLIS = 16L

@@ -27,7 +27,7 @@ import kotlin.jvm.JvmStatic
 import kotlin.reflect.KClass
 
 public actual open class NavigatorProvider actual constructor() {
-    private val _typeNavigators = mutableMapOf<KClass<*>, Navigator<out NavDestination>>()
+    private val _typeToNavigatorName = mutableMapOf<KClass<*>, String>()
     private val _namedNavigators = mutableMapOf<String, Navigator<out NavDestination>>()
 
     @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -45,7 +45,7 @@ public actual open class NavigatorProvider actual constructor() {
     @Suppress("UNCHECKED_CAST")
     public fun <T : Navigator<*>> getNavigator(navigatorClass: KClass<T>): T {
         val navigator =
-            _typeNavigators[navigatorClass]
+            _typeToNavigatorName[navigatorClass]?.let { name -> _namedNavigators[name] }
                 ?: throw IllegalStateException(
                     "Could not find Navigator with class \"$navigatorClass\". You must call " +
                         "NavController.addNavigator() for each navigation type."
@@ -69,18 +69,6 @@ public actual open class NavigatorProvider actual constructor() {
     public actual fun addNavigator(
         navigator: Navigator<out NavDestination>
     ): Navigator<out NavDestination>? {
-        val previousNavigator = _typeNavigators[navigator::class]
-        if (previousNavigator == navigator) {
-            return navigator
-        }
-        check(previousNavigator?.isAttached != true) {
-            "Navigator $navigator is replacing an already attached $previousNavigator"
-        }
-        check(!navigator.isAttached) {
-            "Navigator $navigator is already attached to another NavController"
-        }
-
-        _typeNavigators[navigator::class] = navigator
         return addNavigator(navigator.name, navigator)
     }
 
@@ -90,6 +78,7 @@ public actual open class NavigatorProvider actual constructor() {
         navigator: Navigator<out NavDestination>
     ): Navigator<out NavDestination>? {
         require(validateName(name)) { "Navigator name cannot be an empty string" }
+        _typeToNavigatorName[navigator::class] = navigator.name
         val previousNavigator = _namedNavigators[name]
         if (previousNavigator == navigator) {
             return navigator

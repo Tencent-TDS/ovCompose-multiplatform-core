@@ -100,7 +100,7 @@ fun Window.sendKeyTypedEvent(
     modifiers = modifiers
 )
 
-fun Window.sendInputEvent(
+fun Window.sendInputMethodEvent(
     text: String?,
     committedCharacterCount: Int,
 ): Boolean {

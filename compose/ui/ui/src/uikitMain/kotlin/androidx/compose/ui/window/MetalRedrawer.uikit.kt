@@ -285,12 +285,12 @@ internal class MetalRedrawer(
     /**
      * Immediately dispatch draw and block the thread until it's finished and presented on the screen.
      */
-    fun drawSynchronously() {
+    fun draw(waitUntilCompletion: Boolean) {
         if (caDisplayLink == null) {
             return
         }
 
-        draw(waitUntilCompletion = true, CACurrentMediaTime())
+        draw(waitUntilCompletion, CACurrentMediaTime())
     }
 
     /**

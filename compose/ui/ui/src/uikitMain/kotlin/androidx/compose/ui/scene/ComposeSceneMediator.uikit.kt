@@ -627,6 +627,7 @@ internal class ComposeSceneMediator(
         userInputView.dispose()
 
         view.removeFromSuperview()
+        userInputView.removeFromSuperview()
 
         scene.close()
         interopContainer.dispose()
@@ -753,7 +754,6 @@ internal class ComposeSceneMediator(
                         textInputService.startInput(
                             value = request.value(),
                             imeOptions = request.imeOptions,
-                            editProcessor = request.editProcessor,
                             onEditCommand = request.onEditCommand,
                             onImeActionPerformed = request.onImeAction ?: {}
                         )

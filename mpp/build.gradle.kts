@@ -1,5 +1,5 @@
-import androidx.build.jetbrains.ArtifactRedirecting
-import androidx.build.jetbrains.artifactRedirecting
+import androidx.build.jetbrains.ArtifactRedirection
+import androidx.build.jetbrains.artifactRedirection
 
 buildscript {
     repositories {
@@ -7,6 +7,11 @@ buildscript {
         maven("https://maven.pkg.jetbrains.space/public/p/compose/internal")
         maven("https://maven.pkg.jetbrains.space/public/p/space/maven")
     }
+}
+
+// this module depends on all other modules info, so we need to initialize them first
+(rootProject.allprojects - project).forEach {
+    evaluationDependsOn(it.path)
 }
 
 open class ComposePublishingTask : AbstractComposePublishingTask() {
@@ -34,7 +39,6 @@ val libraryToComponents = mapOf(
         ComposeComponent(":compose:material3:material3"),
         //ComposeComponent(":compose:material:material-icons-core"),
         ComposeComponent(":compose:material:material-ripple"),
-        ComposeComponent(":compose:material:material-navigation"),
         ComposeComponent(":compose:material3:material3-window-size-class"),
         ComposeComponent(":compose:material3:material3-adaptive-navigation-suite"),
         ComposeComponent(":compose:runtime:runtime", supportedPlatforms = ComposePlatforms.ALL),
@@ -44,7 +48,6 @@ val libraryToComponents = mapOf(
         ComposeComponent(
             path = ":compose:ui:ui-backhandler",
             supportedPlatforms = ComposePlatforms.SKIKO_SUPPORT,
-            neverRedirect = true
         ),
         ComposeComponent(":compose:ui:ui-graphics"),
         ComposeComponent(":compose:ui:ui-test"),
@@ -68,6 +71,9 @@ val libraryToComponents = mapOf(
         ),
         ComposeComponent(":compose:ui:ui-unit"),
         ComposeComponent(":compose:ui:ui-util"),
+    ),
+    "COMPOSE_MATERIAL_NAVIGATION" to listOf(
+        ComposeComponent(":compose:material:material-navigation"),
     ),
     "COMPOSE_MATERIAL3_COMMON" to listOf(
         ComposeComponent(":compose:material3:material3-common"),
@@ -135,6 +141,9 @@ val libraryToTasks = mapOf(
     )
 )
 
+val pathToComposeComponent = libraryToComponents.values.flatten().associateBy { it.path }
+val Project.composeComponent get() = pathToComposeComponent[path]
+
 tasks.register("publishComposeJb", ComposePublishingTask::class) {
     repository = "MavenRepository"
 
@@ -179,10 +188,16 @@ tasks.register("publishComposeJbExtendedIconsToMavenLocal", ComposePublishingTas
     iconsPublications()
 }
 
+// TODO deprecated, kept for CI compatibility, remove after Compose Multiplatform 1.8.0 is released
 tasks.register("checkDesktop") {
     dependsOn(allTasksWith(name = "desktopTest"))
     dependsOn(":collection:collection:jvmTest")
     dependsOn(allTasksWith(name = "desktopApiCheck"))
+}
+
+tasks.register("testDesktop") {
+    dependsOn(allTasksWith(name = "desktopTest"))
+    dependsOn(":collection:collection:jvmTest")
 }
 
 tasks.register("testWeb") {
@@ -255,31 +270,73 @@ tasks.register("testComposeModules") { // used in https://github.com/JetBrains/a
     // android:exported needs to be explicitly specified for <activity>. Apps targeting Android 12 and higher are required to specify an explicit value for `android:exported` when the corresponding component has an intent filter defined.
 }
 
+tasks.register("jbApiDump") {
+    dependsOn(apiValidationTasks(suffix = "ApiDump"))
+}
+
+tasks.register("jbApiCheck") {
+    dependsOn(apiValidationTasks(suffix = "ApiCheck"))
+}
+
+fun apiValidationTasks(suffix: String) = buildSet<Task> {
+    fun Iterable<Task>.filterComposePlatforms(vararg platforms: ComposePlatforms) =
+        filter { task ->
+            val project = task.project
+            val component = project.composeComponent
+            platforms.any {
+                component != null
+                    && it in component.supportedPlatforms
+                    && !project.hasRedirection(it)
+            }
+        }
+
+    fun Iterable<Task>.filterComposePlatforms(platforms: Set<ComposePlatforms>) =
+        filterComposePlatforms(*platforms.toTypedArray())
+
+    this += allTasksWith(name = "desktop$suffix")
+        .filterComposePlatforms(ComposePlatforms.Desktop)
+
+    this += allTasksWith(name = "android$suffix")
+        .filterComposePlatforms(ComposePlatforms.ANDROID)
+
+    val klibPlatforms = if (System.getProperty("os.name") == "Mac OS X") {
+        ComposePlatforms.GENERATE_KLIB
+    } else {
+        ComposePlatforms.GENERATE_KLIB - ComposePlatforms.DARWIN
+    }
+    this += allTasksWith(name = "klib$suffix")
+        .filterComposePlatforms(klibPlatforms)
+}
+
 fun allTasksWith(name: String) =
     rootProject.subprojects.flatMap { it.tasks.filter { it.name == name } }
 
-// ./gradlew printAllArtifactRedirectingVersions -PfilterProjectPath=lifecycle
-// or just ./gradlew printAllArtifactRedirectingVersions
-val printAllArtifactRedirectingVersions = tasks.register("printAllArtifactRedirectingVersions") {
+// ./gradlew printAllArtifactRedirectionVersions -PfilterProjectPath=lifecycle
+// or just ./gradlew printAllArtifactRedirectionVersions
+tasks.register("printAllArtifactRedirectionVersions") {
     val filter = project.properties["filterProjectPath"] as? String ?: ""
     doLast {
         val map = libraryToComponents.values.flatten().filter { it.path.contains(filter) }
             .joinToString("\n\n", prefix = "\n") {
             val p = rootProject.findProject(it.path)!!
-            it.path + " --> \n" + p.artifactRedirecting().prettyText()
+            it.path + " --> \n" + (p.artifactRedirection().prettyText())
         }
 
         println(map)
     }
 }
 
-fun ArtifactRedirecting.prettyText(): String {
-    val allLines = arrayOf(
-        "redirectGroupId = ${this.groupId}",
-        "redirectDefaultVersion = ${this.defaultVersion}",
-        "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
-        "redirectTargetVersions = ${this.targetVersions}"
-    )
+fun ArtifactRedirection?.prettyText(): String {
+    val allLines = if (this != null) {
+        arrayOf(
+            "redirectGroupId = ${this.groupId}",
+            "redirectDefaultVersion = ${this.defaultVersion}",
+            "redirectForTargets = [${this.targetNames.joinToString().takeIf { it.isNotBlank() } ?: "android"}]",
+            "redirectTargetVersions = ${this.targetVersions}"
+        )
+    } else {
+        arrayOf("disabled")
+    }
 
     return allLines.joinToString("") { " ".repeat(3) + "$it\n" }
 }

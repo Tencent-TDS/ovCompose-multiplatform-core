@@ -128,13 +128,7 @@ internal class UIKitComposeSceneLayersHolder(
         view.embedSubview(layer.view)
 
         if (isFirstLayer) {
-            // The content of previous layers drawn on the Metal view should be cleared and
-            // redrawn synchronously after the new layer is attached to avoid flickering.
-
-            metalView.setNeedsSynchronousDrawOnNextLayout()
-
             window?.embedSubview(view)
-            window?.layoutIfNeeded()
         }
 
         if (hasViewAppeared) {
@@ -157,6 +151,9 @@ internal class UIKitComposeSceneLayersHolder(
             view.removeFromSuperview()
 
             transaction.actions.fastForEach { it.invoke() }
+
+            // If the layers list is empty, the draw call will clear the canvas.
+            metalView.redrawer.draw(waitUntilCompletion = false)
         } else {
             // It wasn't the last layer, pending transactions should be added to the list
             removedLayersTransactions.add(transaction)

@@ -48,6 +48,10 @@ internal class ComposeView(
     private var onDidMoveToWindow: (UIWindow?) -> Unit = {}
     private var onLayoutSubviews: () -> Unit = {}
 
+    override fun canBecomeFirstResponder(): Boolean {
+        return true
+    }
+
     override fun traitCollectionDidChange(previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
 

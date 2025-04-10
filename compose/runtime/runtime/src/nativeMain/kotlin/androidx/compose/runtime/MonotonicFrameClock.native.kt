@@ -16,7 +16,7 @@
 
 package androidx.compose.runtime
 
-import kotlin.system.getTimeNanos
+import kotlin.time.TimeSource
 import kotlinx.coroutines.yield
 
 /**
@@ -25,7 +25,6 @@ import kotlinx.coroutines.yield
  *
  * This value is no longer used by compose runtime.
  */
-@Suppress("DEPRECATION")
 @Deprecated(
     "MonotonicFrameClocks are not globally applicable across platforms. " +
         "Use an appropriate local clock."
@@ -35,6 +34,6 @@ actual val DefaultMonotonicFrameClock: MonotonicFrameClock = object : MonotonicF
         onFrame: (Long) -> R
     ): R {
         yield()
-        return onFrame(getTimeNanos())
+        return onFrame(TimeSource.Monotonic.markNow().elapsedNow().inWholeNanoseconds)
     }
 }
