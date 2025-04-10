@@ -31,6 +31,11 @@ class AppFunctionSerializableProcessorTest {
             CompilationTestHelper(
                 testFileSrcDir = File("src/test/test-data/input"),
                 goldenFileSrcDir = File("src/test/test-data/output"), // unused
+                proxySourceFileNames =
+                    listOf(
+                        "androidx/appfunctions/internal/serializableproxies/AppFunctionLocalDateTime.KT",
+                        "androidx/appfunctions/internal/serializableproxies/AppFunctionUri.KT",
+                    ),
                 symbolProcessorProviders = listOf(AppFunctionSerializableProcessor.Provider())
             )
     }
@@ -206,14 +211,30 @@ class AppFunctionSerializableProcessorTest {
 
     @Test
     fun testProcessor_validAppFunctionSerializableFactory_succeeds() {
-        val report =
-            compilationTestHelper.compileAll(
-                sourceFileNames = listOf("AppFunctionLocalDateTime.KT")
-            )
+        val report = compilationTestHelper.compileAll(sourceFileNames = listOf())
         compilationTestHelper.assertSuccessWithSourceContent(
             report = report,
             expectGeneratedSourceFileName = "\$LocalDateTimeFactory.kt",
             goldenFileName = "\$LocalDateTimeFactory.KT"
+        )
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$UriFactory.kt",
+            goldenFileName = "\$UriFactory.KT"
+        )
+    }
+
+    @Test
+    fun testProcessor_validSerializableWithProxyProperties_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("SerializableWithProxyType.KT")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "\$SerializableWithProxyTypeFactory.kt",
+            goldenFileName = "\$SerializableWithProxyTypeFactory.KT"
         )
     }
 
@@ -238,6 +259,20 @@ class AppFunctionSerializableProcessorTest {
         compilationTestHelper.assertErrorWithMessage(
             report,
             "Companion Class must have exactly one member function: fromLocalDateTime"
+        )
+    }
+
+    @Test
+    fun testProcessor_genericFactory_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("FunctionWithGenericSerializable.KT")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "${'$'}SetFieldFactory.kt",
+            goldenFileName = "${'$'}SetFieldFactory.KT"
         )
     }
 }

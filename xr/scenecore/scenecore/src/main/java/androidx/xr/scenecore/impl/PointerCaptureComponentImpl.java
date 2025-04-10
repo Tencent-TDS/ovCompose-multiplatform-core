@@ -17,10 +17,10 @@
 package androidx.xr.scenecore.impl;
 
 import androidx.annotation.NonNull;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent.StateListener;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.PointerCaptureComponent;
+import androidx.xr.runtime.internal.PointerCaptureComponent.StateListener;
 
 import java.util.concurrent.Executor;
 

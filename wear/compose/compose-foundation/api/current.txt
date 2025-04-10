@@ -693,6 +693,7 @@ package androidx.wear.compose.foundation.pager {
     method public androidx.wear.compose.foundation.pager.PagerLayoutInfo getLayoutInfo();
     method public int getPageCount();
     method public int getSettledPage();
+    method public int getTargetPage();
     method public boolean isScrollInProgress();
     method public suspend Object? scroll(androidx.compose.foundation.MutatePriority scrollPriority, kotlin.jvm.functions.Function2<? super androidx.compose.foundation.gestures.ScrollScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? scrollToPage(int page, optional @FloatRange(from=-0.5, to=0.5) float pageOffsetFraction, kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -703,6 +704,7 @@ package androidx.wear.compose.foundation.pager {
     property public androidx.wear.compose.foundation.pager.PagerLayoutInfo layoutInfo;
     property public int pageCount;
     property public int settledPage;
+    property public int targetPage;
     field public static final androidx.wear.compose.foundation.pager.PagerState.Companion Companion;
   }
 

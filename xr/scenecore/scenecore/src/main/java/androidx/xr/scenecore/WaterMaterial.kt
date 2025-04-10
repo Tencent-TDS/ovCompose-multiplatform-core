@@ -19,7 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource as RtMaterial
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MaterialResource as RtMaterial
 import com.google.common.util.concurrent.ListenableFuture
 
 /** Represents a Material in SceneCore. */

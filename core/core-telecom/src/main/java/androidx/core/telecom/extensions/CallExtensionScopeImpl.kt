@@ -42,6 +42,7 @@ import androidx.core.telecom.extensions.CallExtensionScopeImpl.Companion.NONE
 import androidx.core.telecom.extensions.CallExtensionScopeImpl.Companion.UNKNOWN
 import androidx.core.telecom.extensions.ExtrasCallExtensionProcessor.Companion.EXTRA_VOIP_API_VERSION
 import androidx.core.telecom.internal.CapabilityExchangeListenerRemote
+import androidx.core.telecom.internal.Compatibility
 import androidx.core.telecom.internal.utils.Utils
 import androidx.core.telecom.util.ExperimentalAppActions
 import java.util.Collections
@@ -302,15 +303,17 @@ internal class CallExtensionScopeImpl(
         }
         // The extras may come in after the call is first signalled to InCallService - wait for the
         // details to be populated with extras.
-        if (details.extras == null || details.extras.isEmpty()) {
-            details =
-                withTimeoutOrNull(RESOLVE_EXTENSIONS_TYPE_TIMEOUT_MS) {
-                    detailsFlow().first { details ->
-                        details.extras != null && !details.extras.isEmpty()
-                    }
-                    // return initial details if no updates come in before the timeout
-                } ?: call.details
-        }
+        details =
+            withTimeoutOrNull(RESOLVE_EXTENSIONS_TYPE_TIMEOUT_MS) {
+                detailsFlow().first { details ->
+                    details.extras != null &&
+                        !details.extras.isEmpty() &&
+                        // We do not want to get extras in the CONNECTING state because the remote
+                        // extras from the VOIP app have not been populated yet.
+                        Compatibility.getCallState(call) != Call.STATE_CONNECTING
+                }
+                // return initial details if no updates come in before the timeout
+            } ?: call.details
         val callExtras = details.extras ?: Bundle()
         // Extras based impl check
         if (callExtras.containsKey(EXTRA_VOIP_API_VERSION)) {

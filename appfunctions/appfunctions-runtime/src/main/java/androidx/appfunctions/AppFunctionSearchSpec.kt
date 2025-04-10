@@ -25,6 +25,11 @@ import androidx.appfunctions.metadata.AppFunctionMetadataDocument
  * @property packageNames A set of package names to filter functions by. Only functions belonging to
  *   these packages will be considered. Defaults to null, which means this field is ignored when
  *   filtering.
+ *
+ *   The calling app can only search metadata for functions in packages that it is allowed to query
+ *   via [android.content.pm.PackageManager.canPackageQuery]. If a package is not queryable by the
+ *   calling app, its functions' metadata will not be visible.
+ *
  * @property schemaCategory The category of the function's schema. Defaults to null, which means
  *   this field is ignored when filtering.
  * @property schemaName The name of the function's schema. Defaults to null, which means this field

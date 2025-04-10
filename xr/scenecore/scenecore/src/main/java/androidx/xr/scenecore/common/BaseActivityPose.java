@@ -18,9 +18,13 @@ package androidx.xr.scenecore.common;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.xr.runtime.internal.ActivityPose;
+import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue;
+import androidx.xr.runtime.internal.HitTestResult;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPose;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 /**
  * Base implementation of JXRCore ActivityPose.
@@ -54,6 +58,16 @@ public abstract class BaseActivityPose implements ActivityPose {
     public Vector3 getActivitySpaceScale() {
         throw new UnsupportedOperationException(
                 "getActivitySpaceScale is not implemented for this ActivityPose.");
+    }
+
+    @Override
+    @NonNull
+    public ListenableFuture<HitTestResult> hitTest(
+            @NonNull Vector3 origin,
+            @NonNull Vector3 direction,
+            @HitTestRangeValue int hitTestRange) {
+        throw new UnsupportedOperationException(
+                "hitTest is not implemented for this ActivityPose.");
     }
 
     @Override

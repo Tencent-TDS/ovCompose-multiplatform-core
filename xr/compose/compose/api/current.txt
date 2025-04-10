@@ -119,7 +119,9 @@ package @RequiresApi(34) androidx.xr.compose.unit {
   }
 
   public static final class VolumeConstraints.Companion {
+    method public androidx.xr.compose.unit.VolumeConstraints getUnbounded();
     property public static int INFINITY;
+    property public androidx.xr.compose.unit.VolumeConstraints Unbounded;
   }
 
   public final class VolumeConstraintsKt {

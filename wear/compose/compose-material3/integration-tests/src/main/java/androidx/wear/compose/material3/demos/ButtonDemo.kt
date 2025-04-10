@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -54,10 +57,14 @@ import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ChildButton
 import androidx.wear.compose.material3.CompactButton
 import androidx.wear.compose.material3.FilledTonalButton
+import androidx.wear.compose.material3.ImageButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ListSubHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.OutlinedButton
+import androidx.wear.compose.material3.RadioButton
+import androidx.wear.compose.material3.Slider
+import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.samples.ButtonExtraLargeIconSample
 import androidx.wear.compose.material3.samples.ButtonLargeIconSample
@@ -677,28 +684,133 @@ fun ButtonBackgroundImageDemo() {
         item { ButtonBackgroundImage(painterResource(R.drawable.card_background), enabled = false) }
         item { ListHeader { Text("2 Slot Button") } }
         item {
-            Button(
+            ImageButton(
                 modifier = Modifier.sizeIn(maxHeight = ButtonDefaults.Height).fillMaxWidth(),
+                containerPainter =
+                    ButtonDefaults.containerPainter(painterResource(R.drawable.card_background)),
                 onClick = { /* Do something */ },
                 label = { Text("Label", maxLines = 1) },
                 secondaryLabel = { Text("Secondary label", maxLines = 1) },
-                colors =
-                    ButtonDefaults.imageBackgroundButtonColors(
-                        painterResource(R.drawable.card_background)
-                    )
             )
         }
         item {
-            Button(
+            ImageButton(
                 modifier = Modifier.sizeIn(maxHeight = ButtonDefaults.Height).fillMaxWidth(),
+                containerPainter =
+                    ButtonDefaults.containerPainter(painterResource(R.drawable.card_background)),
                 onClick = { /* Do something */ },
                 label = { Text("Label", maxLines = 1) },
                 secondaryLabel = { Text("Secondary label", maxLines = 1) },
                 enabled = false,
-                colors =
-                    ButtonDefaults.imageBackgroundButtonColors(
-                        painterResource(R.drawable.card_background)
-                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun ImageButtonBuilder() {
+    var alignment by remember { mutableStateOf(Alignment.Center) }
+    var contentScale by remember { mutableStateOf(ContentScale.Fit) }
+    var alpha by remember { mutableFloatStateOf(1f) }
+    var enabled by remember { mutableStateOf(true) }
+    var sizeToIntrinsics by remember { mutableStateOf(false) }
+
+    ScalingLazyDemo {
+        item { ListHeader { Text("Image Button") } }
+
+        item { ListSubHeader { Text("Alignment") } }
+        val alignments =
+            listOf(
+                "Top Start" to Alignment.TopStart,
+                "Top Center" to Alignment.TopCenter,
+                "Center Start" to Alignment.CenterStart,
+                "Center" to Alignment.Center,
+                "CenterEnd" to Alignment.CenterEnd,
+                "Bottom Center" to Alignment.BottomCenter,
+                "Bottom End" to Alignment.BottomEnd,
+            )
+        items(alignments.size) {
+            val (label, alignmentValue) = alignments[it]
+            RadioButton(
+                modifier = Modifier.fillMaxWidth(),
+                selected = alignment == alignmentValue,
+                onSelect = { alignment = alignmentValue },
+                label = { Text(label) }
+            )
+        }
+
+        item { ListSubHeader { Text("Content Scale") } }
+        val contentScales =
+            listOf(
+                "Crop" to ContentScale.Crop,
+                "Fit" to ContentScale.Fit,
+                "Inside" to ContentScale.Inside,
+                "None" to ContentScale.None,
+                "Fill Bounds" to ContentScale.FillBounds,
+                "Fill Height" to ContentScale.FillHeight,
+                "Fill Width" to ContentScale.FillWidth,
+                "Fixed X2" to FixedScale(2f),
+            )
+        items(contentScales.size) {
+            val (label, contentScaleValue) = contentScales[it]
+            RadioButton(
+                modifier = Modifier.fillMaxWidth(),
+                selected = contentScale == contentScaleValue,
+                onSelect = { contentScale = contentScaleValue },
+                label = { Text(label) }
+            )
+        }
+
+        item { ListSubHeader { Text("Alpha=$alpha") } }
+        item {
+            Slider(
+                value = alpha,
+                onValueChange = { alpha = it },
+                valueRange = 0f..1f,
+                steps = 99,
+                segmented = false
+            )
+        }
+
+        item { ListSubHeader { Text("Enabled") } }
+        item {
+            SwitchButton(
+                modifier = Modifier.fillMaxWidth(),
+                checked = enabled,
+                onCheckedChange = { enabled = it },
+                label = { Text("Enabled") }
+            )
+        }
+
+        item { ListSubHeader { Text("Intrinsic size") } }
+        item {
+            SwitchButton(
+                modifier = Modifier.fillMaxWidth(),
+                checked = sizeToIntrinsics,
+                onCheckedChange = { sizeToIntrinsics = it },
+                label = { Text("Used") }
+            )
+        }
+
+        item { ListHeader { Text("Image Button") } }
+        item {
+            val painter =
+                painterResource(androidx.wear.compose.material3.samples.R.drawable.backgroundimage)
+
+            ImageButton(
+                modifier = Modifier.fillMaxWidth(),
+                containerPainter =
+                    ButtonDefaults.containerPainter(
+                        painter,
+                        sizeToIntrinsics = sizeToIntrinsics,
+                        alignment = alignment,
+                        contentScale = contentScale,
+                        alpha = alpha,
+                    ),
+                onClick = { /* Do something */ },
+                label = { Text("Label", maxLines = 1) },
+                secondaryLabel = { Text("Secondary label", maxLines = 1) },
+                enabled = enabled,
             )
         }
     }
@@ -804,12 +916,12 @@ private fun Multiline3SlotButton(
 
 @Composable
 private fun ButtonBackgroundImage(painter: Painter, enabled: Boolean) =
-    Button(
+    ImageButton(
         modifier = Modifier.sizeIn(maxHeight = ButtonDefaults.Height).fillMaxWidth(),
+        containerPainter = ButtonDefaults.containerPainter(painter),
         onClick = { /* Do something */ },
         label = { Text("Label", maxLines = 1) },
         enabled = enabled,
-        colors = ButtonDefaults.imageBackgroundButtonColors(painter)
     )
 
 @Composable

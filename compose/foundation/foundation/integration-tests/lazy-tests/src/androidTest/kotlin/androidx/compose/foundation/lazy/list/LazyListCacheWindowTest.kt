@@ -26,6 +26,8 @@ import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Remeasurement
+import androidx.compose.ui.layout.RemeasurementModifier
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -54,13 +56,17 @@ class LazyListCacheWindowTest(orientation: Orientation) :
     val itemsSizeDp = with(rule.density) { itemsSizePx.toDp() }
 
     lateinit var state: LazyListState
+    lateinit var remeasure: Remeasurement
 
-    private val viewportWindow = LazyLayoutCacheWindow(aheadFraction = 1f)
+    private val viewportWindow = LazyLayoutCacheWindow(aheadFraction = 1f, behindFraction = 1.0f)
 
     @Test
-    fun notPrefetchingForwardInitially() {
+    fun prefetchingForwardInitially() {
         composeList(cacheWindow = viewportWindow)
-        rule.onNodeWithTag("2").assertDoesNotExist()
+        rule.waitForIdle()
+        // window will fill automatically 1 extra item
+        rule.onNodeWithTag("2").assertExists()
+        rule.onNodeWithTag("3").assertDoesNotExist()
     }
 
     @Test
@@ -114,20 +120,35 @@ class LazyListCacheWindowTest(orientation: Orientation) :
 
     @Test
     fun scrollBackward_shouldNotDisposeItemsInWindow() {
+        // at first, item 6 is fully visible and item 5 is partially visible
         composeList(firstItem = 6, itemOffset = -itemsSizePx / 2, cacheWindow = viewportWindow)
+        rule.onNodeWithTag("5").assertIsDisplayed()
+        rule.onNodeWithTag("6").assertIsDisplayed()
+
+        // we also filled the window in the forward direction
+        rule.onNodeWithTag("7").assertExists()
+        rule.onNodeWithTag("8").assertExists()
+
         rule.runOnIdle { runBlocking { state.scrollBy(-itemsSizePx * 2.5f) } }
-        // Starting on item 6 and moving back 2.5 items, we will end up on item 3.
-        // This means item 6 will be visible, item 7 and 8 will be in the window.
-        // On the other side, items 4 and 3 will be in the window.
-        rule.runOnIdle { assertThat(state.firstVisibleItemIndex).isEqualTo(3) }
+        // Moving 2.5 items back, the 0.5 will align item 5 with the start of the layout and the 2
+        // will move two entire items, we will end up in item 3. Item 4 will be half visible. We
+        // the keep around and prefetch window is 1.5 item, so part of this will be consumed by
+        // item 4, and we will keep around item 5. On the other side, we will prefetch item 2 and
+        // item 1 to fill up the 1.5 item size quota.
+        rule.runOnIdle {
+            assertThat(state.firstVisibleItemIndex).isEqualTo(3)
+            remeasure.forceRemeasure()
+        }
+
         rule.onNodeWithTag("0").assertDoesNotExist()
         rule.onNodeWithTag("1").assertExists()
         rule.onNodeWithTag("2").assertExists()
         rule.onNodeWithTag("3").assertIsDisplayed()
         rule.onNodeWithTag("4").assertIsDisplayed()
         rule.onNodeWithTag("5").assertExists()
-        rule.onNodeWithTag("6").assertExists()
-        rule.onNodeWithTag("7").assertDoesNotExist()
+        rule.onNodeWithTag("6").assertDoesNotExist() // at this point we have removed this
+        rule.onNodeWithTag("7").assertDoesNotExist() // at this point we have removed this
+        rule.onNodeWithTag("8").assertDoesNotExist() // at this point we have removed this
     }
 
     private val activeNodes = mutableSetOf<Int>()
@@ -148,7 +169,14 @@ class LazyListCacheWindowTest(orientation: Orientation) :
                     cacheWindow = cacheWindow
                 )
             LazyColumnOrRow(
-                Modifier.mainAxisSize(itemsSizeDp * 1.5f),
+                Modifier.mainAxisSize(itemsSizeDp * 1.5f)
+                    .then(
+                        object : RemeasurementModifier {
+                            override fun onRemeasurementAvailable(remeasurement: Remeasurement) {
+                                remeasure = remeasurement
+                            }
+                        }
+                    ),
                 state,
                 reverseLayout = reverseLayout,
                 contentPadding = contentPadding,

@@ -264,7 +264,16 @@ public class TrustedWebActivityIntentBuilder {
     }
 
     /**
-     * Sets the parameters for delivering launch files to launch queue via a Trusted Web Activity.
+     * Sets the parameters for delivering launch files to the launch queue.
+     *
+     * A web application can declare "file_handlers" in its web manifest, enabling it to handle
+     * file opening requests from users. The opened files are then made available by the browser
+     * to the web app through the launch queue interface of the Launch Handler API.
+     *
+     * This method provides the support for file handling in Trusted Web Activities.
+     * {@link FileHandlingData} should contain the URI of a file opened by a user and captured
+     * by an intent filter declared in the app manifest. The app will pass read/write permissions
+     * for the file to the browser.
      *
      * @param fileHandlingData A {@link FileHandlingData} object containing the data to be sent
      * to browser launch queue.

@@ -17,6 +17,7 @@
 package androidx.xr.scenecore
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 
 /**
  * The User object is used to retrieve information about the user. This includes the Head and The

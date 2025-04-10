@@ -88,7 +88,9 @@ public class WindowInsetsCompat {
 
     @RequiresApi(20)
     private WindowInsetsCompat(@NonNull WindowInsets insets) {
-        if (SDK_INT >= 34) {
+        if (SDK_INT >= 36) {
+            mImpl = new Impl36(this, insets);
+        } else if (SDK_INT >= 34) {
             mImpl = new Impl34(this, insets);
         } else if (SDK_INT >= 30) {
             mImpl = new Impl30(this, insets);
@@ -1309,7 +1311,22 @@ public class WindowInsetsCompat {
 
         @Override
         @NonNull WindowInsetsCompat inset(int left, int top, int right, int bottom) {
-            return toWindowInsetsCompat(mPlatformInsets.inset(left, top, right, bottom));
+            final WindowInsetsCompat newInsets =
+                    toWindowInsetsCompat(mPlatformInsets.inset(left, top, right, bottom));
+
+            // WindowInsets#insetInsets of API 29 has a bug, so here uses our own implementation.
+            final WindowInsetsCompat.Builder builder = new WindowInsetsCompat.Builder(newInsets);
+            builder.setSystemWindowInsets(
+                    insetInsets(getSystemWindowInsets(), left, top, right, bottom));
+            builder.setStableInsets(
+                    insetInsets(getStableInsets(), left, top, right, bottom));
+            builder.setSystemGestureInsets(
+                    insetInsets(getSystemGestureInsets(), left, top, right, bottom));
+            builder.setMandatorySystemGestureInsets(
+                    insetInsets(getMandatorySystemGestureInsets(), left, top, right, bottom));
+            builder.setTappableElementInsets(
+                    insetInsets(getTappableElementInsets(), left, top, right, bottom));
+            return builder.build();
         }
 
         @Override
@@ -1323,7 +1340,8 @@ public class WindowInsetsCompat {
         int newTop = Math.max(0, insets.top - top);
         int newRight = Math.max(0, insets.right - right);
         int newBottom = Math.max(0, insets.bottom - bottom);
-        if (newLeft == left && newTop == top && newRight == right && newBottom == bottom) {
+        if (newLeft == insets.left && newTop == insets.top
+                && newRight == insets.right && newBottom == insets.bottom) {
             return insets;
         }
         return Insets.of(newLeft, newTop, newRight, newBottom);
@@ -1368,6 +1386,25 @@ public class WindowInsetsCompat {
             // Overriding this avoid to go through the code path to get the visible insets via
             // reflection.
         }
+
+        @SuppressLint("WrongConstant")
+        @Override
+        @NonNull WindowInsetsCompat inset(int left, int top, int right, int bottom) {
+            final WindowInsetsCompat newInsets =
+                    toWindowInsetsCompat(mPlatformInsets.inset(left, top, right, bottom));
+
+            // WindowInsets#insetInsets of API 30-35 has a bug, so here uses our own implementation.
+            final WindowInsetsCompat.Builder builder = new WindowInsetsCompat.Builder(newInsets);
+            for (int i = Type.FIRST; i <= Type.LAST; i = i << 1) {
+                builder.setInsets(i, insetInsets(getInsets(i), left, top, right, bottom));
+                if ((i & Type.IME) == 0) {
+                    builder.setInsetsIgnoringVisibility(
+                            i,
+                            insetInsets(getInsetsIgnoringVisibility(i), left, top, right, bottom));
+                }
+            }
+            return builder.build();
+        }
     }
 
     @RequiresApi(34)
@@ -1401,6 +1438,24 @@ public class WindowInsetsCompat {
         public boolean isVisible(int typeMask) {
             return mPlatformInsets.isVisible(TypeImpl34.toPlatformType(typeMask));
         }
+    }
+
+    @RequiresApi(36)
+    private static class Impl36 extends Impl34 {
+
+        Impl36(@NonNull WindowInsetsCompat host, @NonNull WindowInsets insets) {
+            super(host, insets);
+        }
+
+        Impl36(@NonNull WindowInsetsCompat host, @NonNull Impl36 other) {
+            super(host, other);
+        }
+
+        @Override
+        @NonNull WindowInsetsCompat inset(int left, int top, int right, int bottom) {
+            return toWindowInsetsCompat(mPlatformInsets.inset(left, top, right, bottom));
+        }
+
     }
 
     /**

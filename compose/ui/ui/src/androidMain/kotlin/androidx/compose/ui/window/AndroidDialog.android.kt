@@ -441,6 +441,8 @@ private class DialogWrapper(
     // elevation, so high values of maxSupportedElevation break accessibility services: b/232788477.
     private val maxSupportedElevation = 8.dp
 
+    private var isPressOutside = false
+
     override val subCompositionView: AbstractComposeView
         get() = dialogLayout
 
@@ -588,8 +590,25 @@ private class DialogWrapper(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         var result = super.onTouchEvent(event)
         if (properties.dismissOnClickOutside && !dialogLayout.isInsideContent(event)) {
-            onDismissRequest()
-            result = true
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    isPressOutside = true
+                    result = true
+                }
+                MotionEvent.ACTION_UP ->
+                    if (isPressOutside) {
+                        onDismissRequest()
+                        result = true
+                        isPressOutside = false
+                    }
+                MotionEvent.ACTION_CANCEL -> isPressOutside = false
+            }
+        } else {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN,
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL -> isPressOutside = false
+            }
         }
 
         return result

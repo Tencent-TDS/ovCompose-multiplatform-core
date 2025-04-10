@@ -22,12 +22,11 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatializerConstants;
+import androidx.xr.runtime.internal.PointSourceParams;
+import androidx.xr.runtime.internal.SoundFieldAttributes;
+import androidx.xr.runtime.internal.SpatializerConstants;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 
-import com.android.extensions.xr.media.PointSourceAttributes;
-import com.android.extensions.xr.media.SoundFieldAttributes;
 import com.android.extensions.xr.media.SpatializerExtensions;
 import com.android.extensions.xr.node.Node;
 
@@ -39,16 +38,15 @@ import org.robolectric.RobolectricTestRunner;
 public final class MediaUtilsTest {
 
     @Test
-    public void convertPointSourceAttributes_returnsExtensionsAttributes() {
+    public void convertPointSourceParams_returnsExtensionsParams() {
         Node expected = XrExtensionsProvider.getXrExtensions().createNode();
 
         AndroidXrEntity entity = mock(AndroidXrEntity.class);
         when(entity.getNode()).thenReturn(expected);
-        JxrPlatformAdapter.PointSourceAttributes rtAttributes =
-                new JxrPlatformAdapter.PointSourceAttributes(entity);
+        PointSourceParams rtParams = new PointSourceParams(entity);
 
-        PointSourceAttributes result =
-                MediaUtils.convertPointSourceAttributesToExtensions(rtAttributes);
+        com.android.extensions.xr.media.PointSourceParams result =
+                MediaUtils.convertPointSourceParamsToExtensions(rtParams);
 
         assertThat(result.getNode()).isSameInstanceAs(expected);
     }
@@ -57,11 +55,10 @@ public final class MediaUtilsTest {
     public void convertSoundFieldAttributes_returnsExtensionsAttributes() {
         int extAmbisonicsOrder = SpatializerExtensions.AMBISONICS_ORDER_THIRD_ORDER;
 
-        JxrPlatformAdapter.SoundFieldAttributes rtAttributes =
-                new JxrPlatformAdapter.SoundFieldAttributes(
-                        SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
+        SoundFieldAttributes rtAttributes =
+                new SoundFieldAttributes(SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER);
 
-        SoundFieldAttributes result =
+        com.android.extensions.xr.media.SoundFieldAttributes result =
                 MediaUtils.convertSoundFieldAttributesToExtensions(rtAttributes);
 
         assertThat(result.getAmbisonicsOrder()).isEqualTo(extAmbisonicsOrder);
@@ -94,7 +91,7 @@ public final class MediaUtilsTest {
     public void convertExtensionsToSourceType_returnsRtSourceType() {
         assertThat(
                         MediaUtils.convertExtensionsToSourceType(
-                                SpatializerExtensions.SOURCE_TYPE_BYPASS))
+                                SpatializerExtensions.SOURCE_TYPE_DEFAULT))
                 .isEqualTo(SpatializerConstants.SOURCE_TYPE_BYPASS);
         assertThat(
                         MediaUtils.convertExtensionsToSourceType(

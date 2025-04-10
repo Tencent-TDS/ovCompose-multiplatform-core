@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.curvedComposable
@@ -136,12 +135,8 @@ fun TimeTextOnScreen() {
             item {
                 Button(
                     onClick = {},
-                    colors =
-                        ButtonDefaults.imageBackgroundButtonColors(
-                            painterResource(R.drawable.card_background)
-                        )
                 ) {
-                    Text("Image Button", Modifier.align(Alignment.CenterVertically))
+                    Text("Filled Button", Modifier.align(Alignment.CenterVertically))
                 }
             }
             items(colors.size) {

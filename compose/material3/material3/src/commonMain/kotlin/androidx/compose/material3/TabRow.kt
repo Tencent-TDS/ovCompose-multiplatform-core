@@ -79,8 +79,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design Fixed Primary tabs</a>
+ * [Material Design fixed primary tabs](https://m3.material.io/components/tabs/overview)
  *
  * Primary tabs are placed at the top of the content pane under a top app bar. They display the main
  * content destinations. Fixed tabs display all tabs in a set simultaneously. They are best for
@@ -166,8 +165,7 @@ fun PrimaryTabRow(
 }
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design Fixed Secondary tabs</a>
+ * [Material Design fixed secondary tabs](https://m3.material.io/components/tabs/overview)
  *
  * Secondary tabs are used within a content area to further separate related content and establish
  * hierarchy. Fixed tabs display all tabs in a set simultaneously. To navigate between fixed tabs,
@@ -218,8 +216,7 @@ fun SecondaryTabRow(
 }
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design Scrollable Primary tabs</a>
+ * [Material Design scrollable primary tabs](https://m3.material.io/components/tabs/overview)
  *
  * Primary tabs are placed at the top of the content pane under a top app bar. They display the main
  * content destinations. When a set of tabs cannot fit on screen, use scrollable tabs. Scrollable
@@ -286,8 +283,7 @@ fun PrimaryScrollableTabRow(
 }
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design Scrollable Secondary tabs</a>
+ * [Material Design scrollable secondary tabs](https://m3.material.io/components/tabs/overview)
  *
  * Material Design scrollable tabs.
  *
@@ -1296,8 +1292,7 @@ fun SecondaryScrollableTabRow(
     )
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design tabs</a>
+ * [Material Design tabs](https://m3.material.io/components/tabs/overview)
  *
  * Material Design fixed tabs.
  *
@@ -1400,8 +1395,7 @@ fun TabRow(
 }
 
 /**
- * <a href="https://m3.material.io/components/tabs/overview" class="external"
- * target="_blank">Material Design tabs</a>
+ * [Material Design tabs](https://m3.material.io/components/tabs/overview)
  *
  * Material Design scrollable tabs.
  *

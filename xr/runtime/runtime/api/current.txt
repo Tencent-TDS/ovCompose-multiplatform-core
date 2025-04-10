@@ -1,4 +1,124 @@
 // Signature format: 4.0
+package androidx.xr.runtime {
+
+  public final class CoreState {
+    ctor public CoreState(kotlin.time.ComparableTimeMark timeMark);
+    method public kotlin.time.ComparableTimeMark getTimeMark();
+    property public kotlin.time.ComparableTimeMark timeMark;
+  }
+
+  public final class ManifestFeature {
+    property public static String FEATURE_XR_API_OPENXR;
+    property public static String FEATURE_XR_API_SPATIAL;
+    property public static String FEATURE_XR_INPUT_CONTROLLER;
+    property public static String FEATURE_XR_INPUT_EYE_TRACKING;
+    property public static String FEATURE_XR_INPUT_HAND_TRACKING;
+    field public static final String FEATURE_XR_API_OPENXR;
+    field public static final String FEATURE_XR_API_SPATIAL;
+    field public static final String FEATURE_XR_INPUT_CONTROLLER;
+    field public static final String FEATURE_XR_INPUT_EYE_TRACKING;
+    field public static final String FEATURE_XR_INPUT_HAND_TRACKING;
+  }
+
+  public final class ManifestPermission {
+    property public static String EYE_TRACKING_COARSE;
+    property public static String EYE_TRACKING_FINE;
+    property public static String FACE_TRACKING;
+    property public static String HAND_TRACKING;
+    property public static String HEAD_TRACKING;
+    property public static String SCENE_UNDERSTANDING_COARSE;
+    property public static String SCENE_UNDERSTANDING_FINE;
+    field public static final String EYE_TRACKING_COARSE;
+    field public static final String EYE_TRACKING_FINE;
+    field public static final String FACE_TRACKING;
+    field public static final String HAND_TRACKING;
+    field public static final String HEAD_TRACKING;
+    field public static final String SCENE_UNDERSTANDING_COARSE;
+    field public static final String SCENE_UNDERSTANDING_FINE;
+  }
+
+  public final class ManifestPermissionGroup {
+    property public static String XR_TRACKING;
+    property public static String XR_TRACKING_SENSITIVE;
+    field public static final String XR_TRACKING;
+    field public static final String XR_TRACKING_SENSITIVE;
+  }
+
+  public final class Session implements androidx.lifecycle.LifecycleOwner {
+    method public static androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity);
+    method public static androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity, optional kotlinx.coroutines.CoroutineDispatcher coroutineDispatcher);
+    method public void destroy();
+    method public androidx.lifecycle.Lifecycle getLifecycle();
+    method public kotlinx.coroutines.flow.StateFlow<androidx.xr.runtime.CoreState> getState();
+    method public void pause();
+    method public androidx.xr.runtime.SessionResumeResult resume();
+    property public androidx.lifecycle.Lifecycle lifecycle;
+    property public kotlinx.coroutines.flow.StateFlow<androidx.xr.runtime.CoreState> state;
+    field public static final androidx.xr.runtime.Session.Companion Companion;
+  }
+
+  public static final class Session.Companion {
+    method public androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity);
+    method public androidx.xr.runtime.SessionCreateResult create(android.app.Activity activity, optional kotlinx.coroutines.CoroutineDispatcher coroutineDispatcher);
+  }
+
+  public final class SessionConfigureConfigurationNotSupported extends androidx.xr.runtime.SessionConfigureResult {
+    ctor public SessionConfigureConfigurationNotSupported();
+  }
+
+  public final class SessionConfigurePermissionNotGranted extends androidx.xr.runtime.SessionConfigureResult {
+    ctor public SessionConfigurePermissionNotGranted();
+  }
+
+  public abstract sealed class SessionConfigureResult {
+  }
+
+  public final class SessionConfigureSuccess extends androidx.xr.runtime.SessionConfigureResult {
+    ctor public SessionConfigureSuccess();
+  }
+
+  public final class SessionCreatePermissionsNotGranted extends androidx.xr.runtime.SessionCreateResult {
+    ctor public SessionCreatePermissionsNotGranted(java.util.List<java.lang.String> permissions);
+    method public java.util.List<java.lang.String> getPermissions();
+    property public java.util.List<java.lang.String> permissions;
+  }
+
+  public abstract sealed class SessionCreateResult {
+  }
+
+  public final class SessionCreateSuccess extends androidx.xr.runtime.SessionCreateResult {
+    ctor public SessionCreateSuccess(androidx.xr.runtime.Session session);
+    method public androidx.xr.runtime.Session getSession();
+    property public androidx.xr.runtime.Session session;
+  }
+
+  public final class SessionResumePermissionsNotGranted extends androidx.xr.runtime.SessionResumeResult {
+    ctor public SessionResumePermissionsNotGranted(java.util.List<java.lang.String> permissions);
+    method public java.util.List<java.lang.String> getPermissions();
+    property public java.util.List<java.lang.String> permissions;
+  }
+
+  public abstract sealed class SessionResumeResult {
+  }
+
+  public final class SessionResumeSuccess extends androidx.xr.runtime.SessionResumeResult {
+    ctor public SessionResumeSuccess();
+  }
+
+}
+
+package androidx.xr.runtime.java {
+
+  public final class Coroutines {
+    method public static <T> com.google.common.util.concurrent.ListenableFuture<T> toFuture(androidx.xr.runtime.Session session, kotlin.jvm.functions.Function2<? super kotlinx.coroutines.CoroutineScope,? super kotlin.coroutines.Continuation<? super T>,? extends java.lang.Object?> coroutine);
+  }
+
+  public final class Flows {
+    method public static <T> io.reactivex.rxjava3.core.Observable<T> toObservable(androidx.xr.runtime.Session session, kotlinx.coroutines.flow.Flow<? extends T> flow);
+  }
+
+}
+
 package androidx.xr.runtime.math {
 
   public final class MathHelper {

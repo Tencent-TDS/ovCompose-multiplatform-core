@@ -22,6 +22,7 @@ import com.squareup.kotlinpoet.ClassName
 object IntrospectionHelper {
     // Package names
     const val APP_FUNCTIONS_AGGREGATED_DEPS_PACKAGE_NAME = "appfunctions_aggregated_deps"
+    const val SERIALIZABLE_PROXY_PACKAGE_NAME = "androidx.appfunctions.internal.serializableproxies"
     const val APP_FUNCTIONS_INTERNAL_PACKAGE_NAME = "androidx.appfunctions.internal"
     private const val APP_FUNCTIONS_PACKAGE_NAME = "androidx.appfunctions"
     private const val APP_FUNCTIONS_METADATA_PACKAGE_NAME = "androidx.appfunctions.metadata"
@@ -130,6 +131,39 @@ object IntrospectionHelper {
         object ToAppFunctionDataMethod {
             const val METHOD_NAME = "toAppFunctionData"
             const val APP_FUNCTION_SERIALIZABLE_PARAM_NAME = "appFunctionSerializable"
+        }
+
+        object TypeParameterClass {
+            val CLASS_NAME =
+                ClassName(
+                    APP_FUNCTIONS_INTERNAL_PACKAGE_NAME,
+                    "AppFunctionSerializableFactory",
+                    "TypeParameter"
+                )
+
+            object PrimitiveTypeParameterClass {
+                val CLASS_NAME =
+                    ClassName(
+                        APP_FUNCTIONS_INTERNAL_PACKAGE_NAME,
+                        "AppFunctionSerializableFactory",
+                        "TypeParameter",
+                        "PrimitiveTypeParameter"
+                    )
+
+                val PROPERTY_CLAZZ_NAME = "clazz"
+            }
+
+            object ListTypeParameterClass {
+                val CLASS_NAME =
+                    ClassName(
+                        APP_FUNCTIONS_INTERNAL_PACKAGE_NAME,
+                        "AppFunctionSerializableFactory",
+                        "TypeParameter",
+                        "ListTypeParameter"
+                    )
+
+                val PROPERTY_ITEM_CLAZZ_NAME = "itemClazz"
+            }
         }
     }
 

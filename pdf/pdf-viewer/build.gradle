@@ -20,7 +20,7 @@ plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("androidx.stableaidl")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
@@ -68,7 +68,6 @@ android {
     defaultConfig {
         minSdk = 31
         compileSdk = 35
-        targetSdk = 31
     }
 
     buildFeatures {

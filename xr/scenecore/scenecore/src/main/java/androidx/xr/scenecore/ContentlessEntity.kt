@@ -17,6 +17,8 @@
 package androidx.xr.scenecore
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -25,8 +27,8 @@ import androidx.xr.runtime.math.Pose
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class ContentlessEntity
-private constructor(rtEntity: JxrPlatformAdapter.Entity, entityManager: EntityManager) :
-    BaseEntity<JxrPlatformAdapter.Entity>(rtEntity, entityManager) {
+private constructor(rtEntity: RtEntity, entityManager: EntityManager) :
+    BaseEntity<RtEntity>(rtEntity, entityManager) {
     public companion object {
         /** Factory method to create ContentlessEntity entities. */
         internal fun create(

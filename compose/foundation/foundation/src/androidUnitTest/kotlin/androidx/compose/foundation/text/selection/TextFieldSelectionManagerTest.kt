@@ -17,7 +17,6 @@
 package androidx.compose.foundation.text.selection
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.internal.ClipboardUtils
 import androidx.compose.foundation.text.HandleState
 import androidx.compose.foundation.text.LegacyTextFieldState
@@ -50,6 +49,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.packFloats
 import androidx.compose.ui.util.packInts
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -363,7 +363,7 @@ class TextFieldSelectionManagerTest {
         assertThat(state.handleState).isEqualTo(HandleState.None)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun autofill_selection_collapse() {
         manager.value = TextFieldValue(text = text, selection = TextRange(4, 4))

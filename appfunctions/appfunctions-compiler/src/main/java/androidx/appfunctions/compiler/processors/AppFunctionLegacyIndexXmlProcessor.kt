@@ -16,6 +16,7 @@
 
 package androidx.appfunctions.compiler.processors
 
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy.ResolvedAnnotatedSerializableProxies
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctions
 import androidx.appfunctions.compiler.core.AppFunctionSymbolResolver
 import androidx.appfunctions.metadata.AppFunctionMetadataDocument
@@ -47,8 +48,14 @@ class AppFunctionLegacyIndexXmlProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        val appFunctionSymbolResolver = AppFunctionSymbolResolver(resolver)
+        val resolvedAnnotatedSerializableProxies =
+            ResolvedAnnotatedSerializableProxies(
+                appFunctionSymbolResolver.resolveAllAnnotatedSerializableProxiesFromModule()
+            )
         generateLegacyIndexXml(
-            AppFunctionSymbolResolver(resolver).getAnnotatedAppFunctionsFromAllModules()
+            appFunctionSymbolResolver.getAnnotatedAppFunctionsFromAllModules(),
+            resolvedAnnotatedSerializableProxies
         )
         return emptyList()
     }
@@ -61,13 +68,16 @@ class AppFunctionLegacyIndexXmlProcessor(
      */
     private fun generateLegacyIndexXml(
         appFunctionsByClass: List<AnnotatedAppFunctions>,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ) {
         if (appFunctionsByClass.isEmpty()) {
             return
         }
         val appFunctionMetadataList =
             appFunctionsByClass.flatMap {
-                it.createAppFunctionMetadataList().map { it.toAppFunctionMetadataDocument() }
+                it.createAppFunctionMetadataList(resolvedAnnotatedSerializableProxies).map {
+                    it.toAppFunctionMetadataDocument()
+                }
             }
         writeXmlFile(appFunctionMetadataList, appFunctionsByClass)
     }

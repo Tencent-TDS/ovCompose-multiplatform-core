@@ -17,15 +17,19 @@
 package androidx.wear.compose.material3
 
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.MediumTest
+import androidx.wear.compose.foundation.LocalReduceMotion
+import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec.Companion.NoOpTransformationSpec
 import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpecImpl
 import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.TransformationVariableSpec
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.responsiveTransformationSpec
+import com.google.common.truth.Truth.assertThat
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
@@ -128,6 +132,17 @@ class ResponsiveTransformationSpecTest {
         lateinit var spec: TransformationSpec
         rule.setContent { spec = rememberTransformationSpec() }
         @Suppress("UNUSED_VARIABLE") val readBack = spec
+    }
+
+    @Test
+    fun remember_responsive_with_reduced_motion() {
+        lateinit var spec: TransformationSpec
+        rule.setContent {
+            CompositionLocalProvider(LocalReduceMotion provides true) {
+                spec = rememberTransformationSpec()
+            }
+        }
+        assertThat(spec).isEqualTo(NoOpTransformationSpec)
     }
 
     @Test

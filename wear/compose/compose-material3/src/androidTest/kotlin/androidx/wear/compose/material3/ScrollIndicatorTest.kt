@@ -17,7 +17,6 @@
 package androidx.wear.compose.material3
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.scrollBy
@@ -30,22 +29,26 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
@@ -197,6 +200,48 @@ class ScrollIndicatorTest {
     }
 
     @Test
+    fun scalingLazyColumnStateAdapter_overscroll() {
+        val itemsCount = 6
+        val contentPadding = itemSizeDp + itemSpacingDp
+
+        lateinit var state: ScalingLazyListState
+        lateinit var indicatorState: IndicatorState
+        rule.setContent {
+            state = rememberScalingLazyListState()
+            ScreenScaffold(scrollState = state) {
+                indicatorState =
+                    ScalingLazyColumnStateAdapter(
+                        state,
+                        rememberOverscrollEffect() as OffsetOverscrollEffect,
+                        false
+                    )
+                ScalingLazyColumn(
+                    state = state,
+                    contentPadding = PaddingValues(contentPadding),
+                    modifier = Modifier.testTag(TEST_TAG).requiredSize(viewportSizeDp),
+                ) {
+                    items(itemsCount) {
+                        Box(Modifier.requiredSize(itemSizeDp).background(Color.Red)) { Text("$it") }
+                    }
+                }
+            }
+        }
+        val expectedIndicatorSize =
+            indicatorState.sizeFraction - ScrollIndicatorDefaults.overscrollShrinkSizeFraction
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y + 2000))
+            // We don't lift the finger as otherwise overscroll will be reset
+        }
+        rule.runOnIdle {
+            Truth.assertThat(indicatorState.positionFraction).isWithin(0.05f).of(0f)
+            // Size fraction should be fully shrinked - equal to minimum possible size fraction
+            Truth.assertThat(indicatorState.sizeFraction).isWithin(0.05f).of(expectedIndicatorSize)
+        }
+    }
+
+    @Test
     fun lazyColumnStateAdapter_veryLongContent() {
         verifyLazyColumnPositionAndSize(
             expectedIndicatorPosition = 0f,
@@ -256,6 +301,48 @@ class ScrollIndicatorTest {
     }
 
     @Test
+    fun lazyColumnStateAdapter_overscroll() {
+        val itemsCount = 6
+        val contentPadding = itemSizeDp + itemSpacingDp
+
+        lateinit var state: LazyListState
+        lateinit var indicatorState: IndicatorState
+        rule.setContent {
+            state = rememberLazyListState()
+            ScreenScaffold(scrollState = state) {
+                indicatorState =
+                    LazyColumnStateAdapter(
+                        state,
+                        rememberOverscrollEffect() as OffsetOverscrollEffect,
+                        false
+                    )
+                LazyColumn(
+                    state = state,
+                    contentPadding = PaddingValues(contentPadding),
+                    modifier = Modifier.testTag(TEST_TAG).requiredSize(viewportSizeDp),
+                ) {
+                    items(itemsCount) {
+                        Box(Modifier.requiredSize(itemSizeDp).background(Color.Red)) { Text("$it") }
+                    }
+                }
+            }
+        }
+        val expectedIndicatorSize =
+            indicatorState.sizeFraction - ScrollIndicatorDefaults.overscrollShrinkSizeFraction
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y + 2000))
+            // We don't lift the finger as otherwise overscroll will be reset
+        }
+        rule.runOnIdle {
+            Truth.assertThat(indicatorState.positionFraction).isWithin(0.05f).of(0f)
+            // Size fraction should be fully shrinked - equal to minimum possible size fraction
+            Truth.assertThat(indicatorState.sizeFraction).isWithin(0.05f).of(expectedIndicatorSize)
+        }
+    }
+
+    @Test
     fun transformingLazyColumnStateAdapter_veryLongContent() {
         verifyTransformingLazyColumnPositionAndSize(
             expectedIndicatorPosition = 0f,
@@ -304,6 +391,48 @@ class ScrollIndicatorTest {
             itemsCount = itemsCount,
             contentPaddingDp = contentPadding
         )
+    }
+
+    @Test
+    fun transformingLazyColumnStateAdapter_overscroll() {
+        val itemsCount = 6
+        val contentPadding = itemSizeDp + itemSpacingDp
+
+        lateinit var state: TransformingLazyColumnState
+        lateinit var indicatorState: IndicatorState
+        rule.setContent {
+            state = rememberTransformingLazyColumnState()
+            ScreenScaffold(scrollState = state) {
+                indicatorState =
+                    TransformingLazyColumnStateAdapter(
+                        state,
+                        rememberOverscrollEffect() as OffsetOverscrollEffect,
+                        false
+                    )
+                TransformingLazyColumn(
+                    state = state,
+                    contentPadding = PaddingValues(contentPadding),
+                    modifier = Modifier.testTag(TEST_TAG).requiredSize(viewportSizeDp),
+                ) {
+                    items(itemsCount) {
+                        Box(Modifier.requiredSize(itemSizeDp).background(Color.Red)) { Text("$it") }
+                    }
+                }
+            }
+        }
+        val expectedIndicatorSize =
+            indicatorState.sizeFraction - ScrollIndicatorDefaults.overscrollShrinkSizeFraction
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y + 2000))
+            // We don't lift the finger as otherwise overscroll will be reset
+        }
+        rule.runOnIdle {
+            Truth.assertThat(indicatorState.positionFraction).isWithin(0.05f).of(0f)
+            // Size fraction should be fully shrinked - equal to minimum possible size fraction
+            Truth.assertThat(indicatorState.sizeFraction).isWithin(0.05f).of(expectedIndicatorSize)
+        }
     }
 
     @Test
@@ -365,7 +494,52 @@ class ScrollIndicatorTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
+    fun columnStateAdapter_overscroll() {
+        val itemsCount = 10
+        lateinit var state: ScrollState
+        lateinit var indicatorState: IndicatorState
+        var viewPortSize = IntSize.Zero
+
+        rule.setContent {
+            state = rememberScrollState()
+            ScreenScaffold(
+                modifier =
+                    Modifier.onSizeChanged { viewPortSize = it }.requiredSize(viewportSizeDp),
+                scrollState = state
+            ) {
+                indicatorState =
+                    ScrollStateAdapter(
+                        scrollState = state,
+                        overscrollEffect = rememberOverscrollEffect() as OffsetOverscrollEffect,
+                        false
+                    ) {
+                        viewPortSize
+                    }
+
+                Column(Modifier.testTag(TEST_TAG).verticalScroll(state = state)) {
+                    for (it in 0 until itemsCount) {
+                        Box(Modifier.requiredSize(itemSizeDp).background(Color.Red)) { Text("$it") }
+                    }
+                }
+            }
+        }
+        val expectedIndicatorSize =
+            indicatorState.sizeFraction - ScrollIndicatorDefaults.overscrollShrinkSizeFraction
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y + 2000))
+            // We don't lift the finger as otherwise overscroll will be reset
+        }
+        rule.runOnIdle {
+            Truth.assertThat(indicatorState.positionFraction).isWithin(0.05f).of(0f)
+            // Size fraction should be fully shrinked - equal to minimum possible size fraction
+            Truth.assertThat(indicatorState.sizeFraction).isWithin(0.05f).of(expectedIndicatorSize)
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_indicator_custom_color() {
         val customIndicatorColor = Color.Red
@@ -393,7 +567,7 @@ class ScrollIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customIndicatorColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_track_custom_color() {
         val customTrackColor = Color.Red
@@ -470,7 +644,7 @@ class ScrollIndicatorTest {
         lateinit var indicatorState: IndicatorState
         rule.setContent {
             state = rememberScalingLazyListState(initialCenterItemIndex)
-            indicatorState = ScalingLazyColumnStateAdapter(state)
+            indicatorState = ScalingLazyColumnStateAdapter(state, null, false)
             ScalingLazyColumn(
                 state = state,
                 verticalArrangement = verticalArrangement,
@@ -521,7 +695,7 @@ class ScrollIndicatorTest {
         lateinit var indicatorState: IndicatorState
         rule.setContent {
             state = rememberLazyListState()
-            indicatorState = LazyColumnStateAdapter(state)
+            indicatorState = LazyColumnStateAdapter(state, null, false)
             LazyColumn(
                 state = state,
                 verticalArrangement = verticalArrangement,
@@ -575,7 +749,7 @@ class ScrollIndicatorTest {
         var viewPortSize = IntSize.Zero
         rule.setContent {
             state = rememberScrollState()
-            indicatorState = ScrollStateAdapter(state) { viewPortSize }
+            indicatorState = ScrollStateAdapter(state, null, false) { viewPortSize }
             Box(
                 modifier = Modifier.onSizeChanged { viewPortSize = it }.requiredSize(viewportSizeDp)
             ) {
@@ -635,7 +809,7 @@ class ScrollIndicatorTest {
         lateinit var indicatorState: IndicatorState
         rule.setContent {
             state = rememberTransformingLazyColumnState()
-            indicatorState = TransformingLazyColumnStateAdapter(state)
+            indicatorState = TransformingLazyColumnStateAdapter(state, null, false)
             TransformingLazyColumn(
                 state = state,
                 contentPadding = PaddingValues(contentPaddingDp),

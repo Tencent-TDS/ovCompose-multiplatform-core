@@ -18,6 +18,7 @@
 package androidx.test.uiautomator
 
 import android.graphics.Bitmap
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.uiautomator.internal.TimeoutClock
 import androidx.test.uiautomator.internal.notNull
 
@@ -29,7 +30,7 @@ import androidx.test.uiautomator.internal.notNull
  *
  * Example:
  * ```kotlin
- * onView { view.textAsString == "Search" }.click()
+ * onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -41,7 +42,7 @@ import androidx.test.uiautomator.internal.notNull
 public fun UiObject2.onView(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 =
     accessibilityNodeInfo.onView(
         timeoutMs = timeoutMs,
@@ -57,7 +58,7 @@ public fun UiObject2.onView(
  *
  * Example:
  * ```kotlin
- * onView { view.textAsString == "Search" }.click()
+ * onView { textAsString == "Search" }.click()
  * ```
  *
  * @param timeoutMs a timeout to find the view that satisfies the given condition.
@@ -69,7 +70,7 @@ public fun UiObject2.onView(
 public fun UiObject2.onViewOrNull(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2? =
     accessibilityNodeInfo.onViewOrNull(
         timeoutMs = timeoutMs,
@@ -85,7 +86,7 @@ public fun UiObject2.onViewOrNull(
  *
  * Example:
  * ```kotlin
- * node.onViews { view.className == Button::class.java.name }
+ * node.onViews { isClass(Button::class.java) }
  * ```
  *
  * If multiple nodes are expected but they appear at different times, it's recommended to call
@@ -100,7 +101,7 @@ public fun UiObject2.onViewOrNull(
 public fun UiObject2.onViews(
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): List<UiObject2> =
     accessibilityNodeInfo.onViews(
         timeoutMs = timeoutMs,
@@ -114,7 +115,7 @@ public fun UiObject2.onViews(
  *
  * Example:
  * ```kotlin
- * onView { view.isScrollable }.scrollUntilView(Direction.DOWN) { view.id == "button" }.click()
+ * onView { isScrollable }.scrollUntilView(Direction.DOWN) { id == "button" }.click()
  * ```
  *
  * @param direction the scroll [Direction].
@@ -128,7 +129,7 @@ public fun UiObject2.scrollUntilView(
     direction: Direction,
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 =
     scrollUntilViewOrNull(
             direction = direction,
@@ -144,7 +145,7 @@ public fun UiObject2.scrollUntilView(
  *
  * Example:
  * ```kotlin
- * onView { view.isScrollable }.scrollUntilView(Direction.DOWN) { view.id == "button" }.click()
+ * onView { isScrollable }.scrollUntilView(Direction.DOWN) { id == "button" }.click()
  * ```
  *
  * @param direction the scroll [Direction].
@@ -158,7 +159,7 @@ public fun UiObject2.scrollUntilViewOrNull(
     direction: Direction,
     timeoutMs: Long = 10000,
     pollIntervalMs: Long = 100,
-    block: NodeFilterScope.() -> (Boolean),
+    block: AccessibilityNodeInfo.() -> (Boolean),
 ): UiObject2 {
     val clock = TimeoutClock(timeoutMs = timeoutMs, sleepIntervalMs = pollIntervalMs)
     return scrollUntil(direction) {

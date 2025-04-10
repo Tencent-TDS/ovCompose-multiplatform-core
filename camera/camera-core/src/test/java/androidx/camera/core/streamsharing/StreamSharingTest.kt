@@ -29,7 +29,6 @@ import android.os.Looper.getMainLooper
 import android.util.Range
 import android.util.Size
 import android.view.Surface
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.impl.Camera2ImplConfig
 import androidx.camera.camera2.internal.Camera2UseCaseConfigFactory
 import androidx.camera.camera2.interop.Camera2Interop
@@ -77,6 +76,7 @@ import androidx.camera.testing.impl.fakes.FakeUseCaseConfigFactory
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CompletableDeferred
@@ -276,7 +276,7 @@ class StreamSharingTest {
     }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun invokeParentSessionCaptureCallbacks_receivedByChildren() {
         // Arrange.
         val streamUseCaseIntDef = 3L

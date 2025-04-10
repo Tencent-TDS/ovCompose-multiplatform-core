@@ -20,8 +20,8 @@ import androidx.annotation.RestrictTo
 import androidx.xr.runtime.internal.Runtime
 
 /** Test-only implementation of [Runtime] */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 @Suppress("DataClassDefinition")
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public data class FakeRuntime(
     override val lifecycleManager: FakeLifecycleManager,
     override val perceptionManager: FakePerceptionManager,

@@ -16,11 +16,12 @@
 
 package androidx.xr.scenecore
 
-import android.util.Log
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.xr.arcore.Anchor
 import androidx.xr.runtime.Session as PerceptionSession
+import androidx.xr.runtime.internal.AnchorEntity as RtAnchorEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.Executor
@@ -37,10 +38,9 @@ import java.util.concurrent.atomic.AtomicReference
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class AnchorEntity
-private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: EntityManager) :
-    BaseEntity<JxrPlatformAdapter.AnchorEntity>(rtEntity, entityManager) {
+private constructor(rtEntity: RtAnchorEntity, entityManager: EntityManager) :
+    BaseEntity<RtAnchorEntity>(rtEntity, entityManager) {
     private val state = AtomicReference(rtEntity.state.fromRtState())
-    private val persistState = AtomicReference(rtEntity.persistState.fromRtPersistState())
 
     private var onStateChangedListener: OnStateChangedListener? = null
 
@@ -72,11 +72,6 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
          * without the possibility of recovery.
          */
         public const val ERROR: Int = 3
-        /**
-         * The PERMISSIONS_NOT_GRANTED state means that the user has not granted the necessary
-         * permissions i.e. SCENE_UNDERSTANDING to create this AnchorEntity.
-         */
-        public const val PERMISSIONS_NOT_GRANTED: Int = 4
     }
 
     /** Specifies the current persist state of the Anchor. */
@@ -96,44 +91,13 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
     @Suppress("ExecutorRegistration")
     public fun setOnStateChangedListener(onStateChangedListener: OnStateChangedListener?) {
         this.onStateChangedListener = onStateChangedListener
-        if (state.get() == State.PERMISSIONS_NOT_GRANTED) {
-            onStateChangedListener?.onStateChanged(State.PERMISSIONS_NOT_GRANTED)
-        }
+        onStateChangedListener?.onStateChanged(state.get())
     }
 
     /** Updates the current state. */
     private fun setState(newState: @StateValue Int) {
         state.set(newState)
         onStateChangedListener?.onStateChanged(newState)
-    }
-
-    /** Gets the current PersistState. */
-    public fun getPersistState(): PersistState = persistState.get()
-
-    /**
-     * Requests to persist the anchor. If the anchor's State is not ANCHORED, no request will be
-     * sent and null is returned. If the request is sent successfully, returns an UUID of the anchor
-     * immediately; otherwise returns null. After this call, client should use getPersistState() to
-     * check the PersistState of the anchor. If the anchor's PersistState becomes PERSISTED before
-     * the app is closed the anchor can be recreated in a new session by calling
-     * Session.createPersistedAnchorEntity(uuid). If the PersistState doesn't become PERSISTED
-     * before the app is closed, the recreation will fail.
-     */
-    public fun persist(): UUID? {
-        if (state.get() != State.ANCHORED) {
-            Log.e(TAG, "Cannot persist an anchor that is not in the ANCHORED state.")
-            return null
-        }
-        val uuid = rtEntity.persist()
-        if (uuid == null) {
-            Log.e(TAG, "Failed to get a UUID for the anchor.")
-            return null
-        }
-
-        rtEntity.registerPersistStateChangeListener { newRtPersistState ->
-            persistState.set(newRtPersistState.fromRtPersistState())
-        }
-        return uuid
     }
 
     /**
@@ -144,7 +108,7 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
      */
     // TODO(b/373711152) : Remove this method once the ARCore for XR API migration is done.
     public fun getAnchor(session: PerceptionSession): Anchor {
-        return Anchor.loadFromNativePointer(session, rtEntity.nativePointer())
+        return Anchor.loadFromNativePointer(session, rtEntity.nativePointer)
     }
 
     public companion object {
@@ -187,10 +151,8 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
             adapter: JxrPlatformAdapter,
             entityManager: EntityManager,
             anchor: Anchor,
-        ): AnchorEntity {
-            val rtAnchorEntity = adapter.createAnchorEntity(anchor)
-            return create(rtAnchorEntity, entityManager)
-        }
+        ): AnchorEntity =
+            AnchorEntity.create(adapter.createAnchorEntity(anchor.runtimeAnchor), entityManager)
 
         /**
          * Factory method for AnchorEntity.
@@ -198,22 +160,16 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
          * @param rtAnchorEntity Runtime AnchorEntity instance.
          */
         internal fun create(
-            rtAnchorEntity: JxrPlatformAdapter.AnchorEntity,
+            rtAnchorEntity: RtAnchorEntity,
             entityManager: EntityManager,
         ): AnchorEntity {
             val anchorEntity = AnchorEntity(rtAnchorEntity, entityManager)
             rtAnchorEntity.setOnStateChangedListener { newRtState ->
                 when (newRtState) {
-                    JxrPlatformAdapter.AnchorEntity.State.UNANCHORED ->
-                        anchorEntity.setState(State.UNANCHORED)
-                    JxrPlatformAdapter.AnchorEntity.State.ANCHORED ->
-                        anchorEntity.setState(State.ANCHORED)
-                    JxrPlatformAdapter.AnchorEntity.State.TIMED_OUT ->
-                        anchorEntity.setState(State.TIMEDOUT)
-                    JxrPlatformAdapter.AnchorEntity.State.ERROR ->
-                        anchorEntity.setState(State.ERROR)
-                    JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
-                        anchorEntity.setState(State.PERMISSIONS_NOT_GRANTED)
+                    RtAnchorEntity.State.UNANCHORED -> anchorEntity.setState(State.UNANCHORED)
+                    RtAnchorEntity.State.ANCHORED -> anchorEntity.setState(State.ANCHORED)
+                    RtAnchorEntity.State.TIMED_OUT -> anchorEntity.setState(State.TIMEDOUT)
+                    RtAnchorEntity.State.ERROR -> anchorEntity.setState(State.ERROR)
                 }
             }
             return anchorEntity
@@ -237,16 +193,10 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
             val anchorEntity = AnchorEntity(rtAnchorEntity, entityManager)
             rtAnchorEntity.setOnStateChangedListener { newRtState ->
                 when (newRtState) {
-                    JxrPlatformAdapter.AnchorEntity.State.UNANCHORED ->
-                        anchorEntity.setState(State.UNANCHORED)
-                    JxrPlatformAdapter.AnchorEntity.State.ANCHORED ->
-                        anchorEntity.setState(State.ANCHORED)
-                    JxrPlatformAdapter.AnchorEntity.State.TIMED_OUT ->
-                        anchorEntity.setState(State.TIMEDOUT)
-                    JxrPlatformAdapter.AnchorEntity.State.ERROR ->
-                        anchorEntity.setState(State.ERROR)
-                    JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
-                        anchorEntity.setState(State.PERMISSIONS_NOT_GRANTED)
+                    RtAnchorEntity.State.UNANCHORED -> anchorEntity.setState(State.UNANCHORED)
+                    RtAnchorEntity.State.ANCHORED -> anchorEntity.setState(State.ANCHORED)
+                    RtAnchorEntity.State.TIMED_OUT -> anchorEntity.setState(State.TIMEDOUT)
+                    RtAnchorEntity.State.ERROR -> anchorEntity.setState(State.ERROR)
                 }
             }
             return anchorEntity
@@ -301,31 +251,14 @@ private constructor(rtEntity: JxrPlatformAdapter.AnchorEntity, entityManager: En
         }
     }
 
-    /**
-     * Extension function that converts [JxrPlatformAdapter.AnchorEntity.State] to
-     * [AnchorEntity.State].
-     */
-    private fun JxrPlatformAdapter.AnchorEntity.State.fromRtState() =
+    /** Extension function that converts [RtAnchorEntity.State] to [AnchorEntity.State]. */
+    private fun Int.fromRtState() =
         when (this) {
-            JxrPlatformAdapter.AnchorEntity.State.UNANCHORED -> State.UNANCHORED
-            JxrPlatformAdapter.AnchorEntity.State.ANCHORED -> State.ANCHORED
-            JxrPlatformAdapter.AnchorEntity.State.TIMED_OUT -> State.TIMEDOUT
-            JxrPlatformAdapter.AnchorEntity.State.ERROR -> State.ERROR
-            JxrPlatformAdapter.AnchorEntity.State.PERMISSIONS_NOT_GRANTED ->
-                State.PERMISSIONS_NOT_GRANTED
-        }
-
-    /**
-     * Extension function that converts [JxrPlatformAdapter.AnchorEntity.PersistState] to
-     * [AnchorEntity.PersistState].
-     */
-    private fun JxrPlatformAdapter.AnchorEntity.PersistState.fromRtPersistState() =
-        when (this) {
-            JxrPlatformAdapter.AnchorEntity.PersistState.PERSIST_NOT_REQUESTED ->
-                PersistState.PERSIST_NOT_REQUESTED
-            JxrPlatformAdapter.AnchorEntity.PersistState.PERSIST_PENDING ->
-                PersistState.PERSIST_PENDING
-            JxrPlatformAdapter.AnchorEntity.PersistState.PERSISTED -> PersistState.PERSISTED
+            RtAnchorEntity.State.UNANCHORED -> State.UNANCHORED
+            RtAnchorEntity.State.ANCHORED -> State.ANCHORED
+            RtAnchorEntity.State.TIMED_OUT -> State.TIMEDOUT
+            RtAnchorEntity.State.ERROR -> State.ERROR
+            else -> throw IllegalArgumentException("Unknown state: $this")
         }
 
     /**

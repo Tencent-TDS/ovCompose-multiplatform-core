@@ -23,7 +23,6 @@
  */
 
 
-import androidx.build.KotlinTarget
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -94,5 +93,4 @@ androidx {
     name = "SQLite Driver Coformance Base Tests"
     inceptionYear = "2023"
     description = "SQLite Kotlin driver coformance base tests"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

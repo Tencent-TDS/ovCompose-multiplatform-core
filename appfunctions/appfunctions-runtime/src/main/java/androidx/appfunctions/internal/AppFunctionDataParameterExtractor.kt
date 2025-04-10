@@ -33,6 +33,7 @@ import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_FLOAT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_INT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_LONG
+import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_PENDING_INTENT
 import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata.Companion.TYPE_STRING
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 
@@ -141,6 +142,9 @@ private fun AppFunctionData.unsafeGetSingleProperty(
         TYPE_STRING -> {
             getString(key)
         }
+        TYPE_PENDING_INTENT -> {
+            getPendingIntent(key)
+        }
         TYPE_OBJECT -> {
             getAppFunctionData(key)?.deserialize(checkNotNull(objectQualifiedName))
         }
@@ -175,6 +179,9 @@ private fun AppFunctionData.unsafeGetCollectionProperty(
         }
         TYPE_STRING -> {
             getStringList(key)
+        }
+        TYPE_PENDING_INTENT -> {
+            getPendingIntentList(key)
         }
         TYPE_OBJECT -> {
             getAppFunctionDataList(key)?.map {

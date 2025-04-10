@@ -52,6 +52,7 @@ import androidx.collection.mutableIntListOf
 import androidx.collection.mutableIntObjectMapOf
 import androidx.collection.mutableIntSetOf
 import androidx.collection.mutableObjectIntMapOf
+import androidx.compose.ui.ComposeUiFlags.isFocusActionExitsTouchModeEnabled
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.R
 import androidx.compose.ui.contentcapture.ContentCaptureManager
@@ -81,6 +82,7 @@ import androidx.compose.ui.semantics.SemanticsActions.PageDown
 import androidx.compose.ui.semantics.SemanticsActions.PageLeft
 import androidx.compose.ui.semantics.SemanticsActions.PageRight
 import androidx.compose.ui.semantics.SemanticsActions.PageUp
+import androidx.compose.ui.semantics.SemanticsActions.RequestFocus
 import androidx.compose.ui.semantics.SemanticsConfiguration
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsNodeWithAdjustedBounds
@@ -598,6 +600,8 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
 
         val toggleState =
             semanticsNode.unmergedConfig.getOrNull(SemanticsProperties.ToggleableState)
+        // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+        @Suppress("DEPRECATION")
         toggleState?.let {
             if (toggleState == ToggleableState.On) {
                 info.isChecked = true
@@ -610,6 +614,8 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                 // Tab in native android uses selected property
                 info.isSelected = it
             } else {
+                // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+                @Suppress("DEPRECATION")
                 info.isChecked = it
             }
         }
@@ -1027,6 +1033,12 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                 )
             }
         }
+
+        // set the className provided through the [SemanticsPropertyReceiver.accessibilityClassName]
+        // as a last step to ensure it overrides a classname derived from other semantics properties
+        semanticsNode.unmergedConfig
+            .getOrNull(SemanticsPropertiesAndroid.AccessibilityClassName)
+            ?.let { info.className = it }
     }
 
     /** Set the error text for this node */
@@ -1184,6 +1196,7 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
     private fun createEvent(virtualViewId: Int, eventType: Int): AccessibilityEvent {
         val event: AccessibilityEvent = AccessibilityEvent.obtain(eventType)
         event.isEnabled = true
+        // TODO(b/403526104) this might need to also be a proper class name
         event.className = ClassName
 
         // Don't allow the client to override these properties.
@@ -1468,10 +1481,15 @@ internal class AndroidComposeViewAccessibilityDelegateCompat(val view: AndroidCo
                     ) ?: false
             }
             AccessibilityNodeInfoCompat.ACTION_FOCUS -> {
-                return node.unmergedConfig
-                    .getOrNull(SemanticsActions.RequestFocus)
-                    ?.action
-                    ?.invoke() ?: false
+                // The item might not be focusable in touch mode, so we use the base implementation
+                // of to switch the system to touch mode before requesting focus (b/387576999).
+                // Note that this causes a temporary focus shift to the view, which is then
+                // corrected by immediately focusing the desired Composable node
+                if (@OptIn(ExperimentalComposeUiApi::class) isFocusActionExitsTouchModeEnabled) {
+                    performAccessibilityAction(view, action, arguments)
+                }
+
+                return node.unmergedConfig.getOrNull(RequestFocus)?.action?.invoke() ?: false
             }
             AccessibilityNodeInfoCompat.ACTION_CLEAR_FOCUS -> {
                 return if (node.unmergedConfig.getOrNull(SemanticsProperties.Focused) == true) {

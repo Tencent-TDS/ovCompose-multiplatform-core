@@ -20,7 +20,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
@@ -41,7 +40,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
 class AppFunctionDataTest {
 
@@ -50,6 +48,164 @@ class AppFunctionDataTest {
     @Before
     fun setup() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
+    }
+
+    @Test
+    fun testGenericReadWrite_asParameters_conformSpec() {
+        val builder =
+            AppFunctionData.Builder(
+                TEST_PARAMETER_METADATA,
+                AppFunctionComponentsMetadata(),
+            )
+
+        builder.setGenericField("int", 234, Int::class.java)
+        builder.setGenericField("long", 123L, Long::class.java)
+        builder.setGenericField("float", 100.0f, Float::class.java)
+        builder.setGenericField("double", 50.0, Double::class.java)
+        builder.setGenericField("boolean", true, Boolean::class.java)
+        builder.setGenericField("string", "testString", String::class.java)
+        builder.setGenericField(
+            "pendingIntent",
+            PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE),
+            PendingIntent::class.java,
+        )
+        builder.setGenericField("intArray", intArrayOf(4, 5, 6), IntArray::class.java)
+        builder.setGenericField("longArray", longArrayOf(1L, 2L, 3L), LongArray::class.java)
+        builder.setGenericField(
+            "floatArray",
+            floatArrayOf(10.0f, 20.0f, 30.0f),
+            FloatArray::class.java
+        )
+        builder.setGenericField(
+            "doubleArray",
+            doubleArrayOf(4.0, 5.0, 6.0),
+            DoubleArray::class.java
+        )
+        builder.setGenericField(
+            "booleanArray",
+            booleanArrayOf(false, true, false),
+            BooleanArray::class.java
+        )
+        builder.setGenericField(
+            "byteArray",
+            byteArrayOf(10.toByte(), 20.toByte()),
+            ByteArray::class.java
+        )
+        builder.setGenericListField("stringList", listOf("1", "2", "3"), String::class.java)
+        builder.setGenericListField(
+            "pendingIntentList",
+            listOf(
+                PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE),
+                PendingIntent.getService(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE),
+            ),
+            PendingIntent::class.java
+        )
+        val data = builder.build()
+
+        assertThat(data.getGenericField("int", Int::class.java)).isEqualTo(234)
+        assertThat(data.getGenericField("long", Long::class.java)).isEqualTo(123L)
+        assertThat(data.getGenericField("float", Float::class.java)).isEqualTo(100.0f)
+        assertThat(data.getGenericField("double", Double::class.java)).isEqualTo(50.0)
+        assertThat(data.getGenericField("boolean", Boolean::class.java)).isTrue()
+        assertThat(data.getGenericField("string", String::class.java)).isEqualTo("testString")
+        assertThat(data.getGenericField("pendingIntent", PendingIntent::class.java))
+            .isEqualTo(
+                PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
+            )
+        assertThat(data.getGenericField("intArray", IntArray::class.java))
+            .asList()
+            .containsExactly(4, 5, 6)
+        assertThat(data.getGenericField("longArray", LongArray::class.java))
+            .asList()
+            .containsExactly(1L, 2L, 3L)
+        assertThat(data.getGenericField("floatArray", FloatArray::class.java))
+            .usingExactEquality()
+            .containsExactly(10.0f, 20.0f, 30.0f)
+        assertThat(data.getGenericField("doubleArray", DoubleArray::class.java))
+            .usingExactEquality()
+            .containsExactly(4.0, 5.0, 6.0)
+        assertThat(data.getGenericField("booleanArray", BooleanArray::class.java))
+            .asList()
+            .containsExactly(false, true, false)
+        assertThat(data.getGenericField("byteArray", ByteArray::class.java))
+            .asList()
+            .containsExactly(10.toByte(), 20.toByte())
+        assertThat(data.getGenericListField<String, List<String>>("stringList", String::class.java))
+            .containsExactly("1", "2", "3")
+        assertThat(
+                data.getGenericListField<PendingIntent, List<PendingIntent>>(
+                    "pendingIntentList",
+                    PendingIntent::class.java
+                )
+            )
+            .containsExactly(
+                PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE),
+                PendingIntent.getService(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE),
+            )
+    }
+
+    @Test
+    fun testReadWriteGeneric_nestedObjectParameter() {
+        val data =
+            AppFunctionData.Builder(TEST_NESTED_PARAMETER_METADATA, AppFunctionComponentsMetadata())
+                .setGenericField(
+                    "data",
+                    AppFunctionData.Builder(TEST_OBJECT_METADATA, AppFunctionComponentsMetadata())
+                        .setGenericField("long", 100, Long::class.java)
+                        .build(),
+                    AppFunctionData::class.java,
+                )
+                .setGenericListField(
+                    "dataList",
+                    listOf(
+                        AppFunctionData.Builder(
+                                TEST_OBJECT_METADATA,
+                                AppFunctionComponentsMetadata()
+                            )
+                            .setGenericField("double", 20.0, Double::class.java)
+                            .build(),
+                        AppFunctionData.Builder(
+                                TEST_OBJECT_METADATA,
+                                AppFunctionComponentsMetadata()
+                            )
+                            .setGenericField("string", "testString", String::class.java)
+                            .build()
+                    ),
+                    AppFunctionData::class.java,
+                )
+                .build()
+
+        assertThat(
+                data
+                    .getGenericField("data", AppFunctionData::class.java)
+                    .getGenericField("long", Long::class.java)
+            )
+            .isEqualTo(100)
+        assertThat(
+                data.getGenericListField<AppFunctionData, List<AppFunctionData>>(
+                    "dataList",
+                    AppFunctionData::class.java
+                )
+            )
+            .hasSize(2)
+        assertThat(
+                data
+                    .getGenericListField<AppFunctionData, List<AppFunctionData>>(
+                        "dataList",
+                        AppFunctionData::class.java
+                    )[0]
+                    .getGenericField("double", Double::class.java)
+            )
+            .isEqualTo(20.0)
+        assertThat(
+                data
+                    .getGenericListField<AppFunctionData, List<AppFunctionData>>(
+                        "dataList",
+                        AppFunctionData::class.java
+                    )[1]
+                    .getGenericField("string", String::class.java)
+            )
+            .isEqualTo("testString")
     }
 
     @Test

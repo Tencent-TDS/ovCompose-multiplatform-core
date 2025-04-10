@@ -45,7 +45,15 @@ internal class LazyListCacheWindowStrategy(cacheWindow: LazyLayoutCacheWindow) :
     }
 
     override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) {
-        repeat(nestedPrefetchItemCount) { schedulePrecomposition(firstVisibleItemIndex + it) }
+        val resolvedNestedPrefetchItemCount =
+            if (nestedPrefetchItemCount == -1) {
+                DefaultNestedPrefetchCount
+            } else {
+                nestedPrefetchItemCount
+            }
+        repeat(resolvedNestedPrefetchItemCount) {
+            schedulePrecomposition(firstVisibleItemIndex + it)
+        }
     }
 
     /** Adapts the LazyListPrefetchScope and LazyListLayoutInfo to a single scope. */
@@ -104,10 +112,15 @@ internal class LazyListCacheWindowScope() : CacheWindowScope {
         get() = (layoutInfo as? LazyListMeasureResult)?.density
 
     override fun schedulePrefetch(
-        laneIndex: Int,
-        onItemPrefetched: (Int) -> Unit
+        lineIndex: Int,
+        onItemPrefetched: (Int, Int) -> Unit
     ): List<PrefetchHandle> {
-        return listOf(prefetchScope.schedulePrefetch(laneIndex, onItemPrefetched))
+        return listOf(
+            prefetchScope.schedulePrefetch(
+                lineIndex,
+                { onItemPrefetched.invoke(index, mainAxisSize) }
+            )
+        )
     }
 
     override val visibleLineCount: Int
@@ -119,3 +132,7 @@ internal class LazyListCacheWindowScope() : CacheWindowScope {
     override fun getVisibleItemLine(indexInVisibleLines: Int): Int =
         layoutInfo.visibleItemsInfo[indexInVisibleLines].index
 }
+
+// we use 2 here because nested list have usually > 1 visible elements, so 2 is the minimum
+// logical value we could use.
+private const val DefaultNestedPrefetchCount = 2

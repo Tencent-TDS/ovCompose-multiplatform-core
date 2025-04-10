@@ -24,8 +24,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isFinite
 import androidx.compose.ui.unit.isSpecified
-import androidx.xr.extensions.XrExtensions
-import androidx.xr.extensions.XrExtensionsProvider
+import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider
+import com.android.extensions.xr.XrExtensions
 import kotlin.math.roundToInt
 
 /**

@@ -106,8 +106,7 @@ value class FabPosition internal constructor(@Suppress("unused") private val val
 }
 
 /**
- * <a href="https://material.io/design/layout/understanding-layout.html" class="external"
- * target="_blank">Material Design layout</a>.
+ * [Material Design layout](https://material.io/design/layout/understanding-layout.html)
  *
  * Scaffold implements the basic Material Design visual layout structure.
  *
@@ -241,8 +240,7 @@ fun Scaffold(
 }
 
 /**
- * <a href="https://material.io/design/layout/understanding-layout.html" class="external"
- * target="_blank">Material Design layout</a>.
+ * [Material Design layout](https://material.io/design/layout/understanding-layout.html)
  *
  * Scaffold implements the basic Material Design visual layout structure.
  *

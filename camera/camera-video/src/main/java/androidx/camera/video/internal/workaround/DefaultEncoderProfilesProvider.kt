@@ -31,6 +31,7 @@ import androidx.camera.video.Quality
 import androidx.camera.video.Quality.ConstantQuality
 import androidx.camera.video.Quality.FHD
 import androidx.camera.video.Quality.HD
+import androidx.camera.video.Quality.QUALITY_SOURCE_REGULAR
 import androidx.camera.video.Quality.SD
 import androidx.camera.video.Quality.UHD
 import androidx.camera.video.internal.encoder.VideoEncoderInfo
@@ -203,7 +204,8 @@ public class DefaultEncoderProfilesProvider(
         }
 
     private fun List<Quality>.find(quality: Int): ConstantQuality? =
-        find { (it as ConstantQuality).getValue() == quality } as? ConstantQuality
+        find { (it as ConstantQuality).getQualityValue(QUALITY_SOURCE_REGULAR) == quality }
+            as? ConstantQuality
 
     public companion object {
         // Duration seconds value is observed from real devices.

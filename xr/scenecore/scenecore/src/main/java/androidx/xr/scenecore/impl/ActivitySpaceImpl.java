@@ -16,20 +16,27 @@
 
 package androidx.xr.scenecore.impl;
 
+import android.app.Activity;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.concurrent.futures.ResolvableFuture;
+import androidx.xr.runtime.internal.ActivityPose.HitTestRangeValue;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.HitTestResult;
+import androidx.xr.runtime.internal.SpaceValue;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.Vec3;
 import com.android.extensions.xr.space.Bounds;
 import com.android.extensions.xr.space.SpatialState;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -51,17 +58,19 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
     private final Set<OnBoundsChangedListener> mBoundsListeners =
             Collections.synchronizedSet(new HashSet<>());
 
+    private final Activity mActivity;
     private final Supplier<SpatialState> mSpatialStateProvider;
     private final AtomicReference<Dimensions> mBounds = new AtomicReference<>();
 
     ActivitySpaceImpl(
             Node taskNode,
+            Activity activity,
             XrExtensions extensions,
             EntityManager entityManager,
             Supplier<SpatialState> spatialStateProvider,
             ScheduledExecutorService executor) {
         super(taskNode, extensions, entityManager, executor);
-
+        mActivity = activity;
         mSpatialStateProvider = spatialStateProvider;
     }
 
@@ -148,5 +157,40 @@ final class ActivitySpaceImpl extends SystemSpaceEntityImpl implements ActivityS
         for (OnBoundsChangedListener listener : mBoundsListeners) {
             listener.onBoundsChanged(newDimensions);
         }
+    }
+
+    @SuppressWarnings("RestrictTo")
+    static class HitTestResultConsumer
+            implements com.android.extensions.xr.function.Consumer<
+                    com.android.extensions.xr.space.HitTestResult> {
+        ResolvableFuture<HitTestResult> mFuture;
+
+        HitTestResultConsumer(ResolvableFuture<HitTestResult> future) {
+            mFuture = future;
+        }
+
+        @Override
+        @SuppressWarnings("RestrictTo")
+        public void accept(com.android.extensions.xr.space.HitTestResult hitTestResultExt) {
+            mFuture.set(RuntimeUtils.getHitTestResult(hitTestResultExt));
+        }
+    }
+
+    @Override
+    @SuppressWarnings("RestrictTo")
+    public ListenableFuture<HitTestResult> hitTest(
+            @NonNull Vector3 origin,
+            @NonNull Vector3 direction,
+            @HitTestRangeValue int hitTestRange) {
+        ResolvableFuture<HitTestResult> hitTestFuture = ResolvableFuture.create();
+        HitTestResultConsumer hitTestConsumer = new HitTestResultConsumer(hitTestFuture);
+
+        mExtensions.hitTest(
+                mActivity, // mSession.getActivity(),
+                new Vec3(origin.getX(), origin.getY(), origin.getZ()),
+                new Vec3(direction.getX(), direction.getY(), direction.getZ()),
+                hitTestConsumer,
+                mExecutor);
+        return hitTestFuture;
     }
 }

@@ -9,15 +9,14 @@ package androidx.camera.viewfinder.view {
     method @UiThread public android.graphics.Bitmap? getBitmap();
     method @UiThread public androidx.camera.viewfinder.core.ScaleType getScaleType();
     method @UiThread public androidx.camera.viewfinder.core.ImplementationMode getSurfaceImplementationMode();
-    method @UiThread public androidx.camera.viewfinder.core.TransformationInfo? getTransformationInfo();
+    method @UiThread public androidx.camera.viewfinder.core.TransformationInfo getTransformationInfo();
     method @UiThread public com.google.common.util.concurrent.ListenableFuture<androidx.camera.viewfinder.core.ViewfinderSurfaceSession!> requestSurfaceSessionAsync(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest);
-    method @UiThread public com.google.common.util.concurrent.ListenableFuture<androidx.camera.viewfinder.core.ViewfinderSurfaceSession!> requestSurfaceSessionAsync(androidx.camera.viewfinder.core.ViewfinderSurfaceRequest, androidx.camera.viewfinder.core.TransformationInfo);
     method @UiThread public void setScaleType(androidx.camera.viewfinder.core.ScaleType);
     method @UiThread public void setTransformationInfo(androidx.camera.viewfinder.core.TransformationInfo);
   }
 
   public final class ViewfinderViewExtKt {
-    method public static suspend Object? requestSurfaceSession(androidx.camera.viewfinder.view.ViewfinderView, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, optional androidx.camera.viewfinder.core.TransformationInfo transformationInfo, kotlin.coroutines.Continuation<? super androidx.camera.viewfinder.core.ViewfinderSurfaceSession>);
+    method public static suspend Object? requestSurfaceSession(androidx.camera.viewfinder.view.ViewfinderView, androidx.camera.viewfinder.core.ViewfinderSurfaceRequest viewfinderSurfaceRequest, kotlin.coroutines.Continuation<? super androidx.camera.viewfinder.core.ViewfinderSurfaceSession>);
   }
 
 }

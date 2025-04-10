@@ -2534,6 +2534,14 @@ internal class MockOwner(
             override val underlyingMatrix: Matrix
                 get() = transform
 
+            override var frameRate: Float
+                get() = 0f
+                set(_) {}
+
+            override var isFrameRateFromParent: Boolean
+                get() = false
+                set(_) {}
+
             override fun inverseTransform(matrix: Matrix) {
                 matrix.timesAssign(inverseTransform)
             }

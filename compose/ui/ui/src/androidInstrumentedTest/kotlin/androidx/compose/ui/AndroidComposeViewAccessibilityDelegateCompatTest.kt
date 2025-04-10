@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.accessibilityClassName
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.contentDescription
@@ -610,6 +611,48 @@ class AndroidComposeViewAccessibilityDelegateCompatTest {
 
         // Assert.
         rule.runOnIdle { assertThat(info.className).isEqualTo("android.widget.Button") }
+    }
+
+    @Test
+    fun className_overwrittenBy_explicitaccessibilityClassNameProperty() {
+        // Arrange.
+        rule.setContentWithAccessibilityEnabled {
+            Box(
+                Modifier.size(10.dp).semantics(mergeDescendants = true) {
+                    accessibilityClassName = "asdf"
+                    testTag = tag
+                    role = Role.Image
+                }
+            )
+        }
+        val virtualViewId = rule.onNodeWithTag(tag).semanticsId()
+
+        // Act.
+        val info = rule.runOnIdle { androidComposeView.createAccessibilityNodeInfo(virtualViewId) }
+
+        // Assert.
+        rule.runOnIdle { assertThat(info.className).isEqualTo("asdf") }
+    }
+
+    @Test
+    fun explicitaccessibilityClassNameProperty_childrenNotMergeable() {
+        // Arrange.
+        rule.setContentWithAccessibilityEnabled {
+            Box(Modifier.size(10.dp).semantics(mergeDescendants = true) { testTag = tag }) {
+                Box(Modifier.size(10.dp).semantics { accessibilityClassName = "a" })
+                Box(Modifier.size(10.dp).semantics { accessibilityClassName = "b" })
+            }
+        }
+        val virtualViewId = rule.onNodeWithTag(tag).semanticsId()
+
+        // Act.
+        val info = rule.runOnIdle { androidComposeView.createAccessibilityNodeInfo(virtualViewId) }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(info.className)
+                .isEqualTo(AndroidComposeViewAccessibilityDelegateCompat.ClassName)
+        }
     }
 
     @Test

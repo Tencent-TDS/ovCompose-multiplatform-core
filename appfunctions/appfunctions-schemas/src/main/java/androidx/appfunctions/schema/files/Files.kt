@@ -16,10 +16,10 @@
 
 package androidx.appfunctions.schema.files
 
+import android.net.Uri
 import androidx.annotation.StringDef
 import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionSchemaDefinition
-import androidx.appfunctions.schema.types.AppFunctionUri
 
 // TODO(b/401518165): Add ShowFile app function.
 /**
@@ -148,14 +148,13 @@ public interface GetFileContentUrisAppFunction<
         /**
          * The URI of the file's content.
          *
-         * When providing an [androidx.appfunctions.schema.types.AppFunctionUri] to another app,
-         * that app must be granted URI permission using
+         * When providing an [Uri] to another app, that app must be granted URI permission using
          * [android.content.Context.grantUriPermission] to the receiving app.
          *
          * The providing app should also consider revoking the URI permission by using
          * [android.content.Context.revokeUriPermission] after a certain time period.
          */
-        public val uri: AppFunctionUri
+        public val uri: Uri
     }
 
     public companion object {

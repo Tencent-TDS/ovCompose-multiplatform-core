@@ -21,6 +21,7 @@ import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.compiler.AppFunctionCompiler
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializable
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy.ResolvedAnnotatedSerializableProxies
 import androidx.appfunctions.compiler.core.AppFunctionSymbolResolver
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableFactoryClass.FromAppFunctionDataMethod.APP_FUNCTION_DATA_PARAM_NAME
@@ -28,6 +29,7 @@ import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerial
 import androidx.appfunctions.compiler.core.ProcessingException
 import androidx.appfunctions.compiler.core.logException
 import androidx.appfunctions.compiler.core.toClassName
+import androidx.appfunctions.compiler.processors.AppFunctionSerializableFactoryCodeBuilder.Companion.getTypeParameterPropertyName
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.KSPLogger
@@ -36,12 +38,16 @@ import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSTypeParameter
+import com.google.devtools.ksp.symbol.Modifier
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.TypeVariableName
 import com.squareup.kotlinpoet.asTypeName
 
 /**
@@ -92,29 +98,53 @@ class AppFunctionSerializableProcessor(
         try {
             val entitySymbolResolver = AppFunctionSymbolResolver(resolver)
             val entityClasses = entitySymbolResolver.resolveAnnotatedAppFunctionSerializables()
-            val entityProxyClasses =
-                entitySymbolResolver.resolveAnnotatedAppFunctionSerializableProxies()
+            val globalResolvedAnnotatedSerializableProxies =
+                ResolvedAnnotatedSerializableProxies(
+                    entitySymbolResolver.resolveAllAnnotatedSerializableProxiesFromModule()
+                )
+            val localResolvedAnnotatedSerializableProxies =
+                ResolvedAnnotatedSerializableProxies(
+                    entitySymbolResolver.resolveLocalAnnotatedAppFunctionSerializableProxy()
+                )
             for (entity in entityClasses) {
-                buildAppFunctionSerializableFactoryClass(entity)
+                buildAppFunctionSerializableFactoryClass(
+                    entity,
+                    globalResolvedAnnotatedSerializableProxies
+                )
             }
-            for (entityProxy in entityProxyClasses) {
-                buildAppFunctionSerializableProxyFactoryClass(entityProxy)
+            for (entityProxy in
+                localResolvedAnnotatedSerializableProxies.resolvedAnnotatedSerializableProxies) {
+                // Only generate factory for local proxy classes to ensure that the factory is
+                // only generated once in the same compilation unit as the prexy definition.
+                buildAppFunctionSerializableProxyFactoryClass(
+                    entityProxy,
+                    globalResolvedAnnotatedSerializableProxies
+                )
             }
+            return globalResolvedAnnotatedSerializableProxies.resolvedAnnotatedSerializableProxies
+                .map { it.appFunctionSerializableProxyClass }
         } catch (e: ProcessingException) {
             logger.logException(e)
         }
+
         return emptyList()
     }
 
     private fun buildAppFunctionSerializableFactoryClass(
-        annotatedClass: AnnotatedAppFunctionSerializable
+        annotatedClass: AnnotatedAppFunctionSerializable,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ) {
         val superInterfaceClass =
             AppFunctionSerializableFactoryClass.CLASS_NAME.parameterizedBy(
-                listOf(annotatedClass.originalClassName)
+                listOf(annotatedClass.typeName)
             )
 
-        val factoryCodeBuilder = AppFunctionSerializableFactoryCodeBuilder(annotatedClass)
+        val factoryCodeBuilder =
+            AppFunctionSerializableFactoryCodeBuilder(
+                annotatedClass,
+                resolvedAnnotatedSerializableProxies
+            )
+
         val generatedFactoryClassName = "\$${annotatedClass.originalClassName.simpleName}Factory"
         val fileSpec =
             FileSpec.builder(
@@ -125,6 +155,15 @@ class AppFunctionSerializableProcessor(
                     TypeSpec.classBuilder(generatedFactoryClassName)
                         .addAnnotation(AppFunctionCompiler.GENERATED_ANNOTATION)
                         .addSuperinterface(superInterfaceClass)
+                        .apply {
+                            if (annotatedClass.modifiers.contains(Modifier.INTERNAL)) {
+                                addModifiers(KModifier.INTERNAL)
+                            }
+
+                            if (annotatedClass.typeParameters.isNotEmpty()) {
+                                setGenericPrimaryConstructor(annotatedClass.typeParameters)
+                            }
+                        }
                         .addFunction(
                             buildFromAppFunctionDataFunction(annotatedClass, factoryCodeBuilder)
                         )
@@ -147,19 +186,63 @@ class AppFunctionSerializableProcessor(
             .use { fileSpec.writeTo(it) }
     }
 
-    private fun buildAppFunctionSerializableProxyFactoryClass(
-        annotatedProxyClass: AnnotatedAppFunctionSerializableProxy
+    private fun TypeSpec.Builder.setGenericPrimaryConstructor(
+        typeParameters: List<KSTypeParameter>
     ) {
+        val primaryConstructorBuilder = FunSpec.constructorBuilder()
+        for (typeParameter in typeParameters) {
+            val typeParamName = typeParameter.name.asString()
+            val typeTokenType =
+                AppFunctionSerializableFactoryClass.TypeParameterClass.CLASS_NAME.parameterizedBy(
+                    TypeVariableName(typeParameter.name.asString())
+                )
+            val typeParameterPropertyName = getTypeParameterPropertyName(typeParameter)
+
+            primaryConstructorBuilder.addParameter(
+                typeParameterPropertyName,
+                typeTokenType,
+            )
+
+            addProperty(
+                PropertySpec.builder(typeParameterPropertyName, typeTokenType)
+                    .initializer(typeParameterPropertyName)
+                    .addModifiers(KModifier.PRIVATE)
+                    .build()
+            )
+            addTypeVariable(TypeVariableName(typeParamName))
+        }
+
+        primaryConstructor(primaryConstructorBuilder.build())
+    }
+
+    private fun buildAppFunctionSerializableProxyFactoryClass(
+        annotatedProxyClass: AnnotatedAppFunctionSerializableProxy,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
+    ) {
+        val generatedSerializableProxyFactoryClassName =
+            "\$${checkNotNull(
+                annotatedProxyClass.targetClassDeclaration.simpleName).asString()}Factory"
+        // Check if the factory class has already been generated.
+        if (
+            codeGenerator.generatedFile.any {
+                it.path.contains(generatedSerializableProxyFactoryClassName)
+            }
+        ) {
+            return
+        }
+
         val proxySuperInterfaceClass =
             AppFunctionSerializableFactoryClass.CLASS_NAME.parameterizedBy(
                 annotatedProxyClass.targetClassDeclaration.toClassName()
             )
-        val generatedSerializableProxyFactoryClassName =
-            "\$${checkNotNull(
-                annotatedProxyClass.targetClassDeclaration.simpleName).asString()}Factory"
+
         val serializableProxyClassBuilder =
             TypeSpec.classBuilder(generatedSerializableProxyFactoryClassName)
-        val factoryCodeBuilder = AppFunctionSerializableFactoryCodeBuilder(annotatedProxyClass)
+        val factoryCodeBuilder =
+            AppFunctionSerializableFactoryCodeBuilder(
+                annotatedProxyClass,
+                resolvedAnnotatedSerializableProxies
+            )
         serializableProxyClassBuilder.addAnnotation(AppFunctionCompiler.GENERATED_ANNOTATION)
         serializableProxyClassBuilder.addSuperinterface(proxySuperInterfaceClass)
         serializableProxyClassBuilder.addFunction(
@@ -200,11 +283,10 @@ class AppFunctionSerializableProcessor(
                 ParameterSpec.builder(APP_FUNCTION_DATA_PARAM_NAME, AppFunctionData::class).build()
             )
             .addCode(factoryCodeBuilder.appendFromAppFunctionDataMethodBody())
-            .returns(annotatedClass.originalClassName)
+            .returns(annotatedClass.typeName)
             .build()
     }
 
-    // Todo(b/403199251): Remove temp method
     private fun buildProxyFromAppFunctionDataFunction(
         annotatedProxyClass: AnnotatedAppFunctionSerializableProxy,
         factoryCodeBuilder: AppFunctionSerializableFactoryCodeBuilder,
@@ -230,10 +312,7 @@ class AppFunctionSerializableProcessor(
             )
             .addModifiers(KModifier.OVERRIDE)
             .addParameter(
-                ParameterSpec.builder(
-                        APP_FUNCTION_SERIALIZABLE_PARAM_NAME,
-                        annotatedClass.originalClassName
-                    )
+                ParameterSpec.builder(APP_FUNCTION_SERIALIZABLE_PARAM_NAME, annotatedClass.typeName)
                     .build()
             )
             .addCode(factoryCodeBuilder.appendToAppFunctionDataMethodBody())
@@ -241,7 +320,6 @@ class AppFunctionSerializableProcessor(
             .build()
     }
 
-    // Todo(b/403199251): Remove temp method
     private fun buildProxyToAppFunctionDataFunction(
         annotatedProxyClass: AnnotatedAppFunctionSerializableProxy,
         factoryCodeBuilder: AppFunctionSerializableFactoryCodeBuilder
@@ -265,7 +343,10 @@ class AppFunctionSerializableProcessor(
     @VisibleForTesting
     class Provider : SymbolProcessorProvider {
         override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-            return AppFunctionSerializableProcessor(environment.codeGenerator, environment.logger)
+            return AppFunctionSerializableProcessor(
+                environment.codeGenerator,
+                environment.logger,
+            )
         }
     }
 }

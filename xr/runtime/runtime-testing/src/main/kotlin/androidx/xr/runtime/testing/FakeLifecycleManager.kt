@@ -17,7 +17,9 @@
 package androidx.xr.runtime.testing
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.Config
 import androidx.xr.runtime.internal.LifecycleManager
+import androidx.xr.runtime.internal.PermissionNotGrantedException
 import kotlin.time.ComparableTimeMark
 import kotlin.time.TestTimeSource
 import kotlinx.coroutines.sync.Semaphore
@@ -26,6 +28,12 @@ import kotlinx.coroutines.sync.Semaphore
 @Suppress("NotCloseable")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class FakeLifecycleManager : LifecycleManager {
+
+    public companion object {
+        @JvmField
+        public val TestPermissions: List<String> =
+            listOf("android.permission.SCENE_UNDERSTANDING_COARSE")
+    }
 
     /** Set of possible states of the runtime. */
     public enum class State {
@@ -45,13 +53,31 @@ public class FakeLifecycleManager : LifecycleManager {
 
     private val semaphore = Semaphore(1)
 
+    /** If true, configure() will emulate the failure case for missing permissions. */
+    @get:JvmName("hasMissingPermission") public var hasMissingPermission: Boolean = false
+
     override fun create() {
         check(state == State.NOT_INITIALIZED)
         state = State.INITIALIZED
     }
 
-    override fun configure() {
-        check(state == State.INITIALIZED || state == State.RESUMED || state == State.PAUSED)
+    override var config: Config =
+        Config(
+            Config.PlaneTrackingMode.HorizontalAndVertical,
+            Config.HandTrackingMode.Enabled,
+            Config.DepthEstimationMode.Enabled,
+            Config.AnchorPersistenceMode.Enabled,
+        )
+
+    override fun configure(config: Config) {
+        check(
+            state == State.NOT_INITIALIZED ||
+                state == State.INITIALIZED ||
+                state == State.RESUMED ||
+                state == State.PAUSED
+        )
+        if (hasMissingPermission) throw PermissionNotGrantedException()
+        this.config = config
     }
 
     override fun resume() {

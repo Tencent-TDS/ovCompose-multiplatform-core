@@ -77,7 +77,10 @@ class PdfViewPaginationTest {
             Espresso.onView(withId(PDF_VIEW_ID))
                 .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 4)
 
-            // Reduce size to 100x200, and expect to see only page 0
+            // Reduce size to 100x200, which will update the zoom according to new width
+            // i.e. 100/500 -> 0.2 clamped to min zoom = 0.25.
+            // With 0.25% zoom, expect to see pages [0, 2] at 100x200(each page height = 300 * 0.25
+            // = 75)
             onActivity { activity ->
                 activity.findViewById<View>(PDF_VIEW_ID).apply {
                     measure(
@@ -89,7 +92,7 @@ class PdfViewPaginationTest {
             }
 
             Espresso.onView(withId(PDF_VIEW_ID))
-                .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 1)
+                .checkPagesAreVisible(firstVisiblePage = 0, visiblePages = 2)
             close()
         }
     }

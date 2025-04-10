@@ -17,6 +17,7 @@
 package androidx.pdf
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.Point
 import android.graphics.PointF
 import android.graphics.Rect
@@ -85,12 +86,14 @@ public class SandboxedPdfDocument(
 
     override suspend fun getPageInfo(pageNumber: Int): PdfDocument.PageInfo {
         return withDocument { document ->
-            document.getPageDimensions(pageNumber).let { dimensions ->
-                if (dimensions.height <= 0 || dimensions.width <= 0) {
-                    PdfDocument.PageInfo(pageNumber, DEFAULT_PAGE, DEFAULT_PAGE)
-                } else {
-                    PdfDocument.PageInfo(pageNumber, dimensions.height, dimensions.width)
-                }
+            // TODO(b/407777410): Update the logic so that callers can refetch the information in
+            // case
+            //  default value is returned
+            val dimensions = document.getPageDimensions(pageNumber)
+            if (dimensions == null || dimensions.height <= 0 || dimensions.width <= 0) {
+                PdfDocument.PageInfo(pageNumber, DEFAULT_PAGE, DEFAULT_PAGE)
+            } else {
+                PdfDocument.PageInfo(pageNumber, dimensions.height, dimensions.width)
             }
         }
     }
@@ -106,8 +109,7 @@ public class SandboxedPdfDocument(
         return withDocument { document ->
             SparseArray<List<PageMatchBounds>>(pageRange.last + 1).apply {
                 pageRange.forEach { pageNum ->
-                    document
-                        .searchPageText(pageNum, query)
+                    (document.searchPageText(pageNum, query) ?: listOf())
                         .takeIf { it.isNotEmpty() }
                         ?.let { put(pageNum, it.map { result -> result.toContentClass() }) }
                 }
@@ -155,9 +157,10 @@ public class SandboxedPdfDocument(
 
     override suspend fun getPageLinks(pageNumber: Int): PdfDocument.PdfPageLinks {
         return withDocument { document ->
-            val gotoLinks = document.getPageGotoLinks(pageNumber).map { it.toContentClass() }
+            val gotoLinks =
+                document.getPageGotoLinks(pageNumber)?.map { it.toContentClass() } ?: listOf()
             val externalLinks =
-                document.getPageExternalLinks(pageNumber).map { it.toContentClass() }
+                document.getPageExternalLinks(pageNumber)?.map { it.toContentClass() } ?: listOf()
             PdfDocument.PdfPageLinks(gotoLinks, externalLinks)
         }
     }
@@ -193,7 +196,7 @@ public class SandboxedPdfDocument(
                         pageNumber,
                         scaledPageSizePx.width,
                         scaledPageSizePx.height
-                    )
+                    ) ?: getDefaultBitmap(scaledPageSizePx.width, scaledPageSizePx.height)
                 } else {
                     val offsetX = tileRegion.left
                     val offsetY = tileRegion.top
@@ -205,9 +208,15 @@ public class SandboxedPdfDocument(
                         scaledPageSizePx.height,
                         offsetX,
                         offsetY
-                    )
+                    ) ?: getDefaultBitmap(tileRegion.width(), tileRegion.height())
                 }
             }
+        }
+
+        private fun getDefaultBitmap(width: Int, height: Int): Bitmap {
+            val output = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            output.eraseColor(Color.WHITE)
+            return output
         }
 
         @WorkerThread
@@ -261,7 +270,13 @@ public class SandboxedPdfDocument(
                 connection.connect(uri)
             }
 
-            val binder = connection.documentBinder!!
+            // The documentBinder may be null if the service disconnects immediately after a
+            // reconnection attempt. This is a rare, but recoverable, condition that subsequent
+            // retries(triggered from `withDocument()`) should resolve.
+            val binder =
+                connection.documentBinder
+                    ?: throw DeadObjectException("connection.documentBinder is still null")
+
             if (connection.needsToReopenDocument) {
                 binder.openPdfDocument(fileDescriptor, password)
                 connection.needsToReopenDocument = false

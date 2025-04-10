@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.service.credentials.CallingAppInfo
 import android.service.credentials.CreateCredentialRequest
 import android.service.credentials.GetCredentialRequest
-import androidx.annotation.RequiresApi
 import androidx.credentials.CreateCustomCredentialResponse
 import androidx.credentials.CreatePasswordResponse
 import androidx.credentials.GetCredentialResponse
@@ -47,7 +46,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @SmallTest
-@RequiresApi(34)
 @SdkSuppress(minSdkVersion = 34, codeName = "UpsideDownCake")
 class PendingIntentHandlerApi34Test {
     companion object {

@@ -44,6 +44,7 @@ class AutoVoipConnection : LocalMicrophoneSilenceConnection {
         Log.i(TAG, "onShowIncomingCallUi")
     }
 
+    @Suppress("OVERRIDE_DEPRECATION") // b/407498327
     override fun onCallAudioStateChanged(state: CallAudioState) {
         Log.i(TAG, "onCallAudioStateChanged")
     }

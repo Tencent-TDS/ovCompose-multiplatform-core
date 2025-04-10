@@ -20,9 +20,8 @@ import static java.util.stream.Collectors.toCollection;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.xr.extensions.node.NodeTypeConverter;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
+import androidx.xr.runtime.internal.ActivityPose;
+import androidx.xr.runtime.internal.Entity;
 
 import com.android.extensions.xr.node.Node;
 
@@ -44,20 +43,6 @@ final class EntityManager {
     /**
      * Returns the {@link Entity} associated with the given {@link Node}.
      *
-     * @deprecated Use the {@link Node} overload instead.
-     * @param node the {@link Node} to get the associated {@link Entity} for.
-     * @return the {@link Entity} associated with the given {@link Node}, or null if no such {@link
-     *     Entity} exists.
-     */
-    @Nullable
-    @Deprecated
-    Entity getEntityForNode(@NonNull androidx.xr.extensions.node.Node node) {
-        return mNodeEntityMap.get(NodeTypeConverter.toFramework(node));
-    }
-
-    /**
-     * Returns the {@link Entity} associated with the given {@link Node}.
-     *
      * @param node the {@link Node} to get the associated {@link Entity} for.
      * @return the {@link Entity} associated with the given {@link Node}, or null if no such {@link
      *     Entity} exists.
@@ -65,18 +50,6 @@ final class EntityManager {
     @Nullable
     Entity getEntityForNode(@NonNull Node node) {
         return mNodeEntityMap.get(node);
-    }
-
-    /**
-     * Sets the {@link Entity} associated with the given {@link Node}.
-     *
-     * @deprecated Use the {@link Node} overload instead.
-     * @param node the {@link Node} to set the associated {@link Entity} for.
-     * @param entity the {@link Entity} to associate with the given {@link Node}.
-     */
-    @Deprecated
-    void setEntityForNode(@NonNull androidx.xr.extensions.node.Node node, @NonNull Entity entity) {
-        mNodeEntityMap.put(NodeTypeConverter.toFramework(node), entity);
     }
 
     /**
@@ -105,16 +78,6 @@ final class EntityManager {
     /** Returns a collection of all {@link Entity}s. */
     Collection<Entity> getAllEntities() {
         return mNodeEntityMap.values();
-    }
-
-    /**
-     * Removes the given {@link androidx.xr.extensions.node.Node} from the map.
-     *
-     * @deprecated Use the {@link Node} overload instead.
-     */
-    @Deprecated
-    void removeEntityForNode(@NonNull androidx.xr.extensions.node.Node node) {
-        mNodeEntityMap.remove(NodeTypeConverter.toFramework(node));
     }
 
     /** Removes the given {@link Node} from the map. */

@@ -47,7 +47,8 @@ import kotlin.math.roundToInt
  * Reserves at least 48.dp in size to disambiguate touch interactions if the element would measure
  * smaller.
  *
- * https://m3.material.io/foundations/designing/structure#dab862b1-e042-4c40-b680-b484b9f077f6
+ * [Target
+ * sizes](https://m3.material.io/foundations/designing/structure#dab862b1-e042-4c40-b680-b484b9f077f6)
  *
  * This uses the Material recommended minimum size of 48.dp x 48.dp, which may not the same as the
  * system enforced minimum size. The minimum clickable / touch target size (48.dp by default) is
@@ -117,7 +118,9 @@ internal class MinimumInteractiveModifierNode :
                 placeable.height
             }
 
-        updateAlignmentLines(enforcement, sizePx, placeable)
+        if (enforcement) {
+            updateAlignmentLines(sizePx, placeable)
+        }
 
         return layout(
             width = width,
@@ -136,34 +139,18 @@ internal class MinimumInteractiveModifierNode :
      *
      * If the enforced minimum size (`sizePx`) is larger than the placeable's width or height, it
      * calculates the necessary alignment offsets and adds them to the cache. If the minimum size is
-     * not enforced or is smaller than the placeable's dimensions, it sets the alignment lines to
-     * [AlignmentLine.Unspecified] to clear any previously set values.
+     * not enforced or is smaller than the placeable's dimensions, it sets the alignment lines to 0.
      *
      * @param enforcement A boolean indicating whether the minimum interactive size is enforced.
      * @param sizePx The minimum size in pixels that should be enforced.
      * @param placeable The [Placeable] object representing the measured component.
      */
-    private fun updateAlignmentLines(enforcement: Boolean, sizePx: Int, placeable: Placeable) {
-        if (enforcement && sizePx > placeable.width) {
-            // If the required size is larger than the placeable width, set the
-            // MinimumInteractiveLeftAlignmentLine to indicate the amount of pixels that were added
-            // to the left.
-            val cache = getAlignmentLinesCache()
-            cache[MinimumInteractiveLeftAlignmentLine] =
-                ((sizePx - placeable.width) / 2f).fastRoundToInt()
-        } else if (alignmentLinesCache != null) {
-            alignmentLinesCache!![MinimumInteractiveLeftAlignmentLine] = AlignmentLine.Unspecified
-        }
-        if (enforcement && sizePx > placeable.height) {
-            // If the required size is larger than the placeable height, set the
-            // MinimumInteractiveTopAlignmentLine to indicate the amount of pixels that were added
-            // to the top.
-            val cache = getAlignmentLinesCache()
-            cache[MinimumInteractiveTopAlignmentLine] =
-                ((sizePx - placeable.height) / 2f).fastRoundToInt()
-        } else if (alignmentLinesCache != null) {
-            alignmentLinesCache!![MinimumInteractiveTopAlignmentLine] = AlignmentLine.Unspecified
-        }
+    private fun updateAlignmentLines(sizePx: Int, placeable: Placeable) {
+        val cache = getAlignmentLinesCache()
+        cache[MinimumInteractiveLeftAlignmentLine] =
+            ((sizePx - placeable.width) / 2f).fastRoundToInt().coerceAtLeast(0)
+        cache[MinimumInteractiveTopAlignmentLine] =
+            ((sizePx - placeable.height) / 2f).fastRoundToInt().coerceAtLeast(0)
     }
 
     /**

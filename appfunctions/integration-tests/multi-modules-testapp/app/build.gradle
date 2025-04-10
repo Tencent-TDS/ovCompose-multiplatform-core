@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+import androidx.build.KotlinTarget
+
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
@@ -21,7 +24,7 @@ plugins {
 }
 android {
     namespace = "androidx.appfunctions.integration.testapp"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "androidx.appfunctions.integration.testapp"
         minSdk = 33
@@ -45,6 +48,7 @@ dependencies {
     androidTestImplementation(libs.kotlinCoroutinesAndroid)
     androidTestImplementation(project(":appfunctions:appfunctions-common"))
     androidTestImplementation(project(":appfunctions:appfunctions-runtime"))
+    androidTestImplementation(project(":appfunctions:appfunctions-schemas"))
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.kotlinCoroutinesTest)
@@ -57,4 +61,9 @@ dependencies {
     androidTestImplementation('androidx.concurrent:concurrent-futures-ktx:1.1.0')
     androidTestImplementation(project(":appfunctions:integration-tests:multi-modules-testapp:shared-library"))
     kspAndroidTest(project(":appfunctions:appfunctions-compiler"))
+}
+
+androidx {
+    //TODO(b/407637586): Target Kotlin 2. Fails :appfunctions:integration-tests:multi-modules-testapp:app:kspDebugAndroidTestKotlin
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

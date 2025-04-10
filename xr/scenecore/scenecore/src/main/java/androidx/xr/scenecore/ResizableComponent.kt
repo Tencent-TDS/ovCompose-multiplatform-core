@@ -20,6 +20,8 @@ package androidx.xr.scenecore
 
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.ResizeEventListener as RtResizeEventListener
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 
@@ -35,8 +37,7 @@ private constructor(
     minimumSize: Dimensions,
     maximumSize: Dimensions,
 ) : Component {
-    private val resizeListenerMap =
-        ConcurrentHashMap<ResizeListener, JxrPlatformAdapter.ResizeEventListener>()
+    private val resizeListenerMap = ConcurrentHashMap<ResizeListener, RtResizeEventListener>()
     /**
      * The current size of the entity, in meters. This property is automatically updated after
      * resize events to match the resize affordance to the newly suggested size of the content. The
@@ -47,7 +48,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setSize(value.toRtDimensions())
+                rtResizableComponent.size = value.toRtDimensions()
             }
         }
 
@@ -60,7 +61,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setMinimumSize(value.toRtDimensions())
+                rtResizableComponent.minimumSize = value.toRtDimensions()
             }
         }
 
@@ -73,7 +74,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setMaximumSize(value.toRtDimensions())
+                rtResizableComponent.maximumSize = value.toRtDimensions()
             }
         }
 
@@ -93,7 +94,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setFixedAspectRatio(value)
+                rtResizableComponent.fixedAspectRatio = value
             }
         }
 
@@ -106,7 +107,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setAutoHideContent(value)
+                rtResizableComponent.autoHideContent = value
             }
         }
 
@@ -119,7 +120,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setAutoUpdateSize(value)
+                rtResizableComponent.autoUpdateSize = value
             }
         }
 
@@ -133,7 +134,7 @@ private constructor(
         set(value) {
             if (field != value) {
                 field = value
-                rtResizableComponent.setForceShowResizeOverlay(value)
+                rtResizableComponent.forceShowResizeOverlay = value
             }
         }
 
@@ -185,21 +186,21 @@ private constructor(
      * @param executor The executor to use for the listener callback.
      * @param resizeListener The listener to be invoked when a resize event occurs.
      */
+    @Suppress("ExecutorRegistration")
     public fun addResizeListener(executor: Executor, resizeListener: ResizeListener) {
-        val rtResizeEventListener =
-            JxrPlatformAdapter.ResizeEventListener { rtResizeEvent ->
-                run {
-                    val resizeEvent = rtResizeEvent.toResizeEvent()
-                    when (resizeEvent.resizeState) {
-                        ResizeEvent.RESIZE_STATE_ONGOING ->
-                            entity?.let { resizeListener.onResizeUpdate(it, resizeEvent.newSize) }
-                        ResizeEvent.RESIZE_STATE_END ->
-                            entity?.let { resizeListener.onResizeEnd(it, resizeEvent.newSize) }
-                        ResizeEvent.RESIZE_STATE_START ->
-                            entity?.let { resizeListener.onResizeStart(it, size) }
-                    }
+        val rtResizeEventListener = RtResizeEventListener { rtResizeEvent ->
+            run {
+                val resizeEvent = rtResizeEvent.toResizeEvent()
+                when (resizeEvent.resizeState) {
+                    ResizeEvent.RESIZE_STATE_ONGOING ->
+                        entity?.let { resizeListener.onResizeUpdate(it, resizeEvent.newSize) }
+                    ResizeEvent.RESIZE_STATE_END ->
+                        entity?.let { resizeListener.onResizeEnd(it, resizeEvent.newSize) }
+                    ResizeEvent.RESIZE_STATE_START ->
+                        entity?.let { resizeListener.onResizeStart(it, size) }
                 }
             }
+        }
         rtResizableComponent.addResizeEventListener(executor, rtResizeEventListener)
         resizeListenerMap[resizeListener] = rtResizeEventListener
     }

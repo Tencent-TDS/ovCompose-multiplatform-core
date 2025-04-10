@@ -17,6 +17,7 @@
 package androidx.appfunctions.compiler.core
 
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
+import com.google.devtools.ksp.symbol.KSTypeParameter
 import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 
@@ -32,4 +33,7 @@ data class AppFunctionPropertyDeclaration(val name: String, val type: KSTypeRefe
     constructor(
         valueParameter: KSValueParameter
     ) : this(checkNotNull(valueParameter.name).asString(), valueParameter.type)
+
+    /** Indicates whether the [type] is a generic type or not. */
+    val isGenericType: Boolean by lazy { type.resolve().declaration is KSTypeParameter }
 }

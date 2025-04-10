@@ -56,8 +56,11 @@ import kotlinx.coroutines.channels.Channel
 
 // TODO(grantapher) Consider making public.
 @Composable
-internal fun ProvidePlatformTextContextMenuToolbar(content: @Composable () -> Unit) {
-    ProvidePlatformTextContextMenuToolbar(null, content)
+internal fun ProvidePlatformTextContextMenuToolbar(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    ProvidePlatformTextContextMenuToolbar(modifier, null, content)
 }
 
 /**
@@ -70,6 +73,7 @@ internal fun ProvidePlatformTextContextMenuToolbar(content: @Composable () -> Un
 @VisibleForTesting
 @Composable
 internal fun ProvidePlatformTextContextMenuToolbar(
+    modifier: Modifier = Modifier,
     callbackInjector: ((TextActionModeCallback) -> TextActionModeCallback)?,
     content: @Composable () -> Unit
 ) {
@@ -78,12 +82,32 @@ internal fun ProvidePlatformTextContextMenuToolbar(
         // positioning data, so always trigger read observation when this is set.
         mutableStateOf<LayoutCoordinates?>(null, policy = neverEqualPolicy())
     }
+
+    val provider =
+        platformTextContextMenuToolbarProvider(
+            coordinatesProvider = { checkPreconditionNotNull(layoutCoordinates) },
+            callbackInjector = callbackInjector,
+        )
+
+    CompositionLocalProvider(LocalTextContextMenuToolbarProvider provides provider) {
+        Box(
+            propagateMinConstraints = true,
+            modifier = modifier.onGloballyPositioned { layoutCoordinates = it }
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+internal fun platformTextContextMenuToolbarProvider(
+    coordinatesProvider: () -> LayoutCoordinates,
+    callbackInjector: ((TextActionModeCallback) -> TextActionModeCallback)? = null,
+): TextContextMenuProvider {
     val view = LocalView.current
     val provider =
         remember(view) {
-            AndroidTextContextMenuToolbarProvider(view, callbackInjector) {
-                checkPreconditionNotNull(layoutCoordinates)
-            }
+            AndroidTextContextMenuToolbarProvider(view, callbackInjector, coordinatesProvider)
         }
 
     DisposableEffect(provider) {
@@ -91,17 +115,11 @@ internal fun ProvidePlatformTextContextMenuToolbar(
         onDispose { provider.dispose() }
     }
 
-    CompositionLocalProvider(LocalTextContextMenuToolbarProvider provides provider) {
-        Box(
-            propagateMinConstraints = true,
-            modifier = Modifier.onGloballyPositioned { layoutCoordinates = it }
-        ) {
-            content()
-        }
-    }
+    return provider
 }
 
-private class AndroidTextContextMenuToolbarProvider(
+@VisibleForTesting
+internal class AndroidTextContextMenuToolbarProvider(
     private val view: View,
     private val callbackInjector: ((TextActionModeCallback) -> TextActionModeCallback)?,
     private val coordinatesProvider: () -> LayoutCoordinates,
@@ -228,14 +246,14 @@ private class AndroidTextContextMenuToolbarProvider(
             data.components.fastForEach { component ->
                 when (component) {
                     is TextContextMenuItem -> {
-                        val menuItem =
-                            menu.add(currentGroupId, Menu.NONE, currentOrderId++, component.label)
+                        val orderId = currentOrderId++
+                        // itemId (param 2) must be unique.
+                        val menuItem = menu.add(currentGroupId, orderId, orderId, component.label)
                         menuItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                         menuItem.setOnMenuItemClickListener {
                             with(component) { session.onClick() }
                             true
                         }
-                        component.leadingIcon?.let { menuItem.setIcon(it) }
                     }
                     is TextContextMenuSeparator -> currentGroupId++
                     else -> {

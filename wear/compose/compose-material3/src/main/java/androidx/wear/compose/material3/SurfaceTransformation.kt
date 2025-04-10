@@ -18,12 +18,19 @@ package androidx.wear.compose.material3
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.addOutline
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
+import androidx.wear.compose.material3.lazy.ResponsiveTransformationSpec.Companion.NoOpTransformationSpec
 import androidx.wear.compose.material3.lazy.TransformationSpec
 import androidx.wear.compose.material3.lazy.TransformedContainerPainterScope
 
@@ -84,6 +91,47 @@ public interface SurfaceTransformation {
     public fun GraphicsLayerScope.applyContentTransformation()
 }
 
+internal val NoOpSurfaceTransformation: SurfaceTransformation =
+    object : SurfaceTransformation {
+        override fun createContainerPainter(
+            painter: Painter,
+            shape: Shape,
+            border: BorderStroke?,
+        ): Painter =
+            object : Painter() {
+                override val intrinsicSize: Size
+                    get() = Size.Unspecified
+
+                private var lastUsedSize = Size.Unspecified
+                private val cachedPath: Path = Path()
+
+                override fun DrawScope.onDraw() {
+                    if (size != lastUsedSize) {
+                        cachedPath.reset()
+                        cachedPath.addOutline(
+                            shape.createOutline(size, layoutDirection, this@onDraw)
+                        )
+                        lastUsedSize = size
+                    }
+
+                    clipPath(path = cachedPath) {
+                        if (border != null) {
+                            drawOutline(
+                                outline = shape.createOutline(size, layoutDirection, this@onDraw),
+                                brush = border.brush,
+                                style = Stroke(border.width.toPx()),
+                            )
+                        }
+                        with(painter) { draw(size) }
+                    }
+                }
+            }
+
+        override fun GraphicsLayerScope.applyContentTransformation() {}
+
+        override fun GraphicsLayerScope.applyContainerTransformation() {}
+    }
+
 /**
  * Exposes [androidx.wear.compose.material3.lazy.TransformationSpec] as [SurfaceTransformation] to
  * be used with Material components.
@@ -93,7 +141,12 @@ public interface SurfaceTransformation {
 @Stable
 public fun TransformingLazyColumnItemScope.SurfaceTransformation(
     spec: TransformationSpec
-): SurfaceTransformation = SurfaceTransformationImpl(spec, this)
+): SurfaceTransformation =
+    if (spec == NoOpTransformationSpec) {
+        NoOpSurfaceTransformation
+    } else {
+        SurfaceTransformationImpl(spec, this)
+    }
 
 private class SurfaceTransformationImpl(
     private val spec: TransformationSpec,

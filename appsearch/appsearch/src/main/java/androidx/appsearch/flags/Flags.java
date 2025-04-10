@@ -230,6 +230,18 @@ public final class Flags {
     public static final String FLAG_ENABLE_EMBEDDING_MATCH_INFO =
             FLAG_PREFIX + "enable_embedding_match_info";
 
+    /** Enables to query visibility documents rather than get.  */
+    public static final String FLAG_ENABLE_QUERY_VISIBILITY_DOCUMENTS =
+            FLAG_PREFIX + "enable_query_visibility_documents";
+
+    /** Enables strict byte size enforcement on a result page. */
+    public static final String FLAG_ENABLE_STRICT_PAGE_BYTE_SIZE_LIMIT =
+            FLAG_PREFIX + "enable_strict_page_byte_size_limit";
+
+    /** Enables compression threshold. */
+    public static final String FLAG_ENABLE_COMPRESSION_THRESHOLD =
+            FLAG_PREFIX + "enable_compression_threshold";
+
     // Whether the features should be enabled.
     //
     // In Jetpack, those should always return true.
@@ -468,6 +480,25 @@ public final class Flags {
      * Whether to enable retrieving embedding match info during snippetting.
      */
     public static boolean enableEmbeddingMatchInfo() {
+        return true;
+    }
+
+    /**
+     * Whether to query visibility documents rather than get.
+     */
+    public static boolean enableQueryVisibilityDocuments() {
+        return true;
+    }
+
+    /** Whether to enforce page byte size limit in a stricter way. */
+    public static boolean enableStrictPageByteSizeLimit() {
+        return true;
+    }
+
+    /**
+     * Whether to enable compression threshold.
+     */
+    public static boolean enableCompressionThreshold() {
         return true;
     }
 }

@@ -220,7 +220,9 @@ private class ScrollStateScrollInfoProvider(val state: ScrollState) : ScrollInfo
     override val isScrollAwayValid: Boolean
         get() = true
 
-    override val isScrollable = state.maxValue != 0
+    override val isScrollable: Boolean
+        get() = state.maxValue != 0
+
     // Work around the default implementation of ScrollState not providing a useful
     // isScrollInProgress
     private var prevOffset: Int? = null
@@ -254,8 +256,9 @@ private class TransformingLazyColumnStateScrollInfoProvider(
         get() = state.layoutInfo.totalItemsCount > 0
 
     override val isScrollable
-        // TODO: b/349071165 - Update to respect the scroll bounds.
-        get() = state.layoutInfo.totalItemsCount > 0
+        get() =
+            state.layoutInfo.totalItemsCount > 0 &&
+                (state.canScrollBackward || state.canScrollForward)
 
     override val isScrollInProgress
         get() = state.isScrollInProgress

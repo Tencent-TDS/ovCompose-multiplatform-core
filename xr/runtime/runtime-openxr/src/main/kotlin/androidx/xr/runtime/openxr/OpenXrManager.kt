@@ -18,7 +18,9 @@ package androidx.xr.runtime.openxr
 
 import android.app.Activity
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.Config
 import androidx.xr.runtime.internal.LifecycleManager
+import androidx.xr.runtime.internal.PermissionNotGrantedException
 import kotlin.time.ComparableTimeMark
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -44,7 +46,36 @@ internal constructor(
         nativePointer = nativeGetPointer()
     }
 
-    override fun configure() {}
+    /** The current state of the runtime configuration for the session. */
+    // TODO(b/392660855): Disable all features by default once this API is fully implemented.
+    override var config: Config =
+        Config(
+            Config.PlaneTrackingMode.Disabled,
+            Config.HandTrackingMode.Disabled,
+            Config.DepthEstimationMode.Disabled,
+            Config.AnchorPersistenceMode.Enabled,
+        )
+        private set
+
+    override fun configure(config: Config) {
+        when (
+            nativeConfigureSession(
+                config.planeTracking.mode,
+                config.handTracking.mode,
+                config.depthEstimation.mode,
+                config.anchorPersistence.mode,
+                config.headTracking.mode,
+            )
+        ) {
+            -2L ->
+                throw RuntimeException(
+                    "There was an unknown runtime error configuring the session."
+                ) // XR_ERROR_RUNTIME_FAILURE
+            -1000710000L ->
+                throw PermissionNotGrantedException() // XR_ERROR_PERMISSION_INSUFFICIENT
+        }
+        this.config = config
+    }
 
     override fun resume() {
         check(nativeInit(activity))
@@ -81,4 +112,12 @@ internal constructor(
     private external fun nativeDeInit(): Boolean
 
     private external fun nativePause(): Boolean
+
+    private external fun nativeConfigureSession(
+        planeTracking: Int,
+        handTracking: Int,
+        depthEstimation: Int,
+        anchorPersistence: Int,
+        headTracking: Int,
+    ): Long
 }

@@ -21,7 +21,7 @@ import android.os.Bundle
 /**
  * Thrown when the error is caused by the app requesting a function execution.
  *
- * <p>For example, the caller provided invalid parameters in the execution request e.g. an invalid
+ * For example, the caller provided invalid parameters in the execution request e.g. an invalid
  * function ID.
  */
 public abstract class AppFunctionRequestException
@@ -31,7 +31,7 @@ internal constructor(errorCode: Int, errorMessage: String? = null, extras: Bundl
 /**
  * Thrown when the caller does not have the permission to execute an app function.
  *
- * <p> This is different from [AppFunctionPermissionRequiredException] in that the caller is missing
+ * This is different from [AppFunctionPermissionRequiredException] in that the caller is missing
  * this specific permission, as opposed to the target app missing a permission.
  */
 public class AppFunctionDeniedException
@@ -44,7 +44,7 @@ internal constructor(errorMessage: String? = null, extras: Bundle) :
 /**
  * Thrown when the caller supplied invalid arguments to ExecuteAppFunctionRequest's parameters.
  *
- * <p>This error may be considered similar to [IllegalArgumentException].
+ * This error may be considered similar to [IllegalArgumentException].
  */
 // TODO(b/389738031): add reference to ExecuteAppFunctionRequest's builder when it is added.
 public class AppFunctionInvalidArgumentException

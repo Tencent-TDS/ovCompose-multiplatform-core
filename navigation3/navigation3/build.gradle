@@ -21,7 +21,6 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
@@ -119,6 +118,5 @@ androidx {
             "easily supports extensions."
     samples(project(":navigation3:navigation3:navigation3-samples"))
     doNotDocumentReason = "Not published to maven"
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
     addGoldenImageAssets()
 }

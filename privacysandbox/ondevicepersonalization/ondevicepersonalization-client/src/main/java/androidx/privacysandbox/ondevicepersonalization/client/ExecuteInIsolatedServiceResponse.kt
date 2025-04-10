@@ -18,13 +18,14 @@ package androidx.privacysandbox.ondevicepersonalization.client
 
 import android.adservices.ondevicepersonalization.SurfacePackageToken
 
-@Suppress("DataClassDefinition")
-data class ExecuteInIsolatedServiceResponse
+/**
+ * The response of [OnDevicePersonalizationManager.executeInIsolatedService].
+ *
+ * @param surfacePackageToken An opaque reference to content that can be displayed in a
+ *   [android.view.SurfaceView]. This may be `null` if the Isolated Service has not generated any
+ *   content to be displayed within the calling app.
+ */
+class ExecuteInIsolatedServiceResponse
 internal constructor(
-    /**
-     * Returns a {@link SurfacePackageToken}, which is an opaque reference to content that can be
-     * displayed in a {@link android.view.SurfaceView}. This may be {@code null} if the {@link
-     * IsolatedService} has not generated any content to be displayed within the calling app.
-     */
     val surfacePackageToken: SurfacePackageToken?,
 )

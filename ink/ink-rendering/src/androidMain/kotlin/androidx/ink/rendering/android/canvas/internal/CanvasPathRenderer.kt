@@ -331,7 +331,7 @@ internal class CanvasPathRenderer(textureStore: TextureBitmapStore = TextureBitm
          * For defensive coding - make sure updates are from the same shape, without holding a
          * reference to the shape itself. Not used for any real functionality.
          */
-        private val shapeNativeAddress: Long,
+        private val shapeNativePointer: Long,
     ) {
         companion object {
             fun create(
@@ -350,14 +350,14 @@ internal class CanvasPathRenderer(textureStore: TextureBitmapStore = TextureBitm
                 return PartitionedMeshPathData(
                     Matrix(strokeToScreenTransform),
                     paths,
-                    shape.getNativeAddress(),
+                    shape.nativePointer
                 )
             }
         }
 
         /** Update [paths] only if API < 28 and transforms are different. */
         fun maybeUpdate(shape: PartitionedMesh, strokeToScreenTransform: Matrix) {
-            check(shape.getNativeAddress() == shapeNativeAddress) {
+            check(shape.nativePointer == shapeNativePointer) {
                 "Must update PartitionedMeshData using the same PartitionedMesh used to create it."
             }
             if (

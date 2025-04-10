@@ -29,6 +29,7 @@ import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.MirrorMode;
 import androidx.camera.core.impl.stabilization.StabilizationMode;
+import androidx.camera.core.internal.HighSpeedFpsModifier;
 import androidx.camera.core.internal.compat.workaround.SurfaceSorter;
 
 import com.google.auto.value.AutoValue;
@@ -962,6 +963,13 @@ public final class SessionConfig {
 
             List<OutputConfig> outputConfigs = new ArrayList<>(mOutputConfigs);
             mSurfaceSorter.sort(outputConfigs);
+
+            if (mSessionType == SESSION_TYPE_HIGH_SPEED) {
+                // HighSpeedFpsModifier may modify the expected frame rate range for
+                // mCaptureConfigBuilder.
+                new HighSpeedFpsModifier().modifyFpsForPreviewOnlyRepeating(outputConfigs,
+                        mCaptureConfigBuilder);
+            }
 
             ErrorListener errorListener = null;
             // Creates an error listener to notify errors to the underlying error listeners.

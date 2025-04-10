@@ -22,7 +22,6 @@
  * modifying its settings.
  */
 
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -63,5 +62,4 @@ androidx {
     type = SoftwareType.SAMPLES
     inceptionYear = "2022"
     description = "Contains the sample code for the Android Wear Compose Material 3 Classes"
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

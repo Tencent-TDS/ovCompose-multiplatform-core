@@ -85,9 +85,11 @@ final class ViewfinderTransformation {
     private static final ScaleType DEFAULT_SCALE_TYPE = ScaleType.FILL_CENTER;
 
     private @Nullable Size mResolution;
-    // This represents the area of the Surface that should be visible to end users. The area is
-    // defined by the Viewport class.
-    private @Nullable TransformationInfo mTransformationInfo;
+    // This represents how the source buffers are transformed before being shown on screen, this
+    // includes rotation, mirroring, and crop rect. The crop rect is defined in the source
+    // coordinates and defines the region-of-interest of the source buffer that will act as the
+    // boundaries of the source image.
+    private TransformationInfo mTransformationInfo = TransformationInfo.DEFAULT;
 
     private ScaleType mScaleType = DEFAULT_SCALE_TYPE;
 
@@ -95,26 +97,26 @@ final class ViewfinderTransformation {
     }
 
     /**
-     * Sets the {@link TransformationInfo}.
+     * Sets the source resolution.
      */
-    void setTransformationInfo(@NonNull TransformationInfo transformationInfo,
-            Size resolution) {
-        updateTransformInfo(transformationInfo);
+    void setResolution(@NonNull Size resolution) {
         mResolution = resolution;
     }
 
     /**
-     * Updates the {@link TransformationInfo}.
+     * Sets the {@link TransformationInfo}.
      * @param transformationInfo {@link TransformationInfo}.
      */
-    void updateTransformInfo(@NonNull TransformationInfo transformationInfo) {
+    void setTransformationInfo(@NonNull TransformationInfo transformationInfo) {
         mTransformationInfo = transformationInfo;
     }
 
     /**
-     * Returns the currently set {@link TransformationInfo}, or {@code null} if none has been set.
+     * Returns the currently set {@link TransformationInfo}.
+     *
+     * <p>If not set explicitly, {@link TransformationInfo#DEFAULT} is returned.
      */
-    @Nullable
+    @NonNull
     TransformationInfo getTransformationInfo() {
         return mTransformationInfo;
     }
@@ -133,7 +135,7 @@ final class ViewfinderTransformation {
                     + viewfinderSize);
             return;
         }
-        if (!isTransformationInfoReady()) {
+        if (!isResolutionAvailable()) {
             return;
         }
 
@@ -180,7 +182,7 @@ final class ViewfinderTransformation {
      */
     Bitmap createTransformedBitmap(@NonNull Bitmap original, Size viewfinderSize,
             int layoutDirection, int displayRotation) {
-        if (!isTransformationInfoReady()) {
+        if (!isResolutionAvailable()) {
             return original;
         }
         Matrix textureViewCorrection =
@@ -207,12 +209,12 @@ final class ViewfinderTransformation {
         return transformed;
     }
 
-    private boolean isTransformationInfoReady() {
-        return mTransformationInfo != null && mResolution != null;
+    private boolean isResolutionAvailable() {
+        return mResolution != null;
     }
 
     private RectF getTransformedSurfaceRect(Size viewfinderSize, int layoutDirection) {
-        Preconditions.checkState(isTransformationInfoReady());
+        Preconditions.checkState(isResolutionAvailable());
         Matrix surfaceToViewfinder =
                 Transformations.getSurfaceToViewfinderMatrix(
                         viewfinderSize,

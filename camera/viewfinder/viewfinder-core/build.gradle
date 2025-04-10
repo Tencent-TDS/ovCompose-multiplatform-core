@@ -66,5 +66,4 @@ androidx {
     inceptionYear = "2023"
     description = "Core dependencies for Viewfinder"
     legacyDisableKotlinStrictApiMode = true
-    samples(project(":camera:viewfinder:viewfinder-core:viewfinder-core-samples"))
 }

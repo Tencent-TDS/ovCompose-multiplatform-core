@@ -21,6 +21,7 @@ import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionAnnota
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionComponentRegistryAnnotation
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableAnnotation
 import androidx.appfunctions.compiler.core.IntrospectionHelper.AppFunctionSerializableProxyAnnotation
+import androidx.appfunctions.compiler.core.IntrospectionHelper.SERIALIZABLE_PROXY_PACKAGE_NAME
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -62,29 +63,82 @@ class AppFunctionSymbolResolver(private val resolver: Resolver) {
     fun resolveAnnotatedAppFunctionSerializables(): List<AnnotatedAppFunctionSerializable> {
         return resolver
             .getSymbolsWithAnnotation(AppFunctionSerializableAnnotation.CLASS_NAME.canonicalName)
-            .map { declaration ->
+            .mapNotNull { declaration ->
                 if (declaration !is KSClassDeclaration) {
                     throw ProcessingException(
                         "Only classes can be annotated with @AppFunctionSerializable",
                         declaration
                     )
                 }
+                // TODO(b/405063847): Generate factory for generic serializable.
+                // Temporarily bypass the serializable that use type parameters until the
+                // factory is ready for generic type.
+                if (declaration.hasTypeParameter()) {
+                    return@mapNotNull null
+                }
                 AnnotatedAppFunctionSerializable(declaration).validate()
             }
             .toList()
     }
 
+    // TODO(b/405063847): Remove this once the generic serializable factory is ready
+    private fun KSClassDeclaration.hasTypeParameter(): Boolean {
+        // Or if any of the parameter has type parameter.
+        return primaryConstructor?.parameters?.firstOrNull { valueParameter ->
+            val type = valueParameter.type.resolve()
+            val typeDeclaration =
+                type.declaration as? KSClassDeclaration ?: return@firstOrNull false
+            if (
+                typeDeclaration.annotations.findAnnotation(
+                    AppFunctionSerializableAnnotation.CLASS_NAME
+                ) != null && type.arguments.isNotEmpty()
+            ) {
+                return@firstOrNull true
+            } else {
+                return@firstOrNull false
+            }
+        } != null
+    }
+
     /**
-     * Resolves all classes annotated with @AppFunctionSerializableProxy
+     * Resolves all classes annotated with @AppFunctionSerializableProxy from the current
+     * compilation unit.
      *
      * @return a list of AnnotatedAppFunctionSerializableProxy
      */
-    fun resolveAnnotatedAppFunctionSerializableProxies():
+    fun resolveLocalAnnotatedAppFunctionSerializableProxy():
         List<AnnotatedAppFunctionSerializableProxy> {
         return resolver
             .getSymbolsWithAnnotation(
                 AppFunctionSerializableProxyAnnotation.CLASS_NAME.canonicalName
             )
+            .map { declaration ->
+                if (declaration !is KSClassDeclaration) {
+                    throw ProcessingException(
+                        "Only classes can be annotated with @AppFunctionSerializableProxy",
+                        declaration
+                    )
+                }
+                AnnotatedAppFunctionSerializableProxy(declaration).validate()
+            }
+            .toList()
+    }
+
+    /**
+     * Resolves all classes annotated with @AppFunctionSerializableProxy from the
+     * [SERIALIZABLE_PROXY_PACKAGE_NAME] package.
+     *
+     * @return a list of AnnotatedAppFunctionSerializableProxy
+     */
+    @OptIn(KspExperimental::class)
+    fun resolveAllAnnotatedSerializableProxiesFromModule():
+        List<AnnotatedAppFunctionSerializableProxy> {
+        return resolver
+            .getDeclarationsFromPackage(SERIALIZABLE_PROXY_PACKAGE_NAME)
+            .filter {
+                it.annotations.findAnnotation(AppFunctionSerializableProxyAnnotation.CLASS_NAME) !=
+                    null
+            }
             .map { declaration ->
                 if (declaration !is KSClassDeclaration) {
                     throw ProcessingException(

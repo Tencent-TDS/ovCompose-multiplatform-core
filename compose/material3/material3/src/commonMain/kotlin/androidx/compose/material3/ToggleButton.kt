@@ -150,8 +150,7 @@ fun ToggleButton(
             textStyle = MaterialTheme.typography.labelLarge
         ) {
             Row(
-                modifier
-                    .defaultMinSize(minHeight = ToggleButtonDefaults.MinHeight)
+                Modifier.defaultMinSize(minHeight = ToggleButtonDefaults.MinHeight)
                     .padding(contentPadding),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,

@@ -289,12 +289,11 @@ class CameraViewfinderFoldableFragment : Fragment(), View.OnClickListener {
             )
 
         try {
-            mViewfinderView
-                .requestSurfaceSession(viewfinderSurfaceRequest, transformationInfo)
-                .use {
-                    initializeCamera(cameraId, it.surface)
-                    awaitCancellation()
-                }
+            mViewfinderView.transformationInfo = transformationInfo
+            mViewfinderView.requestSurfaceSession(viewfinderSurfaceRequest).use {
+                initializeCamera(cameraId, it.surface)
+                awaitCancellation()
+            }
         } finally {
             withContext(NonCancellable) { closeCamera() }
         }

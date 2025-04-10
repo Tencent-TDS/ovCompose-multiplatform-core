@@ -119,6 +119,9 @@ public class FeaturesImpl implements Features {
             case Features.SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM:
                 // TODO(b/384947619): enable this feature once it is ready.
                 return false;
+            case Features.ISOLATED_STORAGE:
+                // Isolated storage is only supported for platform storage.
+                return false;
             default:
                 return false;
         }

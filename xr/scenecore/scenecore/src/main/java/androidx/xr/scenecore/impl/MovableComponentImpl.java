@@ -24,20 +24,20 @@ import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.xr.runtime.internal.AnchorEntity;
+import androidx.xr.runtime.internal.AnchorPlacement;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.MovableComponent;
+import androidx.xr.runtime.internal.MoveEvent;
+import androidx.xr.runtime.internal.MoveEventListener;
+import androidx.xr.runtime.internal.PlaneSemantic;
+import androidx.xr.runtime.internal.PlaneType;
+import androidx.xr.runtime.internal.Space;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
+import androidx.xr.runtime.math.Ray;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorPlacement;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.MovableComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.MoveEvent;
-import androidx.xr.scenecore.JxrPlatformAdapter.MoveEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
-import androidx.xr.scenecore.JxrPlatformAdapter.Ray;
-import androidx.xr.scenecore.JxrPlatformAdapter.Space;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Plane;
 import androidx.xr.scenecore.impl.perception.Plane.PlaneData;
@@ -203,6 +203,11 @@ class MovableComponentImpl implements MovableComponent {
     }
 
     @Override
+    public Dimensions getSize() {
+        return mCurrentSize;
+    }
+
+    @Override
     @ScaleWithDistanceMode
     public int getScaleWithDistanceMode() {
         return mScaleWithDistanceMode;
@@ -236,8 +241,12 @@ class MovableComponentImpl implements MovableComponent {
                         return;
                     }
                     if (reformEvent.getState() == ReformEvent.REFORM_STATE_START) {
-                        mInitialParent = mEntity.getParent();
+                        mInitialParent =
+                                mEntity.getParent() != null
+                                        ? mEntity.getParent()
+                                        : mActivitySpaceImpl;
                     }
+
                     Pose newPose;
                     Entity updatedParent = null;
                     if (mUserAnchorable) {

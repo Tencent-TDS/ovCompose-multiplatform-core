@@ -31,17 +31,17 @@ import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.PixelDimensions;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.node.Node;
+import com.android.extensions.xr.node.NodeRepository;
 
 import com.google.androidxr.splitengine.SplitEngineSubspaceManager;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
@@ -69,6 +69,7 @@ public class PanelEntityImplTest {
     private final PerceptionLibrary mPerceptionLibrary = mock(PerceptionLibrary.class);
     private final EntityManager mEntityManager = new EntityManager();
     private JxrPlatformAdapterAxr mTestPlatformAdapter;
+    private final NodeRepository mNodeRepository = NodeRepository.getInstance();
 
     SplitEngineSubspaceManager mSplitEngineSubspaceManager =
             Mockito.mock(SplitEngineSubspaceManager.class);
@@ -174,8 +175,7 @@ public class PanelEntityImplTest {
         // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
         // Validate that the corner radius is set to 32dp.
         assertThat(panelEntity.getCornerRadius()).isEqualTo(32.0f);
-        FakeNode fakeNode = new FakeNode(panelEntity.getNode());
-        assertThat(fakeNode.getCornerRadius()).isEqualTo(32.0f);
+        assertThat(mNodeRepository.getCornerRadius(panelEntity.getNode())).isEqualTo(32.0f);
     }
 
     @Test
@@ -185,8 +185,7 @@ public class PanelEntityImplTest {
         // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
         // Validate that the corner radius is set to 32dp.
         assertThat(panelEntity.getCornerRadius()).isEqualTo(20f);
-        FakeNode fakeNode = new FakeNode(panelEntity.getNode());
-        assertThat(fakeNode.getCornerRadius()).isEqualTo(20f);
+        assertThat(mNodeRepository.getCornerRadius(panelEntity.getNode())).isEqualTo(20f);
     }
 
     @Test
@@ -196,7 +195,6 @@ public class PanelEntityImplTest {
         // The (FakeXrExtensions) test default pixel density is 1 pixel per meter.
         // Validate that the corner radius is set to 32dp.
         assertThat(panelEntity.getCornerRadius()).isEqualTo(20f);
-        FakeNode fakeNode = new FakeNode(panelEntity.getNode());
-        assertThat(fakeNode.getCornerRadius()).isEqualTo(20f);
+        assertThat(mNodeRepository.getCornerRadius(panelEntity.getNode())).isEqualTo(20f);
     }
 }

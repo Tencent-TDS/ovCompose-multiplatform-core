@@ -90,8 +90,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m3.material.io/components/menus/overview" class="external"
- * target="_blank">Material Design Exposed Dropdown Menu</a>.
+ * [Material Design exposed dropdown menu](https://m3.material.io/components/menus/overview)
  *
  * Menus display a list of choices on a temporary surface. They appear when users interact with a
  * button, action, or other control.

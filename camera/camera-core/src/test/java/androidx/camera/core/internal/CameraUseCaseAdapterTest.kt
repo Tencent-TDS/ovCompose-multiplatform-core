@@ -82,6 +82,7 @@ import androidx.camera.testing.impl.fakes.FakeUseCaseConfig
 import androidx.camera.testing.impl.fakes.FakeUseCaseConfigFactory
 import androidx.camera.testing.impl.fakes.GrayscaleImageEffect
 import androidx.concurrent.futures.await
+import androidx.test.filters.SdkSuppress
 import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.ExecutorService
@@ -276,7 +277,7 @@ class CameraUseCaseAdapterTest {
         assertThat(fakeCamera.extendedConfig).isSameInstanceAs(cameraConfig1)
     }
 
-    @RequiresApi(33) // 10-bit HDR only supported on API 33+
+    @SdkSuppress(minSdkVersion = 33) // 10-bit HDR only supported on API 33+
     @Test
     fun canUseHdrWithoutExtensions() {
         // Act: add UseCase that uses HDR.
@@ -288,7 +289,7 @@ class CameraUseCaseAdapterTest {
         )
     }
 
-    @RequiresApi(33) // 10-bit HDR only supported on API 33+
+    @SdkSuppress(minSdkVersion = 33) // 10-bit HDR only supported on API 33+
     @Test
     fun useHDRWithExtensions_throwsException() {
         // Arrange: enable extensions.
@@ -334,7 +335,7 @@ class CameraUseCaseAdapterTest {
         assertThrows<CameraException> { adapter.addUseCases(setOf(imageCapture)) }
     }
 
-    @RequiresApi(23)
+    @SdkSuppress(minSdkVersion = 23)
     @Test
     fun useRawWithExtensions_throwsException() {
         // Arrange: enable extensions.
@@ -364,7 +365,7 @@ class CameraUseCaseAdapterTest {
         assertThrows<CameraException> { adapter.addUseCases(setOf(imageCapture)) }
     }
 
-    @RequiresApi(34) // Ultra HDR only supported on API 34+
+    @SdkSuppress(minSdkVersion = 34) // Ultra HDR only supported on API 34+
     @Test
     fun useUltraHdrWithCameraEffect_throwsException() {
         // Arrange: add an image effect.
@@ -539,7 +540,7 @@ class CameraUseCaseAdapterTest {
         assertThat(streamSharing.camera).isNull()
     }
 
-    @RequiresApi(23)
+    @SdkSuppress(minSdkVersion = 23)
     @Test
     fun extensionEnabledAndVideoCaptureExisted_streamSharingOn() {
         // Arrange: enable extensions.
@@ -556,7 +557,7 @@ class CameraUseCaseAdapterTest {
         assertThat(streamSharing.camera).isNotNull()
     }
 
-    @RequiresApi(23)
+    @SdkSuppress(minSdkVersion = 23)
     @Test
     fun extensionEnabledAndOnlyVideoCaptureAttached_streamSharingOn() {
         // Arrange: enable extensions.
@@ -1347,7 +1348,7 @@ class CameraUseCaseAdapterTest {
         assertThat(cameraInfoInternal.isCaptureProcessProgressSupported).isTrue()
     }
 
-    @RequiresApi(23)
+    @SdkSuppress(minSdkVersion = 23)
     @Test
     fun returnsCorrectSessionProcessorFromAdapterCameraControl() {
         val fakeSessionProcessor = FakeSessionProcessor()

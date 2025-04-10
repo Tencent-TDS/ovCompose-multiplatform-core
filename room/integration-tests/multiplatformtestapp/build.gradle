@@ -15,7 +15,6 @@
  */
 
 import androidx.build.KmpPlatformsKt
-import androidx.build.KotlinTarget
 import org.apache.commons.io.FileUtils
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.tasks.KotlinNativeLink
@@ -131,5 +130,4 @@ room {
 }
 
 androidx {
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

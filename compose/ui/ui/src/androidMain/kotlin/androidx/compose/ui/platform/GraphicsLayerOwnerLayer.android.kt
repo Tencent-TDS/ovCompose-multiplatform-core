@@ -41,6 +41,7 @@ import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.internal.requirePrecondition
 import androidx.compose.ui.layout.GraphicLayerInfo
 import androidx.compose.ui.node.OwnedLayer
+import androidx.compose.ui.ui.FrameRateCategory
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -80,6 +81,8 @@ internal class GraphicsLayerOwnerLayer(
     private var isMatrixDirty = false
     private var isInverseMatrixDirty = false
     private var isIdentity = true
+    override var frameRate: Float = 0f
+    override var isFrameRateFromParent = false
 
     override fun updateLayerProperties(scope: ReusableGraphicsLayerScope) {
         val maybeChangedFields = scope.mutatedFields or mutatedFields
@@ -180,6 +183,9 @@ internal class GraphicsLayerOwnerLayer(
         mutatedFields = scope.mutatedFields
         if (maybeChangedFields != 0 || outlineChanged) {
             triggerRepaint()
+            if (ownerView.isArrEnabled) {
+                ownerView.requestedFrameRate = frameRate
+            }
         }
     }
 
@@ -219,12 +225,18 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun move(position: IntOffset) {
+        if (ownerView.isArrEnabled) {
+            ownerView.requestedFrameRate = FrameRateCategory.High.value
+        }
         graphicsLayer.topLeft = position
         triggerRepaint()
     }
 
     override fun resize(size: IntSize) {
         if (size != this.size) {
+            if (ownerView.isArrEnabled) {
+                ownerView.requestedFrameRate = FrameRateCategory.High.value
+            }
             this.size = size
             invalidate()
         }
@@ -243,6 +255,9 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun updateDisplayList() {
+        if (ownerView.isArrEnabled && frameRate != 0f) {
+            ownerView.requestedFrameRate = frameRate
+        }
         if (isDirty) {
             if (transformOrigin != TransformOrigin.Center && graphicsLayer.size != size) {
                 graphicsLayer.pivotOffset =
@@ -270,6 +285,8 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun destroy() {
+        frameRate = 0f
+        isFrameRateFromParent = false
         drawBlock = null
         invalidateParentLayer = null
         isDestroyed = true

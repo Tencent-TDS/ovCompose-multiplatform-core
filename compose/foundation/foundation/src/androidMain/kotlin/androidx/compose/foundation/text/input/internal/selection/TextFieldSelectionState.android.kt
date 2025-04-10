@@ -55,6 +55,7 @@ internal fun TextFieldSelectionState.contextMenuBuilder(
     }
 }
 
+// TODO(halilibo): Add a new TextToolbar option "paste as plain text".
 internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
     state: TextFieldSelectionState,
     coroutineScope: CoroutineScope,

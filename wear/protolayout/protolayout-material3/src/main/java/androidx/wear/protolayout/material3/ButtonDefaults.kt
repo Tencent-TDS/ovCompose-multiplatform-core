@@ -36,6 +36,7 @@ import androidx.wear.protolayout.material3.Typography.TypographyToken
 import androidx.wear.protolayout.modifiers.padding
 import androidx.wear.protolayout.types.LayoutColor
 import androidx.wear.protolayout.types.argb
+import androidx.wear.protolayout.types.dp
 
 /**
  * Represents the container and content colors used in buttons, such as [textEdgeButton] or
@@ -142,23 +143,20 @@ public object ButtonDefaults {
         // Side padding - start
         horizontalElementBuilder.addContent(
             verticalSpacer(
-                deviceConfiguration.weightForSpacer(
-                    if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
-                        style.avatarPaddingWeight
-                    } else {
-                        style.labelsPaddingWeight
-                    }
-                )
+                (deviceConfiguration.screenWidthDp *
+                        (if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
+                            style.avatarPaddingPercentage
+                        } else {
+                            style.labelsPaddingPercentage
+                        }) / 100f)
+                    .dp
             )
         )
 
         // Wrap avatar in expandable box with weights
+        val avatarSize = (deviceConfiguration.screenWidthDp * style.avatarSizePercentage / 100f).dp
         val wrapAvatar =
-            Box.Builder()
-                .setWidth(deviceConfiguration.weightForContainer(style.avatarSizeWeight))
-                .setHeight(height)
-                .addContent(avatar)
-                .build()
+            Box.Builder().setWidth(avatarSize).setHeight(avatarSize).addContent(avatar).build()
 
         if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
             horizontalElementBuilder.addContent(wrapAvatar)
@@ -169,15 +167,7 @@ public object ButtonDefaults {
         horizontalElementBuilder.addContent(
             Box.Builder()
                 .setHorizontalAlignment(HORIZONTAL_ALIGN_START)
-                // Remaining % from 100% is for labels
-                .setWidth(
-                    weightAsExpand(
-                        100 -
-                            style.avatarPaddingWeight -
-                            style.labelsPaddingWeight -
-                            style.avatarSizeWeight
-                    )
-                )
+                .setWidth(expand())
                 .addContent(verticalElementBuilder.build())
                 .build()
         )
@@ -190,13 +180,13 @@ public object ButtonDefaults {
         // Side padding - end
         horizontalElementBuilder.addContent(
             verticalSpacer(
-                deviceConfiguration.weightForSpacer(
-                    if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
-                        style.labelsPaddingWeight
-                    } else {
-                        style.avatarPaddingWeight
-                    }
-                )
+                (deviceConfiguration.screenWidthDp *
+                        (if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
+                            style.labelsPaddingPercentage
+                        } else {
+                            style.avatarPaddingPercentage
+                        }) / 100f)
+                    .dp
             )
         )
 
@@ -406,9 +396,11 @@ public class AvatarButtonStyle
 internal constructor(
     @TypographyToken internal val labelTypography: Int,
     @TypographyToken internal val secondaryLabelTypography: Int,
-    @FloatRange(from = 0.0, to = 100.0) internal val avatarSizeWeight: Float,
-    @FloatRange(from = 0.0, to = 100.0) internal val avatarPaddingWeight: Float,
-    @FloatRange(from = 0.0, to = 100.0) internal val labelsPaddingWeight: Float,
+    // These are percentages of the total screen size because avatar slot should stay the same if we
+    // have multiple buttons on the screen.
+    @FloatRange(from = 0.0, to = 100.0) internal val avatarSizePercentage: Float,
+    @FloatRange(from = 0.0, to = 100.0) internal val avatarPaddingPercentage: Float,
+    @FloatRange(from = 0.0, to = 100.0) internal val labelsPaddingPercentage: Float,
     internal val innerVerticalPadding: Padding,
     @Dimension(DP) internal val avatarToLabelsSpaceDp: Int,
 ) {
@@ -421,9 +413,9 @@ internal constructor(
             AvatarButtonStyle(
                 labelTypography = Typography.LABEL_MEDIUM,
                 secondaryLabelTypography = Typography.BODY_SMALL,
-                avatarSizeWeight = 25f,
-                avatarPaddingWeight = 5.51f,
-                labelsPaddingWeight = 9.4f,
+                avatarSizePercentage = 19.6f,
+                avatarPaddingPercentage = 4.16f,
+                labelsPaddingPercentage = 7.1f,
                 innerVerticalPadding = padding(vertical = 8f, horizontal = Float.NaN),
                 avatarToLabelsSpaceDp = 6,
             )
@@ -436,9 +428,9 @@ internal constructor(
             AvatarButtonStyle(
                 labelTypography = Typography.TITLE_MEDIUM,
                 secondaryLabelTypography = Typography.LABEL_SMALL,
-                avatarSizeWeight = 29.6f,
-                avatarPaddingWeight = 2.78f,
-                labelsPaddingWeight = 7.95f,
+                avatarSizePercentage = 23.15f,
+                avatarPaddingPercentage = 2.1f,
+                labelsPaddingPercentage = 6f,
                 innerVerticalPadding = padding(vertical = 6f, horizontal = Float.NaN),
                 avatarToLabelsSpaceDp = 6,
             )

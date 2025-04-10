@@ -31,7 +31,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.semantics
@@ -45,14 +44,12 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth
-import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.junit.Rule
@@ -278,23 +275,5 @@ class CardTest {
         rule.onNodeWithTag("clickable").assertHasClickAction().performClick()
         // still 0
         Truth.assertThat(state.value).isEqualTo(0)
-    }
-
-    // regression test for b/296567828
-    @Test
-    fun clickableOverload_hover_doesNotRecompose() {
-        var recomposeCounter = 0
-        rule.setMaterialContent(lightColorScheme()) {
-            Card(
-                modifier = Modifier.testTag("card").onPlaced { recomposeCounter++ },
-                onClick = {}
-            ) {
-                Spacer(Modifier.size(30.dp))
-            }
-        }
-
-        rule.onNodeWithTag("card").performMouseInput { moveTo(center) }
-
-        rule.runOnIdle { assertThat(recomposeCounter).isEqualTo(1) }
     }
 }

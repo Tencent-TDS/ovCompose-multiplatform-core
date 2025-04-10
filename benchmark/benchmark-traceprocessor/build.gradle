@@ -15,7 +15,6 @@
  */
 
 import androidx.build.AndroidXConfig
-import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 import androidx.build.ProjectLayoutType
@@ -139,6 +138,5 @@ androidx {
     inceptionYear = "2024"
     description = "AndroidX Benchmark TraceProcessor"
     metalavaK2UastEnabled = false
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
     samples(project(":benchmark:benchmark-samples"))
 }

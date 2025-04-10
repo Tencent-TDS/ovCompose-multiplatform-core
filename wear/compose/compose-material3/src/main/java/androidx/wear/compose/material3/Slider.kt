@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
@@ -135,16 +137,25 @@ public fun Slider(
                 .clip(shape)
     ) {
         val visibleSegments = if (segmented) steps + 1 else 1
+        val hapticFeedback = LocalHapticFeedback.current
 
         val updateValue: (Int) -> Unit = { stepDiff ->
             val newValue = calculateCurrentStepValue(currentStep + stepDiff, steps, valueRange)
-            if (newValue != value) onValueChange(newValue)
+            if (newValue != value) {
+                onValueChange(newValue)
+                if (newValue > valueRange.start && newValue < valueRange.endInclusive) {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick)
+                } else {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.GestureEnd)
+                }
+            }
         }
         val selectedBarColor = colors.barColor(enabled, true)
         val unselectedBarColor = colors.barColor(enabled, false)
         val containerColor = colors.containerColor(enabled)
         val selectedBarSeparatorColor = colors.barSeparatorColor(enabled, true)
         val unselectedBarSeparatorColor = colors.barSeparatorColor(enabled, false)
+
         CompositionLocalProvider(
             LocalIndication provides ripple(bounded = false, radius = this.maxWidth / 2)
         ) {

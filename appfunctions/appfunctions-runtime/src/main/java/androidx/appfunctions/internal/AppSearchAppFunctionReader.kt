@@ -150,6 +150,7 @@ internal class AppSearchAppFunctionReader(private val context: Context) : AppFun
                 .setJoinSpec(joinSpec)
                 .setVerbatimSearchEnabled(true)
                 .setNumericSearchEnabled(true)
+                .setListFilterQueryLanguageEnabled(true)
                 .build()
         return session
             .search(searchFunctionSpec.toStaticMetadataAppSearchQuery(), staticSearchSpec)

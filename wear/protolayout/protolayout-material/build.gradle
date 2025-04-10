@@ -25,7 +25,7 @@ import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("com.android.library")
 }
 

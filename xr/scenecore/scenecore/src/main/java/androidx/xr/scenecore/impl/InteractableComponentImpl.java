@@ -19,9 +19,9 @@ package androidx.xr.scenecore.impl;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.InteractableComponent;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.InteractableComponent;
 
 import java.util.concurrent.Executor;
 
@@ -43,8 +43,8 @@ class InteractableComponentImpl implements InteractableComponent {
             return false;
         }
         mEntity = entity;
-        if (entity instanceof GltfEntityImplSplitEngine) {
-            ((GltfEntityImplSplitEngine) entity).setColliderEnabled(true);
+        if (entity instanceof GltfEntityImpl) {
+            ((GltfEntityImpl) entity).setColliderEnabled(true);
         }
         // InputEvent type translation happens here.
         entity.addInputEventListener(mExecutor, mConsumer);
@@ -53,8 +53,8 @@ class InteractableComponentImpl implements InteractableComponent {
 
     @Override
     public void onDetach(@NonNull Entity entity) {
-        if (entity instanceof GltfEntityImplSplitEngine) {
-            ((GltfEntityImplSplitEngine) entity).setColliderEnabled(false);
+        if (entity instanceof GltfEntityImpl) {
+            ((GltfEntityImpl) entity).setColliderEnabled(false);
         }
         entity.removeInputEventListener(mConsumer);
         mEntity = null;

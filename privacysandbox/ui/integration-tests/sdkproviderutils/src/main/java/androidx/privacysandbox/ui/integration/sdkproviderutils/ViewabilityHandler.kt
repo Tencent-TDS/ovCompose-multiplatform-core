@@ -46,7 +46,10 @@ class ViewabilityHandler {
             SessionObserverFactory {
 
             override val signalOptions: Set<String> =
-                setOf(SandboxedUiAdapterSignalOptions.GEOMETRY)
+                setOf(
+                    SandboxedUiAdapterSignalOptions.GEOMETRY,
+                    SandboxedUiAdapterSignalOptions.OBSTRUCTIONS
+                )
 
             override fun create(): SessionObserver {
                 return SessionObserverImpl()

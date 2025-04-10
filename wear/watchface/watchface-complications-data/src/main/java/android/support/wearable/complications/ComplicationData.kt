@@ -2679,7 +2679,8 @@ private constructor(
         }
 
         /** Returns whether or not we should redact complication data in toString(). */
-        @JvmStatic fun shouldRedact() = !Log.isLoggable(TAG, Log.DEBUG)
+        @JvmStatic
+        fun shouldRedact() = !Log.isLoggable(TAG, Log.DEBUG) && !Build.TYPE.equals("userdebug")
 
         @JvmStatic
         fun maybeRedact(unredacted: CharSequence?): String =

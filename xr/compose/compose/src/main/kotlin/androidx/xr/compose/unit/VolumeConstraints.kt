@@ -123,6 +123,17 @@ public class VolumeConstraints(
     public companion object {
         /** Represents an unbounded (infinite) constraint value. */
         public const val INFINITY: Int = Int.MAX_VALUE
+
+        /** Represents unbounded constraints. */
+        public val Unbounded: VolumeConstraints =
+            VolumeConstraints(
+                minWidth = 0,
+                maxWidth = INFINITY,
+                minHeight = 0,
+                maxHeight = INFINITY,
+                minDepth = 0,
+                maxDepth = INFINITY,
+            )
     }
 }
 

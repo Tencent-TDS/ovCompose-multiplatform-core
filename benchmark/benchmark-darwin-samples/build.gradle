@@ -24,7 +24,7 @@ androidXMultiplatform {
             baseName = "AndroidXDarwinBenchmarks"
             // https://youtrack.jetbrains.com/issue/KT-48552
             embedBitcode = BitcodeEmbeddingMode.DISABLE
-            export(project(":benchmark:benchmark-darwin"))
+            export(project.project(":benchmark:benchmark-darwin"))
             xcf.add(it)
         }
     }

@@ -34,6 +34,7 @@ import androidx.appsearch.app.SchemaVisibilityConfig;
 import androidx.appsearch.app.SearchResult;
 import androidx.appsearch.app.SearchResult.EmbeddingMatchInfo;
 import androidx.appsearch.app.SearchResult.MatchInfo;
+import androidx.appsearch.app.SearchResult.MatchRange;
 import androidx.appsearch.app.SearchResult.TextMatchInfo;
 import androidx.appsearch.app.SearchResultPage;
 import androidx.appsearch.app.SearchSpec;
@@ -186,6 +187,10 @@ public class StubCreators {
 
     /** Stub creator for {@link androidx.appsearch.app.SearchResult.EmbeddingMatchInfo}. */
     public static class EmbeddingMatchInfoCreator extends AbstractCreator<EmbeddingMatchInfo> {
+    }
+
+    /** Stub creator for {@link androidx.appsearch.app.SearchResult.MatchRange}. */
+    public static class MatchRangeCreator extends AbstractCreator<MatchRange> {
     }
 
     /** Stub creator for {@link androidx.appsearch.app.SearchResultPage}. */

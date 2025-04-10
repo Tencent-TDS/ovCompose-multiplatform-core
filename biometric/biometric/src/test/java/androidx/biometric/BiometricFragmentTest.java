@@ -33,10 +33,10 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentFactory;
 import androidx.fragment.app.testing.FragmentScenario;
+import androidx.test.filters.SdkSuppress;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -85,13 +85,13 @@ public class BiometricFragmentTest {
     public void setUp() {
         prepareMockHandler(mHandler);
         mViewModel.setClientExecutor(EXECUTOR);
-        mViewModel.setClientCallback(mAuthenticationCallback);
         mViewModel.setAwaitingResult(true);
         mViewModel.setPromptInfo(new BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Title")
                 .setNegativeButtonText("Cancel")
                 .build());
-        mFragmentFactory = new BiometricFragmentFactory(mHandler, mViewModel, true, true, true,
+        mFragmentFactory = new BiometricFragmentFactory(mHandler, mViewModel,
+                mAuthenticationCallback, true, true, true,
                 true);
     }
 
@@ -132,7 +132,8 @@ public class BiometricFragmentTest {
 
         mViewModel.setPromptShowing(true);
         mViewModel.setFingerprintDialogDismissedInstantly(false);
-        mFragmentFactory = new BiometricFragmentFactory(mHandler, mViewModel, true, true, true,
+        mFragmentFactory = new BiometricFragmentFactory(mHandler, mViewModel,
+                mAuthenticationCallback, true, true, true,
                 true);
 
         try (FragmentScenario<BiometricFragment> scenario = FragmentScenario.launchInContainer(
@@ -192,7 +193,7 @@ public class BiometricFragmentTest {
 
     @Test
     @Config(minSdk = Build.VERSION_CODES.P)
-    @RequiresApi(Build.VERSION_CODES.P)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
     public void testAuthenticateWithBiometricPrompt_DoesShowErrorAndDismiss_WhenNPEThrown() {
         final int errMsgId = BiometricPrompt.ERROR_HW_UNAVAILABLE;
         final String errString = "test string";
@@ -232,6 +233,7 @@ public class BiometricFragmentTest {
     private static class BiometricFragmentFactory extends FragmentFactory {
         private final Handler mHandler;
         private final BiometricViewModel mViewModel;
+        private BiometricPrompt.AuthenticationCallback mAuthenticationCallback;
         private final boolean mHostedInActivity;
         private final boolean mHasFingerprint;
         private final boolean mHasFace;
@@ -239,10 +241,12 @@ public class BiometricFragmentTest {
 
         BiometricFragmentFactory(@NonNull Handler handler,
                 @NonNull BiometricViewModel viewModel,
+                BiometricPrompt.AuthenticationCallback clientCallback,
                 boolean hostedInActivity, boolean hasFingerprint, boolean hasFace,
                 boolean hasIris) {
             mHandler = handler;
             mViewModel = viewModel;
+            mAuthenticationCallback = clientCallback;
             mHostedInActivity = hostedInActivity;
             mHasFace = hasFace;
             mHasFingerprint = hasFingerprint;
@@ -253,7 +257,8 @@ public class BiometricFragmentTest {
         @NonNull
         public Fragment instantiate(@NonNull ClassLoader classLoader, String className) {
             if (className.equals(BiometricFragment.class.getName())) {
-                return BiometricFragment.newInstance(mHandler, mViewModel, mHostedInActivity,
+                return BiometricFragment.newInstance(mHandler, mViewModel, mAuthenticationCallback,
+                        mHostedInActivity,
                         mHasFingerprint, mHasFace, mHasIris);
             }
             return super.instantiate(classLoader, className);

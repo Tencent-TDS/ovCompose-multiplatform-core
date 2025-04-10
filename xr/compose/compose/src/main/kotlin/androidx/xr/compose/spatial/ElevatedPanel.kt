@@ -19,7 +19,7 @@ package androidx.xr.compose.spatial
 import android.view.View
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.layout.Box
@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.xr.compose.platform.LocalCoreEntity
 import androidx.xr.compose.platform.LocalOpaqueEntity
@@ -70,7 +71,7 @@ internal fun ElevatedPanel(
     contentOffset: Offset? = null,
     transitionSpec:
         @Composable
-        Transition.Segment<SpatialElevationLevel>.() -> FiniteAnimationSpec<Float> =
+        Transition.Segment<SpatialElevationLevel>.() -> FiniteAnimationSpec<Dp> =
         {
             spring()
         },
@@ -79,9 +80,7 @@ internal fun ElevatedPanel(
     val parentView = LocalView.current
     val zDepth by
         updateTransition(targetState = spatialElevationLevel, label = "restingLevelTransition")
-            .animateFloat(transitionSpec = transitionSpec, label = "zDepth") { state ->
-                state.level
-            }
+            .animateDp(transitionSpec = transitionSpec, label = "zDepth") { state -> state.level }
     var parentViewSize by remember { mutableStateOf(parentView.size) }
     DisposableEffect(parentView) {
         val listener =

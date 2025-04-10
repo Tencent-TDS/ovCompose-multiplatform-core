@@ -36,8 +36,6 @@ import androidx.biometric.BiometricManager.Authenticators;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
-import androidx.lifecycle.DefaultLifecycleObserver;
-import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
 
@@ -46,7 +44,6 @@ import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.lang.ref.WeakReference;
 import java.security.Signature;
 import java.util.concurrent.Executor;
 
@@ -981,29 +978,11 @@ public class BiometricPrompt {
     }
 
     /**
-     * A lifecycle observer that clears the client callback reference held by a
-     * {@link BiometricViewModel} when the lifecycle owner is destroyed.
-     */
-    private static class ResetCallbackObserver implements DefaultLifecycleObserver {
-        private final @NonNull WeakReference<BiometricViewModel> mViewModelRef;
-
-        ResetCallbackObserver(@NonNull BiometricViewModel viewModel) {
-            mViewModelRef = new WeakReference<>(viewModel);
-        }
-
-        @Override
-        public void onDestroy(@NonNull LifecycleOwner owner) {
-            if (mViewModelRef.get() != null) {
-                mViewModelRef.get().resetClientCallback();
-            }
-        }
-    }
-
-    /**
      * The fragment manager that will be used to attach the prompt to the client activity.
      */
     private @Nullable FragmentManager mClientFragmentManager;
     private boolean mHostedInActivity;
+    private AuthenticationCallback mAuthenticationCallback;
 
     /**
      * Constructs a {@link BiometricPrompt}, which can be used to prompt the user to authenticate
@@ -1070,7 +1049,6 @@ public class BiometricPrompt {
         final FragmentManager fragmentManager = fragment.getChildFragmentManager();
         final BiometricViewModel viewModel =
                 new ViewModelProvider(fragment).get(BiometricViewModel.class);
-        addObservers(fragment, viewModel);
         init(false /* hostedInActivity */, fragmentManager, viewModel, null /* executor */,
                 callback);
     }
@@ -1154,7 +1132,6 @@ public class BiometricPrompt {
         final FragmentManager fragmentManager = fragment.getChildFragmentManager();
         final BiometricViewModel viewModel =
                 new ViewModelProvider(fragment).get(BiometricViewModel.class);
-        addObservers(fragment, viewModel);
         init(false /* hostedInActivity */, fragmentManager, viewModel, executor, callback);
     }
 
@@ -1179,7 +1156,14 @@ public class BiometricPrompt {
         if (executor != null) {
             viewModel.setClientExecutor(executor);
         }
-        viewModel.setClientCallback(callback);
+        mAuthenticationCallback = callback;
+
+        // Reset callbacks if biometricFragment has been created. This is mainly for
+        // configuration changes.
+        final BiometricFragment biometricFragment = findBiometricFragment(mClientFragmentManager);
+        if (biometricFragment != null) {
+            biometricFragment.setClientCallback(mAuthenticationCallback);
+        }
     }
 
     /**
@@ -1307,18 +1291,6 @@ public class BiometricPrompt {
     }
 
     /**
-     * Adds the necessary lifecycle observers to the given fragment host.
-     *
-     * @param fragment  The fragment of the client application that will host the prompt.
-     * @param viewModel A biometric view model tied to the lifecycle of the client activity.
-     */
-    private static void addObservers(
-            @NonNull Fragment fragment, @NonNull BiometricViewModel viewModel) {
-        // Ensure that the callback is reset to avoid leaking fragment instances (b/167014923).
-        fragment.getLifecycle().addObserver(new ResetCallbackObserver(viewModel));
-    }
-
-    /**
      * Searches for a {@link BiometricFragment} instance that has been added to an activity or
      * fragment.
      *
@@ -1343,7 +1315,8 @@ public class BiometricPrompt {
 
         // If the fragment hasn't been added before, add it.
         if (biometricFragment == null) {
-            biometricFragment = BiometricFragment.newInstance(mHostedInActivity);
+            biometricFragment = BiometricFragment.newInstance(mHostedInActivity,
+                    mAuthenticationCallback);
             mClientFragmentManager.beginTransaction()
                     .add(biometricFragment, BiometricPrompt.BIOMETRIC_FRAGMENT_TAG)
                     .commitAllowingStateLoss();

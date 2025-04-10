@@ -77,6 +77,7 @@ class ScrollableFocusableInteractionTest(
     private val reverseScrolling: Boolean
 ) {
     companion object {
+        @Suppress("TYPE_INTERSECTION_AS_REIFIED_WARNING")
         @JvmStatic
         @Parameterized.Parameters(name = "{0} reverseScrolling={1}")
         fun initParameters() =

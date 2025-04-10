@@ -17,7 +17,9 @@
 package androidx.appfunctions.internal
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.appfunctions.internal.Constants.APP_FUNCTIONS_TAG
 
 /** Provides manual dependency injection for AppFunction runtime infrastructure. */
 @RequiresApi(Build.VERSION_CODES.S)
@@ -41,5 +43,19 @@ internal object Dependencies {
                 prefix = "$",
                 suffix = "_Impl",
             )
+    }
+
+    internal val translatorSelector: TranslatorSelector by lazy {
+        try {
+            TranslatorSelector::class
+                .java
+                .findImpl(
+                    prefix = "",
+                    suffix = "Impl",
+                )
+        } catch (ex: Exception) {
+            Log.d(APP_FUNCTIONS_TAG, "Cannot find TranslatorSelectorImpl")
+            NullTranslatorSelector()
+        }
     }
 }

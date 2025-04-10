@@ -20,6 +20,8 @@ import android.app.Activity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
+import androidx.xr.runtime.Config
+import androidx.xr.runtime.HandTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.math.Pose
@@ -31,6 +33,7 @@ import androidx.xr.runtime.testing.FakeRuntimeHand
 import com.google.common.truth.Truth.assertThat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -113,6 +116,14 @@ class HandTest {
         }
 
     @Test
+    fun left_handTrackingDisabled_throwsIllegalStateException() =
+        createTestSessionAndRunTest(testDispatcher) {
+            session.configure(Config(handTracking = HandTrackingMode.Disabled))
+
+            assertFailsWith<IllegalStateException> { Hand.left(session) }
+        }
+
+    @Test
     fun right_returnsRightHand() =
         createTestSessionAndRunTest(testDispatcher) {
             runTest(testDispatcher) {
@@ -147,6 +158,14 @@ class HandTest {
                     )
                 }
             }
+        }
+
+    @Test
+    fun right_handTrackingDisabled_throwsIllegalStateException() =
+        createTestSessionAndRunTest(testDispatcher) {
+            session.configure(Config(handTracking = HandTrackingMode.Disabled))
+
+            assertFailsWith<IllegalStateException> { Hand.right(session) }
         }
 
     @Test
@@ -189,6 +208,7 @@ class HandTest {
             it.onActivity { activity ->
                 session =
                     (Session.create(activity, coroutineDispatcher) as SessionCreateSuccess).session
+                xrResourcesManager.lifecycleManager = session.runtime.lifecycleManager
 
                 testBody()
             }

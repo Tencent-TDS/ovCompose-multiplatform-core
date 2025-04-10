@@ -27,7 +27,7 @@ public interface SoundPoolExtensionsWrapper {
      *
      * @param soundPool The SoundPool to use.
      * @param soundId The ID of the sound to play.
-     * @param attributes The PointSourceAttributes to use.
+     * @param params The PointSourceParams to use.
      * @param volume The volume of the sound.
      * @param priority The priority of the sound.
      * @param loop Whether to loop the sound.
@@ -37,7 +37,7 @@ public interface SoundPoolExtensionsWrapper {
     public fun play(
         soundPool: SoundPool,
         soundId: Int,
-        attributes: PointSourceAttributes,
+        params: PointSourceParams,
         volume: Float,
         priority: Int,
         loop: Int,
@@ -64,7 +64,7 @@ public interface SoundPoolExtensionsWrapper {
         priority: Int,
         loop: Int,
         rate: Float,
-    )
+    ): Int
 
     /**
      * Returns the spatial source type of the sound.

@@ -77,7 +77,7 @@ public final class AuthTabSession {
      * A class to be used instead of {@link AuthTabSession} when an Auth Tab is launched before a
      * Service connection is established.
      *
-     * Use {@link CustomTabsClient#newPendingAuthTabSession} to create an instance.
+     * Use {@link CustomTabsClient#createPendingAuthTabSession} to create an instance.
      * Use {@link CustomTabsClient#attachAuthTabSession(PendingSession)} to get an
      * {@link AuthTabSession}.
      */

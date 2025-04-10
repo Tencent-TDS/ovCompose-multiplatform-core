@@ -17,6 +17,7 @@
 package androidx.slidingpanelayout.widget
 
 import android.graphics.Matrix
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.LocaleList
 import android.view.View.AUTOFILL_FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
@@ -123,7 +124,41 @@ class SlidingPaneLayoutFindViewByAccessibilityIdTraversalTest {
         }
     }
 
-    @RequiresApi(26)
+    // SdkSuppress because dispatchProvideStructure is introduced in API 23.
+    @Test
+    @SdkSuppress(minSdkVersion = 23)
+    fun testDispatchProvideStructure_createViewStructureForChildrenView() {
+        TestActivity.onActivityCreated = { activity ->
+            val container = FrameLayout(activity)
+            val layout =
+                activity.layoutInflater.inflate(
+                    R.layout.user_resizeable_slidingpanelayout,
+                    null,
+                    false
+                ) as SlidingPaneLayout
+
+            container.addView(
+                layout,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+
+            activity.setContentView(container)
+        }
+
+        with(ActivityScenario.launch(TestActivity::class.java)) {
+            val slidingPaneLayout = withActivity {
+                findViewById<SlidingPaneLayout>(R.id.sliding_pane_layout)
+            }
+            val viewStructure = TestViewStructure()
+            slidingPaneLayout.dispatchProvideStructure(viewStructure)
+            assertThat(viewStructure.getChildCount()).isEqualTo(2)
+        }
+    }
+
+    @RequiresApi(23)
     private class TestViewStructure : ViewStructure() {
         private var childMap = mutableMapOf<Int, TestViewStructure>()
 
@@ -242,5 +277,11 @@ class SlidingPaneLayoutFindViewByAccessibilityIdTraversalTest {
         override fun newHtmlInfoBuilder(tagName: String): HtmlInfo.Builder? = null
 
         override fun setHtmlInfo(htmlInfo: HtmlInfo) {}
+
+        // Override the hidden ViewStructure#getTempRect method which is called in
+        // View#populateVirtualStructure().
+        fun getTempRect(): Rect {
+            return Rect()
+        }
     }
 }

@@ -49,12 +49,11 @@ abstract class OnDevicePersonalizationManager internal constructor() {
      *
      * @param executeInIsolatedServiceRequest
      * @return [ExecuteInIsolatedServiceResponse]
-     * @throws Exception
-     *   [OnDevicePersonalizationException][android.adservices.ondevicepersonalization.OnDevicePersonalizationException]
-     *   if execution of the handler fails with an error code. Older versions may throw
-     *   [NameNotFoundException][android.content.pm.PackageManager.NameNotFoundException] if the
-     *   handler package is not installed or does not have a valid ODP manifest or
-     *   [ClassNotFoundException] if the handler class is not found,
+     * @throws android.adservices.ondevicepersonalization.OnDevicePersonalizationException If
+     *   execution of the handler fails with an error code.
+     * @throws android.content.pm.PackageManager.NameNotFoundException On older versions if the
+     *   handler package is not installed or does not have a valid ODP manifest
+     * @throws ClassNotFoundException On older versions if the handler class is not found.
      */
     abstract suspend fun executeInIsolatedService(
         executeInIsolatedServiceRequest: ExecuteInIsolatedServiceRequest
@@ -76,9 +75,8 @@ abstract class OnDevicePersonalizationManager internal constructor() {
      * @return A surface package containing a [View][android.view.View] with the content from a
      *   result of a prior call to [executeInIsolatedService] running in the OnDevicePersonalization
      *   sandbox.
-     * @throws Exception
-     *   [OnDevicePersonalizationException][android.adservices.ondevicepersonalization.OnDevicePersonalizationException]
-     *   if execution of the handler fails with an error code.
+     * @throws android.adservices.ondevicepersonalization.OnDevicePersonalizationException if
+     *   execution of the handler fails with an error code.
      */
     abstract suspend fun requestSurfacePackage(
         surfacePackageToken: SurfacePackageToken,
@@ -93,7 +91,7 @@ abstract class OnDevicePersonalizationManager internal constructor() {
          * Creates [OnDevicePersonalizationManager].
          *
          * @return OnDevicePersonalizationManager object. If the device is running an incompatible
-         *   build, the value returned is null.
+         *   build, the value returned is `null`.
          */
         @SuppressLint("NewApi")
         @JvmStatic

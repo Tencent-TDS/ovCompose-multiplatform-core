@@ -22,10 +22,10 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.xr.runtime.internal.SystemSpaceEntity;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.node.Node;
@@ -40,8 +40,7 @@ import java.util.concurrent.ScheduledFuture;
  *
  * <p>It is expected to be the soft root of its own parent-child entity hierarchy.
  */
-abstract class SystemSpaceEntityImpl extends AndroidXrEntity
-        implements JxrPlatformAdapter.SystemSpaceEntity {
+abstract class SystemSpaceEntityImpl extends AndroidXrEntity implements SystemSpaceEntity {
 
     protected Pose mOpenXrReferenceSpacePose;
     protected Vector3 mWorldSpaceScale = new Vector3(1f, 1f, 1f);

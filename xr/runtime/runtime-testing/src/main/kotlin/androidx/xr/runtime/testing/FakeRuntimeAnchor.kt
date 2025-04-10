@@ -18,6 +18,7 @@ package androidx.xr.runtime.testing
 
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.internal.Anchor as RuntimeAnchor
+import androidx.xr.runtime.internal.AnchorNotTrackingException
 import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
 import androidx.xr.runtime.internal.TrackingState
 import androidx.xr.runtime.math.Pose
@@ -28,8 +29,13 @@ import java.util.UUID
 public class FakeRuntimeAnchor(
     override var pose: Pose,
     public val anchorHolder: AnchorHolder? = null,
+    /** Flag to represent available tracking state of the camera when creating the anchor. */
+    public val isTrackingAvailable: Boolean = true,
 ) : RuntimeAnchor {
     init {
+        if (!isTrackingAvailable) {
+            throw AnchorNotTrackingException()
+        }
         ++anchorsCreated
         if (anchorsCreated > ANCHOR_RESOURCE_LIMIT) {
             throw AnchorResourcesExhaustedException()

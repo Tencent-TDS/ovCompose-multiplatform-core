@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 import androidx.build.SdkHelperKt
 
@@ -55,6 +57,8 @@ dependencies {
 androidx {
     name = "Resource Inspection - Annotation Processor"
     type = SoftwareType.ANNOTATION_PROCESSOR
+    //TODO(b/407507716): Target Kotlin 2 when support for it is stable in kapt
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2021"
     description = "Annotation processors for Android resource and layout inspection"
 }

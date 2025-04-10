@@ -23,6 +23,7 @@ import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import androidx.xr.scenecore.impl.JxrPlatformAdapterAxr
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors

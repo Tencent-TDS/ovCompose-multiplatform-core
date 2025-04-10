@@ -20,20 +20,24 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.xr.runtime.internal.CameraViewActivityPose.Fov;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.HitTestResult;
+import androidx.xr.runtime.internal.InputEvent;
+import androidx.xr.runtime.internal.InputEvent.Companion.HitInfo;
+import androidx.xr.runtime.internal.PlaneSemantic;
+import androidx.xr.runtime.internal.PlaneType;
+import androidx.xr.runtime.internal.ResizeEvent;
+import androidx.xr.runtime.internal.SpatialCapabilities;
+import androidx.xr.runtime.internal.SpatialVisibility;
+import androidx.xr.runtime.internal.TextureSampler;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose.Fov;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent.HitInfo;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizeEvent;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
 import androidx.xr.scenecore.impl.perception.Plane;
 
+import com.android.extensions.xr.VisibilityChangedEvent;
 import com.android.extensions.xr.environment.EnvironmentVisibilityState;
 import com.android.extensions.xr.environment.PassthroughVisibilityState;
 import com.android.extensions.xr.node.Mat4f;
@@ -302,12 +306,12 @@ final class RuntimeUtils {
     /**
      * Converts to a perception FOV from a JXRCore FOV type.
      *
-     * @param fov a {@code androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose.Fov}
-     *     instance representing the FOV.
+     * @param fov a {@code androidx.xr.runtime.internal.CameraViewActivityPose.Fov} instance
+     *     representing the FOV.
      */
     static androidx.xr.scenecore.impl.perception.Fov perceptionFovFromFov(Fov fov) {
         return new androidx.xr.scenecore.impl.perception.Fov(
-                fov.angleLeft, fov.angleRight, fov.angleUp, fov.angleDown);
+                fov.getAngleLeft(), fov.getAngleRight(), fov.getAngleUp(), fov.getAngleDown());
     }
 
     /**
@@ -349,6 +353,34 @@ final class RuntimeUtils {
     }
 
     /**
+     * Converts from the Extensions spatial visibility to the runtime spatial visibility.
+     *
+     * @param extVisibility a {@link com.android.extensions.xr.VisibilityChangedEvent} instance to
+     *     be converted.
+     */
+    static SpatialVisibility convertSpatialVisibility(VisibilityChangedEvent extVisibility) {
+        int visibility;
+        switch (extVisibility.getVisibility()) {
+            case VisibilityChangedEvent.UNKNOWN:
+                visibility = SpatialVisibility.UNKNOWN;
+                break;
+            case VisibilityChangedEvent.OUTSIDE_OF_FOV:
+                visibility = SpatialVisibility.OUTSIDE_FOV;
+                break;
+            case VisibilityChangedEvent.PARTIALLY_VISIBLE:
+                visibility = SpatialVisibility.PARTIALLY_WITHIN_FOV;
+                break;
+            case VisibilityChangedEvent.VISIBLE:
+                visibility = SpatialVisibility.WITHIN_FOV;
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Unknown Spatial Visibility: " + extVisibility.getVisibility());
+        }
+        return new SpatialVisibility(visibility);
+    }
+
+    /**
      * Converts from the Extensions environment visibility state to the runtime environment
      * visibility state.
      *
@@ -387,7 +419,7 @@ final class RuntimeUtils {
      * @param sampler a {@link androidx.xr.scenecore.TextureSampler} instance to be converted.
      */
     static com.google.ar.imp.apibindings.TextureSampler getTextureSampler(
-            @NonNull androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler sampler) {
+            @NonNull TextureSampler sampler) {
         return new com.google.ar.imp.apibindings.TextureSampler.Builder()
                 .setMinFilter(getMinFilter(sampler.getMinFilter()))
                 .setMagFilter(getMagFilter(sampler.getMagFilter()))
@@ -401,13 +433,13 @@ final class RuntimeUtils {
     }
 
     private static com.google.ar.imp.apibindings.TextureSampler.WrapMode getWrapMode(
-            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.WrapMode int wrapMode) {
+            @TextureSampler.WrapMode int wrapMode) {
         switch (wrapMode) {
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CLAMP_TO_EDGE:
+            case TextureSampler.CLAMP_TO_EDGE:
                 return com.google.ar.imp.apibindings.TextureSampler.WrapMode.CLAMP_TO_EDGE;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.REPEAT:
+            case TextureSampler.REPEAT:
                 return com.google.ar.imp.apibindings.TextureSampler.WrapMode.REPEAT;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MIRRORED_REPEAT:
+            case TextureSampler.MIRRORED_REPEAT:
                 return com.google.ar.imp.apibindings.TextureSampler.WrapMode.MIRRORED_REPEAT;
             default:
                 throw new IllegalArgumentException("Unknown WrapMode value: " + wrapMode);
@@ -415,20 +447,20 @@ final class RuntimeUtils {
     }
 
     private static com.google.ar.imp.apibindings.TextureSampler.MinFilter getMinFilter(
-            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MinFilter int minFilter) {
+            @TextureSampler.MinFilter int minFilter) {
         switch (minFilter) {
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST:
+            case TextureSampler.NEAREST:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter.NEAREST;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR:
+            case TextureSampler.LINEAR:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST_MIPMAP_NEAREST:
+            case TextureSampler.NEAREST_MIPMAP_NEAREST:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter
                         .NEAREST_MIPMAP_NEAREST;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR_MIPMAP_NEAREST:
+            case TextureSampler.LINEAR_MIPMAP_NEAREST:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR_MIPMAP_NEAREST;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NEAREST_MIPMAP_LINEAR:
+            case TextureSampler.NEAREST_MIPMAP_LINEAR:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter.NEAREST_MIPMAP_LINEAR;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LINEAR_MIPMAP_LINEAR:
+            case TextureSampler.LINEAR_MIPMAP_LINEAR:
                 return com.google.ar.imp.apibindings.TextureSampler.MinFilter.LINEAR_MIPMAP_LINEAR;
             default:
                 throw new IllegalArgumentException("Unknown MinFilter value: " + minFilter);
@@ -436,11 +468,11 @@ final class RuntimeUtils {
     }
 
     private static com.google.ar.imp.apibindings.TextureSampler.MagFilter getMagFilter(
-            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MagFilter int magFilter) {
+            @TextureSampler.MagFilter int magFilter) {
         switch (magFilter) {
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MAG_NEAREST:
+            case TextureSampler.MAG_NEAREST:
                 return com.google.ar.imp.apibindings.TextureSampler.MagFilter.NEAREST;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.MAG_LINEAR:
+            case TextureSampler.MAG_LINEAR:
                 return com.google.ar.imp.apibindings.TextureSampler.MagFilter.LINEAR;
             default:
                 throw new IllegalArgumentException("Unknown MagFilter value: " + magFilter);
@@ -448,11 +480,11 @@ final class RuntimeUtils {
     }
 
     private static com.google.ar.imp.apibindings.TextureSampler.CompareMode getCompareModeValue(
-            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CompareMode int compareMode) {
+            @TextureSampler.CompareMode int compareMode) {
         switch (compareMode) {
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NONE:
+            case TextureSampler.NONE:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareMode.NONE;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.COMPARE_TO_TEXTURE:
+            case TextureSampler.COMPARE_TO_TEXTURE:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareMode.COMPARE_TO_TEXTURE;
             default:
                 throw new IllegalArgumentException("Unknown CompareMode value: " + compareMode);
@@ -460,26 +492,64 @@ final class RuntimeUtils {
     }
 
     private static com.google.ar.imp.apibindings.TextureSampler.CompareFunc getCompareFuncValue(
-            @androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.CompareFunc int compareFunc) {
+            @TextureSampler.CompareFunc int compareFunc) {
         switch (compareFunc) {
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.LE:
+            case TextureSampler.LE:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.LE;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.GE:
+            case TextureSampler.GE:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.GE;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.L:
+            case TextureSampler.L:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.L;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.G:
+            case TextureSampler.G:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.G;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.E:
+            case TextureSampler.E:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.E;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.NE:
+            case TextureSampler.NE:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.NE;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.A:
+            case TextureSampler.A:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.A;
-            case androidx.xr.scenecore.JxrPlatformAdapter.TextureSampler.N:
+            case TextureSampler.N:
                 return com.google.ar.imp.apibindings.TextureSampler.CompareFunc.N;
             default:
                 throw new IllegalArgumentException("Unknown CompareFunc value: " + compareFunc);
         }
+    }
+
+    private static int getHitTestSurfaceType(int extSurfaceType) {
+        switch (extSurfaceType) {
+            case com.android.extensions.xr.space.HitTestResult.SURFACE_PANEL:
+                return HitTestResult.HitTestSurfaceType.HIT_TEST_RESULT_SURFACE_TYPE_PLANE;
+            case com.android.extensions.xr.space.HitTestResult.SURFACE_3D_OBJECT:
+                return HitTestResult.HitTestSurfaceType.HIT_TEST_RESULT_SURFACE_TYPE_OBJECT;
+            default:
+                return HitTestResult.HitTestSurfaceType.HIT_TEST_RESULT_SURFACE_TYPE_UNKNOWN;
+        }
+    }
+
+    /**
+     * Converts from the Extensions hit test result to the platform adapter hit test result.
+     *
+     * @param hitTestResultExt a {@link com.android.extensions.xr.space.HitTestResult} instance to
+     *     be converted.
+     */
+    static HitTestResult getHitTestResult(
+            com.android.extensions.xr.space.HitTestResult hitTestResultExt) {
+        Vector3 hitPosition =
+                hitTestResultExt.getHitPosition() == null
+                        ? null
+                        : new Vector3(
+                                hitTestResultExt.getHitPosition().x,
+                                hitTestResultExt.getHitPosition().y,
+                                hitTestResultExt.getHitPosition().z);
+        Vector3 surfaceNormal =
+                hitTestResultExt.getSurfaceNormal() == null
+                        ? null
+                        : new Vector3(
+                                hitTestResultExt.getSurfaceNormal().x,
+                                hitTestResultExt.getSurfaceNormal().y,
+                                hitTestResultExt.getSurfaceNormal().z);
+        int surfaceType = getHitTestSurfaceType(hitTestResultExt.getSurfaceType());
+        return new HitTestResult(
+                hitPosition, surfaceNormal, surfaceType, hitTestResultExt.getDistance());
     }
 }

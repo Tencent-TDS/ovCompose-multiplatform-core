@@ -30,24 +30,16 @@ import androidx.compose.ui.window.DialogProperties
 actual class ModalBottomSheetProperties
 actual constructor(
     actual val shouldDismissOnBackPress: Boolean,
-    // TODO https://youtrack.jetbrains.com/issue/CMP-7147/Support-ModalBottomSheetProperties.isAppearanceLightBars-properties
-    actual val isAppearanceLightStatusBars: Boolean,
-    actual val isAppearanceLightNavigationBars: Boolean,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ModalBottomSheetProperties) return false
-        if (isAppearanceLightStatusBars != other.isAppearanceLightStatusBars) return false
-        if (isAppearanceLightNavigationBars != other.isAppearanceLightNavigationBars) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = shouldDismissOnBackPress.hashCode()
-        result = 31 * result + isAppearanceLightStatusBars.hashCode()
-        result = 31 * result + isAppearanceLightNavigationBars.hashCode()
-        return result
+        return shouldDismissOnBackPress.hashCode()
     }
 }
 
@@ -61,6 +53,7 @@ actual object ModalBottomSheetDefaults {
 @Composable
 internal actual fun ModalBottomSheetDialog(
     onDismissRequest: () -> Unit,
+    contentColor: Color, // TODO: https://youtrack.jetbrains.com/issue/CMP-7147
     properties: ModalBottomSheetProperties,
     predictiveBackProgress: Animatable<Float, AnimationVector1D>,
     content: @Composable () -> Unit

@@ -18,10 +18,12 @@ package androidx.xr.scenecore.impl;
 
 import android.view.Surface;
 
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity.CanvasShape;
+import androidx.annotation.Nullable;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.SurfaceEntity;
+import androidx.xr.runtime.internal.SurfaceEntity.CanvasShape;
+import androidx.xr.runtime.internal.TextureResource;
 
 import com.android.extensions.xr.XrExtensions;
 import com.android.extensions.xr.node.NodeTransaction;
@@ -47,6 +49,8 @@ final class SurfaceEntityImpl extends AndroidXrEntity implements SurfaceEntity {
     private final int mSubspaceImpressNode;
     @StereoMode private int mStereoMode = SurfaceEntity.StereoMode.SIDE_BY_SIDE;
     private CanvasShape mCanvasShape;
+    private float mFeatherRadiusX = 0.0f;
+    private float mFeatherRadiusY = 0.0f;
 
     SurfaceEntityImpl(
             Entity parentEntity,
@@ -89,6 +93,11 @@ final class SurfaceEntityImpl extends AndroidXrEntity implements SurfaceEntity {
     }
 
     @Override
+    public CanvasShape getCanvasShape() {
+        return mCanvasShape;
+    }
+
+    @Override
     public void setCanvasShape(CanvasShape canvasShape) {
         // TODO(b/377906324): - Punt this logic to the UI thread, so that applications can call this
         // method from any thread.
@@ -97,13 +106,14 @@ final class SurfaceEntityImpl extends AndroidXrEntity implements SurfaceEntity {
         if (mCanvasShape instanceof CanvasShape.Quad) {
             CanvasShape.Quad q = (CanvasShape.Quad) mCanvasShape;
             mImpressApi.setStereoSurfaceEntityCanvasShapeQuad(
-                    mEntityImpressNode, q.width, q.height);
+                    mEntityImpressNode, q.getWidth(), q.getHeight());
         } else if (mCanvasShape instanceof CanvasShape.Vr360Sphere) {
             CanvasShape.Vr360Sphere s = (CanvasShape.Vr360Sphere) mCanvasShape;
-            mImpressApi.setStereoSurfaceEntityCanvasShapeSphere(mEntityImpressNode, s.radius);
+            mImpressApi.setStereoSurfaceEntityCanvasShapeSphere(mEntityImpressNode, s.getRadius());
         } else if (mCanvasShape instanceof CanvasShape.Vr180Hemisphere) {
             CanvasShape.Vr180Hemisphere h = (CanvasShape.Vr180Hemisphere) mCanvasShape;
-            mImpressApi.setStereoSurfaceEntityCanvasShapeHemisphere(mEntityImpressNode, h.radius);
+            mImpressApi.setStereoSurfaceEntityCanvasShapeHemisphere(
+                    mEntityImpressNode, h.getRadius());
         } else {
             throw new IllegalArgumentException("Unsupported canvas shape: " + mCanvasShape);
         }
@@ -137,11 +147,61 @@ final class SurfaceEntityImpl extends AndroidXrEntity implements SurfaceEntity {
     }
 
     @Override
+    public void setPrimaryAlphaMaskTexture(@Nullable TextureResource alphaMask) {
+        long alphaMaskToken = -1;
+        if (alphaMask != null) {
+            if (!(alphaMask instanceof TextureResourceImpl)) {
+                throw new IllegalArgumentException("TextureResource is not a TextureResourceImpl");
+            }
+            alphaMaskToken = ((TextureResourceImpl) alphaMask).getTextureToken();
+        }
+        mImpressApi.setPrimaryAlphaMaskForStereoSurface(mEntityImpressNode, alphaMaskToken);
+    }
+
+    @Override
+    public void setAuxiliaryAlphaMaskTexture(@Nullable TextureResource alphaMask) {
+        long alphaMaskToken = -1;
+        if (alphaMask != null) {
+            if (!(alphaMask instanceof TextureResourceImpl)) {
+                throw new IllegalArgumentException("TextureResource is not a TextureResourceImpl");
+            }
+            alphaMaskToken = ((TextureResourceImpl) alphaMask).getTextureToken();
+        }
+        mImpressApi.setAuxiliaryAlphaMaskForStereoSurface(mEntityImpressNode, alphaMaskToken);
+    }
+
+    @Override
     public Surface getSurface() {
         // TODO(b/377906324) - Either cache the surface in the constructor, or change this interface
         // to
         // return a Future.
         return mImpressApi.getSurfaceFromStereoSurface(mEntityImpressNode);
+    }
+
+    @Override
+    public void setFeatherRadiusX(float radius) {
+        mFeatherRadiusX = radius;
+        // For now, we set both the left/right and top/bottom feather radius at the same time.
+        mImpressApi.setFeatherRadiusForStereoSurface(
+                mEntityImpressNode, mFeatherRadiusX, mFeatherRadiusY);
+    }
+
+    @Override
+    public float getFeatherRadiusX() {
+        return mFeatherRadiusX;
+    }
+
+    @Override
+    public void setFeatherRadiusY(float radius) {
+        mFeatherRadiusY = radius;
+        // For now, we set both the left/right and top/bottom feather radius at the same time.
+        mImpressApi.setFeatherRadiusForStereoSurface(
+                mEntityImpressNode, mFeatherRadiusX, mFeatherRadiusY);
+    }
+
+    @Override
+    public float getFeatherRadiusY() {
+        return mFeatherRadiusY;
     }
 
     // Note this returns the Impress node for the entity, not the subspace. The subspace Impress

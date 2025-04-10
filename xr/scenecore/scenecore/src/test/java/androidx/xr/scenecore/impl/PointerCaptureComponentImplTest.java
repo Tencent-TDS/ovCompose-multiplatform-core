@@ -25,19 +25,18 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import androidx.annotation.NonNull;
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent.StateListener;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.InputEvent;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.PointerCaptureComponent;
+import androidx.xr.runtime.internal.PointerCaptureComponent.StateListener;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.android.extensions.xr.XrExtensions;
-import com.android.extensions.xr.node.InputEvent;
 import com.android.extensions.xr.node.Node;
 import com.android.extensions.xr.node.ShadowInputEvent;
+import com.android.extensions.xr.node.ShadowNode;
 import com.android.extensions.xr.node.Vec3;
 
 import org.junit.Test;
@@ -46,6 +45,10 @@ import org.robolectric.RobolectricTestRunner;
 
 @RunWith(RobolectricTestRunner.class)
 public class PointerCaptureComponentImplTest {
+    // TODO(b/402408284): Remove once host version of Node is updated.
+    private static final int POINTER_CAPTURE_STATE_PAUSED = 0;
+    private static final int POINTER_CAPTURE_STATE_ACTIVE = 1;
+    private static final int POINTER_CAPTURE_STATE_STOPPED = 2;
 
     // Static private implementation of fakes so that the last received state can be grabbed.
     private static class FakeStateListener implements StateListener {
@@ -58,10 +61,10 @@ public class PointerCaptureComponentImplTest {
     }
 
     private static class FakeInputEventListener implements InputEventListener {
-        public JxrPlatformAdapter.InputEvent lastEvent = null;
+        public InputEvent lastEvent = null;
 
         @Override
-        public void onInputEvent(@NonNull JxrPlatformAdapter.InputEvent event) {
+        public void onInputEvent(@NonNull InputEvent event) {
             lastEvent = event;
         }
     }
@@ -73,10 +76,16 @@ public class PointerCaptureComponentImplTest {
     private final XrExtensions mXrExtensions = XrExtensionsProvider.getXrExtensions();
     private final FakeScheduledExecutorService mFakeScheduler = new FakeScheduledExecutorService();
     private final Node mNode = mXrExtensions.createNode();
-    private final FakeNode mFakeNode = new FakeNode(mNode);
+    private final ShadowNode mShadowNode = ShadowNode.extract(mNode);
 
     private final Entity mEntity =
             new AndroidXrEntity(mNode, mXrExtensions, new EntityManager(), mFakeScheduler) {};
+
+    private void sendInputEvent(com.android.extensions.xr.node.InputEvent inputEvent) {
+        mShadowNode
+                .getInputExecutor()
+                .execute(() -> mShadowNode.getInputListener().accept(inputEvent));
+    }
 
     @Test
     public void onAttach_enablesPointerCapture() {
@@ -85,7 +94,7 @@ public class PointerCaptureComponentImplTest {
 
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        assertThat(mFakeNode.getPointerCaptureStateCallback()).isNotNull();
+        assertThat(mShadowNode.getPointerCaptureStateCallback()).isNotNull();
     }
 
     @Test
@@ -94,16 +103,16 @@ public class PointerCaptureComponentImplTest {
                 new PointerCaptureComponentImpl(directExecutor(), mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        InputEvent fakeInput =
+        com.android.extensions.xr.node.InputEvent fakeInput =
                 ShadowInputEvent.create(
                         SOURCE_UNKNOWN,
                         POINTER_TYPE_DEFAULT,
                         /* timestamp= */ 0,
                         /* origin= */ new Vec3(0, 0, 0),
                         /* direction= */ new Vec3(1, 1, 1),
-                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        com.android.extensions.xr.node.InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
                         ACTION_MOVE);
-        mFakeNode.sendInputEvent(fakeInput);
+        sendInputEvent(fakeInput);
         mFakeScheduler.runAll();
 
         assertThat(mInputListener.lastEvent).isNotNull();
@@ -118,17 +127,17 @@ public class PointerCaptureComponentImplTest {
                 new PointerCaptureComponentImpl(directExecutor(), mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        InputEvent fakeCapturedInput =
+        com.android.extensions.xr.node.InputEvent fakeCapturedInput =
                 ShadowInputEvent.create(
                         SOURCE_UNKNOWN,
                         POINTER_TYPE_DEFAULT,
                         /* timestamp= */ 100,
                         /* origin= */ new Vec3(0, 0, 0),
                         /* direction= */ new Vec3(1, 1, 1),
-                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        com.android.extensions.xr.node.InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
                         ACTION_MOVE);
 
-        InputEvent fakeInput =
+        com.android.extensions.xr.node.InputEvent fakeInput =
                 ShadowInputEvent.create(
                         SOURCE_UNKNOWN,
                         POINTER_TYPE_DEFAULT,
@@ -138,13 +147,14 @@ public class PointerCaptureComponentImplTest {
                         DISPATCH_FLAG_NONE,
                         ACTION_MOVE);
 
-        mFakeNode.sendInputEvent(fakeCapturedInput);
-        mFakeNode.sendInputEvent(fakeInput);
+        sendInputEvent(fakeCapturedInput);
+        sendInputEvent(fakeInput);
 
         mFakeScheduler.runAll();
 
         assertThat(mInputListener.lastEvent).isNotNull();
-        assertThat(mInputListener.lastEvent.timestamp).isEqualTo(fakeCapturedInput.getTimestamp());
+        assertThat(mInputListener.lastEvent.getTimestamp())
+                .isEqualTo(fakeCapturedInput.getTimestamp());
     }
 
     @Test
@@ -155,17 +165,17 @@ public class PointerCaptureComponentImplTest {
                         propagationExecutor, mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        InputEvent fakeCapturedInput =
+        com.android.extensions.xr.node.InputEvent fakeCapturedInput =
                 ShadowInputEvent.create(
                         SOURCE_UNKNOWN,
                         POINTER_TYPE_DEFAULT,
                         /* timestamp= */ 100,
                         /* origin= */ new Vec3(0, 0, 0),
                         /* direction= */ new Vec3(1, 1, 1),
-                        InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
+                        com.android.extensions.xr.node.InputEvent.DISPATCH_FLAG_CAPTURED_POINTER,
                         ACTION_MOVE);
 
-        mFakeNode.sendInputEvent(fakeCapturedInput);
+        sendInputEvent(fakeCapturedInput);
 
         assertThat(propagationExecutor.hasNext()).isFalse();
         // Run the scheduler associated with the Entity so that the component's executor has the
@@ -182,17 +192,20 @@ public class PointerCaptureComponentImplTest {
                 new PointerCaptureComponentImpl(directExecutor(), mStateListener, mInputListener);
         assertThat(component.onAttach(mEntity)).isTrue();
 
-        mFakeNode.getPointerCaptureStateCallback().accept(Node.POINTER_CAPTURE_STATE_PAUSED);
+        mShadowNode.getPointerCaptureStateCallback().accept(POINTER_CAPTURE_STATE_PAUSED);
         assertThat(mStateListener.lastState)
-                .isEqualTo(PointerCaptureComponent.POINTER_CAPTURE_STATE_PAUSED);
+                .isEqualTo(
+                        PointerCaptureComponent.PointerCaptureState.POINTER_CAPTURE_STATE_PAUSED);
 
-        mFakeNode.getPointerCaptureStateCallback().accept(Node.POINTER_CAPTURE_STATE_ACTIVE);
+        mShadowNode.getPointerCaptureStateCallback().accept(POINTER_CAPTURE_STATE_ACTIVE);
         assertThat(mStateListener.lastState)
-                .isEqualTo(PointerCaptureComponent.POINTER_CAPTURE_STATE_ACTIVE);
+                .isEqualTo(
+                        PointerCaptureComponent.PointerCaptureState.POINTER_CAPTURE_STATE_ACTIVE);
 
-        mFakeNode.getPointerCaptureStateCallback().accept(Node.POINTER_CAPTURE_STATE_STOPPED);
+        mShadowNode.getPointerCaptureStateCallback().accept(POINTER_CAPTURE_STATE_STOPPED);
         assertThat(mStateListener.lastState)
-                .isEqualTo(PointerCaptureComponent.POINTER_CAPTURE_STATE_STOPPED);
+                .isEqualTo(
+                        PointerCaptureComponent.PointerCaptureState.POINTER_CAPTURE_STATE_STOPPED);
     }
 
     @Test
@@ -222,7 +235,7 @@ public class PointerCaptureComponentImplTest {
 
         component.onDetach(mEntity);
 
-        assertThat(mFakeNode.getPointerCaptureStateCallback()).isNull();
+        assertThat(mShadowNode.getPointerCaptureStateCallback()).isNull();
     }
 
     @Test
@@ -233,6 +246,6 @@ public class PointerCaptureComponentImplTest {
 
         component.onDetach(mEntity);
 
-        assertThat(mFakeNode.getListener()).isNull();
+        assertThat(mShadowNode.getInputListener()).isNull();
     }
 }

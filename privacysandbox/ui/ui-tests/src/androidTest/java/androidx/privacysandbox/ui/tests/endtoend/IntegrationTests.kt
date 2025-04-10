@@ -338,14 +338,17 @@ class IntegrationTests(private val invokeBackwardsCompatFlow: Boolean) {
         val paddingTop = 10
         val paddingRight = 20
         val paddingBottom = 20
-        activityScenario.onActivity {
-            view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
-        }
+        // Catch the first event to reduce flakiness
+        sessionObserver.assertOnUiContainerChangedSent()
+        val latestUiChange =
+            sessionObserver.runAndRetrieveNextUiChange {
+                activityScenario.onActivity {
+                    view.setPadding(paddingLeft, paddingTop, paddingRight, paddingBottom)
+                }
+            }
+        val latestUiContainerInfo = SandboxedSdkViewUiInfo.fromBundle(latestUiChange)
         val expectedWidth = INITIAL_WIDTH - paddingLeft - paddingRight
         val expectedHeight = INITIAL_HEIGHT - paddingTop - paddingBottom
-        sessionObserver.assertOnUiContainerChangedSent()
-        val latestUiContainerInfo =
-            SandboxedSdkViewUiInfo.fromBundle(sessionObserver.latestUiChange)
         assertThat(latestUiContainerInfo.uiContainerHeight).isEqualTo(expectedHeight)
         assertThat(latestUiContainerInfo.uiContainerWidth).isEqualTo(expectedWidth)
         assertThat(latestUiContainerInfo.onScreenGeometry.height()).isEqualTo(expectedHeight)

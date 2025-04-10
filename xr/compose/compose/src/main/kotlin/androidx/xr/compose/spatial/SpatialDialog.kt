@@ -47,6 +47,7 @@ import androidx.xr.compose.platform.LocalSession
 import androidx.xr.compose.platform.LocalSpatialCapabilities
 import androidx.xr.compose.unit.Meter
 import androidx.xr.compose.unit.Meter.Companion.meters
+import androidx.xr.compose.unit.toMeter
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 import androidx.xr.scenecore.Session
@@ -176,8 +177,8 @@ private fun LayoutSpatialDialog(
     DisposableEffect(Unit) {
         scope.launch {
             animate(
-                initialValue = SpatialElevationLevel.ActivityDefault.level,
-                targetValue = -properties.spatialElevationLevel.level,
+                initialValue = SpatialElevationLevel.ActivityDefault.level.toMeter().toM(),
+                targetValue = -properties.spatialElevationLevel.level.toMeter().toM(),
                 animationSpec = properties.restingLevelAnimationSpec,
             ) { value, _ ->
                 session.setActivitySpaceZDepth(value.meters)
@@ -203,8 +204,8 @@ private fun LayoutSpatialDialog(
         onDismissRequest = {
             scope.launch {
                 animate(
-                    initialValue = -properties.spatialElevationLevel.level,
-                    targetValue = SpatialElevationLevel.ActivityDefault.level,
+                    initialValue = -properties.spatialElevationLevel.level.toMeter().toM(),
+                    targetValue = SpatialElevationLevel.ActivityDefault.level.toMeter().toM(),
                     animationSpec = properties.restingLevelAnimationSpec,
                 ) { value, _ ->
                     session.setActivitySpaceZDepth(value.meters)
@@ -226,7 +227,7 @@ private fun LayoutSpatialDialog(
                 transitionSpec = { properties.restingLevelAnimationSpec },
                 label = "zDepth"
             ) { state ->
-                state.level
+                state.level.toMeter().toM()
             }
 
     ElevatedPanel(
@@ -244,5 +245,5 @@ private fun Session.setActivitySpaceZDepth(value: Meter) {
 }
 
 private fun Session.resetActivitySpaceZDepth() {
-    setActivitySpaceZDepth(SpatialElevationLevel.ActivityDefault.level.meters)
+    setActivitySpaceZDepth(SpatialElevationLevel.ActivityDefault.level.toMeter())
 }

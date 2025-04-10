@@ -31,10 +31,42 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.concurrent.futures.ResolvableFuture;
-import androidx.xr.arcore.Anchor;
-import androidx.xr.extensions.node.NodeTypeConverter;
+import androidx.xr.runtime.internal.ActivityPanelEntity;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.Anchor;
+import androidx.xr.runtime.internal.AnchorEntity;
+import androidx.xr.runtime.internal.AnchorPlacement;
+import androidx.xr.runtime.internal.AudioTrackExtensionsWrapper;
+import androidx.xr.runtime.internal.CameraViewActivityPose;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.ExrImageResource;
+import androidx.xr.runtime.internal.GltfEntity;
+import androidx.xr.runtime.internal.GltfModelResource;
+import androidx.xr.runtime.internal.HeadActivityPose;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.InteractableComponent;
+import androidx.xr.runtime.internal.JxrPlatformAdapter;
+import androidx.xr.runtime.internal.LoggingEntity;
+import androidx.xr.runtime.internal.MaterialResource;
+import androidx.xr.runtime.internal.MediaPlayerExtensionsWrapper;
+import androidx.xr.runtime.internal.MovableComponent;
+import androidx.xr.runtime.internal.PanelEntity;
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose;
+import androidx.xr.runtime.internal.PixelDimensions;
+import androidx.xr.runtime.internal.PlaneSemantic;
+import androidx.xr.runtime.internal.PlaneType;
+import androidx.xr.runtime.internal.PointerCaptureComponent;
+import androidx.xr.runtime.internal.ResizableComponent;
+import androidx.xr.runtime.internal.SoundPoolExtensionsWrapper;
+import androidx.xr.runtime.internal.Space;
+import androidx.xr.runtime.internal.SpatialCapabilities;
+import androidx.xr.runtime.internal.SpatialEnvironment;
+import androidx.xr.runtime.internal.SpatialVisibility;
+import androidx.xr.runtime.internal.SurfaceEntity;
+import androidx.xr.runtime.internal.TextureResource;
+import androidx.xr.runtime.internal.TextureSampler;
 import androidx.xr.runtime.math.Pose;
-import androidx.xr.scenecore.JxrPlatformAdapter;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
@@ -56,7 +88,7 @@ import com.google.ar.imp.view.splitengine.ImpSplitEngine;
 import com.google.ar.imp.view.splitengine.ImpSplitEngineRenderer;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.InputStream;
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -65,11 +97,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -78,17 +107,11 @@ import java.util.function.Supplier;
 /** Implementation of JxrPlatformAdapter for AndroidXR. */
 // TODO: b/322550407 - Use the Android Fluent Logger
 // TODO(b/373435470): Remove "deprecation" and "UnnecessarilyFullyQualified"
-@SuppressWarnings({
-    "deprecation",
-    "UnnecessarilyFullyQualified",
-    "BanSynchronizedMethods",
-    "BanConcurrentHashMap",
-})
+@SuppressWarnings({"UnnecessarilyFullyQualified", "BanSynchronizedMethods", "BanConcurrentHashMap"})
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
-    private static final String TAG = "JxrPlatformAdapterAxr";
+    @VisibleForTesting static final String TAG = "JxrPlatformAdapterAxr";
     private static final String SPLIT_ENGINE_LIBRARY_NAME = "impress_api_jni";
-    private static final boolean IS_SKYBOX_MIGRATION_PERIOD_OVER = false;
 
     private final ActivitySpaceImpl mActivitySpace;
     private final HeadActivityPoseImpl mHeadActivityPose;
@@ -111,7 +134,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     private final ImpressApi mImpressApi;
     private final Map<Consumer<SpatialCapabilities>, Executor>
             mSpatialCapabilitiesChangedListeners = new ConcurrentHashMap<>();
-    @VisibleForTesting final ListenableFuture<ExrImageResource> mNullSkyboxResourceFuture;
+    @VisibleForTesting Closeable mSpatialVisibilityChangedListenerCloseable;
 
     @Nullable private Activity mActivity;
     private SplitEngineSubspaceManager mSplitEngineSubspaceManager;
@@ -176,6 +199,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         mActivitySpace =
                 new ActivitySpaceImpl(
                         rootSceneNode,
+                        activity,
                         extensions,
                         entityManager,
                         mLazySpatialStateProvider,
@@ -193,13 +217,13 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         mEntityManager.addSystemSpaceActivityPose(mPerceptionSpaceActivityPose);
         mCameraActivityPoses.add(
                 new CameraViewActivityPoseImpl(
-                        CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE,
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE,
                         mActivitySpace,
                         (AndroidXrEntity) getActivitySpaceRootImpl(),
                         perceptionLibrary));
         mCameraActivityPoses.add(
                 new CameraViewActivityPoseImpl(
-                        CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE,
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE,
                         mActivitySpace,
                         (AndroidXrEntity) getActivitySpaceRootImpl(),
                         perceptionLibrary));
@@ -225,37 +249,19 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
             ImpSplitEngine.SplitEngineSetupParams impApiSetupParams =
                     new ImpSplitEngine.SplitEngineSetupParams();
             impApiSetupParams.jniLibraryName = SPLIT_ENGINE_LIBRARY_NAME;
-            mSplitEngineRenderer = ImpSplitEngineRenderer.create(activity, impApiSetupParams);
+            mSplitEngineRenderer =
+                    ImpSplitEngineRenderer.create(activity, impApiSetupParams, extensions);
             startRenderer();
             mSplitEngineSubspaceManager =
                     new SplitEngineSubspaceManager(
                             mSplitEngineRenderer,
+                            extensions,
                             rootSceneNode,
                             taskWindowLeashNode,
                             SPLIT_ENGINE_LIBRARY_NAME);
             mImpressApi.setup(mSplitEngineRenderer.getView());
             mEnvironment.onSplitEngineReady(mSplitEngineSubspaceManager, mImpressApi);
         }
-        // TODO(b/396483557): This is a temporary measure to not break clients while they migrate to
-        // the
-        // Split Engine route.
-        if (useSplitEngine && IS_SKYBOX_MIGRATION_PERIOD_OVER) {
-            mNullSkyboxResourceFuture =
-                    loadExrImageByAssetNameSplitEngine(
-                            "images/preprocessed_black_skybox_android_xr_scenecore.zip");
-        } else {
-            mNullSkyboxResourceFuture =
-                    loadExrImageByAssetName("images/black_skybox_android_xr_scenecore.exr");
-        }
-        mNullSkyboxResourceFuture.addListener(
-                () -> {
-                    try {
-                        mEnvironment.onNullSkyboxResourceReady(mNullSkyboxResourceFuture.get());
-                    } catch (ExecutionException | InterruptedException e) {
-                        Log.e(TAG, "Failed to get null skybox resource.");
-                    }
-                },
-                Executors.newSingleThreadExecutor());
     }
 
     /** Create a new @c JxrPlatformAdapterAxr. */
@@ -290,33 +296,6 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 null,
                 null,
                 useSplitEngine);
-    }
-
-    /**
-     * Create a new @c JxrPlatformAdapterAxr.
-     *
-     * @deprecated use {@link #create(Activity, ScheduledExecutorService, Node, Node)} instead.
-     */
-    @NonNull
-    @Deprecated
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-    public static JxrPlatformAdapterAxr create(
-            @NonNull Activity activity,
-            @NonNull ScheduledExecutorService executor,
-            @NonNull androidx.xr.extensions.node.Node rootSceneNode,
-            @NonNull androidx.xr.extensions.node.Node taskWindowLeashNode) {
-        return create(
-                activity,
-                executor,
-                XrExtensionsProvider.getXrExtensions(),
-                null,
-                new EntityManager(),
-                new PerceptionLibrary(),
-                null,
-                null,
-                NodeTypeConverter.toFramework(rootSceneNode),
-                NodeTypeConverter.toFramework(taskWindowLeashNode),
-                /* useSplitEngine= */ false);
     }
 
     /** Create a new @c JxrPlatformAdapterAxr. */
@@ -434,24 +413,12 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         return runtime;
     }
 
-    private static GltfModelResourceImpl getModelResourceFromToken(
-            com.android.extensions.xr.asset.GltfModelToken token) {
+    private static GltfModelResourceImpl getModelResourceFromToken(long token) {
         return new GltfModelResourceImpl(token);
     }
 
-    private static GltfModelResourceImplSplitEngine getModelResourceFromTokenSplitEngine(
-            long token) {
-        return new GltfModelResourceImplSplitEngine(token);
-    }
-
-    private static ExrImageResourceImpl getExrImageResourceFromToken(
-            com.android.extensions.xr.asset.EnvironmentToken token) {
+    private static ExrImageResourceImpl getExrImageResourceFromToken(long token) {
         return new ExrImageResourceImpl(token);
-    }
-
-    private static ExrImageResourceImplSplitEngine getExrImageResourceFromTokenSplitEngine(
-            long token) {
-        return new ExrImageResourceImplSplitEngine(token);
     }
 
     private static TextureResourceImpl getTextureResourceFromToken(long token) {
@@ -565,6 +532,40 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     }
 
     @Override
+    public void setSpatialVisibilityChangedListener(
+            @NonNull Executor callbackExecutor, @NonNull Consumer<SpatialVisibility> listener) {
+        try {
+            mSpatialVisibilityChangedListenerCloseable =
+                    mExtensions.subscribeToVisibility(
+                            mActivity,
+                            (spatialVisibilityEvent) ->
+                                    listener.accept(
+                                            RuntimeUtils.convertSpatialVisibility(
+                                                    spatialVisibilityEvent)),
+                            callbackExecutor);
+        } catch (RuntimeException e) {
+            Log.e(
+                    TAG,
+                    "Could not subscribe to Scene Spatial Visibility callbacks due to error: "
+                            + e.getMessage());
+        }
+    }
+
+    @Override
+    public void clearSpatialVisibilityChangedListener() {
+        try {
+            if (mSpatialVisibilityChangedListenerCloseable != null) {
+                mSpatialVisibilityChangedListenerCloseable.close();
+            }
+        } catch (Exception e) {
+            Log.w(
+                    TAG,
+                    "Could not close Scene Spatial Visibility subscription with error: "
+                            + e.getMessage());
+        }
+    }
+
+    @Override
     @NonNull
     public LoggingEntity createLoggingEntity(@NonNull Pose pose) {
         LoggingEntityImpl entity = new LoggingEntityImpl();
@@ -599,9 +600,9 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     public CameraViewActivityPose getCameraViewActivityPose(
             @CameraViewActivityPose.CameraType int cameraType) {
         CameraViewActivityPoseImpl cameraViewActivityPose = null;
-        if (cameraType == CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE) {
+        if (cameraType == CameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE) {
             cameraViewActivityPose = mCameraActivityPoses.get(0);
-        } else if (cameraType == CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE) {
+        } else if (cameraType == CameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE) {
             cameraViewActivityPose = mCameraActivityPoses.get(1);
         }
         // If it is unable to retrieve a pose the camera in not yet loaded in openXR so return null.
@@ -670,51 +671,19 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 mActivity, /* requestEnter= */ false, (result) -> {}, Runnable::run);
     }
 
-    // TODO: b/374345896 - Delete this method once we've finalized the SplitEngine migration.
-    @SuppressWarnings({
-        "AndroidJdkLibsChecker",
-        "RestrictTo",
-        "FutureReturnValueIgnored",
-        "AsyncSuffixFuture"
-    })
-    @Override
-    @Nullable
-    public ListenableFuture<GltfModelResource> loadGltfByAssetName(@NonNull String assetName) {
-        ResolvableFuture<GltfModelResource> gltfModelResourceFuture = ResolvableFuture.create();
-        InputStream asset;
-        try {
-            asset = mActivity.getAssets().open(assetName);
-        } catch (Exception e) {
-            Log.w(TAG, "Could not open asset with error: " + e.getMessage());
-            return null;
-        }
-
-        CompletableFuture<com.android.extensions.xr.asset.GltfModelToken> tokenFuture;
-        try {
-            tokenFuture = mExtensions.loadGltfModel(asset, asset.available(), 0, assetName);
-            // Unfortunately, there is no way to avoid "leaking" this future, since we want to
-            // return a
-            // ListenableFuture. This should be a short lived problem since clients should be using
-            // loadGltfByAssetNameSplitEngine() if they have SplitEngine enabled.
-            tokenFuture.thenApply(
-                    token -> gltfModelResourceFuture.set(getModelResourceFromToken(token)));
-        } catch (Exception e) {
-            Log.w(TAG, "Could not load glTF model with error: " + e.getMessage());
-            return null;
-        }
-
-        return gltfModelResourceFuture;
-    }
-
     // ResolvableFuture is marked as RestrictTo(LIBRARY_GROUP_PREFIX), which is intended for classes
     // within AndroidX. We're in the process of migrating to AndroidX. Without suppressing this
     // warning, however, we get a build error - go/bugpattern/RestrictTo.
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
     @Override
     @Nullable
-    public ListenableFuture<GltfModelResource> loadGltfByAssetNameSplitEngine(
-            @NonNull String name) {
-        return loadGltfModel(() -> mImpressApi.loadGltfModel(name));
+    public ListenableFuture<GltfModelResource> loadGltfByAssetName(@NonNull String name) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading glTFs is not supported without SplitEngine.");
+        } else {
+            return loadGltfAsset(() -> mImpressApi.loadGltfAsset(name));
+        }
     }
 
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
@@ -722,49 +691,12 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Nullable
     public ListenableFuture<GltfModelResource> loadGltfByByteArray(
             @NonNull byte[] assetData, @NonNull String assetKey) {
-        return loadGltfModel(() -> mImpressApi.loadGltfModel(assetData, assetKey));
-    }
-
-    // TODO: b/376504646 - Delete this method once we've migrated to a SplitEngine backed skybox.
-    @SuppressWarnings({
-        "AndroidJdkLibsChecker",
-        "RestrictTo",
-        "FutureReturnValueIgnored",
-        "AsyncSuffixFuture"
-    })
-    @Override
-    @Nullable
-    public ListenableFuture<ExrImageResource> loadExrImageByAssetName(@NonNull String assetName) {
-        ResolvableFuture<ExrImageResource> exrImageResourceFuture = ResolvableFuture.create();
-        InputStream asset;
-        try {
-            // NOTE: extensions.loadEnvironment expects a .EXR file.
-            asset = mActivity.getAssets().open(assetName);
-        } catch (Exception e) {
-            Log.w(TAG, "Could not open asset with error: " + e.getMessage());
-            return null;
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading glTFs is not supported without SplitEngine.");
+        } else {
+            return loadGltfAsset(() -> mImpressApi.loadGltfAsset(assetData, assetKey));
         }
-
-        CompletableFuture<com.android.extensions.xr.asset.EnvironmentToken> tokenFuture;
-        try {
-            // NOTE: At the moment, extensions.loadEnvironment expects a .EXR file explicitly. This
-            //       will need to be updated as support for GLTF environment geometry is added by
-            //       the system.
-            tokenFuture = mExtensions.loadEnvironment(asset, asset.available(), 0, assetName);
-            // Unfortunately, there is no way to avoid "leaking" this future, since we want to
-            // return a
-            // ListenableFuture. This method should be deleted soon, once the SplitEngine backed
-            // skybox
-            // is ready.
-            tokenFuture.thenApply(
-                    token -> exrImageResourceFuture.set(getExrImageResourceFromToken(token)));
-        } catch (Exception e) {
-            Log.i(TAG, "Could not load ExrImage with error: " + e.getMessage());
-            return null;
-        }
-        Log.w(TAG, "Loaded asset: " + assetName);
-
-        return exrImageResourceFuture;
     }
 
     // ResolvableFuture is marked as RestrictTo(LIBRARY_GROUP_PREFIX), which is intended for classes
@@ -773,17 +705,26 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
     @Override
     @Nullable
-    public ListenableFuture<ExrImageResource> loadExrImageByAssetNameSplitEngine(
-            @NonNull String assetName) {
-        return loadExrImage(() -> mImpressApi.loadImageBasedLightingAsset(assetName));
+    public ListenableFuture<ExrImageResource> loadExrImageByAssetName(@NonNull String assetName) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading ExrImages is not supported without SplitEngine.");
+        } else {
+            return loadExrImage(() -> mImpressApi.loadImageBasedLightingAsset(assetName));
+        }
     }
 
     @SuppressWarnings({"RestrictTo", "AsyncSuffixFuture"})
     @Override
     @Nullable
-    public ListenableFuture<ExrImageResource> loadExrImageByByteArraySplitEngine(
+    public ListenableFuture<ExrImageResource> loadExrImageByByteArray(
             @NonNull byte[] assetData, @NonNull String assetKey) {
-        return loadExrImage(() -> mImpressApi.loadImageBasedLightingAsset(assetData, assetKey));
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading ExrImages is not supported without SplitEngine.");
+        } else {
+            return loadExrImage(() -> mImpressApi.loadImageBasedLightingAsset(assetData, assetKey));
+        }
     }
 
     // ResolvableFuture is marked as RestrictTo(LIBRARY_GROUP_PREFIX), which is intended for classes
@@ -794,6 +735,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Nullable
     public ListenableFuture<TextureResource> loadTexture(
             @NonNull String path, @NonNull TextureSampler sampler) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading textures is not supported without SplitEngine.");
+        }
         ResolvableFuture<TextureResource> textureResourceFuture = ResolvableFuture.create();
         // TODO:b/374216912 - Consider calling setFuture() here to catch if the application calls
         // cancel() on the return value from this function, so we can propagate the cancelation
@@ -845,6 +790,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     @Nullable
     public TextureResource borrowReflectionTexture() {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Borrowing textures is not supported without SplitEngine.");
+        }
         Texture texture = mImpressApi.borrowReflectionTexture();
         if (texture == null) {
             return null;
@@ -854,6 +803,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void destroyTexture(@NonNull TextureResource texture) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Destroying textures is not supported without SplitEngine.");
+        }
         TextureResourceImpl textureResource = (TextureResourceImpl) texture;
         mImpressApi.destroyNativeObject(textureResource.getTextureToken());
     }
@@ -865,6 +818,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     @Nullable
     public ListenableFuture<MaterialResource> createWaterMaterial(boolean isAlphaMapVersion) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Loading water materials is not supported without SplitEngine.");
+        }
         ResolvableFuture<MaterialResource> materialResourceFuture = ResolvableFuture.create();
         // TODO:b/374216912 - Consider calling setFuture() here to catch if the application calls
         // cancel() on the return value from this function, so we can propagate the cancelation
@@ -915,6 +872,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void destroyWaterMaterial(@NonNull MaterialResource material) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Destroying materials is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -924,6 +885,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     public void setReflectionCube(
             @NonNull MaterialResource material, @NonNull TextureResource reflectionCube) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -938,6 +903,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     public void setNormalMap(
             @NonNull MaterialResource material, @NonNull TextureResource normalMap) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -951,6 +920,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void setNormalTiling(@NonNull MaterialResource material, float normalTiling) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -960,6 +933,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void setNormalSpeed(@NonNull MaterialResource material, float normalSpeed) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -970,6 +947,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     public void setAlphaStepMultiplier(
             @NonNull MaterialResource material, float alphaStepMultiplier) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -979,6 +960,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void setAlphaMap(@NonNull MaterialResource material, @NonNull TextureResource alphaMap) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -992,6 +977,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void setNormalZ(@NonNull MaterialResource material, float normalZ) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -1001,6 +990,10 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     @Override
     public void setNormalBoundary(@NonNull MaterialResource material, float normalBoundary) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Setting material parameters is not supported without SplitEngine.");
+        }
         if (!(material instanceof MaterialResourceImpl)) {
             throw new IllegalArgumentException("MaterialResource is not a MaterialResourceImpl");
         }
@@ -1011,8 +1004,11 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @Override
     @Nullable
     public TextureResource getReflectionTextureFromIbl(@NonNull ExrImageResource iblToken) {
-        ExrImageResourceImplSplitEngine exrImageResource =
-                (ExrImageResourceImplSplitEngine) iblToken;
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "Getting reflection texture from an IBL is not supported without SplitEngine.");
+        }
+        ExrImageResourceImpl exrImageResource = (ExrImageResourceImpl) iblToken;
         Texture texture =
                 mImpressApi.getReflectionTextureFromIbl(exrImageResource.getExtensionImageToken());
         if (texture == null) {
@@ -1025,38 +1021,26 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @NonNull
     public GltfEntity createGltfEntity(
             @NonNull Pose pose, @NonNull GltfModelResource model, @Nullable Entity parentEntity) {
-        if (mUseSplitEngine && model instanceof GltfModelResourceImplSplitEngine) {
+        if (!mUseSplitEngine) {
+            throw new UnsupportedOperationException(
+                    "GltfEntity is not supported without SplitEngine.");
+        } else {
             return createGltfEntitySplitEngine(pose, model, parentEntity);
         }
-        if (parentEntity == null) {
-            throw new IllegalArgumentException("parentEntity cannot be null");
-        }
-        if (!(model instanceof GltfModelResourceImpl)) {
-            throw new IllegalArgumentException("GltfModelResource is not a GltfModelResourceImpl");
-        }
-        GltfEntity entity =
-                new GltfEntityImpl(
-                        (GltfModelResourceImpl) model,
-                        parentEntity,
-                        mExtensions,
-                        mEntityManager,
-                        mExecutor);
-        entity.setPose(pose, Space.PARENT);
-        return entity;
     }
 
     @Override
     @NonNull
     public SurfaceEntity createSurfaceEntity(
             @SurfaceEntity.StereoMode int stereoMode,
-            @NonNull JxrPlatformAdapter.SurfaceEntity.CanvasShape canvasShape,
+            @NonNull SurfaceEntity.CanvasShape canvasShape,
             @NonNull Pose pose,
             @NonNull Entity parentEntity) {
-        if (mUseSplitEngine) {
-            return createSurfaceEntitySplitEngine(stereoMode, canvasShape, pose, parentEntity);
-        } else {
+        if (!mUseSplitEngine) {
             throw new UnsupportedOperationException(
                     "SurfaceEntity is not supported without SplitEngine.");
+        } else {
+            return createSurfaceEntitySplitEngine(stereoMode, canvasShape, pose, parentEntity);
         }
     }
 
@@ -1237,7 +1221,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
     @NonNull
     public AnchorEntity createAnchorEntity(@NonNull Anchor anchor) {
         Node node = mExtensions.createNode();
-        return AnchorEntityImpl.createAnchorFromPerceptionAnchor(
+        return AnchorEntityImpl.createAnchorFromRuntimeAnchor(
                 node,
                 anchor,
                 getActivitySpace(),
@@ -1278,16 +1262,6 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 mEntityManager,
                 mExecutor,
                 mPerceptionLibrary);
-    }
-
-    @Override
-    public boolean unpersistAnchor(@NonNull UUID uuid) {
-        Session session = mPerceptionLibrary.getSession();
-        if (session == null) {
-            Log.w(TAG, "Cannot unpersist anchor, perception session is not initialized.");
-            return false;
-        }
-        return session.unpersistAnchor(uuid);
     }
 
     @Override
@@ -1332,6 +1306,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         Log.i(TAG, "Disposing resources");
         mEnvironment.dispose();
         mExtensions.clearSpatialStateCallback(mActivity);
+        clearSpatialVisibilityChangedListener();
         // TODO: b/376934871 - Check async results.
         mExtensions.detachSpatialScene(mActivity, (result) -> {}, Runnable::run);
         mActivity = null;
@@ -1416,7 +1391,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
 
     private SurfaceEntity createSurfaceEntitySplitEngine(
             @SurfaceEntity.StereoMode int stereoMode,
-            JxrPlatformAdapter.SurfaceEntity.CanvasShape canvasShape,
+            SurfaceEntity.CanvasShape canvasShape,
             Pose pose,
             @NonNull Entity parentEntity) {
 
@@ -1447,13 +1422,9 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         if (parentEntity == null) {
             throw new IllegalArgumentException("parentEntity cannot be null");
         }
-        if (!(model instanceof GltfModelResourceImplSplitEngine)) {
-            throw new IllegalArgumentException(
-                    "GltfModelResource is not a GltfModelResourceImplSplitEngine");
-        }
         GltfEntity entity =
-                new GltfEntityImplSplitEngine(
-                        (GltfModelResourceImplSplitEngine) model,
+                new GltfEntityImpl(
+                        (GltfModelResourceImpl) model,
                         parentEntity,
                         mImpressApi,
                         mSplitEngineSubspaceManager,
@@ -1472,7 +1443,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
         "FutureReturnValueIgnored",
     })
     @Nullable
-    private ListenableFuture<GltfModelResource> loadGltfModel(
+    private ListenableFuture<GltfModelResource> loadGltfAsset(
             Supplier<ListenableFuture<Long>> modelLoader) {
         if (!Looper.getMainLooper().isCurrentThread()) {
             throw new IllegalStateException("This method must be called on the main thread.");
@@ -1492,8 +1463,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 () -> {
                     try {
                         long gltfToken = gltfTokenFuture.get();
-                        gltfModelResourceFuture.set(
-                                getModelResourceFromTokenSplitEngine(gltfToken));
+                        gltfModelResourceFuture.set(getModelResourceFromToken(gltfToken));
                     } catch (Exception e) {
                         if (e instanceof InterruptedException) {
                             Thread.currentThread().interrupt();
@@ -1535,8 +1505,7 @@ public class JxrPlatformAdapterAxr implements JxrPlatformAdapter {
                 () -> {
                     try {
                         long exrImageToken = exrImageTokenFuture.get();
-                        exrImageResourceFuture.set(
-                                getExrImageResourceFromTokenSplitEngine(exrImageToken));
+                        exrImageResourceFuture.set(getExrImageResourceFromToken(exrImageToken));
                     } catch (Exception e) {
                         if (e instanceof InterruptedException) {
                             Thread.currentThread().interrupt();

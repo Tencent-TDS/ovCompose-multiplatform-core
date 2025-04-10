@@ -417,7 +417,8 @@ private class BinderAdapterDelegate(
         }
 
         override fun notifyUiChanged(uiContainerInfo: Bundle) {
-            sessionObservers.forEach { it.onUiContainerChanged(uiContainerInfo) }
+            // Copy the bundle in case [SandboxedSdkViewUiInfo.pruneBundle] alters the bundle.
+            sessionObservers.forEach { it.onUiContainerChanged(Bundle(uiContainerInfo)) }
         }
 
         override fun close() {

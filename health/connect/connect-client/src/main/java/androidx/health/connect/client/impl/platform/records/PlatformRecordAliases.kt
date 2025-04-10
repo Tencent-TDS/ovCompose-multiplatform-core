@@ -270,6 +270,12 @@ internal typealias PlatformIntermenstrualBleedingRecord =
 internal typealias PlatformIntermenstrualBleedingRecordBuilder =
     android.health.connect.datatypes.IntermenstrualBleedingRecord.Builder
 
+internal typealias PlatformMindfulnessSessionRecord =
+    android.health.connect.datatypes.MindfulnessSessionRecord
+
+internal typealias PlatformMindfulnessSessionRecordBuilder =
+    android.health.connect.datatypes.MindfulnessSessionRecord.Builder
+
 internal typealias PlatformLeanBodyMassRecord = android.health.connect.datatypes.LeanBodyMassRecord
 
 internal typealias PlatformLeanBodyMassRecordBuilder =

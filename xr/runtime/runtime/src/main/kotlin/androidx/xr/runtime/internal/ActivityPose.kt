@@ -16,9 +16,11 @@
 
 package androidx.xr.runtime.internal
 
+import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
+import com.google.common.util.concurrent.ListenableFuture
 
 /** Interface for an XR Runtime ActivityPose. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
@@ -52,5 +54,49 @@ public interface ActivityPose {
      * @param destination The entity which the returned pose will be relative to.
      * @return The pose relative to the destination entity.
      */
-    public fun transformPose(pose: Pose, destination: ActivityPose): Pose
+    public fun transformPoseTo(pose: Pose, destination: ActivityPose): Pose
+
+    @IntDef(
+        HitTestRange.HIT_TEST_RANGE_ALL_SCENES,
+        HitTestRange.HIT_TEST_RANGE_OTHER_SCENES,
+        HitTestRange.HIT_TEST_RANGE_SELF_SCENES,
+    )
+    @Retention(AnnotationRetention.SOURCE)
+    @Suppress("PublicTypedef")
+    public annotation class HitTestRangeValue
+
+    /** Specifies Range of entities to hit test with ActivityPose.hitTest */
+    public object HitTestRange {
+        /**
+         * Register hit tests for all Scenes. If the app does not have the
+         * android.permission.ACCESS_OVERLAY_SPACE perminssion a hit test will only register hit
+         * tests for your own scene.
+         */
+        public const val HIT_TEST_RANGE_ALL_SCENES: Int = 0
+        /**
+         * Register hit tests only for other scenes. If the app does not have the
+         * android.permission.ACCESS_OVERLAY_SPACE perminssion, a hit test will throw an
+         * IllegalStateException.
+         */
+        public const val HIT_TEST_RANGE_OTHER_SCENES: Int = 1
+        /** Register hit tests for the scene which this Activity pose belongs to. */
+        public const val HIT_TEST_RANGE_SELF_SCENES: Int = 2
+    }
+
+    /**
+     * Creates a hit test at the from the specified origin in the specified direction into the
+     * scene.
+     *
+     * @param origin The translation of the origin of the hit test relative to this ActivityPose.
+     * @param direction The direction for the hit test ray from the ActivityPose.
+     * @param hitTestRange The scenes that will be in range for the hit test.
+     * @return a {@code ListenableFuture<HitResult>}. The HitResult describes if it hit something
+     *   and where relative to this [ActivityPose]. Listeners will be called on the main thread if
+     *   Runnable::run is supplied.
+     */
+    public fun hitTest(
+        origin: Vector3,
+        direction: Vector3,
+        @HitTestRangeValue hitTestRange: Int,
+    ): ListenableFuture<HitTestResult>
 }

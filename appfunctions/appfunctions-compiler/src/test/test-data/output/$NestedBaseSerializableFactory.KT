@@ -9,7 +9,7 @@ public class `$NestedBaseSerializableFactory` : AppFunctionSerializableFactory<N
   override fun fromAppFunctionData(appFunctionData: AppFunctionData): NestedBaseSerializable {
     val nestedBaseSerializableFactory = `$NestedBaseSerializableFactory`()
 
-    val stringBaseName = checkNotNull(appFunctionData.getString("stringBaseName"))
+    val stringBaseName = checkNotNull(appFunctionData.getStringOrNull("stringBaseName"))
     val nestedBaseData = appFunctionData.getAppFunctionData("nestedBase")
     var nestedBase: NestedBaseSerializable? = null
     if (nestedBaseData != null) {

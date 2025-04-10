@@ -50,6 +50,7 @@ dependencies {
 
     testImplementation(libs.guavaAndroid)
     testImplementation(libs.testCore)
+    testImplementation(libs.testRunner)
     testImplementation(libs.junit)
     testImplementation(libs.mockitoCore4)
     testImplementation(libs.robolectric)

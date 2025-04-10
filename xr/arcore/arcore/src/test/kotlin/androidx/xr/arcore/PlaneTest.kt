@@ -20,6 +20,8 @@ import android.app.Activity
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.rule.GrantPermissionRule
+import androidx.xr.runtime.Config
+import androidx.xr.runtime.PlaneTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.SessionCreateSuccess
 import androidx.xr.runtime.internal.Plane as RuntimePlane
@@ -32,6 +34,7 @@ import androidx.xr.runtime.testing.FakePerceptionManager
 import androidx.xr.runtime.testing.FakeRuntimeAnchor
 import androidx.xr.runtime.testing.FakeRuntimePlane
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -130,27 +133,50 @@ class PlaneTest {
         }
 
     @Test
-    fun createAnchor_usesGivenPose() {
-        val runtimePlane = FakeRuntimePlane()
-        xrResourcesManager.syncTrackables(listOf(runtimePlane))
-        val underTest = xrResourcesManager.trackablesMap.values.first() as Plane
-        val pose = Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
+    fun subscribe_planeTrackingDisabled_throwsIllegalStateException() =
+        createTestSessionAndRunTest(testDispatcher) {
+            runTest(testDispatcher) {
+                session.configure(Config(planeTracking = PlaneTrackingMode.Disabled))
 
-        val anchor = (underTest.createAnchor(pose) as AnchorCreateSuccess).anchor
-
-        assertThat(anchor.state.value.pose).isEqualTo(pose)
-    }
+                assertFailsWith<IllegalStateException> { Plane.subscribe(session) }
+            }
+        }
 
     @Test
-    fun createAnchor_anchorLimitReached_returnsAnchorResourcesExhaustedResult() {
-        val runtimePlane = FakeRuntimePlane()
-        xrResourcesManager.syncTrackables(listOf(runtimePlane))
-        val underTest = xrResourcesManager.trackablesMap.values.first() as Plane
-        repeat(FakeRuntimeAnchor.ANCHOR_RESOURCE_LIMIT) { underTest.createAnchor(Pose()) }
+    fun createAnchor_usesGivenPose() =
+        createTestSessionAndRunTest(testDispatcher) {
+            val runtimePlane = FakeRuntimePlane()
+            xrResourcesManager.syncTrackables(listOf(runtimePlane))
+            val underTest = xrResourcesManager.trackablesMap.values.first() as Plane
+            val pose = Pose(Vector3(1.0f, 2.0f, 3.0f), Quaternion(1.0f, 2.0f, 3.0f, 4.0f))
 
-        assertThat(underTest.createAnchor(Pose()))
-            .isInstanceOf(AnchorCreateResourcesExhausted::class.java)
-    }
+            val anchor = (underTest.createAnchor(pose) as AnchorCreateSuccess).anchor
+
+            assertThat(anchor.state.value.pose).isEqualTo(pose)
+        }
+
+    @Test
+    fun createAnchor_anchorLimitReached_returnsAnchorResourcesExhaustedResult() =
+        createTestSessionAndRunTest(testDispatcher) {
+            val runtimePlane = FakeRuntimePlane()
+            xrResourcesManager.syncTrackables(listOf(runtimePlane))
+            val underTest = xrResourcesManager.trackablesMap.values.first() as Plane
+            repeat(FakeRuntimeAnchor.ANCHOR_RESOURCE_LIMIT) { underTest.createAnchor(Pose()) }
+
+            assertThat(underTest.createAnchor(Pose()))
+                .isInstanceOf(AnchorCreateResourcesExhausted::class.java)
+        }
+
+    @Test
+    fun createAnchor_planeTrackingDisabled_throwsIllegalStateException() =
+        createTestSessionAndRunTest(testDispatcher) {
+            val runtimePlane = FakeRuntimePlane()
+            xrResourcesManager.syncTrackables(listOf(runtimePlane))
+            val underTest = xrResourcesManager.trackablesMap.values.first() as Plane
+            session.configure(Config(planeTracking = PlaneTrackingMode.Disabled))
+
+            assertFailsWith<IllegalStateException> { underTest.createAnchor(Pose()) }
+        }
 
     @Test
     fun update_trackingStateMatchesRuntime() = runBlocking {
@@ -272,6 +298,7 @@ class PlaneTest {
             it.onActivity { activity ->
                 session =
                     (Session.create(activity, coroutineDispatcher) as SessionCreateSuccess).session
+                xrResourcesManager.lifecycleManager = session.runtime.lifecycleManager
 
                 testBody()
             }

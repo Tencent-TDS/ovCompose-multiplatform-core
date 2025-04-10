@@ -140,6 +140,30 @@ class ComplicationDataSourceUpdateRequesterImplTest {
             .isEqualTo(ComplicationDataSourceUpdateRequester.ACTION_REQUEST_UPDATE_ALL)
     }
 
+    @Test
+    fun shouldUseWearSdk_nonWatch_returnsFalse() {
+        shadowOf(context.packageManager).setSystemFeature(PackageManager.FEATURE_WATCH, false)
+        val requesterImpl = ComplicationDataSourceUpdateRequesterImpl(context, providerComponent)
+
+        assertThat(requesterImpl.shouldUseWearSdk()).isFalse()
+    }
+
+    @Test
+    fun shouldUseWearSdk_sdk35OrLowerWatch_returnsFalse() {
+        shadowOf(context.packageManager).setSystemFeature(PackageManager.FEATURE_WATCH, true)
+        val requesterImpl = ComplicationDataSourceUpdateRequesterImpl(context, providerComponent)
+
+        assertThat(requesterImpl.shouldUseWearSdk()).isFalse()
+    }
+
+    // TODO(b/406534832): Disabled until we can actually set the SDK to 36 in a test.
+    fun shouldUseWearSdk_sdk36Watch_returnsTrue() {
+        shadowOf(context.packageManager).setSystemFeature(PackageManager.FEATURE_WATCH, true)
+        val requesterImpl = ComplicationDataSourceUpdateRequesterImpl(context, providerComponent)
+
+        assertThat(requesterImpl.shouldUseWearSdk()).isTrue()
+    }
+
     private class UpdateBroadcastReceiver() : BroadcastReceiver() {
         var latestIntent: Intent? = null
 

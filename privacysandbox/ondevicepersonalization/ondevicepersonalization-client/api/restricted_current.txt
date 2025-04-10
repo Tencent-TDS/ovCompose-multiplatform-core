@@ -3,9 +3,6 @@ package androidx.privacysandbox.ondevicepersonalization.client {
 
   public final class ExecuteInIsolatedServiceRequest {
     ctor public ExecuteInIsolatedServiceRequest(android.content.ComponentName service, optional android.os.PersistableBundle appParams);
-    method public android.content.ComponentName component1();
-    method public android.os.PersistableBundle component2();
-    method public androidx.privacysandbox.ondevicepersonalization.client.ExecuteInIsolatedServiceRequest copy(android.content.ComponentName service, android.os.PersistableBundle appParams);
     method public android.os.PersistableBundle getAppParams();
     method public android.content.ComponentName getService();
     property public android.os.PersistableBundle appParams;
@@ -13,8 +10,6 @@ package androidx.privacysandbox.ondevicepersonalization.client {
   }
 
   public final class ExecuteInIsolatedServiceResponse {
-    method public android.adservices.ondevicepersonalization.SurfacePackageToken? component1();
-    method public androidx.privacysandbox.ondevicepersonalization.client.ExecuteInIsolatedServiceResponse copy(android.adservices.ondevicepersonalization.SurfacePackageToken? surfacePackageToken);
     method public android.adservices.ondevicepersonalization.SurfacePackageToken? getSurfacePackageToken();
     property public android.adservices.ondevicepersonalization.SurfacePackageToken? surfacePackageToken;
   }

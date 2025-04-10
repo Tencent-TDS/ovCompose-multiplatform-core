@@ -74,6 +74,7 @@ import androidx.camera.core.internal.ImmutableZoomState;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.filters.SdkSuppress;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -558,7 +559,7 @@ public class Camera2CameraInfoImplTest {
     }
 
     @Config(minSdk = 28)
-    @RequiresApi(28)
+    @SdkSuppress(minSdkVersion = 28)
     @Test
     public void canReturnCameraCharacteristicsMapWithPhysicalCameras()
             throws CameraAccessExceptionCompat {
@@ -584,7 +585,7 @@ public class Camera2CameraInfoImplTest {
     }
 
     @Config(minSdk = 28)
-    @RequiresApi(28)
+    @SdkSuppress(minSdkVersion = 28)
     @Test
     public void canReturnPhysicalCameraInfos()
             throws CameraAccessExceptionCompat {

@@ -25,8 +25,7 @@ import android.os.PersistableBundle
  * @param appParams Passed from the calling app to the Isolated Service. The expected contents of
  *   this parameter are defined by the service. The platform does not interpret this parameter.
  */
-@Suppress("DataClassDefinition")
-data class ExecuteInIsolatedServiceRequest(
+class ExecuteInIsolatedServiceRequest(
     val service: ComponentName,
     val appParams: PersistableBundle = PersistableBundle.EMPTY,
 ) {

@@ -10,7 +10,7 @@ public class `$NestedDerivedSerializableFactory` : AppFunctionSerializableFactor
     val nestedBaseSerializableFactory = `$NestedBaseSerializableFactory`()
     val nestedDerivedSerializableFactory = `$NestedDerivedSerializableFactory`()
 
-    val stringBaseName = checkNotNull(appFunctionData.getString("stringBaseName"))
+    val stringBaseName = checkNotNull(appFunctionData.getStringOrNull("stringBaseName"))
     val nestedBaseData = appFunctionData.getAppFunctionData("nestedBase")
     var nestedBase: NestedBaseSerializable? = null
     if (nestedBaseData != null) {

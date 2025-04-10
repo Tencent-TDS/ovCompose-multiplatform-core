@@ -88,7 +88,16 @@ public class PagerState(
      * that it will not be updated while the pages are being scrolled, but rather when the
      * animation/scroll settles.
      */
-    public val settledPage: Int = pagerState.settledPage
+    public val settledPage: Int
+        get() = pagerState.settledPage
+
+    /**
+     * The page this pager intends to settle to. During fling or animated scroll (from
+     * [animateScrollToPage]) this will represent the page this pager intends to settle to. When no
+     * scroll is ongoing, this will be equal to [currentPage].
+     */
+    public val targetPage: Int
+        get() = pagerState.targetPage
 
     /**
      * A [PagerLayoutInfo] that contains useful information about the Pager's last layout pass. For

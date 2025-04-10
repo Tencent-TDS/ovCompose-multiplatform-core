@@ -194,8 +194,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
- * <a href="https://m3.material.io/components/search/overview" class="external"
- * target="_blank">Material Design search</a>.
+ * [Material Design search](https://m3.material.io/components/search/overview)
  *
  * A search bar represents a field that allows users to enter a keyword or phrase and get relevant
  * information. It can be used as a way to navigate through an app via search queries.
@@ -249,8 +248,7 @@ fun SearchBar(
 }
 
 /**
- * <a href="https://m3.material.io/components/search/overview" class="external"
- * target="_blank">Material Design search</a>.
+ * [Material Design search](https://m3.material.io/components/search/overview)
  *
  * A search bar represents a field that allows users to enter a keyword or phrase and get relevant
  * information. It can be used as a way to navigate through an app via search queries.
@@ -498,8 +496,7 @@ fun ExpandedDockedSearchBar(
 }
 
 /**
- * <a href="https://m3.material.io/components/search/overview" class="external"
- * target="_blank">Material Design search</a>.
+ * [Material Design search](https://m3.material.io/components/search/overview)
  *
  * A search bar represents a floating search field that allows users to enter a keyword or phrase
  * and get relevant information. It can be used as a way to navigate through an app via search
@@ -619,8 +616,7 @@ fun SearchBar(
 }
 
 /**
- * <a href="https://m3.material.io/components/search/overview" class="external"
- * target="_blank">Material Design search</a>.
+ * [Material Design search](https://m3.material.io/components/search/overview)
  *
  * A search bar represents a floating search field that allows users to enter a keyword or phrase
  * and get relevant information. It can be used as a way to navigate through an app via search

@@ -21,12 +21,13 @@ import android.view.Choreographer
 import android.view.Display
 import android.view.View
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.R
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.RememberObserver
-import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.util.trace
 import androidx.compose.ui.util.traceValue
+import java.util.PriorityQueue
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
 
@@ -37,7 +38,16 @@ internal actual fun rememberDefaultPrefetchScheduler(): PrefetchScheduler {
         RobolectricImpl
     } else {
         val view = LocalView.current
-        remember(view) { AndroidPrefetchScheduler(view) }
+        remember(view) {
+            val existing = view.getTag(R.id.compose_prefetch_scheduler) as? PrefetchScheduler
+            if (existing == null) {
+                val scheduler = AndroidPrefetchScheduler(view)
+                view.setTag(R.id.compose_prefetch_scheduler, scheduler)
+                scheduler
+            } else {
+                existing
+            }
+        }
     }
 }
 
@@ -81,16 +91,22 @@ internal actual fun rememberDefaultPrefetchScheduler(): PrefetchScheduler {
  */
 @ExperimentalFoundationApi
 internal class AndroidPrefetchScheduler(private val view: View) :
-    PrefetchScheduler, RememberObserver, Runnable, Choreographer.FrameCallback {
+    PrefetchScheduler,
+    PriorityPrefetchScheduler,
+    View.OnAttachStateChangeListener,
+    Runnable,
+    Choreographer.FrameCallback {
 
     /**
      * The list of currently not processed prefetch requests. The requests will be processed one by
      * during subsequent [run]s.
      */
-    private val prefetchRequests = mutableVectorOf<PrefetchRequest>()
+    private val prefetchRequests =
+        PriorityQueue<PriorityTask>(11, Comparator { a, b -> b.priority.compareTo(a.priority) })
     private var prefetchScheduled = false
     private val choreographer = Choreographer.getInstance()
     private val scope = PrefetchRequestScopeImpl()
+    override var isFrameIdle: Boolean = false
 
     /** Is true when LazyList was composed and not yet disposed. */
     private var isActive = false
@@ -99,6 +115,9 @@ internal class AndroidPrefetchScheduler(private val view: View) :
 
     init {
         calculateFrameIntervalIfNeeded(view)
+        view.addOnAttachStateChangeListener(this)
+        // if the view is already attached to a window, call onViewAttachedToWindow immediately.
+        if (view.isAttachedToWindow) onViewAttachedToWindow(view)
     }
 
     /**
@@ -127,22 +146,18 @@ internal class AndroidPrefetchScheduler(private val view: View) :
         // not have been a drawing operation. Using the choreographer frame start time will be
         // safe in these cases.
         val viewDrawTimeNanos = TimeUnit.MILLISECONDS.toNanos(view.drawingTime)
+
+        // enter idle mode if the last time we draw was 2 frames ago.
+        isFrameIdle = (System.nanoTime() > viewDrawTimeNanos + 2 * frameIntervalNs)
         scope.nextFrameTimeNs = maxOf(frameStartTimeNanos, viewDrawTimeNanos) + frameIntervalNs
         var scheduleForNextFrame = false
         while (prefetchRequests.isNotEmpty() && !scheduleForNextFrame) {
-            val availableTimeNanos = scope.availableTimeNanos()
-            traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
-            if (availableTimeNanos > 0) {
-                val request = prefetchRequests[0]
-                val hasMoreWorkToDo = with(request) { scope.execute() }
-                if (hasMoreWorkToDo) {
-                    scheduleForNextFrame = true
+            scheduleForNextFrame =
+                if (isFrameIdle) {
+                    trace("compose:lazy:prefetch:idle_frame") { runRequest() }
                 } else {
-                    prefetchRequests.removeAt(0)
+                    runRequest()
                 }
-            } else {
-                scheduleForNextFrame = true
-            }
         }
 
         if (scheduleForNextFrame) {
@@ -153,6 +168,25 @@ internal class AndroidPrefetchScheduler(private val view: View) :
             prefetchScheduled = false
         }
         traceValue("compose:lazy:prefetch:available_time_nanos", 0L) // reset counter
+    }
+
+    private fun runRequest(): Boolean {
+        var scheduleForNextFrame = false
+        val availableTimeNanos = scope.availableTimeNanos()
+        traceValue("compose:lazy:prefetch:available_time_nanos", availableTimeNanos)
+        if (availableTimeNanos > 0) {
+            // at this point we know that prefetchRequests is not empty.
+            val request = prefetchRequests.peek()!!.request
+            val hasMoreWorkToDo = with(request) { scope.execute() }
+            if (hasMoreWorkToDo) {
+                scheduleForNextFrame = true
+            } else {
+                prefetchRequests.poll()
+            }
+        } else {
+            scheduleForNextFrame = true
+        }
+        return scheduleForNextFrame
     }
 
     /**
@@ -167,8 +201,7 @@ internal class AndroidPrefetchScheduler(private val view: View) :
         }
     }
 
-    override fun schedulePrefetch(prefetchRequest: PrefetchRequest) {
-        prefetchRequests.add(prefetchRequest)
+    private fun startExecution() {
         if (!prefetchScheduled) {
             prefetchScheduled = true
             // schedule the prefetching
@@ -176,17 +209,25 @@ internal class AndroidPrefetchScheduler(private val view: View) :
         }
     }
 
-    override fun onRemembered() {
+    override fun scheduleLowPriorityPrefetch(prefetchRequest: PrefetchRequest) {
+        prefetchRequests.add(PriorityTask(PriorityTask.Low, prefetchRequest))
+        startExecution()
+    }
+
+    override fun scheduleHighPriorityPrefetch(prefetchRequest: PrefetchRequest) {
+        prefetchRequests.add(PriorityTask(PriorityTask.High, prefetchRequest))
+        startExecution()
+    }
+
+    override fun onViewAttachedToWindow(v: View) {
         isActive = true
     }
 
-    override fun onForgotten() {
+    override fun onViewDetachedFromWindow(v: View) {
         isActive = false
         view.removeCallbacks(this)
         choreographer.removeFrameCallback(this)
     }
-
-    override fun onAbandoned() {}
 
     class PrefetchRequestScopeImpl() : PrefetchRequestScope {
         var nextFrameTimeNs: Long = 0L
@@ -232,3 +273,11 @@ private val RobolectricImpl =
     } else {
         null
     }
+
+@ExperimentalFoundationApi
+internal class PriorityTask(val priority: Int, val request: PrefetchRequest) {
+    companion object {
+        val Low = 0
+        val High = 1
+    }
+}

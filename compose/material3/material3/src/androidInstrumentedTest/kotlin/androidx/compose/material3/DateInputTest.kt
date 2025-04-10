@@ -211,6 +211,32 @@ class DateInputTest {
     }
 
     @Test
+    fun dateInputWithInitialDate_externalDateChange() {
+        lateinit var datePickerState: DatePickerState
+        val selectedDateInUtcMillis = dayInUtcMilliseconds(year = 2010, month = 5, dayOfMonth = 11)
+        rule.setMaterialContent(lightColorScheme()) {
+            datePickerState =
+                rememberDatePickerState(
+                    initialSelectedDateMillis = selectedDateInUtcMillis,
+                    initialDisplayMode = DisplayMode.Input,
+                )
+            DatePicker(state = datePickerState)
+        }
+
+        rule.onNodeWithText("May 11, 2010").assertExists()
+        rule.onNodeWithText("05/11/2010").assertExists()
+
+        // Emulate an external date change action.
+        val now = System.currentTimeMillis()
+        datePickerState.selectedDateMillis = now
+        datePickerState.displayedMonthMillis = now
+
+        rule.waitForIdle()
+        rule.onNodeWithText("May 11, 2010").assertDoesNotExist()
+        rule.onNodeWithText("05/11/2010").assertDoesNotExist()
+    }
+
+    @Test
     fun inputDateNotAllowed() {
         lateinit var dateInputLabel: String
         lateinit var errorMessage: String
@@ -291,8 +317,7 @@ class DateInputTest {
             DatePicker(state = state)
         }
 
-        rule.runOnIdle { assertThat(state.selectedDateMillis).isNull() }
-
+        rule.runOnIdle { assertThat(state.selectedDateMillis).isEqualTo(1898380800000) }
         // Check that the title is displaying the default text and not a date string.
         rule.onNodeWithText(dateInputLabel).assertIsDisplayed()
         // Check for the error semantics.

@@ -16,6 +16,8 @@
 
 package androidx.appfunctions.integration.testapp.library
 
+import android.net.Uri
+import android.util.Log
 import androidx.appfunctions.AppFunction
 import androidx.appfunctions.AppFunctionContext
 
@@ -23,4 +25,14 @@ import androidx.appfunctions.AppFunctionContext
 class TestFunctions2 {
     @AppFunction
     fun concat(appFunctionContext: AppFunctionContext, str1: String, str2: String) = str1 + str2
+
+    @AppFunction
+    fun logUri(appFunctionContext: AppFunctionContext, androidUri: Uri) {
+        Log.d("TestFunctions2", "URI: $androidUri")
+    }
+
+    @AppFunction
+    fun getUri(appFunctionContext: AppFunctionContext): Uri {
+        return Uri.parse("https://www.google.com/")
+    }
 }

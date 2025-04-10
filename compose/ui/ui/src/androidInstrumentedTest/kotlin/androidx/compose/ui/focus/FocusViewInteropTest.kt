@@ -235,6 +235,12 @@ class FocusViewInteropTest {
 
     @Test
     fun moveFocusThroughUnFocusableComposeViewNext() {
+
+        // TODO(b/406327273): Support this use case without isViewFocusFixEnabled. We don't need
+        // to support FocusManager.moveFocus() since moveFocus is not present for views, but just
+        // need to support moving focus in response to key input.
+        assumeTrue(@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled)
+
         lateinit var topEditText: EditText
         lateinit var composeView: ComposeView
         lateinit var bottomEditText: EditText
@@ -278,6 +284,11 @@ class FocusViewInteropTest {
 
     @Test
     fun moveFocusThroughUnFocusableComposeViewDown() {
+        // TODO(b/406327273): Support this use case without isViewFocusFixEnabled. We don't need
+        // to support FocusManager.moveFocus() since moveFocus is not present for views, but just
+        // need to support moving focus in response to key input.
+        assumeTrue(@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled)
+
         lateinit var topEditText: EditText
         lateinit var composeView: ComposeView
         lateinit var bottomEditText: EditText
@@ -321,6 +332,11 @@ class FocusViewInteropTest {
 
     @Test
     fun focusBetweenComposeViews_NextPrevious() {
+        // TODO(b/406327273): Support this use case without isViewFocusFixEnabled. We don't need
+        // to support FocusManager.moveFocus() since moveFocus is not present for views, but just
+        // need to support moving focus in response to key input.
+        assumeTrue(@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled)
+
         lateinit var focusManager: FocusManager
 
         rule.setContent {
@@ -381,6 +397,11 @@ class FocusViewInteropTest {
 
     @Test
     fun focusBetweenComposeViews_DownUp() {
+        // TODO(b/406327273): Support this use case without isViewFocusFixEnabled. We don't need
+        // to support FocusManager.moveFocus() since moveFocus is not present for views, but just
+        // need to support moving focus in response to key input.
+        assumeTrue(@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled)
+
         lateinit var focusManager: FocusManager
 
         rule.setContent {
@@ -441,6 +462,11 @@ class FocusViewInteropTest {
 
     @Test
     fun requestFocusFromViewMovesToComposeView() {
+
+        // TODO(b/406327273): Support this use case without isViewFocusFixEnabled. This could be
+        // pulled out from aosp/3417182 and fixed as a separate issue.
+        assumeTrue(@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled)
+
         lateinit var androidButton1: Button
         lateinit var composeView: View
         val composeButton = FocusRequester()

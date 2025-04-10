@@ -48,6 +48,7 @@ abstract class BenchmarkTestBase(
     @Before
     fun setUp() {
         disableChargingExperience()
+        pressHome()
     }
 
     @After

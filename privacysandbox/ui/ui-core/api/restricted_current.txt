@@ -24,13 +24,15 @@ package androidx.privacysandbox.ui.core {
   }
 
   public final class SandboxedSdkViewUiInfo {
-    ctor public SandboxedSdkViewUiInfo(int uiContainerWidth, int uiContainerHeight, android.graphics.Rect onScreenGeometry, float uiContainerOpacityHint);
+    ctor public SandboxedSdkViewUiInfo(int uiContainerWidth, int uiContainerHeight, android.graphics.Rect onScreenGeometry, float uiContainerOpacityHint, java.util.List<android.graphics.Rect> obstructedGeometry);
     method public static androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo fromBundle(android.os.Bundle bundle);
+    method public java.util.List<android.graphics.Rect> getObstructedGeometry();
     method public android.graphics.Rect getOnScreenGeometry();
     method public int getUiContainerHeight();
     method public float getUiContainerOpacityHint();
     method public int getUiContainerWidth();
     method public static android.os.Bundle toBundle(androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo sandboxedSdkViewUiInfo);
+    property public java.util.List<android.graphics.Rect> obstructedGeometry;
     property public android.graphics.Rect onScreenGeometry;
     property public int uiContainerHeight;
     property public float uiContainerOpacityHint;
@@ -70,10 +72,12 @@ package androidx.privacysandbox.ui.core {
     ctor public SandboxedUiAdapterSignalOptions();
     field public static final androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions.Companion Companion;
     field public static final String GEOMETRY = "geometry";
+    field public static final String OBSTRUCTIONS = "obstructions";
   }
 
   public static final class SandboxedUiAdapterSignalOptions.Companion {
     property public static String GEOMETRY;
+    property public static String OBSTRUCTIONS;
   }
 
   public final class SdkRuntimeUiLibVersions {

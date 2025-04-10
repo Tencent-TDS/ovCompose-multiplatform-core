@@ -21,6 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
@@ -65,7 +67,7 @@ kapt {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = 36
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
@@ -75,6 +77,8 @@ android {
 androidx {
     name = "androidx.appfunctions:appfunctions-common"
     type = SoftwareType.PUBLISHED_LIBRARY
+    //TODO(b/407507716): Target Kotlin 2 when support for it is stable in kapt
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2024"
     description = "Contains the code shared by appfunctions-app-runtime , appfunctions-agent-runtime and appfunctions-schema libraries."
 }

@@ -18,6 +18,11 @@ package androidx.xr.scenecore
 
 import android.app.Activity
 import android.media.MediaPlayer
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.MediaPlayerExtensionsWrapper as RtMediaPlayerExtensionsWrapper
+import androidx.xr.runtime.internal.PointSourceParams as RtPointSourceParams
+import androidx.xr.runtime.internal.SoundFieldAttributes as RtSoundFieldAttributes
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,10 +41,9 @@ import org.robolectric.RobolectricTestRunner
 class SpatialMediaPlayerTest {
 
     private var mockRuntime: JxrPlatformAdapter = mock()
-    private var mockRtMediaPlayerExtensions: JxrPlatformAdapter.MediaPlayerExtensionsWrapper =
-        mock()
+    private var mockRtMediaPlayerExtensions: RtMediaPlayerExtensionsWrapper = mock()
 
-    private val mockContentlessEntity = mock<JxrPlatformAdapter.Entity>()
+    private val mockContentlessEntity = mock<RtEntity>()
     private val activity = Robolectric.buildActivity(Activity::class.java).create().start().get()
 
     private lateinit var session: Session
@@ -66,16 +70,14 @@ class SpatialMediaPlayerTest {
         val mediaPlayer = MediaPlayer()
 
         val entity = ContentlessEntity.create(session, "test")
-        val pointSourceAttributes = PointSourceAttributes(entity)
+        val pointSourceAttributes = PointSourceParams(entity)
 
-        SpatialMediaPlayer.setPointSourceAttributes(session, mediaPlayer, pointSourceAttributes)
+        SpatialMediaPlayer.setPointSourceParams(session, mediaPlayer, pointSourceAttributes)
 
         verify(mockRtMediaPlayerExtensions)
-            .setPointSourceAttributes(
+            .setPointSourceParams(
                 eq(mediaPlayer),
-                argWhere<JxrPlatformAdapter.PointSourceAttributes> {
-                    it.entity == mockContentlessEntity
-                },
+                argWhere<RtPointSourceParams> { it.entity == mockContentlessEntity },
             )
     }
 
@@ -91,7 +93,7 @@ class SpatialMediaPlayerTest {
         verify(mockRtMediaPlayerExtensions)
             .setSoundFieldAttributes(
                 eq(mediaPlayer),
-                argWhere<JxrPlatformAdapter.SoundFieldAttributes> {
+                argWhere<RtSoundFieldAttributes> {
                     it.ambisonicsOrder == SpatializerConstants.AMBISONICS_ORDER_THIRD_ORDER
                 },
             )

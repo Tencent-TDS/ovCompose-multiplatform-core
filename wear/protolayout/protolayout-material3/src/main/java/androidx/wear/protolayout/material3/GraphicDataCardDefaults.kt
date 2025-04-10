@@ -34,15 +34,18 @@ import androidx.wear.protolayout.LayoutElementBuilders.HorizontalAlignment
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.LayoutElementBuilders.Row
 import androidx.wear.protolayout.ModifiersBuilders.Padding
+import androidx.wear.protolayout.material3.GraphicDataCardDefaults.GRAPHIC_SPACE_PERCENTAGE_DEFAULT
+import androidx.wear.protolayout.material3.GraphicDataCardDefaults.GRAPHIC_SPACE_PERCENTAGE_LARGE
 import androidx.wear.protolayout.material3.Typography.TypographyToken
 import androidx.wear.protolayout.material3.Versions.hasExpandWithWeightSupport
 import androidx.wear.protolayout.modifiers.padding
 import androidx.wear.protolayout.types.dp
 
 public object GraphicDataCardDefaults {
-    @FloatRange(from = 0.0, to = 100.0) internal const val GRAPHIC_SPACE_PERCENTAGE: Float = 40f
-    private const val GRAPH_SIDE_PADDING_WEIGHT_OFFSET = 2f
-    private const val DATA_GRAPH_CARD_START_ALIGN_EXTRA_SPACE_DP = 2
+    @FloatRange(from = 0.0, to = 100.0)
+    internal const val GRAPHIC_SPACE_PERCENTAGE_DEFAULT: Float = 32f
+    @FloatRange(from = 0.0, to = 100.0)
+    internal const val GRAPHIC_SPACE_PERCENTAGE_LARGE: Float = 40f
     /** The default ratio of the center icon size to the progress indicator size. */
     internal const val CENTER_ICON_SIZE_RATIO_IN_GRAPHIC = 0.4F
 
@@ -73,14 +76,14 @@ public object GraphicDataCardDefaults {
             .addElement(content)
 
         // Side padding - start
-        // Smaller padding should be applied to the graph side, and larger to the labels side.
-
         horizontalElementBuilder.addContent(
             verticalSpacer(
                 deviceConfiguration.weightForSpacer(
-                    style.sidePaddingWeight +
-                        GRAPH_SIDE_PADDING_WEIGHT_OFFSET *
-                            (if (horizontalAlignment == HORIZONTAL_ALIGN_START) -1 else 1)
+                    if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
+                        style.graphicSidePaddingWeight
+                    } else {
+                        style.contentSidePaddingWeight
+                    }
                 )
             )
         )
@@ -88,25 +91,26 @@ public object GraphicDataCardDefaults {
         // Wrap graphic in expandable box with weights
         val wrapGraphic =
             Box.Builder()
-                .setWidth(deviceConfiguration.weightForContainer(GRAPHIC_SPACE_PERCENTAGE))
+                .setWidth(deviceConfiguration.weightForContainer(style.graphicSpacePercentage))
                 .setHeight(expand())
                 .addContent(graphic)
                 .build()
 
         if (horizontalAlignment == HORIZONTAL_ALIGN_START) {
             horizontalElementBuilder.addContent(wrapGraphic)
-            horizontalElementBuilder.addContent(
-                verticalSpacer(
-                    style.graphToTitleSpaceDp + DATA_GRAPH_CARD_START_ALIGN_EXTRA_SPACE_DP
-                )
-            )
+            horizontalElementBuilder.addContent(verticalSpacer(style.graphToTitleSpaceDp))
         }
 
         horizontalElementBuilder.addContent(
             Box.Builder()
                 .setHorizontalAlignment(HORIZONTAL_ALIGN_START)
                 .setWidth(
-                    weightAsExpand(100 - style.sidePaddingWeight * 2 - GRAPHIC_SPACE_PERCENTAGE)
+                    weightAsExpand(
+                        100 -
+                            style.graphicSidePaddingWeight -
+                            style.contentSidePaddingWeight -
+                            style.graphicSpacePercentage
+                    )
                 )
                 .addContent(verticalElementBuilder.build())
                 .build()
@@ -118,13 +122,14 @@ public object GraphicDataCardDefaults {
         }
 
         // Side padding - end
-        // Smaller padding should be applied to the graph side, and larger to the labels side.
         horizontalElementBuilder.addContent(
             verticalSpacer(
                 deviceConfiguration.weightForSpacer(
-                    style.sidePaddingWeight +
-                        GRAPH_SIDE_PADDING_WEIGHT_OFFSET *
-                            (if (horizontalAlignment == HORIZONTAL_ALIGN_START) 1 else -1)
+                    if (horizontalAlignment == HORIZONTAL_ALIGN_END) {
+                        style.graphicSidePaddingWeight
+                    } else {
+                        style.contentSidePaddingWeight
+                    }
                 )
             )
         )
@@ -214,7 +219,9 @@ public object GraphicDataCardDefaults {
                             (if (size is DpProp) {
                                 size.value
                             } else {
-                                deviceConfiguration.screenWidthDp * GRAPHIC_SPACE_PERCENTAGE
+                                // Use approximate weight as this is a fallback so it wouldn't be
+                                // 100% accurate.
+                                deviceConfiguration.screenWidthDp * GRAPHIC_SPACE_PERCENTAGE_DEFAULT
                             }))
                         .dp
                 withStyle(
@@ -244,7 +251,14 @@ internal constructor(
     @TypographyToken internal val titleTypography: Int,
     @TypographyToken internal val contentTypography: Int,
     @Dimension(unit = DP) internal val graphToTitleSpaceDp: Int,
-    internal val sidePaddingWeight: Float,
+    internal val graphicSidePaddingWeight: Float,
+    internal val contentSidePaddingWeight: Float,
+    // This doesn't correspond 1 to 1 to the spec, because Figma spec doesn't have way of specifying
+    // the weight instead of percentage of the screen size. The way we calculate the weight is
+    // based on the spec, taking what is the width of the graph and dividing it by the total width
+    // of the card in a case of default margins to get the weight number. Same applies to the
+    // paddings.
+    @FloatRange(from = 0.0, to = 100.0) internal val graphicSpacePercentage: Float,
 ) {
     public companion object {
         private const val DEFAULT_VERTICAL_PADDING_DP = 8f
@@ -262,8 +276,10 @@ internal constructor(
                     ),
                 titleTypography = Typography.DISPLAY_SMALL,
                 contentTypography = Typography.LABEL_SMALL,
-                graphToTitleSpaceDp = 6,
-                sidePaddingWeight = 8f
+                graphToTitleSpaceDp = 12,
+                graphicSidePaddingWeight = 6.67f,
+                contentSidePaddingWeight = 10f,
+                graphicSpacePercentage = GRAPHIC_SPACE_PERCENTAGE_DEFAULT,
             )
 
         /**
@@ -279,8 +295,10 @@ internal constructor(
                     ),
                 titleTypography = Typography.DISPLAY_MEDIUM,
                 contentTypography = Typography.LABEL_MEDIUM,
-                graphToTitleSpaceDp = 8,
-                sidePaddingWeight = 8.3f
+                graphToTitleSpaceDp = 12,
+                graphicSidePaddingWeight = 6.67f,
+                contentSidePaddingWeight = 10f,
+                graphicSpacePercentage = GRAPHIC_SPACE_PERCENTAGE_LARGE,
             )
     }
 }

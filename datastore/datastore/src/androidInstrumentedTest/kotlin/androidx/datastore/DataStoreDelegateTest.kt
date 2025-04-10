@@ -18,11 +18,11 @@ package androidx.datastore
 
 import android.content.Context
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.datastore.core.DataMigration
 import androidx.datastore.core.deviceProtectedDataStoreFile
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import java.io.File
@@ -87,7 +87,7 @@ class DataStoreDelegateTest {
             context.globalDs.data.first()
         }
 
-    @RequiresApi(Build.VERSION_CODES.N)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
     @Test
     fun testInitUserEncryptedDelegateWithDeviceEncryptedContext() =
         runBlocking<Unit> {

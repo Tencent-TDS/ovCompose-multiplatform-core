@@ -87,6 +87,7 @@ constructor(context: Context, @StyleRes themeResId: Int = 0) :
     @Suppress("DEPRECATION")
     final override val onBackPressedDispatcher = OnBackPressedDispatcher { super.onBackPressed() }
 
+    @Suppress("OVERRIDE_DEPRECATION") // b/407493719
     @CallSuper
     override fun onBackPressed() {
         onBackPressedDispatcher.onBackPressed()

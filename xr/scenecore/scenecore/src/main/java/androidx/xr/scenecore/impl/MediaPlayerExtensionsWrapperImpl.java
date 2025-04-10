@@ -19,9 +19,9 @@ package androidx.xr.scenecore.impl;
 import android.media.MediaPlayer;
 
 import androidx.annotation.NonNull;
-import androidx.xr.scenecore.JxrPlatformAdapter.MediaPlayerExtensionsWrapper;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointSourceAttributes;
-import androidx.xr.scenecore.JxrPlatformAdapter.SoundFieldAttributes;
+import androidx.xr.runtime.internal.MediaPlayerExtensionsWrapper;
+import androidx.xr.runtime.internal.PointSourceParams;
+import androidx.xr.runtime.internal.SoundFieldAttributes;
 
 import com.android.extensions.xr.media.MediaPlayerExtensions;
 
@@ -35,12 +35,12 @@ final class MediaPlayerExtensionsWrapperImpl implements MediaPlayerExtensionsWra
     }
 
     @Override
-    public void setPointSourceAttributes(
-            @NonNull MediaPlayer mediaPlayer, @NonNull PointSourceAttributes attributes) {
-        com.android.extensions.xr.media.PointSourceAttributes extAttributes =
-                MediaUtils.convertPointSourceAttributesToExtensions(attributes);
+    public void setPointSourceParams(
+            @NonNull MediaPlayer mediaPlayer, @NonNull PointSourceParams params) {
+        com.android.extensions.xr.media.PointSourceParams extParams =
+                MediaUtils.convertPointSourceParamsToExtensions(params);
 
-        MediaPlayer unused = mExtensions.setPointSourceAttributes(mediaPlayer, extAttributes);
+        MediaPlayer unused = mExtensions.setPointSourceParams(mediaPlayer, extParams);
     }
 
     @Override

@@ -324,6 +324,13 @@ public interface Features {
             "SCHEMA_STRING_PROPERTY_CONFIG_DELETE_PROPAGATION_TYPE_PROPAGATE_FROM";
 
     /**
+     * Feature for {@link #isFeatureSupported(String)}. This feature covers whether to use isolated
+     * storage for user data.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    String ISOLATED_STORAGE = "ISOLATED_STORAGE";
+
+    /**
      * Feature for {@link #isFeatureSupported(String)}. This feature covers the use of the
      * "minOrDefault" and "maxOrDefault" functions in ranking expressions.
      *

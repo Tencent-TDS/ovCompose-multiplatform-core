@@ -674,6 +674,7 @@ private class LazyImpl(val initializer: () -> Int, val errorMessage: String) : L
 
 /** Overflow State for managing overflow state within FlowLayouts. */
 @OptIn(ExperimentalLayoutApi::class)
+@Suppress("DATA_CLASS_COPY_VISIBILITY_WILL_BE_CHANGED_WARNING")
 internal data class FlowLayoutOverflowState
 internal constructor(
     internal val type: FlowLayoutOverflow.OverflowType,

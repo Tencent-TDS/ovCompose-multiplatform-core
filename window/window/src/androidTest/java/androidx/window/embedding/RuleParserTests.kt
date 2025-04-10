@@ -22,8 +22,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import androidx.window.embedding.EmbeddingAspectRatio.Companion.ALWAYS_DISALLOW
 import androidx.window.embedding.SplitAttributes.LayoutDirection.Companion.BOTTOM_TO_TOP
 import androidx.window.embedding.SplitAttributes.LayoutDirection.Companion.LOCALE
@@ -302,7 +302,7 @@ class RuleParserTests {
      * Verifies that horizontal layout are set correctly when reading [SplitPlaceholderRule] from
      * XML.
      */
-    @RequiresApi(Build.VERSION_CODES.M)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.M)
     @Test
     fun testHorizontalLayout_SplitPlaceholderRule_Xml() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)

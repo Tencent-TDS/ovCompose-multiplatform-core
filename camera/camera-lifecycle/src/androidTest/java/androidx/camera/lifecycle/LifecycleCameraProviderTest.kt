@@ -48,6 +48,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -103,12 +104,14 @@ class LifecycleCameraProviderTest(
             setAnalyzer(Dispatchers.Default.asExecutor()) { it.close() }
         }
     private var frameAvailableSemaphore = Semaphore(0)
+    private val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
     private lateinit var provider1: LifecycleCameraProvider
     private lateinit var provider2: LifecycleCameraProvider
 
     @Before
     fun setUp() {
+        assumeTrue(CameraUtil.hasCameraWithLensFacing(cameraSelector.lensFacing!!))
         runBlocking(MainScope().coroutineContext) {
             if (implName == Camera2Config::class.simpleName) {
                 provider1 =
@@ -155,17 +158,11 @@ class LifecycleCameraProviderTest(
         instrumentation.runOnMainSync {
             // Act.
             camera1 =
-                provider1.bindToLifecycle(
-                    lifecycleOwner1,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview
-                ) as LifecycleCamera
+                provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, preview)
+                    as LifecycleCamera
             camera2 =
-                provider2.bindToLifecycle(
-                    lifecycleOwner2,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    imageAnalysis
-                ) as LifecycleCamera
+                provider2.bindToLifecycle(lifecycleOwner2, cameraSelector, imageAnalysis)
+                    as LifecycleCamera
         }
         instrumentation.waitForIdleSync()
 
@@ -176,11 +173,8 @@ class LifecycleCameraProviderTest(
         instrumentation.runOnMainSync {
             // Act: Bind to the first camera provider again.
             camera1 =
-                provider1.bindToLifecycle(
-                    lifecycleOwner1,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview
-                ) as LifecycleCamera
+                provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, preview)
+                    as LifecycleCamera
         }
 
         // Assert: The first camera should become active again while the second camera being
@@ -193,13 +187,9 @@ class LifecycleCameraProviderTest(
     fun bindUseCasesWithDifferentInstance() {
         instrumentation.runOnMainSync {
             // Arrange.
-            provider1.bindToLifecycle(
-                lifecycleOwner1,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                imageAnalysis
-            )
+            provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, imageAnalysis)
             // Act.
-            provider2.bindToLifecycle(lifecycleOwner2, CameraSelector.DEFAULT_BACK_CAMERA, preview)
+            provider2.bindToLifecycle(lifecycleOwner2, cameraSelector, preview)
         }
         instrumentation.waitForIdleSync()
 
@@ -211,12 +201,8 @@ class LifecycleCameraProviderTest(
     fun bindUseCasesWithDifferentInstance_withShutdown() {
         instrumentation.runOnMainSync {
             // Arrange.
-            provider1.bindToLifecycle(
-                lifecycleOwner1,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                imageAnalysis
-            )
-            provider2.bindToLifecycle(lifecycleOwner2, CameraSelector.DEFAULT_BACK_CAMERA, preview)
+            provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, imageAnalysis)
+            provider2.bindToLifecycle(lifecycleOwner2, cameraSelector, preview)
 
             // Act: Shutting down the first provider, which shouldn't affect the second provider.
             (provider1 as LifecycleCameraProviderImpl).shutdownAsync()
@@ -235,17 +221,8 @@ class LifecycleCameraProviderTest(
 
         // Act.
         instrumentation.runOnMainSync {
-            camera1 =
-                provider1.bindToLifecycle(
-                    lifecycleOwner1,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview
-                )
-            provider2.bindToLifecycle(
-                lifecycleOwner2,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                imageAnalysis
-            )
+            camera1 = provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, preview)
+            provider2.bindToLifecycle(lifecycleOwner2, cameraSelector, imageAnalysis)
         }
         instrumentation.waitForIdleSync()
 
@@ -263,17 +240,8 @@ class LifecycleCameraProviderTest(
 
         // Act.
         instrumentation.runOnMainSync {
-            camera1 =
-                provider1.bindToLifecycle(
-                    lifecycleOwner1,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    preview
-                )
-            provider2.bindToLifecycle(
-                lifecycleOwner2,
-                CameraSelector.DEFAULT_BACK_CAMERA,
-                imageAnalysis
-            )
+            camera1 = provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, preview)
+            provider2.bindToLifecycle(lifecycleOwner2, cameraSelector, imageAnalysis)
         }
         instrumentation.waitForIdleSync()
 
@@ -298,7 +266,7 @@ class LifecycleCameraProviderTest(
 
         // Act: Bind to a provider then shut it down.
         instrumentation.runOnMainSync {
-            provider1.bindToLifecycle(lifecycleOwner1, CameraSelector.DEFAULT_BACK_CAMERA, preview)
+            provider1.bindToLifecycle(lifecycleOwner1, cameraSelector, preview)
             (provider1 as LifecycleCameraProviderImpl).shutdownAsync()
         }
         instrumentation.waitForIdleSync()

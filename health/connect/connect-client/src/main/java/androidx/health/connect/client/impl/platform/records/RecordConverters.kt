@@ -25,6 +25,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.feature.ExperimentalPersonalHealthRecordApi
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
@@ -60,6 +61,7 @@ import androidx.health.connect.client.records.MedicalResource
 import androidx.health.connect.client.records.MedicalResourceId
 import androidx.health.connect.client.records.MenstruationFlowRecord
 import androidx.health.connect.client.records.MenstruationPeriodRecord
+import androidx.health.connect.client.records.MindfulnessSessionRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.OvulationTestRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
@@ -81,6 +83,7 @@ import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.WheelchairPushesRecord
 import androidx.health.connect.client.records.isAtLeastSdkExtension13
+import androidx.health.connect.client.records.isAtLeastSdkExtension15
 import java.time.Duration
 import kotlin.math.roundToInt
 import kotlin.reflect.KClass
@@ -88,7 +91,8 @@ import kotlin.reflect.KClass
 // TODO(b/270559291): Validate that all class fields are being converted.
 
 internal fun KClass<out Record>.toPlatformRecordClass(): Class<out PlatformRecord> {
-    return toPlatformRecordClassExt13()
+    return toPlatformRecordClassExt15()
+        ?: toPlatformRecordClassExt13()
         ?: SDK_TO_PLATFORM_RECORD_CLASS[this]
         ?: throw IllegalArgumentException("Unsupported record type $this")
 }
@@ -101,8 +105,18 @@ private fun KClass<out Record>.toPlatformRecordClassExt13(): Class<out PlatformR
     return SDK_TO_PLATFORM_RECORD_CLASS_EXT_13[this]
 }
 
+@SuppressLint("NewApi") // Guarded by sdk extension check
+private fun KClass<out Record>.toPlatformRecordClassExt15(): Class<out PlatformRecord>? {
+    if (!isAtLeastSdkExtension15()) {
+        return null
+    }
+    return SDK_TO_PLATFORM_RECORD_CLASS_EXT_15[this]
+}
+
+@SuppressLint("NewApi")
 fun Record.toPlatformRecord(): PlatformRecord {
-    return toPlatformRecordExt13()
+    return toPlatformRecordExt15()
+        ?: toPlatformRecordExt13()
         ?: when (this) {
             is ActiveCaloriesBurnedRecord -> toPlatformActiveCaloriesBurnedRecord()
             is BasalBodyTemperatureRecord -> toPlatformBasalBodyTemperatureRecord()
@@ -157,8 +171,20 @@ private fun Record.toPlatformRecordExt13(): PlatformRecord? {
     }
 }
 
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+private fun Record.toPlatformRecordExt15(): PlatformRecord? {
+    if (!isAtLeastSdkExtension15()) {
+        return null
+    }
+    return when (this) {
+        is MindfulnessSessionRecord -> toPlatformMindfulnessSessionRecord()
+        else -> null
+    }
+}
+
 fun PlatformRecord.toSdkRecord(): Record {
-    return toSdkRecordExt13()
+    return toSdkRecordExt15()
+        ?: toSdkRecordExt13()
         ?: when (this) {
             is PlatformActiveCaloriesBurnedRecord -> toSdkActiveCaloriesBurnedRecord()
             is PlatformBasalBodyTemperatureRecord -> toSdkBasalBodyTemperatureRecord()
@@ -210,6 +236,18 @@ private fun PlatformRecord.toSdkRecordExt13(): Record? {
     return when (this) {
         is PlatformPlannedExerciseSessionRecord -> toSdkPlannedExerciseSessionRecord()
         is PlatformSkinTemperatureRecord -> toSdkSkinTemperatureRecord()
+        else -> null
+    }
+}
+
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+@SuppressLint("NewApi") // Guarded by sdk extension check
+private fun PlatformRecord.toSdkRecordExt15(): Record? {
+    if (!isAtLeastSdkExtension15()) {
+        return null
+    }
+    return when (this) {
+        is PlatformMindfulnessSessionRecord -> toSdkMindfulnessSessionRecord()
         else -> null
     }
 }
@@ -427,6 +465,20 @@ private fun PlatformMenstruationFlowRecord.toSdkMenstruationFlowRecord() =
         zoneOffset = zoneOffset,
         flow = flow.toSdkMenstruationFlow(),
         metadata = metadata.toSdkMetadata()
+    )
+
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+@SuppressLint("NewApi") // Guarded by sdk extension check
+private fun PlatformMindfulnessSessionRecord.toSdkMindfulnessSessionRecord() =
+    MindfulnessSessionRecord(
+        startTime = startTime,
+        startZoneOffset = startZoneOffset,
+        endTime = endTime,
+        endZoneOffset = endZoneOffset,
+        metadata = metadata.toSdkMetadata(),
+        mindfulnessSessionType = mindfulnessSessionType.toSdkMindfulnessSessionType(),
+        title = title.toString(),
+        notes = notes.toString()
     )
 
 private fun PlatformMenstruationPeriodRecord.toSdkMenstruationPeriodRecord() =
@@ -897,6 +949,23 @@ private fun MenstruationPeriodRecord.toPlatformMenstruationPeriodRecord() =
         .apply {
             startZoneOffset?.let { setStartZoneOffset(it) }
             endZoneOffset?.let { setEndZoneOffset(it) }
+        }
+        .build()
+
+@OptIn(ExperimentalMindfulnessSessionApi::class)
+@SuppressLint("NewApi") // Guarded by sdk extension check
+private fun MindfulnessSessionRecord.toPlatformMindfulnessSessionRecord() =
+    PlatformMindfulnessSessionRecordBuilder(
+            metadata.toPlatformMetadata(),
+            startTime,
+            endTime,
+            mindfulnessSessionType.toPlatformMindfulnessSessionType(),
+        )
+        .apply {
+            startZoneOffset?.let { setStartZoneOffset(it) }
+            endZoneOffset?.let { setEndZoneOffset(it) }
+            title?.let { setTitle(it) }
+            notes?.let { setNotes(it) }
         }
         .build()
 

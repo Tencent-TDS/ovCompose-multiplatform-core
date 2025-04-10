@@ -16,7 +16,6 @@
 
 package androidx.camera.viewfinder.view
 
-import androidx.camera.viewfinder.core.TransformationInfo
 import androidx.camera.viewfinder.core.ViewfinderSurfaceRequest
 import androidx.camera.viewfinder.core.ViewfinderSurfaceSession
 import androidx.concurrent.futures.await
@@ -26,7 +25,5 @@ import androidx.concurrent.futures.await
  * [ViewfinderSurfaceSession] by sending a [ViewfinderSurfaceRequest].
  */
 suspend fun ViewfinderView.requestSurfaceSession(
-    viewfinderSurfaceRequest: ViewfinderSurfaceRequest,
-    transformationInfo: TransformationInfo = TransformationInfo()
-): ViewfinderSurfaceSession =
-    requestSurfaceSessionAsync(viewfinderSurfaceRequest, transformationInfo).await()
+    viewfinderSurfaceRequest: ViewfinderSurfaceRequest
+): ViewfinderSurfaceSession = requestSurfaceSessionAsync(viewfinderSurfaceRequest).await()

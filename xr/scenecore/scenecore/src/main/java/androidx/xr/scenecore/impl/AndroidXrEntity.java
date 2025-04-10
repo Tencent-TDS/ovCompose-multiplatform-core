@@ -19,16 +19,16 @@ package androidx.xr.scenecore.impl;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose;
+import androidx.xr.runtime.internal.PointerCaptureComponent;
+import androidx.xr.runtime.internal.Space;
+import androidx.xr.runtime.internal.SpaceValue;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.PerceptionSpaceActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.Space;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpaceValue;
 import androidx.xr.scenecore.common.BaseEntity;
 
 import com.android.extensions.xr.XrExtensions;
@@ -75,7 +75,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
         mExtensions = extensions;
         mEntityManager = entityManager;
         mExecutor = executor;
-        mEntityManager.setEntityForNode(node, this);
+        mEntityManager.setEntityForNode(node, (Entity) this);
     }
 
     @NonNull
@@ -228,6 +228,7 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
     @Override
     public void setAlpha(float alpha, @SpaceValue int relativeTo) {
         super.setAlpha(alpha, relativeTo);
+
         try (NodeTransaction transaction = mExtensions.createNodeTransaction()) {
             transaction.setAlpha(mNode, super.getAlpha(relativeTo)).apply();
         }
@@ -279,13 +280,16 @@ abstract class AndroidXrEntity extends BaseEntity implements Entity {
                         (pcState) -> {
                             if (pcState == Node.POINTER_CAPTURE_STATE_PAUSED) {
                                 stateListener.onStateChanged(
-                                        PointerCaptureComponent.POINTER_CAPTURE_STATE_PAUSED);
+                                        PointerCaptureComponent.PointerCaptureState
+                                                .POINTER_CAPTURE_STATE_PAUSED);
                             } else if (pcState == Node.POINTER_CAPTURE_STATE_ACTIVE) {
                                 stateListener.onStateChanged(
-                                        PointerCaptureComponent.POINTER_CAPTURE_STATE_ACTIVE);
+                                        PointerCaptureComponent.PointerCaptureState
+                                                .POINTER_CAPTURE_STATE_ACTIVE);
                             } else if (pcState == Node.POINTER_CAPTURE_STATE_STOPPED) {
                                 stateListener.onStateChanged(
-                                        PointerCaptureComponent.POINTER_CAPTURE_STATE_STOPPED);
+                                        PointerCaptureComponent.PointerCaptureState
+                                                .POINTER_CAPTURE_STATE_STOPPED);
                             } else {
                                 Log.e("Runtime", "Invalid state received for pointer capture");
                             }

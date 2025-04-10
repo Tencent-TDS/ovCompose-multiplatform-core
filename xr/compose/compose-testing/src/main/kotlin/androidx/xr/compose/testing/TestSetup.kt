@@ -27,8 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.xr.compose.platform.LocalHasXrSpatialFeature
 import androidx.xr.compose.platform.LocalSession
+import androidx.xr.runtime.internal.ActivitySpace
+import androidx.xr.runtime.internal.Entity
+import androidx.xr.runtime.internal.HeadActivityPose
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PanelEntity
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose
+import androidx.xr.runtime.internal.PixelDimensions
+import androidx.xr.runtime.internal.SpatialEnvironment
 import androidx.xr.runtime.math.Pose
-import androidx.xr.scenecore.JxrPlatformAdapter
 import androidx.xr.scenecore.Session
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
@@ -78,17 +85,15 @@ private fun createNonXrSession(activity: Activity): Session {
     return Session.create(
         activity,
         mock<JxrPlatformAdapter> {
-            on { spatialEnvironment } doReturn mock<JxrPlatformAdapter.SpatialEnvironment>()
+            on { spatialEnvironment } doReturn mock<SpatialEnvironment>()
             on { activitySpace } doReturn
-                mock<JxrPlatformAdapter.ActivitySpace>(
-                    defaultAnswer = { throw UnsupportedOperationException() }
-                )
-            on { headActivityPose } doReturn mock<JxrPlatformAdapter.HeadActivityPose>()
+                mock<ActivitySpace>(defaultAnswer = { throw UnsupportedOperationException() })
+            on { headActivityPose } doReturn mock<HeadActivityPose>()
             on { perceptionSpaceActivityPose } doReturn
-                mock<JxrPlatformAdapter.PerceptionSpaceActivityPose>(
+                mock<PerceptionSpaceActivityPose>(
                     defaultAnswer = { throw UnsupportedOperationException() }
                 )
-            on { mainPanelEntity } doReturn mock<JxrPlatformAdapter.PanelEntity>()
+            on { mainPanelEntity } doReturn mock<PanelEntity>()
             on { requestHomeSpaceMode() } doAnswer { throw UnsupportedOperationException() }
             on { requestFullSpaceMode() } doAnswer { throw UnsupportedOperationException() }
             on { createActivityPanelEntity(any(), any(), any(), any(), any()) } doAnswer
@@ -112,9 +117,9 @@ private fun createNonXrSession(activity: Activity): Session {
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<PixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<Entity>(),
                 )
             } doAnswer { throw UnsupportedOperationException() }
             on { createLoggingEntity(any()) } doAnswer { throw UnsupportedOperationException() }

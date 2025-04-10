@@ -47,28 +47,70 @@ public class TextureSampler(
      * Defines how texture coordinates outside the range [0, 1] are handled. Although these values
      * are based on the public Filament values, they may diverge over time.
      */
-    public annotation class WrapMode {}
+    public annotation class WrapMode {
+        public companion object {
+            public const val CLAMP_TO_EDGE: Int = 0
+            public const val REPEAT: Int = 1
+            public const val MIRRORED_REPEAT: Int = 2
+        }
+    }
 
     /**
      * Specifies how the texture is sampled when it's minified (appears smaller than its original
      * size). Although these values are based on the public Filament values, they may diverge over
      * time.
      */
-    public annotation class MinFilter {}
+    public annotation class MinFilter {
+        public companion object {
+            public const val NEAREST: Int = 0
+            public const val LINEAR: Int = 1
+            public const val NEAREST_MIPMAP_NEAREST: Int = 2
+            public const val LINEAR_MIPMAP_NEAREST: Int = 3
+            public const val NEAREST_MIPMAP_LINEAR: Int = 4
+            public const val LINEAR_MIPMAP_LINEAR: Int = 5
+        }
+    }
 
     /**
      * Specifies how the texture is sampled when it's magnified (appears larger than its original
      * size). Although these values are based on the public Filament values, they may diverge over
      * time.
      */
-    public annotation class MagFilter {}
+    public annotation class MagFilter {
+        public companion object {
+            public const val NEAREST: Int = 0
+            public const val LINEAR: Int = 1
+        }
+    }
 
     /**
      * Used for depth texture comparisons, determining how the sampled depth value is compared to a
      * reference depth. Although these values are based on the public Filament values, they may
      * diverge over time.
      */
-    public annotation class CompareMode {}
+    public annotation class CompareMode {
+        public companion object {
+            public const val NONE: Int = 0
+            public const val COMPARE_TO_TEXTURE: Int = 1
+        }
+    }
+
+    /**
+     * Comparison functions for the depth sampler. Although these values are based on the public
+     * Filament values, they may diverge over time.
+     */
+    public annotation class CompareFunc {
+        public companion object {
+            public const val LE: Int = 0
+            public const val GE: Int = 1
+            public const val L: Int = 2
+            public const val G: Int = 3
+            public const val E: Int = 4
+            public const val NE: Int = 5
+            public const val A: Int = 6
+            public const val N: Int = 7
+        }
+    }
 
     public companion object {
         /** The edge of the texture extends to infinity. */
@@ -107,5 +149,29 @@ public class TextureSampler(
         public const val NONE: Int = 0
 
         public const val COMPARE_TO_TEXTURE: Int = 1
+
+        /** Less or equal */
+        public const val LE: Int = 0
+
+        /** Greater or equal */
+        public const val GE: Int = 1
+
+        /** Strictly less than */
+        public const val L: Int = 2
+
+        /** Strictly greater than */
+        public const val G: Int = 3
+
+        /** Equal */
+        public const val E: Int = 4
+
+        /** Not equal */
+        public const val NE: Int = 5
+
+        /** Always. Depth testing is deactivated. */
+        public const val A: Int = 6
+
+        /** Never. The depth test always fails. */
+        public const val N: Int = 7
     }
 }

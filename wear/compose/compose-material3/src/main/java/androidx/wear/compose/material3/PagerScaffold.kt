@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -164,15 +163,14 @@ public fun AnimatedPage(
         if (isReduceMotionEnabled) Modifier
         else
             Modifier.graphicsLayer {
-                val pivotFractionX by derivedStateOf {
-                    val direction = if (isRtlEnabled) -1 else 1
-                    val isSwipingRightToLeft = direction * pagerState.currentPageOffsetFraction > 0
-                    val isSwipingLeftToRight = direction * pagerState.currentPageOffsetFraction < 0
-                    val shouldAnchorRight =
-                        (isSwipingRightToLeft && isCurrentPage) ||
-                            (isSwipingLeftToRight && !isCurrentPage)
-                    if (shouldAnchorRight) 1f else 0f
-                }
+                val direction = if (isRtlEnabled) -1 else 1
+                val currentPageOffsetFraction = pagerState.currentPageOffsetFraction
+                val isSwipingRightToLeft = direction * currentPageOffsetFraction > 0
+                val isSwipingLeftToRight = direction * currentPageOffsetFraction < 0
+                val shouldAnchorRight =
+                    (isSwipingRightToLeft && isCurrentPage) ||
+                        (isSwipingLeftToRight && !isCurrentPage)
+                val pivotFractionX = if (shouldAnchorRight) 1f else 0f
                 transformOrigin =
                     if (pagerState.layoutInfo.orientation == Orientation.Horizontal) {
                         TransformOrigin(pivotFractionX, 0.5f)
@@ -181,7 +179,7 @@ public fun AnimatedPage(
                         TransformOrigin(0.5f, pivotFractionX)
                     }
                 val pageTransitionFraction =
-                    getPageTransitionFraction(isCurrentPage, pagerState.currentPageOffsetFraction)
+                    getPageTransitionFraction(isCurrentPage, currentPageOffsetFraction)
                 val scale = lerp(start = 1f, stop = 0.55f, fraction = pageTransitionFraction)
                 scaleX = scale
                 scaleY = scale

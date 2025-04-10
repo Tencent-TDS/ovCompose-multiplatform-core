@@ -40,13 +40,15 @@ import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.VerticalPagerScaffold
 import androidx.wear.compose.material3.samples.HorizontalPagerScaffoldSample
 import androidx.wear.compose.material3.samples.ScaffoldSample
-import androidx.wear.compose.material3.samples.ScaffoldWithEdgeButtonSample
+import androidx.wear.compose.material3.samples.ScaffoldWithSLCEdgeButtonSample
+import androidx.wear.compose.material3.samples.ScaffoldWithTLCEdgeButtonSample
 import androidx.wear.compose.material3.samples.VerticalPagerScaffoldSample
 
 val ScaffoldDemos =
     listOf(
         ComposableDemo("Scaffold Sample") { ScaffoldSample() },
-        ComposableDemo("Screen Scaffold") { ScaffoldWithEdgeButtonSample() },
+        ComposableDemo("Screen Scaffold with SLC") { ScaffoldWithSLCEdgeButtonSample() },
+        ComposableDemo("Screen Scaffold with TLC") { ScaffoldWithTLCEdgeButtonSample() },
         ComposableDemo("Horizontal Pager Scaffold") {
             HorizontalPagerScaffoldSample(it.navigateBack)
         },

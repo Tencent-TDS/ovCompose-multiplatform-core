@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-import androidx.build.KotlinTarget
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.test")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -54,5 +53,4 @@ dependencies {
 }
 
 androidx {
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

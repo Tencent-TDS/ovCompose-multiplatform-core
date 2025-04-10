@@ -20,6 +20,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.IBinder
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
@@ -87,9 +89,12 @@ public interface ComplicationDataSourceUpdateRequester {
         @JvmStatic
         public fun create(
             context: Context,
-            complicationDataSourceComponent: ComponentName
+            complicationDataSourceComponent: ComponentName,
         ): ComplicationDataSourceUpdateRequester =
-            ComplicationDataSourceUpdateRequesterImpl(context, complicationDataSourceComponent)
+            ComplicationDataSourceUpdateRequesterImpl(
+                context.applicationContext,
+                complicationDataSourceComponent
+            )
 
         /**
          * Filters [requests] if they aren't keyed by [requesterComponent] or if their
@@ -100,7 +105,7 @@ public interface ComplicationDataSourceUpdateRequester {
         internal fun filterRequests(
             requesterComponent: ComponentName,
             instanceIds: IntArray,
-            requests: List<Pair<ComponentName, ComplicationRequest>>
+            requests: List<Pair<ComponentName, ComplicationRequest>>,
         ): Set<ComplicationRequest> {
             fun isRequestedInstance(id: Int): Boolean = instanceIds.isEmpty() || id in instanceIds
             return requests
@@ -131,24 +136,25 @@ public interface ComplicationDataSourceUpdateRequester {
 }
 
 /**
- * Returns whether the Complication WearSDK APIs used here are available on this device.
- * - Wear SDK is only available on watches.
- * - The Complication APIs are only available on Android U+ devices.
- *
- * If false, we should use the legacy broadcast based system for complication updates.
- */
-// TODO: enable this once testing is complete and new API is stable.
-internal fun shouldUseWearSdk() = false
-
-/**
  * @param context The [ComplicationDataSourceService]'s [Context]
  * @param complicationDataSourceComponent The [ComponentName] of the ComplicationDataSourceService
  *   to reload.
  */
 internal class ComplicationDataSourceUpdateRequesterImpl(
     private val context: Context,
-    private val complicationDataSourceComponent: ComponentName
+    private val complicationDataSourceComponent: ComponentName,
 ) : ComplicationDataSourceUpdateRequester {
+
+    /**
+     * Returns whether the Complication WearSDK APIs used here are available on this device.
+     * - Wear SDK is only available on watches.
+     * - The Complication APIs are only available on Android B+ devices.
+     *
+     * If false, we should use the legacy broadcast based system for complication updates.
+     */
+    fun shouldUseWearSdk(): Boolean =
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_WATCH) &&
+            (Build.VERSION.SDK_INT >= 36)
 
     private fun updateRequestReceiverPackage() =
         ComplicationDataSourceUpdateRequester.overrideUpdateRequestsReceiverPackage
@@ -163,31 +169,38 @@ internal class ComplicationDataSourceUpdateRequesterImpl(
         intent.setPackage(updateRequestReceiverPackage())
         intent.putExtra(
             ComplicationDataSourceUpdateRequester.EXTRA_PROVIDER_COMPONENT,
-            complicationDataSourceComponent
+            complicationDataSourceComponent,
         )
         // Add a placeholder PendingIntent to allow the UID to be checked.
         intent.putExtra(
             ComplicationDataSourceUpdateRequesterConstants.EXTRA_PENDING_INTENT,
-            PendingIntent.getActivity(context, 0, Intent(""), PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getActivity(context, 0, Intent(""), PendingIntent.FLAG_IMMUTABLE),
         )
         context.sendBroadcast(intent)
     }
 
     override fun requestUpdate(vararg complicationInstanceIds: Int) {
+        if (shouldUseWearSdk()) {
+            updateComplicationsUsingWearSdk(
+                complicationInstanceIds,
+                WearSdkComplicationsApi.Impl(context),
+            )
+            return
+        }
         val intent = Intent(ComplicationDataSourceUpdateRequester.ACTION_REQUEST_UPDATE)
         intent.setPackage(updateRequestReceiverPackage())
         intent.putExtra(
             ComplicationDataSourceUpdateRequester.EXTRA_PROVIDER_COMPONENT,
-            complicationDataSourceComponent
+            complicationDataSourceComponent,
         )
         intent.putExtra(
             ComplicationDataSourceUpdateRequester.EXTRA_COMPLICATION_IDS,
-            complicationInstanceIds
+            complicationInstanceIds,
         )
         // Add a placeholder PendingIntent to allow the UID to be checked.
         intent.putExtra(
             ComplicationDataSourceUpdateRequesterConstants.EXTRA_PENDING_INTENT,
-            PendingIntent.getActivity(context, 0, Intent(""), PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getActivity(context, 0, Intent(""), PendingIntent.FLAG_IMMUTABLE),
         )
         context.sendBroadcast(intent)
     }
@@ -209,7 +222,7 @@ internal class ComplicationDataSourceUpdateRequesterImpl(
                     complicationInstanceIds,
                     api.getActiveConfigs(executor).map {
                         it.toComplicationRequestPair(immediateResponseRequired = false)
-                    }
+                    },
                 )
 
             val dataPairs: List<Pair<Int, WearSdkComplicationData>> =
@@ -227,7 +240,7 @@ internal class ComplicationDataSourceUpdateRequesterImpl(
     @RequiresApi(36)
     suspend fun <T> withDataSource(
         provider: suspend () -> Pair<WearSdkComplicationDataRequester, ServiceConnection>,
-        block: suspend (WearSdkComplicationDataRequester) -> T
+        block: suspend (WearSdkComplicationDataRequester) -> T,
     ): T {
         val (binder, connection) = provider()
         try {
@@ -260,7 +273,7 @@ internal class ComplicationDataSourceUpdateRequesterImpl(
                     component = complicationDataSourceComponent
                 },
                 connection,
-                Context.BIND_AUTO_CREATE
+                Context.BIND_AUTO_CREATE,
             )
 
             continuation.invokeOnCancellation { context.unbindService(connection) }

@@ -712,7 +712,6 @@ public class WebViewFeature {
      * {@link WebSettingsCompat#setHasEnrolledInstrumentEnabled(WebSettings, boolean)}, and
      * {@link WebSettingsCompat#getHasEnrolledInstrumentEnabled(WebSettings)},
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final String PAYMENT_REQUEST = "PAYMENT_REQUEST";
 
     /**

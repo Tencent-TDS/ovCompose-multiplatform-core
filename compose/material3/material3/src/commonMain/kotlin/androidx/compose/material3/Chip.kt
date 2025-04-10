@@ -16,9 +16,16 @@
 
 package androidx.compose.material3
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,6 +33,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SuggestionChipDefaults.defaultElevatedSuggestionChipColors
+import androidx.compose.material3.internal.animateElevation
 import androidx.compose.material3.internal.heightOrZero
 import androidx.compose.material3.internal.widthOrZero
 import androidx.compose.material3.tokens.AssistChipTokens
@@ -35,9 +43,12 @@ import androidx.compose.material3.tokens.SuggestionChipTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -70,8 +81,7 @@ import androidx.compose.ui.util.fastMaxOfOrNull
 import androidx.compose.ui.util.fastSumBy
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design assist chip</a>.
+ * [Material Design assist chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -146,8 +156,7 @@ fun AssistChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design assist chip</a>.
+ * [Material Design assist chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -232,8 +241,7 @@ fun AssistChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design elevated assist chip</a>.
+ * [Material Design elevated assist chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -307,8 +315,7 @@ fun ElevatedAssistChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design elevated assist chip</a>.
+ * [Material Design elevated assist chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -392,8 +399,7 @@ fun ElevatedAssistChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design filter chip</a>.
+ * [Material Design filter chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -479,8 +485,7 @@ fun FilterChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design elevated filter chip</a>.
+ * [Material Design elevated filter chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -562,8 +567,7 @@ fun ElevatedFilterChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design input chip</a>.
+ * [Material Design input chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -680,8 +684,7 @@ fun InputChip(
 }
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design suggestion chip</a>.
+ * [Material Design suggestion chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -753,8 +756,7 @@ fun SuggestionChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design suggestion chip</a>.
+ * [Material Design suggestion chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -836,8 +838,7 @@ fun SuggestionChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design elevated suggestion chip</a>.
+ * [Material Design elevated suggestion chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -908,8 +909,7 @@ fun ElevatedSuggestionChip(
     )
 
 /**
- * <a href="https://m3.material.io/components/chips/overview" class="external"
- * target="_blank">Material Design elevated suggestion chip</a>.
+ * [Material Design elevated suggestion chip](https://m3.material.io/components/chips/overview)
  *
  * Chips help people enter information, make selections, filter content, or trigger actions. Chips
  * can show multiple interactive elements together in the same area, such as a list of selectable
@@ -1957,7 +1957,7 @@ private fun Chip(
         enabled = enabled,
         shape = shape,
         color = colors.containerColor(enabled),
-        elevation = elevation,
+        shadowElevation = elevation?.shadowElevation(enabled, interactionSource)?.value ?: 0.dp,
         border = border,
         interactionSource = interactionSource
     ) {
@@ -1995,6 +1995,8 @@ private fun SelectableChip(
     paddingValues: PaddingValues,
     interactionSource: MutableInteractionSource?
 ) {
+    @Suppress("NAME_SHADOWING")
+    val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
     // TODO(b/229794614): Animate transition between unselected and selected.
     Surface(
         selected = selected,
@@ -2003,7 +2005,7 @@ private fun SelectableChip(
         enabled = enabled,
         shape = shape,
         color = colors.containerColor(enabled, selected),
-        elevation = elevation,
+        shadowElevation = elevation?.shadowElevation(enabled, interactionSource)?.value ?: 0.dp,
         border = border,
         interactionSource = interactionSource
     ) {
@@ -2160,13 +2162,109 @@ private class ChipLayoutMeasurePolicy : MeasurePolicy {
  */
 @Immutable
 class ChipElevation(
-    override val elevation: Dp,
-    override val pressedElevation: Dp,
-    override val focusedElevation: Dp,
-    override val hoveredElevation: Dp,
-    override val draggedElevation: Dp,
-    override val disabledElevation: Dp
-) : ComponentElevation {
+    val elevation: Dp,
+    val pressedElevation: Dp,
+    val focusedElevation: Dp,
+    val hoveredElevation: Dp,
+    val draggedElevation: Dp,
+    val disabledElevation: Dp
+) {
+    /**
+     * Represents the shadow elevation used in a chip, depending on its [enabled] state and
+     * [interactionSource].
+     *
+     * Shadow elevation is used to apply a shadow around the chip to give it higher emphasis.
+     *
+     * @param enabled whether the chip is enabled
+     * @param interactionSource the [InteractionSource] for this chip
+     */
+    @Composable
+    internal fun shadowElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        return animateElevation(enabled = enabled, interactionSource = interactionSource)
+    }
+
+    @Composable
+    private fun animateElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        val interactions = remember { mutableStateListOf<Interaction>() }
+        var lastInteraction by remember { mutableStateOf<Interaction?>(null) }
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is HoverInteraction.Enter -> {
+                        interactions.add(interaction)
+                    }
+                    is HoverInteraction.Exit -> {
+                        interactions.remove(interaction.enter)
+                    }
+                    is FocusInteraction.Focus -> {
+                        interactions.add(interaction)
+                    }
+                    is FocusInteraction.Unfocus -> {
+                        interactions.remove(interaction.focus)
+                    }
+                    is PressInteraction.Press -> {
+                        interactions.add(interaction)
+                    }
+                    is PressInteraction.Release -> {
+                        interactions.remove(interaction.press)
+                    }
+                    is PressInteraction.Cancel -> {
+                        interactions.remove(interaction.press)
+                    }
+                    is DragInteraction.Start -> {
+                        interactions.add(interaction)
+                    }
+                    is DragInteraction.Stop -> {
+                        interactions.remove(interaction.start)
+                    }
+                    is DragInteraction.Cancel -> {
+                        interactions.remove(interaction.start)
+                    }
+                }
+            }
+        }
+
+        val interaction = interactions.lastOrNull()
+
+        val target =
+            if (!enabled) {
+                disabledElevation
+            } else {
+                when (interaction) {
+                    is PressInteraction.Press -> pressedElevation
+                    is HoverInteraction.Enter -> hoveredElevation
+                    is FocusInteraction.Focus -> focusedElevation
+                    is DragInteraction.Start -> draggedElevation
+                    else -> elevation
+                }
+            }
+
+        val animatable = remember { Animatable(target, Dp.VectorConverter) }
+
+        LaunchedEffect(target) {
+            if (animatable.targetValue != target) {
+                if (!enabled) {
+                    // No transition when moving to a disabled state
+                    animatable.snapTo(target)
+                } else {
+                    animatable.animateElevation(
+                        from = lastInteraction,
+                        to = interaction,
+                        target = target
+                    )
+                }
+                lastInteraction = interaction
+            }
+        }
+
+        return animatable.asState()
+    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -2203,20 +2301,130 @@ class ChipElevation(
  */
 @Immutable
 class SelectableChipElevation(
-    override val elevation: Dp,
-    override val pressedElevation: Dp,
-    override val focusedElevation: Dp,
-    override val hoveredElevation: Dp,
-    override val draggedElevation: Dp,
-    override val disabledElevation: Dp
-) : ComponentElevation {
+    val elevation: Dp,
+    val pressedElevation: Dp,
+    val focusedElevation: Dp,
+    val hoveredElevation: Dp,
+    val draggedElevation: Dp,
+    val disabledElevation: Dp
+) {
+    /**
+     * Represents the shadow elevation used in a chip, depending on [enabled] and
+     * [interactionSource].
+     *
+     * Shadow elevation is used to apply a shadow around the surface to give it higher emphasis.
+     *
+     * @param enabled whether the chip is enabled
+     * @param interactionSource the [InteractionSource] for this chip
+     */
+    @Composable
+    internal fun shadowElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        return animateElevation(enabled = enabled, interactionSource = interactionSource)
+    }
+
+    @Composable
+    private fun animateElevation(
+        enabled: Boolean,
+        interactionSource: InteractionSource
+    ): State<Dp> {
+        val interactions = remember { mutableStateListOf<Interaction>() }
+        var lastInteraction by remember { mutableStateOf<Interaction?>(null) }
+        LaunchedEffect(interactionSource) {
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is HoverInteraction.Enter -> {
+                        interactions.add(interaction)
+                    }
+                    is HoverInteraction.Exit -> {
+                        interactions.remove(interaction.enter)
+                    }
+                    is FocusInteraction.Focus -> {
+                        interactions.add(interaction)
+                    }
+                    is FocusInteraction.Unfocus -> {
+                        interactions.remove(interaction.focus)
+                    }
+                    is PressInteraction.Press -> {
+                        interactions.add(interaction)
+                    }
+                    is PressInteraction.Release -> {
+                        interactions.remove(interaction.press)
+                    }
+                    is PressInteraction.Cancel -> {
+                        interactions.remove(interaction.press)
+                    }
+                    is DragInteraction.Start -> {
+                        interactions.add(interaction)
+                    }
+                    is DragInteraction.Stop -> {
+                        interactions.remove(interaction.start)
+                    }
+                    is DragInteraction.Cancel -> {
+                        interactions.remove(interaction.start)
+                    }
+                }
+            }
+        }
+
+        val interaction = interactions.lastOrNull()
+
+        val target =
+            if (!enabled) {
+                disabledElevation
+            } else {
+                when (interaction) {
+                    is PressInteraction.Press -> pressedElevation
+                    is HoverInteraction.Enter -> hoveredElevation
+                    is FocusInteraction.Focus -> focusedElevation
+                    is DragInteraction.Start -> draggedElevation
+                    else -> elevation
+                }
+            }
+
+        val animatable = remember { Animatable(target, Dp.VectorConverter) }
+
+        LaunchedEffect(target) {
+            if (animatable.targetValue != target) {
+                if (!enabled) {
+                    // No transition when moving to a disabled state
+                    animatable.snapTo(target)
+                } else {
+                    animatable.animateElevation(
+                        from = lastInteraction,
+                        to = interaction,
+                        target = target
+                    )
+                }
+                lastInteraction = interaction
+            }
+        }
+
+        return animatable.asState()
+    }
 
     override fun equals(other: Any?): Boolean {
-        return ComponentElevation.equals(this, other)
+        if (this === other) return true
+        if (other == null || other !is SelectableChipElevation) return false
+
+        if (elevation != other.elevation) return false
+        if (pressedElevation != other.pressedElevation) return false
+        if (focusedElevation != other.focusedElevation) return false
+        if (hoveredElevation != other.hoveredElevation) return false
+        if (disabledElevation != other.disabledElevation) return false
+
+        return true
     }
 
     override fun hashCode(): Int {
-        return ComponentElevation.hashCode(this)
+        var result = elevation.hashCode()
+        result = 31 * result + pressedElevation.hashCode()
+        result = 31 * result + focusedElevation.hashCode()
+        result = 31 * result + hoveredElevation.hashCode()
+        result = 31 * result + disabledElevation.hashCode()
+        return result
     }
 }
 
@@ -2236,7 +2444,8 @@ class SelectableChipElevation(
  *   Chip configurations.
  */
 @Immutable
-class ChipColors(
+class ChipColors
+constructor(
     val containerColor: Color,
     val labelColor: Color,
     val leadingIconContentColor: Color,

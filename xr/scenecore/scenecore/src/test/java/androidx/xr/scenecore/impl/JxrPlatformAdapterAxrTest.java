@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,42 +47,41 @@ import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
 import androidx.test.rule.GrantPermissionRule;
-import androidx.xr.extensions.environment.EnvironmentVisibilityState;
-import androidx.xr.extensions.environment.PassthroughVisibilityState;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.AnchorEntity;
+import androidx.xr.runtime.internal.AnchorEntity.State;
+import androidx.xr.runtime.internal.AnchorPlacement;
+import androidx.xr.runtime.internal.CameraViewActivityPose;
+import androidx.xr.runtime.internal.Component;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.ExrImageResource;
+import androidx.xr.runtime.internal.GltfEntity;
+import androidx.xr.runtime.internal.GltfModelResource;
+import androidx.xr.runtime.internal.HeadActivityPose;
+import androidx.xr.runtime.internal.InputEvent;
+import androidx.xr.runtime.internal.InputEventListener;
+import androidx.xr.runtime.internal.InteractableComponent;
+import androidx.xr.runtime.internal.LoggingEntity;
+import androidx.xr.runtime.internal.MaterialResource;
+import androidx.xr.runtime.internal.MovableComponent;
+import androidx.xr.runtime.internal.PanelEntity;
+import androidx.xr.runtime.internal.PixelDimensions;
+import androidx.xr.runtime.internal.PlaneSemantic;
+import androidx.xr.runtime.internal.PlaneType;
+import androidx.xr.runtime.internal.PointerCaptureComponent;
+import androidx.xr.runtime.internal.ResizableComponent;
+import androidx.xr.runtime.internal.Space;
+import androidx.xr.runtime.internal.SpatialCapabilities;
+import androidx.xr.runtime.internal.SpatialEnvironment;
+import androidx.xr.runtime.internal.SpatialVisibility;
+import androidx.xr.runtime.internal.SurfaceEntity;
+import androidx.xr.runtime.internal.TextureResource;
+import androidx.xr.runtime.internal.TextureSampler;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
 import androidx.xr.runtime.math.Quaternion;
 import androidx.xr.runtime.math.Vector3;
-import androidx.xr.scenecore.JxrPlatformAdapter;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorEntity.State;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorPlacement;
-import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.Component;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.ExrImageResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.HeadActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEvent;
-import androidx.xr.scenecore.JxrPlatformAdapter.InputEventListener;
-import androidx.xr.scenecore.JxrPlatformAdapter.InteractableComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.LoggingEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.MaterialResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.MovableComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
-import androidx.xr.scenecore.JxrPlatformAdapter.PointerCaptureComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.ResizableComponent;
-import androidx.xr.scenecore.JxrPlatformAdapter.Space;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities;
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment;
-import androidx.xr.scenecore.JxrPlatformAdapter.SurfaceEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.TextureResource;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.Anchor;
 import androidx.xr.scenecore.impl.perception.Fov;
@@ -93,13 +93,13 @@ import androidx.xr.scenecore.impl.perception.ViewProjections;
 import androidx.xr.scenecore.impl.perception.exceptions.FailedToInitializeException;
 import androidx.xr.scenecore.testing.FakeImpressApi;
 import androidx.xr.scenecore.testing.FakeScheduledExecutorService;
-import androidx.xr.scenecore.testing.FakeXrExtensions.FakeNode;
 
 import com.android.extensions.xr.ShadowXrExtensions;
 import com.android.extensions.xr.ShadowXrExtensions.SpaceMode;
+import com.android.extensions.xr.VisibilityChangedEvent;
 import com.android.extensions.xr.XrExtensions;
-import com.android.extensions.xr.asset.FakeEnvironmentToken;
-import com.android.extensions.xr.asset.FakeGltfModelToken;
+import com.android.extensions.xr.environment.EnvironmentVisibilityState;
+import com.android.extensions.xr.environment.PassthroughVisibilityState;
 import com.android.extensions.xr.environment.ShadowEnvironmentVisibilityState;
 import com.android.extensions.xr.environment.ShadowPassthroughVisibilityState;
 import com.android.extensions.xr.node.InputEvent.HitInfo;
@@ -108,6 +108,7 @@ import com.android.extensions.xr.node.Node;
 import com.android.extensions.xr.node.NodeRepository;
 import com.android.extensions.xr.node.ReformOptions;
 import com.android.extensions.xr.node.ShadowInputEvent;
+import com.android.extensions.xr.node.ShadowNode;
 import com.android.extensions.xr.node.Vec3;
 import com.android.extensions.xr.space.ShadowSpatialCapabilities;
 import com.android.extensions.xr.space.ShadowSpatialState;
@@ -131,6 +132,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 
+import java.io.Closeable;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.UUID;
@@ -139,6 +141,11 @@ import java.util.function.Consumer;
 
 @RunWith(RobolectricTestRunner.class)
 public final class JxrPlatformAdapterAxrTest {
+    // TODO(b/402408284): Remove once the constants are available in the host version of
+    // ReformOptions
+    public static final int ALLOW_MOVE = 1;
+    public static final int ALLOW_RESIZE = 2;
+
     private static final int OPEN_XR_REFERENCE_SPACE_TYPE = 1;
 
     private static final int SUBSPACE_ID = 5;
@@ -157,12 +164,23 @@ public final class JxrPlatformAdapterAxrTest {
     ImpSplitEngineRenderer mSplitEngineRenderer = Mockito.mock(ImpSplitEngineRenderer.class);
     private ActivityController<Activity> mActivityController;
     private Activity mActivity;
-    private JxrPlatformAdapter mRealityCoreRuntime;
-    private JxrPlatformAdapterAxr mRealityCoreRuntimeWithSplitEngine;
+    private JxrPlatformAdapterAxr mRuntime;
+    private final NodeRepository mNodeRepository = NodeRepository.getInstance();
 
     @Rule
     public GrantPermissionRule mGrantPermissionRule =
             GrantPermissionRule.grant("android.permission.SCENE_UNDERSTANDING");
+
+    private void sendInputEvent(Node node, com.android.extensions.xr.node.InputEvent inputEvent) {
+        ShadowNode shadowNode = ShadowNode.extract(node);
+        shadowNode
+                .getInputExecutor()
+                .execute(() -> shadowNode.getInputListener().accept(inputEvent));
+    }
+
+    private Node getNode(Entity entity) {
+        return ((AndroidXrEntity) entity).getNode();
+    }
 
     @Before
     public void setUp() {
@@ -173,8 +191,34 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.initSession(mActivity, OPEN_XR_REFERENCE_SPACE_TYPE, mFakeExecutor))
                 .thenReturn(immediateFuture(mSession));
         when(mPerceptionLibrary.getActivity()).thenReturn(mActivity);
+        // TODO: b/377554103 - Remove delay once the subscription API are synced with the node
+        // creation.
+        mFakeExecutor.simulateSleepExecutingAllTasks(
+                Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
+        // This is a little unrealistic because it's going to return the same subspace for all the
+        // entities created in this test. In practice this is an implementation detail that's
+        // irrelevant
+        // to the JxrPlatformAdapterAxr.
+        when(mSplitEngineSubspaceManager.createSubspace(anyString(), anyInt()))
+                .thenReturn(mExpectedSubspace);
 
-        mRealityCoreRuntime =
+        mRuntime =
+                JxrPlatformAdapterAxr.create(
+                        mActivity,
+                        mFakeExecutor,
+                        mXrExtensions,
+                        mFakeImpressApi,
+                        new EntityManager(),
+                        mPerceptionLibrary,
+                        mSplitEngineSubspaceManager,
+                        mSplitEngineRenderer,
+                        /* useSplitEngine= */ true);
+
+        mRuntime.setSplitEngineSubspaceManager(mSplitEngineSubspaceManager);
+    }
+
+    private void setupRuntimeWithoutSplitEngine() {
+        mRuntime =
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
@@ -185,60 +229,19 @@ public final class JxrPlatformAdapterAxrTest {
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
                         /* useSplitEngine= */ false);
-        // TODO: b/377554103 - Remove delay once the subscription API are synced with the node
-        // creation.
-        mFakeExecutor.simulateSleepExecutingAllTasks(
-                Duration.ofMillis(SystemSpaceEntityImpl.SUBSCRIPTION_DELAY_MS));
     }
 
     @After
     public void tearDown() {
         // Dispose the runtime between test cases to clean up lingering references.
         try {
-            mRealityCoreRuntime.dispose();
+            mRuntime.dispose();
         } catch (NullPointerException e) {
             // Tests which already call dispose will cause a NPE here due to Activity being null
             // when
             // detaching from the scene.
         }
-        mRealityCoreRuntime = null;
-
-        if (mRealityCoreRuntimeWithSplitEngine != null) {
-            mRealityCoreRuntimeWithSplitEngine.dispose();
-            mRealityCoreRuntimeWithSplitEngine = null;
-        }
-    }
-
-    void createRuntimeWithSplitEngine() {
-        if (mRealityCoreRuntimeWithSplitEngine != null) {
-            return;
-        }
-
-        Node rootNode = mXrExtensions.createNode();
-        Node taskWindowLeashNode = mXrExtensions.createNode();
-        // This is a little unrealistic because it's going to return the same subspace for all the
-        // entities created in this test. In practice this is an implementation detail that's
-        // irrelevant
-        // to the JxrPlatformAdapterAxr.
-        when(mSplitEngineSubspaceManager.createSubspace(anyString(), anyInt()))
-                .thenReturn(mExpectedSubspace);
-
-        mRealityCoreRuntimeWithSplitEngine =
-                JxrPlatformAdapterAxr.create(
-                        mActivity,
-                        mFakeExecutor,
-                        mXrExtensions,
-                        mFakeImpressApi,
-                        new EntityManager(),
-                        mPerceptionLibrary,
-                        mSplitEngineSubspaceManager,
-                        mSplitEngineRenderer,
-                        rootNode,
-                        taskWindowLeashNode,
-                        /* useSplitEngine= */ true);
-
-        mRealityCoreRuntimeWithSplitEngine.setSplitEngineSubspaceManager(
-                mSplitEngineSubspaceManager);
+        mRuntime = null;
     }
 
     GltfEntity createGltfEntity() throws Exception {
@@ -247,46 +250,28 @@ public final class JxrPlatformAdapterAxrTest {
 
     GltfEntity createGltfEntity(Pose pose) throws Exception {
         ListenableFuture<GltfModelResource> modelFuture =
-                mRealityCoreRuntime.loadGltfByAssetName("FakeAsset.glb");
-        assertThat(modelFuture).isNotNull();
-        GltfModelResource model = modelFuture.get();
-        return mRealityCoreRuntime.createGltfEntity(
-                pose, model, mRealityCoreRuntime.getActivitySpaceRootImpl());
-    }
-
-    GltfEntity createGltfEntitySplitEngine() throws Exception {
-        return createGltfEntitySplitEngine(new Pose());
-    }
-
-    GltfEntity createGltfEntitySplitEngine(Pose pose) throws Exception {
-        createRuntimeWithSplitEngine();
-
-        ListenableFuture<GltfModelResource> modelFuture =
-                mRealityCoreRuntimeWithSplitEngine.loadGltfByAssetNameSplitEngine("FakeAsset.glb");
+                mRuntime.loadGltfByAssetName("FakeAsset.glb");
         assertThat(modelFuture).isNotNull();
         // This resolves the transformation of the Future from a SplitEngine token to the JXR
         // GltfModelResource.  This is a hidden detail from the API surface's perspective.
         mFakeExecutor.runAll();
         GltfModelResource model = modelFuture.get();
-        return mRealityCoreRuntimeWithSplitEngine.createGltfEntity(
-                pose, model, mRealityCoreRuntime.getActivitySpaceRootImpl());
+        return mRuntime.createGltfEntity(pose, model, mRuntime.getActivitySpaceRootImpl());
     }
 
-    TextureResource loadTextureSplitEngine() throws Exception {
-        createRuntimeWithSplitEngine();
-
-        JxrPlatformAdapter.TextureSampler sampler =
-                new JxrPlatformAdapter.TextureSampler(
-                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
-                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
-                        JxrPlatformAdapterAxr.TextureSampler.CLAMP_TO_EDGE,
-                        JxrPlatformAdapterAxr.TextureSampler.LINEAR,
-                        JxrPlatformAdapterAxr.TextureSampler.MAG_LINEAR,
-                        JxrPlatformAdapterAxr.TextureSampler.NONE,
-                        JxrPlatformAdapterAxr.TextureSampler.N,
+    TextureResource loadTexture() throws Exception {
+        TextureSampler sampler =
+                new TextureSampler(
+                        TextureSampler.CLAMP_TO_EDGE,
+                        TextureSampler.CLAMP_TO_EDGE,
+                        TextureSampler.CLAMP_TO_EDGE,
+                        TextureSampler.LINEAR,
+                        TextureSampler.MAG_LINEAR,
+                        TextureSampler.NONE,
+                        TextureSampler.N,
                         0);
         ListenableFuture<TextureResource> textureFuture =
-                mRealityCoreRuntimeWithSplitEngine.loadTexture("FakeTexture.png", sampler);
+                mRuntime.loadTexture("FakeTexture.png", sampler);
         assertThat(textureFuture).isNotNull();
         // This resolves the transformation of the Future from a SplitEngine token to the JXR
         // Texture.  This is a hidden detail from the API surface's perspective.
@@ -294,12 +279,9 @@ public final class JxrPlatformAdapterAxrTest {
         return textureFuture.get();
     }
 
-    MaterialResource createWaterMaterialSplitEngine() throws Exception {
-        createRuntimeWithSplitEngine();
-
+    MaterialResource createWaterMaterial() throws Exception {
         ListenableFuture<MaterialResource> materialFuture =
-                mRealityCoreRuntimeWithSplitEngine.createWaterMaterial(
-                        /* isAlphaMapVersion= */ false);
+                mRuntime.createWaterMaterial(/* isAlphaMapVersion= */ false);
         assertThat(materialFuture).isNotNull();
         // This resolves the transformation of the Future from a SplitEngine token to the JXR
         // Texture.  This is a hidden detail from the API surface's perspective.
@@ -320,13 +302,13 @@ public final class JxrPlatformAdapterAxrTest {
         Context displayContext = mActivity.createDisplayContext(display);
         View view = new View(displayContext);
         view.setLayoutParams(new LayoutParams(640, 480));
-        return mRealityCoreRuntime.createPanelEntity(
+        return mRuntime.createPanelEntity(
                 displayContext,
                 pose,
                 view,
                 new PixelDimensions(640, 480),
                 "testPanel",
-                mRealityCoreRuntime.getActivitySpaceRootImpl());
+                mRuntime.getActivitySpaceRootImpl());
     }
 
     private Entity createContentlessEntity() {
@@ -334,8 +316,7 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     private Entity createContentlessEntity(Pose pose) {
-        return mRealityCoreRuntime.createEntity(
-                pose, "test", mRealityCoreRuntime.getActivitySpaceRootImpl());
+        return mRuntime.createEntity(pose, "test", mRuntime.getActivitySpaceRootImpl());
     }
 
     @Test
@@ -346,7 +327,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.initSession(mActivity, OPEN_XR_REFERENCE_SPACE_TYPE, mFakeExecutor))
                 .thenReturn(sessionFuture);
 
-        mRealityCoreRuntime =
+        mRuntime =
                 JxrPlatformAdapterAxr.create(
                         mActivity,
                         mFakeExecutor,
@@ -360,32 +341,19 @@ public final class JxrPlatformAdapterAxrTest {
 
         // The perception library failed to initialize a session, but the runtime should still be
         // created.
-        assertThat(mRealityCoreRuntime).isNotNull();
-    }
-
-    @Test
-    public void ensureNullSkyboxResourceFuture_nonSplitEngineAssetIsNotNull() {
-        assertThat(((JxrPlatformAdapterAxr) mRealityCoreRuntime).mNullSkyboxResourceFuture)
-                .isNotNull();
-    }
-
-    @Test
-    public void ensureNullSkyboxResourceFutureSplitEngine_splitEngineAssetIsNotNull() {
-        createRuntimeWithSplitEngine();
-        assertThat(((JxrPlatformAdapterAxr) mRealityCoreRuntime).mNullSkyboxResourceFuture)
-                .isNotNull();
+        assertThat(mRuntime).isNotNull();
     }
 
     @Test
     public void requestHomeSpaceMode_callsExtensions() {
-        mRealityCoreRuntime.requestHomeSpaceMode();
+        mRuntime.requestHomeSpaceMode();
         assertThat(ShadowXrExtensions.extract(mXrExtensions).getSpaceMode(mActivity))
                 .isEqualTo(SpaceMode.HOME_SPACE);
     }
 
     @Test
     public void requestFullSpaceMode_callsExtensions() {
-        mRealityCoreRuntime.requestFullSpaceMode();
+        mRuntime.requestFullSpaceMode();
         assertThat(ShadowXrExtensions.extract(mXrExtensions).getSpaceMode(mActivity))
                 .isEqualTo(SpaceMode.FULL_SPACE);
     }
@@ -393,7 +361,7 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void createLoggingEntity_returnsEntity() {
         Pose pose = new Pose();
-        LoggingEntity loggingeEntity = mRealityCoreRuntime.createLoggingEntity(pose);
+        LoggingEntity loggingeEntity = mRuntime.createLoggingEntity(pose);
         Pose updatedPose =
                 new Pose(
                         new Vector3(1f, pose.getTranslation().getY(), pose.getTranslation().getZ()),
@@ -404,8 +372,8 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void loggingEntitySetParent() {
         Pose pose = new Pose();
-        LoggingEntity childEntity = mRealityCoreRuntime.createLoggingEntity(pose);
-        LoggingEntity parentEntity = mRealityCoreRuntime.createLoggingEntity(pose);
+        LoggingEntity childEntity = mRuntime.createLoggingEntity(pose);
+        LoggingEntity parentEntity = mRuntime.createLoggingEntity(pose);
 
         childEntity.setParent(parentEntity);
         parentEntity.addChild(childEntity);
@@ -419,9 +387,9 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void loggingEntityUpdateParent() {
         Pose pose = new Pose();
-        LoggingEntity childEntity = mRealityCoreRuntime.createLoggingEntity(pose);
-        LoggingEntity parentEntity1 = mRealityCoreRuntime.createLoggingEntity(pose);
-        LoggingEntity parentEntity2 = mRealityCoreRuntime.createLoggingEntity(pose);
+        LoggingEntity childEntity = mRuntime.createLoggingEntity(pose);
+        LoggingEntity parentEntity1 = mRuntime.createLoggingEntity(pose);
+        LoggingEntity parentEntity2 = mRuntime.createLoggingEntity(pose);
 
         childEntity.setParent(parentEntity1);
         assertThat(childEntity.getParent()).isEqualTo(parentEntity1);
@@ -440,11 +408,11 @@ public final class JxrPlatformAdapterAxrTest {
         ShadowSpatialState.extract(spatialState)
                 .setSpatialCapabilities(
                         ShadowSpatialCapabilities.create(
-                                androidx.xr.extensions.space.SpatialCapabilities
+                                com.android.extensions.xr.space.SpatialCapabilities
                                         .SPATIAL_UI_CAPABLE));
-        ((JxrPlatformAdapterAxr) mRealityCoreRuntime).onSpatialStateChanged(spatialState);
+        mRuntime.onSpatialStateChanged(spatialState);
 
-        SpatialCapabilities caps = mRealityCoreRuntime.getSpatialCapabilities();
+        SpatialCapabilities caps = mRuntime.getSpatialCapabilities();
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_UI)).isTrue();
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_3D_CONTENT)).isFalse();
         assertThat(caps.hasCapability(SpatialCapabilities.SPATIAL_CAPABILITY_PASSTHROUGH_CONTROL))
@@ -459,7 +427,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void onSpatialStateChanged_setsEnvironmentVisibility() {
-        SpatialEnvironment environment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment environment = mRuntime.getSpatialEnvironment();
         assertThat(environment.isSpatialEnvironmentPreferenceActive()).isFalse();
 
         SpatialState state = ShadowSpatialState.create();
@@ -489,7 +457,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void onSpatialStateChanged_callsEnvironmentListenerOnlyForChanges() {
-        SpatialEnvironment environment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment environment = mRuntime.getSpatialEnvironment();
         @SuppressWarnings(value = "unchecked")
         Consumer<Boolean> listener = (Consumer<Boolean>) mock(Consumer.class);
 
@@ -531,7 +499,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void onSpatialStateChanged_setsPassthroughOpacity() {
-        SpatialEnvironment environment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment environment = mRuntime.getSpatialEnvironment();
         assertThat(environment.getCurrentPassthroughOpacity()).isZero();
 
         SpatialState state = ShadowSpatialState.create();
@@ -569,7 +537,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void onSpatialStateChanged_callsPassthroughListenerOnlyForChanges() {
-        SpatialEnvironment environment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment environment = mRuntime.getSpatialEnvironment();
         @SuppressWarnings(value = "unchecked")
         Consumer<Float> listener = (Consumer<Float>) mock(Consumer.class);
 
@@ -627,7 +595,7 @@ public final class JxrPlatformAdapterAxrTest {
                         ShadowPassthroughVisibilityState.create(
                                 PassthroughVisibilityState.APP, 0.5f));
 
-        SpatialEnvironment newEnvironment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment newEnvironment = mRuntime.getSpatialEnvironment();
         assertThat(newEnvironment.getCurrentPassthroughOpacity()).isEqualTo(0.5f);
     }
 
@@ -640,8 +608,8 @@ public final class JxrPlatformAdapterAxrTest {
         Consumer<SpatialCapabilities> listener2 =
                 (Consumer<SpatialCapabilities>) mock(Consumer.class);
 
-        mRealityCoreRuntime.addSpatialCapabilitiesChangedListener(directExecutor(), listener1);
-        mRealityCoreRuntime.addSpatialCapabilitiesChangedListener(directExecutor(), listener2);
+        mRuntime.addSpatialCapabilitiesChangedListener(directExecutor(), listener1);
+        mRuntime.addSpatialCapabilitiesChangedListener(directExecutor(), listener2);
 
         SpatialState state = ShadowSpatialState.create();
         ShadowSpatialState.extract(state)
@@ -653,7 +621,7 @@ public final class JxrPlatformAdapterAxrTest {
         state = ShadowSpatialState.create();
         ShadowSpatialState.extract(state)
                 .setSpatialCapabilities(ShadowSpatialCapabilities.create());
-        mRealityCoreRuntime.removeSpatialCapabilitiesChangedListener(listener1);
+        mRuntime.removeSpatialCapabilitiesChangedListener(listener1);
         ShadowXrExtensions.extract(mXrExtensions).sendSpatialState(mActivity, state);
         verify(listener1).accept(any()); // Verify the removed listener was called exactly once
         verify(listener2, times(2)).accept(any()); // Verify the active listener was called twice
@@ -662,10 +630,7 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void getHeadPoseInOpenXrUnboundedSpace_returnsNullWhenPerceptionSessionUninitialized() {
         when(mPerceptionLibrary.getSession()).thenReturn(null);
-        assertThat(
-                        ((JxrPlatformAdapterAxr) mRealityCoreRuntime)
-                                .getHeadPoseInOpenXrUnboundedSpace())
-                .isNull();
+        assertThat(mRuntime.getHeadPoseInOpenXrUnboundedSpace()).isNull();
     }
 
     @Test
@@ -675,7 +640,7 @@ public final class JxrPlatformAdapterAxrTest {
                         new androidx.xr.scenecore.impl.perception.Pose(1f, 1f, 1f, 0f, 0f, 0f, 1f));
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
         assertPose(
-                ((JxrPlatformAdapterAxr) mRealityCoreRuntime).getHeadPoseInOpenXrUnboundedSpace(),
+                mRuntime.getHeadPoseInOpenXrUnboundedSpace(),
                 new Pose(new Vector3(1f, 1f, 1f), new Quaternion(0f, 0f, 0f, 1f)));
     }
 
@@ -683,10 +648,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void
             getStereoViewsInOpenXrUnboundedSpace_returnsNullWhenPerceptionSessionUninitialized() {
         when(mPerceptionLibrary.getSession()).thenReturn(null);
-        assertThat(
-                        ((JxrPlatformAdapterAxr) mRealityCoreRuntime)
-                                .getStereoViewsInOpenXrUnboundedSpace())
-                .isNull();
+        assertThat(mRuntime.getStereoViewsInOpenXrUnboundedSpace()).isNull();
     }
 
     @Test
@@ -704,23 +666,21 @@ public final class JxrPlatformAdapterAxrTest {
         when(mSession.getStereoViews())
                 .thenReturn(new ViewProjections(leftViewProjection, rightViewProjection));
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
-        assertThat(
-                        ((JxrPlatformAdapterAxr) mRealityCoreRuntime)
-                                .getStereoViewsInOpenXrUnboundedSpace())
+        assertThat(mRuntime.getStereoViewsInOpenXrUnboundedSpace())
                 .isEqualTo(new ViewProjections(leftViewProjection, rightViewProjection));
     }
 
     @Test
     public void loggingEntity_getActivitySpacePose_returnsIdentityPose() {
         Pose identityPose = new Pose();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(identityPose);
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(identityPose);
         assertPose(loggingEntity.getActivitySpacePose(), identityPose);
     }
 
     @Test
     public void loggingEntity_transformPoseTo_returnsIdentityPose() {
         Pose identityPose = new Pose();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(identityPose);
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(identityPose);
         assertPose(loggingEntity.transformPoseTo(identityPose, loggingEntity), identityPose);
     }
 
@@ -730,7 +690,7 @@ public final class JxrPlatformAdapterAxrTest {
         Pose identityPose = new Pose();
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(identityPose);
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(identityPose);
         Entity contentlessEntity = createContentlessEntity();
 
         assertPose(panelEntity.getPose(), identityPose);
@@ -754,7 +714,7 @@ public final class JxrPlatformAdapterAxrTest {
         Pose pose = new Pose(new Vector3(1f, 2f, 3f), new Quaternion(1f, 2f, 3f, 4f));
         PanelEntity panelEntity = createPanelEntity(pose);
         GltfEntity gltfEntity = createGltfEntity(pose);
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(pose);
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(pose);
         Entity contentlessEntity = createContentlessEntity(pose);
 
         assertPose(panelEntity.getPose(), pose);
@@ -772,12 +732,11 @@ public final class JxrPlatformAdapterAxrTest {
         // Set the activity space as the root of this entity hierarchy..
         AndroidXrEntity parentEntity =
                 (AndroidXrEntity)
-                        mRealityCoreRuntime.createEntity(
-                                pose, "parent", mRealityCoreRuntime.getActivitySpace());
+                        mRuntime.createEntity(pose, "parent", mRuntime.getActivitySpace());
         AndroidXrEntity childEntity1 =
-                (AndroidXrEntity) mRealityCoreRuntime.createEntity(pose, "child1", parentEntity);
+                (AndroidXrEntity) mRuntime.createEntity(pose, "child1", parentEntity);
         AndroidXrEntity childEntity2 =
-                (AndroidXrEntity) mRealityCoreRuntime.createEntity(pose, "child2", childEntity1);
+                (AndroidXrEntity) mRuntime.createEntity(pose, "child2", childEntity1);
 
         assertVector3(
                 parentEntity.getPoseInActivitySpace().getTranslation(), new Vector3(1f, 2f, 3f));
@@ -799,16 +758,14 @@ public final class JxrPlatformAdapterAxrTest {
         // The parent has a translation and no rotation.
         AndroidXrEntity parentEntity =
                 (AndroidXrEntity)
-                        mRealityCoreRuntime.createEntity(
-                                translatedPose, "parent", mRealityCoreRuntime.getActivitySpace());
+                        mRuntime.createEntity(
+                                translatedPose, "parent", mRuntime.getActivitySpace());
 
         // Each child adds a rotation, but no translation.
         AndroidXrEntity childEntity1 =
-                (AndroidXrEntity)
-                        mRealityCoreRuntime.createEntity(rotatedPose, "child1", parentEntity);
+                (AndroidXrEntity) mRuntime.createEntity(rotatedPose, "child1", parentEntity);
         AndroidXrEntity childEntity2 =
-                (AndroidXrEntity)
-                        mRealityCoreRuntime.createEntity(rotatedPose, "child2", childEntity1);
+                (AndroidXrEntity) mRuntime.createEntity(rotatedPose, "child2", childEntity1);
 
         // There should be no translation offset from the root, only changes in rotation.
         assertPose(parentEntity.getPoseInActivitySpace(), translatedPose);
@@ -831,12 +788,11 @@ public final class JxrPlatformAdapterAxrTest {
         // Each entity adds a translation and a rotation.
         AndroidXrEntity parentEntity =
                 (AndroidXrEntity)
-                        mRealityCoreRuntime.createEntity(
-                                pose, "parent", mRealityCoreRuntime.getActivitySpace());
+                        mRuntime.createEntity(pose, "parent", mRuntime.getActivitySpace());
         AndroidXrEntity childEntity1 =
-                (AndroidXrEntity) mRealityCoreRuntime.createEntity(pose, "child1", parentEntity);
+                (AndroidXrEntity) mRuntime.createEntity(pose, "child1", parentEntity);
         AndroidXrEntity childEntity2 =
-                (AndroidXrEntity) mRealityCoreRuntime.createEntity(pose, "child2", childEntity1);
+                (AndroidXrEntity) mRuntime.createEntity(pose, "child2", childEntity1);
 
         // Local pose of ActivitySpace's direct child must be the same as child's ActivitySpace
         // pose.
@@ -871,7 +827,7 @@ public final class JxrPlatformAdapterAxrTest {
         PanelEntityImpl panelEntity = (PanelEntityImpl) createPanelEntity(pose);
         GltfEntityImpl gltfEntity = (GltfEntityImpl) createGltfEntity(pose);
         AndroidXrEntity contentlessEntity = (AndroidXrEntity) createContentlessEntity(pose);
-        ActivitySpace activitySpace = mRealityCoreRuntime.getActivitySpace();
+        ActivitySpace activitySpace = mRuntime.getActivitySpace();
         ((ActivitySpaceImpl) activitySpace)
                 .setOpenXrReferenceSpacePose(
                         Matrix4.fromTrs(
@@ -896,7 +852,7 @@ public final class JxrPlatformAdapterAxrTest {
         GltfEntityImpl child1 = (GltfEntityImpl) createGltfEntity(localPose);
         GltfEntityImpl child2 = (GltfEntityImpl) createGltfEntity(localPose);
         GltfEntityImpl child3 = (GltfEntityImpl) createGltfEntity(localPose);
-        ActivitySpace activitySpace = mRealityCoreRuntime.getActivitySpace();
+        ActivitySpace activitySpace = mRuntime.getActivitySpace();
         ((ActivitySpaceImpl) activitySpace)
                 .setOpenXrReferenceSpacePose(
                         Matrix4.fromTrs(
@@ -949,10 +905,9 @@ public final class JxrPlatformAdapterAxrTest {
 
         // Set the ActivitySpace as the root of this entity hierarchy.
         Entity parentEntity =
-                mRealityCoreRuntime.createEntity(
-                        pose, "parent", mRealityCoreRuntime.getActivitySpaceRootImpl());
-        Entity childEntity1 = mRealityCoreRuntime.createEntity(pose, "child1", parentEntity);
-        Entity childEntity2 = mRealityCoreRuntime.createEntity(pose, "child2", childEntity1);
+                mRuntime.createEntity(pose, "parent", mRuntime.getActivitySpaceRootImpl());
+        Entity childEntity1 = mRuntime.createEntity(pose, "child1", parentEntity);
+        Entity childEntity2 = mRuntime.createEntity(pose, "child2", childEntity1);
 
         // The translations should accumulate with each child, but there should be no rotation.
         assertVector3(
@@ -975,10 +930,10 @@ public final class JxrPlatformAdapterAxrTest {
 
         // The parent has a translation and no rotation and each child adds a rotation.
         Entity parentEntity =
-                mRealityCoreRuntime.createEntity(
-                        translatedPose, "parent", mRealityCoreRuntime.getActivitySpaceRootImpl());
-        Entity childEntity1 = mRealityCoreRuntime.createEntity(rotatedPose, "child1", parentEntity);
-        Entity childEntity2 = mRealityCoreRuntime.createEntity(rotatedPose, "child2", childEntity1);
+                mRuntime.createEntity(
+                        translatedPose, "parent", mRuntime.getActivitySpaceRootImpl());
+        Entity childEntity1 = mRuntime.createEntity(rotatedPose, "child1", parentEntity);
+        Entity childEntity2 = mRuntime.createEntity(rotatedPose, "child2", childEntity1);
 
         // There should be no translation offset from the parent, but rotations should accumulate.
         assertPose(parentEntity.getActivitySpacePose(), translatedPose);
@@ -1000,10 +955,9 @@ public final class JxrPlatformAdapterAxrTest {
 
         // Each entity adds a translation and a rotation.
         Entity parentEntity =
-                mRealityCoreRuntime.createEntity(
-                        pose, "parent", mRealityCoreRuntime.getActivitySpaceRootImpl());
-        Entity childEntity1 = mRealityCoreRuntime.createEntity(pose, "child1", parentEntity);
-        Entity childEntity2 = mRealityCoreRuntime.createEntity(pose, "child2", childEntity1);
+                mRuntime.createEntity(pose, "parent", mRuntime.getActivitySpaceRootImpl());
+        Entity childEntity1 = mRuntime.createEntity(pose, "child1", parentEntity);
+        Entity childEntity2 = mRuntime.createEntity(pose, "child2", childEntity1);
 
         // Local pose of ActivitySpace's direct child must be the same as child's ActivitySpace
         // pose.
@@ -1049,11 +1003,10 @@ public final class JxrPlatformAdapterAxrTest {
         GltfEntityImpl child1 = (GltfEntityImpl) createGltfEntity(localPose);
         GltfEntityImpl child2 = (GltfEntityImpl) createGltfEntity(localPose);
         GltfEntityImpl child3 = (GltfEntityImpl) createGltfEntity(localPose);
-        assertVector3(
-                mRealityCoreRuntime.getActivitySpaceRootImpl().getScale(), new Vector3(1f, 1f, 1f));
+        assertVector3(mRuntime.getActivitySpaceRootImpl().getScale(), new Vector3(1f, 1f, 1f));
 
         // Set a non-unit local scale to each child.
-        child1.setParent(mRealityCoreRuntime.getActivitySpaceRootImpl());
+        child1.setParent(mRuntime.getActivitySpaceRootImpl());
         child1.setScale(new Vector3(2f, 2f, 2f));
 
         child2.setParent(child1);
@@ -1221,7 +1174,7 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(panelEntity.getAlpha()).isEqualTo(0.5f);
         assertThat(gltfEntity.getAlpha()).isEqualTo(0.5f);
         assertThat(contentlessEntity.getAlpha()).isEqualTo(0.5f);
-        assertThat(NodeRepository.getInstance().map((metadata) -> metadata.getAlpha()))
+        assertThat(mNodeRepository.map((metadata) -> metadata.getAlpha()))
                 .containsAtLeast(0.5f, 0.5f, 0.5f);
     }
 
@@ -1244,7 +1197,7 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(grandparent.getAlpha(Space.ACTIVITY)).isEqualTo(0.5f);
         assertThat(parent.getAlpha(Space.ACTIVITY)).isEqualTo(0.25f);
         assertThat(entity.getAlpha(Space.ACTIVITY)).isEqualTo(0.125f);
-        assertThat(NodeRepository.getInstance().map((metadata) -> metadata.getAlpha()))
+        assertThat(mNodeRepository.map((metadata) -> metadata.getAlpha()))
                 .containsAtLeast(0.5f, 0.5f, 0.5f);
     }
 
@@ -1342,29 +1295,28 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void setHidden_modifiesReforms() throws Exception {
         PanelEntity testEntity = createPanelEntity();
-        FakeNode testNode = new FakeNode(((AndroidXrEntity) testEntity).getNode());
 
         assertThat(
                         testEntity.addComponent(
-                                mRealityCoreRuntime.createMovableComponent(
+                                mRuntime.createMovableComponent(
                                         /* systemMovable= */ true,
                                         /* scaleInZ= */ true,
                                         /* anchorPlacement= */ ImmutableSet.of(),
                                         /* shouldDisposeParentAnchor= */ true)))
                 .isTrue();
         testEntity.setHidden(true);
-        assertThat(testNode.getReformOptions()).isNull();
+        assertThat(mNodeRepository.getReformOptions(getNode(testEntity))).isNull();
         testEntity.setHidden(false);
-        assertThat(testNode.getReformOptions().getEnabledReform())
-                .isEqualTo(ReformOptions.ALLOW_MOVE);
+        assertThat(mNodeRepository.getReformOptions(getNode(testEntity)).getEnabledReform())
+                .isEqualTo(ALLOW_MOVE);
     }
 
     @Test
     public void loggingEntityAddChildren() {
         Pose pose = new Pose();
-        LoggingEntity childEntity1 = mRealityCoreRuntime.createLoggingEntity(pose);
-        LoggingEntity childEntity2 = mRealityCoreRuntime.createLoggingEntity(pose);
-        LoggingEntity parentEntity = mRealityCoreRuntime.createLoggingEntity(pose);
+        LoggingEntity childEntity1 = mRuntime.createLoggingEntity(pose);
+        LoggingEntity childEntity2 = mRuntime.createLoggingEntity(pose);
+        LoggingEntity parentEntity = mRuntime.createLoggingEntity(pose);
 
         parentEntity.addChild(childEntity1);
 
@@ -1379,7 +1331,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void getActivitySpace_returnsEntity() {
-        ActivitySpace activitySpace = mRealityCoreRuntime.getActivitySpace();
+        ActivitySpace activitySpace = mRuntime.getActivitySpace();
 
         assertThat(activitySpace).isNotNull();
         // Verify that there is an underlying extension node.
@@ -1389,7 +1341,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void getActivitySpaceRootImpl_returnsEntity() {
-        Entity activitySpaceRoot = mRealityCoreRuntime.getActivitySpaceRootImpl();
+        Entity activitySpaceRoot = mRuntime.getActivitySpaceRootImpl();
         assertThat(activitySpaceRoot).isNotNull();
 
         // Verify that there is an underlying extension node.
@@ -1399,7 +1351,7 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void getEnvironment_returnsEnvironment() {
-        SpatialEnvironment environment = mRealityCoreRuntime.getSpatialEnvironment();
+        SpatialEnvironment environment = mRuntime.getSpatialEnvironment();
         assertThat(environment).isNotNull();
     }
 
@@ -1407,7 +1359,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void getHeadActivityPose_returnsNullIfNotReady() {
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
         when(mSession.getHeadPose()).thenReturn(null);
-        HeadActivityPose headActivityPose = mRealityCoreRuntime.getHeadActivityPose();
+        HeadActivityPose headActivityPose = mRuntime.getHeadActivityPose();
 
         assertThat(headActivityPose).isNull();
     }
@@ -1417,7 +1369,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
         when(mSession.getHeadPose())
                 .thenReturn(androidx.xr.scenecore.impl.perception.Pose.identity());
-        HeadActivityPose headActivityPose = mRealityCoreRuntime.getHeadActivityPose();
+        HeadActivityPose headActivityPose = mRuntime.getHeadActivityPose();
 
         assertThat(headActivityPose).isNotNull();
     }
@@ -1428,11 +1380,11 @@ public final class JxrPlatformAdapterAxrTest {
         when(mSession.getStereoViews()).thenReturn(new ViewProjections(null, null));
 
         CameraViewActivityPose leftCameraViewActivityPose =
-                mRealityCoreRuntime.getCameraViewActivityPose(
-                        CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE);
+                mRuntime.getCameraViewActivityPose(
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE);
         CameraViewActivityPose rightCameraViewActivityPose =
-                mRealityCoreRuntime.getCameraViewActivityPose(
-                        CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE);
+                mRuntime.getCameraViewActivityPose(
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE);
 
         assertThat(leftCameraViewActivityPose).isNull();
         assertThat(rightCameraViewActivityPose).isNull();
@@ -1447,8 +1399,8 @@ public final class JxrPlatformAdapterAxrTest {
         when(mSession.getStereoViews())
                 .thenReturn(new ViewProjections(viewProjection, viewProjection));
         CameraViewActivityPose cameraViewActivityPose =
-                mRealityCoreRuntime.getCameraViewActivityPose(
-                        CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE);
+                mRuntime.getCameraViewActivityPose(
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE);
 
         assertThat(cameraViewActivityPose).isNotNull();
     }
@@ -1462,24 +1414,31 @@ public final class JxrPlatformAdapterAxrTest {
         when(mSession.getStereoViews())
                 .thenReturn(new ViewProjections(viewProjection, viewProjection));
         CameraViewActivityPose cameraViewActivityPose =
-                mRealityCoreRuntime.getCameraViewActivityPose(
-                        CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE);
+                mRuntime.getCameraViewActivityPose(
+                        CameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE);
 
         assertThat(cameraViewActivityPose).isNotNull();
     }
 
     @Test
     public void getUnknownCameraViewActivityPose_returnsEmptyOptional() {
-        CameraViewActivityPose cameraViewActivityPose =
-                mRealityCoreRuntime.getCameraViewActivityPose(555);
+        CameraViewActivityPose cameraViewActivityPose = mRuntime.getCameraViewActivityPose(555);
 
         assertThat(cameraViewActivityPose).isNull();
     }
 
     @Test
-    public void loadExrImageByAssetName_returnsImage() throws Exception {
+    public void loadExrImageByAssetName_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mRuntime.loadExrImageByAssetName("FakeAsset.zip"));
+    }
+
+    @Test
+    public void loadExrImageByAssetName_returnsModel() throws Exception {
         ListenableFuture<ExrImageResource> imageFuture =
-                mRealityCoreRuntime.loadExrImageByAssetName("FakeAsset.exr");
+                mRuntime.loadExrImageByAssetName("FakeAsset.zip");
 
         assertThat(imageFuture).isNotNull();
 
@@ -1487,68 +1446,59 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(image).isNotNull();
         ExrImageResourceImpl imageImpl = (ExrImageResourceImpl) image;
         assertThat(imageImpl).isNotNull();
-        FakeEnvironmentToken token = (FakeEnvironmentToken) imageImpl.getToken();
-        assertThat(token).isNotNull();
-        assertThat(token.getUrl()).isEqualTo("FakeAsset.exr");
+        long token = imageImpl.getExtensionImageToken();
+        assertThat(token).isEqualTo(1);
     }
 
     @Test
-    public void loadExrImageByAssetNameSplitEngine_returnsModel() throws Exception {
+    public void loadExrImageByByteArray_returnsModel() throws Exception {
         ListenableFuture<ExrImageResource> imageFuture =
-                mRealityCoreRuntime.loadExrImageByAssetNameSplitEngine("FakeAsset.zip");
+                mRuntime.loadExrImageByByteArray(new byte[] {1, 2, 3}, "FakeAsset.zip");
 
         assertThat(imageFuture).isNotNull();
 
         ExrImageResource image = imageFuture.get();
         assertThat(image).isNotNull();
-        ExrImageResourceImplSplitEngine imageImpl = (ExrImageResourceImplSplitEngine) image;
+        ExrImageResourceImpl imageImpl = (ExrImageResourceImpl) image;
         assertThat(imageImpl).isNotNull();
         long token = imageImpl.getExtensionImageToken();
         assertThat(token).isEqualTo(1);
     }
 
     @Test
-    public void loadExrImageByByteArraySplitEngine_returnsModel() throws Exception {
-        ListenableFuture<ExrImageResource> imageFuture =
-                mRealityCoreRuntime.loadExrImageByByteArraySplitEngine(
-                        new byte[] {1, 2, 3}, "FakeAsset.zip");
+    public void loadExrImageByByteArray_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mRuntime.loadExrImageByByteArray(new byte[] {1, 2, 3}, "FakeAsset.zip"));
+    }
 
-        assertThat(imageFuture).isNotNull();
+    @Test
+    public void loadGltfByAssetName_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mRuntime.loadGltfByAssetName("FakeAsset.glb"));
+    }
 
-        ExrImageResource image = imageFuture.get();
-        assertThat(image).isNotNull();
-        ExrImageResourceImplSplitEngine imageImpl = (ExrImageResourceImplSplitEngine) image;
-        assertThat(imageImpl).isNotNull();
-        long token = imageImpl.getExtensionImageToken();
-        assertThat(token).isEqualTo(1);
+    @Test
+    public void loadGltfByByteArray_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(
+                UnsupportedOperationException.class,
+                () -> mRuntime.loadGltfByByteArray(new byte[] {1, 2, 3}, "FakeAsset.glb"));
     }
 
     @Test
     public void loadGltfByAssetName_returnsModel() throws Exception {
         ListenableFuture<GltfModelResource> modelFuture =
-                mRealityCoreRuntime.loadGltfByAssetName("FakeAsset.glb");
+                mRuntime.loadGltfByAssetName("FakeAsset.glb");
 
         assertThat(modelFuture).isNotNull();
 
         GltfModelResource model = modelFuture.get();
         assertThat(model).isNotNull();
         GltfModelResourceImpl modelImpl = (GltfModelResourceImpl) model;
-        assertThat(modelImpl).isNotNull();
-        FakeGltfModelToken token = (FakeGltfModelToken) modelImpl.getExtensionModelToken();
-        assertThat(token).isNotNull();
-        assertThat(token.getUrl()).isEqualTo("FakeAsset.glb");
-    }
-
-    @Test
-    public void loadGltfByAssetNameSplitEngine_returnsModel() throws Exception {
-        ListenableFuture<GltfModelResource> modelFuture =
-                mRealityCoreRuntime.loadGltfByAssetNameSplitEngine("FakeAsset.glb");
-
-        assertThat(modelFuture).isNotNull();
-
-        GltfModelResource model = modelFuture.get();
-        assertThat(model).isNotNull();
-        GltfModelResourceImplSplitEngine modelImpl = (GltfModelResourceImplSplitEngine) model;
         assertThat(modelImpl).isNotNull();
         long token = modelImpl.getExtensionModelToken();
         assertThat(token).isEqualTo(1);
@@ -1557,13 +1507,13 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void loadGltfByByteArray_returnsModel() throws Exception {
         ListenableFuture<GltfModelResource> modelFuture =
-                mRealityCoreRuntime.loadGltfByByteArray(new byte[] {1, 2, 3}, "FakeAsset.glb");
+                mRuntime.loadGltfByByteArray(new byte[] {1, 2, 3}, "FakeAsset.glb");
 
         assertThat(modelFuture).isNotNull();
 
         GltfModelResource model = modelFuture.get();
         assertThat(model).isNotNull();
-        GltfModelResourceImplSplitEngine modelImpl = (GltfModelResourceImplSplitEngine) model;
+        GltfModelResourceImpl modelImpl = (GltfModelResourceImpl) model;
         assertThat(modelImpl).isNotNull();
         long token = modelImpl.getExtensionModelToken();
         assertThat(token).isEqualTo(1);
@@ -1575,48 +1525,40 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     @Test
-    public void createGltfEntitySplitEngine_returnsEntity() throws Exception {
-        assertThat(createGltfEntitySplitEngine()).isNotNull();
-    }
-
-    @Test
-    public void animateGltfEntitySplitEngine_gltfEntityIsAnimating() throws Exception {
-        GltfEntity gltfEntitySplitEngine = createGltfEntitySplitEngine();
-        gltfEntitySplitEngine.startAnimation(false, "animation_name");
+    public void animateGltfEntity_gltfEntityIsAnimating() throws Exception {
+        GltfEntity gltfEntity = createGltfEntity();
+        gltfEntity.startAnimation(false, "animation_name");
         int animatingNodes = mFakeImpressApi.impressNodeAnimatingSize();
         int loopingAnimatingNodes = mFakeImpressApi.impressNodeLoopAnimatingSize();
 
         // The fakeJniApi returns a future which immediately fires, which makes it seem like the
         // animation is done immediately. This makes it look like the animation stopped right away.
-        assertThat(gltfEntitySplitEngine.getAnimationState())
-                .isEqualTo(GltfEntity.AnimationState.PLAYING);
+        assertThat(gltfEntity.getAnimationState()).isEqualTo(GltfEntity.AnimationState.PLAYING);
         assertThat(animatingNodes).isEqualTo(1);
         assertThat(loopingAnimatingNodes).isEqualTo(0);
     }
 
     @Test
-    public void animateLoopGltfEntitySplitEngine_gltfEntityIsAnimatingInLoop() throws Exception {
-        GltfEntity gltfEntitySplitEngine = createGltfEntitySplitEngine();
-        gltfEntitySplitEngine.startAnimation(true, "animation_name");
+    public void animateLoopGltfEntity_gltfEntityIsAnimatingInLoop() throws Exception {
+        GltfEntity gltfEntity = createGltfEntity();
+        gltfEntity.startAnimation(true, "animation_name");
         int animatingNodes = mFakeImpressApi.impressNodeAnimatingSize();
         int loopingAnimatingNodes = mFakeImpressApi.impressNodeLoopAnimatingSize();
 
-        assertThat(gltfEntitySplitEngine.getAnimationState())
-                .isEqualTo(GltfEntity.AnimationState.PLAYING);
+        assertThat(gltfEntity.getAnimationState()).isEqualTo(GltfEntity.AnimationState.PLAYING);
         assertThat(animatingNodes).isEqualTo(0);
         assertThat(loopingAnimatingNodes).isEqualTo(1);
     }
 
     @Test
-    public void stopAnimateGltfEntitySplitEngine_gltfEntityStopsAnimating() throws Exception {
-        GltfEntity gltfEntitySplitEngine = createGltfEntitySplitEngine();
-        gltfEntitySplitEngine.startAnimation(true, "animation_name");
-        gltfEntitySplitEngine.stopAnimation();
+    public void stopAnimateGltfEntity_gltfEntityStopsAnimating() throws Exception {
+        GltfEntity gltfEntity = createGltfEntity();
+        gltfEntity.startAnimation(true, "animation_name");
+        gltfEntity.stopAnimation();
         int animatingNodes = mFakeImpressApi.impressNodeAnimatingSize();
         int loopingAnimatingNodes = mFakeImpressApi.impressNodeLoopAnimatingSize();
 
-        assertThat(gltfEntitySplitEngine.getAnimationState())
-                .isEqualTo(GltfEntity.AnimationState.STOPPED);
+        assertThat(gltfEntity.getAnimationState()).isEqualTo(GltfEntity.AnimationState.STOPPED);
         assertThat(animatingNodes).isEqualTo(0);
         assertThat(loopingAnimatingNodes).isEqualTo(0);
     }
@@ -1629,14 +1571,13 @@ public final class JxrPlatformAdapterAxrTest {
         childEntity.setParent(parentEntity);
 
         assertThat(childEntity.getParent()).isEqualTo(parentEntity);
-        assertThat(parentEntity.getParent())
-                .isEqualTo(mRealityCoreRuntime.getActivitySpaceRootImpl());
+        assertThat(parentEntity.getParent()).isEqualTo(mRuntime.getActivitySpaceRootImpl());
         assertThat(childEntity.getChildren()).isEmpty();
         assertThat(parentEntity.getChildren()).containsExactly(childEntity);
 
         // Verify that there is an underlying extension node relationship.
         Node childNode = ((GltfEntityImpl) childEntity).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
+        assertThat(mNodeRepository.getParent(childNode))
                 .isEqualTo(((GltfEntityImpl) parentEntity).getNode());
     }
 
@@ -1652,14 +1593,14 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(parentEntity2.getChildren()).isEmpty();
 
         Node childNode = ((GltfEntityImpl) childEntity).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
+        assertThat(mNodeRepository.getParent(childNode))
                 .isEqualTo(((GltfEntityImpl) parentEntity1).getNode());
 
         childEntity.setParent(parentEntity2);
         assertThat(childEntity.getParent()).isEqualTo(parentEntity2);
         assertThat(parentEntity2.getChildren()).containsExactly(childEntity);
         assertThat(parentEntity1.getChildren()).isEmpty();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
+        assertThat(mNodeRepository.getParent(childNode))
                 .isEqualTo(((GltfEntityImpl) parentEntity2).getNode());
     }
 
@@ -1680,10 +1621,10 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(parentEntity.getChildren()).containsExactly(childEntity1, childEntity2);
 
         Node childNode1 = ((GltfEntityImpl) childEntity1).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode1))
+        assertThat(mNodeRepository.getParent(childNode1))
                 .isEqualTo(((GltfEntityImpl) parentEntity).getNode());
         Node childNode2 = ((GltfEntityImpl) childEntity2).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode2))
+        assertThat(mNodeRepository.getParent(childNode2))
                 .isEqualTo(((GltfEntityImpl) parentEntity).getNode());
     }
 
@@ -1696,8 +1637,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void allPanelEnities_haveActivitySpaceRootImplAsParentByDefault() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
 
-        assertThat(panelEntity.getParent())
-                .isEqualTo(mRealityCoreRuntime.getActivitySpaceRootImpl());
+        assertThat(panelEntity.getParent()).isEqualTo(mRuntime.getActivitySpaceRootImpl());
     }
 
     @Test
@@ -1712,9 +1652,8 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(parentEntity.getChildren()).containsExactly(childEntity);
 
         // Verify that there is an underlying extension node relationship.
-        Node childNode = ((PanelEntityImpl) childEntity).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
-                .isEqualTo(((PanelEntityImpl) parentEntity).getNode());
+        Node childNode = getNode(childEntity);
+        assertThat(mNodeRepository.getParent(childNode)).isEqualTo(getNode(parentEntity));
     }
 
     @Test
@@ -1728,16 +1667,14 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(parentEntity1.getChildren()).containsExactly(childEntity);
         assertThat(parentEntity2.getChildren()).isEmpty();
 
-        Node childNode = ((PanelEntityImpl) childEntity).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
-                .isEqualTo(((PanelEntityImpl) parentEntity1).getNode());
+        Node childNode = getNode(childEntity);
+        assertThat(mNodeRepository.getParent(childNode)).isEqualTo(getNode(parentEntity1));
 
         childEntity.setParent(parentEntity2);
         assertThat(childEntity.getParent()).isEqualTo(parentEntity2);
         assertThat(parentEntity2.getChildren()).containsExactly(childEntity);
         assertThat(parentEntity1.getChildren()).isEmpty();
-        assertThat(NodeRepository.getInstance().getParent(childNode))
-                .isEqualTo(((PanelEntityImpl) parentEntity2).getNode());
+        assertThat(mNodeRepository.getParent(childNode)).isEqualTo(getNode(parentEntity2));
     }
 
     @Test
@@ -1756,12 +1693,10 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(childEntity2.getParent()).isEqualTo(parentEntity);
         assertThat(parentEntity.getChildren()).containsExactly(childEntity1, childEntity2);
 
-        Node childNode1 = ((PanelEntityImpl) childEntity1).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode1))
-                .isEqualTo(((PanelEntityImpl) parentEntity).getNode());
-        Node childNode2 = ((PanelEntityImpl) childEntity2).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode2))
-                .isEqualTo(((PanelEntityImpl) parentEntity).getNode());
+        Node childNode1 = getNode(childEntity1);
+        assertThat(mNodeRepository.getParent(childNode1)).isEqualTo(getNode(parentEntity));
+        Node childNode2 = getNode(childEntity2);
+        assertThat(mNodeRepository.getParent(childNode2)).isEqualTo(getNode(parentEntity));
     }
 
     @Test
@@ -1783,7 +1718,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mAnchor.getAnchorToken()).thenReturn(mSharedAnchorToken);
 
         AnchorEntity anchorEntity =
-                mRealityCoreRuntime.createAnchorEntity(
+                mRuntime.createAnchorEntity(
                         anchorDimensions, PlaneType.VERTICAL, PlaneSemantic.WALL, Duration.ZERO);
 
         assertThat(anchorEntity).isNotNull();
@@ -1792,12 +1727,12 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void getMainPanelEntity_returnsPanelEntity() throws Exception {
-        assertThat(mRealityCoreRuntime.getMainPanelEntity()).isNotNull();
+        assertThat(mRuntime.getMainPanelEntity()).isNotNull();
     }
 
     @Test
     public void getMainPanelEntity_usesWindowLeashNode() throws Exception {
-        PanelEntity mainPanel = mRealityCoreRuntime.getMainPanelEntity();
+        PanelEntity mainPanel = mRuntime.getMainPanelEntity();
 
         assertThat(((MainPanelEntityImpl) mainPanel).getNode())
                 .isEqualTo(ShadowXrExtensions.extract(mXrExtensions).getMainWindowNode(mActivity));
@@ -1809,15 +1744,15 @@ public final class JxrPlatformAdapterAxrTest {
         PanelEntity panelEntity = createPanelEntity();
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
+        ShadowNode shadowNode = ShadowNode.extract(getNode(panelEntity));
 
-        assertThat(node.getListener()).isNotNull();
-        assertThat(node.getExecutor()).isEqualTo(mFakeExecutor);
+        assertThat(shadowNode.getInputListener()).isNotNull();
+        assertThat(shadowNode.getInputExecutor()).isEqualTo(mFakeExecutor);
 
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         verify(mockConsumer).onInputEvent(any());
@@ -1829,8 +1764,7 @@ public final class JxrPlatformAdapterAxrTest {
         PanelEntity panelEntity = createPanelEntity();
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer);
-        Node node = ((PanelEntityImpl) panelEntity).getNode();
-        FakeNode fakeNode = new FakeNode(node);
+        Node node = getNode(panelEntity);
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0),
@@ -1841,15 +1775,15 @@ public final class JxrPlatformAdapterAxrTest {
                                 /* transform= */ new Mat4f(new float[16]),
                                 /* hitPosition= */ new Vec3(1, 2, 3)),
                         /* secondaryHitInfo= */ null);
-        fakeNode.sendInputEvent(inputEvent);
+        sendInputEvent(node, inputEvent);
         mFakeExecutor.runAll();
 
         ArgumentCaptor<InputEvent> inputEventCaptor = ArgumentCaptor.forClass(InputEvent.class);
         verify(mockConsumer).onInputEvent(inputEventCaptor.capture());
         InputEvent capturedEvent = inputEventCaptor.getValue();
-        assertThat(capturedEvent.hitInfo).isNotNull();
-        assertThat(capturedEvent.hitInfo.inputEntity).isEqualTo(panelEntity);
-        assertThat(capturedEvent.hitInfo.hitPosition).isEqualTo(new Vector3(1, 2, 3));
+        assertThat(capturedEvent.getHitInfo()).isNotNull();
+        assertThat(capturedEvent.getHitInfo().getInputEntity()).isEqualTo(panelEntity);
+        assertThat(capturedEvent.getHitInfo().getHitPosition()).isEqualTo(new Vector3(1, 2, 3));
     }
 
     @Test
@@ -1857,10 +1791,10 @@ public final class JxrPlatformAdapterAxrTest {
         InputEventListener mockConsumer = mock(InputEventListener.class);
         PanelEntity panelEntity = createPanelEntity();
         panelEntity.addInputEventListener(/* executor= */ null, mockConsumer);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
+        ShadowNode shadowNode = ShadowNode.extract(getNode(panelEntity));
 
-        assertThat(node.getListener()).isNotNull();
-        assertThat(node.getExecutor()).isNotNull();
+        assertThat(shadowNode.getInputListener()).isNotNull();
+        assertThat(shadowNode.getInputExecutor()).isNotNull();
     }
 
     @Test
@@ -1871,11 +1805,10 @@ public final class JxrPlatformAdapterAxrTest {
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer1);
         panelEntity.addInputEventListener(executor, mockConsumer2);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         verify(mockConsumer1).onInputEvent(any());
@@ -1891,12 +1824,11 @@ public final class JxrPlatformAdapterAxrTest {
         FakeScheduledExecutorService executor2 = new FakeScheduledExecutorService();
         panelEntity.addInputEventListener(executor1, mockConsumer1);
         panelEntity.addInputEventListener(executor2, mockConsumer2);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
 
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         assertThat(executor1.hasNext()).isTrue();
@@ -1917,17 +1849,16 @@ public final class JxrPlatformAdapterAxrTest {
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer1);
         panelEntity.addInputEventListener(executor, mockConsumer2);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
 
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         panelEntity.removeInputEventListener(mockConsumer1);
 
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         verify(mockConsumer2, times(2)).onInputEvent(any());
@@ -1942,12 +1873,12 @@ public final class JxrPlatformAdapterAxrTest {
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer1);
         panelEntity.addInputEventListener(executor, mockConsumer2);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
+        ShadowNode shadowNode = ShadowNode.extract(getNode(panelEntity));
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
 
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         verify(mockConsumer1).onInputEvent(any());
@@ -1957,8 +1888,8 @@ public final class JxrPlatformAdapterAxrTest {
         panelEntity.removeInputEventListener(mockConsumer2);
 
         assertThat(((PanelEntityImpl) panelEntity).mInputEventListenerMap).isEmpty();
-        assertThat(node.getListener()).isNull();
-        assertThat(node.getExecutor()).isNull();
+        assertThat(shadowNode.getInputListener()).isNull();
+        assertThat(shadowNode.getInputExecutor()).isNull();
     }
 
     @Test
@@ -1969,12 +1900,12 @@ public final class JxrPlatformAdapterAxrTest {
         Executor executor = directExecutor();
         panelEntity.addInputEventListener(executor, mockConsumer1);
         panelEntity.addInputEventListener(executor, mockConsumer2);
-        FakeNode node = new FakeNode(((PanelEntityImpl) panelEntity).getNode());
+        ShadowNode shadowNode = ShadowNode.extract(getNode(panelEntity));
         com.android.extensions.xr.node.InputEvent inputEvent =
                 ShadowInputEvent.create(
                         /* origin= */ new Vec3(0, 0, 0), /* direction= */ new Vec3(1, 1, 1));
 
-        node.sendInputEvent(inputEvent);
+        sendInputEvent(getNode(panelEntity), inputEvent);
         mFakeExecutor.runAll();
 
         verify(mockConsumer1).onInputEvent(any());
@@ -1983,8 +1914,8 @@ public final class JxrPlatformAdapterAxrTest {
         panelEntity.dispose();
 
         assertThat(((PanelEntityImpl) panelEntity).mInputEventListenerMap).isEmpty();
-        assertThat(node.getListener()).isNull();
-        assertThat(node.getExecutor()).isNull();
+        assertThat(shadowNode.getInputListener()).isNull();
+        assertThat(shadowNode.getInputExecutor()).isNull();
     }
 
     @Test
@@ -1995,7 +1926,7 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void contentlessEntity_hasActivitySpaceRootImplAsParentByDefault() throws Exception {
         Entity entity = createContentlessEntity();
-        assertThat(entity.getParent()).isEqualTo(mRealityCoreRuntime.getActivitySpaceRootImpl());
+        assertThat(entity.getParent()).isEqualTo(mRuntime.getActivitySpaceRootImpl());
     }
 
     @Test
@@ -2014,19 +1945,17 @@ public final class JxrPlatformAdapterAxrTest {
         assertThat(childEntity2.getParent()).isEqualTo(parentEntity);
         assertThat(parentEntity.getChildren()).containsExactly(childEntity1, childEntity2);
 
-        Node childNode1 = ((AndroidXrEntity) childEntity1).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode1))
-                .isEqualTo(((AndroidXrEntity) parentEntity).getNode());
-        Node childNode2 = ((AndroidXrEntity) childEntity2).getNode();
-        assertThat(NodeRepository.getInstance().getParent(childNode2))
-                .isEqualTo(((AndroidXrEntity) parentEntity).getNode());
+        Node childNode1 = getNode(childEntity1);
+        assertThat(mNodeRepository.getParent(childNode1)).isEqualTo(getNode(parentEntity));
+        Node childNode2 = getNode(childEntity2);
+        assertThat(mNodeRepository.getParent(childNode2)).isEqualTo(getNode(parentEntity));
     }
 
     @Test
     public void addComponent_callsOnAttach() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component = mock(Component.class);
         when(component.onAttach(any())).thenReturn(true);
 
@@ -2044,7 +1973,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void addComponent_failsIfOnAttachFails() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component = mock(Component.class);
         when(component.onAttach(any())).thenReturn(false);
 
@@ -2062,7 +1991,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void removeComponent_callsOnDetach() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component = mock(Component.class);
         when(component.onAttach(any())).thenReturn(true);
 
@@ -2089,7 +2018,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void addingSameComponentTypeAgain_addsComponent() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component1 = mock(Component.class);
         Component component2 = mock(Component.class);
         when(component1.onAttach(any())).thenReturn(true);
@@ -2115,7 +2044,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void addingDifferentComponentType_addComponentSucceeds() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component1 = mock(Component.class);
         Component component2 = mock(FakeComponent.class);
         when(component1.onAttach(any())).thenReturn(true);
@@ -2141,7 +2070,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void removeAll_callsOnDetachOnAll() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component1 = mock(Component.class);
         Component component2 = mock(FakeComponent.class);
         when(component1.onAttach(any())).thenReturn(true);
@@ -2179,7 +2108,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void addSameComponentTwice_callsOnAttachTwice() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component = mock(Component.class);
         when(component.onAttach(any())).thenReturn(true);
 
@@ -2200,7 +2129,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void removeSameComponentTwice_callsOnDetachOnce() throws Exception {
         PanelEntity panelEntity = createPanelEntity();
         GltfEntity gltfEntity = createGltfEntity();
-        LoggingEntity loggingEntity = mRealityCoreRuntime.createLoggingEntity(new Pose());
+        LoggingEntity loggingEntity = mRuntime.createLoggingEntity(new Pose());
         Component component = mock(Component.class);
         when(component.onAttach(any())).thenReturn(true);
 
@@ -2230,7 +2159,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void createInteractableComponent_returnsComponent() {
         InputEventListener mockConsumer = mock(InputEventListener.class);
         InteractableComponent interactableComponent =
-                mRealityCoreRuntime.createInteractableComponent(directExecutor(), mockConsumer);
+                mRuntime.createInteractableComponent(directExecutor(), mockConsumer);
         assertThat(interactableComponent).isNotNull();
     }
 
@@ -2239,7 +2168,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
         when(mSession.createAnchorFromUuid(any())).thenReturn(mAnchor);
         assertThat(
-                        mRealityCoreRuntime.createPersistedAnchorEntity(
+                        mRuntime.createPersistedAnchorEntity(
                                 UUID.randomUUID(), /* searchTimeout= */ Duration.ofSeconds(1)))
                 .isNotNull();
     }
@@ -2248,7 +2177,7 @@ public final class JxrPlatformAdapterAxrTest {
     public void createPersistedAnchorEntity_returnsEntityForNullSession() throws Exception {
         when(mPerceptionLibrary.getSession()).thenReturn(null);
         assertThat(
-                        mRealityCoreRuntime.createPersistedAnchorEntity(
+                        mRuntime.createPersistedAnchorEntity(
                                 UUID.randomUUID(), /* searchTimeout= */ Duration.ofSeconds(1)))
                 .isNotNull();
     }
@@ -2258,7 +2187,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mPerceptionLibrary.getSession()).thenReturn(mSession);
         when(mSession.createAnchorFromUuid(any())).thenReturn(null);
         assertThat(
-                        mRealityCoreRuntime.createPersistedAnchorEntity(
+                        mRuntime.createPersistedAnchorEntity(
                                 UUID.randomUUID(), /* searchTimeout= */ Duration.ofSeconds(1)))
                 .isNotNull();
     }
@@ -2270,7 +2199,7 @@ public final class JxrPlatformAdapterAxrTest {
         when(mAnchor.getAnchorToken()).thenReturn(null);
         UUID uuid = UUID.randomUUID();
         assertThat(
-                        mRealityCoreRuntime.createPersistedAnchorEntity(
+                        mRuntime.createPersistedAnchorEntity(
                                 uuid, /* searchTimeout= */ Duration.ofSeconds(1)))
                 .isNotNull();
         verify(mPerceptionLibrary, times(3)).getSession();
@@ -2279,39 +2208,16 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     @Test
-    public void unpersistAnchor_failsWhenSessionIsNotInitialized() {
-        when(mPerceptionLibrary.getSession()).thenReturn(null);
-        assertThat(mRealityCoreRuntime.unpersistAnchor(UUID.randomUUID())).isFalse();
-    }
-
-    @Test
-    public void unpersistAnchor_sessionIsInitialized_operationSucceeds() {
-        when(mPerceptionLibrary.getSession()).thenReturn(mSession);
-        UUID uuid = UUID.randomUUID();
-        when(mSession.unpersistAnchor(uuid)).thenReturn(true);
-        assertThat(mRealityCoreRuntime.unpersistAnchor(uuid)).isTrue();
-    }
-
-    @Test
-    public void unpersistAnchor_sessionIsInitialized_operationFails() {
-        when(mPerceptionLibrary.getSession()).thenReturn(mSession);
-        UUID uuid = UUID.randomUUID();
-        when(mSession.unpersistAnchor(uuid)).thenReturn(false);
-        assertThat(mRealityCoreRuntime.unpersistAnchor(uuid)).isFalse();
-    }
-
-    @Test
     public void createMovableComponent_returnsComponent() {
         MovableComponent movableComponent =
-                mRealityCoreRuntime.createMovableComponent(
-                        true, true, new HashSet<AnchorPlacement>(), true);
+                mRuntime.createMovableComponent(true, true, new HashSet<AnchorPlacement>(), true);
         assertThat(movableComponent).isNotNull();
     }
 
     @Test
     public void createAnchorPlacement_returnsAnchorPlacement() {
         AnchorPlacement anchorPlacement =
-                mRealityCoreRuntime.createAnchorPlacementForPlanes(
+                mRuntime.createAnchorPlacementForPlanes(
                         ImmutableSet.of(PlaneType.ANY), ImmutableSet.of(PlaneSemantic.ANY));
         assertThat(anchorPlacement).isNotNull();
     }
@@ -2319,7 +2225,7 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void createResizableComponent_returnsComponent() {
         ResizableComponent resizableComponent =
-                mRealityCoreRuntime.createResizableComponent(
+                mRuntime.createResizableComponent(
                         new Dimensions(0f, 0f, 0f), new Dimensions(5f, 5f, 5f));
         assertThat(resizableComponent).isNotNull();
     }
@@ -2327,28 +2233,24 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void createPointerCaptureComponent_returnsComponent() {
         PointerCaptureComponent pointerCaptureComponent =
-                mRealityCoreRuntime.createPointerCaptureComponent(
-                        null, (inputEvent) -> {}, (state) -> {});
+                mRuntime.createPointerCaptureComponent(null, (inputEvent) -> {}, (state) -> {});
         assertThat(pointerCaptureComponent).isNotNull();
     }
 
     @Test
     public void dispose_clearsReformOptions() {
         AndroidXrEntity entity = (AndroidXrEntity) createContentlessEntity();
-        FakeNode node = new FakeNode(entity.getNode());
         ReformOptions reformOptions = entity.getReformOptions();
         assertThat(reformOptions).isNotNull();
-        ReformOptions unused =
-                reformOptions.setEnabledReform(
-                        ReformOptions.ALLOW_MOVE | ReformOptions.ALLOW_RESIZE);
+        ReformOptions unused = reformOptions.setEnabledReform(ALLOW_MOVE | ALLOW_RESIZE);
         entity.dispose();
-        assertThat(node.getReformOptions()).isNull();
+        assertThat(mNodeRepository.getReformOptions(entity.getNode())).isNull();
     }
 
     @Test
     public void dispose_clearsParents() {
         AndroidXrEntity entity = (AndroidXrEntity) createContentlessEntity();
-        entity.setParent(mRealityCoreRuntime.getActivitySpaceRootImpl());
+        entity.setParent(mRuntime.getActivitySpaceRootImpl());
         assertThat(entity.getParent()).isNotNull();
 
         entity.dispose();
@@ -2358,52 +2260,50 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void setFullSpaceMode_callsExtensions() {
         Bundle bundle = Bundle.EMPTY;
-        bundle = mRealityCoreRuntime.setFullSpaceMode(bundle);
+        bundle = mRuntime.setFullSpaceMode(bundle);
         assertThat(bundle).isNotNull();
     }
 
     @Test
     public void setFullSpaceModeWithEnvironmentInherited_callsExtensions() {
         Bundle bundle = Bundle.EMPTY;
-        bundle = mRealityCoreRuntime.setFullSpaceModeWithEnvironmentInherited(bundle);
+        bundle = mRuntime.setFullSpaceModeWithEnvironmentInherited(bundle);
         assertThat(bundle).isNotNull();
     }
 
     @Test
     public void setPreferredAspectRatio_callsExtensions() {
-        mRealityCoreRuntime.setPreferredAspectRatio(mActivity, 1.23f);
+        mRuntime.setPreferredAspectRatio(mActivity, 1.23f);
         assertThat(ShadowXrExtensions.extract(mXrExtensions).getPreferredAspectRatio(mActivity))
                 .isEqualTo(1.23f);
     }
 
     @Test
     public void createStereoSurface_throwsWhenSplitEngineDisabled() {
-        // Recall mRealityCoreRuntime is created with SplitEngine disabled
+        setupRuntimeWithoutSplitEngine();
         assertThrows(
                 UnsupportedOperationException.class,
                 () ->
-                        mRealityCoreRuntime.createSurfaceEntity(
+                        mRuntime.createSurfaceEntity(
                                 SurfaceEntity.StereoMode.SIDE_BY_SIDE,
                                 new SurfaceEntity.CanvasShape.Quad(1.0f, 1.0f),
                                 new Pose(),
-                                mRealityCoreRuntime.getActivitySpaceRootImpl()));
+                                mRuntime.getActivitySpaceRootImpl()));
     }
 
     @Test
-    public void createSurfaceEntity_returnsStereoSurfaceWhenSplitEngineEnabled() {
-        createRuntimeWithSplitEngine();
-
+    public void createSurfaceEntity_returnsStereoSurface() {
         final float kTestWidth = 14.0f;
         final float kTestHeight = 28.0f;
         final float kTestSphereRadius = 7.0f;
         final float kTestHemisphereRadius = 11.0f;
 
         SurfaceEntity surfaceEntityQuad =
-                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                mRuntime.createSurfaceEntity(
                         SurfaceEntity.StereoMode.SIDE_BY_SIDE,
                         new SurfaceEntity.CanvasShape.Quad(kTestWidth, kTestHeight),
                         new Pose(),
-                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
+                        mRuntime.getActivitySpaceRootImpl());
 
         assertThat(surfaceEntityQuad).isNotNull();
         assertThat(surfaceEntityQuad).isInstanceOf(SurfaceEntityImpl.class);
@@ -2413,11 +2313,11 @@ public final class JxrPlatformAdapterAxrTest {
                         .get(((SurfaceEntityImpl) surfaceEntityQuad).getEntityImpressNode());
 
         SurfaceEntity surfaceEntitySphere =
-                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                mRuntime.createSurfaceEntity(
                         SurfaceEntity.StereoMode.TOP_BOTTOM,
                         new SurfaceEntity.CanvasShape.Vr360Sphere(kTestSphereRadius),
                         new Pose(),
-                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
+                        mRuntime.getActivitySpaceRootImpl());
 
         assertThat(surfaceEntitySphere).isNotNull();
         assertThat(surfaceEntitySphere).isInstanceOf(SurfaceEntityImpl.class);
@@ -2427,11 +2327,11 @@ public final class JxrPlatformAdapterAxrTest {
                         .get(((SurfaceEntityImpl) surfaceEntitySphere).getEntityImpressNode());
 
         SurfaceEntity surfaceEntityHemisphere =
-                mRealityCoreRuntimeWithSplitEngine.createSurfaceEntity(
+                mRuntime.createSurfaceEntity(
                         SurfaceEntity.StereoMode.MONO,
                         new SurfaceEntity.CanvasShape.Vr180Hemisphere(kTestHemisphereRadius),
                         new Pose(),
-                        mRealityCoreRuntimeWithSplitEngine.getActivitySpaceRootImpl());
+                        mRuntime.getActivitySpaceRootImpl());
 
         assertThat(surfaceEntityHemisphere).isNotNull();
         assertThat(surfaceEntityHemisphere).isInstanceOf(SurfaceEntityImpl.class);
@@ -2523,12 +2423,11 @@ public final class JxrPlatformAdapterAxrTest {
     @Test
     public void dispose_clearsResources() {
         AndroidXrEntity entity = (AndroidXrEntity) createContentlessEntity();
-        FakeNode node = new FakeNode(entity.getNode());
-        assertThat(node).isNotNull();
-        assertThat(node.getParent()).isNotNull();
+        assertThat(entity.getNode()).isNotNull();
+        assertThat(mNodeRepository.getParent(entity.getNode())).isNotNull();
 
-        mRealityCoreRuntime.dispose();
-        assertThat(node.getParent()).isNull();
+        mRuntime.dispose();
+        assertThat(mNodeRepository.getParent(entity.getNode())).isNull();
         assertThat(ShadowXrExtensions.extract(mXrExtensions).getSpatialStateCallback(mActivity))
                 .isNull();
         assertThat(ShadowXrExtensions.extract(mXrExtensions).getMainWindowNode(mActivity)).isNull();
@@ -2536,13 +2435,19 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     @Test
+    public void loadTexture_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(UnsupportedOperationException.class, this::loadTexture);
+    }
+
+    @Test
     public void loadTexture_returnsTexture() throws Exception {
-        assertThat(loadTextureSplitEngine()).isNotNull();
+        assertThat(loadTexture()).isNotNull();
     }
 
     @Test
     public void destroyTexture_removesTexture() throws Exception {
-        TextureResourceImpl texture = (TextureResourceImpl) loadTextureSplitEngine();
+        TextureResourceImpl texture = (TextureResourceImpl) loadTexture();
         int initialTextureCount = mFakeImpressApi.getTextureImages().size();
 
         mFakeImpressApi.destroyNativeObject(texture.getTextureToken());
@@ -2552,13 +2457,19 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     @Test
+    public void createWaterMaterial_throwsWhenSplitEngineDisabled() {
+        setupRuntimeWithoutSplitEngine();
+        assertThrows(UnsupportedOperationException.class, this::createWaterMaterial);
+    }
+
+    @Test
     public void createWaterMaterial_returnsWaterMaterial() throws Exception {
-        assertThat(createWaterMaterialSplitEngine()).isNotNull();
+        assertThat(createWaterMaterial()).isNotNull();
     }
 
     @Test
     public void destroyWaterMaterial_removesWaterMaterial() throws Exception {
-        MaterialResourceImpl material = (MaterialResourceImpl) createWaterMaterialSplitEngine();
+        MaterialResourceImpl material = (MaterialResourceImpl) createWaterMaterial();
         int initialMaterialCount = mFakeImpressApi.getMaterials().size();
 
         mFakeImpressApi.destroyNativeObject(material.getMaterialToken());
@@ -2569,10 +2480,10 @@ public final class JxrPlatformAdapterAxrTest {
 
     @Test
     public void setMaterialOverrideGltfEntity_materialOverridesMesh() throws Exception {
-        GltfEntity gltfEntitySplitEngine = createGltfEntitySplitEngine();
-        MaterialResource material = (MaterialResource) createWaterMaterialSplitEngine();
+        GltfEntity gltfEntity = createGltfEntity();
+        MaterialResource material = createWaterMaterial();
 
-        gltfEntitySplitEngine.setMaterialOverride(material, "fake_mesh_name");
+        gltfEntity.setMaterialOverride(material, "fake_mesh_name");
 
         assertThat(
                         mFakeImpressApi.getImpressNodes().keySet().stream()
@@ -2587,4 +2498,122 @@ public final class JxrPlatformAdapterAxrTest {
     }
 
     interface FakeComponent extends Component {}
+
+    @Test
+    public void setSpatialVisibilityChangedListener_callsExtensions() {
+        @SuppressWarnings(value = "unchecked")
+        Consumer<SpatialVisibility> mockListener =
+                (Consumer<SpatialVisibility>) mock(Consumer.class);
+        mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener);
+        ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
+
+        // VISIBLE
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
+
+        // PARTIALLY_VISIBLE
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.PARTIALLY_WITHIN_FOV));
+
+        // OUTSIDE_OF_FOV
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
+
+        // UNKNOWN
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.UNKNOWN));
+        verify(mockListener).accept(new SpatialVisibility(SpatialVisibility.UNKNOWN));
+    }
+
+    @Test
+    public void setSpatialVisibilityChangedListener_replacesExistingListenerOnSecondCall() {
+        @SuppressWarnings(value = "unchecked")
+        Consumer<SpatialVisibility> mockListener1 =
+                (Consumer<SpatialVisibility>) mock(Consumer.class);
+        @SuppressWarnings(value = "unchecked")
+        Consumer<SpatialVisibility> mockListener2 =
+                (Consumer<SpatialVisibility>) mock(Consumer.class);
+        ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
+
+        // Listener 1 is set and called once.
+        mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener1);
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        verify(mockListener1).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
+        verify(mockListener2, never()).accept(new SpatialVisibility(SpatialVisibility.WITHIN_FOV));
+
+        // Listener 2 is set and called once. Listener 1 is not called again.
+        mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener2);
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        verify(mockListener2).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
+        verify(mockListener1, never()).accept(new SpatialVisibility(SpatialVisibility.OUTSIDE_FOV));
+    }
+
+    @Test
+    public void setSpatialVisibilityChangedListener_handlesException() {
+        // the subscription method throws an exception if the executor or listener are null.
+        // No assert needed, the test will fail if the exception is not handled.
+        mRuntime.setSpatialVisibilityChangedListener(null, null);
+    }
+
+    @Test
+    public void clearSpatialVisibilityChangedListener_stopsSpatialVisibilityCallbacks() {
+        @SuppressWarnings(value = "unchecked")
+        Consumer<SpatialVisibility> mockListener =
+                (Consumer<SpatialVisibility>) mock(Consumer.class);
+        mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener);
+
+        // Verify that the callback is called once when the visibility changes.
+        ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        verify(mockListener).accept(any());
+
+        // Clear the listener and verify that the callback is not called a second time.
+        mRuntime.clearSpatialVisibilityChangedListener();
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        verify(mockListener).accept(any());
+    }
+
+    @Test
+    public void clearSpatialVisibilityChangedListener_handlesException() {
+        mRuntime.mSpatialVisibilityChangedListenerCloseable =
+                new Closeable() {
+                    @Override
+                    public void close() {
+                        throw new RuntimeException("Test error");
+                    }
+                };
+        // No assert needed, the test will fail if the exception is not handled.
+        mRuntime.clearSpatialVisibilityChangedListener();
+    }
+
+    @Test
+    public void dispose_closesSpatialVisibilitySubscription() {
+        @SuppressWarnings(value = "unchecked")
+        Consumer<SpatialVisibility> mockListener =
+                (Consumer<SpatialVisibility>) mock(Consumer.class);
+        mRuntime.setSpatialVisibilityChangedListener(directExecutor(), mockListener);
+
+        // Verify that the callback is called once when the visibility changes.
+        ShadowXrExtensions shadowXrExtensions = ShadowXrExtensions.extract(mXrExtensions);
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.VISIBLE));
+        verify(mockListener).accept(any());
+
+        // Ensure dispose() clears the listener that the callback is not called a second time.
+        mRuntime.dispose();
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.OUTSIDE_OF_FOV));
+        shadowXrExtensions.sendVisibilityChangedEvent(
+                mActivity, new VisibilityChangedEvent(VisibilityChangedEvent.PARTIALLY_VISIBLE));
+        verify(mockListener).accept(any());
+    }
 }

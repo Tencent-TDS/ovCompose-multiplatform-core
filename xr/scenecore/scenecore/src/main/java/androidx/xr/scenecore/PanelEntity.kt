@@ -19,16 +19,17 @@ package androidx.xr.scenecore
 import android.content.Context
 import android.view.View
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PanelEntity as RtPanelEntity
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Vector3
 
 /** Provides implementations for common Panel functionality. */
-@Suppress("DEPRECATION")
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.PanelEntity>(
+public sealed class BasePanelEntity<out RtPanelEntityType : RtPanelEntity>(
     private val rtPanelEntity: RtPanelEntityType,
     entityManager: EntityManager,
-) : BaseEntity<JxrPlatformAdapter.PanelEntity>(rtPanelEntity, entityManager) {
+) : BaseEntity<RtPanelEntity>(rtPanelEntity, entityManager) {
 
     /**
      * Sets the corner radius of the PanelEntity.
@@ -37,7 +38,7 @@ public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.P
      * @throws IllegalArgumentException if radius is <= 0.0f.
      */
     public fun setCornerRadius(radius: Float) {
-        rtPanelEntity.setCornerRadius(radius)
+        rtPanelEntity.cornerRadius = radius
     }
 
     /** Gets the corner radius of this PanelEntity in meters. Has a default value of 0. */
@@ -65,28 +66,6 @@ public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.P
     }
 
     /**
-     * Returns the dimensions of the view underlying this PanelEntity.
-     *
-     * @return The current (width, height) of the underlying surface in pixels.
-     */
-    @Deprecated("Use getSizeInPixels() instead.", ReplaceWith("getSizeInPixels()"))
-    public fun getPixelDimensions(): PixelDimensions {
-        return getSizeInPixels()
-    }
-
-    /**
-     * Sets the pixel (not Dp) dimensions of the view underlying this PanelEntity. Calling this
-     * might cause the layout of the Panel contents to change. Updating this will not cause the
-     * scale or pixel density to change.
-     *
-     * @param pxDimensions The [PixelDimensions] of the underlying surface to set.
-     */
-    @Deprecated("Use setSizeInPixels instead.", ReplaceWith("setSizeInPixels(pxDimensions)"))
-    public fun setPixelDimensions(pxDimensions: PixelDimensions) {
-        setSizeInPixels(pxDimensions)
-    }
-
-    /**
      * Gets the number of pixels per meter for this panel. This value reflects changes to scale,
      * including parent scale.
      *
@@ -111,7 +90,7 @@ public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.P
      * @param dimensions Dimensions in meters in local space.
      */
     public fun setSize(dimensions: Dimensions) {
-        rtPanelEntity.setSize(dimensions.toRtDimensions())
+        rtPanelEntity.size = dimensions.toRtDimensions()
     }
 
     /**
@@ -124,7 +103,7 @@ public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.P
      * @param pixelDimensions Dimensions in pixels.
      */
     public fun setSizeInPixels(pixelDimensions: PixelDimensions) {
-        rtPanelEntity.setSizeInPixels(pixelDimensions.toRtPixelDimensions())
+        rtPanelEntity.sizeInPixels = pixelDimensions.toRtPixelDimensions()
     }
 }
 
@@ -132,11 +111,11 @@ public sealed class BasePanelEntity<out RtPanelEntityType : JxrPlatformAdapter.P
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public open class PanelEntity
 internal constructor(
-    rtEntity: JxrPlatformAdapter.PanelEntity,
+    rtEntity: RtPanelEntity,
     entityManager: EntityManager,
     // TODO(ricknels): move isMainPanelEntity check to JxrPlatformAdapter.
     public val isMainPanelEntity: Boolean = false,
-) : BasePanelEntity<JxrPlatformAdapter.PanelEntity>(rtEntity, entityManager) {
+) : BasePanelEntity<RtPanelEntity>(rtEntity, entityManager) {
 
     public companion object {
         internal fun create(
@@ -236,45 +215,6 @@ internal constructor(
                 session.entityManager,
                 view,
                 pixelDimensions,
-                name,
-                pose,
-            )
-
-        /**
-         * Public factory function for a spatialized PanelEntity.
-         *
-         * @param session Session to create the PanelEntity in.
-         * @param view View to embed in this panel entity.
-         * @param surfaceDimensionsPx Dimensions for the underlying surface for the given view.
-         * @param dimensions Dimensions for the panel in meters.
-         * @param name Name of the panel.
-         * @param pose Pose of this entity relative to its parent, default value is Identity.
-         * @return a PanelEntity instance.
-         * @deprecated Use create(session, view, pixelDimensions, name, pose) instead.
-         */
-        @JvmOverloads
-        @JvmStatic
-        @Deprecated(
-            "Use create(session, view, pixelDimensions, name, pose) instead.",
-            ReplaceWith("create(session, view, pixelDimensions, name, pose)"),
-        )
-        public fun create(
-            session: Session,
-            view: View,
-            surfaceDimensionsPx: Dimensions,
-            @Suppress("UNUSED_PARAMETER") dimensions: Dimensions,
-            name: String,
-            pose: Pose = Pose.Identity,
-        ): PanelEntity =
-            PanelEntity.create(
-                session.activity,
-                session.platformAdapter,
-                session.entityManager,
-                view,
-                PixelDimensions(
-                    surfaceDimensionsPx.width.toInt(),
-                    surfaceDimensionsPx.height.toInt()
-                ),
                 name,
                 pose,
             )

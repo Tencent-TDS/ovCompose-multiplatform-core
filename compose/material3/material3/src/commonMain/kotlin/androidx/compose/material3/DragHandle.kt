@@ -43,12 +43,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.util.fastRoundToInt
 
 /**
- * <a
- * href="https://m3.material.io/foundations/layout/understanding-layout/parts-of-layout#314a4c32-be52-414c-8da7-31f059f1776d"
- * class="external" target="_blank">Material Design Drag Handle</a>.
+ * [Material Design drag
+ * handle](https://m3.material.io/foundations/layout/understanding-layout/parts-of-layout#314a4c32-be52-414c-8da7-31f059f1776d)
  *
  * A drag handle is a capsule-like shape that can be used by users to change component size and/or
  * position by dragging. A typical usage of it will be pane expansion - when you split your screen
@@ -72,7 +72,7 @@ import androidx.compose.ui.util.fastRoundToInt
 @Composable
 fun VerticalDragHandle(
     modifier: Modifier = Modifier,
-    sizes: DragHandleSizes = VerticalDragHandleDefaults.Sizes,
+    sizes: DragHandleSizes = VerticalDragHandleDefaults.sizes(),
     colors: DragHandleColors = VerticalDragHandleDefaults.colors(),
     shapes: DragHandleShapes = VerticalDragHandleDefaults.shapes(),
     interactionSource: MutableInteractionSource? = null,
@@ -210,14 +210,14 @@ class DragHandleSizes(val size: DpSize, val pressedSize: DpSize, val draggedSize
 /** Contains the baseline values used by a [VerticalDragHandle]. */
 object VerticalDragHandleDefaults {
     /**
-     * Creates a [DragHandleColors] that represents the default and pressed colors used in an
-     * [VerticalDragHandle].
+     * Creates a [DragHandleColors] that represents the default, pressed, and dragged colors used in
+     * a [VerticalDragHandle].
      */
     @Composable fun colors(): DragHandleColors = MaterialTheme.colorScheme.colors
 
     /**
-     * Creates a [DragHandleColors] that represents the default and pressed colors used in an
-     * [VerticalDragHandle].
+     * Creates a [DragHandleColors] that represents the default, pressed, and dragged colors used in
+     * a [VerticalDragHandle].
      *
      * @param color provides a different color to override the default color of the drag handle when
      *   it's not being pressed.
@@ -241,14 +241,14 @@ object VerticalDragHandleDefaults {
         }
 
     /**
-     * Creates a [DragHandleShapes] that represents the default and pressed shapes used in an
-     * [VerticalDragHandle].
+     * Creates a [DragHandleShapes] that represents the default, pressed, and dragged shapes used in
+     * a [VerticalDragHandle].
      */
     @Composable fun shapes(): DragHandleShapes = MaterialTheme.shapes.shapes
 
     /**
-     * Creates a [DragHandleShapes] that represents the default and pressed shapes used in an
-     * [VerticalDragHandle].
+     * Creates a [DragHandleShapes] that represents the default, pressed, and dragged shapes used in
+     * a [VerticalDragHandle].
      *
      * @param shape provides a different shape to override the default shape of the drag handle when
      *   it's not being pressed.
@@ -272,7 +272,13 @@ object VerticalDragHandleDefaults {
         }
 
     /**
-     * Creates a [DragHandleSizes] that represents the default and pressed sizes used in an
+     * Creates a [DragHandleSizes] that represents the default, pressed, and dragged sizes used in a
+     * [VerticalDragHandle].
+     */
+    fun sizes(): DragHandleSizes = sizes
+
+    /**
+     * Creates a [DragHandleSizes] that represents the default, pressed, and dragged sizes used in a
      * [VerticalDragHandle].
      *
      * @param size provides a different size to override the default size of the drag handle when
@@ -283,13 +289,17 @@ object VerticalDragHandleDefaults {
      *   it's being dragged.
      */
     fun sizes(
-        size: DpSize = DpSize(DragHandleTokens.Width, DragHandleTokens.Height),
-        pressedSize: DpSize = DpSize(DragHandleTokens.PressedWidth, DragHandleTokens.PressedHeight),
-        draggedSize: DpSize = DpSize(DragHandleTokens.DraggedWidth, DragHandleTokens.DraggedHeight)
-    ): DragHandleSizes = DragHandleSizes(size, pressedSize, draggedSize)
-
-    /** The default sizes in different states of a [VerticalDragHandle]. */
-    val Sizes = sizes()
+        size: DpSize = DpSize.Unspecified,
+        pressedSize: DpSize = DpSize.Unspecified,
+        draggedSize: DpSize = DpSize.Unspecified
+    ): DragHandleSizes =
+        with(sizes) {
+            DragHandleSizes(
+                if (size.isSpecified) size else this.size,
+                if (pressedSize.isSpecified) pressedSize else this.pressedSize,
+                if (draggedSize.isSpecified) draggedSize else this.draggedSize,
+            )
+        }
 
     private val ColorScheme.colors: DragHandleColors
         get() {
@@ -312,6 +322,13 @@ object VerticalDragHandleDefaults {
                     )
                     .also { defaultVerticalDragHandleShapesCached = it }
         }
+
+    private val sizes =
+        DragHandleSizes(
+            size = DpSize(DragHandleTokens.Width, DragHandleTokens.Height),
+            pressedSize = DpSize(DragHandleTokens.PressedWidth, DragHandleTokens.PressedHeight),
+            draggedSize = DpSize(DragHandleTokens.DraggedWidth, DragHandleTokens.DraggedHeight)
+        )
 }
 
 private fun Modifier.pressable(

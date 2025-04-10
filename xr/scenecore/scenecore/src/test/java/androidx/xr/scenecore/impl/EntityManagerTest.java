@@ -32,22 +32,21 @@ import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 
+import androidx.xr.runtime.internal.ActivityPanelEntity;
+import androidx.xr.runtime.internal.ActivitySpace;
+import androidx.xr.runtime.internal.AnchorEntity;
+import androidx.xr.runtime.internal.CameraViewActivityPose;
+import androidx.xr.runtime.internal.Dimensions;
+import androidx.xr.runtime.internal.Entity;
+import androidx.xr.runtime.internal.GltfEntity;
+import androidx.xr.runtime.internal.HeadActivityPose;
+import androidx.xr.runtime.internal.PanelEntity;
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose;
+import androidx.xr.runtime.internal.PixelDimensions;
+import androidx.xr.runtime.internal.PlaneSemantic;
+import androidx.xr.runtime.internal.PlaneType;
 import androidx.xr.runtime.math.Matrix4;
 import androidx.xr.runtime.math.Pose;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivityPanelEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.ActivitySpace;
-import androidx.xr.scenecore.JxrPlatformAdapter.AnchorEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.CameraViewActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.Dimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity;
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource;
-import androidx.xr.scenecore.JxrPlatformAdapter.HeadActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.PanelEntity;
-import androidx.xr.scenecore.JxrPlatformAdapter.PerceptionSpaceActivityPose;
-import androidx.xr.scenecore.JxrPlatformAdapter.PixelDimensions;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneSemantic;
-import androidx.xr.scenecore.JxrPlatformAdapter.PlaneType;
 import androidx.xr.scenecore.impl.extensions.XrExtensionsProvider;
 import androidx.xr.scenecore.impl.perception.PerceptionLibrary;
 import androidx.xr.scenecore.impl.perception.Session;
@@ -114,11 +113,12 @@ public class EntityManagerTest {
                         mPerceptionLibrary,
                         mSplitEngineSubspaceManager,
                         mSplitEngineRenderer,
-                        /* useSplitEngine= */ false);
+                        /* useSplitEngine= */ true);
         Node taskNode = mXrExtensions.createNode();
         mActivitySpace =
                 new ActivitySpaceImpl(
                         taskNode,
+                        mActivity,
                         mXrExtensions,
                         mEntityManager,
                         () -> mXrExtensions.getSpatialState(mActivity),
@@ -137,7 +137,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void creatingEntity_addsEntityToEntityManager() throws Exception {
+    public void creatingEntity_addsEntityToEntityManager() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -158,7 +158,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void getEntityForNode_returnsEntity() throws Exception {
+    public void getEntityForNode_returnsEntity() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -174,7 +174,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void getEntityByType_returnsEntityOfType() throws Exception {
+    public void getEntityByType_returnsEntityOfType() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -193,7 +193,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void removeEntity_removesFromEntityManager() throws Exception {
+    public void removeEntity_removesFromEntityManager() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -216,7 +216,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void disposeEntity_removesFromEntityManager() throws Exception {
+    public void disposeEntity_removesFromEntityManager() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -268,7 +268,7 @@ public class EntityManagerTest {
     }
 
     @Test
-    public void clearEntityManager_removesAllEntityFromEntityManager() throws Exception {
+    public void clearEntityManager_removesAllEntityFromEntityManager() {
         GltfEntity gltfEntity = createGltfEntity();
         PanelEntity panelEntity = createPanelEntity();
         Entity contentlessEntity = createContentlessEntity();
@@ -290,15 +290,29 @@ public class EntityManagerTest {
         assertThat(mEntityManager.getAllSystemSpaceActivityPoses()).isEmpty();
     }
 
-    private GltfEntity createGltfEntity() throws Exception {
-        ListenableFuture<GltfModelResource> modelFuture =
-                mPlatformAdapterAxr.loadGltfByAssetName("FakeAsset.glb");
-        assertThat(modelFuture).isNotNull();
-        GltfModelResource model = modelFuture.get();
+    /** Creates a generic glTF entity. */
+    private GltfEntity createGltfEntity() {
+        long modelToken = -1;
+        try {
+            ListenableFuture<Long> modelTokenFuture =
+                    mFakeImpressApi.loadGltfAsset("FakeGltfAsset.glb");
+            assertThat(modelTokenFuture).isNotNull();
+            // This resolves the transformation of the Future from a SplitEngine token to the JXR
+            // GltfModelResource.  This is a hidden detail from the API surface's perspective.
+            mExecutor.runAll();
+            modelToken = modelTokenFuture.get();
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        GltfModelResourceImpl model = new GltfModelResourceImpl(modelToken);
         GltfEntityImpl gltfEntity =
                 new GltfEntityImpl(
-                        (GltfModelResourceImpl) model,
+                        model,
                         mActivitySpaceRoot,
+                        mFakeImpressApi,
+                        mSplitEngineSubspaceManager,
                         mXrExtensions,
                         mEntityManager,
                         mExecutor);

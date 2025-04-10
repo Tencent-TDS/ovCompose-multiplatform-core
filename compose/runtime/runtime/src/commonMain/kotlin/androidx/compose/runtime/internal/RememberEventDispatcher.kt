@@ -57,10 +57,9 @@ internal class PausedCompositionRemembers(private val abandoning: MutableSet<Rem
 }
 
 /** Helper for collecting remember observers for later strictly ordered dispatch. */
-internal class RememberEventDispatcher(
-    private val abandoning: MutableSet<RememberObserver>,
-    private val traceContext: CompositionErrorContext?
-) : RememberManager {
+internal class RememberEventDispatcher() : RememberManager {
+    private var abandoning: MutableSet<RememberObserver>? = null
+    private var traceContext: CompositionErrorContext? = null
     private val remembering = mutableVectorOf<RememberObserverHolder>()
     private var currentRememberingList = remembering
     private val leaving = mutableVectorOf<Any>()
@@ -73,6 +72,46 @@ internal class RememberEventDispatcher(
     private val priorities = MutableIntList()
     private val afters = MutableIntList()
     private var nestedRemembersLists: Stack<MutableVector<RememberObserverHolder>>? = null
+    private val toAdd: MutableList<Any> = mutableListOf()
+    private val toAddAfter: MutableIntList = MutableIntList()
+    private val toAddPriority: MutableIntList = MutableIntList()
+
+    fun prepare(
+        abandoning: MutableSet<RememberObserver>,
+        traceContext: CompositionErrorContext?,
+    ) {
+        clear()
+        this.abandoning = abandoning
+        this.traceContext = traceContext
+    }
+
+    inline fun use(
+        abandoning: MutableSet<RememberObserver>,
+        traceContext: CompositionErrorContext?,
+        block: RememberEventDispatcher.() -> Unit
+    ) {
+        try {
+            prepare(abandoning, traceContext)
+            this.block()
+        } finally {
+            clear()
+        }
+    }
+
+    fun clear() {
+        this.abandoning = null
+        this.traceContext = null
+        this.remembering.clear()
+        this.currentRememberingList = remembering
+        this.leaving.clear()
+        this.sideEffects.clear()
+        this.releasing = null
+        this.pausedPlaceholders = null
+        this.pending.clear()
+        this.priorities.clear()
+        this.afters.clear()
+        this.nestedRemembersLists = null
+    }
 
     override fun remembering(instance: RememberObserverHolder) {
         currentRememberingList.add(instance)
@@ -114,6 +153,7 @@ internal class RememberEventDispatcher(
     }
 
     override fun rememberPausingScope(scope: RecomposeScopeImpl) {
+        val abandoning = abandoning ?: return
         val pausedPlaceholder = PausedCompositionRemembers(abandoning)
         (pausedPlaceholders
             ?: mutableScatterMapOf<RecomposeScopeImpl, PausedCompositionRemembers>().also {
@@ -146,6 +186,7 @@ internal class RememberEventDispatcher(
     }
 
     fun dispatchRememberObservers() {
+        val abandoning = abandoning ?: return
         // Add any pending out-of-order forgotten objects
         processPendingLeaving(Int.MIN_VALUE)
 
@@ -181,6 +222,7 @@ internal class RememberEventDispatcher(
     }
 
     private fun dispatchRememberList(list: MutableVector<RememberObserverHolder>) {
+        val abandoning = abandoning ?: return
         list.forEach { instance ->
             val wrapped = instance.wrapped
             abandoning.remove(wrapped)
@@ -198,6 +240,7 @@ internal class RememberEventDispatcher(
     }
 
     fun dispatchAbandons() {
+        val abandoning = abandoning ?: return
         if (abandoning.isNotEmpty()) {
             trace("Compose:abandons") {
                 val iterator = abandoning.iterator()
@@ -231,70 +274,64 @@ internal class RememberEventDispatcher(
     private fun processPendingLeaving(endRelativeOrder: Int) {
         if (pending.isNotEmpty()) {
             var index = 0
-            var toAdd: MutableList<Any>? = null
-            var toAddAfter: MutableIntList? = null
-            var toAddPriority: MutableIntList? = null
-            while (index < afters.size) {
-                if (endRelativeOrder <= afters[index]) {
-                    val instance = pending.removeAt(index)
-                    val endRelativeAfter = afters.removeAt(index)
-                    val priority = priorities.removeAt(index)
-
-                    if (toAdd == null) {
-                        toAdd = mutableListOf(instance)
-                        toAddAfter = MutableIntList().also { it.add(endRelativeAfter) }
-                        toAddPriority = MutableIntList().also { it.add(priority) }
-                    } else {
-                        toAddPriority as MutableIntList
-                        toAddAfter as MutableIntList
+            val toAdd = toAdd
+            val toAddAfter = toAddAfter
+            val toAddPriority = toAddPriority
+            try {
+                while (index < afters.size) {
+                    if (endRelativeOrder <= afters[index]) {
+                        val instance = pending.removeAt(index)
+                        val endRelativeAfter = afters.removeAt(index)
+                        val priority = priorities.removeAt(index)
                         toAdd.add(instance)
                         toAddAfter.add(endRelativeAfter)
                         toAddPriority.add(priority)
+                    } else {
+                        index++
                     }
-                } else {
-                    index++
                 }
-            }
-            if (toAdd != null) {
-                toAddPriority as MutableIntList
-                toAddAfter as MutableIntList
+                if (toAdd.isNotEmpty()) {
+                    // Sort the list into [after, -priority] order where it is ordered by after
+                    // in ascending order as the primary key and priority in descending order as
+                    // secondary key.
 
-                // Sort the list into [after, -priority] order where it is ordered by after
-                // in ascending order as the primary key and priority in descending order as
-                // secondary key.
+                    // For example if remember occurs after a child group it must be added after
+                    // all the remembers of the child. This is reported with an after which is the
+                    // slot index of the child's last slot. As this slot might be at the same
+                    // location as where its parents ends this would be ambiguous which should
+                    // first if both the two groups request a slot to be after the same slot.
+                    // Priority is used to break the tie here which is the group index of the group
+                    // which is leaving. Groups that are lower must be added before the parent's
+                    // remember when they have the same after.
 
-                // For example if remember occurs after a child group it must be added after
-                // all the remembers of the child. This is reported with an after which is the
-                // slot index of the child's last slot. As this slot might be at the same
-                // location as where its parents ends this would be ambiguous which should
-                // first if both the two groups request a slot to be after the same slot.
-                // Priority is used to break the tie here which is the group index of the group
-                // which is leaving. Groups that are lower must be added before the parent's
-                // remember when they have the same after.
+                    // The sort must be stable as as consecutive remembers in the same group after
+                    // the same child will have the same after and priority.
 
-                // The sort must be stable as as consecutive remembers in the same group after
-                // the same child will have the same after and priority.
-
-                // A selection sort is used here because it is stable and the groups are
-                // typically very short so this quickly exit list of one and not loop for
-                // for sizes of 2. As the information is split between three lists, to
-                // reduce allocations, [MutableList.sort] cannot be used as it doesn't have
-                // an option to supply a custom swap.
-                for (i in 0 until toAdd.size - 1) {
-                    for (j in i + 1 until toAdd.size) {
-                        val iAfter = toAddAfter[i]
-                        val jAfter = toAddAfter[j]
-                        if (
-                            iAfter < jAfter ||
-                                (jAfter == iAfter && toAddPriority[i] < toAddPriority[j])
-                        ) {
-                            toAdd.swap(i, j)
-                            toAddPriority.swap(i, j)
-                            toAddAfter.swap(i, j)
+                    // A selection sort is used here because it is stable and the groups are
+                    // typically very short so this quickly exit list of one and not loop for
+                    // for sizes of 2. As the information is split between three lists, to
+                    // reduce allocations, [MutableList.sort] cannot be used as it doesn't have
+                    // an option to supply a custom swap.
+                    for (i in 0 until toAdd.size - 1) {
+                        for (j in i + 1 until toAdd.size) {
+                            val iAfter = toAddAfter[i]
+                            val jAfter = toAddAfter[j]
+                            if (
+                                iAfter < jAfter ||
+                                    (jAfter == iAfter && toAddPriority[i] < toAddPriority[j])
+                            ) {
+                                toAdd.swap(i, j)
+                                toAddPriority.swap(i, j)
+                                toAddAfter.swap(i, j)
+                            }
                         }
                     }
+                    leaving.addAll(toAdd)
                 }
-                leaving.addAll(toAdd)
+            } finally {
+                toAdd.clear()
+                toAddAfter.clear()
+                toAddPriority.clear()
             }
         }
     }

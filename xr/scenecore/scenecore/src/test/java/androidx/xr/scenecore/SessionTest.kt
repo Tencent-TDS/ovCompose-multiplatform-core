@@ -24,8 +24,17 @@ import android.graphics.Rect
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import androidx.xr.runtime.internal.ActivityPanelEntity as RtActivityPanelEntity
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.AnchorEntity as RtAnchorEntity
+import androidx.xr.runtime.internal.Dimensions as RtDimensions
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.GltfModelResource as RtGltfModelResource
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PanelEntity as RtPanelEntity
+import androidx.xr.runtime.internal.PixelDimensions as RtPixelDimensions
+import androidx.xr.runtime.internal.SpatialVisibility as RtSpatialVisibility
 import androidx.xr.runtime.math.Pose
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.MoreExecutors.directExecutor
@@ -36,6 +45,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.anyString
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
@@ -54,22 +64,19 @@ class SessionTest {
     private val activityController = Robolectric.buildActivity(Activity::class.java)
     private val activity = activityController.create().start().get()
     private val mockPlatformAdapter = mock<JxrPlatformAdapter>()
-    private val mockAnchorEntity = mock<JxrPlatformAdapter.AnchorEntity>()
+    private val mockAnchorEntity = mock<RtAnchorEntity>()
     lateinit var session: Session
 
     @Before
     fun setUp() {
         whenever(mockPlatformAdapter.spatialEnvironment).thenReturn(mock())
-        val mockActivitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
+        val mockActivitySpace = mock<RtActivitySpace>()
         whenever(mockPlatformAdapter.activitySpace).thenReturn(mockActivitySpace)
         whenever(mockPlatformAdapter.headActivityPose).thenReturn(mock())
         whenever(mockPlatformAdapter.activitySpaceRootImpl).thenReturn(mockActivitySpace)
         whenever(mockPlatformAdapter.mainPanelEntity).thenReturn(mock())
         whenever(mockPlatformAdapter.perceptionSpaceActivityPose).thenReturn(mock())
-        whenever(mockAnchorEntity.state)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.State.UNANCHORED)
-        whenever(mockAnchorEntity.persistState)
-            .thenReturn(JxrPlatformAdapter.AnchorEntity.PersistState.PERSIST_NOT_REQUESTED)
+        whenever(mockAnchorEntity.state).thenReturn(RtAnchorEntity.State.UNANCHORED)
         session = Session.create(activity, mockPlatformAdapter)
     }
 
@@ -95,23 +102,23 @@ class SessionTest {
 
     @Test
     fun createGltfResourceAsync_callsRuntimeLoadGltf() {
-        val mockGltfModelResource = mock<GltfModelResource>()
-        whenever(mockPlatformAdapter.loadGltfByAssetNameSplitEngine(anyString()))
+        val mockGltfModelResource = mock<RtGltfModelResource>()
+        whenever(mockPlatformAdapter.loadGltfByAssetName(anyString()))
             .thenReturn(Futures.immediateFuture(mockGltfModelResource))
         val unused = GltfModel.create(session, "test.glb")
 
-        verify(mockPlatformAdapter).loadGltfByAssetNameSplitEngine("test.glb")
+        verify(mockPlatformAdapter).loadGltfByAssetName("test.glb")
     }
 
     @Test
     fun createGltfEntity_callsRuntimeCreateGltfEntity() {
-        whenever(mockPlatformAdapter.loadGltfByAssetNameSplitEngine(anyString()))
+        whenever(mockPlatformAdapter.loadGltfByAssetName(anyString()))
             .thenReturn(Futures.immediateFuture(mock()))
         whenever(mockPlatformAdapter.createGltfEntity(any(), any(), any())).thenReturn(mock())
         val gltfModelFuture = GltfModel.create(session, "test.glb")
         val unused = GltfModelEntity.create(session, gltfModelFuture.get())
 
-        verify(mockPlatformAdapter).loadGltfByAssetNameSplitEngine(eq("test.glb"))
+        verify(mockPlatformAdapter).loadGltfByAssetName(eq("test.glb"))
         verify(mockPlatformAdapter).createGltfEntity(any(), any(), any())
     }
 
@@ -123,9 +130,9 @@ class SessionTest {
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mock())
@@ -136,9 +143,9 @@ class SessionTest {
                 any<Context>(),
                 any<Pose>(),
                 any<View>(),
-                any<JxrPlatformAdapter.PixelDimensions>(),
+                any<RtPixelDimensions>(),
                 any<String>(),
-                any<JxrPlatformAdapter.Entity>(),
+                any<RtEntity>(),
             )
     }
 
@@ -226,15 +233,15 @@ class SessionTest {
 
         val interactableComponent = InteractableComponent.create(session, directExecutor(), mock())
         val view = TextView(activity)
-        val mockPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
+        val mockPanelEntity = mock<RtPanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockPanelEntity)
@@ -252,15 +259,15 @@ class SessionTest {
 
         val movableComponent = MovableComponent.create(session)
         val view = TextView(activity)
-        val mockRtPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
+        val mockRtPanelEntity = mock<RtPanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockRtPanelEntity)
@@ -277,16 +284,16 @@ class SessionTest {
 
         val resizableComponent = ResizableComponent.create(session)
         val view = TextView(activity)
-        val mockRtPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
-        whenever(mockRtPanelEntity.getSize()).thenReturn(JxrPlatformAdapter.Dimensions(1f, 1f, 1f))
+        val mockRtPanelEntity = mock<RtPanelEntity>()
+        whenever(mockRtPanelEntity.size).thenReturn(RtDimensions(1f, 1f, 1f))
         whenever(
                 mockPlatformAdapter.createPanelEntity(
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockRtPanelEntity)
@@ -325,16 +332,16 @@ class SessionTest {
 
     @Test
     fun getPanelEntityType_returnsAllPanelEntities() {
-        val mockPanelEntity1 = mock<JxrPlatformAdapter.PanelEntity>()
-        val mockActivityPanelEntity = mock<JxrPlatformAdapter.ActivityPanelEntity>()
+        val mockPanelEntity1 = mock<RtPanelEntity>()
+        val mockActivityPanelEntity = mock<RtActivityPanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockPanelEntity1)
@@ -350,15 +357,15 @@ class SessionTest {
 
     @Test
     fun getEntitiesBaseType_returnsAllEntities() {
-        val mockPanelEntity = mock<JxrPlatformAdapter.PanelEntity>()
+        val mockPanelEntity = mock<RtPanelEntity>()
         whenever(
                 mockPlatformAdapter.createPanelEntity(
                     any<Context>(),
                     any<Pose>(),
                     any<View>(),
-                    any<JxrPlatformAdapter.PixelDimensions>(),
+                    any<RtPixelDimensions>(),
                     any<String>(),
-                    any<JxrPlatformAdapter.Entity>(),
+                    any<RtEntity>(),
                 )
             )
             .thenReturn(mockPanelEntity)
@@ -380,6 +387,53 @@ class SessionTest {
         verify(mockPlatformAdapter).addSpatialCapabilitiesChangedListener(any(), any())
         session.removeSpatialCapabilitiesChangedListener(listener)
         verify(mockPlatformAdapter).removeSpatialCapabilitiesChangedListener(any())
+    }
+
+    @Test
+    fun setSpatialVisibilityChangedListener_receivesRuntimeSpatialVisibilityChangedEvent() {
+        var listenerCalledWithValue = SpatialVisibility(SpatialVisibility.UNKNOWN)
+        val captor = argumentCaptor<Consumer<RtSpatialVisibility>>()
+        val listener =
+            Consumer<SpatialVisibility> { visibility -> listenerCalledWithValue = visibility }
+
+        // Test that it calls into the runtime and capture the runtime listener.
+        val executor = directExecutor()
+        session.setSpatialVisibilityChangedListener(executor, listener)
+        verify(mockPlatformAdapter)
+            .setSpatialVisibilityChangedListener(eq(executor), captor.capture())
+
+        // Simulate the runtime listener being called with any value.
+        val rtListener = captor.firstValue
+        rtListener.accept(RtSpatialVisibility(RtSpatialVisibility.WITHIN_FOV))
+        assertThat(listenerCalledWithValue)
+            .isNotEqualTo(SpatialVisibility(SpatialVisibility.UNKNOWN))
+        assertThat(listenerCalledWithValue)
+            .isEqualTo(SpatialVisibility(SpatialVisibility.WITHIN_FOV))
+
+        rtListener.accept(RtSpatialVisibility(RtSpatialVisibility.PARTIALLY_WITHIN_FOV))
+        assertThat(listenerCalledWithValue)
+            .isEqualTo(SpatialVisibility(SpatialVisibility.PARTIALLY_WITHIN_FOV))
+
+        rtListener.accept(RtSpatialVisibility(RtSpatialVisibility.OUTSIDE_FOV))
+        assertThat(listenerCalledWithValue)
+            .isEqualTo(SpatialVisibility(SpatialVisibility.OUTSIDE_FOV))
+
+        rtListener.accept(RtSpatialVisibility(RtSpatialVisibility.UNKNOWN))
+        assertThat(listenerCalledWithValue).isEqualTo(SpatialVisibility(SpatialVisibility.UNKNOWN))
+    }
+
+    @Test
+    fun setSpatialVisibilityChangedListener_withNoExecutor_callsRuntimeSetSpatialVisibilityChangedListenerWithMainThreadExecutor() {
+        val listener = Consumer<SpatialVisibility> { _ -> }
+        session.setSpatialVisibilityChangedListener(listener)
+        verify(mockPlatformAdapter)
+            .setSpatialVisibilityChangedListener(eq(HandlerExecutor.mainThreadExecutor), any())
+    }
+
+    @Test
+    fun clearSpatialVisibilityChangedListener_callsRuntimeClearSpatialVisibilityChangedListener() {
+        session.clearSpatialVisibilityChangedListener()
+        verify(mockPlatformAdapter).clearSpatialVisibilityChangedListener()
     }
 
     @Test

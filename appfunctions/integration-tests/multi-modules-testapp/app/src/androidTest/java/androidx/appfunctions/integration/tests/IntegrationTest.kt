@@ -16,6 +16,7 @@
 
 package androidx.appfunctions.integration.tests
 
+import android.net.Uri
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.AppFunctionFunctionNotFoundException
 import androidx.appfunctions.AppFunctionInvalidArgumentException
@@ -28,22 +29,26 @@ import androidx.appfunctions.integration.tests.TestUtil.retryAssert
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import java.time.LocalDateTime
 import kotlin.test.assertIs
 import org.junit.After
-import org.junit.Assume.assumeTrue
+import org.junit.Assume.assumeNotNull
 import org.junit.Before
 import org.junit.Test
 
 @LargeTest
 class IntegrationTest {
-    private val targetContext = InstrumentationRegistry.getInstrumentation().context
-    private val appFunctionManager =
-        AppFunctionManagerCompat(InstrumentationRegistry.getInstrumentation().targetContext)
+    private val context = InstrumentationRegistry.getInstrumentation().context
+    private val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+    private lateinit var appFunctionManager: AppFunctionManagerCompat
     private val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
 
     @Before
     fun setup() = doBlocking {
-        assumeTrue(appFunctionManager.isSupported())
+        val appFunctionManagerCompatOrNull = AppFunctionManagerCompat.getInstance(targetContext)
+        assumeNotNull(appFunctionManagerCompatOrNull)
+        appFunctionManager = checkNotNull(appFunctionManagerCompatOrNull)
+
         uiAutomation.apply {
             // This is needed because the test is running under the UID of
             // "androidx.appfunctions.integration.testapp",
@@ -68,7 +73,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFunctionsIds.ADD_ID,
                         AppFunctionData.Builder("").setLong("num1", 1).setLong("num2", 2).build()
                     )
@@ -89,7 +94,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFunctionsIds.VOID_FUNCTION_ID,
                         AppFunctionData.Builder("").build()
                     )
@@ -106,7 +111,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFactoryIds.IS_CREATED_BY_FACTORY_ID,
                         AppFunctionData.Builder("").build()
                     )
@@ -129,7 +134,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFunctions2Ids.CONCAT_ID,
                         AppFunctionData.Builder("")
                             .setString("str1", "log")
@@ -153,7 +158,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         "androidx.appfunctions.integration.testapp.TestFunctions#notExist",
                         AppFunctionData.Builder("").build()
                     )
@@ -170,7 +175,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFunctionsIds.DO_THROW_ID,
                         AppFunctionData.Builder("").build()
                     )
@@ -188,7 +193,7 @@ class IntegrationTest {
             appFunctionManager.executeAppFunction(
                 request =
                     ExecuteAppFunctionRequest(
-                        targetContext.packageName,
+                        context.packageName,
                         TestFunctionsIds.CREATE_NOTE_ID,
                         AppFunctionData.Builder("")
                             .setAppFunctionData(
@@ -224,9 +229,191 @@ class IntegrationTest {
             .isEqualTo(expectedNote)
     }
 
+    @Test
+    fun executeAppFunction_createNote_withOpenableCapability_returnsNote() = doBlocking {
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        context.packageName,
+                        TestFunctionsIds.GET_OPENABLE_NOTE_ID,
+                        AppFunctionData.Builder("")
+                            .setAppFunctionData(
+                                "createNoteParams",
+                                AppFunctionData.serialize(
+                                    CreateNoteParams(
+                                        title = "Test Title",
+                                        content = listOf("1", "2"),
+                                        owner = Owner("test"),
+                                        attachments =
+                                            listOf(Attachment("Uri1", Attachment("nested")))
+                                    ),
+                                    CreateNoteParams::class.java
+                                )
+                            )
+                            .build()
+                    )
+            )
+
+        val successResponse = assertIs<ExecuteAppFunctionResponse.Success>(response)
+        val expectedNote =
+            Note(
+                title = "Test Title",
+                content = listOf("1", "2"),
+                owner = Owner("test"),
+                attachments = listOf(Attachment("Uri1", Attachment("nested")))
+            )
+        assertThat(
+                successResponse.returnValue
+                    .getAppFunctionData(ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE)
+                    ?.deserialize(Note::class.java)
+            )
+            .isEqualTo(expectedNote)
+    }
+
+    @Test
+    fun executeAppFunction_createNote_withOpenableCapability_returnsOpenableNote() = doBlocking {
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        context.packageName,
+                        TestFunctionsIds.GET_OPENABLE_NOTE_ID,
+                        AppFunctionData.Builder("")
+                            .setAppFunctionData(
+                                "createNoteParams",
+                                AppFunctionData.serialize(
+                                    CreateNoteParams(
+                                        title = "Test Title",
+                                        content = listOf("1", "2"),
+                                        owner = Owner("test"),
+                                        attachments =
+                                            listOf(Attachment("Uri1", Attachment("nested")))
+                                    ),
+                                    CreateNoteParams::class.java
+                                )
+                            )
+                            .build()
+                    )
+            )
+
+        val successResponse = assertIs<ExecuteAppFunctionResponse.Success>(response)
+        val expectedNote =
+            Note(
+                title = "Test Title",
+                content = listOf("1", "2"),
+                owner = Owner("test"),
+                attachments = listOf(Attachment("Uri1", Attachment("nested"))),
+            )
+        val openableNoteResult =
+            assertIs<OpenableNote>(
+                successResponse.returnValue
+                    .getAppFunctionData(ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE)
+                    ?.deserialize(OpenableNote::class.java)
+            )
+
+        assertThat(openableNoteResult.title).isEqualTo(expectedNote.title)
+        assertThat(openableNoteResult.content).isEqualTo(expectedNote.content)
+        assertThat(openableNoteResult.owner).isEqualTo(expectedNote.owner)
+        assertThat(openableNoteResult.attachments).isEqualTo(expectedNote.attachments)
+        assertThat(openableNoteResult.intentToOpen).isNotNull()
+    }
+
+    @Test
+    fun executeAppFunction_serializableProxyParam_dateTime_success() = doBlocking {
+        val localDateTimeClass = DateTime(LocalDateTime.now())
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        targetPackageName = context.packageName,
+                        functionIdentifier = TestFunctionsIds.LOG_LOCAL_DATE_TIME_ID,
+                        functionParameters =
+                            AppFunctionData.Builder("")
+                                .setAppFunctionData(
+                                    "dateTime",
+                                    AppFunctionData.serialize(
+                                        localDateTimeClass,
+                                        DateTime::class.java
+                                    )
+                                )
+                                .build()
+                    )
+            )
+
+        assertIs<ExecuteAppFunctionResponse.Success>(response)
+    }
+
+    @Test
+    fun executeAppFunction_serializableProxyParam_androidUri_success() = doBlocking {
+        val androidUri = Uri.parse("https://www.google.com/")
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        targetPackageName = context.packageName,
+                        functionIdentifier = TestFunctions2Ids.LOG_URI_ID,
+                        functionParameters =
+                            AppFunctionData.Builder("")
+                                .setAppFunctionData(
+                                    "androidUri",
+                                    AppFunctionData.serialize(androidUri, Uri::class.java)
+                                )
+                                .build()
+                    )
+            )
+
+        assertIs<ExecuteAppFunctionResponse.Success>(response)
+    }
+
+    @Test
+    fun executeAppFunction_serializableProxyResponse_dateTime_success() = doBlocking {
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        targetPackageName = context.packageName,
+                        functionIdentifier = TestFunctionsIds.GET_LOCAL_DATE_ID,
+                        functionParameters = AppFunctionData.Builder("").build()
+                    )
+            )
+
+        val successResponse = assertIs<ExecuteAppFunctionResponse.Success>(response)
+
+        assertIs<LocalDateTime>(
+            successResponse.returnValue
+                .getAppFunctionData(ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE)
+                ?.deserialize(DateTime::class.java)
+                ?.localDateTime
+        )
+    }
+
+    @Test
+    fun executeAppFunction_serializableProxyResponse_androidUri_success() = doBlocking {
+        val response =
+            appFunctionManager.executeAppFunction(
+                request =
+                    ExecuteAppFunctionRequest(
+                        targetPackageName = context.packageName,
+                        functionIdentifier = TestFunctions2Ids.GET_URI_ID,
+                        functionParameters = AppFunctionData.Builder("").build()
+                    )
+            )
+
+        val successResponse = assertIs<ExecuteAppFunctionResponse.Success>(response)
+
+        val androidUriResult =
+            assertIs<Uri>(
+                successResponse.returnValue
+                    .getAppFunctionData(ExecuteAppFunctionResponse.Success.PROPERTY_RETURN_VALUE)
+                    ?.deserialize(Uri::class.java)
+            )
+        assertThat(androidUriResult.toString()).isEqualTo("https://www.google.com/")
+    }
+
     private suspend fun awaitAppFunctionsIndexed(expectedFunctionIds: Set<String>) {
         retryAssert {
-            val functionIds = AppSearchMetadataHelper.collectSelfFunctionIds(targetContext)
+            val functionIds = AppSearchMetadataHelper.collectSelfFunctionIds(context)
             assertThat(functionIds).containsAtLeastElementsIn(expectedFunctionIds)
         }
     }
@@ -240,8 +427,13 @@ class IntegrationTest {
                 TestFunctionsIds.DO_THROW_ID,
                 TestFunctionsIds.VOID_FUNCTION_ID,
                 TestFunctionsIds.CREATE_NOTE_ID,
+                TestFunctionsIds.LOG_LOCAL_DATE_TIME_ID,
+                TestFunctionsIds.GET_LOCAL_DATE_ID,
+                TestFunctionsIds.GET_OPENABLE_NOTE_ID,
                 TestFactoryIds.IS_CREATED_BY_FACTORY_ID,
-                TestFunctions2Ids.CONCAT_ID
+                TestFunctions2Ids.CONCAT_ID,
+                TestFunctions2Ids.LOG_URI_ID,
+                TestFunctions2Ids.GET_URI_ID,
             )
     }
 }

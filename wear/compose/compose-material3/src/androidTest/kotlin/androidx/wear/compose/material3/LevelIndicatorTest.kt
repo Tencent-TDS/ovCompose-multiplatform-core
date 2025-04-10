@@ -17,7 +17,6 @@
 package androidx.wear.compose.material3
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +31,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,7 +55,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).assertExists()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_stepperlevelindicator_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -68,7 +68,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_levelindicator_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -80,7 +80,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_stepperlevelindicator_track_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -93,7 +93,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_levelindicator_track_correct_color() {
         var expectedColor: Color = Color.Unspecified
@@ -106,7 +106,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(expectedColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_stepperlevelindicator_indicator_custom_color() {
         val customColor = Color.Red
@@ -121,7 +121,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_levelindicator_custom_color() {
         val customColor = Color.Red
@@ -137,7 +137,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_stepperlevelindicator_track_custom_color() {
         val customColor = Color.Red
@@ -152,7 +152,7 @@ class LevelIndicatorTest {
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_levelindicator_track_custom_color() {
         val customColor = Color.Red

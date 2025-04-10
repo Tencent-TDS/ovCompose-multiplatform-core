@@ -135,6 +135,7 @@ class ComposeViewAdapterTest {
                     |<root>
                     .|LazyColumnPreview.kt:31
                     ..|LazyColumnPreview.kt:31
+                    ..|LazyColumnPreview.kt:31
                 """
                     .trimIndent(),
                 viewInfos.toDebugString { it.fileName == "LazyColumnPreview.kt" }.trimIndent()
@@ -154,6 +155,7 @@ class ComposeViewAdapterTest {
                 """
                     |<root>
                     .|LazyColumnPreview.kt:31
+                    ..|LazyColumnPreview.kt:31
                     ..|LazyColumnPreview.kt:31
                     ...|LazyColumnPreview.kt:31
                     ...|LazyColumnPreview.kt:31
@@ -181,8 +183,12 @@ class ComposeViewAdapterTest {
                     |<root>
                     .|LazyColumnPreview.kt:37
                     ..|LazyColumnPreview.kt:38
+                    ..|LazyColumnPreview.kt:38
                     ...|LazyColumnPreview.kt:41
                     ...|LazyColumnPreview.kt:42
+                    ...|LazyColumnPreview.kt:42
+                    ....|LazyColumnPreview.kt:42
+                    ....|LazyColumnPreview.kt:42
                     ....|LazyColumnPreview.kt:42
                     ....|LazyColumnPreview.kt:42
                     ....|LazyColumnPreview.kt:42

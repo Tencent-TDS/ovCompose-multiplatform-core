@@ -1744,10 +1744,10 @@ internal class TransparentObserverMutableSnapshot(
 
 /** A pseudo snapshot that doesn't introduce isolation but does introduce observers. */
 internal class TransparentObserverSnapshot(
-    private val previousSnapshot: Snapshot?,
+    private val parentSnapshot: Snapshot?,
     specifiedReadObserver: ((Any) -> Unit)?,
     private val mergeParentObservers: Boolean,
-    private val ownsPreviousSnapshot: Boolean
+    private val ownsParentSnapshot: Boolean
 ) :
     Snapshot(
         INVALID_SNAPSHOT,
@@ -1756,7 +1756,7 @@ internal class TransparentObserverSnapshot(
     override var readObserver: ((Any) -> Unit)? =
         mergedReadObserver(
             specifiedReadObserver,
-            previousSnapshot?.readObserver ?: globalSnapshot.readObserver,
+            parentSnapshot?.readObserver ?: globalSnapshot.readObserver,
             mergeParentObservers
         )
     override val writeObserver: ((Any) -> Unit)? = null
@@ -1766,13 +1766,13 @@ internal class TransparentObserverSnapshot(
     override val root: Snapshot = this
 
     private val currentSnapshot: Snapshot
-        get() = previousSnapshot ?: globalSnapshot
+        get() = parentSnapshot ?: globalSnapshot
 
     override fun dispose() {
         // Explicitly don't call super.dispose()
         disposed = true
-        if (ownsPreviousSnapshot) {
-            previousSnapshot?.dispose()
+        if (ownsParentSnapshot) {
+            parentSnapshot?.dispose()
         }
     }
 
@@ -1834,10 +1834,10 @@ private fun createTransparentSnapshotWithNoParentReadObserver(
         )
     } else {
         TransparentObserverSnapshot(
-            previousSnapshot = previousSnapshot,
+            parentSnapshot = previousSnapshot,
             specifiedReadObserver = readObserver,
             mergeParentObservers = false,
-            ownsPreviousSnapshot = ownsPreviousSnapshot
+            ownsParentSnapshot = ownsPreviousSnapshot
         )
     }
 
@@ -1887,7 +1887,7 @@ private val threadSnapshot = SnapshotThreadLocal<Snapshot>()
  */
 @PublishedApi internal val lock = makeSynchronizedObject()
 
-@Suppress("BanInlineOptIn")
+@Suppress("BanInlineOptIn", "LEAKED_IN_PLACE_LAMBDA", "WRONG_INVOCATION_KIND")
 @OptIn(ExperimentalContracts::class)
 @PublishedApi
 internal inline fun <T> sync(block: () -> T): T {

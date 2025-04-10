@@ -19,7 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.xr.scenecore.JxrPlatformAdapter.ExrImageResource as RtExrImage
+import androidx.xr.runtime.internal.ExrImageResource as RtExrImage
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import com.google.common.util.concurrent.ListenableFuture
 
 /** Interface for image formats in SceneCore. */
@@ -63,12 +64,6 @@ internal constructor(internal val image: RtExrImage, internal val session: Sessi
     }
 
     public companion object {
-        internal fun create(runtime: JxrPlatformAdapter, name: String): ExrImage {
-            val exrImageFuture = runtime.loadExrImageByAssetName(name)
-            // TODO: b/323022003 - Implement async loading of [ExrImage].
-            return ExrImage(exrImageFuture!!.get())
-        }
-
         // ResolvableFuture is marked as RestrictTo(LIBRARY_GROUP_PREFIX), which is intended for
         // classes
         // within AndroidX. We're in the process of migrating to AndroidX. Without suppressing this
@@ -79,10 +74,7 @@ internal constructor(internal val image: RtExrImage, internal val session: Sessi
             name: String,
             session: Session,
         ): ListenableFuture<ExrImage> {
-            return createExrImageFuture(
-                platformAdapter.loadExrImageByAssetNameSplitEngine(name)!!,
-                session,
-            )
+            return createExrImageFuture(platformAdapter.loadExrImageByAssetName(name), session)
         }
 
         @SuppressWarnings("RestrictTo")
@@ -93,21 +85,10 @@ internal constructor(internal val image: RtExrImage, internal val session: Sessi
             session: Session,
         ): ListenableFuture<ExrImage> {
             return createExrImageFuture(
-                platformAdapter.loadExrImageByByteArraySplitEngine(byteArray, assetKey)!!,
+                platformAdapter.loadExrImageByByteArray(byteArray, assetKey),
                 session,
             )
         }
-
-        /**
-         * Public factory function for an EXRImage, where the EXR is loaded from a local file.
-         *
-         * @param session The session to create the EXRImage in.
-         * @param name The path for an EXR image to be loaded
-         * @return an EXRImage instance.
-         */
-        @JvmStatic
-        public fun create(session: Session, name: String): ExrImage =
-            ExrImage.create(session.platformAdapter, name)
 
         /**
          * Public factory function for a preprocessed EXRImage, where the preprocessed EXRImage is
@@ -123,7 +104,7 @@ internal constructor(internal val image: RtExrImage, internal val session: Sessi
          */
         @MainThread
         @JvmStatic
-        public fun createFromPackage(session: Session, name: String): ListenableFuture<ExrImage> {
+        public fun create(session: Session, name: String): ListenableFuture<ExrImage> {
             return ExrImage.createAsync(session.platformAdapter, name, session)
         }
 
@@ -143,7 +124,7 @@ internal constructor(internal val image: RtExrImage, internal val session: Sessi
          */
         @MainThread
         @JvmStatic
-        public fun createFromPackage(
+        public fun create(
             session: Session,
             assetData: ByteArray,
             assetKey: String,

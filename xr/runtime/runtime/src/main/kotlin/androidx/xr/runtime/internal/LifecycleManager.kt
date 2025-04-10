@@ -29,12 +29,15 @@ public interface LifecycleManager {
      */
     public fun create()
 
+    /** The current state of the runtime configuration. */
+    public val config: Config
+
     /**
      * Sets or changes the configuration to use, which will affect the availability of properties or
      * features in other managers. It is necessary to have called [create] before calling this
      * method.
      */
-    public fun configure()
+    public fun configure(config: Config)
 
     /**
      * Resumes execution from a paused or init state. It is necessary to have called [create] before

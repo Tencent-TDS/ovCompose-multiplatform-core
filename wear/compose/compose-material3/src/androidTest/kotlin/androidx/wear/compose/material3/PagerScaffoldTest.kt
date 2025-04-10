@@ -36,6 +36,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.foundation.pager.HorizontalPager
 import androidx.wear.compose.foundation.pager.VerticalPager
 import androidx.wear.compose.foundation.pager.rememberPagerState
@@ -59,7 +60,7 @@ class PagerScaffoldTest {
         rule.onNodeWithTag(PAGER_SCAFFOLD_TAG).assertExists()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun horizontal_page_indicator_does_not_fade_out_when_animation_spec_set_to_null() {
         val pageIndicatorColor = Color.Blue
@@ -76,7 +77,7 @@ class PagerScaffoldTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun vertical_page_indicator_does_not_fade_out_when_animation_spec_set_to_null() {
         val pageIndicatorColor = Color.Blue
@@ -93,7 +94,7 @@ class PagerScaffoldTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun horizontal_page_indicator_fades_out_when_animation_spec_set() {
         val pageIndicatorColor = Color.Blue
@@ -110,7 +111,7 @@ class PagerScaffoldTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun vertical_page_indicator_fades_out_when_animation_spec_set() {
         val pageIndicatorColor = Color.Blue

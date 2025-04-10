@@ -80,21 +80,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** Short animation in milliseconds. */
-internal const val SHORT_ANIMATION = 50
-
-/** Flash animation length in milliseconds. */
-internal const val FLASH_ANIMATION = 100
-
-/** Rapid animation length in milliseconds. */
-internal const val RAPID_ANIMATION = 200
-
-/** Quick animation length in milliseconds. */
-internal const val QUICK_ANIMATION = 250
-
-/** Standard easing for Swipe To Reveal. */
-internal val STANDARD_IN_OUT = CubicBezierEasing(0.20f, 0.0f, 0.0f, 1.00f)
-
 /**
  * Different values that determine the state of the [SwipeToReveal] composable, reflected in
  * [RevealState.currentValue]. [RevealValue.Covered] is considered the default state where none of
@@ -938,3 +923,18 @@ private fun calculateVerticalOffsetBasedOnScreenPosition(
 }
 
 internal const val CustomTouchSlopMultiplier = 1.20f
+
+/** Short animation in milliseconds. */
+private const val SHORT_ANIMATION = 50
+
+/** Flash animation length in milliseconds. */
+private const val FLASH_ANIMATION = 100
+
+/** Rapid animation length in milliseconds. */
+private const val RAPID_ANIMATION = 200
+
+/** Quick animation length in milliseconds. */
+private const val QUICK_ANIMATION = 250
+
+/** Standard easing for Swipe To Reveal. */
+private val STANDARD_IN_OUT = CubicBezierEasing(0.20f, 0.0f, 0.0f, 1.00f)

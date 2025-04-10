@@ -19,7 +19,6 @@ package androidx.wear.compose.foundation.rotary
 import android.content.Context
 import android.os.Build
 import android.view.ViewConfiguration
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
@@ -44,6 +43,7 @@ import androidx.compose.ui.test.performRotaryScrollInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
@@ -142,7 +142,7 @@ class RotaryFlingHandlerTest {
         verify(mockViewConfiguration).scaledMinimumFlingVelocity
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Test
     @Config(sdk = [34])
     fun testFlingVelocityCalled_api34() {
@@ -166,7 +166,7 @@ class RotaryFlingHandlerTest {
         verify(mockViewConfiguration).getScaledMinimumFlingVelocity(any(), any(), any())
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Test
     @Config(sdk = [33])
     fun flingIsTriggered() = runTest {
@@ -222,7 +222,7 @@ class RotaryFlingHandlerTest {
         assert(beforeFlingCalled)
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     @Test
     @Config(sdk = [33])
     fun flingIsNotTriggered() = runTest {

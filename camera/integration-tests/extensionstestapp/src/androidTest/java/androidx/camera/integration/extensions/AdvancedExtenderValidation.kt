@@ -225,15 +225,18 @@ class AdvancedExtenderValidation(
     fun validateAvailableCharacteristicsKeyValuesSupport_sinceVersion_1_5() {
         // Runs the test only when the vendor library implementation is 1.5 or above
         assumeTrue(ExtensionVersion.getRuntimeVersion()!! >= Version.VERSION_1_5)
-        advancedImpl.availableCharacteristicsKeyValues.also {
-            // Also checks that CONTROL_ZOOM_RATIO_RANGE and CONTROL_AF_AVAILABLE_MODES should be
-            // contained at least.
-            assertThat(it)
-                .containsAtLeast(
-                    CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE,
-                    CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES
-                )
+        var zoomRatioRangeFound = false
+        var afAvailableModesFound = false
+        advancedImpl.availableCharacteristicsKeyValues.forEach {
+            when (it.first) {
+                CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE -> zoomRatioRangeFound = true
+                CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES -> afAvailableModesFound = true
+            }
         }
+        // Also checks that CONTROL_ZOOM_RATIO_RANGE and CONTROL_AF_AVAILABLE_MODES should be
+        // contained at least.
+        assertThat(zoomRatioRangeFound).isTrue()
+        assertThat(afAvailableModesFound).isTrue()
     }
 
     enum class SizeCategory {

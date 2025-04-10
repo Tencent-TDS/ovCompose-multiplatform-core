@@ -34,6 +34,10 @@ package androidx.xr.arcore {
     property public androidx.xr.runtime.internal.TrackingState trackingState;
   }
 
+  @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class AnchorCreateNotTracking extends androidx.xr.arcore.AnchorCreateResult {
+    ctor public AnchorCreateNotTracking();
+  }
+
   @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public final class AnchorCreateResourcesExhausted extends androidx.xr.arcore.AnchorCreateResult {
     ctor public AnchorCreateResourcesExhausted();
   }

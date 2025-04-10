@@ -19,7 +19,8 @@ package androidx.xr.scenecore
 import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.concurrent.futures.ResolvableFuture
-import androidx.xr.scenecore.JxrPlatformAdapter.GltfModelResource as RtGltfModel
+import androidx.xr.runtime.internal.GltfModelResource as RtGltfModel
+import androidx.xr.runtime.internal.JxrPlatformAdapter
 import com.google.common.util.concurrent.ListenableFuture
 
 /** Represents a 3D model in SceneCore. */
@@ -39,16 +40,6 @@ import com.google.common.util.concurrent.ListenableFuture
 public class GltfModel internal constructor(internal val model: RtGltfModel) : Model {
 
     public companion object {
-        @Deprecated(
-            message = "This function is deprecated, use createAsync() instead",
-            replaceWith = ReplaceWith("createAsync()"),
-        )
-        internal fun create(platformAdapter: JxrPlatformAdapter, name: String): GltfModel {
-            val gltfResourceFuture = platformAdapter.loadGltfByAssetName(name)
-            // TODO: b/320858652 - Implement async loading of GltfModel.
-            return GltfModel(gltfResourceFuture!!.get())
-        }
-
         // ResolvableFuture is marked as RestrictTo(LIBRARY_GROUP_PREFIX), which is intended for
         // classes
         // within AndroidX. We're in the process of migrating to AndroidX. Without suppressing this
@@ -58,7 +49,7 @@ public class GltfModel internal constructor(internal val model: RtGltfModel) : M
             platformAdapter: JxrPlatformAdapter,
             name: String,
         ): ListenableFuture<GltfModel> {
-            return createModelFuture(platformAdapter.loadGltfByAssetNameSplitEngine(name)!!)
+            return createModelFuture(platformAdapter.loadGltfByAssetName(name))
         }
 
         @SuppressWarnings("RestrictTo")
@@ -67,7 +58,7 @@ public class GltfModel internal constructor(internal val model: RtGltfModel) : M
             assetData: ByteArray,
             assetKey: String,
         ): ListenableFuture<GltfModel> {
-            return createModelFuture(platformAdapter.loadGltfByByteArray(assetData, assetKey)!!)
+            return createModelFuture(platformAdapter.loadGltfByByteArray(assetData, assetKey))
         }
 
         /**

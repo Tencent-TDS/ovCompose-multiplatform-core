@@ -16,11 +16,11 @@
 
 package androidx.wear.compose.material3
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.withInfiniteAnimationFrameMillis
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,26 +28,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.util.fastForEach
 import androidx.wear.compose.foundation.ScrollInfoProvider
-import kotlin.collections.find
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-internal class ScaffoldState(
-    internal val appScaffoldPresent: Boolean,
-    appTimeText: (@Composable (() -> Unit))? = null,
-) {
-    val fullScreenContent = FullScreenContent()
+internal class ScaffoldState(appTimeText: (@Composable (() -> Unit))? = null) {
     val screenContent = ScreenContent(appTimeText)
 
     /**
@@ -55,30 +55,6 @@ internal class ScaffoldState(
      * needed for transitions or other animations affecting the parent.
      */
     var parentScale = mutableFloatStateOf(1f)
-}
-
-/**
- * Manages an ordered list of full-screen composable content items. Used for displaying the full
- * screen content - such as various dialogs.
- */
-internal class FullScreenContent() {
-
-    fun addOrUpdateFullScreen(key: Any, content: @Composable () -> Unit) {
-        contentItems.apply {
-            find { it.key === key }?.let { it.content = content }
-                ?: add(FullScreenContentItem(key, content))
-        }
-    }
-
-    fun removeFullScreen(key: Any) {
-        contentItems.removeIf { it.key === key }
-    }
-
-    @Composable fun OverlayContent() = contentItems.forEach { it.content() }
-
-    @VisibleForTesting internal val contentItems = mutableStateListOf<FullScreenContentItem>()
-
-    internal data class FullScreenContentItem(val key: Any, var content: @Composable () -> Unit)
 }
 
 /**
@@ -194,6 +170,40 @@ internal fun AnimatedIndicator(
     }
 }
 
-internal val LocalScaffoldState = compositionLocalOf { ScaffoldState(appScaffoldPresent = false) }
+internal val LocalScaffoldState = compositionLocalOf { ScaffoldState() }
 
 private const val IDLE_DELAY = 2000L
+
+internal object AnimationCoordinator {
+    fun register() {
+        if (registeredCount.incrementAndGet() > 0) running = true
+    }
+
+    fun unregister() {
+        if (registeredCount.decrementAndGet() <= 0) running = false
+    }
+
+    /**
+     * The frame time in milliseconds in the calling context of frame dispatch. Used to coordinate
+     * animations. If animations are not running this will be Long.MAX_VALUE. Provided by
+     * [withInfiniteAnimationFrameMillis].
+     */
+    val frameMillis = mutableLongStateOf(Long.MAX_VALUE)
+
+    @Composable
+    fun Looper() {
+        LaunchedEffect(running) {
+            if (running) {
+                while (isActive && running) {
+                    withInfiniteAnimationFrameMillis { frameMillis.longValue = it }
+                }
+            } else {
+                // This should make all animations finish :)
+                frameMillis.longValue = Long.MAX_VALUE
+            }
+        }
+    }
+
+    private val registeredCount = AtomicInteger(0)
+    private var running by mutableStateOf(false)
+}

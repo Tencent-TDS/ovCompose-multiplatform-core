@@ -79,10 +79,8 @@ class ViewfinderViewBitmapTest(
         withTimeout(REQUEST_TIMEOUT) {
                 withContext(Dispatchers.Main) {
                     viewfinder.scaleType = scaleType
-                    viewfinder.requestSurfaceSession(
-                        viewfinderSurfaceRequest = surfaceRequest,
-                        transformationInfo = ANY_TRANSFORMATION_INFO
-                    )
+                    viewfinder.transformationInfo = ANY_TRANSFORMATION_INFO
+                    viewfinder.requestSurfaceSession(viewfinderSurfaceRequest = surfaceRequest)
                 }
             }
             .use { surfaceSession ->

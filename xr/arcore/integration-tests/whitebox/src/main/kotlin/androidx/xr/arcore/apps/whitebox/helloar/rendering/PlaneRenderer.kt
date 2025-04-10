@@ -25,6 +25,8 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.xr.arcore.Plane
 import androidx.xr.arcore.TrackingState
+import androidx.xr.runtime.Config
+import androidx.xr.runtime.PlaneTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.math.Pose
 import androidx.xr.runtime.math.Quaternion
@@ -42,7 +44,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /** Class that keeps track of planes rendered as GLTF models in a SceneCore session. */
-@Suppress("DEPRECATION")
 internal class PlaneRenderer(
     val session: Session,
     val renderSession: JxrCoreSession,
@@ -56,6 +57,7 @@ internal class PlaneRenderer(
     private lateinit var updateJob: CompletableJob
 
     override fun onResume(owner: LifecycleOwner) {
+        session.configure(Config(planeTracking = PlaneTrackingMode.HorizontalAndVertical))
         updateJob =
             SupervisorJob(
                 coroutineScope.launch { Plane.subscribe(session).collect { updatePlaneModels(it) } }
@@ -114,7 +116,7 @@ internal class PlaneRenderer(
                             updateViewText(view, plane, state)
                             if (counter > PANEL_RESIZE_UPDATE_COUNT) {
                                 val panelExtentsInPixels = convertMetersToPixels(state.extents)
-                                entity.setPixelDimensions(
+                                entity.setSizeInPixels(
                                     PixelDimensions(
                                         width = panelExtentsInPixels.x.toInt(),
                                         height = panelExtentsInPixels.y.toInt(),

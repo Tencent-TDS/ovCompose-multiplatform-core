@@ -3557,6 +3557,10 @@ private class MockOwner(
             override val underlyingMatrix: Matrix
                 get() = Matrix()
 
+            override var frameRate: Float = 0f
+
+            override var isFrameRateFromParent = false
+
             override fun inverseTransform(matrix: Matrix) {}
 
             override fun mapOffset(point: Offset, inverse: Boolean) = point

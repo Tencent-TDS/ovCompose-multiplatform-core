@@ -5,12 +5,14 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
+
+import androidx.build.KotlinTarget
 import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
 }
 
@@ -106,6 +108,8 @@ android {
 androidx {
     name = "AppCompat"
     type = SoftwareType.PUBLISHED_LIBRARY
+    //TODO(b/407507716): Target Kotlin 2 when support for it is stable in kapt
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2011"
     description = "Provides backwards-compatible implementations of UI-related Android SDK " +
             "functionality, including dark mode and Material theming."

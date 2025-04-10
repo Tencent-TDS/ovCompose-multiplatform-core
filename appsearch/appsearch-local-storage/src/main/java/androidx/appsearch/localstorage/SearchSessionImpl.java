@@ -406,23 +406,9 @@ class SearchSessionImpl implements AppSearchSession {
             getByDocumentIdAsync(@NonNull GetByDocumentIdRequest request) {
         Preconditions.checkNotNull(request);
         Preconditions.checkState(!mIsClosed, "AppSearchSession has already been closed");
-        return execute(() -> {
-            AppSearchBatchResult.Builder<String, GenericDocument> resultBuilder =
-                    new AppSearchBatchResult.Builder<>();
-
-            Map<String, List<String>> typePropertyPaths = request.getProjections();
-            for (String id : request.getIds()) {
-                try {
-                    GenericDocument document =
-                            mAppSearchImpl.getDocument(mPackageName, mDatabaseName,
-                                    request.getNamespace(), id, typePropertyPaths);
-                    resultBuilder.setSuccess(id, document);
-                } catch (Throwable t) {
-                    resultBuilder.setResult(id, throwableToFailedResult(t));
-                }
-            }
-            return resultBuilder.build();
-        });
+        return execute(() ->
+                mAppSearchImpl.batchGetDocuments(
+                        mPackageName, mDatabaseName, request, /*callerAccess=*/ null));
     }
 
     @Override

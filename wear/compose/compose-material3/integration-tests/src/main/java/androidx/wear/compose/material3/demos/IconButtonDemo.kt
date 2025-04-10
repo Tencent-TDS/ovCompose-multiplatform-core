@@ -101,6 +101,10 @@ fun IconButtonDemo() {
                 }
             }
         }
+        item { ListHeader { Text("Image") } }
+        item { IconButtonWithImageDemo() }
+        item { ListHeader { Text("AnimatedImage") } }
+        item { IconButtonWithAnimatedImageDemo() }
         item { ListHeader { Text("With onLongClick") } }
         item { IconButtonWithOnLongClickSample { showOnLongClickToast(context) } }
         item { ListHeader { Text("Animated") } }
@@ -146,37 +150,30 @@ fun IconButtonDemo() {
 }
 
 @Composable
-fun ImageButtonDemo() {
-    ScalingLazyDemo {
-        item { ListHeader { Text("Image Button") } }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButtonWithImageSample(
-                    painterResource(R.drawable.card_background),
-                    enabled = true,
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                IconButtonWithImageSample(
-                    painterResource(R.drawable.card_background),
-                    enabled = false
-                )
-            }
-        }
-        item { ListHeader { Text("Animated Shape") } }
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButtonWithImageSample(
-                    painterResource(R.drawable.card_background),
-                    enabled = true,
-                    shapes = IconButtonDefaults.animatedShapes()
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                IconButtonWithImageSample(
-                    painterResource(R.drawable.card_background),
-                    enabled = false,
-                )
-            }
-        }
+fun IconButtonWithImageDemo() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButtonWithImageSample(
+            painterResource(R.drawable.card_background),
+            enabled = true,
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        IconButtonWithImageSample(painterResource(R.drawable.card_background), enabled = false)
+    }
+}
+
+@Composable
+fun IconButtonWithAnimatedImageDemo() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButtonWithImageSample(
+            painterResource(R.drawable.card_background),
+            enabled = true,
+            shapes = IconButtonDefaults.animatedShapes()
+        )
+        Spacer(modifier = Modifier.width(5.dp))
+        IconButtonWithImageSample(
+            painterResource(R.drawable.card_background),
+            enabled = false,
+        )
     }
 }
 

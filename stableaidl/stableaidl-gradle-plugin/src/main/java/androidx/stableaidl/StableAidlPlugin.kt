@@ -17,6 +17,7 @@
 package androidx.stableaidl
 
 import androidx.stableaidl.api.StableAidlExtension
+import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.SdkComponents
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.DslExtension
@@ -51,17 +52,32 @@ abstract class StableAidlPlugin : Plugin<Project> {
         }
     }
 
-    @Suppress("UnstableApiUsage") // for SdkComponents.getAidl(), Aidl, and DSL extension methods
+    // Suppress UnstableApiUsage for SdkComponents.getAidl(), Aidl, and DSL extension methods
+    @Suppress("UnstableApiUsage")
     private fun applyAfterAgp(project: Project) {
         val androidComponents = project.extensions.getByType(AndroidComponentsExtension::class.java)
-
         val extension =
             project.extensions.create(EXTENSION_NAME, StableAidlExtensionImpl::class.java)
 
+        // Tests using `ProjectSetupRule` don't populate `compileSdk`, so we use a CLI property.
+        val compileSdk =
+            project.extensions.getByType(CommonExtension::class.java).compileSdk
+                ?: project.providers.gradleProperty("stableaidl.compilesdk").orNull?.toInt()
+                ?: throw RuntimeException("Failed to obtain compile SDK")
+
         val aidl = androidComponents.sdkComponents.aidl.get()
         val aidlExecutable = aidl.executable
-        val aidlFramework = aidl.framework
         val aidlVersion = aidl.version
+
+        // The framework supports Stable AIDL definitions starting in SDK 36. Prior to that, we'll
+        // need to use manually-defined stubs.
+        val aidlFramework = project.objects.fileProperty()
+        val shadowFramework = project.objects.directoryProperty()
+        if (compileSdk >= 36) {
+            aidlFramework.set(aidl.framework)
+        } else {
+            shadowFramework.set(extension.shadowFrameworkDir)
+        }
 
         // Extend the android sourceSet.
         androidComponents.registerSourceType(SOURCE_TYPE_STABLE_AIDL)
@@ -96,6 +112,7 @@ abstract class StableAidlPlugin : Plugin<Project> {
                     variant,
                     aidlExecutable,
                     aidlFramework,
+                    shadowFramework,
                     aidlVersion,
                     sourceDir,
                     packagedDir,
@@ -114,6 +131,7 @@ abstract class StableAidlPlugin : Plugin<Project> {
                     variant,
                     aidlExecutable,
                     aidlFramework,
+                    shadowFramework,
                     aidlVersion,
                     sourceDir,
                     importsDir,
@@ -127,6 +145,7 @@ abstract class StableAidlPlugin : Plugin<Project> {
                     variant,
                     aidlExecutable,
                     aidlFramework,
+                    shadowFramework,
                     importsDir,
                     depImports,
                     frozenApiDir,
@@ -138,6 +157,7 @@ abstract class StableAidlPlugin : Plugin<Project> {
                     variant,
                     aidlExecutable,
                     aidlFramework,
+                    shadowFramework,
                     importsDir,
                     depImports,
                     frozenApiDir,

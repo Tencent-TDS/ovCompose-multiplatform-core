@@ -206,6 +206,13 @@ class AppCompatDelegateImpl extends AppCompatDelegate
 
     ActionMode mActionMode;
     ActionBarContextView mActionModeView;
+
+    // Paddings loaded from R.attr.actionModeStyle.
+    private int mActionModeViewInternalPaddingLeft;
+    private int mActionModeViewInternalPaddingTop;
+    private int mActionModeViewInternalPaddingRight;
+    private int mActionModeViewInternalPaddingBottom;
+
     PopupWindow mActionModePopup;
     Runnable mShowActionModePopup;
     ViewPropertyAnimatorCompat mFadeAnim = null;
@@ -1370,6 +1377,12 @@ class AppCompatDelegateImpl extends AppCompatDelegate
                         mActionModeView = (ActionBarContextView) stub.inflate();
                     }
                 }
+                if (mActionModeView != null) {
+                    mActionModeViewInternalPaddingLeft = mActionModeView.getPaddingLeft();
+                    mActionModeViewInternalPaddingTop = mActionModeView.getPaddingTop();
+                    mActionModeViewInternalPaddingRight = mActionModeView.getPaddingRight();
+                    mActionModeViewInternalPaddingBottom = mActionModeView.getPaddingBottom();
+                }
             }
 
             if (mActionModeView != null) {
@@ -2313,23 +2326,22 @@ class AppCompatDelegateImpl extends AppCompatDelegate
                         mTempRect1 = new Rect();
                         mTempRect2 = new Rect();
                     }
-                    final Rect newPadding = mTempRect1;
+                    final Rect systemWindowInsets = mTempRect1;
                     final Rect rect = mTempRect2;
                     final Insets navBarInsets;
                     if (insets == null) {
-                        newPadding.set(rectInsets);
+                        systemWindowInsets.set(rectInsets);
                         navBarInsets = Insets.NONE;
                     } else {
-                        newPadding.set(
+                        systemWindowInsets.set(
                                 insets.getSystemWindowInsetLeft(),
                                 insets.getSystemWindowInsetTop(),
                                 insets.getSystemWindowInsetRight(),
                                 insets.getSystemWindowInsetBottom());
-                        navBarInsets = insets.getInsets(
-                                WindowInsetsCompat.Type.navigationBars());
+                        navBarInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
                     }
 
-                    ViewUtils.computeFitSystemWindows(mSubDecor, newPadding, rect);
+                    ViewUtils.computeFitSystemWindows(mSubDecor, systemWindowInsets, rect);
                     final Insets newMargin = inset(
                             navBarInsets, rect.left, rect.top, rect.right, rect.bottom);
 
@@ -2340,16 +2352,18 @@ class AppCompatDelegateImpl extends AppCompatDelegate
                     }
 
                     mActionModeView.setPadding(
-                            newPadding.left - newMargin.left,
-                            newPadding.top,
-                            newPadding.right - newMargin.right,
-                            0);
+                            mActionModeViewInternalPaddingLeft + systemWindowInsets.left
+                                    - newMargin.left,
+                            mActionModeViewInternalPaddingTop + systemWindowInsets.top,
+                            mActionModeViewInternalPaddingRight + systemWindowInsets.right
+                                    - newMargin.right,
+                            mActionModeViewInternalPaddingBottom);
 
                     // We only need to consume the insets if the action
                     // mode is overlaid on the app content (e.g. it's
                     // sitting in a FrameLayout, see
                     // screen_simple_overlay_action_mode.xml).
-                    if (!mOverlayActionMode && newPadding.top > 0) {
+                    if (!mOverlayActionMode && systemWindowInsets.top > 0) {
                         systemWindowInsetTop = 0;
                     }
                 }

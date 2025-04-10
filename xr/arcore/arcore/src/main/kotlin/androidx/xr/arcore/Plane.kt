@@ -17,6 +17,7 @@
 package androidx.xr.arcore
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.PlaneTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.internal.Anchor as RuntimeAnchor
 import androidx.xr.runtime.internal.AnchorResourcesExhaustedException
@@ -39,10 +40,18 @@ internal constructor(
 ) : Trackable<Plane.State>, Updatable {
 
     public companion object {
-        /** Emits the planes that are currently being tracked in the [session]. */
+        /**
+         * Emits the planes that are currently being tracked in the [session].
+         *
+         * @throws [IllegalStateException] if [PlaneTrackingMode] is set to Disabled.
+         */
         @JvmStatic
-        public fun subscribe(session: Session): StateFlow<Collection<Plane>> =
-            session.state
+        public fun subscribe(session: Session): StateFlow<Collection<Plane>> {
+            check(session.config.planeTracking != PlaneTrackingMode.Disabled) {
+                "Config.PlaneTrackingMode is set to Disabled."
+            }
+
+            return session.state
                 .transform { state ->
                     state.perceptionState?.let { perceptionState ->
                         emit(perceptionState.trackables.filterIsInstance<Plane>())
@@ -54,6 +63,7 @@ internal constructor(
                     session.state.value.perceptionState?.trackables?.filterIsInstance<Plane>()
                         ?: emptyList(),
                 )
+        }
     }
 
     /**
@@ -167,7 +177,19 @@ internal constructor(
     public val type: Type
         get() = typeFromRuntimeType()
 
+    /**
+     * Creates an [Anchor] that is attached to this trackable, using the given initial [pose] in the
+     * world coordinate space.
+     *
+     * @throws [IllegalStateException] if [PlaneTrackingMode] is set to Disabled.
+     */
     override fun createAnchor(pose: Pose): AnchorCreateResult {
+        check(
+            xrResourceManager.lifecycleManager.config.planeTracking != PlaneTrackingMode.Disabled
+        ) {
+            "Config.PlaneTrackingMode is set to Disabled."
+        }
+
         val runtimeAnchor: RuntimeAnchor
         try {
             runtimeAnchor = runtimePlane.createAnchor(pose)

@@ -111,6 +111,7 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf()) :
         var sessionOpenedLatch = CountDownLatch(1)
         var shortestGapBetweenUiChangeEvents = Long.MAX_VALUE
         var supportedSignalOptions: Set<String>? = null
+        private var hasReceivedFirstUiChangeLatch = CountDownLatch(1)
         private var notifyUiChangedLatch: CountDownLatch = CountDownLatch(1)
         private var latestUiChange: Bundle = Bundle()
         private var hasReceivedFirstUiChange = false
@@ -148,6 +149,7 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf()) :
                     )
             }
             hasReceivedFirstUiChange = true
+            hasReceivedFirstUiChangeLatch.countDown()
             timeReceivedLastUiChange = SystemClock.elapsedRealtime()
             latestUiChange = uiContainerInfo
             notifyUiChangedLatch.countDown()
@@ -161,6 +163,11 @@ class TestSandboxedUiAdapter(private val signalOptions: Set<String> = setOf()) :
         fun assertNoSubsequentUiChanges() {
             notifyUiChangedLatch = CountDownLatch(1)
             Truth.assertThat(notifyUiChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        }
+
+        fun assertFirstUiChangeReceived() {
+            Truth.assertThat(hasReceivedFirstUiChangeLatch.await(TIMEOUT, TimeUnit.MILLISECONDS))
+                .isTrue()
         }
 
         /**

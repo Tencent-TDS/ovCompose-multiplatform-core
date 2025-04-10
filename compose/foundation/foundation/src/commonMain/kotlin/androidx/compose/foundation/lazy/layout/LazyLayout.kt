@@ -65,7 +65,11 @@ fun LazyLayout(
             DisposableEffect(prefetchState, itemContentFactory, subcomposeLayoutState, executor) {
                 prefetchState.prefetchHandleProvider =
                     PrefetchHandleProvider(itemContentFactory, subcomposeLayoutState, executor)
-                onDispose { prefetchState.prefetchHandleProvider = null }
+                onDispose {
+                    // clean up prefetch handle provider
+                    prefetchState.prefetchHandleProvider?.onDisposed()
+                    prefetchState.prefetchHandleProvider = null
+                }
             }
         }
 

@@ -17,7 +17,6 @@
 package androidx.appfunctions.internal
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.appfunctions.AppFunctionAppUnknownException
 import androidx.appfunctions.ExecuteAppFunctionResponse
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
@@ -35,7 +34,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @RunWith(TestParameterInjector::class)
 class AppFunctionResponseMetadataReturnValueBuilderTest {

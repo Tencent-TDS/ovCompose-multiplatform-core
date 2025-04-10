@@ -22,8 +22,9 @@ package androidx.xr.scenecore
 import android.app.Activity
 import android.os.Bundle
 import androidx.annotation.RestrictTo
-import androidx.xr.scenecore.JxrPlatformAdapter.Entity as RtEntity
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialCapabilities as RtSpatialCapabilities
+import androidx.xr.runtime.internal.Entity as RtEntity
+import androidx.xr.runtime.internal.SpatialCapabilities as RtSpatialCapabilities
+import androidx.xr.runtime.internal.SpatialVisibility as RtSpatialVisibility
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.Executor
@@ -186,3 +187,69 @@ public fun <T : Entity> Session.getEntitiesOfType(type: Class<out T>): List<T> =
 internal fun Session.getEntityForRtEntity(entity: RtEntity): Entity? {
     return entityManager.getEntityForRtEntity(entity)
 }
+
+/**
+ * Sets the listener to be invoked when the spatial visibility of the rendered content of the entire
+ * scene (all entities, including children of anchors and activitySpace) changes within the user's
+ * field of view.
+ *
+ * <p> This API only checks if the bounds of the renderable content are within the user's field of
+ * view. It does not check if the rendered content is visible to the user. For example, if the user
+ * is looking straight ahead, and there's only a single invisible child entity (alpha = 0) in front
+ * of the user, this API will return SpatialVisibility.WITHIN_FOV even though the user cannot see
+ * anything.
+ *
+ * <p>The listener is invoked on the provided executor. If the app intends to modify the UI
+ * elements/views during the callback, the app should provide the thread executor that is
+ * appropriate for the UI operations. For example, if the app is using the main thread to render the
+ * UI, the app should provide the main thread (Looper.getMainLooper()) executor. If the app is using
+ * a separate thread to render the UI, the app should provide the executor for that thread.
+ *
+ * <p> There can only be one listener set at a time. If a new listener is set, the previous listener
+ * will be released.
+ *
+ * @param callbackExecutor The executor to run the listener on.
+ * @param listener The [Consumer] to be invoked asynchronously on the given callbackExecutor
+ *   whenever the spatial visibility of the renderable content changes. The parameter passed to the
+ *   Consumer’s accept method is the new value for [SpatialVisibility].
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public fun Session.setSpatialVisibilityChangedListener(
+    callbackExecutor: Executor,
+    listener: Consumer<SpatialVisibility>,
+): Unit {
+    // Wrap client's listener in a callback that converts the platformAdapter's SpatialVisibility.
+    val rtListener =
+        Consumer<RtSpatialVisibility> { rtVisibility: RtSpatialVisibility ->
+            listener.accept(rtVisibility.toSpatialVisibility())
+        }
+    platformAdapter.setSpatialVisibilityChangedListener(callbackExecutor, rtListener)
+}
+
+/**
+ * Sets the listener to be invoked on the main thread executor when the spatial visibility of the
+ * rendered content of the entire scene (all entities, including children of anchors and
+ * activitySpace) changes within the user's field of view.
+ *
+ * <p> This API only checks if the bounds of the renderable content are within the user's field of
+ * view. It does not check if the rendered content is visible to the user. For example, if the user
+ * is looking straight ahead, and there's only a single invisible child entity (alpha = 0) in front
+ * of the user, this API will return SpatialVisibility.WITHIN_FOV even though the user cannot see
+ * anything.
+ *
+ * <p> There can only be one listener set at a time. If a new listener is set, the previous listener
+ * will be released.
+ *
+ * @param listener The [Consumer] to be invoked asynchronously on the main thread whenever the
+ *   spatial visibility of the renderable content changes. The parameter passed to the Consumer’s
+ *   accept method is the new value for [SpatialVisibility].
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public fun Session.setSpatialVisibilityChangedListener(
+    listener: Consumer<SpatialVisibility>
+): Unit = setSpatialVisibilityChangedListener(HandlerExecutor.mainThreadExecutor, listener)
+
+/** Releases the listener previously added by [setSpatialVisibilityChangedListener]. */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+public fun Session.clearSpatialVisibilityChangedListener(): Unit =
+    platformAdapter.clearSpatialVisibilityChangedListener()

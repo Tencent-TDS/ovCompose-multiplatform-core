@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.adaptive.navigationsuite.samples.NavigationSuiteScaffoldCustomConfigSample
-import androidx.compose.material3.adaptive.navigationsuite.samples.NavigationSuiteScaffoldCustomNavigationRail
 import androidx.compose.material3.adaptive.navigationsuite.samples.NavigationSuiteScaffoldSample
 import androidx.compose.material3.adaptive.samples.ListDetailPaneScaffoldSample
 import androidx.compose.material3.adaptive.samples.ListDetailPaneScaffoldSampleWithExtraPane
@@ -91,6 +90,7 @@ import androidx.compose.material3.samples.ExpandableVerticalFloatingToolbarSampl
 import androidx.compose.material3.samples.ExposedDropdownMenuSample
 import androidx.compose.material3.samples.ExtendedFloatingActionButtonSample
 import androidx.compose.material3.samples.ExtendedFloatingActionButtonTextSample
+import androidx.compose.material3.samples.ExtraSmallNarrowSquareIconButtonsSample
 import androidx.compose.material3.samples.FadingHorizontalMultiBrowseCarouselSample
 import androidx.compose.material3.samples.FancyIndicatorContainerTabs
 import androidx.compose.material3.samples.FancyIndicatorTabs
@@ -263,7 +263,6 @@ import androidx.compose.material3.samples.WideNavigationRailResponsiveSample
 import androidx.compose.material3.samples.XLargeButtonWithIconSample
 import androidx.compose.material3.samples.XLargeToggleButtonWithIconSample
 import androidx.compose.material3.samples.XSmallButtonWithIconSample
-import androidx.compose.material3.samples.XSmallNarrowSquareIconButtonsSample
 import androidx.compose.material3.samples.XSmallToggleButtonWithIconSample
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -1229,7 +1228,7 @@ val IconButtonExamples =
             description = IconButtonExampleDescription,
             sourceUrl = IconButtonExampleSourceUrl,
         ) {
-            XSmallNarrowSquareIconButtonsSample()
+            ExtraSmallNarrowSquareIconButtonsSample()
         },
         Example(
             name = "MediumRoundWideIconButtonSample",
@@ -1478,13 +1477,6 @@ val NavigationSuiteScaffoldExamples =
             sourceUrl = NavigationSuiteScaffoldExampleSourceUrl,
         ) {
             NavigationSuiteScaffoldCustomConfigSample()
-        },
-        Example(
-            name = "NavigationSuiteScaffoldCustomNavigationRail",
-            description = NavigationSuiteScaffoldExampleDescription,
-            sourceUrl = NavigationSuiteScaffoldExampleSourceUrl,
-        ) {
-            NavigationSuiteScaffoldCustomNavigationRail()
         },
     )
 

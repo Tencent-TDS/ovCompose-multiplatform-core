@@ -105,7 +105,7 @@ internal class ParticipantExtensionImpl(
     private val actionRemoteConnector: HashMap<Int, ActionConnector> = HashMap()
 
     override suspend fun updateParticipants(newParticipants: List<Participant>) {
-        participants.emit(newParticipants)
+        participants.emit(newParticipants.distinct())
     }
 
     override suspend fun updateActiveParticipant(participant: Participant?) {
@@ -251,7 +251,7 @@ internal class ParticipantExtensionImpl(
         Log.i(LOG_TAG, "onCreatePE: actions=$remoteActions")
 
         // Synchronize initial state with remote
-        val initParticipants = participants.value
+        val initParticipants = participants.value.distinct()
         val initActiveParticipant = activeParticipant.value
         binder.updateParticipants(initParticipants)
         if (initActiveParticipant != null && initParticipants.contains(initActiveParticipant)) {

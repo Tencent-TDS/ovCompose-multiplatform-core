@@ -77,8 +77,8 @@ import androidx.compose.ui.util.fastFirstOrNull
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m3.material.io/components/navigation-bar/overview" class="external"
- * target="_blank">Material Design bottom navigation bar</a>.
+ * [Material Design bottom navigation
+ * bar](https://m3.material.io/components/navigation-bar/overview)
  *
  * Navigation bars offer a persistent and convenient way to switch between primary destinations in
  * an app.

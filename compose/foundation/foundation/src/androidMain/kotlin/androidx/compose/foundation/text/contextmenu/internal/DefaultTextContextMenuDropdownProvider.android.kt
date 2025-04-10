@@ -26,9 +26,11 @@ import androidx.compose.foundation.text.contextmenu.data.TextContextMenuData
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuItem
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSeparator
 import androidx.compose.foundation.text.contextmenu.data.TextContextMenuSession
+import androidx.compose.foundation.text.contextmenu.provider.BasicTextContextMenuProvider
 import androidx.compose.foundation.text.contextmenu.provider.LocalTextContextMenuDropdownProvider
 import androidx.compose.foundation.text.contextmenu.provider.ProvideBasicTextContextMenu
 import androidx.compose.foundation.text.contextmenu.provider.TextContextMenuDataProvider
+import androidx.compose.foundation.text.contextmenu.provider.basicTextContextMenuProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -78,6 +80,12 @@ internal fun ProvideDefaultTextContextMenuDropdown(
         content = content
     )
 }
+
+@Composable
+internal fun defaultTextContextMenuDropdown(): BasicTextContextMenuProvider =
+    basicTextContextMenuProvider { session, dataProvider, anchorLayoutCoordinates ->
+        OpenContextMenu(session, dataProvider, anchorLayoutCoordinates)
+    }
 
 private val DefaultPopupProperties = PopupProperties(focusable = true)
 

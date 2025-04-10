@@ -18,9 +18,9 @@ package androidx.datastore
 
 import android.content.Context
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.datastore.core.deviceProtectedDataStoreFile
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import java.io.File
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,7 +32,7 @@ import org.junit.rules.TemporaryFolder
 
 @ExperimentalCoroutinesApi
 // A call to deviceProtectedDataStore requires a min SKD level of 24
-@RequiresApi(Build.VERSION_CODES.N)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
 class DeviceProtectedDataStoreDelegateTest {
     private val deviceEncryptedFileName = "deviceStorage"
     val Context.deviceEncryptedDs by

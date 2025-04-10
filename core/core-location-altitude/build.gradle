@@ -21,14 +21,13 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.BundleInsideHelper
-import androidx.build.KotlinTarget
+
 import androidx.build.SoftwareType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -46,8 +45,8 @@ dependencies {
     implementation(project(":core:core-location-altitude-proto"))
     implementation("androidx.core:core:1.13.0")
     implementation(project(":room:room-runtime"))
-    implementation(project(':room:room-common'))
-    implementation(project(':sqlite:sqlite'))
+    implementation(project(":room:room-common"))
+    implementation(project(":sqlite:sqlite"))
     implementation(libs.autoValueAnnotations)
     implementation(libs.kotlinStdlib)
 
@@ -67,5 +66,4 @@ androidx {
     mavenVersion = LibraryVersions.CORE_LOCATION_ALTITUDE
     inceptionYear = "2022"
     description = "Provides compatibility APIs concerning location altitudes."
-    kotlinTarget = KotlinTarget.KOTLIN_2_0
 }

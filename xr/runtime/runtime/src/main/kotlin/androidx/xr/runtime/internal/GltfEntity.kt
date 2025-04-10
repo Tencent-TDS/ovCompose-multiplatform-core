@@ -22,6 +22,9 @@ import androidx.annotation.RestrictTo
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public interface GltfEntity : Entity {
 
+    /** Returns the current animation state of the glTF entity. */
+    @AnimationState public val animationState: Int
+
     /**
      * Starts the animation with the given name.
      *
@@ -34,14 +37,19 @@ public interface GltfEntity : Entity {
     /** Stops the animation of the glTF entity. */
     public fun stopAnimation()
 
-    /** Returns the current animation state of the glTF entity. */
-    @AnimationState public val animationState: Int
+    /**
+     * Sets a material override for a mesh in the glTF model.
+     *
+     * @param material The material to use for the mesh.
+     * @param meshName The name of the mesh to use the material for.
+     */
+    public fun setMaterialOverride(material: MaterialResource, meshName: String)
 
     // TODO: b/362368652 - Add an OnAnimationFinished() Listener interface
     //                     Add a getAnimationTimeRemaining() interface
 
     /** Specifies the current animation state of the [GltfEntity]. */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
     public annotation class AnimationState {
         public companion object {
             public const val PLAYING: Int = 0

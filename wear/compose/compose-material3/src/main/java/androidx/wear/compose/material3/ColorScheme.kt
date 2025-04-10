@@ -220,6 +220,7 @@ public class ColorScheme(
     internal var defaultFilledTonalButtonColorsCached: ButtonColors? = null
     internal var defaultOutlinedButtonColorsCached: ButtonColors? = null
     internal var defaultChildButtonColorsCached: ButtonColors? = null
+    internal var defaultImageButtonColorsCached: ButtonColors? = null
 
     // Icon Button
     internal var defaultIconButtonColorsCached: IconButtonColors? = null
@@ -244,6 +245,7 @@ public class ColorScheme(
     // Card
     internal var defaultCardColorsCached: CardColors? = null
     internal var defaultOutlinedCardColorsCached: CardColors? = null
+    internal var defaultImageCardColorsCached: CardColors? = null
 
     // Toggle Button
     internal var defaultSwitchButtonColorsCached: SwitchButtonColors? = null

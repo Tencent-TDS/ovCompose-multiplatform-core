@@ -37,6 +37,7 @@ import android.view.ViewGroup.LayoutParams
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.ViewGroup.getChildMeasureSpec
+import android.view.ViewStructure
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityManager
 import android.view.animation.Interpolator
@@ -2143,25 +2144,23 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
 
             node.contentDescription = getDividerContentDescription()
 
-            if (dividerHasA11yFocus) {
-                if (!dividerAtLeftEdge) {
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
-                    if (isLayoutRtl) {
-                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
-                    } else {
-                        // In LTR layout, scroll backward goes to left
-                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
-                    }
+            if (!dividerAtLeftEdge) {
+                node.addAction(AccessibilityActionCompat.ACTION_SCROLL_LEFT)
+                if (isLayoutRtl) {
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
+                } else {
+                    // In LTR layout, scroll backward goes to left
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
                 }
+            }
 
-                if (!dividerAtRightEdge) {
-                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
-                    if (isLayoutRtl) {
-                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
-                    } else {
-                        // In LTR layout, scroll forward goes to right
-                        node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
-                    }
+            if (!dividerAtRightEdge) {
+                node.addAction(AccessibilityActionCompat.ACTION_SCROLL_RIGHT)
+                if (isLayoutRtl) {
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_BACKWARD)
+                } else {
+                    // In LTR layout, scroll forward goes to right
+                    node.addAction(AccessibilityActionCompat.ACTION_SCROLL_FORWARD)
                 }
             }
 
@@ -2215,6 +2214,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     }
                     android.R.id.accessibilityActionScrollLeft,
                     android.R.id.accessibilityActionScrollRight -> {
+                        if (!dividerHasA11yFocus) return false
                         userResizeBehavior.onAccessibilityResize(
                             this@SlidingPaneLayout,
                             direction =
@@ -2228,6 +2228,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
                     }
                     AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD,
                     AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD -> {
+                        if (!dividerHasA11yFocus) return false
                         val direction =
                             if (
                                 isLayoutRtl xor
@@ -2254,6 +2255,24 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) :
             }
             return super.findFocus(focus)
         }
+    }
+
+    // Don't provide virtual structure. This addresses 2 issues:
+    //
+    // 1. Avoid StackOverflowException in View#populateVirtualStructure from API 23 to 27 caused by
+    //  it missing check on whether the virtualView points to the host view. Without this check,
+    // `populateVirtualStructure` will stuck in a loop traversing the child and parent indefinitely.
+    //
+    // 2. Above API 28, children views' ViewStructure are not properly created.
+    // This is because ViewGroup#dispatchProvideStructure will first create ViewStructure
+    // based on the node info returned by AccessibilityProvider(in onProvideVirtualStructure). And
+    // if any view structure is created, ViewGroup#dispatchProvideStructure won't continue
+    // dispatchProvideStructure for child view. This works fine for Views whose children are either
+    // all virtual or all real. But it doesn't work for SlidingPaneLayout who has both virtual
+    // child (divider) and real children. We choose not to provide virtual structure so that real
+    // children's ViewStructure is properly created.
+    override fun onProvideVirtualStructure(structure: ViewStructure?) {
+        // left blank
     }
 
     /**

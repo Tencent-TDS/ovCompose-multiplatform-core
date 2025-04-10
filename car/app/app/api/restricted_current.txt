@@ -249,6 +249,7 @@ package androidx.car.app.features {
   public final class CarFeatures {
     method public static boolean isFeatureEnabled(android.content.Context, String);
     field public static final String FEATURE_BACKGROUND_AUDIO_WHILE_DRIVING = "com.android.car.background_audio_while_driving";
+    field public static final String FEATURE_CAR_APP_LIBRARY_MEDIA = "android.software.car.templates_host.media";
   }
 
 }

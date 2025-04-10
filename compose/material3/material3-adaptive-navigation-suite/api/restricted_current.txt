@@ -16,17 +16,26 @@ package androidx.compose.material3.adaptive.navigationsuite {
     method public long getNavigationDrawerContentColor();
     method public long getNavigationRailContainerColor();
     method public long getNavigationRailContentColor();
+    method public long getShortNavigationBarContainerColor();
+    method public long getShortNavigationBarContentColor();
+    method public androidx.compose.material3.WideNavigationRailColors getWideNavigationRailColors();
     property public long navigationBarContainerColor;
     property public long navigationBarContentColor;
     property public long navigationDrawerContainerColor;
     property public long navigationDrawerContentColor;
     property public long navigationRailContainerColor;
     property public long navigationRailContentColor;
+    property public long shortNavigationBarContainerColor;
+    property public long shortNavigationBarContentColor;
+    property public androidx.compose.material3.WideNavigationRailColors wideNavigationRailColors;
   }
 
   public final class NavigationSuiteDefaults {
-    method @androidx.compose.runtime.Composable public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors colors(optional long navigationBarContainerColor, optional long navigationBarContentColor, optional long navigationRailContainerColor, optional long navigationRailContentColor, optional long navigationDrawerContainerColor, optional long navigationDrawerContentColor);
+    method @androidx.compose.runtime.Composable public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors colors(optional long shortNavigationBarContentColor, optional long shortNavigationBarContainerColor, optional androidx.compose.material3.WideNavigationRailColors wideNavigationRailColors, optional long navigationBarContainerColor, optional long navigationBarContentColor, optional long navigationRailContainerColor, optional long navigationRailContentColor, optional long navigationDrawerContainerColor, optional long navigationDrawerContentColor);
+    method @Deprecated @androidx.compose.runtime.Composable public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors colors(optional long navigationBarContainerColor, optional long navigationBarContentColor, optional long navigationRailContainerColor, optional long navigationRailContentColor, optional long navigationDrawerContainerColor, optional long navigationDrawerContentColor);
+    method public androidx.compose.foundation.layout.Arrangement.Vertical getVerticalArrangement();
     method @androidx.compose.runtime.Composable public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteItemColors itemColors(optional androidx.compose.material3.NavigationBarItemColors navigationBarItemColors, optional androidx.compose.material3.NavigationRailItemColors navigationRailItemColors, optional androidx.compose.material3.NavigationDrawerItemColors navigationDrawerItemColors);
+    property public androidx.compose.foundation.layout.Arrangement.Vertical verticalArrangement;
     field public static final androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults INSTANCE;
   }
 
@@ -44,16 +53,23 @@ package androidx.compose.material3.adaptive.navigationsuite {
     method public String calculateFromAdaptiveInfo(androidx.compose.material3.adaptive.WindowAdaptiveInfo adaptiveInfo);
     method @androidx.compose.runtime.Composable public long getContainerColor();
     method @androidx.compose.runtime.Composable public long getContentColor();
+    method public androidx.compose.ui.Alignment.Horizontal getPrimaryActionContentAlignment();
+    method public String navigationSuiteType(androidx.compose.material3.adaptive.WindowAdaptiveInfo adaptiveInfo);
     property @androidx.compose.runtime.Composable public long containerColor;
     property @androidx.compose.runtime.Composable public long contentColor;
+    property public androidx.compose.ui.Alignment.Horizontal primaryActionContentAlignment;
     field public static final androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults INSTANCE;
   }
 
   public final class NavigationSuiteScaffoldKt {
     method @androidx.compose.runtime.Composable public static void NavigationSuite(optional androidx.compose.ui.Modifier modifier, optional String layoutType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors colors, kotlin.jvm.functions.Function1<? super androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope,kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void NavigationSuite(String navigationSuiteType, optional androidx.compose.ui.Modifier modifier, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors colors, optional androidx.compose.foundation.layout.Arrangement.Vertical verticalArrangement, optional kotlin.jvm.functions.Function0<kotlin.Unit> primaryActionContent, kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void NavigationSuiteItem(boolean selected, kotlin.jvm.functions.Function0<kotlin.Unit> onClick, kotlin.jvm.functions.Function0<kotlin.Unit> icon, kotlin.jvm.functions.Function0<kotlin.Unit>? label, optional androidx.compose.ui.Modifier modifier, optional String navigationSuiteType, optional boolean enabled, optional kotlin.jvm.functions.Function0<kotlin.Unit>? badge, optional androidx.compose.material3.NavigationItemColors? colors, optional androidx.compose.foundation.interaction.MutableInteractionSource? interactionSource);
+    method @androidx.compose.runtime.Composable public static void NavigationSuiteScaffold(kotlin.jvm.functions.Function0<kotlin.Unit> navigationItems, optional androidx.compose.ui.Modifier modifier, optional String navigationSuiteType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors navigationSuiteColors, optional long containerColor, optional long contentColor, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState state, optional androidx.compose.foundation.layout.Arrangement.Vertical navigationItemVerticalArrangement, optional kotlin.jvm.functions.Function0<kotlin.Unit> primaryActionContent, optional androidx.compose.ui.Alignment.Horizontal primaryActionContentHorizontalAlignment, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void NavigationSuiteScaffold(kotlin.jvm.functions.Function1<? super androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope,kotlin.Unit> navigationSuiteItems, optional androidx.compose.ui.Modifier modifier, optional String layoutType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors navigationSuiteColors, optional long containerColor, optional long contentColor, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState state, optional kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @Deprecated @androidx.compose.runtime.Composable public static void NavigationSuiteScaffold(kotlin.jvm.functions.Function1<? super androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope,kotlin.Unit> navigationSuiteItems, optional androidx.compose.ui.Modifier modifier, optional String layoutType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteColors navigationSuiteColors, optional long containerColor, optional long contentColor, optional kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @androidx.compose.runtime.Composable public static void NavigationSuiteScaffoldLayout(kotlin.jvm.functions.Function0<kotlin.Unit> navigationSuite, optional String layoutType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState state, optional kotlin.jvm.functions.Function0<kotlin.Unit> content);
+    method @androidx.compose.runtime.Composable public static void NavigationSuiteScaffoldLayout(kotlin.jvm.functions.Function0<kotlin.Unit> navigationSuite, String navigationSuiteType, optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState state, optional kotlin.jvm.functions.Function0<kotlin.Unit> primaryActionContent, optional androidx.compose.ui.Alignment.Horizontal primaryActionContentHorizontalAlignment, kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @Deprecated @androidx.compose.runtime.Composable public static void NavigationSuiteScaffoldLayout(kotlin.jvm.functions.Function0<kotlin.Unit> navigationSuite, optional String layoutType, optional kotlin.jvm.functions.Function0<kotlin.Unit> content);
     method @SuppressCompatibility @androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveComponentOverrideApi public static androidx.compose.runtime.ProvidableCompositionLocal<androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldOverride> getLocalNavigationSuiteScaffoldOverride();
     method @androidx.compose.runtime.Composable public static androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState rememberNavigationSuiteScaffoldState(optional androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue initialValue);
@@ -83,7 +99,7 @@ package androidx.compose.material3.adaptive.navigationsuite {
     property public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldState state;
   }
 
-  public interface NavigationSuiteScaffoldState {
+  @androidx.compose.runtime.Stable public interface NavigationSuiteScaffoldState {
     method public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue getCurrentValue();
     method public androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue getTargetValue();
     method public suspend Object? hide(kotlin.coroutines.Continuation<? super kotlin.Unit>);
@@ -114,10 +130,18 @@ package androidx.compose.material3.adaptive.navigationsuite {
     method public String getNavigationDrawer();
     method public String getNavigationRail();
     method public String getNone();
+    method public String getShortNavigationBarCompact();
+    method public String getShortNavigationBarMedium();
+    method public String getWideNavigationRailCollapsed();
+    method public String getWideNavigationRailExpanded();
     property public String NavigationBar;
     property public String NavigationDrawer;
     property public String NavigationRail;
     property public String None;
+    property public String ShortNavigationBarCompact;
+    property public String ShortNavigationBarMedium;
+    property public String WideNavigationRailCollapsed;
+    property public String WideNavigationRailExpanded;
   }
 
 }

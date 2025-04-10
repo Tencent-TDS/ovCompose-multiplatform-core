@@ -16,11 +16,9 @@
 
 package androidx.compose.ui.autofill
 
-import android.os.Build
 import android.util.SparseArray
 import android.view.View
 import android.view.autofill.AutofillValue
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.LocalAutofillHighlightColor
@@ -59,7 +57,6 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 26)
-@RequiresApi(Build.VERSION_CODES.O)
 class TextFieldsSemanticAutofillTest {
     @get:Rule val rule = createAndroidComposeRule<TestActivity>()
 

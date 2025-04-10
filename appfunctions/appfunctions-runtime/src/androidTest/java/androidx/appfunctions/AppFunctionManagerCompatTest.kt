@@ -16,33 +16,49 @@
 
 package androidx.appfunctions
 
+import android.Manifest
+import android.app.PendingIntent
+import android.app.UiAutomation
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageInstaller
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.appfunctions.core.AppFunctionMetadataTestHelper
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import java.io.InputStream
+import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
+import org.junit.After
+import org.junit.Assume.assumeNotNull
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.VANILLA_ICE_CREAM)
-@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 class AppFunctionManagerCompatTest {
 
-    private lateinit var context: Context
+    private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
 
-    private lateinit var metadataTestHelper: AppFunctionMetadataTestHelper
+    private val metadataTestHelper: AppFunctionMetadataTestHelper =
+        AppFunctionMetadataTestHelper(context)
 
     private lateinit var appFunctionManagerCompat: AppFunctionManagerCompat
+
+    private val uiAutomation: UiAutomation =
+        InstrumentationRegistry.getInstrumentation().uiAutomation
 
     private val testFunctionIds =
         setOf(
@@ -52,11 +68,14 @@ class AppFunctionManagerCompatTest {
 
     @Before
     fun setup() {
-        context = InstrumentationRegistry.getInstrumentation().targetContext
-        appFunctionManagerCompat = AppFunctionManagerCompat(context)
-        metadataTestHelper = AppFunctionMetadataTestHelper(context)
+        val appFunctionManagerCompatOrNull = AppFunctionManagerCompat.getInstance(context)
+        assumeNotNull(appFunctionManagerCompatOrNull)
+        appFunctionManagerCompat = checkNotNull(appFunctionManagerCompatOrNull)
 
-        assumeTrue(appFunctionManagerCompat.isSupported())
+        uiAutomation.adoptShellPermissionIdentity(
+            Manifest.permission.INSTALL_PACKAGES,
+            "android.permission.EXECUTE_APP_FUNCTIONS",
+        )
 
         runBlocking {
             metadataTestHelper.awaitAppFunctionIndexed(testFunctionIds)
@@ -69,6 +88,12 @@ class AppFunctionManagerCompatTest {
                 )
             }
         }
+    }
+
+    @After
+    fun tearDown() {
+        uiAutomation.dropShellPermissionIdentity()
+        uiAutomation.executeShellCommand("pm uninstall $ADDITIONAL_APP_PACKAGE")
     }
 
     @Test
@@ -273,12 +298,12 @@ class AppFunctionManagerCompatTest {
     @Test
     fun observeAppFunctions_packageListNotSetInSpec_returnsAllAppFunctions() =
         runBlocking<Unit> {
+            installApk(ADDITIONAL_APK_FILE)
             val searchFunctionSpec = AppFunctionSearchSpec()
 
             val appFunctions =
                 appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
 
-            // TODO: Populate other fields for legacy indexer.
             assertThat(appFunctions.map { it.id })
                 .containsExactly(
                     AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
@@ -288,25 +313,39 @@ class AppFunctionManagerCompatTest {
                     AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
                     AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
                     AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
-                )
-            // Only check for all fields when dynamic indexer is enabled.
-            assumeTrue(metadataTestHelper.isDynamicIndexerAvailable())
-            assertThat(appFunctions)
-                .containsExactly(
-                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_ENABLED_BY_DEFAULT,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_DISABLED_BY_DEFAULT,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA_PRINT,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.MEDIA_SCHEMA2_PRINT,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.NOTES_SCHEMA_PRINT,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_FAIL,
-                    AppFunctionMetadataTestHelper.FunctionMetadata.NO_SCHEMA_EXECUTION_SUCCEED,
+                    ADDITIONAL_APP_FUNCTION_ID
                 )
         }
 
-    // TODO(b/397396289) - Test package filter with multiple app installs.
+    @Test
+    fun observeAppFunctions_multiplePackagesSetInSpec_returnsAppFunctionsFromBoth() =
+        runBlocking<Unit> {
+            installApk(ADDITIONAL_APK_FILE)
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(
+                    packageNames = setOf(context.packageName, ADDITIONAL_APP_PACKAGE)
+                )
+
+            val appFunctions =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec).first()
+
+            assertThat(appFunctions.map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
+                    ADDITIONAL_APP_FUNCTION_ID
+                )
+        }
+
     @Test
     fun observeAppFunctions_packageListSetInSpec_returnsAppFunctionsInPackage() =
         runBlocking<Unit> {
+            installApk(ADDITIONAL_APK_FILE)
             val searchFunctionSpec =
                 AppFunctionSearchSpec(packageNames = setOf(context.packageName))
 
@@ -456,7 +495,6 @@ class AppFunctionManagerCompatTest {
             assertThat(appFunctionMetadata.isEnabled).isTrue()
         }
 
-    // TODO(b/397396289): Add test to check we don't trigger updates for unrelated changes.
     @Test
     fun observeAppFunctions_observeDocumentChanges_returnsListWithUpdatedValue() =
         runBlocking<Unit> {
@@ -544,4 +582,173 @@ class AppFunctionManagerCompatTest {
             assertThat(emittedValues.replayCache[1].single { it.id == functionIdToTest }.isEnabled)
                 .isTrue()
         }
+
+    @Test
+    fun observeAppFunctions_multiplePackageInstall_onlyObservesSpecifiedPackageUpdate() =
+        runBlocking<Unit> {
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(packageNames = setOf(context.packageName))
+            val appFunctionSearchFlow =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec)
+            val emittedValues =
+                appFunctionSearchFlow.shareIn(
+                    scope = CoroutineScope(Dispatchers.Default),
+                    started = SharingStarted.Eagerly,
+                    replay = 10,
+                )
+            emittedValues.first() // Allow emitting initial value and registering callback.
+
+            installApk(ADDITIONAL_APK_FILE)
+            delay(1000) // Avoid debounce
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_DISABLED
+            )
+
+            // Collect in a separate scope to avoid deadlock within the testcase.
+            runBlocking(Dispatchers.Default) { emittedValues.take(2).collect {} }
+            // Only 2 updates are emitted and update from other app is ignored.
+            assertThat(emittedValues.replayCache).hasSize(2)
+            assertThat(
+                    emittedValues.replayCache[1]
+                        .single {
+                            it.id ==
+                                AppFunctionMetadataTestHelper.FunctionIds
+                                    .NO_SCHEMA_ENABLED_BY_DEFAULT
+                        }
+                        .isEnabled
+                )
+                .isFalse()
+        }
+
+    @Test
+    fun observeAppFunctions_multiplePackagesInSpec_updatesEmittedForAllChanges() =
+        runBlocking<Unit> {
+            val searchFunctionSpec =
+                AppFunctionSearchSpec(
+                    packageNames = setOf(context.packageName, ADDITIONAL_APP_PACKAGE)
+                )
+            val appFunctionSearchFlow =
+                appFunctionManagerCompat.observeAppFunctions(searchFunctionSpec)
+            val emittedValues =
+                appFunctionSearchFlow.shareIn(
+                    scope = CoroutineScope(Dispatchers.Default),
+                    started = SharingStarted.Eagerly,
+                    replay = 10,
+                )
+            emittedValues.first() // Allow emitting initial value and registering callback.
+
+            installApk(ADDITIONAL_APK_FILE)
+            delay(1000) // Avoid debounce
+            appFunctionManagerCompat.setAppFunctionEnabled(
+                AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                AppFunctionManagerCompat.APP_FUNCTION_STATE_DISABLED
+            )
+
+            // Collect in a separate scope to avoid deadlock within the testcase.
+            runBlocking(Dispatchers.Default) { emittedValues.take(3).collect {} }
+            assertThat(emittedValues.replayCache).hasSize(3)
+            // First result only contains functions from first package.
+            assertThat(emittedValues.replayCache[0].map { it.id })
+                .containsExactly(
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_ENABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_DISABLED_BY_DEFAULT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.MEDIA_SCHEMA2_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NOTES_SCHEMA_PRINT,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_FAIL,
+                    AppFunctionMetadataTestHelper.FunctionIds.NO_SCHEMA_EXECUTION_SUCCEED,
+                )
+            // Second result contains functionId from additional app install as well.
+            assertThat(emittedValues.replayCache[1].map { it.id })
+                .contains(ADDITIONAL_APP_FUNCTION_ID)
+            // Third result has modified value of isEnabled from the original package.
+            assertThat(
+                    emittedValues.replayCache[2]
+                        .single {
+                            it.id ==
+                                AppFunctionMetadataTestHelper.FunctionIds
+                                    .NO_SCHEMA_ENABLED_BY_DEFAULT
+                        }
+                        .isEnabled
+                )
+                .isFalse()
+        }
+
+    private suspend fun installApk(apk: String) {
+        val installer = context.packageManager.packageInstaller
+        val sessionParams =
+            PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+
+        val sessionId = installer.createSession(sessionParams)
+
+        installer.openSession(sessionId).use { session ->
+            session.openWrite("apk_install", 0, -1).use { outputStream ->
+                getResourceAsStream(apk).transferTo(outputStream)
+            }
+
+            assertThat(session.commitSession()).isTrue()
+        }
+
+        metadataTestHelper.awaitAppFunctionIndexed(setOf(ADDITIONAL_APP_FUNCTION_ID))
+    }
+
+    fun getResourceAsStream(name: String): InputStream {
+        return checkNotNull(Thread.currentThread().contextClassLoader).getResourceAsStream(name)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun PackageInstaller.Session.commitSession(): Boolean {
+        val action = "com.example.COMMIT_COMPLETE.${System.currentTimeMillis()}"
+
+        return suspendCancellableCoroutine { continuation ->
+            val receiver =
+                object : BroadcastReceiver() {
+                    override fun onReceive(context: Context, intent: Intent) {
+                        context.unregisterReceiver(this)
+
+                        val status =
+                            intent.getIntExtra(
+                                PackageInstaller.EXTRA_STATUS,
+                                PackageInstaller.STATUS_FAILURE
+                            )
+                        val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
+
+                        if (status == PackageInstaller.STATUS_SUCCESS) {
+                            continuation.resume(true) {}
+                        } else {
+                            continuation.resumeWithException(
+                                Exception("Installation failed: $message")
+                            )
+                        }
+                    }
+                }
+
+            val filter = IntentFilter(action)
+            context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+
+            val intent = Intent(action).setPackage(context.packageName)
+            val sender =
+                PendingIntent.getBroadcast(
+                    context,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+
+            this.commit(sender.intentSender)
+
+            continuation.invokeOnCancellation {
+                // Unregister the receiver if the coroutine is cancelled
+                context.unregisterReceiver(receiver)
+            }
+        }
+    }
+
+    private companion object {
+        const val ADDITIONAL_APP_FUNCTION_ID =
+            "com.example.android.architecture.blueprints.todoapp#NoteFunctions_createNote"
+        const val ADDITIONAL_APK_FILE = "notes.apk"
+        const val ADDITIONAL_APP_PACKAGE = "com.google.android.app.notes"
+    }
 }

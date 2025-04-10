@@ -14,17 +14,19 @@
  * limitations under the License.
  */
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // b/407927787
 
 package androidx.compose.foundation.lazy.grid
 
 import androidx.compose.foundation.AutoTestFrameClock
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.R
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
+import androidx.compose.foundation.lazy.layout.TestPrefetchScheduler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
@@ -33,9 +35,11 @@ import androidx.compose.ui.layout.Remeasurement
 import androidx.compose.ui.layout.RemeasurementModifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth
@@ -64,7 +68,17 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     val itemsSizePx = 30
     val itemsSizeDp = with(rule.density) { itemsSizePx.toDp() }
 
-    private val parityWindow = LazyLayoutCacheWindow(ahead = itemsSizeDp)
+    private val parityWindow = ParityWindow()
+    private val scheduler = TestPrefetchScheduler()
+
+    class ParityWindow() : LazyLayoutCacheWindow {
+        var ahead = 0
+        var behind = 0
+
+        override fun Density.calculateAheadWindow(viewport: Int): Int = ahead
+
+        override fun Density.calculateBehindWindow(viewport: Int): Int = behind
+    }
 
     lateinit var state: LazyGridState
 
@@ -84,7 +98,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
 
     @Test
     fun notPrefetchingForwardInitially() {
-        composeGrid(cacheWindow = parityWindow)
+        composeGrid(cacheWindow = LazyLayoutCacheWindow(ahead = 0.dp))
 
         rule.onNodeWithTag("4").assertDoesNotExist()
     }
@@ -92,6 +106,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun notPrefetchingBackwardInitially() {
         composeGrid(cacheWindow = parityWindow, firstItem = 4)
+        parityWindow.ahead = itemsSizePx
 
         rule.onNodeWithTag("0").assertDoesNotExist()
     }
@@ -99,6 +114,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingForwardAfterSmallScroll() {
         composeGrid(cacheWindow = parityWindow)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
@@ -112,6 +128,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingBackwardAfterSmallScroll() {
         composeGrid(cacheWindow = parityWindow, firstItem = 4, itemOffset = 10)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(-5f) } }
 
@@ -125,6 +142,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingForwardAndBackward() {
         composeGrid(cacheWindow = parityWindow, firstItem = 2)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
@@ -151,6 +169,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingForwardTwice() {
         composeGrid(cacheWindow = parityWindow)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
@@ -173,6 +192,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingBackwardTwice() {
         composeGrid(cacheWindow = parityWindow, firstItem = 8)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(-5f) } }
 
@@ -196,6 +216,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun prefetchingForwardAndBackwardReverseLayout() {
         composeGrid(cacheWindow = parityWindow, firstItem = 2, reverseLayout = true)
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
@@ -230,6 +251,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
             itemOffset = 5,
             contentPadding = PaddingValues(mainAxis = halfItemSize)
         )
+        parityWindow.ahead = itemsSizePx
 
         rule.onNodeWithTag("2").assertIsDisplayed()
         rule.onNodeWithTag("4").assertIsDisplayed()
@@ -285,6 +307,8 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
             }
         }
 
+        parityWindow.ahead = itemsSizePx
+
         rule.runOnIdle {
             // this will schedule the prefetching
             runBlocking(AutoTestFrameClock()) { state.scrollBy(itemsSizePx.toFloat()) }
@@ -299,11 +323,19 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun snappingToOtherPositionWhilePrefetchIsScheduled() {
         val composedItems = mutableListOf<Int>()
+        lateinit var remeasure: Remeasurement
         rule.setContent {
             state = rememberState(cacheWindow = parityWindow)
             LazyGrid(
                 1,
-                Modifier.mainAxisSize(itemsSizeDp * 1.5f),
+                Modifier.mainAxisSize(itemsSizeDp * 1.5f)
+                    .then(
+                        object : RemeasurementModifier {
+                            override fun onRemeasurementAvailable(remeasurement: Remeasurement) {
+                                remeasure = remeasurement
+                            }
+                        }
+                    ),
                 state,
             ) {
                 items(1000) {
@@ -312,6 +344,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
                 }
             }
         }
+        parityWindow.ahead = itemsSizePx
 
         rule.runOnIdle {
             // now we have items 0 and 1 visible
@@ -326,9 +359,12 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
         }
 
         // wait a few frames to make sure prefetch happens if was scheduled
-        rule.waitForIdle()
-        rule.waitForIdle()
-        rule.waitForIdle()
+        waitForPrefetch()
+
+        // We updated the window bounds in the last scroll and that didn't generate a measure pass
+        // to allow disposing of some items. Here we're forcing a remeasure so we can let go
+        // of those items.
+        rule.runOnIdle { remeasure.forceRemeasure() }
 
         rule.runOnIdle { Truth.assertThat(composedItems).doesNotContain(3) }
     }
@@ -336,6 +372,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     @Test
     fun scrollingByListSizeCancelsPreviousPrefetch() {
         composeGrid(cacheWindow = parityWindow)
+        parityWindow.ahead = itemsSizePx
 
         // now we have items 0-3 visible
         rule.runOnIdle {
@@ -366,7 +403,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
     }
 
     private fun waitForPrefetch() {
-        rule.waitForIdle()
+        rule.runOnUiThread { scheduler.executeActiveRequests() }
     }
 
     private val activeNodes = mutableSetOf<Int>()
@@ -379,6 +416,7 @@ class LazyGridCacheWindowParityTest(orientation: Orientation) :
         contentPadding: PaddingValues = PaddingValues(0.dp)
     ) {
         rule.setContent {
+            LocalView.current.setTag(R.id.compose_prefetch_scheduler, scheduler)
             state =
                 rememberState(
                     cacheWindow = cacheWindow,

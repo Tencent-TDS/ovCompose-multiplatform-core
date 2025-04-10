@@ -6976,6 +6976,44 @@ class AndroidPointerInputTest {
         }
     }
 
+    @Test
+    fun pointerEventGetMotionEventAfterDispatch_returnsNull() {
+        val eventLog = mutableListOf<PointerEvent>()
+        val latch = CountDownLatch(1)
+        var layoutCoordinates: LayoutCoordinates? = null
+        rule.runOnUiThread {
+            container.setContent {
+                Box(
+                    Modifier.fillMaxSize()
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                val pointerEvent1 = awaitPointerEvent()
+                                assertThat(pointerEvent1.motionEvent).isNotNull()
+                                eventLog.add(pointerEvent1)
+
+                                val pointerEvent2 = awaitPointerEvent()
+                                assertThat(pointerEvent2.motionEvent).isNotNull()
+                                assertThat(pointerEvent1.motionEvent).isNull()
+                                eventLog.add(pointerEvent2)
+                            }
+                        }
+                        .onGloballyPositioned {
+                            layoutCoordinates = it
+                            latch.countDown()
+                        }
+                )
+            }
+        }
+        assertTrue(latch.await(1, TimeUnit.SECONDS))
+
+        dispatchTouchEvent(action = ACTION_DOWN, layoutCoordinates = layoutCoordinates!!)
+        dispatchTouchEvent(action = ACTION_UP, layoutCoordinates = layoutCoordinates!!)
+
+        rule.waitForFutureFrame()
+        // Gut check that the pointer events are correctly dispatched.
+        rule.runOnUiThread { assertThat(eventLog).hasSize(2) }
+    }
+
     private fun createPointerEventAt(eventTime: Int, action: Int, locationInWindow: IntArray) =
         MotionEvent(
             eventTime,

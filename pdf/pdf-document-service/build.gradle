@@ -28,7 +28,6 @@ plugins {
     id("com.android.library")
     id("androidx.stableaidl")
     id("org.jetbrains.kotlin.android")
-    id("kotlin-android")
 }
 
 dependencies {

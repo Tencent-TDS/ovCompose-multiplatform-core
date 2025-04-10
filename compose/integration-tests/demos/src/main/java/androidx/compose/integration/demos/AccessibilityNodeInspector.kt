@@ -1148,7 +1148,8 @@ private fun NodeInfo.getProperties(): Map<String, Any?> = buildMap {
     setIfSpecified("isAccessibilityDataSensitive", node.isAccessibilityDataSensitive)
     setIfSpecified("isAccessibilityFocused", node.isAccessibilityFocused)
     setIfSpecified("isCheckable", node.isCheckable)
-    setIfSpecified("isChecked", node.isChecked)
+    // TODO(b/406574577): Remove suppression once 1.17.0 stable is released.
+    @Suppress("DEPRECATION") setIfSpecified("isChecked", node.isChecked)
     setIfSpecified("isClickable", node.isClickable)
     setIfSpecified("isLongClickable", node.isLongClickable)
     setIfSpecified("isContextClickable", node.isContextClickable)

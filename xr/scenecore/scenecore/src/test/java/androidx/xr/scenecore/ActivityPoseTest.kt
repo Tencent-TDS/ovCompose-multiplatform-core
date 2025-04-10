@@ -16,13 +16,18 @@
 
 package androidx.xr.scenecore
 
+import androidx.xr.runtime.internal.ActivitySpace as RtActivitySpace
+import androidx.xr.runtime.internal.CameraViewActivityPose as RtCameraViewActivityPose
+import androidx.xr.runtime.internal.HeadActivityPose as RtHeadActivityPose
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose as RtPerceptionSpaceActivityPose
 import androidx.xr.runtime.math.Pose
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.any
 import org.mockito.Mockito.anyInt
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -33,11 +38,10 @@ import org.robolectric.RobolectricTestRunner
 class ActivityPoseTest {
     private val entityManager = EntityManager()
     private val mockRuntime = mock<JxrPlatformAdapter>()
-    private val mockActivitySpace = mock<JxrPlatformAdapter.ActivitySpace>()
-    private val mockHeadActivityPose = mock<JxrPlatformAdapter.HeadActivityPose>()
-    private val mockCameraViewActivityPose = mock<JxrPlatformAdapter.CameraViewActivityPose>()
-    private val mockPerceptionSpaceActivityPose =
-        mock<JxrPlatformAdapter.PerceptionSpaceActivityPose>()
+    private val mockActivitySpace = mock<RtActivitySpace>()
+    private val mockHeadActivityPose = mock<RtHeadActivityPose>()
+    private val mockCameraViewActivityPose = mock<RtCameraViewActivityPose>()
+    private val mockPerceptionSpaceActivityPose = mock<RtPerceptionSpaceActivityPose>()
 
     private lateinit var spatialUser: SpatialUser
     private var head: Head? = null
@@ -120,7 +124,7 @@ class ActivityPoseTest {
 
     @Test
     fun cameraView_getFov_returnsFov() {
-        val rtFov = JxrPlatformAdapter.CameraViewActivityPose.Fov(1f, 2f, 3f, 4f)
+        val rtFov = RtCameraViewActivityPose.Fov(1f, 2f, 3f, 4f)
         whenever(mockCameraViewActivityPose.fov).thenReturn(rtFov)
 
         assertThat(camera!!.fov).isEqualTo(Fov(1f, 2f, 3f, 4f))
@@ -130,10 +134,10 @@ class ActivityPoseTest {
 
     @Test
     fun cameraView_getFovTwice_returnsUpdatedFov() {
-        val rtFov = JxrPlatformAdapter.CameraViewActivityPose.Fov(1f, 2f, 3f, 4f)
+        val rtFov = RtCameraViewActivityPose.Fov(1f, 2f, 3f, 4f)
         whenever(mockCameraViewActivityPose.fov)
             .thenReturn(rtFov)
-            .thenReturn(JxrPlatformAdapter.CameraViewActivityPose.Fov(5f, 6f, 7f, 8f))
+            .thenReturn(RtCameraViewActivityPose.Fov(5f, 6f, 7f, 8f))
 
         assertThat(camera!!.fov).isEqualTo(Fov(1f, 2f, 3f, 4f))
         assertThat(camera!!.fov).isEqualTo(Fov(5f, 6f, 7f, 8f))

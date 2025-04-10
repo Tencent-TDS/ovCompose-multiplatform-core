@@ -3066,6 +3066,26 @@ final value class androidx.compose.ui.semantics/Role { // androidx.compose.ui.se
     }
 }
 
+final value class androidx.compose.ui.ui/FrameRateCategory { // androidx.compose.ui.ui/FrameRateCategory|null[0]
+    final val value // androidx.compose.ui.ui/FrameRateCategory.value|{}value[0]
+        final fun <get-value>(): kotlin/Float // androidx.compose.ui.ui/FrameRateCategory.value.<get-value>|<get-value>(){}[0]
+
+    final fun equals(kotlin/Any?): kotlin/Boolean // androidx.compose.ui.ui/FrameRateCategory.equals|equals(kotlin.Any?){}[0]
+    final fun hashCode(): kotlin/Int // androidx.compose.ui.ui/FrameRateCategory.hashCode|hashCode(){}[0]
+    final fun toString(): kotlin/String // androidx.compose.ui.ui/FrameRateCategory.toString|toString(){}[0]
+
+    final object Companion { // androidx.compose.ui.ui/FrameRateCategory.Companion|null[0]
+        final val Default // androidx.compose.ui.ui/FrameRateCategory.Companion.Default|{}Default[0]
+            final fun <get-Default>(): androidx.compose.ui.ui/FrameRateCategory // androidx.compose.ui.ui/FrameRateCategory.Companion.Default.<get-Default>|<get-Default>(){}[0]
+        final val High // androidx.compose.ui.ui/FrameRateCategory.Companion.High|{}High[0]
+            final fun <get-High>(): androidx.compose.ui.ui/FrameRateCategory // androidx.compose.ui.ui/FrameRateCategory.Companion.High.<get-High>|<get-High>(){}[0]
+        final val NoPreference // androidx.compose.ui.ui/FrameRateCategory.Companion.NoPreference|{}NoPreference[0]
+            final fun <get-NoPreference>(): androidx.compose.ui.ui/FrameRateCategory // androidx.compose.ui.ui/FrameRateCategory.Companion.NoPreference.<get-NoPreference>|<get-NoPreference>(){}[0]
+        final val Normal // androidx.compose.ui.ui/FrameRateCategory.Companion.Normal|{}Normal[0]
+            final fun <get-Normal>(): androidx.compose.ui.ui/FrameRateCategory // androidx.compose.ui.ui/FrameRateCategory.Companion.Normal.<get-Normal>|<get-Normal>(){}[0]
+    }
+}
+
 sealed class <#A: kotlin/Any?> androidx.compose.ui.graphics.vector/VectorProperty { // androidx.compose.ui.graphics.vector/VectorProperty|null[0]
     final object Fill : androidx.compose.ui.graphics.vector/VectorProperty<androidx.compose.ui.graphics/Brush?> // androidx.compose.ui.graphics.vector/VectorProperty.Fill|null[0]
 
@@ -3687,6 +3707,8 @@ final fun (androidx.compose.ui/Modifier).androidx.compose.ui.platform/inspectabl
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.platform/testTag(kotlin/String): androidx.compose.ui/Modifier // androidx.compose.ui.platform/testTag|testTag@androidx.compose.ui.Modifier(kotlin.String){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.semantics/clearAndSetSemantics(kotlin/Function1<androidx.compose.ui.semantics/SemanticsPropertyReceiver, kotlin/Unit>): androidx.compose.ui/Modifier // androidx.compose.ui.semantics/clearAndSetSemantics|clearAndSetSemantics@androidx.compose.ui.Modifier(kotlin.Function1<androidx.compose.ui.semantics.SemanticsPropertyReceiver,kotlin.Unit>){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui.semantics/semantics(kotlin/Boolean = ..., kotlin/Function1<androidx.compose.ui.semantics/SemanticsPropertyReceiver, kotlin/Unit>): androidx.compose.ui/Modifier // androidx.compose.ui.semantics/semantics|semantics@androidx.compose.ui.Modifier(kotlin.Boolean;kotlin.Function1<androidx.compose.ui.semantics.SemanticsPropertyReceiver,kotlin.Unit>){}[0]
+final fun (androidx.compose.ui/Modifier).androidx.compose.ui.ui/requestedFrameRate(androidx.compose.ui.ui/FrameRateCategory): androidx.compose.ui/Modifier // androidx.compose.ui.ui/requestedFrameRate|requestedFrameRate@androidx.compose.ui.Modifier(androidx.compose.ui.ui.FrameRateCategory){}[0]
+final fun (androidx.compose.ui/Modifier).androidx.compose.ui.ui/requestedFrameRate(kotlin/Float): androidx.compose.ui/Modifier // androidx.compose.ui.ui/requestedFrameRate|requestedFrameRate@androidx.compose.ui.Modifier(kotlin.Float){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui/composed(kotlin/Function1<androidx.compose.ui.platform/InspectorInfo, kotlin/Unit> = ..., kotlin/Function1<androidx.compose.ui/Modifier, androidx.compose.ui/Modifier>): androidx.compose.ui/Modifier // androidx.compose.ui/composed|composed@androidx.compose.ui.Modifier(kotlin.Function1<androidx.compose.ui.platform.InspectorInfo,kotlin.Unit>;kotlin.Function1<androidx.compose.ui.Modifier,androidx.compose.ui.Modifier>){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui/composed(kotlin/String, kotlin/Any?, kotlin/Any?, kotlin/Any?, kotlin/Function1<androidx.compose.ui.platform/InspectorInfo, kotlin/Unit> = ..., kotlin/Function1<androidx.compose.ui/Modifier, androidx.compose.ui/Modifier>): androidx.compose.ui/Modifier // androidx.compose.ui/composed|composed@androidx.compose.ui.Modifier(kotlin.String;kotlin.Any?;kotlin.Any?;kotlin.Any?;kotlin.Function1<androidx.compose.ui.platform.InspectorInfo,kotlin.Unit>;kotlin.Function1<androidx.compose.ui.Modifier,androidx.compose.ui.Modifier>){}[0]
 final fun (androidx.compose.ui/Modifier).androidx.compose.ui/composed(kotlin/String, kotlin/Any?, kotlin/Any?, kotlin/Function1<androidx.compose.ui.platform/InspectorInfo, kotlin/Unit> = ..., kotlin/Function1<androidx.compose.ui/Modifier, androidx.compose.ui/Modifier>): androidx.compose.ui/Modifier // androidx.compose.ui/composed|composed@androidx.compose.ui.Modifier(kotlin.String;kotlin.Any?;kotlin.Any?;kotlin.Function1<androidx.compose.ui.platform.InspectorInfo,kotlin.Unit>;kotlin.Function1<androidx.compose.ui.Modifier,androidx.compose.ui.Modifier>){}[0]

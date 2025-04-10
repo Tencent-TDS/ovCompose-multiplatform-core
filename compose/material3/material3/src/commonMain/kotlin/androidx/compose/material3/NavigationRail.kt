@@ -71,6 +71,8 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainHeight
@@ -81,8 +83,8 @@ import androidx.compose.ui.util.fastFirstOrNull
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m3.material.io/components/navigation-rail/overview" class="external"
- * target="_blank">Material Design bottom navigation rail</a>.
+ * [Material Design bottom navigation
+ * rail](https://m3.material.io/components/navigation-rail/overview)
  *
  * Navigation rails provide access to primary destinations in apps when using tablet and desktop
  * screens.
@@ -156,7 +158,8 @@ object DefaultNavigationRailOverride : NavigationRailOverride {
                     .windowInsetsPadding(windowInsets)
                     .widthIn(min = NavigationRailCollapsedTokens.NarrowContainerWidth)
                     .padding(vertical = NavigationRailVerticalPadding)
-                    .selectableGroup(),
+                    .selectableGroup()
+                    .semantics { isTraversalGroup = true },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(NavigationRailVerticalPadding)
             ) {

@@ -23,11 +23,10 @@ package androidx.appfunctions {
   }
 
   @RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU) public final class AppFunctionManagerCompat {
-    ctor public AppFunctionManagerCompat(android.content.Context context);
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public suspend Object? executeAppFunction(androidx.appfunctions.ExecuteAppFunctionRequest request, kotlin.coroutines.Continuation<? super androidx.appfunctions.ExecuteAppFunctionResponse>);
+    method public static androidx.appfunctions.AppFunctionManagerCompat? getInstance(android.content.Context context);
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public suspend Object? isAppFunctionEnabled(String packageName, String functionId, kotlin.coroutines.Continuation<? super java.lang.Boolean>);
     method public suspend Object? isAppFunctionEnabled(String functionId, kotlin.coroutines.Continuation<? super java.lang.Boolean>);
-    method public boolean isSupported();
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public kotlinx.coroutines.flow.Flow<java.util.List<androidx.appfunctions.metadata.AppFunctionMetadata>> observeAppFunctions(androidx.appfunctions.AppFunctionSearchSpec searchSpec);
     method @RequiresPermission(value="android.permission.EXECUTE_APP_FUNCTIONS", conditional=true) public suspend Object? setAppFunctionEnabled(String functionId, int newEnabledState, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     field public static final int APP_FUNCTION_STATE_DEFAULT = 0; // 0x0
@@ -37,6 +36,7 @@ package androidx.appfunctions {
   }
 
   public static final class AppFunctionManagerCompat.Companion {
+    method public androidx.appfunctions.AppFunctionManagerCompat? getInstance(android.content.Context context);
     property public static int APP_FUNCTION_STATE_DEFAULT;
     property public static int APP_FUNCTION_STATE_DISABLED;
     property public static int APP_FUNCTION_STATE_ENABLED;

@@ -20,9 +20,11 @@ package androidx.xr.scenecore
 
 import android.util.Log
 import androidx.annotation.RestrictTo
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment.SetPassthroughOpacityPreferenceResult as RtSetPassthroughOpacityPreferenceResult
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult as RtSetSpatialEnvironmentPreferenceResult
-import androidx.xr.scenecore.JxrPlatformAdapter.SpatialEnvironment.SpatialEnvironmentPreference as RtSpatialEnvironmentPreference
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.SpatialEnvironment as RtSpatialEnvironment
+import androidx.xr.runtime.internal.SpatialEnvironment.SetPassthroughOpacityPreferenceResult as RtSetPassthroughOpacityPreferenceResult
+import androidx.xr.runtime.internal.SpatialEnvironment.SetSpatialEnvironmentPreferenceResult as RtSetSpatialEnvironmentPreferenceResult
+import androidx.xr.runtime.internal.SpatialEnvironment.SpatialEnvironmentPreference as RtSpatialEnvironmentPreference
 import com.google.errorprone.annotations.CanIgnoreReturnValue
 import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
@@ -54,7 +56,7 @@ public class SpatialEnvironment(private val runtime: JxrPlatformAdapter) {
 
     private val TAG = "SpatialEnvironment"
 
-    private val rtEnvironment: JxrPlatformAdapter.SpatialEnvironment = runtime.spatialEnvironment
+    private val rtEnvironment: RtSpatialEnvironment = runtime.spatialEnvironment
 
     // These two fields are only used by the deprecated setSkybox() and setGeometry() methods.
     // TODO: b/370015943 - Remove after clients migrate to the SpatialEnvironmentPreference APIs.
@@ -310,7 +312,7 @@ public class SpatialEnvironment(private val runtime: JxrPlatformAdapter) {
      * @return True if the environment set by [setSpatialEnvironmentPreference] is active.
      */
     public fun isSpatialEnvironmentPreferenceActive(): Boolean {
-        return rtEnvironment.isSpatialEnvironmentPreferenceActive
+        return rtEnvironment.isSpatialEnvironmentPreferenceActive()
     }
 
     /**
@@ -466,22 +468,26 @@ internal fun RtSpatialEnvironmentPreference.toSpatialEnvironmentPreference():
     )
 }
 
-internal fun RtSetSpatialEnvironmentPreferenceResult.toSetSpatialEnvironmentPreferenceResult():
+internal fun Int.toSetSpatialEnvironmentPreferenceResult():
     SpatialEnvironment.SetSpatialEnvironmentPreferenceResult {
     return when (this) {
         RtSetSpatialEnvironmentPreferenceResult.CHANGE_APPLIED ->
             SpatialEnvironment.SetSpatialEnvironmentPreferenceChangeApplied()
         RtSetSpatialEnvironmentPreferenceResult.CHANGE_PENDING ->
             SpatialEnvironment.SetSpatialEnvironmentPreferenceChangePending()
+        else ->
+            throw IllegalArgumentException("Unknown SetSpatialEnvironmentPreferenceResult: $this")
     }
 }
 
-internal fun RtSetPassthroughOpacityPreferenceResult.toSetPassthroughOpacityPreferenceResult():
+internal fun Int.toSetPassthroughOpacityPreferenceResult():
     SpatialEnvironment.SetPassthroughOpacityPreferenceResult {
     return when (this) {
         RtSetPassthroughOpacityPreferenceResult.CHANGE_APPLIED ->
             SpatialEnvironment.SetPassthroughOpacityPreferenceChangeApplied()
         RtSetPassthroughOpacityPreferenceResult.CHANGE_PENDING ->
             SpatialEnvironment.SetPassthroughOpacityPreferenceChangePending()
+        else ->
+            throw IllegalArgumentException("Unknown SetPassthroughOpacityPreferenceResult: $this")
     }
 }

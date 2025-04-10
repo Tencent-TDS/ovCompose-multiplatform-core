@@ -66,7 +66,14 @@ class StableAidlPluginTest {
         )
 
         // Tasks should contain those defined in StableAidlTasks.
-        val output = gradleRunner.withArguments("tasks", "--stacktrace").build()
+        val output =
+            gradleRunner
+                .withArguments(
+                    "tasks",
+                    "--stacktrace",
+                    "-Pstableaidl.compilesdk=36",
+                )
+                .build()
         assertTrue { output.output.contains("compileDebugAidlApi - ") }
         assertTrue { output.output.contains("checkDebugAidlApiRelease - ") }
     }
@@ -100,7 +107,14 @@ class StableAidlPluginTest {
         )
 
         // Tasks should contain those defined in StableAidlTasks.
-        val output = gradleRunner.withArguments("tasks", "--stacktrace").build()
+        val output =
+            gradleRunner
+                .withArguments(
+                    "tasks",
+                    "--stacktrace",
+                    "-Pstableaidl.compilesdk=36",
+                )
+                .build()
         assertTrue { output.output.contains("compileDebugAidlApi - ") }
         assertTrue { output.output.contains("checkDebugAidlApiRelease - ") }
     }
@@ -122,7 +136,14 @@ class StableAidlPluginTest {
         )
 
         // Tasks should not contain those defined in StableAidlTasks.
-        val output = gradleRunner.withArguments("tasks", "--stacktrace").build()
+        val output =
+            gradleRunner
+                .withArguments(
+                    "tasks",
+                    "--stacktrace",
+                    "-Pstableaidl.compilesdk=36",
+                )
+                .build()
         assertFalse { output.output.contains("compileDebugAidlApi - ") }
         assertFalse { output.output.contains("checkDebugAidlApiRelease - ") }
     }

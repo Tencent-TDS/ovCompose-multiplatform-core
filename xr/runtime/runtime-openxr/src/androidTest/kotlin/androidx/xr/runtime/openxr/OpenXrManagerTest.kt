@@ -21,6 +21,12 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
+import androidx.xr.runtime.internal.Config
+import androidx.xr.runtime.internal.Config.AnchorPersistenceMode
+import androidx.xr.runtime.internal.Config.DepthEstimationMode
+import androidx.xr.runtime.internal.Config.HandTrackingMode
+import androidx.xr.runtime.internal.Config.PlaneTrackingMode
+import androidx.xr.runtime.internal.PermissionNotGrantedException
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertThrows
@@ -61,7 +67,7 @@ class OpenXrManagerTest {
 
         underTest.create()
 
-        assertThat(underTest.nativePointer).isGreaterThan(0)
+        assertThat(underTest.nativePointer).isGreaterThan(0L)
     }
 
     @Test
@@ -74,6 +80,39 @@ class OpenXrManagerTest {
 
         assertThat(underTest.nativePointer).isGreaterThan(0L)
     }
+
+    // TODO(b/392660855): Add a test for all APIs gated by a feature that needs to be configured.
+    @Test
+    fun configure_withSufficientPermissions_doesNotThrowException() = initOpenXrManagerAndRunTest {
+        underTest.configure(
+            Config(
+                Config.PlaneTrackingMode.HorizontalAndVertical,
+                Config.HandTrackingMode.Enabled,
+                Config.DepthEstimationMode.Disabled,
+                Config.AnchorPersistenceMode.Enabled,
+            )
+        )
+    }
+
+    @Test
+    // TODO - b/346615429: Control the values returned by the OpenXR stub instead of relying on the
+    // stub's current implementation.
+    fun configure_insufficientPermissions_throwsPermissionNotGrantedException() =
+        initOpenXrManagerAndRunTest {
+            // The OpenXR stub returns `XR_ERROR_PERMISSION_INSUFFICIENT` when calling
+            // `xrEnumerateDepthResolutionsANDROID` which is triggered by attempting to enable the
+            // DepthEstimation feature.
+            assertThrows(PermissionNotGrantedException::class.java) {
+                underTest.configure(
+                    Config(
+                        Config.PlaneTrackingMode.Disabled,
+                        Config.HandTrackingMode.Disabled,
+                        Config.DepthEstimationMode.Enabled,
+                        Config.AnchorPersistenceMode.Disabled,
+                    )
+                )
+            }
+        }
 
     // TODO: b/344962771 - Add a more meaningful test once we can use the update() method.
     @Test

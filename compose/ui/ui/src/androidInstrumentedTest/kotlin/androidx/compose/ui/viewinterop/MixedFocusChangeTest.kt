@@ -16,6 +16,7 @@
 package androidx.compose.ui.viewinterop
 
 import android.content.Context
+import android.os.Build.VERSION.SDK_INT
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -30,6 +31,8 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.background
 import androidx.compose.ui.graphics.Color
@@ -62,10 +65,13 @@ class MixedFocusChangeTest {
         rule.runOnIdle { rule.activity.setContentView(view) }
         rule.waitUntil {
             view.findViewWithTag<View>("item 0") != null &&
-                view.findViewWithTag<View>("item 1") != null
+                view.findViewWithTag<View>("item 1") != null &&
+                view.findViewWithTag<View>("item 2") != null
         }
         val first = view.findViewWithTag<View>("item 0")
         val second = view.findViewWithTag<View>("item 1")
+        val third = view.findViewWithTag<View>("item 2")
+
         rule.runOnIdle {
             view.inputModeManager.requestInputMode(InputMode.Keyboard)
             first.requestFocus()
@@ -73,7 +79,14 @@ class MixedFocusChangeTest {
         rule.runOnIdle { assertThat(first.isFocused).isTrue() }
         InstrumentationRegistry.getInstrumentation()
             .sendKeySync(KeyEvent(KeyEvent.ACTION_DOWN, Key.DirectionDown.nativeKeyCode))
-        rule.runOnIdle { assertThat(second.isFocused).isTrue() }
+
+        // TODO(b/389994198, b/391378895): Support this use case without isViewFocusFixEnabled.
+        // This landed in aosp/3451182 but depends on aosp/3417182 which is behind a flag.
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isViewFocusFixEnabled) {
+            rule.runOnIdle { assertThat(second.isFocused).isTrue() }
+        } else {
+            rule.runOnIdle { assertThat(third.isFocused).isTrue() }
+        }
     }
 
     @Test
@@ -89,7 +102,12 @@ class MixedFocusChangeTest {
         rule.runOnIdle { assertThat(first.isFocused).isTrue() }
         InstrumentationRegistry.getInstrumentation()
             .sendKeySync(KeyEvent(KeyEvent.ACTION_DOWN, Key.NavigatePrevious.nativeKeyCode))
-        rule.onNodeWithTag(clickableBoxTag).assertIsFocused()
+        // TODO(b/389994198, b/391378895): Support this use case without isViewFocusFixEnabled.
+        // This landed in aosp/3451182 but depends on aosp/3417182 which is behind a flag.
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (SDK_INT >= 26 || ComposeUiFlags.isViewFocusFixEnabled) {
+            rule.onNodeWithTag(clickableBoxTag).assertIsFocused()
+        }
     }
 
     @Test
@@ -105,7 +123,12 @@ class MixedFocusChangeTest {
         rule.runOnIdle { assertThat(first.isFocused).isTrue() }
         InstrumentationRegistry.getInstrumentation()
             .sendKeySync(KeyEvent(KeyEvent.ACTION_DOWN, Key.NavigateNext.nativeKeyCode))
-        rule.onNodeWithTag(clickableBoxTag).assertIsFocused()
+        // TODO(b/389994198, b/391378895): Support this use case without isViewFocusFixEnabled.
+        // This landed in aosp/3451182 but depends on aosp/3417182 which is behind a flag.
+        @OptIn(ExperimentalComposeUiApi::class)
+        if (SDK_INT >= 26 || ComposeUiFlags.isViewFocusFixEnabled) {
+            rule.onNodeWithTag(clickableBoxTag).assertIsFocused()
+        }
     }
 
     class MyComposeView(context: Context, val reverse: Boolean) : AbstractComposeView(context) {

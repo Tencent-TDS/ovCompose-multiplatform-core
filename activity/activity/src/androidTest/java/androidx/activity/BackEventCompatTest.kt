@@ -18,7 +18,6 @@ package androidx.activity
 
 import android.window.BackEvent
 import android.window.BackEvent.EDGE_LEFT
-import androidx.annotation.RequiresApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
@@ -40,7 +39,6 @@ class BackEventCompatTest {
         assertThat(event.frameTimeMillis).isEqualTo(2)
     }
 
-    @RequiresApi(34)
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun testCreateBackEventCompatFromBackEvent() {
@@ -51,7 +49,6 @@ class BackEventCompatTest {
         assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
     }
 
-    @RequiresApi(34)
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun testToBackEventFromBackEventCompat() {
@@ -62,7 +59,6 @@ class BackEventCompatTest {
         assertThat(event.swipeEdge).isEqualTo(BackEventCompat.EDGE_LEFT)
     }
 
-    @RequiresApi(36)
     @SdkSuppress(minSdkVersion = 36)
     @Test
     fun testCreateBackEventCompatFromBackEventWithFrameTimeMillis() {
@@ -74,7 +70,6 @@ class BackEventCompatTest {
         assertThat(event.frameTimeMillis).isEqualTo(5)
     }
 
-    @RequiresApi(36)
     @SdkSuppress(minSdkVersion = 36)
     @Test
     fun testToBackEventFromBackEventCompatWithFrameTimeMillis() {

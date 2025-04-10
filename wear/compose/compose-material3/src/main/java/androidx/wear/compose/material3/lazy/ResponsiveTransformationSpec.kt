@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
+import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScrollProgress
 import androidx.wear.compose.foundation.lazy.inverseLerp
 import kotlin.math.ceil
@@ -177,6 +178,28 @@ public sealed interface ResponsiveTransformationSpec : TransformationSpec {
                 contentAlpha = contentAlpha,
                 scale = scale,
             )
+
+        internal val NoOpTransformationSpec: TransformationSpec =
+            object : TransformationSpec {
+                override fun getTransformedHeight(
+                    measuredHeight: Int,
+                    scrollProgress: TransformingLazyColumnItemScrollProgress,
+                ): Int = measuredHeight
+
+                override fun GraphicsLayerScope.applyContentTransformation(
+                    scrollProgress: TransformingLazyColumnItemScrollProgress
+                ) {}
+
+                override fun GraphicsLayerScope.applyContainerTransformation(
+                    scrollProgress: TransformingLazyColumnItemScrollProgress
+                ) {}
+
+                override fun TransformedContainerPainterScope.createTransformedContainerPainter(
+                    painter: Painter,
+                    shape: Shape,
+                    border: BorderStroke?,
+                ): Painter = painter
+            }
     }
 }
 
@@ -201,6 +224,8 @@ public object ResponsiveTransformationSpecDefaults {
  * Computes and remembers the appropriate [TransformationSpec] for the current screen size, given
  * one or more [ResponsiveTransformationSpec]s for different screen sizes.
  *
+ * It would return special NoOp version of [TransformationSpec] when ReducedMotion is on.
+ *
  * Example usage for [ResponsiveTransformationSpec], the recommended [TransformationSpec] for
  * large-screen aware Wear apps:
  *
@@ -212,24 +237,38 @@ public fun rememberTransformationSpec(
     vararg specs: ResponsiveTransformationSpec
 ): TransformationSpec {
     val screenSize = LocalConfiguration.current.screenHeightDp.dp
-    return remember(specs, screenSize) {
-        val transformationSpecs =
-            if (specs.isEmpty()) {
-                ResponsiveTransformationSpecDefaults.Specs
-            } else {
-                specs.map { it as ResponsiveTransformationSpecImpl }
-            }
+    val localReduceMotion = LocalReduceMotion.current
+    return remember(specs, screenSize, localReduceMotion) {
+        if (localReduceMotion) {
+            ResponsiveTransformationSpec.NoOpTransformationSpec
+        } else {
+            val transformationSpecs =
+                if (specs.isEmpty()) {
+                    ResponsiveTransformationSpecDefaults.Specs
+                } else {
+                    specs.map { it as ResponsiveTransformationSpecImpl }
+                }
 
-        responsiveTransformationSpec(screenSize, transformationSpecs)
+            responsiveTransformationSpec(screenSize, transformationSpecs)
+        }
     }
 }
 
-/** Computes and remembers the appropriate [TransformationSpec] for the current screen size. */
+/**
+ * Computes and remembers the appropriate [TransformationSpec] for the current screen size.
+ *
+ * It would return special NoOp version of [TransformationSpec] when ReducedMotion is on.
+ */
 @Composable
 public fun rememberTransformationSpec(): TransformationSpec {
     val screenSize = LocalConfiguration.current.screenHeightDp.dp
-    return remember(screenSize) {
-        responsiveTransformationSpec(screenSize, ResponsiveTransformationSpecDefaults.Specs)
+    val localReduceMotion = LocalReduceMotion.current
+    return remember(screenSize, localReduceMotion) {
+        if (localReduceMotion) {
+            ResponsiveTransformationSpec.NoOpTransformationSpec
+        } else {
+            responsiveTransformationSpec(screenSize, ResponsiveTransformationSpecDefaults.Specs)
+        }
     }
 }
 

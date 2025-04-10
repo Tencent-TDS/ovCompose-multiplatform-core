@@ -88,10 +88,10 @@ class SlidingPaneLayoutA11yTest {
                 ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
         assertNode(node).containsAction(AccessibilityAction.ACTION_ACCESSIBILITY_FOCUS)
         // The divider node only supports scroll actions when it's a11y focused.
-        assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_LEFT)
-        assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_RIGHT)
-        assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
-        assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
+        assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_LEFT)
+        assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_RIGHT)
+        assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
+        assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
 
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_CLEAR_ACCESSIBILITY_FOCUS)
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_CLICK)
@@ -108,14 +108,10 @@ class SlidingPaneLayoutA11yTest {
                 isUserResizingEnabled = true
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL when it's a11y focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_LEFT)
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_RIGHT)
@@ -129,14 +125,10 @@ class SlidingPaneLayoutA11yTest {
                 isUserResizingEnabled = true
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL when it's a11y focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_LEFT)
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_RIGHT)
@@ -151,14 +143,10 @@ class SlidingPaneLayoutA11yTest {
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL when it's a11y focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
@@ -173,14 +161,10 @@ class SlidingPaneLayoutA11yTest {
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL when it's a11y focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
@@ -195,14 +179,10 @@ class SlidingPaneLayoutA11yTest {
                 layoutDirection = View.LAYOUT_DIRECTION_LTR
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL after it's focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
@@ -217,14 +197,10 @@ class SlidingPaneLayoutA11yTest {
                 layoutDirection = View.LAYOUT_DIRECTION_RTL
             }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL after it's focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).containsAction(AccessibilityAction.ACTION_SCROLL_BACKWARD)
         assertNode(node).doesNotContainsAction(AccessibilityAction.ACTION_SCROLL_FORWARD)
@@ -238,14 +214,10 @@ class SlidingPaneLayoutA11yTest {
             setOnUserResizingDividerClickListener {}
         }
 
-        val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
-        // The divider only supports ACTION_SCROLL after it's focused.
-        provider.performAction(
-            DIVIDER_VIRTUAL_VIEW_ID,
-            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
-            null
-        )
-        val node = provider.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
+        val node =
+            spl.accessibilityDelegate
+                .getAccessibilityNodeProvider(spl)
+                ?.createAccessibilityNodeInfo(DIVIDER_VIRTUAL_VIEW_ID)
 
         assertNode(node).containsAction(AccessibilityAction.ACTION_CLICK)
     }
@@ -363,6 +335,12 @@ class SlidingPaneLayoutA11yTest {
             this.layoutDirection = layoutDirection
         }
         val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
+        // The divider won't scroll unless it's focused.
+        provider.performAction(
+            DIVIDER_VIRTUAL_VIEW_ID,
+            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
+            null
+        )
 
         // By default the splitDividerPosition is auto.
         assertThat(spl.splitDividerPosition).isEqualTo(SPLIT_DIVIDER_POSITION_AUTO)
@@ -408,6 +386,12 @@ class SlidingPaneLayoutA11yTest {
             this.layoutDirection = layoutDirection
         }
         val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
+        // The divider won't scroll unless it's focused.
+        provider.performAction(
+            DIVIDER_VIRTUAL_VIEW_ID,
+            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
+            null
+        )
 
         val dividerPosition = spl.width / 2
         spl.splitDividerPosition = dividerPosition
@@ -588,6 +572,12 @@ class SlidingPaneLayoutA11yTest {
 
         val provider = spl.accessibilityDelegate.getAccessibilityNodeProvider(spl)!!
 
+        // Focus the divider first so that it can be scrolled.
+        provider.performAction(
+            DIVIDER_VIRTUAL_VIEW_ID,
+            AccessibilityNodeInfoCompat.ACTION_ACCESSIBILITY_FOCUS,
+            null
+        )
         provider.performAction(DIVIDER_VIRTUAL_VIEW_ID, action, null)
         userResizeBehavior.expectCall("onAccessibilityResize", expectDirection)
         userResizeBehavior.expectNoMoreCall()

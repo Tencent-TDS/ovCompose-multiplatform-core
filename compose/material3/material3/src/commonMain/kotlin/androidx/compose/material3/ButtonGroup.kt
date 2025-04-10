@@ -100,13 +100,16 @@ fun ButtonGroup(
     val defaultAnimationSpec = MotionSchemeKeyTokens.FastSpatial.value<Float>()
     val scope = remember {
         object : ButtonGroupScope {
-            override fun Modifier.weight(weight: Float, fill: Boolean): Modifier {
+            @Deprecated("Binary compatibility", level = DeprecationLevel.HIDDEN)
+            override fun Modifier.weight(weight: Float, fill: Boolean): Modifier =
+                this.weight(weight)
+
+            override fun Modifier.weight(weight: Float): Modifier {
                 require(weight > 0.0) { "invalid weight $weight; must be greater than zero" }
                 return this.then(
                     ButtonGroupElement(
                         // Coerce Float.POSITIVE_INFINITY to Float.MAX_VALUE to avoid errors
-                        weight = weight.coerceAtMost(Float.MAX_VALUE),
-                        fill = fill
+                        weight = weight.coerceAtMost(Float.MAX_VALUE)
                     )
                 )
             }
@@ -336,7 +339,7 @@ private class ButtonGroupMeasurePolicy(
                     childrenConstraints[i] =
                         constraints.copy(
                             minWidth =
-                                if (parentData.fill && childMainAxisSize != Constraints.Infinity) {
+                                if (childMainAxisSize != Constraints.Infinity) {
                                     childMainAxisSize
                                 } else {
                                     0
@@ -421,10 +424,21 @@ interface ButtonGroupScope {
      *   weighted siblings. Must be positive.
      * @param fill When `true`, the element will occupy the whole width allocated.
      */
+    @Deprecated("For binary compatibility", level = DeprecationLevel.HIDDEN)
     fun Modifier.weight(
         @FloatRange(from = 0.0, fromInclusive = false) weight: Float,
         fill: Boolean = true
     ): Modifier
+
+    /**
+     * Size the element's width proportional to its [weight] relative to other weighted sibling
+     * elements in the [ButtonGroup]. The parent will divide the horizontal space remaining after
+     * measuring unweighted child elements and distribute it according to this weight.
+     *
+     * @param weight The proportional width to give to this element, as related to the total of all
+     *   weighted siblings. Must be positive.
+     */
+    fun Modifier.weight(@FloatRange(from = 0.0, fromInclusive = false) weight: Float): Modifier
 
     /**
      * Specifies the interaction source to use with this item. This is used to listen to events and
@@ -438,57 +452,45 @@ interface ButtonGroupScope {
 internal val IntrinsicMeasurable.buttonGroupParentData: ButtonGroupParentData?
     get() = parentData as? ButtonGroupParentData
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-internal val ButtonGroupParentData?.fill: Boolean
-    get() = this?.fill ?: true
-
 internal val ButtonGroupParentData?.weight: Float
     get() = this?.weight ?: 0f
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 internal data class ButtonGroupParentData(
     var weight: Float = 0f,
-    var fill: Boolean = true,
     var pressedAnimatable: Animatable<Float, AnimationVector1D> = Animatable(0f)
 )
 
-internal class ButtonGroupElement(val weight: Float = 0f, val fill: Boolean = true) :
-    ModifierNodeElement<ButtonGroupNode>() {
+internal class ButtonGroupElement(val weight: Float = 0f) : ModifierNodeElement<ButtonGroupNode>() {
     override fun create(): ButtonGroupNode {
-        return ButtonGroupNode(weight, fill)
+        return ButtonGroupNode(weight)
     }
 
     override fun update(node: ButtonGroupNode) {
         node.weight = weight
-        node.fill = fill
     }
 
     override fun InspectorInfo.inspectableProperties() {
         name = "weight"
         value = weight
         properties["weight"] = weight
-        properties["fill"] = fill
     }
 
     override fun hashCode(): Int {
-        var result = weight.hashCode()
-        result = 31 * result + fill.hashCode()
-        return result
+        return weight.hashCode()
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         val otherModifier = other as? ButtonGroupElement ?: return false
-        return weight == otherModifier.weight && fill == otherModifier.fill
+        return weight == otherModifier.weight
     }
 }
 
-internal class ButtonGroupNode(var weight: Float, var fill: Boolean) :
-    ParentDataModifierNode, Modifier.Node() {
+internal class ButtonGroupNode(var weight: Float) : ParentDataModifierNode, Modifier.Node() {
     override fun Density.modifyParentData(parentData: Any?) =
         ((parentData as? ButtonGroupParentData) ?: ButtonGroupParentData()).also {
             it.weight = weight
-            it.fill = fill
         }
 }
 
@@ -571,6 +573,6 @@ internal class EnlargeOnPressNode(
 
     override fun Density.modifyParentData(parentData: Any?) =
         (parentData as? ButtonGroupParentData).let { prev ->
-            ButtonGroupParentData(prev.weight, prev.fill, pressedAnimatable)
+            ButtonGroupParentData(prev.weight, pressedAnimatable)
         }
 }

@@ -51,11 +51,26 @@ public interface SurfaceEntity : Entity {
     public val surface: Surface
 
     /**
+     * The texture to be composited into the alpha channel of the surface. If null, the alpha mask
+     * will be disabled.
+     *
+     * @param alphaMask The primary alpha mask texture.
+     */
+    public fun setPrimaryAlphaMaskTexture(alphaMask: TextureResource?)
+
+    /**
+     * The texture to be composited into the alpha channel of the auxiliary view of the surface.
+     * This is only used for interleaved stereo content. If null, the alpha mask will be disabled.
+     *
+     * @param alphaMask The auxiliary alpha mask texture.
+     */
+    public fun setAuxiliaryAlphaMaskTexture(alphaMask: TextureResource?)
+
+    /**
      * Selects the view configuration for the surface. MONO creates a surface contains a single
      * view. SIDE_BY_SIDE means the surface is split in half with two views. The first half of the
      * surface maps to the left eye and the second half mapping to the right eye.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
     public annotation class StereoMode {
         public companion object {
             // Each eye will see the entire surface (no separation)
@@ -64,6 +79,10 @@ public interface SurfaceEntity : Entity {
             public const val TOP_BOTTOM: Int = 1
             // The [left, right] halves of the surface will map to [left, right] eyes
             public const val SIDE_BY_SIDE: Int = 2
+            // Multiview video, [primary, auxiliary] views will map to [left, right] eyes
+            public const val MULTIVIEW_LEFT_PRIMARY: Int = 4
+            // Multiview video, [primary, auxiliary] views will map to [right, left] eyes
+            public const val MULTIVIEW_RIGHT_PRIMARY: Int = 5
         }
     }
 
@@ -95,4 +114,10 @@ public interface SurfaceEntity : Entity {
             override val dimensions: Dimensions = Dimensions(radius * 2, radius * 2, radius)
         }
     }
+
+    /** The width of the left/right feathered edges of the canvas. */
+    public var featherRadiusX: Float
+
+    /** The width of the top/bottom feathered edges of the canvas. */
+    public var featherRadiusY: Float
 }

@@ -35,6 +35,7 @@ dependencies {
 }
 
 android {
+    compileSdk = 36
     namespace = "com.android.extensions.appfunctions"
 }
 

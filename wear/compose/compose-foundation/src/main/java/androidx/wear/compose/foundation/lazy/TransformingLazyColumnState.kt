@@ -32,7 +32,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.OnGloballyPositionedModifier
 import androidx.compose.ui.layout.Remeasurement
 import androidx.compose.ui.layout.RemeasurementModifier
 import androidx.compose.ui.unit.Constraints
@@ -41,6 +43,7 @@ import androidx.wear.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.wear.compose.foundation.lazy.layout.LazyLayoutPrefetchState
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -146,6 +149,7 @@ internal constructor(
         scrollPriority: MutatePriority,
         block: suspend ScrollScope.() -> Unit
     ) {
+        awaitLayoutModifier.waitForFirstLayout()
         scrollableState.scroll(scrollPriority, block)
     }
 
@@ -259,6 +263,12 @@ internal constructor(
             with(prefetchStrategy) { prefetchScope.onScroll(delta, measureResult) }
         }
     }
+
+    /**
+     * Provides a modifier which allows to delay some interactions (e.g. scroll) until layout is
+     * ready.
+     */
+    internal val awaitLayoutModifier = AwaitFirstLayoutModifier()
 
     internal val animator = LazyLayoutItemAnimator<TransformingLazyColumnMeasuredItem>()
 
@@ -468,3 +478,16 @@ private val EmptyTransformingLazyColumnMeasureResult =
                 override fun placeChildren() {}
             }
     )
+
+/** A modifier that allows to delay some interactions (e.g. scroll) until layout is ready. */
+internal class AwaitFirstLayoutModifier : OnGloballyPositionedModifier {
+    private val firstLayoutDeferred = CompletableDeferred<Unit>()
+
+    suspend fun waitForFirstLayout() {
+        firstLayoutDeferred.await()
+    }
+
+    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        firstLayoutDeferred.complete(Unit)
+    }
+}

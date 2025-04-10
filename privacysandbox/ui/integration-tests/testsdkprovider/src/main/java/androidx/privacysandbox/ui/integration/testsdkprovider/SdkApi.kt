@@ -100,8 +100,8 @@ class SdkApi(private val sdkContext: Context) : ISdkApi {
                 val adapterBundle =
                     maybeGetMediateeBundle(
                         AdFormat.BANNER_AD,
-                        mediationOption,
                         AdType.BASIC_NON_WEBVIEW,
+                        mediationOption,
                         waitInsideOnDraw = false,
                         drawViewability
                     )

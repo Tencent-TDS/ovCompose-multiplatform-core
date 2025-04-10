@@ -37,6 +37,7 @@ import androidx.appsearch.safeparcel.GenericDocumentParcel;
 import androidx.appsearch.safeparcel.SafeParcelable;
 import androidx.appsearch.safeparcel.stub.StubCreators.EmbeddingMatchInfoCreator;
 import androidx.appsearch.safeparcel.stub.StubCreators.MatchInfoCreator;
+import androidx.appsearch.safeparcel.stub.StubCreators.MatchRangeCreator;
 import androidx.appsearch.safeparcel.stub.StubCreators.SearchResultCreator;
 import androidx.appsearch.safeparcel.stub.StubCreators.TextMatchInfoCreator;
 import androidx.appsearch.util.BundleUtil;
@@ -623,9 +624,9 @@ public final class SearchResult extends AbstractSafeParcelable {
             TextMatchInfo tempTextMatch = textMatchInfo;
             if (tempTextMatch == null && mEmbeddingMatch == null) {
                 tempTextMatch = new TextMatchInfo(
-                        exactMatchRangeStart, exactMatchRangeEnd,
-                        submatchRangeStart, submatchRangeEnd,
-                        snippetRangeStart, snippetRangeEnd);
+                        new MatchRange(exactMatchRangeStart, exactMatchRangeEnd),
+                        new MatchRange(submatchRangeStart, submatchRangeEnd),
+                        new MatchRange(snippetRangeStart, snippetRangeEnd));
                 tempTextMatch.setPropertyPath(mPropertyPath);
             }
 
@@ -896,11 +897,7 @@ public final class SearchResult extends AbstractSafeParcelable {
             public @NonNull MatchInfo build() {
                 TextMatchInfo textMatch = null;
                 if (mEmbeddingMatch == null) {
-                    textMatch =
-                            new TextMatchInfo(
-                                    mExactMatchRange.getStart(), mExactMatchRange.getEnd(),
-                                    mSubmatchRange.getStart(), mSubmatchRange.getEnd(),
-                                    mSnippetRange.getStart(), mSnippetRange.getEnd());
+                    textMatch = new TextMatchInfo(mExactMatchRange, mSubmatchRange, mSnippetRange);
                     textMatch.setPropertyPath(mPropertyPath);
                 }
                 return new MatchInfo(
@@ -988,18 +985,12 @@ public final class SearchResult extends AbstractSafeParcelable {
         public static final @NonNull Parcelable.Creator<TextMatchInfo> CREATOR =
                 new TextMatchInfoCreator();
 
-        @Field(id = 1)
-        final int mExactMatchRangeStart;
-        @Field(id = 2)
-        final int mExactMatchRangeEnd;
-        @Field(id = 3)
-        final int mSubmatchRangeStart;
-        @Field(id = 4)
-        final int mSubmatchRangeEnd;
-        @Field(id = 5)
-        final int mSnippetRangeStart;
-        @Field(id = 6)
-        final int mSnippetRangeEnd;
+        @Field(id = 1, getter = "getExactMatchRange")
+        private final MatchRange mExactMatchRange;
+        @Field(id = 2, getter = "getSubmatchRange")
+        private final MatchRange mSubmatchRange;
+        @Field(id = 3, getter = "getSnippetRange")
+        private final MatchRange mSnippetRange;
 
         /**
          * The path of the matching snippet property.
@@ -1020,43 +1011,22 @@ public final class SearchResult extends AbstractSafeParcelable {
         /** Full text of the matched property. Populated on first use. */
         private @Nullable String mFullText;
 
-        /** Range of property that exactly matched the query. Populated on first use. */
-        private @Nullable MatchRange mExactMatchRangeCached;
-
-        /**
-         * Range of property that corresponds to the subsequence of the exact match that directly
-         * matches a query term. Populated on first use.
-         */
-        private @Nullable MatchRange mSubmatchRangeCached;
-
-        /** Range of some reasonable amount of context around the query. Populated on first use. */
-        private @Nullable MatchRange mWindowRangeCached;
-
         /**
          * Creates a new immutable TextMatchInfo.
          *
-         * @param exactMatchRangeStart the start of the exact {@link MatchRange} for the entry.
-         * @param exactMatchRangeEnd the end of the exact {@link MatchRange} for the entry.
-         * @param submatchRangeStart the start of the sub-match {@link MatchRange} for the entry.
-         * @param submatchRangeEnd the end of the sub-match {@link MatchRange} for the entry.
-         * @param snippetRangeStart the start of the snippet {@link MatchRange} for the entry.
-         * @param snippetRangeEnd the end of the snippet {@link MatchRange} for the entry.
+         * @param exactMatchRange the exact {@link MatchRange} for the entry.
+         * @param submatchRange the sub-match {@link MatchRange} for the entry.
+         * @param snippetRange the snippet {@link MatchRange} for the entry.
          */
         @ExperimentalAppSearchApi
         @Constructor
         public TextMatchInfo(
-                @Param(id = 1) int exactMatchRangeStart,
-                @Param(id = 2) int exactMatchRangeEnd,
-                @Param(id = 3) int submatchRangeStart,
-                @Param(id = 4) int submatchRangeEnd,
-                @Param(id = 5) int snippetRangeStart,
-                @Param(id = 6) int snippetRangeEnd) {
-            mExactMatchRangeStart = exactMatchRangeStart;
-            mExactMatchRangeEnd = exactMatchRangeEnd;
-            mSubmatchRangeStart = submatchRangeStart;
-            mSubmatchRangeEnd = submatchRangeEnd;
-            mSnippetRangeStart = snippetRangeStart;
-            mSnippetRangeEnd = snippetRangeEnd;
+                @Param(id = 1) @NonNull MatchRange exactMatchRange,
+                @Param(id = 2) @NonNull MatchRange submatchRange,
+                @Param(id = 3) @NonNull MatchRange snippetRange) {
+            mExactMatchRange = exactMatchRange;
+            mSubmatchRange = submatchRange;
+            mSnippetRange = snippetRange;
         }
 
         /**
@@ -1089,12 +1059,7 @@ public final class SearchResult extends AbstractSafeParcelable {
         @FlaggedApi(Flags.FLAG_ENABLE_EMBEDDING_MATCH_INFO)
         @ExperimentalAppSearchApi
         public @NonNull MatchRange getExactMatchRange() {
-            if (mExactMatchRangeCached == null) {
-                mExactMatchRangeCached = new MatchRange(
-                        mExactMatchRangeStart,
-                        mExactMatchRangeEnd);
-            }
-            return mExactMatchRangeCached;
+            return mExactMatchRange;
         }
 
         /**
@@ -1131,12 +1096,7 @@ public final class SearchResult extends AbstractSafeParcelable {
         @ExperimentalAppSearchApi
         public @NonNull MatchRange getSubmatchRange() {
             checkSubmatchSupported();
-            if (mSubmatchRangeCached == null) {
-                mSubmatchRangeCached = new MatchRange(
-                        mSubmatchRangeStart,
-                        mSubmatchRangeEnd);
-            }
-            return mSubmatchRangeCached;
+            return mSubmatchRange;
         }
 
         /**
@@ -1174,12 +1134,7 @@ public final class SearchResult extends AbstractSafeParcelable {
         @FlaggedApi(Flags.FLAG_ENABLE_EMBEDDING_MATCH_INFO)
         @ExperimentalAppSearchApi
         public @NonNull MatchRange getSnippetRange() {
-            if (mWindowRangeCached == null) {
-                mWindowRangeCached = new MatchRange(
-                        mSnippetRangeStart,
-                        mSnippetRangeEnd);
-            }
-            return mWindowRangeCached;
+            return mSnippetRange;
         }
 
         /**
@@ -1204,7 +1159,7 @@ public final class SearchResult extends AbstractSafeParcelable {
         }
 
         private void checkSubmatchSupported() {
-            if (mSubmatchRangeStart == -1) {
+            if (mSubmatchRange.getStart() == -1) {
                 throw new UnsupportedOperationException(
                         "Submatch is not supported with this backend/Android API level "
                                 + "combination");
@@ -1350,9 +1305,18 @@ public final class SearchResult extends AbstractSafeParcelable {
      *
      * <p> Example: MatchRange(0, 100) represents hundred ints from 0 to 99."
      */
-    public static final class MatchRange {
-        private final int mEnd;
+    @SafeParcelable.Class(creator = "MatchRangeCreator")
+    @SuppressWarnings("HiddenSuperclass")
+    public static final class MatchRange extends AbstractSafeParcelable {
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        @FlaggedApi(Flags.FLAG_ENABLE_SAFE_PARCELABLE_2)
+        public static final @NonNull Parcelable.Creator<MatchRange> CREATOR =
+                new MatchRangeCreator();
+
+        @Field(id = 1, getter = "getStart")
         private final int mStart;
+        @Field(id = 2, getter = "getEnd")
+        private final int mEnd;
 
         /**
          * Creates a new immutable range.
@@ -1362,7 +1326,10 @@ public final class SearchResult extends AbstractSafeParcelable {
          * @param start The start point (inclusive)
          * @param end   The end point (exclusive)
          */
-        public MatchRange(int start, int end) {
+        @Constructor
+        public MatchRange(
+                @Param(id = 1) int start,
+                @Param(id = 2) int end) {
             if (start > end) {
                 throw new IllegalArgumentException("Start point must be less than or equal to "
                         + "end point");
@@ -1402,6 +1369,13 @@ public final class SearchResult extends AbstractSafeParcelable {
         @Override
         public int hashCode() {
             return ObjectsCompat.hash(mStart, mEnd);
+        }
+
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        @FlaggedApi(Flags.FLAG_ENABLE_SAFE_PARCELABLE_2)
+        @Override
+        public void writeToParcel(@NonNull Parcel dest, int flags) {
+            MatchRangeCreator.writeToParcel(this, dest, flags);
         }
     }
 }

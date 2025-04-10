@@ -18,6 +18,7 @@ package androidx.privacysandbox.ui.provider
 
 import android.content.res.Configuration
 import android.os.Bundle
+import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 import androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions
 import androidx.privacysandbox.ui.core.SessionObserver
@@ -74,7 +75,11 @@ abstract class AbstractSandboxedUiAdapter : SandboxedUiAdapter, SessionObserverF
             }
 
             override fun onUiContainerChanged(uiContainerInfo: Bundle) {
-                if (signalOptions.contains(SandboxedUiAdapterSignalOptions.GEOMETRY)) {
+                SandboxedSdkViewUiInfo.pruneBundle(uiContainerInfo, signalOptions)
+                if (
+                    signalOptions.contains(SandboxedUiAdapterSignalOptions.GEOMETRY) ||
+                        signalOptions.contains(SandboxedUiAdapterSignalOptions.OBSTRUCTIONS)
+                ) {
                     sessionObserver.onUiContainerChanged(uiContainerInfo)
                 }
             }

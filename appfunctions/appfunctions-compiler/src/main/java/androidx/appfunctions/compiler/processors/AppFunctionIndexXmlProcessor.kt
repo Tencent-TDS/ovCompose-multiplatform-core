@@ -16,6 +16,7 @@
 
 package androidx.appfunctions.compiler.processors
 
+import androidx.appfunctions.compiler.core.AnnotatedAppFunctionSerializableProxy.ResolvedAnnotatedSerializableProxies
 import androidx.appfunctions.compiler.core.AnnotatedAppFunctions
 import androidx.appfunctions.compiler.core.AppFunctionSymbolResolver
 import androidx.appfunctions.metadata.CompileTimeAppFunctionMetadata
@@ -46,8 +47,14 @@ class AppFunctionIndexXmlProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
+        val appFunctionSymbolResolver = AppFunctionSymbolResolver(resolver)
+        val resolvedAnnotatedSerializableProxies =
+            ResolvedAnnotatedSerializableProxies(
+                appFunctionSymbolResolver.resolveAllAnnotatedSerializableProxiesFromModule()
+            )
         generateIndexXml(
-            AppFunctionSymbolResolver(resolver).getAnnotatedAppFunctionsFromAllModules()
+            appFunctionSymbolResolver.getAnnotatedAppFunctionsFromAllModules(),
+            resolvedAnnotatedSerializableProxies
         )
         return emptyList()
     }
@@ -55,24 +62,29 @@ class AppFunctionIndexXmlProcessor(
     /**
      * Generates AppFunction's index xml files for indexer in App Search.
      *
-     * @param appFunctionsByClass a collection of functions annotated with @AppFunction grouped by
-     *   their enclosing classes.
+     * @param appFunctionsByClass a collection of functions annotated with @AppFunction
+     * @param resolvedAnnotatedSerializableProxies a collection of resolved annotated serializable
+     *   proxies
      */
     private fun generateIndexXml(
         appFunctionsByClass: List<AnnotatedAppFunctions>,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ) {
         if (appFunctionsByClass.isEmpty()) {
             return
         }
-        writeXmlFile(appFunctionsByClass)
+        writeXmlFile(appFunctionsByClass, resolvedAnnotatedSerializableProxies)
     }
 
     private fun writeXmlFile(
         appFunctionsByClass: List<AnnotatedAppFunctions>,
+        resolvedAnnotatedSerializableProxies: ResolvedAnnotatedSerializableProxies
     ) {
         val appFunctionMetadataList =
             appFunctionsByClass.flatMap {
-                it.createAppFunctionMetadataList().map { it.toAppFunctionMetadataDocument() }
+                it.createAppFunctionMetadataList(resolvedAnnotatedSerializableProxies).map {
+                    it.toAppFunctionMetadataDocument()
+                }
             }
 
         val xmlDocumentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()

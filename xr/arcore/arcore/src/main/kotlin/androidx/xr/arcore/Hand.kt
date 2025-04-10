@@ -17,6 +17,7 @@
 package androidx.xr.arcore
 
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.HandTrackingMode
 import androidx.xr.runtime.Session
 import androidx.xr.runtime.internal.Hand as RuntimeHand
 import androidx.xr.runtime.math.Pose
@@ -34,26 +35,34 @@ public class Hand internal constructor(internal val runtimeHand: RuntimeHand) : 
     /** * Companion object holding info to the left and right hands. */
     public companion object {
         /**
-         * Returns the Hand object that corresponds to the user's left hand when available, or null
-         * when the platform does not support the feature.
+         * Returns the Hand object that corresponds to the user's left hand when available.
          *
          * @param session the currently active [Session].
+         * @throws [IllegalStateException] if [HandTrackingMode] is set to Disabled.
          */
         @JvmStatic
         public fun left(session: Session): Hand? {
             val perceptionStateExtender = getPerceptionStateExtender(session)
+            val config = perceptionStateExtender.xrResourcesManager.lifecycleManager.config
+            check(config.handTracking != HandTrackingMode.Disabled) {
+                "Config.HandTrackingMode is set to Disabled."
+            }
             return perceptionStateExtender.xrResourcesManager.leftHand
         }
 
         /**
-         * Returns the Hand object that corresponds to the user's right hand when available, or null
-         * when the platform does not support the feature.
+         * Returns the Hand object that corresponds to the user's right hand when available.
          *
          * @param session the currently active [Session].
+         * @throws [IllegalStateException] if [HandTrackingMode] is set to Disabled.
          */
         @JvmStatic
         public fun right(session: Session): Hand? {
             val perceptionStateExtender = getPerceptionStateExtender(session)
+            val config = perceptionStateExtender.xrResourcesManager.lifecycleManager.config
+            check(config.handTracking != HandTrackingMode.Disabled) {
+                "Config.HandTrackingMode is set to Disabled."
+            }
             return perceptionStateExtender.xrResourcesManager.rightHand
         }
 

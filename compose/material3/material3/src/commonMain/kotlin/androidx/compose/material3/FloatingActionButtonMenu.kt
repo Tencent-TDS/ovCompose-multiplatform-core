@@ -19,10 +19,8 @@ package androidx.compose.material3
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -173,7 +171,8 @@ private fun FloatingActionButtonMenuItemColumn(
     var itemCount by remember { mutableIntStateOf(0) }
     var staggerAnim by remember { mutableStateOf<Animatable<Int, AnimationVector1D>?>(null) }
     val coroutineScope = rememberCoroutineScope()
-
+    // TODO Load the motionScheme tokens from the component tokens file
+    val staggerAnimSpec: FiniteAnimationSpec<Int> = MotionSchemeKeyTokens.FastEffects.value()
     Layout(
         modifier =
             Modifier.clipToBounds()
@@ -200,14 +199,7 @@ private fun FloatingActionButtonMenuItemColumn(
             staggerAnim?.also {
                 if (it.targetValue != targetItemCount) {
                     coroutineScope.launch {
-                        it.animateTo(
-                            targetItemCount,
-                            tween(
-                                (if (expanded) (StaggerEnterDelayMillis)
-                                else StaggerExitDelayMillis) * itemCount,
-                                easing = LinearEasing
-                            )
-                        )
+                        it.animateTo(targetValue = targetItemCount, animationSpec = staggerAnimSpec)
                     }
                 }
             } ?: Animatable(targetItemCount, Int.VectorConverter)
@@ -681,5 +673,3 @@ private val FabMenuItemSpacingVertical = FabMenuBaselineTokens.ListItemBetweenSp
 private val FabMenuItemContentPaddingStart = FabMenuBaselineTokens.ListItemLeadingSpace
 private val FabMenuItemContentPaddingEnd = FabMenuBaselineTokens.ListItemTrailingSpace
 private val FabMenuItemContentSpacingHorizontal = FabMenuBaselineTokens.ListItemIconLabelSpace
-private const val StaggerEnterDelayMillis = 35
-private const val StaggerExitDelayMillis = 25

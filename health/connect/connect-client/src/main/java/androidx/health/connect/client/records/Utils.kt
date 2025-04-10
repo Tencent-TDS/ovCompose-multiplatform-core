@@ -28,6 +28,11 @@ internal fun isAtLeastSdkExtension13(): Boolean {
     return SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13
 }
 
+@RequiresApi(Build.VERSION_CODES.R)
+internal fun isAtLeastSdkExtension15(): Boolean {
+    return SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 15
+}
+
 internal fun <T : Comparable<T>> T.requireNotLess(other: T, name: String) {
     require(this >= other) { "$name must not be less than $other, currently $this." }
 }

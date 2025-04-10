@@ -18,6 +18,11 @@ package androidx.xr.scenecore
 
 import android.util.Log
 import androidx.annotation.RestrictTo
+import androidx.xr.runtime.internal.ActivityPose as RtActivityPose
+import androidx.xr.runtime.internal.CameraViewActivityPose as RtCameraViewActivityPose
+import androidx.xr.runtime.internal.HeadActivityPose as RtHeadActivityPose
+import androidx.xr.runtime.internal.JxrPlatformAdapter
+import androidx.xr.runtime.internal.PerceptionSpaceActivityPose as RtPerceptionSpaceActivityPose
 import androidx.xr.runtime.math.Pose
 
 /**
@@ -52,7 +57,7 @@ public interface ActivityPose {
  * ActivityPose.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public abstract class BaseActivityPose<out RtActivityPoseType : JxrPlatformAdapter.ActivityPose>(
+public abstract class BaseActivityPose<out RtActivityPoseType : RtActivityPose>(
     internal val rtActivityPose: RtActivityPoseType
 ) : ActivityPose {
     private companion object {
@@ -64,7 +69,7 @@ public abstract class BaseActivityPose<out RtActivityPoseType : JxrPlatformAdapt
     }
 
     override fun transformPoseTo(pose: Pose, destination: ActivityPose): Pose {
-        if (destination !is BaseActivityPose<JxrPlatformAdapter.ActivityPose>) {
+        if (destination !is BaseActivityPose<RtActivityPose>) {
             Log.e(TAG, "Destination must be a subclass of BaseActivityPose!")
             return Pose.Identity
         }
@@ -75,15 +80,14 @@ public abstract class BaseActivityPose<out RtActivityPoseType : JxrPlatformAdapt
 /** A ActivityPose which tracks a camera's position and view into physical space. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
 public class CameraView
-private constructor(
-    private val rtCameraViewActivityPose: JxrPlatformAdapter.CameraViewActivityPose
-) : BaseActivityPose<JxrPlatformAdapter.CameraViewActivityPose>(rtCameraViewActivityPose) {
+private constructor(private val rtCameraViewActivityPose: RtCameraViewActivityPose) :
+    BaseActivityPose<RtCameraViewActivityPose>(rtCameraViewActivityPose) {
 
     internal companion object {
         internal fun createLeft(platformAdapter: JxrPlatformAdapter): CameraView? {
             val cameraViewActivityPose =
                 platformAdapter.getCameraViewActivityPose(
-                    JxrPlatformAdapter.CameraViewActivityPose.CAMERA_TYPE_LEFT_EYE
+                    RtCameraViewActivityPose.CameraType.CAMERA_TYPE_LEFT_EYE
                 )
             return cameraViewActivityPose?.let { CameraView(it) }
         }
@@ -91,7 +95,7 @@ private constructor(
         internal fun createRight(platformAdapter: JxrPlatformAdapter): CameraView? {
             val cameraViewActivityPose =
                 platformAdapter.getCameraViewActivityPose(
-                    JxrPlatformAdapter.CameraViewActivityPose.CAMERA_TYPE_RIGHT_EYE
+                    RtCameraViewActivityPose.CameraType.CAMERA_TYPE_RIGHT_EYE
                 )
             return cameraViewActivityPose?.let { CameraView(it) }
         }
@@ -124,8 +128,8 @@ private constructor(
  * right camera it is calculated as the position between the two.
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class Head private constructor(rtActivityPose: JxrPlatformAdapter.HeadActivityPose) :
-    BaseActivityPose<JxrPlatformAdapter.HeadActivityPose>(rtActivityPose) {
+public class Head private constructor(rtActivityPose: RtHeadActivityPose) :
+    BaseActivityPose<RtHeadActivityPose>(rtActivityPose) {
 
     internal companion object {
 
@@ -141,9 +145,8 @@ public class Head private constructor(rtActivityPose: JxrPlatformAdapter.HeadAct
  */
 // TODO: b/360870690 - Remove suppression annotation when API council review is complete.
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-public class PerceptionSpace
-private constructor(rtActivityPose: JxrPlatformAdapter.PerceptionSpaceActivityPose) :
-    BaseActivityPose<JxrPlatformAdapter.PerceptionSpaceActivityPose>(rtActivityPose) {
+public class PerceptionSpace private constructor(rtActivityPose: RtPerceptionSpaceActivityPose) :
+    BaseActivityPose<RtPerceptionSpaceActivityPose>(rtActivityPose) {
 
     internal companion object {
 

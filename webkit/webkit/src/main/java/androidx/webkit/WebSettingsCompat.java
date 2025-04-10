@@ -1207,7 +1207,6 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static void setPaymentRequestEnabled(@NonNull WebSettings settings, boolean enabled) {
         final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
         if (feature.isSupportedByWebView()) {
@@ -1230,7 +1229,6 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static boolean getPaymentRequestEnabled(@NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
         if (feature.isSupportedByWebView()) {
@@ -1257,7 +1255,6 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static void setHasEnrolledInstrumentEnabled(@NonNull WebSettings settings,
             boolean enabled) {
         final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
@@ -1282,7 +1279,6 @@ public class WebSettingsCompat {
      */
     @RequiresFeature(name = WebViewFeature.PAYMENT_REQUEST,
             enforcement = "androidx.webkit.WebViewFeature#isFeatureSupported")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static boolean getHasEnrolledInstrumentEnabled(@NonNull WebSettings settings) {
         final ApiFeature.NoFramework feature = WebViewFeatureInternal.PAYMENT_REQUEST;
         if (feature.isSupportedByWebView()) {
