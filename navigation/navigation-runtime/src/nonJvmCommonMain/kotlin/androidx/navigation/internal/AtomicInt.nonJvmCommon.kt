@@ -18,8 +18,8 @@ package androidx.navigation.internal
 
 import kotlinx.atomicfu.atomic
 
-internal actual class AtomicInt actual constructor(initialValue: Int) {
-    private val delegate = atomic(initialValue)
+internal actual class AtomicInt actual constructor(initial: Int) {
+    private val delegate = atomic(initial)
     actual fun incrementAndGet(): Int = delegate.incrementAndGet()
     actual fun decrementAndGet(): Int = delegate.decrementAndGet()
     actual fun get(): Int = delegate.value
