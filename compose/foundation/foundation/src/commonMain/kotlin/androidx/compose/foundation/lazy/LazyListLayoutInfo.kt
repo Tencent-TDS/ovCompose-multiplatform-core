@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package androidx.compose.foundation.lazy
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.internal.JvmDefaultWithCompatibility
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.util.fastSumBy
 
 /**
  * Contains useful information about the currently displayed layout state of lazy lists like
@@ -84,4 +85,10 @@ interface LazyListLayoutInfo {
     /** The spacing between items in the direction of scrolling. */
     val mainAxisItemSpacing: Int
         get() = 0
+}
+
+internal fun LazyListLayoutInfo.visibleItemsAverageSize(): Int {
+    val visibleItems = visibleItemsInfo
+    val itemsSum = visibleItems.fastSumBy { it.size }
+    return itemsSum / visibleItems.size + mainAxisItemSpacing
 }

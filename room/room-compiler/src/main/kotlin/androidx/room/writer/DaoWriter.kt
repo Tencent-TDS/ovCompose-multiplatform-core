@@ -33,12 +33,13 @@ import androidx.room.compiler.processing.XProcessingEnv
 import androidx.room.compiler.processing.XType
 import androidx.room.ext.CommonTypeNames
 import androidx.room.ext.RoomMemberNames
-import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.RoomTypeNames.DELETE_OR_UPDATE_ADAPTER
 import androidx.room.ext.RoomTypeNames.DELETE_OR_UPDATE_ADAPTER_COMPAT
 import androidx.room.ext.RoomTypeNames.INSERT_ADAPTER
 import androidx.room.ext.RoomTypeNames.INSERT_ADAPTER_COMPAT
+import androidx.room.ext.RoomTypeNames.RAW_QUERY
 import androidx.room.ext.RoomTypeNames.ROOM_DB
+import androidx.room.ext.RoomTypeNames.ROOM_SQL_QUERY
 import androidx.room.ext.RoomTypeNames.UPSERT_ADAPTER
 import androidx.room.ext.RoomTypeNames.UPSERT_ADAPTER_COMPAT
 import androidx.room.ext.SupportDbTypeNames
@@ -327,63 +328,120 @@ class DaoWriter(
     }
 
     private fun createRawQueryMethod(method: RawQueryMethod): XFunSpec {
-        val body =
-            XCodeBlock.builder(codeLanguage)
-                .apply {
-                    val scope = CodeGenScope(this@DaoWriter)
-                    val roomSQLiteQueryVar: String
-                    val queryParam = method.runtimeQueryParam
-                    val shouldReleaseQuery: Boolean
-                    if (queryParam?.isSupportQuery() == true) {
-                        roomSQLiteQueryVar = queryParam.paramName
-                        shouldReleaseQuery = false
-                    } else if (queryParam?.isString() == true) {
-                        roomSQLiteQueryVar = scope.getTmpVar("_statement")
-                        shouldReleaseQuery = true
-                        addLocalVariable(
-                            name = roomSQLiteQueryVar,
-                            typeName = RoomTypeNames.ROOM_SQL_QUERY,
-                            assignExpr =
-                                XCodeBlock.of(
-                                    codeLanguage,
-                                    "%M(%L, 0)",
-                                    RoomMemberNames.ROOM_SQL_QUERY_ACQUIRE,
-                                    queryParam.paramName
-                                ),
-                        )
-                    } else {
-                        // try to generate compiling code. we would've already reported this error
-                        roomSQLiteQueryVar = scope.getTmpVar("_statement")
-                        shouldReleaseQuery = false
-                        addLocalVariable(
-                            name = roomSQLiteQueryVar,
-                            typeName = RoomTypeNames.ROOM_SQL_QUERY,
-                            assignExpr =
-                                XCodeBlock.of(
-                                    codeLanguage,
-                                    "%M(%S, 0)",
-                                    RoomMemberNames.ROOM_SQL_QUERY_ACQUIRE,
-                                    "missing query parameter"
-                                ),
-                        )
-                    }
-                    if (method.returnsValue) {
-                        // don't generate code because it will create 1 more error. The original
-                        // error is
-                        // already reported by the processor.
-                        method.queryResultBinder.convertAndReturn(
-                            roomSQLiteQueryVar = roomSQLiteQueryVar,
-                            canReleaseQuery = shouldReleaseQuery,
-                            dbProperty = dbProperty,
-                            inTransaction = method.inTransaction,
-                            scope = scope
-                        )
-                    }
-                    add(scope.generate())
-                }
-                .build()
-        return overrideWithoutAnnotations(method.element, declaredDao).addCode(body).build()
+        return overrideWithoutAnnotations(method.element, declaredDao)
+            .addCode(createRawQueryMethodBody(method))
+            .build()
     }
+
+    private fun createRawQueryMethodBody(method: RawQueryMethod): XCodeBlock {
+        if (method.runtimeQueryParam == null || !method.queryResultBinder.isMigratedToDriver()) {
+            return compatCreateRawQueryMethodBody(method)
+        }
+
+        val scope = CodeGenScope(this@DaoWriter, useDriverApi = true)
+        val sqlQueryVar = scope.getTmpVar("_sql")
+        val rawQueryParamName =
+            if (method.runtimeQueryParam.isSupportQuery()) {
+                val rawQueryVar = scope.getTmpVar("_rawQuery")
+                scope.builder.addLocalVariable(
+                    name = rawQueryVar,
+                    typeName = RAW_QUERY,
+                    assignExpr =
+                        XCodeBlock.of(
+                            scope.language,
+                            format = "%T.copyFrom(%L).toRoomRawQuery()",
+                            ROOM_SQL_QUERY,
+                            method.runtimeQueryParam.paramName
+                        )
+                )
+                rawQueryVar
+            } else {
+                method.runtimeQueryParam.paramName
+            }
+
+        scope.builder.addLocalVal(
+            sqlQueryVar,
+            CommonTypeNames.STRING,
+            "%L.%L",
+            rawQueryParamName,
+            when (codeLanguage) {
+                CodeLanguage.JAVA -> "getSql()"
+                CodeLanguage.KOTLIN -> "sql"
+            }
+        )
+        if (method.returnsValue) {
+            method.queryResultBinder.convertAndReturn(
+                sqlQueryVar = sqlQueryVar,
+                dbProperty = dbProperty,
+                bindStatement = { stmtVar ->
+                    this.builder.addStatement(
+                        "%L.getBindingFunction().invoke(%L)",
+                        rawQueryParamName,
+                        stmtVar
+                    )
+                },
+                returnTypeName = method.returnType.asTypeName(),
+                inTransaction = method.inTransaction,
+                scope = scope
+            )
+        }
+        return scope.generate()
+    }
+
+    private fun compatCreateRawQueryMethodBody(method: RawQueryMethod): XCodeBlock =
+        XCodeBlock.builder(codeLanguage)
+            .apply {
+                val scope = CodeGenScope(this@DaoWriter)
+                val roomSQLiteQueryVar: String
+                val queryParam = method.runtimeQueryParam
+                val shouldReleaseQuery: Boolean
+                if (queryParam?.isSupportQuery() == true) {
+                    roomSQLiteQueryVar = queryParam.paramName
+                    shouldReleaseQuery = false
+                } else if (queryParam?.isString() == true) {
+                    roomSQLiteQueryVar = scope.getTmpVar("_statement")
+                    shouldReleaseQuery = true
+                    addLocalVariable(
+                        name = roomSQLiteQueryVar,
+                        typeName = ROOM_SQL_QUERY,
+                        assignExpr =
+                            XCodeBlock.of(
+                                codeLanguage,
+                                "%M(%L, 0)",
+                                RoomMemberNames.ROOM_SQL_QUERY_ACQUIRE,
+                                queryParam.paramName
+                            ),
+                    )
+                } else {
+                    // try to generate compiling code. we would've already reported this error
+                    roomSQLiteQueryVar = scope.getTmpVar("_statement")
+                    shouldReleaseQuery = false
+                    addLocalVariable(
+                        name = roomSQLiteQueryVar,
+                        typeName = ROOM_SQL_QUERY,
+                        assignExpr =
+                            XCodeBlock.of(
+                                codeLanguage,
+                                "%M(%S, 0)",
+                                RoomMemberNames.ROOM_SQL_QUERY_ACQUIRE,
+                                "missing query parameter"
+                            ),
+                    )
+                }
+                if (method.returnsValue) {
+                    // don't generate code because it will create 1 more error. The original
+                    // error is already reported by the processor.
+                    method.queryResultBinder.convertAndReturn(
+                        roomSQLiteQueryVar = roomSQLiteQueryVar,
+                        canReleaseQuery = shouldReleaseQuery,
+                        dbProperty = dbProperty,
+                        inTransaction = method.inTransaction,
+                        scope = scope
+                    )
+                }
+                add(scope.generate())
+            }
+            .build()
 
     private fun createPreparedQueryMethod(method: WriteQueryMethod): XFunSpec {
         return overrideWithoutAnnotations(method.element, declaredDao)
@@ -429,6 +487,7 @@ class DaoWriter(
         }
         val useDriverApi = method.methodBinder.isMigratedToDriver()
         val scope = CodeGenScope(writer = this, useDriverApi = useDriverApi)
+        ShortcutQueryParameterWriter.addNullCheckValidation(scope, method.parameters)
         if (useDriverApi) {
             method.methodBinder.convertAndReturn(
                 parameters = method.parameters,
@@ -515,6 +574,7 @@ class DaoWriter(
         }
         val useDriverApi = method.methodBinder.isMigratedToDriver()
         val scope = CodeGenScope(writer = this, useDriverApi = useDriverApi)
+        ShortcutQueryParameterWriter.addNullCheckValidation(scope, method.parameters)
         if (useDriverApi) {
             method.methodBinder.convertAndReturn(
                 parameters = method.parameters,
@@ -566,7 +626,7 @@ class DaoWriter(
         }
         val useDriverApi = method.methodBinder.isMigratedToDriver()
         val scope = CodeGenScope(writer = this, useDriverApi = useDriverApi)
-
+        ShortcutQueryParameterWriter.addNullCheckValidation(scope, method.parameters)
         if (useDriverApi) {
             method.methodBinder.convertAndReturn(
                 parameters = method.parameters,
@@ -641,7 +701,12 @@ class DaoWriter(
         method.queryResultBinder.convertAndReturn(
             sqlQueryVar = sqlVar,
             dbProperty = dbProperty,
-            bindStatement = { stmtVar -> queryWriter.bindArgs(stmtVar, listSizeArgs, this) },
+            bindStatement =
+                if (queryWriter.parameters.isNotEmpty()) {
+                    { stmtVar -> queryWriter.bindArgs(stmtVar, listSizeArgs, this) }
+                } else {
+                    null
+                },
             returnTypeName = method.returnType.asTypeName(),
             inTransaction = method.inTransaction,
             scope = scope

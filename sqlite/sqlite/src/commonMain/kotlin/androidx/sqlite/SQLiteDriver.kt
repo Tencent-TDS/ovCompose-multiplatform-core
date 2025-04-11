@@ -17,12 +17,13 @@
 package androidx.sqlite
 
 /** An interface to open database connections. */
-interface SQLiteDriver {
+@Suppress("AcronymName") // SQL is a known term and should remain capitalized
+public interface SQLiteDriver {
     /**
      * Opens a new database connection.
      *
      * @param fileName Name of the database file.
      * @return the database connection.
      */
-    fun open(fileName: String): SQLiteConnection
+    public fun open(fileName: String): SQLiteConnection
 }

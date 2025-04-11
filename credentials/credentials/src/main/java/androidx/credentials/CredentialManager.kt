@@ -99,7 +99,6 @@ interface CredentialManager {
      * credentials, consent to using one of them, etc.
      *
      * @sample androidx.credentials.samples.callGetCredential
-     *
      * @param context the context used to launch any UI needed; use an activity context to make sure
      *   the UI will be launched within the same task stack
      * @param request the request for getting the credential
@@ -299,6 +298,9 @@ interface CredentialManager {
      * credential over any other available credential. When your user explicitly signs out of your
      * app and in order to get the holistic sign-in options the next time, you should call this API
      * to let the provider clear any stored credential session.
+     *
+     * If the API is called with [ClearCredentialStateRequest.TYPE_CLEAR_RESTORE_CREDENTIAL] then
+     * any restore credential stored on device will be cleared.
      *
      * @param request the request for clearing the app user's credential state
      * @throws ClearCredentialException If the request fails

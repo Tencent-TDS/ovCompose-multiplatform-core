@@ -18,7 +18,6 @@ package androidx.compose.foundation.text
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.OverscrollEffect
-import androidx.compose.foundation.clipScrollableContainer
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.rememberScrollableState
@@ -30,6 +29,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
@@ -66,64 +66,58 @@ internal fun Modifier.textFieldScrollable(
     interactionSource: MutableInteractionSource? = null,
     enabled: Boolean = true,
     overscrollEffect: OverscrollEffect? = null
-) = composed(
-    inspectorInfo =
-        debugInspectorInfo {
-            name = "textFieldScrollable"
-            properties["scrollerPosition"] = scrollerPosition
-            properties["interactionSource"] = interactionSource
-            properties["enabled"] = enabled
-        }
-) {
-    // do not reverse direction only in case of RTL in horizontal orientation
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val reverseDirection = scrollerPosition.orientation == Orientation.Vertical || !rtl
-    val scrollableState = rememberScrollableState { delta ->
-        val newOffset = scrollerPosition.offset + delta
-        val consumedDelta =
-            when {
-                newOffset > scrollerPosition.maximum ->
-                    scrollerPosition.maximum - scrollerPosition.offset
-                newOffset < 0f -> -scrollerPosition.offset
-                else -> delta
+) =
+    composed(
+        inspectorInfo =
+            debugInspectorInfo {
+                name = "textFieldScrollable"
+                properties["scrollerPosition"] = scrollerPosition
+                properties["interactionSource"] = interactionSource
+                properties["enabled"] = enabled
             }
-        scrollerPosition.offset += consumedDelta
-        consumedDelta
-    }
-    // TODO: b/255557085 remove when / if rememberScrollableState exposes lambda parameters for
-    //  setting these
-    val wrappedScrollableState =
-        remember(scrollableState, scrollerPosition) {
-            createScrollableState(scrollableState, scrollerPosition)
+    ) {
+        // do not reverse direction only in case of RTL in horizontal orientation
+        val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+        val reverseDirection = scrollerPosition.orientation == Orientation.Vertical || !rtl
+        val scrollableState = rememberScrollableState { delta ->
+            val newOffset = scrollerPosition.offset + delta
+            val consumedDelta =
+                when {
+                    newOffset > scrollerPosition.maximum ->
+                        scrollerPosition.maximum - scrollerPosition.offset
+                    newOffset < 0f -> -scrollerPosition.offset
+                    else -> delta
+                }
+            scrollerPosition.offset += consumedDelta
+            consumedDelta
         }
-
-    val scroll = Modifier.scrollable(
-        orientation = scrollerPosition.orientation,
-        reverseDirection = reverseDirection,
-        overscrollEffect = overscrollEffect,
-        state = wrappedScrollableState,
-        interactionSource = interactionSource,
-        enabled = enabled && scrollerPosition.maximum != 0f
-    )
-
-    scroll
-
-}
-
-// Workaround for K/JS
-private inline fun createScrollableState(
-    scrollableState: ScrollableState,
-    scrollerPosition: TextFieldScrollerPosition
-): ScrollableState {
-    return object : ScrollableState by scrollableState {
-        override val canScrollForward by derivedStateOf {
-            scrollerPosition.offset < scrollerPosition.maximum
-        }
-        override val canScrollBackward by derivedStateOf { scrollerPosition.offset > 0f }
+        // TODO: b/255557085 remove when / if rememberScrollableState exposes lambda parameters for
+        //  setting these
+        val wrappedScrollableState =
+            remember(scrollableState, scrollerPosition) {
+                object : ScrollableState by scrollableState {
+                    override val canScrollForward by derivedStateOf {
+                        scrollerPosition.offset < scrollerPosition.maximum
+                    }
+                    override val canScrollBackward by derivedStateOf {
+                        scrollerPosition.offset > 0f
+                    }
+                }
+            }
+        val scroll =
+            Modifier.scrollable(
+                orientation = scrollerPosition.orientation,
+                reverseDirection = reverseDirection,
+                overscrollEffect = overscrollEffect,
+                state = wrappedScrollableState,
+                interactionSource = interactionSource,
+                enabled = enabled && scrollerPosition.maximum != 0f
+            )
+        scroll
     }
-}
 
 // Layout
+// Expect/actual is needed due to a different implementation in uikit
 internal expect fun Modifier.textFieldScroll(
     scrollerPosition: TextFieldScrollerPosition,
     textFieldValue: TextFieldValue,
@@ -298,10 +292,8 @@ internal class TextFieldScrollerPosition(
     var maximum by mutableFloatStateOf(0f)
         private set
 
-    /**
-     * Size of the visible part, on the scrollable axis, in pixels.
-     */
-    var viewportSize by mutableStateOf(0)
+    /** Size of the visible part, on the scrollable axis, in pixels. */
+    var viewportSize by mutableIntStateOf(0)
         private set
 
     /**

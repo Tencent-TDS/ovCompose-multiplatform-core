@@ -18,10 +18,9 @@ package androidx.collection
 
 import androidx.collection.internal.binarySearch
 import androidx.collection.internal.idealLongArraySize
+import androidx.collection.internal.requirePrecondition
 import kotlin.DeprecationLevel.HIDDEN
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
-import kotlin.jvm.JvmSynthetic
 
 private val DELETED = Any()
 
@@ -54,22 +53,10 @@ private val DELETED = Any()
  *   not requiring any additional array allocations.
  */
 public expect open class LongSparseArray<E>
-@JvmOverloads
-public constructor(initialCapacity: Int = 10) {
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
+@JvmOverloads public constructor(initialCapacity: Int = 10) {
     internal var garbage: Boolean
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var keys: LongArray
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var values: Array<Any?>
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var size: Int
 
     /**
@@ -230,22 +217,17 @@ public constructor(initialCapacity: Int = 10) {
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun <E> LongSparseArray<E>.commonGet(key: Long): E? {
-    @Suppress("UNCHECKED_CAST")
-    return commonGetInternal(key, null) as E?
+    @Suppress("UNCHECKED_CAST") return commonGetInternal(key, null) as E?
 }
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun <E> LongSparseArray<E>.commonGet(key: Long, defaultValue: E): E {
-    @Suppress("UNCHECKED_CAST")
-    return commonGetInternal(key, defaultValue) as E
+    @Suppress("UNCHECKED_CAST") return commonGetInternal(key, defaultValue) as E
 }
 
-// TODO revert the commit c2f38fa5 after fixing https://youtrack.jetbrains.com/issue/COMPOSE-811/Fix-LongSparseArray-the-right-way-on-wasm
+// TODO(b/375562182) revert the type change done in aosp/375562182 after collection targets K2
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun LongSparseArray<*>.commonGetInternal(
-    key: Long,
-    defaultValue: Any?
-): Any? {
+internal inline fun LongSparseArray<*>.commonGetInternal(key: Long, defaultValue: Any?): Any? {
     val i = binarySearch(keys, size, key)
     return if (i < 0 || values[i] === DELETED) {
         defaultValue
@@ -401,7 +383,9 @@ internal inline fun <E> LongSparseArray<E>.commonIsEmpty(): Boolean = size() == 
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun <E> LongSparseArray<E>.commonKeyAt(index: Int): Long {
-    require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+    requirePrecondition(index in 0 until size) {
+        "Expected index to be within 0..size()-1, but was $index"
+    }
 
     if (garbage) {
         commonGc()
@@ -411,7 +395,9 @@ internal inline fun <E> LongSparseArray<E>.commonKeyAt(index: Int): Long {
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun <E> LongSparseArray<E>.commonValueAt(index: Int): E {
-    require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+    requirePrecondition(index in 0 until size) {
+        "Expected index to be within 0..size()-1, but was $index"
+    }
 
     if (garbage) {
         commonGc()
@@ -422,7 +408,9 @@ internal inline fun <E> LongSparseArray<E>.commonValueAt(index: Int): E {
 
 @Suppress("NOTHING_TO_INLINE")
 internal inline fun <E> LongSparseArray<E>.commonSetValueAt(index: Int, value: E) {
-    require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+    requirePrecondition(index in 0 until size) {
+        "Expected index to be within 0..size()-1, but was $index"
+    }
 
     if (garbage) {
         commonGc()

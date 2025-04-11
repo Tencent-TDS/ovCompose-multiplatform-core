@@ -60,7 +60,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
+                implementation(project(":collection:collection"))
             }
 
             jvmMain.dependencies {
@@ -84,7 +85,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
 
             uikitMain {
                 dependencies {
-                    api project(":compose:ui:ui-uikit")
+                    implementation(project(":compose:ui:ui-uikit"))
                 }
             }
 
@@ -96,7 +97,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             wasmJsMain.dependsOn(webMain)
 
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you

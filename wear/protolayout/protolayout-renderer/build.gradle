@@ -30,7 +30,7 @@ plugins {
 
 dependencies {
     annotationProcessor(libs.nullaway)
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.7.0")
     api(libs.guava)
     implementation("androidx.core:core:1.3.2")
@@ -48,7 +48,7 @@ dependencies {
     testImplementation(libs.testExtTruth)
     testImplementation(libs.testRunner)
     testImplementation(libs.robolectric)
-    testImplementation("androidx.collection:collection:1.2.0")
+    testImplementation("androidx.collection:collection:1.4.2")
     testImplementation(libs.truth)
 }
 
@@ -65,5 +65,4 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Render ProtoLayouts to an Android surface"
-    metalavaK2UastEnabled = true
 }

@@ -31,12 +31,12 @@ plugins {
 
 dependencies {
     annotationProcessor(libs.nullaway)
-    api("androidx.annotation:annotation:1.2.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":wear:protolayout:protolayout"))
 
     implementation(project(":wear:protolayout:protolayout-material-core"))
     implementation(project(":wear:protolayout:protolayout-proto"))
-    implementation("androidx.annotation:annotation-experimental:1.4.0")
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     lintChecks(project(":wear:protolayout:protolayout-lint"))
     lintPublish(project(":wear:protolayout:protolayout-lint"))
@@ -83,5 +83,4 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "Material components library for ProtoLayout."
-    metalavaK2UastEnabled = true
 }

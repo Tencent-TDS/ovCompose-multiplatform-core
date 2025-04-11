@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -32,9 +32,10 @@ plugins {
 BundleInsideHelper.forInsideLintJar(project)
 
 dependencies {
-    compileOnly(libs.androidLintMinComposeApi)
+    compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
     bundleInside(projectOrArtifact(":compose:lint:common"))
+    bundleInside(projectOrArtifact(":navigation:navigation-lint-common"))
 
     testImplementation(projectOrArtifact(":compose:lint:common-test"))
     testImplementation(libs.kotlinStdlib)
@@ -48,7 +49,7 @@ dependencies {
 
 androidx {
     name = "Navigation Compose Lint"
-    type = LibraryType.LINT
+    type = SoftwareType.LINT
     inceptionYear = "2021"
     description = "Lint checks for Navigation Compose"
 }

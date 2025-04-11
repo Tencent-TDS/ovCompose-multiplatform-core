@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.LayoutDirection
  * Draws [shape] with a solid [color] behind the content.
  *
  * @sample androidx.compose.foundation.samples.DrawBackgroundColor
- *
  * @param color color to paint background with
  * @param shape desired shape of the background
  */
@@ -67,7 +66,6 @@ fun Modifier.background(color: Color, shape: Shape = RectangleShape): Modifier {
  * Draws [shape] with [brush] behind the content.
  *
  * @sample androidx.compose.foundation.samples.DrawBackgroundShapedBrush
- *
  * @param brush brush to paint background with
  * @param shape desired shape of the background
  * @param alpha Opacity to be applied to the [brush], with `0` being completely transparent and `1`
@@ -146,6 +144,7 @@ private class BackgroundNode(
     private var lastLayoutDirection: LayoutDirection? = null
     private var lastOutline: Outline? = null
     private var lastShape: Shape? = null
+    private var tmpOutline: Outline? = null
 
     override fun ContentDrawScope.draw() {
         if (shape === RectangleShape) {
@@ -180,12 +179,15 @@ private class BackgroundNode(
     }
 
     private fun ContentDrawScope.getOutline(): Outline {
-        var outline: Outline? = null
+        val outline: Outline?
         if (size == lastSize && layoutDirection == lastLayoutDirection && lastShape == shape) {
             outline = lastOutline!!
         } else {
             // Manually observe reads so we can directly invalidate the outline when it changes
-            observeReads { outline = shape.createOutline(size, layoutDirection, this) }
+            // Use tmpOutline to avoid creating an object reference to local var outline
+            observeReads { tmpOutline = shape.createOutline(size, layoutDirection, this) }
+            outline = tmpOutline
+            tmpOutline = null
         }
         lastOutline = outline
         lastSize = size

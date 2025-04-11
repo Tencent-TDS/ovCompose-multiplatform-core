@@ -16,12 +16,15 @@
 
 package androidx.compose.foundation.layout
 
+import androidx.compose.foundation.layout.internal.checkPrecondition
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.util.fastCoerceAtLeast
+import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastRoundToInt
 import kotlin.math.max
 import kotlin.math.min
@@ -129,7 +132,7 @@ internal fun RowColumnMeasurePolicy.measure(
                                 if (mainAxisMax == Constraints.Infinity) {
                                     Constraints.Infinity
                                 } else {
-                                    remaining.coerceAtLeast(0)
+                                    remaining.fastCoerceAtLeast(0)
                                 },
                             crossAxisMax = crossAxisDesiredSize ?: crossAxisMax
                         )
@@ -138,7 +141,7 @@ internal fun RowColumnMeasurePolicy.measure(
             val placeableCrossAxisSize = placeable.crossAxisSize()
             childrenMainAxisSize[i - startIndex] = placeableMainAxisSize
             spaceAfterLastNoWeight =
-                min(arrangementSpacingInt, (remaining - placeableMainAxisSize).coerceAtLeast(0))
+                min(arrangementSpacingInt, (remaining - placeableMainAxisSize).fastCoerceAtLeast(0))
             fixedSpace += placeableMainAxisSize + spaceAfterLastNoWeight
             crossAxisSpace = max(crossAxisSpace, placeableCrossAxisSize)
             placeables[i] = placeable
@@ -159,7 +162,7 @@ internal fun RowColumnMeasurePolicy.measure(
             }
         val arrangementSpacingTotal = arrangementSpacingPx * (weightChildrenCount - 1)
         val remainingToTarget =
-            (targetSpace - fixedSpace - arrangementSpacingTotal).coerceAtLeast(0)
+            (targetSpace - fixedSpace - arrangementSpacingTotal).fastCoerceAtLeast(0)
 
         val weightUnitSpace = remainingToTarget / totalWeight
         var remainder = remainingToTarget
@@ -167,42 +170,7 @@ internal fun RowColumnMeasurePolicy.measure(
             val measurable = measurables[i]
             val itemWeight = measurable.rowColumnParentData.weight
             val weightedSize = (weightUnitSpace * itemWeight)
-            try {
-                remainder -= weightedSize.fastRoundToInt()
-            } catch (e: IllegalArgumentException) {
-                throw IllegalArgumentException(
-                        "This log indicates a hard-to-reproduce Compose issue, " +
-                            "modified with additional debugging details. " +
-                            "Please help us by adding your experiences to the bug link provided. " +
-                            "Thank you for helping us improve Compose. " +
-                            "https://issuetracker.google.com/issues/297974033 " +
-                            "mainAxisMax " +
-                            mainAxisMax +
-                            "mainAxisMin " +
-                            mainAxisMin +
-                            "targetSpace " +
-                            targetSpace +
-                            "arrangementSpacingPx " +
-                            arrangementSpacingPx +
-                            "weightChildrenCount " +
-                            weightChildrenCount +
-                            "fixedSpace " +
-                            fixedSpace +
-                            "arrangementSpacingTotal " +
-                            arrangementSpacingTotal +
-                            "remainingToTarget " +
-                            remainingToTarget +
-                            "totalWeight " +
-                            totalWeight +
-                            "weightUnitSpace " +
-                            weightUnitSpace +
-                            "itemWeight " +
-                            itemWeight +
-                            "weightedSize " +
-                            weightedSize,
-                        e
-                    )
-            }
+            remainder -= weightedSize.fastRoundToInt()
         }
 
         for (i in startIndex until endIndex) {
@@ -216,7 +184,7 @@ internal fun RowColumnMeasurePolicy.measure(
                         parentData?.flowLayoutData?.let {
                             (it.fillCrossAxisFraction * crossAxisMax).fastRoundToInt()
                         }
-                check(weight > 0) { "All weights <= 0 should have placeables" }
+                checkPrecondition(weight > 0) { "All weights <= 0 should have placeables" }
                 // After the weightUnitSpace rounding, the total space going to be occupied
                 // can be smaller or larger than remainingToTarget. Here we distribute the
                 // loss or gain remainder evenly to the first children.
@@ -224,62 +192,19 @@ internal fun RowColumnMeasurePolicy.measure(
                 remainder -= remainderUnit
                 val weightedSize = (weightUnitSpace * weight)
                 val childMainAxisSize = max(0, weightedSize.fastRoundToInt() + remainderUnit)
-
-                val childConstraints: Constraints
-                try {
-                    childConstraints =
-                        createConstraints(
-                            mainAxisMin =
-                                if (parentData.fill && childMainAxisSize != Constraints.Infinity) {
-                                    childMainAxisSize
-                                } else {
-                                    0
-                                },
-                            crossAxisMin = crossAxisDesiredSize ?: 0,
-                            mainAxisMax = childMainAxisSize,
-                            crossAxisMax = crossAxisDesiredSize ?: crossAxisMax,
-                            isPrioritizing = true
-                        )
-                } catch (e: IllegalArgumentException) {
-                    throw IllegalArgumentException(
-                            "This log indicates a hard-to-reproduce Compose issue, " +
-                                "modified with additional debugging details. " +
-                                "Please help us by adding your experiences to the bug link provided. " +
-                                "Thank you for helping us improve Compose. " +
-                                "https://issuetracker.google.com/issues/300280216 " +
-                                "mainAxisMax " +
-                                mainAxisMax +
-                                "mainAxisMin " +
-                                mainAxisMin +
-                                "targetSpace " +
-                                targetSpace +
-                                "arrangementSpacingPx " +
-                                arrangementSpacingPx +
-                                "weightChildrenCount " +
-                                weightChildrenCount +
-                                "fixedSpace " +
-                                fixedSpace +
-                                "arrangementSpacingTotal " +
-                                arrangementSpacingTotal +
-                                "remainingToTarget " +
-                                remainingToTarget +
-                                "totalWeight " +
-                                totalWeight +
-                                "weightUnitSpace " +
-                                weightUnitSpace +
-                                "weight " +
-                                weight +
-                                "weightedSize " +
-                                weightedSize +
-                                "crossAxisDesiredSize " +
-                                crossAxisDesiredSize +
-                                "remainderUnit " +
-                                remainderUnit +
-                                "childMainAxisSize " +
-                                childMainAxisSize,
-                            e
-                        )
-                }
+                val childConstraints: Constraints =
+                    createConstraints(
+                        mainAxisMin =
+                            if (parentData.fill && childMainAxisSize != Constraints.Infinity) {
+                                childMainAxisSize
+                            } else {
+                                0
+                            },
+                        crossAxisMin = crossAxisDesiredSize ?: 0,
+                        mainAxisMax = childMainAxisSize,
+                        crossAxisMax = crossAxisDesiredSize ?: crossAxisMax,
+                        isPrioritizing = true
+                    )
                 val placeable = child.measure(childConstraints)
                 val placeableMainAxisSize = placeable.mainAxisSize()
                 val placeableCrossAxisSize = placeable.crossAxisSize()
@@ -290,7 +215,9 @@ internal fun RowColumnMeasurePolicy.measure(
             }
         }
         weightedSpace =
-            (weightedSpace + arrangementSpacingTotal).toInt().coerceIn(0, mainAxisMax - fixedSpace)
+            (weightedSpace + arrangementSpacingTotal)
+                .toInt()
+                .fastCoerceIn(0, mainAxisMax - fixedSpace)
     }
 
     // we've done this check in weights as to avoid going through another loop
@@ -322,13 +249,14 @@ internal fun RowColumnMeasurePolicy.measure(
     }
 
     // Compute the Row or Column size and position the children.
-    val mainAxisLayoutSize = max((fixedSpace + weightedSpace).coerceAtLeast(0), mainAxisMin)
+    val mainAxisLayoutSize = max((fixedSpace + weightedSpace).fastCoerceAtLeast(0), mainAxisMin)
     val crossAxisLayoutSize =
-        max(
+        maxOf(
             crossAxisSpace,
-            max(crossAxisMin, beforeCrossAxisAlignmentLine + afterCrossAxisAlignmentLine)
+            crossAxisMin,
+            beforeCrossAxisAlignmentLine + afterCrossAxisAlignmentLine
         )
-    val mainAxisPositions = IntArray(subSize) { 0 }
+    val mainAxisPositions = IntArray(subSize)
     populateMainAxisPositions(
         mainAxisLayoutSize,
         childrenMainAxisSize,

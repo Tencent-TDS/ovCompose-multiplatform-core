@@ -16,39 +16,40 @@
 
 package androidx.core.telecom.test
 
+import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.Build.VERSION_CODES
-import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
-import androidx.core.telecom.CallsManager
+import androidx.core.telecom.CallControlResult
+import androidx.core.telecom.InCallServiceCompat
+import androidx.core.telecom.extensions.CallExtensionScope
 import androidx.core.telecom.extensions.Capability
+import androidx.core.telecom.extensions.Extensions
+import androidx.core.telecom.extensions.LocalCallSilenceExtensionImpl
 import androidx.core.telecom.extensions.Participant
-import androidx.core.telecom.extensions.ParticipantClientActions
-import androidx.core.telecom.extensions.getParticipantActions
-import androidx.core.telecom.internal.CallCompat
-import androidx.core.telecom.internal.InCallServiceCompat
+import androidx.core.telecom.extensions.ParticipantExtensionImpl
+import androidx.core.telecom.extensions.ParticipantExtensionRemote
 import androidx.core.telecom.test.VoipAppWithExtensions.VoipAppWithExtensionsControl
 import androidx.core.telecom.test.VoipAppWithExtensions.VoipAppWithExtensionsControlLocal
 import androidx.core.telecom.test.utils.BaseTelecomTest
-import androidx.core.telecom.test.utils.InCallServiceType
-import androidx.core.telecom.test.utils.MockInCallServiceDelegate
 import androidx.core.telecom.test.utils.TestCallCallbackListener
 import androidx.core.telecom.test.utils.TestUtils
 import androidx.core.telecom.util.ExperimentalAppActions
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
 import androidx.test.rule.ServiceTestRule
 import junit.framework.TestCase.assertEquals
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,23 +61,26 @@ import org.junit.runners.Parameterized.Parameters
  * ConnSrv implementations of CallsManager.
  */
 @SdkSuppress(minSdkVersion = VERSION_CODES.O /* api=26 */)
-@RequiresApi(VERSION_CODES.O)
 @OptIn(ExperimentalAppActions::class)
 @RunWith(Parameterized::class)
 class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTest() {
     companion object {
+        private const val ICS_EXTENSION_UPDATE_TIMEOUT_MS = 1000L
         // Use the VOIP service that uses V2 APIs (VoipAppExtensionControl)
         private const val SERVICE_SOURCE_V2 = 1
         // Use the VOIP service that uses bkwds compat APIs (VoipAppExtensionControl)
         private const val SERVICE_SOURCE_CONNSRV = 2
         // Set up a Capability with all actions supported.
         private val CAPABILITY_PARTICIPANT_WITH_ACTIONS =
-            Capability().apply {
-                featureId = CallsManager.PARTICIPANT
-                featureVersion = 1
-                supportedActions =
-                    intArrayOf(CallsManager.RAISE_HAND_ACTION, CallsManager.KICK_PARTICIPANT_ACTION)
-            }
+            createCapability(
+                id = Extensions.PARTICIPANT,
+                version = ParticipantExtensionImpl.VERSION,
+                actions =
+                    setOf(
+                        ParticipantExtensionImpl.RAISE_HAND_ACTION,
+                        ParticipantExtensionImpl.KICK_PARTICIPANT_ACTION
+                    )
+            )
 
         /** Provide all the combinations of parameters that should be tested for each run */
         @JvmStatic
@@ -92,9 +96,80 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
                 )
                 .toList()
         }
+
+        fun createCapability(id: Int, version: Int, actions: Set<Int>): Capability {
+            return Capability().apply {
+                featureId = id
+                featureVersion = version
+                supportedActions = actions.toIntArray()
+            }
+        }
     }
 
-    @get:Rule val serviceRule: ServiceTestRule = ServiceTestRule()
+    internal class CachedParticipants(scope: CallExtensionScope) {
+        private val participantState = MutableStateFlow<Set<Participant>>(emptySet())
+        private val activeParticipantState = MutableStateFlow<Participant?>(null)
+        val extension =
+            scope.addParticipantExtension(
+                onActiveParticipantChanged = activeParticipantState::emit,
+                onParticipantsUpdated = participantState::emit
+            )
+
+        suspend fun waitForParticipants(expected: Set<Participant>) {
+            val result =
+                withTimeoutOrNull(ICS_EXTENSION_UPDATE_TIMEOUT_MS) {
+                    participantState.first { it == expected }
+                }
+            assertEquals("Never received expected participants update", expected, result)
+        }
+
+        suspend fun waitForActiveParticipant(expected: Participant?) {
+            val result =
+                withTimeoutOrNull(ICS_EXTENSION_UPDATE_TIMEOUT_MS) {
+                    activeParticipantState.first { it == expected }
+                }
+            assertEquals("Never received expected active participant", expected, result)
+        }
+    }
+
+    // TODO:: b/364316364 should assert on a per call basis
+    internal class CachedLocalSilence(scope: CallExtensionScope) {
+        private val isLocallySilenced = MutableStateFlow(false)
+
+        val extension =
+            scope.addLocalCallSilenceExtension(onIsLocallySilencedUpdated = isLocallySilenced::emit)
+
+        suspend fun waitForLocalCallSilenceState(expected: Boolean) {
+            val result =
+                withTimeoutOrNull(ICS_EXTENSION_UPDATE_TIMEOUT_MS) {
+                    isLocallySilenced.first { it == expected }
+                }
+            assertEquals("Never received local call silence state", expected, result)
+        }
+    }
+
+    internal class CachedRaisedHands(extension: ParticipantExtensionRemote) {
+        private val raisedHands = MutableStateFlow<List<Participant>>(emptyList())
+        val action = extension.addRaiseHandAction(raisedHands::emit)
+
+        suspend fun waitForRaisedHands(expected: List<Participant>) {
+            val result =
+                withTimeoutOrNull(ICS_EXTENSION_UPDATE_TIMEOUT_MS) {
+                    raisedHands.first { it == expected }
+                }
+            assertEquals("Never received expected raised hands update", expected, result)
+        }
+    }
+
+    /**
+     * Grant READ_PHONE_NUMBERS permission as part of testing
+     * [InCallServiceCompat#resolveCallExtensionsType].
+     */
+    @get:Rule
+    val readPhoneNumbersRule: GrantPermissionRule =
+        GrantPermissionRule.grant(Manifest.permission.READ_PHONE_NUMBERS)!!
+
+    @get:Rule val voipAppServiceRule: ServiceTestRule = ServiceTestRule()
 
     data class TestParameters(val serviceSource: Int, val direction: Int) {
         override fun toString(): String {
@@ -118,6 +193,11 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
         }
     }
 
+    @Before
+    fun beforeTest() {
+        setupParameterizedTest()
+    }
+
     /**
      * Verify that when we have a VOIP app that has extensions set up and one ICS that is not using
      * [InCallServiceCompat], no extensions are supported. In this case, the VOIP app will never
@@ -127,89 +207,231 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
     @LargeTest
     @Test(timeout = 10000)
     fun testVoipWithExtensionsAndInCallServiceWithout() = runBlocking {
-        setupParameterizedTest(includeIcsExtensions = false)
-        val voipAppControl = bindToVoipAppWithExtensions()
-        // No Capability Exchange sequence occurs between VoIP app and ICS because ICS doesn't
-        // support extensions
-        createAndVerifyVoipCall(
-            voipAppControl,
-            listOf(CAPABILITY_PARTICIPANT_WITH_ACTIONS),
-            CallAttributesCompat.DIRECTION_OUTGOING
-        )
-        TestUtils.waitOnInCallServiceToReachXCalls(1)
-        try {
-            // Send updateParticipants to ensure there is no error/exception
-            voipAppControl.updateParticipants(listOf(TestUtils.getDefaultParticipant()))
-        } catch (e: Exception) {
-            fail("calling extension methods should not result in any exceptions: Exception: $e")
+        usingIcs { ics ->
+            val voipAppControl = bindToVoipAppWithExtensions()
+            // No Capability Exchange sequence occurs between VoIP app and ICS because ICS doesn't
+            // support extensions
+            createAndVerifyVoipCall(
+                voipAppControl,
+                listOf(CAPABILITY_PARTICIPANT_WITH_ACTIONS),
+                parameters.direction
+            )
+            TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)
+            try {
+                // Send updateParticipants to ensure there is no error/exception
+                voipAppControl.updateParticipants(
+                    listOf(TestUtils.getDefaultParticipantParcelable())
+                )
+            } catch (e: Exception) {
+                fail("calling extension methods should not result in any exceptions: Exception: $e")
+            }
         }
     }
 
     /**
-     * Validate that for a bound VOIP app, when a new call is added, the InCallService receives the
-     * new call and can use all Participant extension interfaces.
+     * Create a VOIP call with a participants extension and no actions Verify that all of the
+     * participant extension functions work as expected.
      */
     @LargeTest
     @Test(timeout = 10000)
     fun testVoipAndIcsWithParticipants() = runBlocking {
-        // test set up
-        setupParameterizedTest(
-            includeIcsExtensions = true,
-            setOf(CAPABILITY_PARTICIPANT_WITH_ACTIONS)
-        )
-
-        // bind to app
-        val voipAppControl = bindToVoipAppWithExtensions()
-        val callback = TestCallCallbackListener(this)
-        voipAppControl.setCallback(callback)
-
-        // add a call to verify capability exchange IS made with ICS
-        val voipCallId =
+        usingIcs { ics ->
+            val voipAppControl = bindToVoipAppWithExtensions()
+            val callback = TestCallCallbackListener(this)
+            voipAppControl.setCallback(callback)
             createAndVerifyVoipCall(
                 voipAppControl,
-                listOf(CAPABILITY_PARTICIPANT_WITH_ACTIONS),
-                CallAttributesCompat.DIRECTION_OUTGOING
-            )
-        val icsCall = getLastIcsCall()
-
-        // verify cap exchange is complete
-        val actions =
-            getAndVerifyParticipantActions(
-                icsCall,
-                CAPABILITY_PARTICIPANT_WITH_ACTIONS.supportedActions.toSet()
+                listOf(getParticipantCapability(emptySet())),
+                parameters.direction
             )
 
-        // Check state updates from VOIP -> ICS are working
+            val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)!!
+            var hasConnected = false
+            with(ics) {
+                connectExtensions(call) {
+                    val participants = CachedParticipants(this)
+                    onConnected {
+                        hasConnected = true
+                        assertTrue(
+                            "Participants are not supported",
+                            participants.extension.isSupported
+                        )
+                        // Wait for initial state
+                        participants.waitForParticipants(emptySet())
+                        participants.waitForActiveParticipant(null)
+                        // Test VOIP -> ICS connection by updating state
+                        val currentParticipants = TestUtils.generateParticipants(2)
+                        voipAppControl.updateParticipants(
+                            currentParticipants.map { it.toParticipantParcelable() }
+                        )
+                        participants.waitForParticipants(currentParticipants.toSet())
+                        voipAppControl.updateActiveParticipant(
+                            currentParticipants[0].toParticipantParcelable()
+                        )
+                        participants.waitForActiveParticipant(currentParticipants[0])
 
-        // participant state updates
-        // initial condition - no participants
-        verifyIcsParticipantsMatch(actions, emptySet())
-        // Update to include one participant
-        val expectedParticipants = setOf(TestUtils.getDefaultParticipant())
-        voipAppControl.updateParticipants(expectedParticipants.toList())
-        verifyIcsParticipantsMatch(actions, expectedParticipants)
+                        call.disconnect()
+                    }
+                }
+            }
+            assertTrue("onConnected never received", hasConnected)
+        }
+    }
 
-        // active participant updates
-        // initial condition - no active participant
-        verifyIcsActiveParticipantMatches(actions, CallsManager.NULL_PARTICIPANT_ID)
-        // update to include one active participant
-        voipAppControl.updateActiveParticipant(TestUtils.getDefaultParticipant())
-        verifyIcsActiveParticipantMatches(actions, TestUtils.getDefaultParticipant().id)
+    /**
+     * Create a VOIP call with a participants extension and attach participant Call extensions.
+     * Verify raised hands functionality works as expected
+     */
+    @LargeTest
+    @Test(timeout = 10000)
+    fun testVoipAndIcsRaisedHands() = runBlocking {
+        usingIcs { ics ->
+            val voipAppControl = bindToVoipAppWithExtensions()
+            val callback = TestCallCallbackListener(this)
+            voipAppControl.setCallback(callback)
+            val voipCallId =
+                createAndVerifyVoipCall(
+                    voipAppControl,
+                    listOf(
+                        getParticipantCapability(setOf(ParticipantExtensionImpl.RAISE_HAND_ACTION))
+                    ),
+                    parameters.direction
+                )
 
-        // raised hands updates
-        // initial state = no raised hands
-        verifyIcsRaisedHandsMatch(actions, emptySet())
-        // update to include one participant raising their hand
-        voipAppControl.updateRaisedHands(expectedParticipants.toList())
-        verifyIcsRaisedHandsMatch(actions, expectedParticipants.map { it.id }.toSet())
+            val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)!!
+            var hasConnected = false
+            with(ics) {
+                connectExtensions(call) {
+                    val participants = CachedParticipants(this)
+                    val raiseHandAction = CachedRaisedHands(participants.extension)
+                    onConnected {
+                        hasConnected = true
+                        val currentParticipants = TestUtils.generateParticipants(3)
+                        voipAppControl.updateParticipants(
+                            currentParticipants.map { it.toParticipantParcelable() }
+                        )
+                        participants.waitForParticipants(currentParticipants.toSet())
 
-        // Check actions updates from ICS -> VOIP
+                        // Reverse the ordering of the list to ensure that ordering is maintained
+                        // across the binder.
+                        val raisedHands = currentParticipants.reversed()
+                        voipAppControl.updateRaisedHands(
+                            raisedHands.map { it.toParticipantParcelable() }
+                        )
+                        raiseHandAction.waitForRaisedHands(raisedHands)
+                        val raisedHandsAndInvalid = ArrayList(raisedHands)
+                        raisedHandsAndInvalid.add(Participant("INVALID", "INVALID"))
+                        voipAppControl.updateRaisedHands(
+                            raisedHandsAndInvalid.map { it.toParticipantParcelable() }
+                        )
+                        // action should not contain the invalid Participant
+                        raiseHandAction.waitForRaisedHands(raisedHands)
 
-        actions.toggleHandRaised(true)
-        callback.waitForRaiseHandState(voipCallId, true)
+                        // Test ICS -> VOIP connection by sending events
+                        raiseHandAction.action.requestRaisedHandStateChange(true)
+                        callback.waitForRaiseHandState(voipCallId, true)
 
-        actions.kickParticipant(TestUtils.getDefaultParticipant())
-        callback.waitForKickParticipant(voipCallId, TestUtils.getDefaultParticipant())
+                        call.disconnect()
+                    }
+                }
+            }
+            assertTrue("onConnected never received", hasConnected)
+        }
+    }
+
+    /**
+     * This is an end to end test that verifies a VoIP application and InCallService can add the
+     * LocalCallSilenceExtension and toggle the value.
+     */
+    @LargeTest
+    @Test(timeout = 10000)
+    fun testVoipAndIcsTogglingTheLocalCallSilenceExtension(): Unit = runBlocking {
+        usingIcs { ics ->
+            val voipAppControl = bindToVoipAppWithExtensions()
+            val callback = TestCallCallbackListener(this)
+            voipAppControl.setCallback(callback)
+            val voipCallId =
+                createAndVerifyVoipCall(
+                    voipAppControl,
+                    listOf(getLocalSilenceCapability(setOf())),
+                    parameters.direction
+                )
+
+            val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)!!
+            var hasConnected = false
+            with(ics) {
+                connectExtensions(call) {
+                    val localSilenceExtension = CachedLocalSilence(this)
+                    onConnected {
+                        hasConnected = true
+                        // VoIP --> ICS
+                        voipAppControl.updateIsLocallySilenced(false)
+                        localSilenceExtension.waitForLocalCallSilenceState(false)
+
+                        voipAppControl.updateIsLocallySilenced(true)
+                        localSilenceExtension.waitForLocalCallSilenceState(true)
+
+                        // ICS -> VOIP
+                        localSilenceExtension.extension.requestLocalCallSilenceUpdate(false)
+                        callback.waitForIsLocalSilenced(voipCallId, false)
+
+                        call.disconnect()
+                    }
+                }
+            }
+            assertTrue("onConnected never received", hasConnected)
+        }
+    }
+
+    /**
+     * Create a VOIP call with a participants extension and attach participant Call extensions.
+     * Verify kick participant functionality works as expected
+     */
+    @LargeTest
+    @Test(timeout = 10000)
+    fun testVoipAndIcsKickParticipant() = runBlocking {
+        usingIcs { ics ->
+            val voipAppControl = bindToVoipAppWithExtensions()
+            val callback = TestCallCallbackListener(this)
+            voipAppControl.setCallback(callback)
+            val voipCallId =
+                createAndVerifyVoipCall(
+                    voipAppControl,
+                    listOf(
+                        getParticipantCapability(
+                            setOf(ParticipantExtensionImpl.KICK_PARTICIPANT_ACTION)
+                        )
+                    ),
+                    parameters.direction
+                )
+
+            val call = TestUtils.waitOnInCallServiceToReachXCalls(ics, 1)!!
+            var hasConnected = false
+            with(ics) {
+                connectExtensions(call) {
+                    val participants = CachedParticipants(this)
+                    val kickParticipant = participants.extension.addKickParticipantAction()
+                    onConnected {
+                        hasConnected = true
+                        val currentParticipants = TestUtils.generateParticipants(3)
+                        voipAppControl.updateParticipants(
+                            currentParticipants.map { it.toParticipantParcelable() }
+                        )
+                        participants.waitForParticipants(currentParticipants.toSet())
+                        // Kick a valid participant
+                        assertEquals(
+                            "Never received response to kickParticipant request",
+                            CallControlResult.Success(),
+                            kickParticipant.requestKickParticipant(currentParticipants[0])
+                        )
+                        callback.waitForKickParticipant(voipCallId, currentParticipants[0])
+
+                        call.disconnect()
+                    }
+                }
+            }
+            assertTrue("onConnected never received", hasConnected)
+        }
     }
 
     /**
@@ -217,39 +439,6 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
      * Helpers
      * =========================================================================================
      */
-
-    /** Verify that the ICS state for raised hands matches the VOIP app's updates to the state */
-    private suspend fun verifyIcsRaisedHandsMatch(
-        actions: ParticipantClientActions,
-        expectedRaisedHands: Set<Int>
-    ) {
-        assertResult("raised hands do not match", expectedRaisedHands) {
-            actions.raisedHandsStateFlow.value
-        }
-    }
-
-    /** Verify that the ICS state for participants matches the VOIP app's updates to the state */
-    private suspend fun verifyIcsParticipantsMatch(
-        actions: ParticipantClientActions,
-        expectedVoipParticipants: Set<Participant>
-    ) {
-        assertResult("participants do not match", expectedVoipParticipants) {
-            actions.participantsStateFlow.value
-        }
-    }
-
-    /**
-     * Verify that the ICS state for the active participant matches the VOIP app's updates to the
-     * state.
-     */
-    private suspend fun verifyIcsActiveParticipantMatches(
-        actions: ParticipantClientActions,
-        expectedActiveParticipantId: Int
-    ) {
-        assertResult("active participant doesn't match", expectedActiveParticipantId) {
-            actions.activeParticipantStateFlow.value
-        }
-    }
 
     /**
      * Creates a VOIP call using the specified capabilities and direction and then verifies that it
@@ -270,34 +459,8 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
         return voipCallId
     }
 
-    /** Waits until there is a call in the ICS and then returns it */
-    private suspend fun getLastIcsCall(): CallCompat {
-        TestUtils.waitOnInCallServiceToReachXCalls(1)
-        val icsCall = MockInCallServiceDelegate.getLastCall()
-        assertNotNull("ICS call could not be found", icsCall)
-        return icsCall!!
-    }
-
-    /**
-     * Waits for capability exchange to complete for the ICS and then returns the actions interface
-     * that can be used to interact with extensions.
-     */
-    private suspend fun getAndVerifyParticipantActions(
-        icsCall: CallCompat,
-        expectedActions: Set<Int>
-    ): ParticipantClientActions {
-        val actions: ParticipantClientActions? =
-            waitForResult({ it != null }) { icsCall.getParticipantActions().getOrNull() }
-        assertNotNull("actions not found", actions)
-        assertResult("negotiated actions incorrect", expectedActions, actions!!::negotiatedActions)
-        return actions
-    }
-
     /** Sets up the test based on the parameters set for the run */
-    private fun setupParameterizedTest(
-        includeIcsExtensions: Boolean = false,
-        icsCapabilities: Set<Capability> = emptySet()
-    ) {
+    private fun setupParameterizedTest() {
         if (Build.VERSION.SDK_INT < VERSION_CODES.UPSIDE_DOWN_CAKE) {
             assumeTrue(
                 "skipping this test, must be running at least U",
@@ -305,21 +468,8 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
             )
         }
         when (parameters.serviceSource) {
-            SERVICE_SOURCE_V2 -> {
-                if (includeIcsExtensions) {
-                    setUpV2TestWithExtensions(icsCapabilities)
-                } else {
-                    setUpV2Test()
-                }
-            }
-            SERVICE_SOURCE_CONNSRV -> {
-                setUpBackwardsCompatTest()
-                if (includeIcsExtensions) {
-                    setInCallService(InCallServiceType.ICS_WITH_EXTENSIONS, icsCapabilities)
-                } else {
-                    setInCallService(InCallServiceType.ICS_WITHOUT_EXTENSIONS)
-                }
-            }
+            SERVICE_SOURCE_V2 -> setUpV2Test()
+            SERVICE_SOURCE_CONNSRV -> setUpBackwardsCompatTest()
         }
     }
 
@@ -337,36 +487,22 @@ class E2EExtensionTests(private val parameters: TestParameters) : BaseTelecomTes
                     VoipAppWithExtensionsControlLocal::class.java
                 )
             }
-        return ITestAppControl.Stub.asInterface(serviceRule.bindService(serviceIntent))
+        return ITestAppControl.Stub.asInterface(voipAppServiceRule.bindService(serviceIntent))
     }
 
-    /**
-     * Tests the value returned from the [supplier] using [predicate] and retries until the criteria
-     * is met. Retries every second for up to 5 seconds.
-     */
-    private suspend fun <R> waitForResult(predicate: (R?) -> Boolean, supplier: () -> R): R? {
-        var result = supplier()
-        withTimeoutOrNull(5000) {
-            while (!predicate(result)) {
-                yield()
-                delay(1000)
-                result = supplier()
-            }
-        }
-        return result
+    private fun getParticipantCapability(actions: Set<Int>): Capability {
+        return createCapability(
+            id = Extensions.PARTICIPANT,
+            version = ParticipantExtensionImpl.VERSION,
+            actions = actions
+        )
     }
 
-    /**
-     * Assert that an expected result is received from the consumer block. Retries every second for
-     * 5 seconds. If the [expectedResult] is not found, the assertion fails and [failMessage] is
-     * used as a message.
-     */
-    private suspend fun <R> assertResult(
-        failMessage: String,
-        expectedResult: R,
-        consumer: () -> R
-    ) {
-        val result = waitForResult({ it == expectedResult }, consumer)
-        assertEquals(failMessage, expectedResult, result)
+    private fun getLocalSilenceCapability(actions: Set<Int>): Capability {
+        return createCapability(
+            id = Extensions.LOCAL_CALL_SILENCE,
+            version = LocalCallSilenceExtensionImpl.VERSION,
+            actions = actions
+        )
     }
 }

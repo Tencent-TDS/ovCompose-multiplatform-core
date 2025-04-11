@@ -20,8 +20,6 @@ import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.processing.XElement
 import androidx.room.compiler.processing.XProcessingEnv
-import androidx.room.compiler.processing.XType
-import androidx.room.ext.CommonTypeNames
 import androidx.room.log.RLog
 import androidx.room.parser.expansion.ProjectionExpander
 import androidx.room.parser.optimization.RemoveUnusedColumnQueryRewriter
@@ -42,7 +40,6 @@ private constructor(
     private val canRewriteQueriesToDropUnusedColumns: Boolean,
 ) {
     val checker: Checks = Checks(logger)
-    val COMMON_TYPES = CommonTypes(processingEnv)
 
     /**
      * Checks whether we should use the TypeConverter store that has a specific heuristic for
@@ -130,16 +127,6 @@ private constructor(
             ),
         canRewriteQueriesToDropUnusedColumns = false
     )
-
-    class CommonTypes(val processingEnv: XProcessingEnv) {
-        val VOID: XType by lazy { processingEnv.requireType(CommonTypeNames.VOID) }
-        val STRING: XType by lazy { processingEnv.requireType(CommonTypeNames.STRING) }
-        val READONLY_COLLECTION: XType by lazy {
-            processingEnv.requireType(CommonTypeNames.COLLECTION)
-        }
-        val LIST: XType by lazy { processingEnv.requireType(CommonTypeNames.LIST) }
-        val SET: XType by lazy { processingEnv.requireType(CommonTypeNames.SET) }
-    }
 
     val schemaInFolderPath by lazy {
         val internalInputFolder =
@@ -314,12 +301,19 @@ private constructor(
      * Check if the target platform is only Android.
      *
      * Note that there is no 'Android' target in the `targetPlatforms` list, so instead we check for
-     * JVM and also validate that an Android only class [Context] is in the classpath.
+     * JVM and also validate that an Android only class `android.content.Context` is in the
+     * classpath.
      */
     fun isAndroidOnlyTarget(): Boolean {
         val targetPlatforms = this.processingEnv.targetPlatforms
         return targetPlatforms.size == 1 &&
             targetPlatforms.contains(XProcessingEnv.Platform.JVM) &&
             this.processingEnv.findType("android.content.Context") != null
+    }
+
+    /** Check if the target platform is JVM. */
+    fun isJvmOnlyTarget(): Boolean {
+        val targetPlatforms = this.processingEnv.targetPlatforms
+        return targetPlatforms.size == 1 && targetPlatforms.contains(XProcessingEnv.Platform.JVM)
     }
 }

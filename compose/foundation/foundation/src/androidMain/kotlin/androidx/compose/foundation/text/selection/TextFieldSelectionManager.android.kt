@@ -16,13 +16,16 @@
 
 package androidx.compose.foundation.text.selection
 
+import android.os.Build
 import androidx.compose.foundation.PlatformMagnifierFactory
 import androidx.compose.foundation.contextmenu.ContextMenuScope
 import androidx.compose.foundation.contextmenu.ContextMenuState
 import androidx.compose.foundation.isPlatformMagnifierSupported
 import androidx.compose.foundation.magnifier
+import androidx.compose.foundation.text.MenuItemsAvailability
 import androidx.compose.foundation.text.TextContextMenuItems
 import androidx.compose.foundation.text.TextItem
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.IntSize
 
 // We use composed{} to read a local, but don't provide inspector info because the underlying
@@ -72,36 +74,45 @@ internal actual fun TextFieldSelectionManager.isSelectionHandleInVisibleBound(
 ): Boolean = isSelectionHandleInVisibleBoundDefault(isStartHandle)
 
 internal fun TextFieldSelectionManager.contextMenuBuilder(
-    contextMenuState: ContextMenuState
+    contextMenuState: ContextMenuState,
+    itemsAvailability: State<MenuItemsAvailability>
 ): ContextMenuScope.() -> Unit = {
-    val isPassword = visualTransformation is PasswordVisualTransformation
-    val hasSelection = !value.selection.collapsed
+    val availability: MenuItemsAvailability = itemsAvailability.value
     TextItem(
         state = contextMenuState,
         label = TextContextMenuItems.Cut,
-        enabled = hasSelection && editable && !isPassword,
+        enabled = availability.canCut,
     ) {
         cut()
     }
     TextItem(
         state = contextMenuState,
         label = TextContextMenuItems.Copy,
-        enabled = hasSelection && !isPassword,
+        enabled = availability.canCopy,
     ) {
         copy(cancelSelection = false)
     }
     TextItem(
         state = contextMenuState,
         label = TextContextMenuItems.Paste,
-        enabled = editable && clipboardManager?.hasText() == true,
+        enabled = availability.canPaste,
     ) {
         paste()
     }
     TextItem(
         state = contextMenuState,
         label = TextContextMenuItems.SelectAll,
-        enabled = value.selection.length != value.text.length,
+        enabled = availability.canSelectAll,
     ) {
         selectAll()
+    }
+    if (Build.VERSION.SDK_INT >= 26) {
+        TextItem(
+            state = contextMenuState,
+            label = TextContextMenuItems.Autofill,
+            enabled = editable && value.selection.collapsed
+        ) {
+            autofill()
+        }
     }
 }

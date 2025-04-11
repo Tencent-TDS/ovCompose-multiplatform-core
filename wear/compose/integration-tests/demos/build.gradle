@@ -22,11 +22,12 @@ plugins {
 }
 
 android {
+    compileSdkVersion 35
     defaultConfig {
         applicationId "androidx.wear.compose.integration.demos"
         minSdk 25
-        versionCode 28
-        versionName "1.28"
+        versionCode 39
+        versionName "1.39"
     }
 
     buildTypes {
@@ -61,6 +62,7 @@ dependencies {
     implementation(project(":wear:compose:compose-foundation-samples"))
     implementation(project(':wear:compose:compose-material'))
     implementation(project(":wear:compose:compose-material-samples"))
+    implementation(project(':wear:compose:compose-material3'))
     implementation(project(':wear:compose:integration-tests:demos:common'))
     implementation(project(":wear:compose:compose-material3-integration-tests"))
 

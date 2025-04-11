@@ -39,7 +39,6 @@ import android.util.Rational;
 import android.util.Size;
 import android.view.Display;
 import android.view.MotionEvent;
-import android.view.ScaleGestureDetector;
 import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.TextureView;
@@ -78,6 +77,7 @@ import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.CameraInternal;
 import androidx.camera.core.impl.ImageOutputConfig;
 import androidx.camera.core.impl.utils.Threads;
+import androidx.camera.view.impl.ZoomGestureDetector;
 import androidx.camera.view.internal.ScreenFlashUiInfo;
 import androidx.camera.view.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.view.internal.compat.quirk.SurfaceViewNotCroppedByParentQuirk;
@@ -174,7 +174,7 @@ public final class PreviewView extends FrameLayout {
 
     // Detector for zoom-to-scale.
     @NonNull
-    private final ScaleGestureDetector mScaleGestureDetector;
+    private final ZoomGestureDetector mZoomGestureDetector;
 
     // Synthetic access
     @SuppressWarnings("WeakerAccess")
@@ -323,8 +323,16 @@ public final class PreviewView extends FrameLayout {
             attributes.recycle();
         }
 
-        mScaleGestureDetector = new ScaleGestureDetector(
-                context, new PinchToZoomOnScaleGestureListener());
+        mZoomGestureDetector = new ZoomGestureDetector(context,
+                zoomEvent -> {
+                    if (zoomEvent instanceof ZoomGestureDetector.ZoomEvent.Move
+                            && mCameraController != null) {
+                        mCameraController.onPinchToZoom(
+                                ((ZoomGestureDetector.ZoomEvent.Move) zoomEvent)
+                                        .getIncrementalScaleFactor());
+                    }
+                    return true;
+                });
 
         // Set background only if it wasn't already set. A default background prevents the content
         // behind the PreviewView from being visible before the preview starts streaming.
@@ -381,7 +389,7 @@ public final class PreviewView extends FrameLayout {
             // invoked twice.
             return true;
         }
-        return mScaleGestureDetector.onTouchEvent(event) || super.onTouchEvent(event);
+        return mZoomGestureDetector.onTouchEvent(event) || super.onTouchEvent(event);
     }
 
     @Override
@@ -929,20 +937,6 @@ public final class PreviewView extends FrameLayout {
     }
 
     /**
-     * GestureListener that speeds up scale factor and sends it to controller.
-     */
-    class PinchToZoomOnScaleGestureListener extends
-            ScaleGestureDetector.SimpleOnScaleGestureListener {
-        @Override
-        public boolean onScale(ScaleGestureDetector detector) {
-            if (mCameraController != null) {
-                mCameraController.onPinchToZoom(detector.getScaleFactor());
-            }
-            return true;
-        }
-    }
-
-    /**
      * Sets the {@link CameraController}.
      *
      * <p> Once set, the controller will use {@link PreviewView} to display camera preview feed.
@@ -970,7 +964,7 @@ public final class PreviewView extends FrameLayout {
         }
         mCameraController = cameraController;
         attachToControllerIfReady(/*shouldFailSilently=*/false);
-        setScreenFlashUiInfo(getScreenFlash());
+        setScreenFlashUiInfo(getScreenFlashInternal());
     }
 
     /**
@@ -1147,7 +1141,16 @@ public final class PreviewView extends FrameLayout {
     public void setScreenFlashWindow(@Nullable Window screenFlashWindow) {
         checkMainThread();
         mScreenFlashView.setScreenFlashWindow(screenFlashWindow);
-        setScreenFlashUiInfo(getScreenFlash());
+        setScreenFlashUiInfo(getScreenFlashInternal());
+    }
+
+
+    // Workaround to expose getScreenFlash as experimental, so that other APIs already using it also
+    // don't need to be annotated with experimental (e.g. PreviewView.setController)
+    @UiThread
+    @Nullable
+    private ImageCapture.ScreenFlash getScreenFlashInternal() {
+        return mScreenFlashView.getScreenFlash();
     }
 
     /**
@@ -1155,25 +1158,39 @@ public final class PreviewView extends FrameLayout {
      * on the {@link Window} instance set via {@link #setScreenFlashWindow(Window)}.
      *
      * <p> This API uses an internally managed {@link ScreenFlashView} to provide the
-     * {@link ImageCapture.ScreenFlash} implementation.
+     * {@link ImageCapture.ScreenFlash} implementation which can be passed to the
+     * {@link ImageCapture#setScreenFlash(ImageCapture.ScreenFlash)} API. The following example
+     * shows the API usage.
+     * <pre>{@code
+     * mPreviewView.setScreenFlashWindow(activity.getWindow());
+     * mImageCapture.setScreenFlash(mPreviewView.getScreenFlash());
+     * mImageCapture.setFlashMode(ImageCapture.FLASH_MODE_SCREEN);
+     * mImageCapture.takePhoto(mCameraExecutor, mOnImageSavedCallback);
+     * }</pre>
      *
      * @return An {@link ImageCapture.ScreenFlash} implementation provided by
-     * {@link ScreenFlashView#getScreenFlash()}.
+     * {@link ScreenFlashView#getScreenFlash()} which can be null if a non-null {@code Window}
+     * instance hasn't been set.
+     *
+     * @see ScreenFlashView#getScreenFlash()
+     * @see ImageCapture#FLASH_MODE_SCREEN
      */
+    @ExperimentalPreviewViewScreenFlash
     @UiThread
     @Nullable
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public ImageCapture.ScreenFlash getScreenFlash() {
-        return mScreenFlashView.getScreenFlash();
+        return getScreenFlashInternal();
     }
 
     /**
      * Sets the color of the top overlay view during screen flash.
      *
      * @param color The color value of the top overlay.
+     *
      * @see #getScreenFlash()
+     * @see ImageCapture#FLASH_MODE_SCREEN
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @ExperimentalPreviewViewScreenFlash
     public void setScreenFlashOverlayColor(@ColorInt int color) {
         mScreenFlashView.setBackgroundColor(color);
     }

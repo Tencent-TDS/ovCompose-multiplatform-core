@@ -18,8 +18,7 @@ package androidx.compose.ui.test
 
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
@@ -137,7 +136,6 @@ class ComposeUiTestTest {
      * Check that scrolling and controlling the clock works: a scrollable receives a swipe while the
      * clock is paused, when the clock is resumed it performs the fling.
      */
-    @OptIn(ExperimentalFoundationApi::class)
     @Test
     fun testControlledScrolling() = runComposeUiTest {
         // Define constants used in the test
@@ -150,7 +148,7 @@ class ComposeUiTestTest {
         setContent {
             WithTouchSlop(touchSlop = touchSlop) {
                 // turn off visual overscroll for calculation correctness
-                CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
+                CompositionLocalProvider(LocalOverscrollFactory provides null) {
                     Box(Modifier.fillMaxSize()) {
                         Column(
                             Modifier.requiredSize(200.dp)

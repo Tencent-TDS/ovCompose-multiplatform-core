@@ -65,11 +65,3 @@ private fun CompositionLocalContext?.provide(content: @Composable () -> Unit) {
         content()
     }
 }
-
-internal actual fun createSubcomposition(
-    container: LayoutNode,
-    parent: CompositionContext
-): ReusableComposition = ReusableComposition(
-    DefaultUiApplier(container),
-    parent
-)

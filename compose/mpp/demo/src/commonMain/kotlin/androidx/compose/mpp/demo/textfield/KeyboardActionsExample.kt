@@ -71,7 +71,8 @@ fun KeyboardActionsExample() {
         item {
             TextBlock(
                 imeActionName = ImeAction.Default,
-                KeyboardActions(onAny = { localKeyboardController?.hide() })
+                KeyboardActions(onAny = { localKeyboardController?.hide() }),
+                singleLine = false
             )
         }
         item { TextBlock(imeActionName = ImeAction.Done, keyboardActions = definedKeyboardActions) }
@@ -96,7 +97,8 @@ fun KeyboardActionsExample() {
 @Composable
 private fun TextBlock(
     imeActionName: ImeAction,
-    keyboardActions: KeyboardActions = KeyboardActions()
+    keyboardActions: KeyboardActions = KeyboardActions(),
+    singleLine: Boolean = true,
 ) {
     Column(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 16.dp)) {
         val textState = remember {
@@ -109,10 +111,11 @@ private fun TextBlock(
         OutlinedTextField(
             value = textState.value,
             onValueChange = { textState.value = it },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp).onKeyEvent { println("KEY EVENT $this"); false },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
             keyboardOptions = KeyboardOptions(imeAction = imeActionName),
-            keyboardActions = keyboardActions
+            keyboardActions = keyboardActions,
+            singleLine = singleLine
         )
     }
 }

@@ -49,14 +49,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalCamera2Interop::class)
-class SessionProcessorManager(
+public class SessionProcessorManager(
     private val sessionProcessor: SessionProcessor,
     private val cameraInfoInternal: CameraInfoInternal,
     private val scope: CoroutineScope,
 ) {
     private val lock = Any()
 
-    enum class State {
+    public enum class State {
         /**
          * [CREATED] is the initial state, and indicates that the [SessionProcessorManager] has been
          * created but not initialized yet.
@@ -187,14 +187,14 @@ class SessionProcessorManager(
             // point.
             val processorSessionConfig =
                 synchronized(lock) {
-                    if (isClosed()) return@launch configure(null)
+                    if (isClosed()) return@synchronized null
                     try {
                         val surfacesToIncrement = ArrayList(deferrableSurfaces)
                         postviewDeferrableSurface?.let { surfacesToIncrement.add(it) }
                         DeferrableSurfaces.incrementAll(surfacesToIncrement)
                     } catch (exception: DeferrableSurface.SurfaceClosedException) {
                         sessionConfigAdapter.reportSurfaceInvalid(exception.deferrableSurface)
-                        return@launch configure(null)
+                        return@synchronized null
                     }
                     try {
                         Log.debug { "Invoking $sessionProcessor SessionProcessor#initSession" }
@@ -215,7 +215,7 @@ class SessionProcessorManager(
                         postviewDeferrableSurface?.decrementUseCount()
                         throw throwable
                     }
-                }
+                } ?: return@launch configure(null)
 
             // DecrementAll the output surfaces when ProcessorSurface terminates.
             processorSessionConfig.surfaces
@@ -391,7 +391,7 @@ class SessionProcessorManager(
         sessionProcessor.setParameters(builder.build())
     }
 
-    companion object {
+    public companion object {
         private suspend fun getSurfaces(
             deferrableSurfaces: List<DeferrableSurface>,
             timeoutMillis: Long,

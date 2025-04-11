@@ -552,4 +552,45 @@ internal class FloatSetTest {
         assertTrue(4f in set)
         assertFalse(5f in set)
     }
+
+    @Test
+    fun buildFloatSetFunction() {
+        val contract: Boolean
+        val set = buildFloatSet {
+            contract = true
+            add(1f)
+            add(2f)
+        }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(1f in set)
+        assertTrue(2f in set)
+    }
+
+    @Test
+    fun buildFloatSetWithCapacityFunction() {
+        val contract: Boolean
+        val set =
+            buildFloatSet(20) {
+                contract = true
+                add(1f)
+                add(2f)
+            }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(set.capacity >= 18)
+        assertTrue(1f in set)
+        assertTrue(2f in set)
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val set = mutableFloatSetOf()
+
+        for (i in 0..1000000) {
+            set.add(i.toFloat())
+            set.remove(i.toFloat())
+            assertTrue(set.capacity < 16, "Set grew larger than 16 after step $i")
+        }
+    }
 }

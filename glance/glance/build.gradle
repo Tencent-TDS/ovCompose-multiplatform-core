@@ -46,7 +46,7 @@ dependencies {
     implementation(libs.kotlinStdlib)
 
     // Force upgrade since 1.2.0 is not compatible with latest lint.
-    implementation("androidx.annotation:annotation-experimental:1.4.0")
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     testImplementation(libs.robolectric)
     testImplementation(libs.testCore)
@@ -88,6 +88,8 @@ android {
     testOptions.unitTests.includeAndroidResources = true
     resourcePrefix "glance_"
     namespace "androidx.glance"
+    // TODO(b/313699418): need to update compose.runtime version to 1.6.0+
+    experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidx {

@@ -6,9 +6,4 @@
 data class ComposeComponent(
     val path: String,
     val supportedPlatforms: Set<ComposePlatforms> = ComposePlatforms.SKIKO_SUPPORT,
-
-    // TODO: Remove once android redirect is configured
-    //  - `artifactRedirecting.publication.targetNames` shouldn't add Android implicitly
-    //  - Setup Compose Android redirects explicitly
-    val neverRedirect: Boolean = false
 )

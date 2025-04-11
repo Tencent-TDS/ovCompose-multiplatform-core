@@ -71,7 +71,7 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScopeImpl)
             foundMatch = false
         }
         if (states.isNotEmpty()) {
-            SharedTransitionObserver.observeReads(this, updateMatch, observingVisibilityChange)
+            scope.observeReads(this, updateMatch, observingVisibilityChange)
         }
     }
 
@@ -145,16 +145,16 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScopeImpl)
 
     fun addState(sharedElementState: SharedElementInternalState) {
         states.add(sharedElementState)
-        SharedTransitionObserver.observeReads(this, updateMatch, observingVisibilityChange)
+        scope.observeReads(this, updateMatch, observingVisibilityChange)
     }
 
     fun removeState(sharedElementState: SharedElementInternalState) {
         states.remove(sharedElementState)
         if (states.isEmpty()) {
             updateMatch()
-            SharedTransitionObserver.clear(this)
+            scope.clearObservation(scope = this)
         } else {
-            SharedTransitionObserver.observeReads(this, updateMatch, observingVisibilityChange)
+            scope.observeReads(scope = this, updateMatch, observingVisibilityChange)
         }
     }
 }
@@ -170,6 +170,7 @@ internal class SharedElementInternalState(
     zIndex: Float
 ) : LayerRenderer, RememberObserver {
 
+    internal var firstFrameDrawn: Boolean = false
     override var zIndex: Float by mutableFloatStateOf(zIndex)
 
     var renderInOverlayDuringTransition: Boolean by mutableStateOf(renderInOverlayDuringTransition)
@@ -184,7 +185,10 @@ internal class SharedElementInternalState(
 
     override fun drawInOverlay(drawScope: DrawScope) {
         val layer = layer ?: return
-        if (shouldRenderInOverlay) {
+        // It is important to check that the first frame is drawn. In some cases shared content may
+        // be composed, but never measured, placed or drawn. In those cases, we will not have
+        // valid content to draw, therefore we need to skip drawing in overlay.
+        if (firstFrameDrawn && shouldRenderInOverlay) {
             with(drawScope) {
                 requireNotNull(sharedElement.currentBounds) { "Error: current bounds not set yet." }
                 val (x, y) = sharedElement.currentBounds?.topLeft!!

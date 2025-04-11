@@ -26,12 +26,16 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.RecomposeScope
 import androidx.compose.runtime.ReusableContent
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentDataType
 import androidx.compose.ui.autofill.ContentType
@@ -134,10 +138,69 @@ class SemanticsTests {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.PaneTitle, paneTitleString))
     }
 
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun testSemanticsCalculatedOncePerComposition() {
+        var recomposeScope: RecomposeScope? = null
+        var count = 0
+        fun Modifier.count() = semantics { count++ }
+        rule.setContent {
+            recomposeScope = currentRecomposeScope
+            Box(
+                modifier = Modifier.count().count().count(),
+            )
+        }
+        rule.runOnIdle {
+            if (ComposeUiFlags.isSemanticAutofillEnabled) {
+                // with autofill on, semantics is eagerly evaluated
+                assertThat(count).isEqualTo(3)
+            } else {
+                // before autofill, semantics was lazily evaluated
+                assertThat(count).isEqualTo(0)
+            }
+            count = 0
+            recomposeScope!!.invalidate()
+        }
+        rule.runOnIdle {
+            if (ComposeUiFlags.isSemanticAutofillEnabled) {
+                // with autofill on, semantics is eagerly evaluated
+                assertThat(count).isEqualTo(3)
+            } else {
+                // before autofill, semantics was lazily evaluated
+                assertThat(count).isEqualTo(0)
+            }
+        }
+    }
+
+    @Test
+    @Suppress("DEPRECATION")
+    fun isContainerProperty_unmergedConfig() {
+        rule.setContent {
+            // Non-clickable Material surfaces use `isContainer` to maintain desired default
+            // behaviour in a non-clickable Surface for now. See aosp/1660323 for more details.
+            // TODO(mnuzen): This behavior should be reverted after b/347038246 is resolved.
+            Surface(Modifier.testTag(TestTag)) {
+                Text("Hello World", modifier = Modifier.padding(8.dp))
+            }
+        }
+
+        rule
+            .onNodeWithTag(TestTag)
+            .assert(
+                SemanticsMatcher("unmerged container property") {
+                    it.unmergedConfig.getOrNull(SemanticsProperties.IsContainer) == true
+                }
+            )
+
+        rule
+            .onNodeWithTag(TestTag)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.IsContainer, true))
+    }
+
     @Test
     fun isTraversalGroupProperty_unmergedConfig() {
         rule.setContent {
-            Surface(Modifier.testTag(TestTag)) {
+            Surface(Modifier.testTag(TestTag).semantics { isTraversalGroup = true }) {
                 Text("Hello World", modifier = Modifier.padding(8.dp))
             }
         }
@@ -198,8 +261,6 @@ class SemanticsTests {
             }
         }
 
-        // Since `isContainer` has been deprecated, setting that property will actually set
-        // `isTraversalGroup` instead, but `IsContainer` can still be used to retrieve the value
         rule
             .onNodeWithTag(TestTag)
             .assert(
@@ -209,7 +270,7 @@ class SemanticsTests {
             )
         rule
             .onNodeWithTag(TestTag)
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.IsTraversalGroup, true))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.IsContainer, true))
     }
 
     @Test
@@ -1231,7 +1292,7 @@ private fun SimpleSubcomposeLayout(
         val layoutWidth = constraints.maxWidth
         val layoutHeight = constraints.maxHeight
 
-        val looseConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+        val looseConstraints = constraints.copyMaxDimensions()
 
         layout(layoutWidth, layoutHeight) {
             val placeablesOne =

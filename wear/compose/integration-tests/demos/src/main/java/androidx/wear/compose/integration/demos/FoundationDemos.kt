@@ -18,10 +18,12 @@ package androidx.wear.compose.integration.demos
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.samples.CurvedAndNormalText
 import androidx.wear.compose.foundation.samples.CurvedBackground
 import androidx.wear.compose.foundation.samples.CurvedBottomLayout
 import androidx.wear.compose.foundation.samples.CurvedFixedSize
+import androidx.wear.compose.foundation.samples.CurvedFontHeight
 import androidx.wear.compose.foundation.samples.CurvedFontWeight
 import androidx.wear.compose.foundation.samples.CurvedFonts
 import androidx.wear.compose.foundation.samples.CurvedRowAndColumn
@@ -115,7 +117,11 @@ val WearFoundationDemos =
                     ComposableDemo("Curved layout direction") { CurvedLayoutDirection() },
                     ComposableDemo("Background") { CurvedBackground() },
                     ComposableDemo("Font Weight") { CurvedFontWeight() },
+                    ComposableDemo("Font Height") { CurvedFontHeight() },
                     ComposableDemo("Fonts") { CurvedFonts() },
+                    ComposableDemo("Curved Icons") { CurvedIconsDemo() },
+                    ComposableDemo("Letter Spacing (em)") { CurvedSpacingEmDemo() },
+                    ComposableDemo("Letter Spacing (sp)") { CurvedSpacingSpDemo() },
                 )
             ),
             ComposableDemo("Scrollable Column") { ScrollableColumnDemo() },
@@ -180,6 +186,24 @@ val WearFoundationDemos =
                             ComposableDemo("Material S2R Card") { params ->
                                 Centralize {
                                     SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                }
+                            },
+                            ComposableDemo("Material S2R Cards Inside SLC") { params ->
+                                Centralize {
+                                    ScalingLazyColumn {
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                        item {
+                                            SwipeToRevealCardSample(params.swipeToDismissBoxState)
+                                        }
+                                    }
                                 }
                             },
                         )

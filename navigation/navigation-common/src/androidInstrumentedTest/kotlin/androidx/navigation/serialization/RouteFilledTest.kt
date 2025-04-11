@@ -17,7 +17,6 @@
 package androidx.navigation.serialization
 
 import android.os.Bundle
-import androidx.navigation.CollectionNavType
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -633,6 +632,13 @@ class RouteFilledTest {
     }
 
     @Test
+    fun valueClass() {
+        val clazz = TestValueClass(12)
+        assertThatRouteFilledFrom(clazz, listOf(intArgument("arg")))
+            .isEqualTo("$PATH_SERIAL_NAME/12")
+    }
+
+    @Test
     fun routeFromObject() {
         assertThatRouteFilledFrom(TestObject).isEqualTo(PATH_SERIAL_NAME)
     }
@@ -747,6 +753,120 @@ class RouteFilledTest {
 
         assertThatRouteFilledFrom(clazz, listOf(listArg)).isEqualTo("$PATH_SERIAL_NAME")
     }
+
+    @Test
+    fun encodeDouble() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: Double)
+
+        val clazz = TestClass(11E123)
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleType
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME/1.1E124")
+    }
+
+    @Test
+    fun encodeDoubleNullable() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: Double?)
+
+        val clazz = TestClass(11E123)
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleNullableType
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME/1.1E124")
+
+        val clazz2 = TestClass(null)
+        val arg2 =
+            navArgument("arg") {
+                type = InternalNavType.DoubleNullableType
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz2, listOf(arg2)).isEqualTo("$PATH_SERIAL_NAME/null")
+    }
+
+    @Test
+    fun encodeDoubleArray() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: DoubleArray)
+
+        val clazz = TestClass(doubleArrayOf(11E123, 11.11))
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg))
+            .isEqualTo("$PATH_SERIAL_NAME?arg=1.1E124&arg=11.11")
+    }
+
+    @Test
+    fun encodeDoubleArrayNullable() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: DoubleArray?)
+
+        val clazz = TestClass(null)
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = true
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME")
+    }
+
+    @Test
+    fun encodeDoubleList() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<Double>)
+
+        val clazz = TestClass(listOf(11E123, 11.11))
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg))
+            .isEqualTo("$PATH_SERIAL_NAME?arg=1.1E124&arg=11.11")
+    }
+
+    @Test
+    fun encodeDoubleListNullable() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<Double>?)
+
+        val clazz = TestClass(null)
+        val arg =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = true
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME")
+    }
+
+    @Test
+    fun encodeEnumList() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<TestEnum>)
+
+        val clazz = TestClass(listOf(TestEnum.ONE, TestEnum.TWO))
+        val arg =
+            navArgument("arg") {
+                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                nullable = false
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo("$PATH_SERIAL_NAME?arg=ONE&arg=TWO")
+    }
+
+    @Test
+    fun encodeEnumListNullable() {
+        @Serializable @SerialName(PATH_SERIAL_NAME) class TestClass(val arg: List<TestEnum>?)
+
+        val clazz = TestClass(null)
+        val arg =
+            navArgument("arg") {
+                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                nullable = true
+            }
+        assertThatRouteFilledFrom(clazz, listOf(arg)).isEqualTo(PATH_SERIAL_NAME)
+    }
 }
 
 private fun <T : Any> assertThatRouteFilledFrom(
@@ -797,6 +917,8 @@ private sealed class SealedClass {
     }
 }
 
+@JvmInline @Serializable @SerialName(PATH_SERIAL_NAME) value class TestValueClass(val arg: Int)
+
 private class CustomSerializerClass(val longArg: Long)
 
 private class CustomSerializer : KSerializer<CustomSerializerClass> {
@@ -810,55 +932,7 @@ private class CustomSerializer : KSerializer<CustomSerializerClass> {
         CustomSerializerClass(decoder.decodeLong())
 }
 
-@Serializable internal data class CustomTypeWithArg(val id: Int)
-
-@Serializable
-@SerialName(PATH_SERIAL_NAME)
-internal class TestClassCollectionArg(val list: List<CustomTypeWithArg>)
-
-internal val collectionNavType =
-    object : CollectionNavType<List<CustomTypeWithArg>>(false) {
-        override fun put(bundle: Bundle, key: String, value: List<CustomTypeWithArg>) {
-            bundle.putStringArrayList(key, ArrayList(value.map { it.id.toString() }))
-        }
-
-        override fun serializeAsValues(value: List<CustomTypeWithArg>): List<String> =
-            value.map { it.id.toString() }
-
-        override fun emptyCollection(): List<CustomTypeWithArg> = emptyList()
-
-        override fun get(bundle: Bundle, key: String): List<CustomTypeWithArg> {
-            return bundle.getStringArrayList(key)?.map { CustomTypeWithArg(it.toInt()) }
-                ?: emptyList()
-        }
-
-        override fun parseValue(value: String): List<CustomTypeWithArg> = listOf()
-
-        override fun serializeAsValue(value: List<CustomTypeWithArg>) = "CustomTypeWithArg"
-    }
-
 private interface TestInterface
-
-internal fun stringArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.StringType
-        nullable = false
-        unknownDefaultValuePresent = hasDefaultValue
-    }
-
-internal fun nullableStringArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.StringType
-        nullable = true
-        unknownDefaultValuePresent = hasDefaultValue
-    }
-
-internal fun intArgument(name: String, hasDefaultValue: Boolean = false) =
-    navArgument(name) {
-        type = NavType.IntType
-        nullable = false
-        unknownDefaultValuePresent = hasDefaultValue
-    }
 
 private fun nullableIntArgument(name: String, hasDefaultValue: Boolean = false) =
     navArgument(name) {

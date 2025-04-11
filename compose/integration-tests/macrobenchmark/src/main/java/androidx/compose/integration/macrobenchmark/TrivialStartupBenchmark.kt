@@ -40,7 +40,7 @@ class TrivialStartupBenchmark(
         benchmarkRule.measureStartup(
             compilationMode = compilationMode,
             startupMode = startupMode,
-            packageName = "androidx.compose.integration.macrobenchmark.target"
+            packageName = "androidx.compose.integration.macrobenchmark.target",
         ) {
             action = "androidx.compose.integration.macrobenchmark.target.TRIVIAL_STARTUP_ACTIVITY"
         }

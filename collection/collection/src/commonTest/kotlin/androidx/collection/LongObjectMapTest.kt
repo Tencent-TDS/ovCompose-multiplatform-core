@@ -229,6 +229,36 @@ internal class LongObjectMapTest {
     }
 
     @Test
+    fun buildLongObjectMapFunction() {
+        val contract: Boolean
+        val map = buildLongObjectMap {
+            contract = true
+            put(1L, "World")
+            put(2L, "Monde")
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals("World", map[1L])
+        assertEquals("Monde", map[2L])
+    }
+
+    @Test
+    fun buildLongObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildLongObjectMap(20) {
+                contract = true
+                put(1L, "World")
+                put(2L, "Monde")
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals("World", map[1L])
+        assertEquals("Monde", map[2L])
+    }
+
+    @Test
     fun addToMap() {
         val map = MutableLongObjectMap<String>()
         map[1L] = "World"
@@ -766,5 +796,16 @@ internal class LongObjectMapTest {
 
         assertTrue(map.all { key, value -> key < 7L && value.isNotEmpty() })
         assertFalse(map.all { key, _ -> key < 6L })
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableLongObjectMap<String>()
+
+        for (i in 0..1000000) {
+            map[i.toLong()] = i.toString()
+            map.remove(i.toLong())
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

@@ -34,6 +34,8 @@ public expect open class TestNavigator(hasTransitions: Boolean = false) :
 
     public fun onTransitionComplete(entry: NavBackStackEntry)
 
+    override fun createDestination(): Destination
+
     /**
      * A simple Test destination
      */

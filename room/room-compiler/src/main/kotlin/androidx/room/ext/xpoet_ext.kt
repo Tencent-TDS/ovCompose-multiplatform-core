@@ -29,6 +29,7 @@ import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.XTypeSpec
 import androidx.room.compiler.codegen.asClassName
 import androidx.room.compiler.codegen.asMutableClassName
+import androidx.room.ext.RoomGuavaTypeNames.GUAVA_ROOM
 import androidx.room.solver.CodeGenScope
 import com.squareup.kotlinpoet.javapoet.JTypeName
 import java.util.concurrent.Callable
@@ -45,7 +46,7 @@ object SupportDbTypeNames {
 }
 
 object SQLiteDriverTypeNames {
-    val SQLITE_KT = XClassName.get(SQLITE_PACKAGE, "SQLiteKt")
+    val SQLITE = XClassName.get(SQLITE_PACKAGE, "SQLite")
     val DRIVER = XClassName.get(SQLITE_PACKAGE, "SQLiteDriver")
     val CONNECTION = XClassName.get(SQLITE_PACKAGE, "SQLiteConnection")
     val STATEMENT = XClassName.get(SQLITE_PACKAGE, "SQLiteStatement")
@@ -87,6 +88,8 @@ object RoomTypeNames {
     val STATEMENT_UTIL = XClassName.get("$ROOM_PACKAGE.util", "SQLiteStatementUtil")
     val CONNECTION_UTIL = XClassName.get("$ROOM_PACKAGE.util", "SQLiteConnectionUtil")
     val FLOW_UTIL = XClassName.get("$ROOM_PACKAGE.coroutines", "FlowUtil")
+    val RAW_QUERY = XClassName.get(ROOM_PACKAGE, "RoomRawQuery")
+    val ROOM_DB_CONSTRUCTOR = XClassName.get(ROOM_PACKAGE, "RoomDatabaseConstructor")
 }
 
 object RoomAnnotationTypeNames {
@@ -211,21 +214,45 @@ object ReactiveStreamsTypeNames {
 
 object RoomGuavaTypeNames {
     val GUAVA_ROOM = XClassName.get("$ROOM_PACKAGE.guava", "GuavaRoom")
+    val GUAVA_ROOM_MARKER = XClassName.get("$ROOM_PACKAGE.guava", "GuavaRoomArtifactMarker")
+}
+
+object RoomGuavaMemberNames {
+    val GUAVA_ROOM_CREATE_LISTENABLE_FUTURE = GUAVA_ROOM.packageMember("createListenableFuture")
 }
 
 object RoomRxJava2TypeNames {
-    val RX_ROOM = XClassName.get(ROOM_PACKAGE, "RxRoom")
-    val RX_ROOM_CREATE_FLOWABLE = "createFlowable"
-    val RX_ROOM_CREATE_OBSERVABLE = "createObservable"
-    val RX_EMPTY_RESULT_SET_EXCEPTION = XClassName.get(ROOM_PACKAGE, "EmptyResultSetException")
+    val RX2_ROOM = XClassName.get(ROOM_PACKAGE, "RxRoom")
+    val RX2_EMPTY_RESULT_SET_EXCEPTION = XClassName.get(ROOM_PACKAGE, "EmptyResultSetException")
+}
+
+object RoomRxJava2MemberNames {
+    val RX_ROOM_CREATE_FLOWABLE =
+        RoomRxJava2TypeNames.RX2_ROOM.companionMember("createFlowable", isJvmStatic = true)
+    val RX_ROOM_CREATE_OBSERVABLE =
+        RoomRxJava2TypeNames.RX2_ROOM.companionMember("createObservable", isJvmStatic = true)
+    val RX_ROOM_CREATE_SINGLE =
+        RoomRxJava2TypeNames.RX2_ROOM.companionMember("createSingle", isJvmStatic = true)
+    val RX_ROOM_CREATE_MAYBE =
+        RoomRxJava2TypeNames.RX2_ROOM.companionMember("createMaybe", isJvmStatic = true)
+    val RX_ROOM_CREATE_COMPLETABLE =
+        RoomRxJava2TypeNames.RX2_ROOM.companionMember("createCompletable", isJvmStatic = true)
 }
 
 object RoomRxJava3TypeNames {
-    val RX_ROOM = XClassName.get("$ROOM_PACKAGE.rxjava3", "RxRoom")
-    val RX_ROOM_CREATE_FLOWABLE = "createFlowable"
-    val RX_ROOM_CREATE_OBSERVABLE = "createObservable"
-    val RX_EMPTY_RESULT_SET_EXCEPTION =
+    val RX3_ROOM = XClassName.get("$ROOM_PACKAGE.rxjava3", "RxRoom")
+    val RX3_ROOM_MARKER = XClassName.get("$ROOM_PACKAGE.rxjava3", "Rx3RoomArtifactMarker")
+    val RX3_EMPTY_RESULT_SET_EXCEPTION =
         XClassName.get("$ROOM_PACKAGE.rxjava3", "EmptyResultSetException")
+}
+
+object RoomRxJava3MemberNames {
+    val RX_ROOM_CREATE_FLOWABLE = RoomRxJava3TypeNames.RX3_ROOM.packageMember("createFlowable")
+    val RX_ROOM_CREATE_OBSERVABLE = RoomRxJava3TypeNames.RX3_ROOM.packageMember("createObservable")
+    val RX_ROOM_CREATE_SINGLE = RoomRxJava3TypeNames.RX3_ROOM.packageMember("createSingle")
+    val RX_ROOM_CREATE_MAYBE = RoomRxJava3TypeNames.RX3_ROOM.packageMember("createMaybe")
+    val RX_ROOM_CREATE_COMPLETABLE =
+        RoomRxJava3TypeNames.RX3_ROOM.packageMember("createCompletable")
 }
 
 object RoomPagingTypeNames {
@@ -270,7 +297,12 @@ object KotlinTypeNames {
 
 object RoomMemberNames {
     val DB_UTIL_QUERY = RoomTypeNames.DB_UTIL.packageMember("query")
+    val DB_UTIL_FOREIGN_KEY_CHECK = RoomTypeNames.DB_UTIL.packageMember("foreignKeyCheck")
     val DB_UTIL_DROP_FTS_SYNC_TRIGGERS = RoomTypeNames.DB_UTIL.packageMember("dropFtsSyncTriggers")
+    val DB_UTIL_PERFORM_SUSPENDING = RoomTypeNames.DB_UTIL.packageMember("performSuspending")
+    val DB_UTIL_PERFORM_BLOCKING = RoomTypeNames.DB_UTIL.packageMember("performBlocking")
+    val DB_UTIL_PERFORM_IN_TRANSACTION_SUSPENDING =
+        RoomTypeNames.DB_UTIL.packageMember("performInTransactionSuspending")
     val CURSOR_UTIL_GET_COLUMN_INDEX = RoomTypeNames.CURSOR_UTIL.packageMember("getColumnIndex")
     val CURSOR_UTIL_GET_COLUMN_INDEX_OR_THROW =
         RoomTypeNames.CURSOR_UTIL.packageMember("getColumnIndexOrThrow")
@@ -286,7 +318,7 @@ object RoomMemberNames {
 }
 
 object SQLiteDriverMemberNames {
-    val CONNECTION_EXEC_SQL = SQLiteDriverTypeNames.SQLITE_KT.packageMember("execSQL")
+    val CONNECTION_EXEC_SQL = SQLiteDriverTypeNames.SQLITE.packageMember("execSQL")
 }
 
 val DEFERRED_TYPES =
@@ -305,7 +337,8 @@ val DEFERRED_TYPES =
         RxJava3TypeNames.COMPLETABLE,
         GuavaUtilConcurrentTypeNames.LISTENABLE_FUTURE,
         KotlinTypeNames.FLOW,
-        ReactiveStreamsTypeNames.PUBLISHER
+        ReactiveStreamsTypeNames.PUBLISHER,
+        PagingTypeNames.PAGING_SOURCE
     )
 
 fun XTypeName.defaultValue(): String {
@@ -378,29 +411,56 @@ fun Function1TypeSpec(
         .build()
 
 /**
+ * Short-hand of [InvokeWithLambdaParameter] whose function call is a member function, i.e. a
+ * top-level function or a companion object function.
+ */
+fun InvokeWithLambdaParameter(
+    scope: CodeGenScope,
+    functionName: XMemberName,
+    argFormat: List<String>,
+    args: List<Any>,
+    continuationParamName: String? = null,
+    lambdaSpec: LambdaSpec
+): XCodeBlock {
+    val functionCall = XCodeBlock.of(scope.language, "%M", functionName)
+    return InvokeWithLambdaParameter(
+        scope,
+        functionCall,
+        argFormat,
+        args,
+        continuationParamName,
+        lambdaSpec
+    )
+}
+
+/**
  * Generates a code block that invokes a function with a functional type as last parameter.
  *
  * For Java (jvmTarget >= 8) it will generate:
  * ```
- * <functionName>(<args>, (<lambdaSpec.paramName>) -> <lambdaSpec.body>);
+ * <functionCall>(<args>, (<lambdaSpec.paramName>) -> <lambdaSpec.body>);
  * ```
  *
  * For Java (jvmTarget < 8) it will generate:
  * ```
- * <functionName>(<args>, new Function1<>() { <lambdaSpec.body> });
+ * <functionCall>(<args>, new Function1<>() { <lambdaSpec.body> });
  * ```
  *
  * For Kotlin it will generate:
  * ```
- * <functionName>(<args>) { <lambdaSpec.body> }
+ * <functionCall>(<args>) { <lambdaSpec.body> }
  * ```
+ *
+ * The [functionCall] must only be an expression up to a function name without the parenthesis. Its
+ * last parameter must also be a functional type. The [argFormat] and [args] are for the arguments
+ * of the function excluding the functional parameter.
  *
  * The ideal usage of this utility function is to generate code that invokes the various
  * `DBUtil.perform*()` APIs for interacting with the database connection in DAOs.
  */
 fun InvokeWithLambdaParameter(
     scope: CodeGenScope,
-    functionName: XMemberName,
+    functionCall: XCodeBlock,
     argFormat: List<String>,
     args: List<Any>,
     continuationParamName: String? = null,
@@ -414,8 +474,8 @@ fun InvokeWithLambdaParameter(
                     if (lambdaSpec.javaLambdaSyntaxAvailable) {
                         val argsFormatString = argFormat.joinToString(separator = ", ")
                         add(
-                            "%M($argsFormatString, (%L) -> {\n",
-                            functionName,
+                            "%L($argsFormatString, (%L) -> {\n",
+                            functionCall,
                             *args.toTypedArray(),
                             lambdaSpec.parameterName
                         )
@@ -459,8 +519,8 @@ fun InvokeWithLambdaParameter(
                             }
                         }
                         add(
-                            "%M($adjustedArgsFormatString);\n",
-                            functionName,
+                            "%L($adjustedArgsFormatString);\n",
+                            functionCall,
                             *adjustedArgs.toTypedArray(),
                         )
                     }
@@ -469,15 +529,15 @@ fun InvokeWithLambdaParameter(
                     val argsFormatString = argFormat.joinToString(separator = ", ")
                     if (lambdaSpec.parameterTypeName.rawTypeName != KotlinTypeNames.CONTINUATION) {
                         add(
-                            "%M($argsFormatString) { %L ->\n",
-                            functionName,
+                            "%L($argsFormatString) { %L ->\n",
+                            functionCall,
                             *args.toTypedArray(),
                             lambdaSpec.parameterName
                         )
                     } else {
                         add(
-                            "%M($argsFormatString) {\n",
-                            functionName,
+                            "%L($argsFormatString) {\n",
+                            functionCall,
                             *args.toTypedArray(),
                         )
                     }

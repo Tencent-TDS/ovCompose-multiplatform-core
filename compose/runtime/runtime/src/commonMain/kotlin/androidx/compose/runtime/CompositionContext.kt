@@ -16,6 +16,7 @@
 
 package androidx.compose.runtime
 
+import androidx.collection.ScatterSet
 import androidx.compose.runtime.internal.persistentCompositionLocalHashMapOf
 import androidx.compose.runtime.tooling.CompositionData
 import kotlin.coroutines.CoroutineContext
@@ -52,6 +53,20 @@ abstract class CompositionContext internal constructor() {
         content: @Composable () -> Unit
     )
 
+    internal abstract fun composeInitialPaused(
+        composition: ControlledComposition,
+        shouldPause: ShouldPauseCallback,
+        content: @Composable () -> Unit
+    ): ScatterSet<RecomposeScopeImpl>
+
+    internal abstract fun recomposePaused(
+        composition: ControlledComposition,
+        shouldPause: ShouldPauseCallback,
+        invalidScopes: ScatterSet<RecomposeScopeImpl>
+    ): ScatterSet<RecomposeScopeImpl>
+
+    internal abstract fun reportPausedScope(scope: RecomposeScopeImpl)
+
     internal abstract fun invalidate(composition: ControlledComposition)
 
     internal abstract fun invalidateScope(scope: RecomposeScopeImpl)
@@ -79,7 +94,8 @@ abstract class CompositionContext internal constructor() {
 
     internal abstract fun movableContentStateReleased(
         reference: MovableContentStateReference,
-        data: MovableContentState
+        data: MovableContentState,
+        applier: Applier<*>
     )
 
     internal open fun movableContentStateResolve(
@@ -87,4 +103,6 @@ abstract class CompositionContext internal constructor() {
     ): MovableContentState? = null
 
     internal abstract fun reportRemovedComposition(composition: ControlledComposition)
+
+    internal abstract val composition: Composition?
 }

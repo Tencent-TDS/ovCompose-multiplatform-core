@@ -19,6 +19,7 @@ package androidx.compose.ui.text.font
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.ui.text.internal.checkPrecondition
 
 /**
  * The primary typography interface for Compose applications.
@@ -155,7 +156,6 @@ sealed class SystemFontFamily : FontFamily(true)
  * Defines a font family with list of [Font].
  *
  * @sample androidx.compose.ui.text.samples.FontFamilySansSerifSample
- *
  * @sample androidx.compose.ui.text.samples.CustomFontFamilySample
  */
 @Immutable
@@ -165,7 +165,7 @@ internal constructor(
     val fonts: List<Font>
 ) : FileBasedFontFamily(), List<Font> by fonts {
     init {
-        check(fonts.isNotEmpty()) { "At least one font should be passed to FontFamily" }
+        checkPrecondition(fonts.isNotEmpty()) { "At least one font should be passed to FontFamily" }
     }
 
     override fun equals(other: Any?): Boolean {

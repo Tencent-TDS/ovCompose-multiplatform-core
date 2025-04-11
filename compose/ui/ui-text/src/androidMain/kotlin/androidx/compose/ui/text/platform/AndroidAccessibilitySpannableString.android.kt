@@ -25,7 +25,6 @@ import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.compose.ui.text.AnnotatedString
@@ -84,21 +83,23 @@ fun AnnotatedString.toAccessibilitySpannableString(
     }
 
     getLinkAnnotations(0, length).fastForEach { linkRange ->
-        val link = linkRange.item
-        if (link is LinkAnnotation.Url && link.linkInteractionListener == null) {
-            spannableString.setSpan(
-                urlSpanCache.toURLSpan(linkRange.toUrlLink()),
-                linkRange.start,
-                linkRange.end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
-        } else {
-            spannableString.setSpan(
-                urlSpanCache.toClickableSpan(linkRange),
-                linkRange.start,
-                linkRange.end,
-                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-            )
+        if (linkRange.start != linkRange.end) {
+            val link = linkRange.item
+            if (link is LinkAnnotation.Url && link.linkInteractionListener == null) {
+                spannableString.setSpan(
+                    urlSpanCache.toURLSpan(linkRange.toUrlLink()),
+                    linkRange.start,
+                    linkRange.end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            } else {
+                spannableString.setSpan(
+                    urlSpanCache.toClickableSpan(linkRange),
+                    linkRange.start,
+                    linkRange.end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
         }
     }
     return spannableString
@@ -189,7 +190,7 @@ private fun SpannableString.setSpanStyle(
 
 @RequiresApi(28)
 private object Api28Impl {
-    @DoNotInline fun createTypefaceSpan(typeface: Typeface): TypefaceSpan = TypefaceSpan(typeface)
+    fun createTypefaceSpan(typeface: Typeface): TypefaceSpan = TypefaceSpan(typeface)
 }
 
 private fun AnnotatedString.Range<LinkAnnotation>.toUrlLink() =

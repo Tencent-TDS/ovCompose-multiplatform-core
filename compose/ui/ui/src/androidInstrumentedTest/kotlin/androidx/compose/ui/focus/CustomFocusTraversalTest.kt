@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key.Companion.DirectionDown
 import androidx.compose.ui.input.key.Key.Companion.DirectionLeft
@@ -47,7 +46,6 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
 
-@ExperimentalComposeUiApi
 @MediumTest
 @RunWith(Parameterized::class)
 class CustomFocusTraversalTest(
@@ -429,9 +427,9 @@ class CustomFocusTraversalTest(
             Row(
                 Modifier.focusRequester(parent)
                     .focusProperties {
-                        enter = {
-                            directionThatTriggeredEnter = it
-                            item2
+                        onEnter = {
+                            directionThatTriggeredEnter = requestedFocusDirection
+                            item2.requestFocus()
                         }
                     }
                     .focusTarget()
@@ -481,9 +479,9 @@ class CustomFocusTraversalTest(
                     Modifier.focusRequester(item1)
                         .onFocusChanged { item1Focused = it.isFocused }
                         .focusProperties {
-                            enter = {
-                                directionThatTriggeredEnter = it
-                                item3
+                            onEnter = {
+                                directionThatTriggeredEnter = requestedFocusDirection
+                                item3.requestFocus()
                             }
                         }
                         .focusTarget()

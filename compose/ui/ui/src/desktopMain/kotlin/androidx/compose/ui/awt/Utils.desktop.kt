@@ -21,8 +21,13 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntRect
 import java.awt.Component
 import java.awt.EventQueue
+import java.awt.Graphics
 import java.awt.Rectangle
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JComponent
+import javax.swing.JDialog
+import javax.swing.JFrame
+import javax.swing.JLayeredPane
 import kotlin.math.ceil
 import kotlin.math.floor
 import org.jetbrains.skiko.GraphicsApi
@@ -71,34 +76,94 @@ internal fun getTransparentWindowBackground(
     return if (isWindowTransparent && !skikoTransparentWindowHack) java.awt.Color(0, 0, 0, 0) else null
 }
 
-internal fun JComponent.setTransparent(transparent: Boolean) {
-    /*
-     * Windows makes clicks on transparent pixels fall through, but it doesn't work
-     * with GPU accelerated rendering since this check requires having access to pixels from CPU.
-     *
-     * JVM doesn't allow override this behaviour with low-level windows methods, so hack this in this way.
-     * Based on tests, it doesn't affect resulting pixel color.
-     *
-     * Note: Do not set isOpaque = false for this container
-     */
-    if (transparent && hostOs == OS.Windows) {
-        background = java.awt.Color(0, 0, 0, 1)
-        isOpaque = true
-    } else {
-        background = null
-        isOpaque = false
+// See https://developer.apple.com/library/archive/technotes/tn2007/tn2196.html#WINDOW_SHADOW
+private var JComponent.hasMacOsShadow: Boolean
+    get() = getClientProperty("Window.shadow") as? Boolean? ?: false
+    set(value) { putClientProperty("Window.shadow", value) }
+
+/**
+ * Determines if the window has a shadow on macOS.
+ */
+internal var JFrame.hasMacOsShadow: Boolean
+    // Delegated properties don't work for extensions https://youtrack.jetbrains.com/issue/KT-6643
+    get() = rootPane.hasMacOsShadow
+    set(value) { rootPane.hasMacOsShadow = value }
+
+/**
+ * Determines if the window has a shadow on macOS.
+ */
+internal var JDialog.hasMacOsShadow: Boolean
+    // Delegated properties don't work for extensions https://youtrack.jetbrains.com/issue/KT-6643
+    get() = rootPane.hasMacOsShadow
+    set(value) { rootPane.hasMacOsShadow = value }
+
+/**
+ * Windows makes clicks on transparent pixels fall through, but it doesn't work
+ * with GPU accelerated rendering since this check requires having access to pixels from CPU.
+ *
+ * JVM doesn't allow override this behaviour with low-level windows methods, so hack this by filling
+ * the background with an almost transparent color.
+ * Based on tests, it doesn't affect resulting pixel color.
+ */
+internal open class JLayeredPaneWithTransparencyHack: JLayeredPane() {
+    override fun paint(g: Graphics) {
+        if (!isOpaque && UseTransparencyHack) {
+            // Fill the background with an almost transparent color
+            g.color = AlmostTransparent
+            val r = g.clipBounds
+            if (r != null) {
+                g.fillRect(r.x, r.y, r.width, r.height)
+            } else {
+                g.fillRect(0, 0, width, height)
+            }
+        }
+
+        super.paint(g)
+    }
+
+    private companion object {
+
+        @JvmStatic
+        val AlmostTransparent = java.awt.Color(0, 0, 0, 1)
+
+        @JvmStatic
+        private val UseTransparencyHack = hostOs == OS.Windows
+
     }
 }
 
 /**
- * Calls [block] synchronously on the event dispatching thread. If the calling thread is already the
- * event dispatch thread, simply executes [block]; otherwise schedules [block] to run on event
- * dispatching thread and waits for it to return.
+ * A utility for running code on the event dispatching thread, making sure it is not queued more
+ * than once.
  */
-internal fun runOnEDTThread(block: () -> Unit) {
-    if (EventQueue.isDispatchThread()) {
-        block()
-    } else {
-        EventQueue.invokeAndWait(block)
+internal class DebouncingEdtExecutor {
+
+    /**
+     * Whether any code has been scheduled.
+     */
+    private val isScheduled = AtomicBoolean(false)
+
+    /**
+     * Calls [block] on the event dispatching thread.
+     *
+     * If the thread calling this function is the event dispatching thread, executes [block] and
+     * cancels any previously scheduled blocks. Otherwise, if no block is currently scheduled,
+     * schedules [block] to run event dispatching thread. If a block is already scheduled, does
+     * nothing.
+     *
+     * Note that this utility is not intended to run or schedule multiple different blocks of code
+     * at the same time, as only one block of code can be scheduled at a time.
+     */
+    fun runOrScheduleDebounced(block: () -> Unit) {
+        if (EventQueue.isDispatchThread()) {
+            isScheduled.set(false)
+            block()
+        } else if (!isScheduled.getAndSet(true)) {
+            EventQueue.invokeLater {
+                if (isScheduled.getAndSet(false)) {
+                    block()
+                }
+            }
+        }
     }
 }

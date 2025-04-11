@@ -23,14 +23,13 @@
  */
 import androidx.build.LibraryType
 import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
     jvm() {
         withJava()
     }
@@ -44,8 +43,7 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 api(libs.kotlinStdlib)
-                api("androidx.annotation:annotation:1.8.0")
-
+                api(project(":annotation:annotation"))
             }
         }
 
@@ -65,6 +63,18 @@ androidXMultiplatform {
             dependencies {
                 implementation(libs.guava)
                 implementation(libs.kotlinTestJunit)
+            }
+        }
+
+        nativeMain {
+            dependsOn(commonMain)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet {
+                    dependsOn(nativeMain)
+                }
             }
         }
     }

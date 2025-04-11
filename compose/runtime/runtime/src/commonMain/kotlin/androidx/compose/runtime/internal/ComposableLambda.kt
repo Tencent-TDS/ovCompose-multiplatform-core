@@ -1360,10 +1360,8 @@ private val lambdaKey = Any()
 fun composableLambdaInstance(key: Int, tracked: Boolean, block: Any): ComposableLambda =
     ComposableLambdaImpl(key, tracked, block)
 
-// TODO fix wasm
-
-//@Suppress("unused")
-//@Composable
-//@ComposeCompilerApi
-//fun rememberComposableLambda(key: Int, tracked: Boolean, block: Any): ComposableLambda =
-//    remember { ComposableLambdaImpl(key, tracked, block) }.also { it.update(block) }
+@Suppress("unused")
+@Composable
+@ComposeCompilerApi
+fun rememberComposableLambda(key: Int, tracked: Boolean, block: Any): ComposableLambda =
+    remember { ComposableLambdaImpl(key, tracked, block) }.also { it.update(block) }

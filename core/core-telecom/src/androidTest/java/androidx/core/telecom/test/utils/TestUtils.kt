@@ -22,6 +22,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Build.VERSION_CODES
 import android.os.Bundle
+import android.os.ParcelUuid
 import android.os.UserHandle
 import android.os.UserManager
 import android.telecom.Call
@@ -30,18 +31,20 @@ import android.telecom.PhoneAccountHandle
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
-import androidx.core.telecom.CallsManager
 import androidx.core.telecom.extensions.Participant
-import androidx.core.telecom.internal.CallCompat
+import androidx.core.telecom.extensions.ParticipantParcelable
+import androidx.core.telecom.extensions.toParticipant
 import androidx.core.telecom.internal.utils.BuildVersionAdapter
 import androidx.core.telecom.test.ITestAppControlCallback
 import androidx.core.telecom.util.ExperimentalAppActions
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.FileInputStream
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
@@ -291,30 +294,34 @@ object TestUtils {
         Log.i(LOG_TAG, "defaultDialer=[${getDefaultDialer()}]")
     }
 
+    fun generateRandomUuid(): ParcelUuid {
+        return ParcelUuid.fromString(UUID.randomUUID().toString())
+    }
+
     @OptIn(ExperimentalAppActions::class)
     @Suppress("deprecation")
-    suspend fun waitOnInCallServiceToReachXCalls(targetCallCount: Int): Call? {
+    internal suspend fun waitOnInCallServiceToReachXCalls(
+        service: TestInCallService,
+        targetCallCount: Int
+    ): Call? {
         var targetCall: Call?
         try {
             withTimeout(WAIT_ON_IN_CALL_SERVICE_CALL_COUNT_TIMEOUT) {
                 Log.i(LOG_TAG, "waitOnInCallServiceToReachXCalls: starting call check")
-                while (isActive && (MockInCallServiceDelegate.getCallCount() < targetCallCount)) {
+                while (isActive && (service.getCallCount() < targetCallCount)) {
                     yield() // ensure the coroutine is not canceled
                     delay(1) // sleep x millisecond(s) instead of spamming check
                 }
-                targetCall = MockInCallServiceDelegate.getLastCall()?.toCall()
-                Log.i(
-                    LOG_TAG,
-                    "waitOnInCallServiceToReachXCalls: " + "found targetCall=[$targetCall]"
-                )
+                targetCall = service.getLastCall()
+                Log.i(LOG_TAG, "waitOnInCallServiceToReachXCalls: found targetCall=[$targetCall]")
             }
         } catch (e: TimeoutCancellationException) {
             Log.i(LOG_TAG, "waitOnInCallServiceToReachXCalls: timeout reached")
             dumpTelecom()
-            MockInCallServiceDelegate.destroyAllCalls()
+            service.destroyAllCalls()
             throw AssertionError(
                 "Expected call count to be <$targetCallCount>" +
-                    " but the Actual call count was <${MockInCallServiceDelegate.getCallCount()}>"
+                    " but the Actual call count was <${service.getCallCount()}>"
             )
         }
         return targetCall
@@ -332,40 +339,11 @@ object TestUtils {
         } catch (e: TimeoutCancellationException) {
             Log.i(LOG_TAG, "waitOnCallState: timeout reached")
             dumpTelecom()
-            MockInCallServiceDelegate.destroyAllCalls()
             throw AssertionError(
                 "Expected call state to be <$targetState>" +
                     " but the Actual call state was <${call.state}>"
             )
         }
-    }
-
-    @OptIn(ExperimentalAppActions::class)
-    internal suspend fun waitOnInCallServiceToReachXCallCompats(
-        targetCallCompatCount: Int
-    ): CallCompat? {
-        var targetCallCompat: CallCompat? = null
-        try {
-            val callCompatList = MockInCallServiceDelegate.getServiceWithExtensions()?.mCallCompats
-            if (callCompatList != null) {
-                withTimeout(WAIT_ON_IN_CALL_SERVICE_CALL_COMPAT_COUNT_TIMEOUT) {
-                    while (isActive && callCompatList.size < targetCallCompatCount) {
-                        delay(1)
-                    }
-                    targetCallCompat = callCompatList.last()
-                }
-            }
-        } catch (e: TimeoutCancellationException) {
-            Log.i(LOG_TAG, "waitOnInCallServiceToReachXCallCompats: timeout reached")
-            dumpTelecom()
-            MockInCallServiceDelegate.destroyAllCalls()
-            throw AssertionError(
-                "Expected call count to be <$targetCallCompatCount> but the actual" +
-                    " call count was <${MockInCallServiceDelegate.getServiceWithExtensions()
-                        ?.mCallCompats?.size}>"
-            )
-        }
-        return targetCallCompat
     }
 
     /** Helper to wait on the call detail extras to be populated from the connection service */
@@ -380,7 +358,6 @@ object TestUtils {
         } catch (e: TimeoutCancellationException) {
             Log.i(LOG_TAG, "waitOnCallExtras: timeout reached")
             dumpTelecom()
-            MockInCallServiceDelegate.destroyAllCalls()
             throw AssertionError("Expected call detail extras to be non-null.")
         }
     }
@@ -407,42 +384,57 @@ object TestUtils {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     }
 
+    /** Generate a List of [Participant]s, where each ID corresponds to a range of 1 to [num] */
+    @ExperimentalAppActions
+    fun generateParticipants(num: Int): List<Participant> {
+        val participants = ArrayList<Participant>()
+        for (i in 1..num) {
+            participants.add(Participant(i.toString(), "part-$i"))
+        }
+        return participants
+    }
+
     @ExperimentalAppActions
     fun getDefaultParticipant(): Participant {
-        val p = Participant()
-        p.id = 123
-        p.name = "Gemini"
-        p.speakerIconUri = null
-        return p
-    }
-
-    fun getDefaultParticipantSupportedActions(): IntArray {
-        return intArrayOf(CallsManager.RAISE_HAND_ACTION, CallsManager.KICK_PARTICIPANT_ACTION)
+        return Participant("123", "Gemini")
     }
 
     @ExperimentalAppActions
-    fun printParticipants(participants: Set<Participant>, tag: String) {
+    fun getDefaultParticipantParcelable(): ParticipantParcelable {
+        return getDefaultParticipant().toParticipantParcelable()
+    }
+
+    @ExperimentalAppActions
+    fun printParticipants(participants: Collection<Participant>, tag: String) {
         Log.i(LOG_TAG, tag + ": printParticipants: set size=${participants.size}")
         for (v in participants) {
-            Log.i(LOG_TAG, "id=${v.id} name=${v.name}, uri=${v.speakerIconUri}")
+            Log.i(LOG_TAG, "\t $v")
         }
     }
 }
 
 @ExperimentalAppActions
 class TestCallCallbackListener(private val scope: CoroutineScope) : ITestAppControlCallback.Stub() {
-    private val raisedHandFlow: MutableSharedFlow<Pair<String, Boolean>> = MutableSharedFlow()
+    private val raisedHandFlow: MutableSharedFlow<Pair<String, Boolean>> =
+        MutableSharedFlow(replay = 1)
     private val kickParticipantFlow: MutableSharedFlow<Pair<String, Participant?>> =
-        MutableSharedFlow()
+        MutableSharedFlow(replay = 1)
+    private val isLocallySilencedFlow: MutableSharedFlow<Pair<String, Boolean>> =
+        MutableStateFlow(Pair("", false))
 
     override fun raiseHandStateAction(callId: String?, isHandRaised: Boolean) {
         if (callId == null) return
         scope.launch { raisedHandFlow.emit(Pair(callId, isHandRaised)) }
     }
 
-    override fun kickParticipantAction(callId: String?, participant: Participant?) {
+    override fun kickParticipantAction(callId: String?, participant: ParticipantParcelable?) {
         if (callId == null) return
-        scope.launch { kickParticipantFlow.emit(Pair(callId, participant)) }
+        scope.launch { kickParticipantFlow.emit(Pair(callId, participant?.toParticipant())) }
+    }
+
+    override fun setLocalCallSilenceState(callId: String?, isLocallySilenced: Boolean) {
+        if (callId == null) return
+        scope.launch { isLocallySilencedFlow.emit(Pair(callId, isLocallySilenced)) }
     }
 
     suspend fun waitForRaiseHandState(callId: String, expectedState: Boolean) {
@@ -451,6 +443,16 @@ class TestCallCallbackListener(private val scope: CoroutineScope) : ITestAppCont
                 raisedHandFlow.filter { it.first == callId && it.second == expectedState }.first()
             }
         assertEquals("raised hands action never received", expectedState, result?.second)
+    }
+
+    suspend fun waitForIsLocalSilenced(callId: String, expectedState: Boolean) {
+        val result =
+            withTimeoutOrNull(5000) {
+                isLocallySilencedFlow
+                    .filter { it.first == callId && it.second == expectedState }
+                    .first()
+            }
+        assertEquals("<LOCAL CALL SILENCE> never received", expectedState, result?.second)
     }
 
     suspend fun waitForKickParticipant(callId: String, expectedParticipant: Participant?) {

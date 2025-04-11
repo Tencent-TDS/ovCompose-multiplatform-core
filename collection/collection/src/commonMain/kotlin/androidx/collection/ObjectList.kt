@@ -13,15 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("NOTHING_TO_INLINE", "RedundantVisibilityModifier", "UNCHECKED_CAST")
+@file:Suppress(
+    "NOTHING_TO_INLINE",
+    "RedundantVisibilityModifier",
+    "UNCHECKED_CAST",
+    "KotlinRedundantDiagnosticSuppress"
+)
 @file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
+import androidx.collection.internal.throwIllegalArgumentException
+import androidx.collection.internal.throwIndexOutOfBoundsException
+import androidx.collection.internal.throwNoSuchElementException
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
+import kotlin.math.max
 
 /**
  * [ObjectList] is a [List]-like collection for reference types. It is optimized for fast access,
@@ -175,7 +184,7 @@ public sealed class ObjectList<E>(initialCapacity: Int) {
      */
     public fun first(): E {
         if (isEmpty()) {
-            throw NoSuchElementException("ObjectList is empty.")
+            throwNoSuchElementException("ObjectList is empty.")
         }
         return content[0] as E
     }
@@ -330,7 +339,7 @@ public sealed class ObjectList<E>(initialCapacity: Int) {
      */
     public operator fun get(@androidx.annotation.IntRange(from = 0) index: Int): E {
         if (index !in 0 until _size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsExclusiveException(index)
         }
         return content[index] as E
     }
@@ -341,9 +350,13 @@ public sealed class ObjectList<E>(initialCapacity: Int) {
      */
     public fun elementAt(@androidx.annotation.IntRange(from = 0) index: Int): E {
         if (index !in 0 until _size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsExclusiveException(index)
         }
         return content[index] as E
+    }
+
+    internal fun throwIndexOutOfBoundsExclusiveException(index: Int) {
+        throwIndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
     }
 
     /**
@@ -426,7 +439,7 @@ public sealed class ObjectList<E>(initialCapacity: Int) {
      */
     public fun last(): E {
         if (isEmpty()) {
-            throw NoSuchElementException("ObjectList is empty.")
+            throwNoSuchElementException("ObjectList is empty.")
         }
         return content[lastIndex] as E
     }
@@ -631,7 +644,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
      */
     public fun add(@androidx.annotation.IntRange(from = 0) index: Int, element: E) {
         if (index !in 0.._size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsInclusiveException(index)
         }
         ensureCapacity(_size + 1)
         val content = content
@@ -659,7 +672,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
         @Suppress("ArrayReturn") elements: Array<E>
     ): Boolean {
         if (index !in 0.._size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsInclusiveException(index)
         }
         if (elements.isEmpty()) return false
         ensureCapacity(_size + elements.size)
@@ -689,7 +702,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
         elements: Collection<E>
     ): Boolean {
         if (index !in 0.._size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsInclusiveException(index)
         }
         if (elements.isEmpty()) return false
         ensureCapacity(_size + elements.size)
@@ -719,7 +732,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
         elements: ObjectList<E>
     ): Boolean {
         if (index !in 0.._size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsInclusiveException(index)
         }
         if (elements.isEmpty()) return false
         ensureCapacity(_size + elements._size)
@@ -740,6 +753,10 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
         )
         _size += elements._size
         return true
+    }
+
+    private fun throwIndexOutOfBoundsInclusiveException(index: Int) {
+        throwIndexOutOfBoundsException("Index $index must be in 0..$_size")
     }
 
     /**
@@ -882,12 +899,19 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
      *
      * @see trim
      */
-    public fun ensureCapacity(capacity: Int) {
+    public inline fun ensureCapacity(capacity: Int) {
         val oldContent = content
         if (oldContent.size < capacity) {
-            val newSize = maxOf(capacity, oldContent.size * 3 / 2)
-            content = oldContent.copyOf(newSize)
+            resizeStorage(capacity, oldContent)
         }
+    }
+
+    @PublishedApi
+    internal fun resizeStorage(capacity: Int, oldContent: Array<Any?>) {
+        val oldSize = oldContent.size
+        val newSize = max(capacity, oldSize * 3 / 2)
+        val newContent = arrayOfNulls<Any?>(newSize)
+        content = oldContent.copyInto(newContent, 0, 0, oldSize)
     }
 
     /** [add] [element] to the [MutableObjectList]. */
@@ -1030,7 +1054,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
      */
     public fun removeAt(@androidx.annotation.IntRange(from = 0) index: Int): E {
         if (index !in 0 until _size) {
-            throw IndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsExclusiveException(index)
         }
         val content = content
         val element = content[index]
@@ -1058,10 +1082,10 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
         @androidx.annotation.IntRange(from = 0) end: Int
     ) {
         if (start !in 0.._size || end !in 0.._size) {
-            throw IndexOutOfBoundsException("Start ($start) and end ($end) must be in 0..$_size")
+            throwIndexOutOfBoundsException("Start ($start) and end ($end) must be in 0..$_size")
         }
         if (end < start) {
-            throw IllegalArgumentException("Start ($start) is more than end ($end)")
+            throwIllegalArgumentException("Start ($start) is more than end ($end)")
         }
         if (end != start) {
             if (end < _size) {
@@ -1171,7 +1195,7 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
      */
     public operator fun set(@androidx.annotation.IntRange(from = 0) index: Int, element: E): E {
         if (index !in 0 until _size) {
-            throw IndexOutOfBoundsException("set index $index must be between 0 .. $lastIndex")
+            throwIndexOutOfBoundsExclusiveException(index)
         }
         val content = content
         val old = content[index]
@@ -1438,8 +1462,8 @@ public class MutableObjectList<E>(initialCapacity: Int = 16) : ObjectList<E>(ini
 private fun List<*>.checkIndex(index: Int) {
     val size = size
     if (index < 0 || index >= size) {
-        throw IndexOutOfBoundsException(
-            "Index $index is out of bounds. " + "The list has $size elements."
+        throwIndexOutOfBoundsException(
+            "Index $index is out of bounds. The list has $size elements."
         )
     }
 }
@@ -1447,18 +1471,15 @@ private fun List<*>.checkIndex(index: Int) {
 private fun List<*>.checkSubIndex(fromIndex: Int, toIndex: Int) {
     val size = size
     if (fromIndex > toIndex) {
-        throw IllegalArgumentException(
-            "Indices are out of order. fromIndex ($fromIndex) is " +
-                "greater than toIndex ($toIndex)."
+        throwIllegalArgumentException(
+            "Indices are out of order. fromIndex ($fromIndex) is greater than toIndex ($toIndex)."
         )
     }
     if (fromIndex < 0) {
-        throw IndexOutOfBoundsException("fromIndex ($fromIndex) is less than 0.")
+        throwIndexOutOfBoundsException("fromIndex ($fromIndex) is less than 0.")
     }
     if (toIndex > size) {
-        throw IndexOutOfBoundsException(
-            "toIndex ($toIndex) is more than than the list size ($size)"
-        )
+        throwIndexOutOfBoundsException("toIndex ($toIndex) is more than than the list size ($size)")
     }
 }
 

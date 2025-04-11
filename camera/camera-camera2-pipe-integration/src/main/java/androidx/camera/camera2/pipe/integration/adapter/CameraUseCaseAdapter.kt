@@ -51,7 +51,7 @@ import androidx.camera.core.impl.UseCaseConfigFactory.CaptureType
  * and aspect ratios for the display.
  */
 @Suppress("DEPRECATION")
-class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
+public class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
     private val displayInfoManager by lazy { DisplayInfoManager(context) }
 
     init {
@@ -79,10 +79,6 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
         when (captureType) {
             CaptureType.IMAGE_CAPTURE,
             CaptureType.PREVIEW,
-            // Uses TEMPLATE_PREVIEW instead of TEMPLATE_RECORD for StreamSharing. Since there
-            // is a issue that captured results being stretched when requested for recording on
-            // some models, it would be safer to request for preview, which is also better
-            // tested. More detail please see b/297167569.
             CaptureType.STREAM_SHARING,
             CaptureType.METERING_REPEATING,
             CaptureType.IMAGE_ANALYSIS ->
@@ -103,8 +99,6 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
                     else CameraDevice.TEMPLATE_STILL_CAPTURE
             CaptureType.PREVIEW,
             CaptureType.IMAGE_ANALYSIS,
-            // Uses TEMPLATE_PREVIEW instead of TEMPLATE_RECORD for StreamSharing to align with
-            // SessionConfig's setup. More detail please see b/297167569.
             CaptureType.STREAM_SHARING,
             CaptureType.METERING_REPEATING ->
                 captureBuilder.templateType = CameraDevice.TEMPLATE_PREVIEW
@@ -142,7 +136,7 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
         return OptionsBundle.from(mutableConfig)
     }
 
-    open class DefaultCaptureOptionsUnpacker : CaptureConfig.OptionUnpacker {
+    public open class DefaultCaptureOptionsUnpacker : CaptureConfig.OptionUnpacker {
         @OptIn(ExperimentalCamera2Interop::class)
         override fun unpack(config: UseCaseConfig<*>, builder: CaptureConfig.Builder) {
             val defaultCaptureConfig = config.getDefaultCaptureConfig(null)
@@ -180,12 +174,12 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             builder.addImplementationOptions(camera2Config.captureRequestOptions)
         }
 
-        companion object {
-            val INSTANCE = DefaultCaptureOptionsUnpacker()
+        public companion object {
+            public val INSTANCE: DefaultCaptureOptionsUnpacker = DefaultCaptureOptionsUnpacker()
         }
     }
 
-    class ImageCaptureOptionUnpacker : DefaultCaptureOptionsUnpacker() {
+    public class ImageCaptureOptionUnpacker : DefaultCaptureOptionsUnpacker() {
 
         override fun unpack(config: UseCaseConfig<*>, builder: CaptureConfig.Builder) {
             super.unpack(config, builder)
@@ -195,12 +189,12 @@ class CameraUseCaseAdapter(context: Context) : UseCaseConfigFactory {
             )
         }
 
-        companion object {
-            val INSTANCE = ImageCaptureOptionUnpacker()
+        public companion object {
+            public val INSTANCE: ImageCaptureOptionUnpacker = ImageCaptureOptionUnpacker()
         }
     }
 
-    object DefaultSessionOptionsUnpacker : SessionConfig.OptionUnpacker {
+    public object DefaultSessionOptionsUnpacker : SessionConfig.OptionUnpacker {
         @OptIn(ExperimentalCamera2Interop::class)
         override fun unpack(
             resolution: Size,

@@ -29,12 +29,6 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateSemantics
 import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.modifier.ModifierLocalConsumer
-import androidx.compose.ui.modifier.ModifierLocalReadScope
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -53,7 +47,6 @@ import androidx.compose.ui.state.ToggleableState
  * information see the documentation on the other overload.
  *
  * @sample androidx.compose.foundation.samples.ToggleableSample
- *
  * @param value whether Toggleable is on or off
  * @param enabled whether or not this [toggleable] will handle input events and appear enabled for
  *   semantics purposes
@@ -117,7 +110,6 @@ fun Modifier.toggleable(
  * cannot be lazily created inside toggleable.
  *
  * @sample androidx.compose.foundation.samples.ToggleableSample
- *
  * @param value whether Toggleable is on or off
  * @param interactionSource [MutableInteractionSource] that will be used to dispatch
  *   [PressInteraction.Press] when this toggleable is pressed. If `null`, an internal
@@ -153,14 +145,6 @@ fun Modifier.toggleable(
             role = role,
             onValueChange = onValueChange
         )
-    }
-    .onKeyEvent {
-        if (enabled && it.isToggle) {
-            onValueChange(!value)
-            true
-        } else {
-            false
-        }
     }
 
 private class ToggleableElement(
@@ -298,7 +282,6 @@ private class ToggleableNode(
  * more information see the documentation on the other overload.
  *
  * @sample androidx.compose.foundation.samples.TriStateToggleableSample
- *
  * @param state current value for the component
  * @param enabled whether or not this [triStateToggleable] will handle input events and appear
  *   enabled for semantics purposes
@@ -366,7 +349,6 @@ fun Modifier.triStateToggleable(
  * cannot be lazily created inside triStateToggleable.
  *
  * @sample androidx.compose.foundation.samples.TriStateToggleableSample
- *
  * @param state current value for the component
  * @param interactionSource [MutableInteractionSource] that will be used to dispatch
  *   [PressInteraction.Press] when this triStateToggleable is pressed. If `null`, an internal
@@ -401,14 +383,6 @@ fun Modifier.triStateToggleable(
             role = role,
             onClick = onClick
         )
-    }
-    .onKeyEvent {
-        if (enabled && it.isToggle) {
-            onClick()
-            true
-        } else {
-            false
-        }
     }
 
 private class TriStateToggleableElement(
@@ -521,9 +495,3 @@ private class TriStateToggleableNode(
         toggleableState = state
     }
 }
-
-/**
- * Whether the specified [KeyEvent] represents a user intent to perform a toggle.
- * (eg. When you press Space on a focused checkbox, it should perform a toggle).
- */
-internal expect val KeyEvent.isToggle: Boolean

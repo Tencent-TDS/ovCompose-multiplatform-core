@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-package androidx.compose.animation.core.internal;
+package androidx.compose.animation.core.internal
 
 internal expect annotation class JvmDefaultWithCompatibility()

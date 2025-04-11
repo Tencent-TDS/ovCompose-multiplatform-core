@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.throwUnsupportedOperationException
 import androidx.compose.ui.node.NodeCoordinator
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastCoerceIn
@@ -150,7 +151,7 @@ interface LayoutCoordinates {
      */
     @Suppress("DocumentExceptions")
     fun transformFrom(sourceCoordinates: LayoutCoordinates, matrix: Matrix) {
-        throw UnsupportedOperationException(
+        throwUnsupportedOperationException(
             "transformFrom is not implemented on this LayoutCoordinates"
         )
     }
@@ -194,7 +195,7 @@ fun LayoutCoordinates.boundsInWindow(): Rect {
     val rootWidth = root.size.width.toFloat()
     val rootHeight = root.size.height.toFloat()
 
-    val bounds = boundsInRoot()
+    val bounds = root.localBoundingBoxOf(this)
     val boundsLeft = bounds.left.fastCoerceIn(0f, rootWidth)
     val boundsTop = bounds.top.fastCoerceIn(0f, rootHeight)
     val boundsRight = bounds.right.fastCoerceIn(0f, rootWidth)

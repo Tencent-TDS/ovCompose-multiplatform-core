@@ -24,7 +24,6 @@ import android.os.Build
 import android.util.Log
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.glance.session.GlanceSessionManager
@@ -35,9 +34,9 @@ import kotlinx.coroutines.runBlocking
  * [RemoteViewsService] to be connected to for a remote adapter that returns RemoteViews for lazy
  * lists / grids.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-class GlanceRemoteViewsService : RemoteViewsService() {
-    override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
+open class GlanceRemoteViewsService : RemoteViewsService() {
+    override fun onGetViewFactory(intent: Intent?): RemoteViewsFactory {
+        requireNotNull(intent) { "Intent is null" }
         val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, -1)
         check(appWidgetId != -1) { "No app widget id was present in the intent" }
 
@@ -50,10 +49,11 @@ class GlanceRemoteViewsService : RemoteViewsService() {
         return GlanceRemoteViewsFactory(this, appWidgetId, viewId, sizeInfo)
     }
 
-    companion object {
-        const val EXTRA_VIEW_ID = "androidx.glance.widget.extra.view_id"
-        const val EXTRA_SIZE_INFO = "androidx.glance.widget.extra.size_info"
-        const val TAG = "GlanceRemoteViewService"
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    internal companion object {
+        internal const val EXTRA_VIEW_ID = "androidx.glance.widget.extra.view_id"
+        internal const val EXTRA_SIZE_INFO = "androidx.glance.widget.extra.size_info"
+        internal const val TAG = "GlanceRemoteViewService"
 
         // An in-memory store containing items to be returned via the adapter when requested.
         private val InMemoryStore = RemoteCollectionItemsInMemoryStore()
@@ -227,10 +227,8 @@ private class RemoteCollectionItemsInMemoryStore {
  * GlanceRemoteViewsService using an intent.
  */
 @Suppress("DEPRECATION")
-@DoNotInline
 internal fun RemoteViews.setRemoteAdapter(
-    context: Context,
-    appWidgetId: Int,
+    translationContext: TranslationContext,
     viewId: Int,
     sizeInfo: String,
     items: RemoteCollectionItems
@@ -238,8 +236,11 @@ internal fun RemoteViews.setRemoteAdapter(
     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
         CollectionItemsApi31Impl.setRemoteAdapter(this, viewId, items)
     } else {
+        val context = translationContext.context
+        val appWidgetId = translationContext.appWidgetId
         val intent =
-            Intent(context, GlanceRemoteViewsService::class.java)
+            Intent()
+                .setComponent(translationContext.glanceComponents.remoteViewsService)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 .putExtra(GlanceRemoteViewsService.EXTRA_VIEW_ID, viewId)
                 .putExtra(GlanceRemoteViewsService.EXTRA_SIZE_INFO, sizeInfo)
@@ -248,7 +249,7 @@ internal fun RemoteViews.setRemoteAdapter(
                     data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
                 }
         check(context.packageManager.resolveService(intent, 0) != null) {
-            "GlanceRemoteViewsService could not be resolved, check the app manifest."
+            "${intent.component} could not be resolved, check the app manifest."
         }
         setRemoteAdapter(viewId, intent)
         GlanceRemoteViewsService.saveItems(appWidgetId, viewId, sizeInfo, items)
@@ -258,12 +259,10 @@ internal fun RemoteViews.setRemoteAdapter(
 
 @RequiresApi(Build.VERSION_CODES.S)
 private object CollectionItemsApi31Impl {
-    @DoNotInline
     fun setRemoteAdapter(remoteViews: RemoteViews, viewId: Int, items: RemoteCollectionItems) {
         remoteViews.setRemoteAdapter(viewId, toPlatformCollectionItems(items))
     }
 
-    @DoNotInline
     fun toPlatformCollectionItems(items: RemoteCollectionItems): RemoteViews.RemoteCollectionItems {
         return RemoteViews.RemoteCollectionItems.Builder()
             .setHasStableIds(items.hasStableIds())

@@ -24,8 +24,8 @@ import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Update
 import androidx.room.Upsert
 import androidx.room.ext.KotlinTypeNames
+import androidx.room.ext.RoomTypeNames
 import androidx.room.ext.RoomTypeNames.ROOM_DB
-import androidx.room.ext.SupportDbTypeNames
 import androidx.room.parser.QueryType
 import androidx.room.parser.SQLTypeAffinity
 import androidx.room.vo.CustomTypeConverter
@@ -152,7 +152,7 @@ object ProcessorErrors {
         "Query/Insert method parameters cannot " + "start with underscore (_)."
 
     fun cannotFindQueryResultAdapter(returnTypeName: String) =
-        "Not sure how to convert a " + "Cursor to this method's return type ($returnTypeName)."
+        "Not sure how to convert the query result to this method's return type ($returnTypeName)."
 
     fun classMustImplementEqualsAndHashCode(keyType: String) =
         "The key" +
@@ -290,7 +290,7 @@ object ProcessorErrors {
 
     val CANNOT_FIND_STMT_BINDER = "Cannot figure out how to bind this field into a statement."
 
-    val CANNOT_FIND_CURSOR_READER = "Cannot figure out how to read this field from a cursor."
+    val CANNOT_FIND_STMT_READER = "Cannot figure out how to read this field from a statement."
 
     const val DEFAULT_VALUE_NULLABILITY = "Use of NULL as the default value of a non-null field"
 
@@ -351,7 +351,7 @@ object ProcessorErrors {
             .trim()
     }
 
-    fun cursorPojoMismatch(
+    fun queryFieldPojoMismatch(
         pojoTypeNames: List<String>,
         unusedColumns: List<String>,
         allColumns: List<String>,
@@ -390,7 +390,7 @@ object ProcessorErrors {
             $unusedColumnsWarning
             ${unusedFieldsWarning.joinToString(separator = " ")}
             You can suppress this warning by annotating the method with
-            @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH).
+            @SuppressWarnings(RoomWarnings.QUERY_MISMATCH).
             Columns returned by the query: ${allColumns.joinToString(", ")}.
             """
             .trim()
@@ -795,8 +795,8 @@ object ProcessorErrors {
     }
 
     val RAW_QUERY_STRING_PARAMETER_REMOVED =
-        "RawQuery does not allow passing a string anymore." +
-            " Please use ${SupportDbTypeNames.QUERY.canonicalName}."
+        "@RawQuery does not allow passing a string anymore." +
+            " Please use ${RoomTypeNames.RAW_QUERY.canonicalName}."
 
     val MISSING_COPY_ANNOTATIONS =
         "Annotated property getter is missing " + "@AutoValue.CopyAnnotations."
@@ -1257,4 +1257,19 @@ object ProcessorErrors {
     val RAW_QUERY_NOT_SUPPORTED_ON_NON_ANDROID =
         "@RawQuery annotated DAO functions are currently not supported in source sets targeting " +
             "non-Android platforms."
+
+    val MISSING_CONSTRUCTED_BY_ANNOTATION =
+        "The @Database class must be annotated with @ConstructedBy since the source is targeting " +
+            "non-Android platforms."
+
+    val INVALID_CONSTRUCTED_BY_CLASS = "The @ConstructedBy 'value' must be a valid class."
+
+    val INVALID_CONSTRUCTED_BY_NOT_OBJECT =
+        "The @ConstructedBy definition must be an 'object' declaration."
+
+    val INVALID_CONSTRUCTED_BY_NOT_EXPECT =
+        "The @ConstructedBy definition must be an 'expect' declaration."
+
+    fun invalidConstructedBySuperInterface(expected: String) =
+        "The @ConstructedBy definition must implement a single interface of type '$expected'."
 }

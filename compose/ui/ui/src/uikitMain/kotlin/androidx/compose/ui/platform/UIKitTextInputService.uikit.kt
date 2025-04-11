@@ -24,8 +24,11 @@ import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.scene.ComposeSceneFocusManager
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.CommitTextCommand
+import androidx.compose.ui.text.input.DeleteSurroundingTextCommand
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.EditProcessor
 import androidx.compose.ui.text.input.FinishComposingTextCommand
@@ -38,25 +41,28 @@ import androidx.compose.ui.text.input.SetComposingTextCommand
 import androidx.compose.ui.text.input.SetSelectionCommand
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.uikit.density
-import androidx.compose.ui.uikit.embedSubview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.asCGRect
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.unit.toDpRect
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.window.FocusStack
 import androidx.compose.ui.window.IntermediateTextInputUIView
 import kotlin.math.absoluteValue
 import kotlin.math.min
+import kotlinx.cinterop.useContents
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.jetbrains.skia.BreakIterator
+import platform.CoreGraphics.CGRectMake
 import platform.UIKit.UIPress
 import platform.UIKit.UIView
-import platform.UIKit.reloadInputViews
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 
 internal class UIKitTextInputService(
     private val updateView: () -> Unit,
-    private val rootView: UIView,
+    private val view: UIView,
     private val viewConfiguration: ViewConfiguration,
     private val focusStack: FocusStack?,
     private val onInputStarted: () -> Unit,
@@ -65,9 +71,10 @@ internal class UIKitTextInputService(
      * Erasure happens due to K/N not supporting Obj-C lightweight generics.
      */
     private val onKeyboardPresses: (Set<*>) -> Unit,
+    private val focusManager: () -> ComposeSceneFocusManager
 ) : PlatformTextInputService, TextToolbar {
 
-    private var currentInput: CurrentInput? = null
+    private var currentOnEditCommand: ((List<EditCommand>) -> Unit)? = null
     private var currentImeOptions: ImeOptions? = null
     private var currentImeActionHandler: ((ImeAction) -> Unit)? = null
     private var textUIView: IntermediateTextInputUIView? = null
@@ -87,14 +94,14 @@ internal class UIKitTextInputService(
      * parts correctly. However, the methods of UITextInputDelegateProtocol reset this state, resulting in
      * incorrect input. (e.g., 컴포즈 becomes ㅋㅓㅁㅍㅗㅈㅡ when not handled properly)
      *
-     * @see _tempCurrentInputSession holds the same text and selection of the current input. It is used
+     * @see sessionEditProcessor holds the same text and selection of the current input. It is used
      * instead of the old value passed to updateState. When the current value change is due to the
      * user input, updateState is not effective because _tempCurrentInputSession holds the same value.
      * However, when the current value change is due to the change of the user selection or to the
      * state change in the Compose side, updateState calls the 4 methods because the new value holds
      * these changes.
      */
-    private var _tempCurrentInputSession: EditProcessor? = null
+    private var sessionEditProcessor: EditProcessor? = null
 
     /**
      * Workaround to prevent IME action from being called multiple times with hardware keyboards.
@@ -127,10 +134,10 @@ internal class UIKitTextInputService(
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = EditProcessor().apply {
+        sessionEditProcessor = EditProcessor().apply {
             reset(value, null)
         }
+        currentOnEditCommand = onEditCommand
         currentImeOptions = imeOptions
         currentImeActionHandler = onImeActionPerformed
 
@@ -142,28 +149,9 @@ internal class UIKitTextInputService(
         onInputStarted()
     }
 
-    fun startInput(
-        value: TextFieldValue,
-        imeOptions: ImeOptions,
-        editProcessor: EditProcessor?,
-        onEditCommand: (List<EditCommand>) -> Unit,
-        onImeActionPerformed: (ImeAction) -> Unit
-    ) {
-        currentInput = CurrentInput(value, onEditCommand)
-        _tempCurrentInputSession = editProcessor
-        currentImeOptions = imeOptions
-        currentImeActionHandler = onImeActionPerformed
-
-        attachIntermediateTextInputView()
-        textUIView?.input = createSkikoInput()
-        textUIView?.inputTraits = getUITextInputTraits(imeOptions)
-
-        showSoftwareKeyboard()
-    }
-
     override fun stopInput() {
-        currentInput = null
-        _tempCurrentInputSession = null
+        flushEditCommandsIfNeeded(force = true)
+        sessionEditProcessor = null
         currentImeOptions = null
         currentImeActionHandler = null
         hideSoftwareKeyboard()
@@ -186,7 +174,7 @@ internal class UIKitTextInputService(
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        val internalOldValue = _tempCurrentInputSession?.toTextFieldValue()
+        val internalOldValue = sessionEditProcessor?.toTextFieldValue()
         val textChanged = internalOldValue == null || internalOldValue.text != newValue.text
         val selectionChanged =
             textChanged || internalOldValue == null || internalOldValue.selection != newValue.selection
@@ -196,9 +184,8 @@ internal class UIKitTextInputService(
         if (selectionChanged) {
             textUIView?.selectionWillChange()
         }
-        _tempCurrentInputSession?.reset(newValue, null)
-        currentInput?.let { input ->
-            input.value = newValue
+        sessionEditProcessor?.let {
+            it.reset(newValue, null)
             _tempCursorPos = null
         }
         if (textChanged) {
@@ -209,7 +196,6 @@ internal class UIKitTextInputService(
         }
         if (textChanged || selectionChanged) {
             updateView()
-            textUIView?.reloadInputViews()
         }
     }
 
@@ -217,6 +203,7 @@ internal class UIKitTextInputService(
         return when (event.key) {
             Key.Enter -> handleEnterKey(event)
             Key.Backspace -> handleBackspace(event)
+            Key.Escape -> handleEscape(event)
             else -> false
         }
     }
@@ -237,6 +224,19 @@ internal class UIKitTextInputService(
             innerTextFieldBounds,
             decorationBoxBounds
         )
+        updateTextLayoutResult(textLayoutResult)
+
+        val matrix = Matrix()
+        textFieldToRootTransform(matrix)
+        updateTextFrame(matrix.map(decorationBoxBounds))
+    }
+
+    fun updateTextFrame(rect: Rect) {
+        textUIView?.setFrame(rect.toDpRect(view.density).asCGRect())
+        showMenuOrUpdatePosition()
+    }
+
+    fun updateTextLayoutResult(textLayoutResult: TextLayoutResult) {
         this.textLayoutResult = textLayoutResult
     }
 
@@ -263,10 +263,36 @@ internal class UIKitTextInputService(
         return event.type == KeyEventType.KeyDown
     }
 
+    private fun handleEscape(event: KeyEvent): Boolean {
+        return if (sessionEditProcessor != null && event.type == KeyEventType.KeyUp) {
+            focusManager().releaseFocus()
+            true
+        } else {
+            false
+        }
+    }
+
+    private val editCommandsBatch = mutableListOf<EditCommand>()
+    private var editBatchDepth: Int = 0
+        set(value) {
+            field = value
+            flushEditCommandsIfNeeded()
+        }
+
     private fun sendEditCommand(vararg commands: EditCommand) {
-        val commandList = commands.toList()
-        _tempCurrentInputSession?.apply(commandList)
-        currentInput?.onEditCommand?.invoke(commandList)
+        sessionEditProcessor?.apply(commands.toList())
+
+        editCommandsBatch.addAll(commands)
+        flushEditCommandsIfNeeded()
+    }
+
+    fun flushEditCommandsIfNeeded(force: Boolean = false) {
+        if ((force || editBatchDepth == 0) && editCommandsBatch.isNotEmpty()) {
+            val commandList = editCommandsBatch.toList()
+            editCommandsBatch.clear()
+
+            currentOnEditCommand?.invoke(commandList)
+        }
     }
 
     private fun getCursorPos(): Int? {
@@ -308,8 +334,10 @@ internal class UIKitTextInputService(
         return true
     }
 
-    private fun getState(): TextFieldValue? = currentInput?.value
+    private fun getState(): TextFieldValue? = sessionEditProcessor?.toTextFieldValue()
 
+    // Fixes a problem where the menu is shown before the textUIView gets its final layout.
+    private var showMenuOrUpdatePosition = {}
     override fun showMenu(
         rect: Rect,
         onCopyRequested: (() -> Unit)?,
@@ -324,23 +352,32 @@ internal class UIKitTextInputService(
             attachIntermediateTextInputView()
             updateView()
         }
-        textUIView?.showTextMenu(
-            targetRect = rect.toDpRect(rootView.density).asCGRect(),
-            textActions = object : TextActions {
-                override val copy: (() -> Unit)? = onCopyRequested
-                override val cut: (() -> Unit)? = onCutRequested
-                override val paste: (() -> Unit)? = onPasteRequested
-                override val selectAll: (() -> Unit)? = onSelectAllRequested
+        showMenuOrUpdatePosition = {
+            textUIView?.let { textUIView ->
+                val density = view.density
+                val offset = textUIView.frame.useContents { origin.asDpOffset().toOffset(density) }
+                val target = rect.translate(-offset).toDpRect(density).asCGRect()
+                textUIView.showTextMenu(
+                    targetRect = target,
+                    textActions = object : TextActions {
+                        override val copy: (() -> Unit)? = onCopyRequested
+                        override val cut: (() -> Unit)? = onCutRequested
+                        override val paste: (() -> Unit)? = onPasteRequested
+                        override val selectAll: (() -> Unit)? = onSelectAllRequested
+                    }
+                )
             }
-        )
+        }
+        showMenuOrUpdatePosition()
     }
 
     /**
      * TODO on UIKit native behaviour is hide text menu, when touch outside
      */
     override fun hide() {
+        showMenuOrUpdatePosition = {}
         textUIView?.hideTextMenu()
-        if ((textUIView != null) && (currentInput == null)) { // means that editing context menu shown in selection container
+        if ((textUIView != null) && (sessionEditProcessor == null)) { // means that editing context menu shown in selection container
             textUIView?.resignFirstResponder()
             detachIntermediateTextInputView()
         }
@@ -353,17 +390,27 @@ internal class UIKitTextInputService(
             TextToolbarStatus.Hidden
 
     private fun attachIntermediateTextInputView() {
-        textUIView?.removeFromSuperview()
+        detachIntermediateTextInputView()
+        showMenuOrUpdatePosition = {}
         textUIView = IntermediateTextInputUIView(
             viewConfiguration = viewConfiguration
         ).also {
+            it.setAutoresizingMask(
+                UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+            )
             it.onKeyboardPresses = onKeyboardPresses
-            rootView.embedSubview(it)
+            view.addSubview(it)
+            it.setFrame(view.bounds)
         }
     }
 
     private fun detachIntermediateTextInputView() {
+        showMenuOrUpdatePosition = {}
         textUIView?.let { view ->
+            val outOfBoundsFrame = CGRectMake(-100000.0, 0.0, 1.0, 1.0)
+            // Set out-of-bounds non-empty frame to hide text keyboard focus frame
+            view.setFrame(outOfBoundsFrame)
+
             view.resetOnKeyboardPressesCallback()
             mainScope.launch {
                 view.removeFromSuperview()
@@ -379,12 +426,12 @@ internal class UIKitTextInputService(
         override fun beginFloatingCursor(offset: DpOffset) {
             val cursorPos = getCursorPos() ?: getState()?.selection?.start ?: return
             val cursorRect = textLayoutResult?.getCursorRect(cursorPos) ?: return
-            floatingCursorTranslation = cursorRect.center - offset.toOffset(rootView.density)
+            floatingCursorTranslation = cursorRect.center - offset.toOffset(view.density)
         }
 
         override fun updateFloatingCursor(offset: DpOffset) {
             val translation = floatingCursorTranslation ?: return
-            val offsetPx = offset.toOffset(rootView.density)
+            val offsetPx = offset.toOffset(view.density)
             val pos = textLayoutResult
                 ?.getOffsetForPosition(offsetPx + translation) ?: return
 
@@ -393,6 +440,14 @@ internal class UIKitTextInputService(
 
         override fun endFloatingCursor() {
             floatingCursorTranslation = null
+        }
+
+        override fun beginEditBatch() {
+            editBatchDepth++
+        }
+
+        override fun endEditBatch() {
+            editBatchDepth--
         }
 
         /**
@@ -425,18 +480,19 @@ internal class UIKitTextInputService(
          * https://developer.apple.com/documentation/uikit/uikeyinput/1614572-deletebackward
          */
         override fun deleteBackward() {
-            // Before this function calls, iOS changes selection in setSelectedTextRange.
-            // All needed characters should be allready selected, and we can just remove them.
-            sendEditCommand(
+            val deleteCommand = if (getState()?.selection?.collapsed == true) {
+                DeleteSurroundingTextCommand(lengthBeforeCursor = 1, lengthAfterCursor = 0)
+            } else {
                 CommitTextCommand("", 0)
-            )
+            }
+            sendEditCommand(deleteCommand)
         }
 
         /**
          * The text position for the end of a document.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
          */
-        override fun endOfDocument(): Long = getState()?.text?.length?.toLong() ?: 0L
+        override fun endOfDocument(): Int = getState()?.text?.length ?: 0
 
         /**
          * The range of selected text in a document.
@@ -445,34 +501,23 @@ internal class UIKitTextInputService(
          * If the text-range object is nil, it indicates that there is no current selection.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
          */
-        override fun getSelectedTextRange(): IntRange? {
-            val cursorPos = getCursorPos()
-            if (cursorPos != null) {
-                return cursorPos until cursorPos
-            }
-            val selection = getState()?.selection
-            return if (selection != null) {
-                selection.start until selection.end
-            } else {
-                null
-            }
-        }
+        override fun getSelectedTextRange(): TextRange? = getState()?.selection
 
-        override fun setSelectedTextRange(range: IntRange?) {
+        override fun setSelectedTextRange(range: TextRange?) {
             if (range != null) {
                 sendEditCommand(
-                    SetSelectionCommand(range.start, range.endInclusive + 1)
+                    SetSelectionCommand(range.start, range.end)
                 )
             } else {
                 sendEditCommand(
-                    SetSelectionCommand(endOfDocument().toInt(), endOfDocument().toInt())
+                    SetSelectionCommand(endOfDocument(), endOfDocument())
                 )
             }
         }
 
         override fun selectAll() {
             sendEditCommand(
-                SetSelectionCommand(0, endOfDocument().toInt())
+                SetSelectionCommand(0, endOfDocument())
             )
         }
 
@@ -482,9 +527,12 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @return A substring of a document that falls within the specified range.
          */
-        override fun textInRange(range: IntRange): String {
-            val text = getState()?.text
-            return text?.substring(range.first, min(range.last + 1, text.length)) ?: ""
+        override fun textInRange(range: TextRange): String? {
+            if (isIncorrect(range)) {
+                return null
+            }
+            val text = getState()?.text ?: return null
+            return text.substring(range.start, range.end)
         }
 
         /**
@@ -493,9 +541,9 @@ internal class UIKitTextInputService(
          * @param range A range of text in a document.
          * @param text A string to replace the text in range.
          */
-        override fun replaceRange(range: IntRange, text: String) {
+        override fun replaceRange(range: TextRange, text: String) {
             sendEditCommand(
-                SetComposingRegionCommand(range.start, range.endInclusive + 1),
+                SetComposingRegionCommand(range.start, range.end),
                 SetComposingTextCommand(text, 1),
                 FinishComposingTextCommand(),
             )
@@ -510,7 +558,7 @@ internal class UIKitTextInputService(
          * @param selectedRange A range within markedText that indicates the current selection.
          * This range is always relative to markedText.
          */
-        override fun setMarkedText(markedText: String?, selectedRange: IntRange) {
+        override fun setMarkedText(markedText: String?, selectedRange: TextRange) {
             if (markedText != null) {
                 sendEditCommand(
                     SetComposingTextCommand(markedText, 1)
@@ -526,13 +574,8 @@ internal class UIKitTextInputService(
          * The current selection, which can be a caret or an extended range, always occurs within the marked text.
          * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
          */
-        override fun markedTextRange(): IntRange? {
-            val composition = getState()?.composition
-            return if (composition != null) {
-                composition.start until composition.end
-            } else {
-                null
-            }
+        override fun markedTextRange(): TextRange? {
+            return getState()?.composition
         }
 
         /**
@@ -548,20 +591,21 @@ internal class UIKitTextInputService(
          * Returns the text position at a specified offset from another text position.
          * Returned value must be in range between 0 and length of text (inclusive).
          */
-        override fun positionFromPosition(position: Long, offset: Long): Long {
-            val text = getState()?.text ?: return 0
+        override fun positionFromPosition(position: Int, offset: Int): Int? {
+            val text = getState()?.text ?: return null
 
-            if (position + offset >= text.lastIndex + 1) {
-                return (text.lastIndex + 1).toLong()
+            val newPosition = position + offset
+            if (newPosition == text.length || newPosition == 0) {
+                return newPosition
             }
-            if (position + offset <= 0) {
-                return 0
+            if (newPosition < 0 || newPosition > text.length) {
+                return null
             }
-            var resultPosition = position.toInt()
+            var resultPosition = position
             val iterator = BreakIterator.makeCharacterInstance()
             iterator.setText(text)
 
-            repeat(offset.absoluteValue.toInt()) {
+            repeat(offset.absoluteValue) {
                 val iteratorResult = if (offset > 0) {
                     iterator.following(resultPosition)
                 } else {
@@ -569,18 +613,41 @@ internal class UIKitTextInputService(
                 }
 
                 if (iteratorResult == BreakIterator.DONE) {
-                    return resultPosition.toLong()
+                    return resultPosition
                 } else {
                     resultPosition = iteratorResult
                 }
             }
 
-            return resultPosition.toLong()
+            return resultPosition
         }
+
+        /**
+         * Returns the text position at a specified offset from another text position.
+         * Returned value must be in range between 0 and length of text (inclusive).
+         */
+        override fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int? {
+            val text = getState()?.text ?: return null
+            val layoutResult = textLayoutResult ?: return null
+
+            val line = layoutResult.getLineForOffset(position)
+            val lineStartOffset = layoutResult.getLineStart(line)
+            val offsetInLine = position - lineStartOffset
+            val targetLine = line + verticalOffset
+            return when {
+                targetLine < 0 -> 0
+                targetLine >= layoutResult.lineCount -> text.length
+                else -> {
+                    val targetLineEnd = layoutResult.getLineEnd(targetLine)
+                    val lineStart = layoutResult.getLineStart(targetLine)
+                    positionFromPosition(
+                        lineStart, min(offsetInLine, targetLineEnd - lineStart)
+                    )
+                }
+            }
+        }
+
+        private fun isIncorrect(range: TextRange): Boolean =
+            range.start < 0 || range.end > endOfDocument() || range.start > range.end
     }
 }
-
-private data class CurrentInput(
-    var value: TextFieldValue,
-    val onEditCommand: (List<EditCommand>) -> Unit
-)

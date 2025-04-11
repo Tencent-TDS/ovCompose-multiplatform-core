@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.inset
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -148,7 +149,7 @@ class RobolectricGraphicsLayerTest {
                     graphicsContext.createGraphicsLayer().apply {
                         assertEquals(IntSize.Zero, this.size)
                         record { drawRect(Color.Red) }
-                        discardDisplayList()
+                        emulateTrimMemory()
                     }
                 drawLayer(layer!!)
             },
@@ -1019,6 +1020,76 @@ class RobolectricGraphicsLayerTest {
                         }
                     }
                 }
+            }
+        )
+    }
+
+    @Test
+    fun testCanvasTransformStateRestore() {
+        val bg = Color.White
+        val layerColor1 = Color.Red
+        val layerColor2 = Color.Green
+        val layerColor3 = Color.Blue
+        val layerColor4 = Color.Black
+        var layerSize = IntSize.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val layerWidth = size.width / 4
+                val layerHeight = size.height / 4
+                layerSize = IntSize(layerWidth.toInt(), layerHeight.toInt())
+                val layer1 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) { drawRect(layerColor1) }
+                    }
+                val layer2 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        topLeft = IntOffset(layerWidth.toInt(), layerHeight.toInt())
+                        record(size = layerSize) { drawRect(layerColor2) }
+                    }
+                val layer3 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        topLeft = IntOffset((layerWidth * 2).toInt(), (layerHeight * 2).toInt())
+                        record(size = layerSize) { drawRect(layerColor3) }
+                    }
+                val layer4 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) { drawRect(layerColor4) }
+                    }
+                drawRect(bg)
+                translate(layerWidth / 2, layerHeight / 2) {
+                    translate(layerWidth / 2, layerHeight / 2) {
+                        drawLayer(layer1)
+                        translate(layerWidth / 2, layerHeight / 2) { drawLayer(layer2) }
+                        drawLayer(layer3)
+                    }
+                }
+
+                drawLayer(layer4)
+            },
+            verify = {
+                val row1centerX = layerSize.width + layerSize.width / 2
+                val row1centerY = layerSize.height + layerSize.height / 2
+
+                val row2centerX = layerSize.width + row1centerX
+                val row2centerY = layerSize.height + row1centerY
+
+                val row3centerX = layerSize.width + row2centerX
+                val row3centerY = layerSize.height + row2centerY
+
+                val row4centerX = layerSize.width + row3centerX
+
+                it.assertPixelColor(layerColor1, row1centerX, row1centerY)
+                it.assertPixelColor(bg, row2centerX, row1centerY)
+
+                it.assertPixelColor(bg, row1centerX, row2centerY)
+                it.assertPixelColor(layerColor2, row2centerX, row2centerY)
+                it.assertPixelColor(bg, row3centerX, row2centerY)
+
+                it.assertPixelColor(bg, row2centerX, row3centerY)
+                it.assertPixelColor(layerColor3, row3centerX, row3centerY)
+                it.assertPixelColor(bg, row4centerX, row3centerY)
+
+                it.assertPixelColor(layerColor4, layerSize.width / 2, layerSize.height / 2)
             }
         )
     }

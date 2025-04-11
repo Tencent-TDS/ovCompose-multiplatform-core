@@ -52,15 +52,13 @@ import androidx.compose.ui.graphics.Color
  * [label] is used to differentiate from other animations in the same transition in Android Studio.
  *
  * @return A [State] object, the value of which is updated by animation
- *
  * @sample androidx.compose.animation.samples.GestureAnimationSample
- *
  * @see Transition.animateValue
  * @see androidx.compose.animation.core.Transition
  * @see androidx.compose.animation.core.updateTransition
  */
 @Composable
-inline fun <S> Transition<S>.animateColor(
+public inline fun <S> Transition<S>.animateColor(
     noinline transitionSpec: @Composable Transition.Segment<S>.() -> FiniteAnimationSpec<Color> = {
         spring()
     },
@@ -88,12 +86,11 @@ inline fun <S> Transition<S>.animateColor(
  * A [label] for differentiating this animation from others in android studio.
  *
  * @sample androidx.compose.animation.samples.InfiniteTransitionSample
- *
  * @see InfiniteTransition.animateValue
  * @see InfiniteRepeatableSpec
  */
 @Composable
-fun InfiniteTransition.animateColor(
+public fun InfiniteTransition.animateColor(
     initialValue: Color,
     targetValue: Color,
     animationSpec: InfiniteRepeatableSpec<Color>,
@@ -108,7 +105,7 @@ fun InfiniteTransition.animateColor(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun InfiniteTransition.animateColor(
+public fun InfiniteTransition.animateColor(
     initialValue: Color,
     targetValue: Color,
     animationSpec: InfiniteRepeatableSpec<Color>

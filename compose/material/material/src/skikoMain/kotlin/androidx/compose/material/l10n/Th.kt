@@ -28,4 +28,5 @@ internal fun Translations.th() = mapOf(
     Strings.DefaultErrorMessage to "อินพุตไม่ถูกต้อง",
     Strings.SliderRangeStart to "จุดเริ่มต้นของช่วง",
     Strings.SliderRangeEnd to "จุดสิ้นสุดของช่วง",
+    Strings.SnackbarPaneTitle to "การแจ้งเตือน",
 )

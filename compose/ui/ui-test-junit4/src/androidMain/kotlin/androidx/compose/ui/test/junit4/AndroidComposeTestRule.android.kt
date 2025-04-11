@@ -17,8 +17,10 @@
 package androidx.compose.ui.test.junit4
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.AndroidComposeUiTestEnvironment
+import androidx.compose.ui.test.ComposeAccessibilityValidator
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.IdlingResource
 import androidx.compose.ui.test.MainTestClock
@@ -33,6 +35,8 @@ import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestDispatcher
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -82,6 +86,11 @@ inline fun <reified A : ComponentActivity> createAndroidComposeRule():
  * with your own launcher.
  *
  * If your test doesn't require a specific Activity, use [createComposeRule] instead.
+ *
+ * @param effectContext The [CoroutineContext] used to run the composition. The context for
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 inline fun <reified A : ComponentActivity> createAndroidComposeRule(
@@ -131,6 +140,12 @@ fun <A : ComponentActivity> createAndroidComposeRule(
  * with your own launcher.
  *
  * If your test doesn't require a specific Activity, use [createComposeRule] instead.
+ *
+ * @param activityClass The activity type to use in the activity scenario
+ * @param effectContext The [CoroutineContext] used to run the composition. The context for
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 fun <A : ComponentActivity> createAndroidComposeRule(
@@ -179,7 +194,9 @@ fun createEmptyComposeRule(): ComposeTestRule =
  * after one or more dependencies have been injected.
  *
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 fun createEmptyComposeRule(
@@ -248,7 +265,9 @@ private constructor(
      *
      * @param activityRule Test rule to use to launch the Activity.
      * @param effectContext The [CoroutineContext] used to run the composition. The context for
-     *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+     *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+     *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+     *   used for composition and the [MainTestClock].
      * @param activityProvider Function to retrieve the Activity from the given [activityRule].
      */
     @ExperimentalTestApi
@@ -298,6 +317,15 @@ private constructor(
 
     override val mainClock: MainTestClock
         get() = composeTest.mainClock
+
+    /**
+     * Sets the [ComposeAccessibilityValidator] to perform the accessibility checks with. Providing
+     * `null` means disabling the accessibility checks
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?) {
+        composeTest.setComposeAccessibilityValidator(validator)
+    }
 
     override fun <T> runOnUiThread(action: () -> T): T = composeTest.runOnUiThread(action)
 

@@ -29,24 +29,34 @@ internal object RootMeasurePolicy :
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
-        return when {
-            measurables.isEmpty() -> {
+        return when (measurables.size) {
+            0 -> {
                 layout(constraints.minWidth, constraints.minHeight) {}
             }
-            measurables.size == 1 -> {
+            1 -> {
                 val placeable = measurables[0].measure(constraints)
-                layout(constraints.maxWidth, constraints.maxHeight) {
+                layout(
+                    constraints.constrainWidth(placeable.width),
+                    constraints.constrainHeight(placeable.height)
+                ) {
                     placeable.placeRelativeWithLayer(0, 0)
                 }
             }
             else -> {
-                val placeables = measurables.fastMap {
-                    it.measure(constraints)
-                }
-                layout(constraints.maxWidth, constraints.maxHeight) {
-                    placeables.fastForEach { placeable ->
-                        placeable.placeRelativeWithLayer(0, 0)
+                var maxWidth = 0
+                var maxHeight = 0
+                val placeables =
+                    measurables.fastMap {
+                        it.measure(constraints).apply {
+                            maxWidth = maxOf(width, maxWidth)
+                            maxHeight = maxOf(height, maxHeight)
+                        }
                     }
+                layout(
+                    constraints.constrainWidth(maxWidth),
+                    constraints.constrainHeight(maxHeight)
+                ) {
+                    placeables.fastForEach { placeable -> placeable.placeRelativeWithLayer(0, 0) }
                 }
             }
         }

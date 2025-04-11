@@ -33,7 +33,6 @@ import android.view.ViewOutlineProvider
 import android.view.WindowManager
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
@@ -86,6 +85,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import java.util.UUID
+import kotlin.math.max
 import kotlinx.coroutines.isActive
 import org.jetbrains.annotations.TestOnly
 
@@ -99,10 +99,10 @@ import org.jetbrains.annotations.TestOnly
  * @property inheritSecurePolicy Whether [WindowManager.LayoutParams.FLAG_SECURE] should be set
  *   according to [SecureFlagPolicy.Inherit]. Other [SecureFlagPolicy] behaviors should be set via
  *   [flags] directly.
- * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back button. If
- *   true, pressing the back button will call onDismissRequest. Note that the popup must be
- *   [focusable] in order to receive key events such as the back button. If the popup is not
- *   [focusable], then this property does nothing.
+ * @property dismissOnBackPress Whether the popup can be dismissed by pressing the back or escape
+ *   buttons. If true, pressing the back or escape buttons will call onDismissRequest. Note that the
+ *   popup must be [focusable] in order to receive key events such as the back button. If the popup
+ *   is not [focusable], then this property does nothing.
  * @property dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
  *   popup's bounds. If true, clicking outside the popup will call onDismissRequest.
  * @property excludeFromSystemGesture A flag to check whether to set the
@@ -158,10 +158,10 @@ constructor(
      *
      * @param focusable Whether the popup is focusable. When true, the popup will receive IME events
      *   and key presses, such as when the back button is pressed.
-     * @param dismissOnBackPress Whether the popup can be dismissed by pressing the back button. If
-     *   true, pressing the back button will call onDismissRequest. Note that [focusable] must be
-     *   set to true in order to receive key events such as the back button. If the popup is not
-     *   focusable, then this property does nothing.
+     * @param dismissOnBackPress Whether the popup can be dismissed by pressing the back or escape
+     *   buttons. If true, pressing the back or escape buttons will call onDismissRequest. Note that
+     *   [focusable] must be set to true in order to receive key events such as the back button. If
+     *   the popup is not focusable, then this property does nothing.
      * @param dismissOnClickOutside Whether the popup can be dismissed by clicking outside the
      *   popup's bounds. If true, clicking outside the popup will call onDismissRequest.
      * @param securePolicy Policy for setting [WindowManager.LayoutParams.FLAG_SECURE] on the
@@ -251,7 +251,6 @@ constructor(
  * visible as long as it is part of the composition hierarchy.
  *
  * @sample androidx.compose.ui.samples.PopupSample
- *
  * @param alignment The alignment relative to the parent.
  * @param offset An offset from the original aligned position of the popup. Offset respects the
  *   Ltr/Rtl context, thus in Ltr it will be added to the original aligned position and in Rtl it
@@ -285,7 +284,6 @@ actual fun Popup(
  * The popup is positioned using a custom [popupPositionProvider].
  *
  * @sample androidx.compose.ui.samples.PopupSample
- *
  * @param popupPositionProvider Provides the screen position of the popup.
  * @param onDismissRequest Executes when the user clicks outside of the popup.
  * @param properties [PopupProperties] for further customization of this popup's behavior.
@@ -325,10 +323,9 @@ actual fun Popup(
                                 updatePosition()
                             }
                             // Hide the popup while we can't position it correctly
-                            .alpha(if (canCalculatePosition) 1f else 0f)
-                    ) {
-                        currentContent()
-                    }
+                            .alpha(if (canCalculatePosition) 1f else 0f),
+                        currentContent
+                    )
                 }
             }
     }
@@ -440,14 +437,15 @@ private inline fun SimpleStack(modifier: Modifier, noinline content: @Composable
                 layout(p.width, p.height) { p.placeRelative(0, 0) }
             }
             else -> {
-                val placeables = measurables.fastMap { it.measure(constraints) }
                 var width = 0
                 var height = 0
-                for (i in 0..placeables.lastIndex) {
-                    val p = placeables[i]
-                    width = maxOf(width, p.width)
-                    height = maxOf(height, p.height)
-                }
+                val placeables =
+                    measurables.fastMap {
+                        it.measure(constraints).apply {
+                            width = max(width, this.width)
+                            height = max(height, this.height)
+                        }
+                    }
                 layout(width, height) {
                     for (i in 0..placeables.lastIndex) {
                         val p = placeables[i]
@@ -597,8 +595,11 @@ internal class PopupLayout(
             // platform default. Therefore, we create a new measure spec for width, which
             // corresponds to the full screen width. We do the same for height, even if
             // ViewRootImpl gives it to us from the first measure.
-            val displayWidthMeasureSpec = makeMeasureSpec(displayWidth, MeasureSpec.AT_MOST)
-            val displayHeightMeasureSpec = makeMeasureSpec(displayHeight, MeasureSpec.AT_MOST)
+            val visibleDisplayBounds = getVisibleDisplayBounds()
+            val displayWidthMeasureSpec =
+                makeMeasureSpec(visibleDisplayBounds.width, MeasureSpec.AT_MOST)
+            val displayHeightMeasureSpec =
+                makeMeasureSpec(visibleDisplayBounds.height, MeasureSpec.AT_MOST)
             super.internalOnMeasure(displayWidthMeasureSpec, displayHeightMeasureSpec)
         }
     }
@@ -615,31 +616,16 @@ internal class PopupLayout(
         }
     }
 
-    private val displayWidth: Int
-        get() {
-            val density = context.resources.displayMetrics.density
-            return (context.resources.configuration.screenWidthDp * density).fastRoundToInt()
-        }
-
-    private val displayHeight: Int
-        get() {
-            val density = context.resources.displayMetrics.density
-            return (context.resources.configuration.screenHeightDp * density).fastRoundToInt()
-        }
-
     /** Taken from PopupWindow */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode == KeyEvent.KEYCODE_BACK && properties.dismissOnBackPress) {
-            if (keyDispatcherState == null) {
-                return super.dispatchKeyEvent(event)
-            }
+        if (!properties.dismissOnBackPress) return super.dispatchKeyEvent(event)
+        if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            val state = keyDispatcherState ?: return super.dispatchKeyEvent(event)
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                val state = keyDispatcherState
-                state?.startTracking(event, this)
+                state.startTracking(event, this)
                 return true
             } else if (event.action == KeyEvent.ACTION_UP) {
-                val state = keyDispatcherState
-                if (state != null && state.isTracking(event) && !event.isCanceled) {
+                if (state.isTracking(event) && !event.isCanceled) {
                     onDismissRequest?.invoke()
                     return true
                 }
@@ -755,11 +741,7 @@ internal class PopupLayout(
         val popupContentSize = popupContentSize ?: return
 
         val windowSize =
-            previousWindowVisibleFrame.let {
-                popupLayoutHelper.getWindowVisibleDisplayFrame(composeView, it)
-                val bounds = it.toIntBounds()
-                IntSize(width = bounds.width, height = bounds.height)
-            }
+            getVisibleDisplayBounds().let { IntSize(width = it.width, height = it.height) }
 
         var popupPosition = IntOffset.Zero
         snapshotStateObserver.observeReads(this, onCommitAffectingPopupPosition) {
@@ -856,6 +838,12 @@ internal class PopupLayout(
         }
     }
 
+    private fun getVisibleDisplayBounds(): IntRect =
+        previousWindowVisibleFrame.let {
+            popupLayoutHelper.getWindowVisibleDisplayFrame(composeView, it)
+            it.toIntBounds()
+        }
+
     private companion object {
         private val onCommitAffectingPopupPosition = { popupLayout: PopupLayout ->
             if (popupLayout.isAttachedToWindow) {
@@ -868,13 +856,11 @@ internal class PopupLayout(
 @RequiresApi(33)
 private object Api33Impl {
     @JvmStatic
-    @DoNotInline
     fun createBackCallback(onDismissRequest: (() -> Unit)?) = OnBackInvokedCallback {
         onDismissRequest?.invoke()
     }
 
     @JvmStatic
-    @DoNotInline
     fun maybeRegisterBackCallback(view: View, backCallback: Any?) {
         if (backCallback is OnBackInvokedCallback) {
             view
@@ -887,7 +873,6 @@ private object Api33Impl {
     }
 
     @JvmStatic
-    @DoNotInline
     fun maybeUnregisterBackCallback(view: View, backCallback: Any?) {
         if (backCallback is OnBackInvokedCallback) {
             view.findOnBackInvokedDispatcher()?.unregisterOnBackInvokedCallback(backCallback)

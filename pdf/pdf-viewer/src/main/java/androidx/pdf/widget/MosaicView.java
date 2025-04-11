@@ -28,7 +28,6 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -41,7 +40,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.models.Dimensions;
 import androidx.pdf.util.BitmapRecycler;
-import androidx.pdf.util.ErrorLog;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.util.RectUtils;
 import androidx.pdf.util.TileBoard;
@@ -163,9 +161,6 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
      */
     private final Rect mScaledViewArea = new Rect();
 
-    /** Whether to request a page bitmap even if tiling. */
-    protected boolean mAlwaysRequestPageBitmap = true;
-
     public MosaicView(@NonNull Context context) {
         super(context);
     }
@@ -195,9 +190,6 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
     public void init(@NonNull Dimensions dimensions, @NonNull BitmapRecycler bitmapRecycler,
             @NonNull BitmapSource bitmapSource) {
         mBounds.set(0, 0, dimensions.getWidth(), dimensions.getHeight());
-        if (mBounds.isEmpty()) {
-            ErrorLog.log(TAG, "Page with empty bounds");
-        }
         this.mBitmapRecycler = bitmapRecycler;
         this.mBitmapSource = bitmapSource;
         requestLayout();
@@ -223,6 +215,11 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
          * are stale. This function is not expected to do a lot of processing.
          */
         void cancelTiles(@NonNull Iterable<Integer> tileIds);
+    }
+
+    @NonNull
+    public Rect getBounds() {
+        return mBounds;
     }
 
     @Override
@@ -294,22 +291,12 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
         }
     }
 
-    /** Set value of alwaysRequestPageBitmap to false. */
-    public void setDoNotRequestPageBitmap() {
-        mAlwaysRequestPageBitmap = false;
-    }
-
     /** Creates a new tiling for this view. */
     private void prepareTiles(Dimensions viewSize, float zoom) {
         TileBoard newBoard = createTileBoard(viewSize);
         if (mTileBoard != null) {
             float tileArea = (float) RectUtils.area(mBounds) / newBoard.numTiles();
             if (zoom > mBaseZoom && tileArea < 1) {
-                float currentTileArea = (float) RectUtils.area(mBounds) / mTileBoard.numTiles();
-                Log.d(getLogTag(), String.format(
-                        "Zoom at %.0f, tile base area would drop to %.2f px^2, "
-                                + "current tiling is probably good enough (%.2f).", zoom, tileArea,
-                        currentTileArea));
                 return;
             }
         }
@@ -336,9 +323,6 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
                             count++;
                         }
                         log.append("]");
-                        Log.v(getLogTag(),
-                                String.format("Cancel %d tiles %s (%d)", count, log.toString(),
-                                        mTiles.size()));
                         mBitmapSource.cancelTiles(tileIds);
                     }
                 });
@@ -373,13 +357,10 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
     public void requestDrawAtZoom(float zoom) {
         mRequestedWidth = (int) (zoom * mBounds.width());
         boolean needTiling = needTiling(mRequestedWidth);
-
-        if (shouldDrawBitmap(needTiling)) {
-            int cappedWidth = getCappedWidth(needTiling);
-            if (mBitmap == null || mBitmap.getWidth() != cappedWidth) {
-                Dimensions pageSize = getPageDimensionsAtWidth(cappedWidth);
-                mBitmapSource.requestPageBitmap(pageSize, /* alsoRequestingTiles= */ needTiling);
-            }
+        int cappedWidth = getCappedWidth(needTiling);
+        if (mBitmap == null || mBitmap.getWidth() != cappedWidth) {
+            Dimensions pageSize = getPageDimensionsAtWidth(cappedWidth);
+            mBitmapSource.requestPageBitmap(pageSize, /* alsoRequestingTiles= */ needTiling);
         }
 
         if (needTiling) {
@@ -417,7 +398,7 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
 
         boolean needTiling = needTiling(mRequestedWidth);
 
-        if (shouldDrawBitmap(needTiling) && mBitmap != null) {
+        if (mBitmap != null) {
             int cappedWidth = getCappedWidth(needTiling);
             if (cappedWidth > 0) {
                 Dimensions pageSize = getPageDimensionsAtWidth(cappedWidth);
@@ -445,18 +426,9 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
                         ? limitBitmapWidth(mRequestedWidth, mMaxBgPageSize)
                         : limitBitmapWidth(mRequestedWidth, mMaxBitmapSize);
         if (cappedWidth <= 0) {
-            ErrorLog.logAndThrow(TAG, "requestDrawAtWidth",
-                    String.format("Invalid width %s", cappedWidth));
+            throw new RuntimeException(String.format("Invalid width %s", cappedWidth));
         }
         return cappedWidth;
-    }
-
-    /**
-     * True if debug flag is not set and either {@link #mAlwaysRequestPageBitmap} is true or
-     * we are not tiling.
-     */
-    private boolean shouldDrawBitmap(boolean needTiling) {
-        return (mAlwaysRequestPageBitmap || !needTiling);
     }
 
     /** Determines the current zoom of this view and scales {@code unscaled} accordingly. */
@@ -486,7 +458,7 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
             mRequestedWidth = (int) (zoom * mBounds.width());
             int cappedWidth = limitBitmapWidth(mRequestedWidth, mMaxBgPageSize);
             if (cappedWidth <= 0) {
-                ErrorLog.logAndThrow(TAG, "requestFastDrawAtWidth",
+                throw new RuntimeException(
                         String.format("Invalid width cap:%s z:%s", cappedWidth, zoom));
             } else {
                 Dimensions pageSize = getPageDimensionsAtWidth(cappedWidth);
@@ -587,8 +559,6 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
                     }
                 }
                 sb.append("]");
-                Log.v(getLogTag(), String.format("Add %d tiles %s (%d) ", count, sb.toString(),
-                        mTiles.size()));
                 callback.requestNewTiles(newTiles);
             }
 
@@ -605,13 +575,9 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
                         tv.reset();
                         removeView(tv);
                         mTiles.remove(tv.mTileInfo.getIndex());
-                    } else {
-                        ErrorLog.log(getLogTag(), "Dispose NULL Tile View @ " + k);
                     }
                 }
                 sb.append("]");
-                Log.v(getLogTag(), String.format("Remove %d tiles %s (%d) ", count, sb.toString(),
-                        mTiles.size()));
             }
         });
     }
@@ -623,8 +589,6 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
             TileView tile = getTileByIndex(tileInfo.getIndex());
             if (tile != null) {
                 tile.setBitmap(tileInfo, tileBitmap);
-            } else {
-                ErrorLog.log(getLogTag(), "No tile for " + tileInfo);
             }
         } else {
             mBitmapRecycler.discardBitmap(tileBitmap);
@@ -662,19 +626,17 @@ public class MosaicView extends ViewGroup implements ViewWithOverlays {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         // No tiling: draw the page bitmap or a white page.
-        if (mTileBoard == null) {
-            if (mBitmap != null) {
-                canvas.save();
-                float scale = (float) getWidth() / mBitmap.getWidth();
-                canvas.scale(scale, scale);
-                canvas.drawBitmap(mBitmap, IDENTITY, DITHER_BITMAP_PAINT);
-                canvas.restore();
-            } else if (mFailure != null) {
-                canvas.drawText(mFailure, getWidth() / 2, getHeight() / 2 - 10,
-                        MosaicView.MESSAGE_PAINT);
-            } else {
-                canvas.drawRect(mBounds, WHITE_PAINT);
-            }
+        if (mBitmap != null) {
+            canvas.save();
+            float scale = (float) getWidth() / mBitmap.getWidth();
+            canvas.scale(scale, scale);
+            canvas.drawBitmap(mBitmap, IDENTITY, DITHER_BITMAP_PAINT);
+            canvas.restore();
+        } else if (mFailure != null) {
+            canvas.drawText(mFailure, getWidth() / 2, getHeight() / 2 - 10,
+                    MosaicView.MESSAGE_PAINT);
+        } else {
+            canvas.drawRect(mBounds, WHITE_PAINT);
         }
     }
 

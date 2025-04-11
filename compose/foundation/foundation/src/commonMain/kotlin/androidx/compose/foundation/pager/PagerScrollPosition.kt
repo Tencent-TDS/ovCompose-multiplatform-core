@@ -17,8 +17,6 @@
 package androidx.compose.foundation.pager
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.snapping.calculateDistanceToDesiredSnapPosition
 import androidx.compose.foundation.lazy.layout.LazyLayoutNearestRangeState
 import androidx.compose.foundation.lazy.layout.findIndexByKey
 import androidx.compose.runtime.getValue
@@ -26,16 +24,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import kotlin.math.roundToLong
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.util.fastMaxBy
-import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
 
 /**
  * Contains the current scroll position represented by the first visible page and the first visible
  * page scroll offset.
  */
-@OptIn(ExperimentalFoundationApi::class)
 internal class PagerScrollPosition(
     currentPage: Int = 0,
     currentPageOffsetFraction: Float = 0.0f,
@@ -89,6 +82,7 @@ internal class PagerScrollPosition(
         lastKnownCurrentPageKey = null
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     fun matchPageWithKey(itemProvider: PagerLazyLayoutItemProvider, index: Int): Int {
         val newIndex = itemProvider.findIndexByKey(lastKnownCurrentPageKey, index)
         if (index != newIndex) {

@@ -46,9 +46,17 @@ import androidx.compose.runtime.mock.skip
 import androidx.compose.runtime.mock.validate
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.min
 import kotlin.random.Random
 import kotlin.reflect.KProperty
-import kotlin.test.*
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -62,17 +70,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.TestResult
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlinx.test.IgnoreJsTarget
 import kotlinx.coroutines.withContext
-import kotlinx.test.IgnoreJsAndNative
+import kotlinx.test.IgnoreJsTarget
 
 @Composable fun Container(content: @Composable () -> Unit) = content()
 
 @Stable
-@OptIn(InternalComposeApi::class, ExperimentalCoroutinesApi::class)
+@OptIn(InternalComposeApi::class)
 @Suppress("unused")
 class CompositionTests {
     @Test
@@ -198,6 +203,43 @@ class CompositionTests {
                 }
             }
         }
+    }
+
+    @Test
+    fun testSeveralArbitraryMoves() = compositionTest {
+        val random = Random(1337)
+        val list = mutableStateListOf(*List(10) { it }.toTypedArray())
+
+        var position by mutableStateOf(-1)
+
+        compose {
+            for (item in list) {
+                key(item) { Text("Item $item") }
+            }
+        }
+
+        fun validate() {
+            validate {
+                for (item in list) {
+                    Text("Item $item")
+                }
+            }
+        }
+
+        validate()
+
+        repeat(10) {
+            position = it
+            list.shuffle(random)
+            expectChanges()
+            validate()
+            list.first()
+        }
+
+        position = -1
+        list.shuffle(random)
+        expectChanges()
+        validate()
     }
 
     @Test
@@ -539,7 +581,6 @@ class CompositionTests {
     }
 
     @Test
-    @IgnoreJsAndNative
     fun testSkippingNestedLambda() = compositionTest {
         val data = mutableStateOf(0)
 
@@ -1665,6 +1706,344 @@ class CompositionTests {
     }
 
     @Test
+    fun testRemember_forget_forgetAfterPredecessorReplaced() = compositionTest {
+        val rememberObject =
+            object : RememberObserver {
+                var count = 0
+
+                override fun onRemembered() {
+                    count++
+                }
+
+                override fun onForgotten() {
+                    count--
+                }
+
+                override fun onAbandoned() {
+                    assertEquals(0, count, "onAbandon called after onRemember")
+                }
+
+                override fun toString() = "rememberObject"
+            }
+
+        var key = 0
+        var include = true
+        var scope: RecomposeScope? = null
+        compose {
+            scope = currentRecomposeScope
+            if (include) {
+                Linear {
+                    key(key) { Linear { Text("Some value") } }
+                    use(remember { rememberObject })
+                }
+            }
+        }
+
+        fun MockViewValidator.Composition() {
+            if (include) Linear { Linear { Text("Some value") } }
+        }
+
+        validate { this.Composition() }
+        assertEquals(1, rememberObject.count, "object should enter")
+
+        key++
+        scope?.invalidate()
+        expectChanges()
+        validate { Composition() }
+        assertEquals(1, rememberObject.count, "object should still be remembered")
+
+        include = false
+        scope?.invalidate()
+        expectChanges()
+        validate { Composition() }
+        assertEquals(0, rememberObject.count, "object should have left")
+    }
+
+    @Test
+    fun testRemember_RememberForgetNestedOrder() = compositionTest {
+        var order = 0
+        val objects = mutableListOf<Any>()
+        val newRememberObject = { name: String ->
+            object : RememberObserver, Counted, Ordered, Named {
+                    override var name = name
+                    override var count = 0
+                    override var rememberOrder = -1
+                    override var forgetOrder = -1
+
+                    override fun onRemembered() {
+                        assertEquals(-1, rememberOrder, "Only one call to onRemembered expected")
+                        rememberOrder = order++
+                        count++
+                    }
+
+                    override fun onForgotten() {
+                        assertEquals(-1, forgetOrder, "Only one call to onForgotten expected")
+                        forgetOrder = order++
+                        count--
+                    }
+
+                    override fun onAbandoned() {
+                        assertEquals(0, count, "onAbandoned called after onRemembered")
+                    }
+                }
+                .also { objects.add(it) }
+        }
+
+        @Suppress("UNUSED_PARAMETER") fun used(v: Any) {}
+
+        @Composable
+        fun Tree() {
+            used(remember { newRememberObject("L0B") })
+            Linear {
+                used(remember { newRememberObject("L1B") })
+                Linear {
+                    used(remember { newRememberObject("L2B") })
+                    Linear {
+                        used(remember { newRememberObject("L3B") })
+                        Linear { used(remember { newRememberObject("Leaf") }) }
+                        used(remember { newRememberObject("L3A") })
+                    }
+                    used(remember { newRememberObject("L2A") })
+                }
+                used(remember { newRememberObject("L1A") })
+            }
+            used(remember { newRememberObject("L0A") })
+        }
+
+        var includeTree by mutableStateOf(true)
+        compose {
+            if (includeTree) {
+                Tree()
+            }
+        }
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 1 }.all { it },
+            "All object should have entered"
+        )
+
+        includeTree = false
+        expectChanges()
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 0 }.all { it },
+            "All object should have left"
+        )
+
+        assertArrayEquals(
+            "Expected enter order",
+            arrayOf("L0B", "L1B", "L2B", "L3B", "Leaf", "L3A", "L2A", "L1A", "L0A"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.rememberOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+
+        assertArrayEquals(
+            "Expected exit order",
+            arrayOf("L0A", "L1A", "L2A", "L3A", "Leaf", "L3B", "L2B", "L1B", "L0B"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.forgetOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+    }
+
+    @Test
+    fun testRemember_RememberForgetNestedOrder_Inline() = compositionTest {
+        var order = 0
+        val objects = mutableListOf<Any>()
+        val newRememberObject = { name: String ->
+            object : RememberObserver, Counted, Ordered, Named {
+                    override var name = name
+                    override var count = 0
+                    override var rememberOrder = -1
+                    override var forgetOrder = -1
+
+                    override fun onRemembered() {
+                        assertEquals(-1, rememberOrder, "Only one call to onRemembered expected")
+                        rememberOrder = order++
+                        count++
+                    }
+
+                    override fun onForgotten() {
+                        assertEquals(-1, forgetOrder, "Only one call to onForgotten expected")
+                        forgetOrder = order++
+                        count--
+                    }
+
+                    override fun onAbandoned() {
+                        assertEquals(0, count, "onAbandoned called after onRemembered")
+                    }
+                }
+                .also { objects.add(it) }
+        }
+
+        @Suppress("UNUSED_PARAMETER") fun used(v: Any) {}
+
+        @Composable
+        fun Tree() {
+            used(remember { newRememberObject("L0B") })
+            InlineLinear {
+                used(remember { newRememberObject("L1B") })
+                InlineLinear {
+                    used(remember { newRememberObject("L2B") })
+                    InlineLinear {
+                        used(remember { newRememberObject("L3B") })
+                        InlineLinear { used(remember { newRememberObject("Leaf") }) }
+                        used(remember { newRememberObject("L3A") })
+                    }
+                    used(remember { newRememberObject("L2A") })
+                }
+                used(remember { newRememberObject("L1A") })
+            }
+            used(remember { newRememberObject("L0A") })
+        }
+
+        var includeTree by mutableStateOf(true)
+        compose { if (includeTree) Tree() }
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 1 }.all { it },
+            "All object should have entered"
+        )
+
+        includeTree = false
+        expectChanges()
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 0 }.all { it },
+            "All object should have left"
+        )
+
+        assertArrayEquals(
+            "Expected enter order",
+            arrayOf("L0B", "L1B", "L2B", "L3B", "Leaf", "L3A", "L2A", "L1A", "L0A"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.rememberOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+
+        assertArrayEquals(
+            "Expected exit order",
+            arrayOf("L0A", "L1A", "L2A", "L3A", "Leaf", "L3B", "L2B", "L1B", "L0B"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.forgetOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+    }
+
+    @Test
+    @Ignore // b/346821372
+    fun testRemember_RememberForgetNestedOrder_Incremental() = compositionTest {
+        var order = 0
+        val objects = mutableListOf<Any>()
+        val newRememberObject = { name: String ->
+            object : RememberObserver, Counted, Ordered, Named {
+                    override var name = name
+                    override var count = 0
+                    override var rememberOrder = -1
+                    override var forgetOrder = -1
+
+                    override fun onRemembered() {
+                        assertEquals(-1, rememberOrder, "Only one call to onRemembered expected")
+                        rememberOrder = order++
+                        count++
+                    }
+
+                    override fun onForgotten() {
+                        assertEquals(-1, forgetOrder, "Only one call to onForgotten expected")
+                        forgetOrder = order++
+                        count--
+                    }
+
+                    override fun onAbandoned() {
+                        assertEquals(0, count, "onAbandoned called after onRemembered")
+                    }
+                }
+                .also { objects.add(it) }
+        }
+
+        @Suppress("UNUSED_PARAMETER") fun used(v: Any) {}
+
+        var level by mutableIntStateOf(0)
+
+        @Composable
+        fun Tree() {
+            used(remember { newRememberObject("L0B") })
+            Linear {
+                if (level >= 1) {
+                    used(remember { newRememberObject("L1B") })
+                    if (level >= 2) {
+                        Linear {
+                            used(remember { newRememberObject("L2B") })
+                            if (level >= 3) {
+                                Linear {
+                                    used(remember { newRememberObject("L3B") })
+                                    if (level >= 4) {
+                                        Linear { used(remember { newRememberObject("Leaf") }) }
+                                    }
+                                    used(remember { newRememberObject("L3A") })
+                                }
+                            }
+                            used(remember { newRememberObject("L2A") })
+                        }
+                    }
+                    used(remember { newRememberObject("L1A") })
+                }
+            }
+            used(remember { newRememberObject("L0A") })
+        }
+
+        var includeTree by mutableStateOf(true)
+        compose { if (includeTree) Tree() }
+
+        while (level < 4) {
+            level++
+            expectChanges()
+        }
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 1 }.all { it },
+            "All object should have entered"
+        )
+
+        includeTree = false
+        expectChanges()
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 0 }.all { it },
+            "All object should have left"
+        )
+
+        assertArrayEquals(
+            "Expected enter order",
+            arrayOf("L0B", "L0A", "L1B", "L1A", "L2B", "L2A", "L3B", "L3A", "Leaf"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.rememberOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+
+        val forgetOrder = objects.mapNotNull { it as? Ordered }.sortedBy { it.forgetOrder }
+
+        // Even though the enter order is incremental, the order of onForgotten should
+        // be called in the same order as if it came in all at once.
+        assertArrayEquals(
+            "Expected exit order",
+            arrayOf("L0A", "L1A", "L2A", "L3A", "Leaf", "L3B", "L2B", "L1B", "L0A"),
+            forgetOrder.map { (it as Named).name }.toTypedArray()
+        )
+    }
+
+    @Test
     fun testRemember_RememberForgetOrder() = compositionTest {
         var order = 0
         val objects = mutableListOf<Any>()
@@ -2077,6 +2456,88 @@ class CompositionTests {
     }
 
     @Test
+    fun testRemember_RememberForgetOrder_keyChange() = compositionTest {
+        var order = 0
+        val objects = mutableListOf<Any>()
+        val newRememberObject = { name: String ->
+            object : RememberObserver, Counted, Ordered, Named {
+                    override var name = name
+                    override var count = 0
+                    override var rememberOrder = -1
+                    override var forgetOrder = -1
+
+                    override fun onRemembered() {
+                        assertEquals(-1, rememberOrder, "Only one call to onRemembered expected")
+                        rememberOrder = order++
+                        count++
+                    }
+
+                    override fun onForgotten() {
+                        assertEquals(-1, forgetOrder, "Only one call to onForgotten expected")
+                        forgetOrder = order++
+                        count--
+                    }
+
+                    override fun onAbandoned() {
+                        assertEquals(0, count, "onAbandoned called after onRemembered")
+                    }
+                }
+                .also { objects.add(it) }
+        }
+
+        @Suppress("UNUSED_PARAMETER") fun used(v: Any) {}
+        var a by mutableIntStateOf(0)
+        var b by mutableIntStateOf(0)
+
+        @Composable
+        fun Test() {
+            use(remember(a) { newRememberObject("A$a") })
+            use(remember(b) { newRememberObject("B$b") })
+        }
+
+        var include by mutableStateOf(true)
+        compose {
+            if (include) {
+                Test()
+            }
+        }
+
+        a++
+        advance()
+        b++
+        advance()
+        a++
+        advance()
+        include = false
+        advance()
+
+        assertTrue(
+            objects.mapNotNull { it as? Counted }.map { it.count == 0 }.all { it },
+            "All object should have left"
+        )
+
+        assertArrayEquals(
+            "Expected enter order",
+            arrayOf("A0", "B0", "A1", "B1", "A2"),
+            objects
+                .mapNotNull { it as? Ordered }
+                .sortedBy { it.rememberOrder }
+                .map { (it as Named).name }
+                .toTypedArray()
+        )
+
+        val forgetOrder = objects.mapNotNull { it as? Ordered }.sortedBy { it.forgetOrder }
+
+        // Even though the enter order is incremental, the order of onForgotten should
+        // be called in the same order as if it came in all at once.
+        assertArrayEquals(
+            "Expected exit order",
+            arrayOf("A0", "B0", "A1", "B1", "A2"),
+            forgetOrder.map { (it as Named).name }.toTypedArray()
+        )
+    }
+
+    @Test
     fun testRememberObserver_Abandon_Simple() = compositionTest {
         val abandonedObjects = mutableListOf<RememberObserver>()
         val observed =
@@ -2104,8 +2565,8 @@ class CompositionTests {
         assertArrayEquals(listOf(observed), abandonedObjects)
     }
 
+    @IgnoreJsTarget // The test is properly implemented in CompositionTestWeb
     @Test
-    @IgnoreJsTarget
     fun testRememberObserver_Abandon_Recompose() {
         val abandonedObjects = mutableListOf<RememberObserver>()
         val observed =
@@ -3256,8 +3717,6 @@ class CompositionTests {
     }
 
     @Test // Regression test for b/249050560
-    @IgnoreJsTarget
-    // TODO(o.k.): fails due to old js-only change in ComposerLambdaMemoization.rememberExpression
     fun testFunctionInstances() = compositionTest {
         var state by mutableStateOf(0)
         functionInstance = { -1 }
@@ -3738,7 +4197,7 @@ class CompositionTests {
         var seen = emptyList<Any?>()
 
         fun seen(list: List<Any>) {
-            for (i in 0 until minOf(list.size, seen.size)) {
+            for (i in 0 until min(list.size, seen.size)) {
                 assertEquals(list[i], seen[i])
             }
             seen = list
@@ -3803,8 +4262,8 @@ class CompositionTests {
     }
 
     @Test
-    fun testCompositionAndRecomposerDeadlock(): TestResult {
-        return runTest(timeoutMs = 10_000, context = UnconfinedTestDispatcher()) {
+    fun testCompositionAndRecomposerDeadlock() {
+        runTest(timeout = 10.seconds) {
             withGlobalSnapshotManager {
                 repeat(100) {
                     val job = Job(parent = coroutineContext[Job])
@@ -3868,6 +4327,7 @@ class CompositionTests {
 
     // Regression test for b/288717411
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun test_forgottenValue_isFreedFromSlotTable() = compositionTest {
         val value = Any()
         var rememberValue by mutableStateOf(false)
@@ -3981,8 +4441,6 @@ class CompositionTests {
         }
     }
 
-    // TODO reenable in https://youtrack.jetbrains.com/issue/COMPOSE-1504/Compose-1.7.-Enable-Strong-Skipping-mode-for-the-sources
-    @Ignore
     @Test
     fun composableWithUnstableParameters_skipped() = compositionTest {
         val consumer = UnstableCompConsumer()
@@ -4449,16 +4907,16 @@ private val jim_reports_to_sally = Report("Jim", "Sally")
 private val rob_reports_to_alice = Report("Rob", "Alice")
 private val clark_reports_to_lois = Report("Clark", "Lois")
 
-private interface Counted {
+internal interface Counted {
     val count: Int
 }
 
-private interface Ordered {
+internal interface Ordered {
     val rememberOrder: Int
     val forgetOrder: Int
 }
 
-private interface Named {
+internal interface Named {
     val name: String
 }
 

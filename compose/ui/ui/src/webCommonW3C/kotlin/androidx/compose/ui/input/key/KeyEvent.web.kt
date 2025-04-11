@@ -47,7 +47,7 @@ internal fun KeyboardEvent.toComposeEvent(): KeyEvent {
 
 
 // TODO Remove once it's available in common stdlib https://youtrack.jetbrains.com/issue/KT-23251
-internal typealias CodePoint = Int
+private typealias CodePoint = Int
 
 /**
  * Converts a surrogate pair to a unicode code point.
@@ -58,7 +58,7 @@ private fun Char.Companion.toCodePoint(high: Char, low: Char): CodePoint =
 /**
  * Returns the character (Unicode code point) at the specified index.
  */
-internal fun String.codePointAt(index: Int): CodePoint {
+private fun String.codePointAt(index: Int): CodePoint {
     val high = this[index]
     if (high.isHighSurrogate() && index + 1 < this.length) {
         val low = this[index + 1]
@@ -183,6 +183,7 @@ private val codeMap = mapOf(
     "F12" to Key.F12,
 
     "Space" to Key.Spacebar,
+    "Quote" to Key.Apostrophe
 )
 
 private fun KeyboardEvent.toKey(): Key {

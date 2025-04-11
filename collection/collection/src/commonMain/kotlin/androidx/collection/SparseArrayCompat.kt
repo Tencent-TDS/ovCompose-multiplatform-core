@@ -18,9 +18,7 @@ package androidx.collection
 
 import androidx.collection.internal.binarySearch
 import androidx.collection.internal.idealIntArraySize
-import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
-import kotlin.jvm.JvmSynthetic
 import kotlin.math.min
 
 private val DELETED = Any()
@@ -58,22 +56,10 @@ private val DELETED = Any()
  *   not requiring any additional array allocations.
  */
 public expect open class SparseArrayCompat<E>
-@JvmOverloads
-public constructor(initialCapacity: Int = 10) {
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
+@JvmOverloads public constructor(initialCapacity: Int = 10) {
     internal var garbage: Boolean
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var keys: IntArray
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var values: Array<Any?>
-
-    @JvmSynthetic // Hide from Java callers.
-    @JvmField
     internal var size: Int
 
     /**
@@ -241,13 +227,13 @@ private inline fun <E, T : E?> SparseArrayCompat<E>.internalGet(key: Int, defaul
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int): E? {
-    // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+    // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
     return internalGet<E, E?>(key, null)
 }
 
 @Suppress("NOTHING_TO_INLINE")
 internal fun <E> SparseArrayCompat<E>.commonGet(key: Int, defaultValue: E): E {
-    // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+    // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
     return internalGet<E, E>(key, defaultValue)
 }
 
@@ -411,9 +397,9 @@ internal inline fun <E> SparseArrayCompat<E>.commonValueAt(index: Int): E {
     if (garbage) {
         gc()
     }
-
-    // TODO(b/219834506): Check for OOB and throw instead of potentially casting a null value to
-    //  a non-null type.
+    if (index >= values.size) {
+        throw CollectionPlatformUtils.createIndexOutOfBoundsException()
+    }
     @Suppress("UNCHECKED_CAST") return values[index] as E
 }
 

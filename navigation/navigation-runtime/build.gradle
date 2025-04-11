@@ -46,34 +46,18 @@ androidXMultiplatform {
     wasm()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
-}
-
-kotlin {
-    js {
-        browser()
-    }
-    wasmJs()
-
-    watchosArm64()
-    watchosArm32()
-    watchosX64()
-    watchosSimulatorArm64()
-    tvosArm64()
-    tvosX64()
-    tvosSimulatorArm64()
 
     sourceSets {
         commonMain {
             dependencies {
-                api project(":annotation:annotation")
-                implementation project(":collection:collection")
-                api project(":core:core-bundle")
+                api "androidx.annotation:annotation:1.9.1"
+                api "androidx.collection:collection:1.5.0-beta01"
                 api project(":lifecycle:lifecycle-common")
                 api project(":lifecycle:lifecycle-runtime")
                 api project(":lifecycle:lifecycle-viewmodel")
                 api project(":lifecycle:lifecycle-viewmodel-savedstate")
-                api project(":navigation:navigation-common")
                 api project(":savedstate:savedstate")
+                api project(":navigation:navigation-common")
 
                 api(libs.kotlinStdlib)
                 implementation(libs.kotlinSerializationCore)
@@ -84,15 +68,18 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinTest)
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":kruth:kruth"))
+                implementation(project(":navigation:navigation-testing"))
+                implementation(project(":internal-testutils-navigation"))
             }
         }
 
-        jvmMain {
-            dependsOn(commonMain)
-        }
+        jvmCommonMain.dependsOn(commonMain)
+        jvmCommonTest.dependsOn(commonTest)
 
         androidMain {
-            dependsOn(jvmMain)
+            dependsOn(jvmCommonMain)
             dependencies {
                 api("androidx.activity:activity-ktx:1.7.1")
             }
@@ -101,8 +88,6 @@ kotlin {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
-//                implementation(project(":navigation:navigation-testing"))
-                implementation(project(":internal-testutils-navigation"))
                 implementation(project(":internal-testutils-runtime"))
                 implementation(libs.testExtJunit)
                 implementation(libs.testExtTruth)
@@ -111,7 +96,6 @@ kotlin {
                 implementation(libs.testRules)
                 implementation(libs.espressoCore)
                 implementation(libs.espressoIntents)
-                implementation(libs.truth)
 
                 // CustomMessageMissingMethodException: Could not find method implementation() for arguments
                 // implementation(libs.mockitoCore, excludes.bytebuddy)
@@ -121,39 +105,61 @@ kotlin {
             }
         }
 
-        jbMain.dependsOn(commonMain)
+        nonAndroidMain.dependsOn(commonMain)
+        nonAndroidTest.dependsOn(commonTest)
 
-        nonJvmMain {
-            dependsOn(jbMain)
+        nonJvmCommonMain {
+            dependsOn(nonAndroidMain)
             dependencies {
                 implementation(libs.atomicFu)
             }
         }
+        nonJvmCommonTest.dependsOn(nonAndroidTest)
 
         desktopMain {
-            dependsOn(jvmMain)
-            dependsOn(jbMain)
+            dependsOn(jvmCommonMain)
+            dependsOn(nonAndroidMain)
+        }
+        desktopTest {
+            dependsOn(jvmCommonTest)
+            dependsOn(nonAndroidTest)
         }
 
+        nativeMain.dependsOn(nonJvmCommonMain)
+        nativeTest.dependsOn(nonJvmCommonTest)
+
+        webMain.dependsOn(nonJvmCommonMain)
+        webTest.dependsOn(nonJvmCommonTest)
+
         targets.all { target ->
-            if (target.platformType !in [
-                    KotlinPlatformType.androidJvm,
-                    KotlinPlatformType.jvm,
-                    KotlinPlatformType.common
-            ]) {
-                target.compilations["main"].defaultSourceSet {
-                    dependsOn(nonJvmMain)
-                }
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet.dependsOn(nativeMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nativeTest)
+            } else if (target.platformType in [KotlinPlatformType.js, KotlinPlatformType.wasm]) {
+                target.compilations["main"].defaultSourceSet.dependsOn(webMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(webTest)
             }
         }
+
+        wasmJsMain.dependencies {
+            implementation(libs.kotlinXw3c)
+        }
+
+        wasmJsTest.kotlin.srcDirs("src/jsTest/kotlin")
     }
 }
 
-android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
+kotlin {
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+}
 
+android {
     // Include `*.java` files into the build
     sourceSets["main"].java.srcDir("src/androidMain/java")
     namespace "androidx.navigation"

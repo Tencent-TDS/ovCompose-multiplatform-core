@@ -100,7 +100,7 @@ fun Window.sendKeyTypedEvent(
     modifiers = modifiers
 )
 
-fun Window.sendInputEvent(
+fun Window.sendInputMethodEvent(
     text: String?,
     committedCharacterCount: Int,
 ): Boolean {
@@ -109,7 +109,7 @@ fun Window.sendInputEvent(
         mostRecentFocusOwner,
         InputMethodEvent.INPUT_METHOD_TEXT_CHANGED,
         0,
-        text?.let(::AttributedString)?.iterator,
+        if (text == null) null else AttributedString(text).iterator,
         committedCharacterCount,
         TextHitInfo.leading(0),
         TextHitInfo.leading(0)

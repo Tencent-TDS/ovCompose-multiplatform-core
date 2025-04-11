@@ -230,6 +230,36 @@ internal class ObjectIntTest {
     }
 
     @Test
+    fun buildObjectIntMapFunction() {
+        val contract: Boolean
+        val map = buildObjectIntMap {
+            contract = true
+            put("Hello", 1)
+            put("Bonjour", 2)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1, map["Hello"])
+        assertEquals(2, map["Bonjour"])
+    }
+
+    @Test
+    fun buildObjectIntMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildObjectIntMap(20) {
+                contract = true
+                put("Hello", 1)
+                put("Bonjour", 2)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1, map["Hello"])
+        assertEquals(2, map["Bonjour"])
+    }
+
+    @Test
     fun addToMap() {
         val map = MutableObjectIntMap<String>()
         map["Hello"] = 1
@@ -652,6 +682,13 @@ internal class ObjectIntTest {
 
         map2["Hello"] = 1
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(
+            mutableObjectIntMapOf("Hello", 1, "World", 2),
+            mutableObjectIntMapOf("Hello", 1, "Foo", 2)
+        )
     }
 
     @Test
@@ -776,5 +813,16 @@ internal class ObjectIntTest {
 
         assertEquals(1024, map.trim())
         assertEquals(0, map.trim())
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableObjectIntMap<Int>()
+
+        for (i in 0..1000000) {
+            map[i] = i.toInt()
+            map.remove(i)
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

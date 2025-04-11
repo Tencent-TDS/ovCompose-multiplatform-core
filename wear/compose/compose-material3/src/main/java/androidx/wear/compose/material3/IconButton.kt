@@ -16,13 +16,23 @@
 
 package androidx.wear.compose.material3
 
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -33,7 +43,10 @@ import androidx.wear.compose.material3.tokens.FilledIconButtonTokens
 import androidx.wear.compose.material3.tokens.FilledTonalIconButtonTokens
 import androidx.wear.compose.material3.tokens.IconButtonTokens
 import androidx.wear.compose.material3.tokens.IconToggleButtonTokens
+import androidx.wear.compose.material3.tokens.MotionTokens
 import androidx.wear.compose.material3.tokens.OutlinedIconButtonTokens
+import androidx.wear.compose.material3.tokens.ShapeTokens
+import androidx.wear.compose.materialcore.animateSelectionColor
 
 /**
  * Wear Material [IconButton] is a circular, icon-only button with transparent background and no
@@ -60,6 +73,13 @@ import androidx.wear.compose.material3.tokens.OutlinedIconButtonTokens
  *
  * @sample androidx.wear.compose.material3.samples.IconButtonWithOnLongClickSample
  *
+ * Example of an [IconButton] with shape animation of rounded corners on press:
+ *
+ * @sample androidx.wear.compose.material3.samples.IconButtonWithCornerAnimationSample
+ *
+ * Example of an [IconButton] with image content:
+ *
+ * @sample androidx.wear.compose.material3.samples.IconButtonWithImageSample
  * @param onClick Will be called when the user clicks the button.
  * @param modifier Modifier to be applied to the button.
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -95,7 +115,7 @@ fun IconButton(
 ) =
     RoundButton(
         onClick = onClick,
-        modifier.minimumInteractiveComponentSize(),
+        modifier.minimumInteractiveComponentSize().size(IconButtonDefaults.DefaultButtonSize),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
         enabled = enabled,
@@ -103,8 +123,7 @@ fun IconButton(
         interactionSource = interactionSource,
         shape = shape,
         border = { border },
-        buttonSize = IconButtonDefaults.DefaultButtonSize,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         content = provideScopeContent(colors.contentColor(enabled = enabled), content)
     )
 
@@ -129,7 +148,6 @@ fun IconButton(
  * Example of [FilledIconButton]:
  *
  * @sample androidx.wear.compose.material3.samples.FilledIconButtonSample
- *
  * @param onClick Will be called when the user clicks the button.
  * @param modifier Modifier to be applied to the button.
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -165,7 +183,8 @@ fun FilledIconButton(
 ) =
     RoundButton(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize(),
+        modifier =
+            modifier.minimumInteractiveComponentSize().size(IconButtonDefaults.DefaultButtonSize),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
         enabled = enabled,
@@ -173,8 +192,7 @@ fun FilledIconButton(
         interactionSource = interactionSource,
         shape = shape,
         border = { border },
-        buttonSize = IconButtonDefaults.DefaultButtonSize,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         content = provideScopeContent(colors.contentColor(enabled = enabled), content)
     )
 
@@ -199,7 +217,6 @@ fun FilledIconButton(
  * Example of [FilledTonalIconButton]:
  *
  * @sample androidx.wear.compose.material3.samples.FilledTonalIconButtonSample
- *
  * @param onClick Will be called when the user clicks the button.
  * @param modifier Modifier to be applied to the button.
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -235,7 +252,8 @@ fun FilledTonalIconButton(
 ) =
     RoundButton(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize(),
+        modifier =
+            modifier.minimumInteractiveComponentSize().size(IconButtonDefaults.DefaultButtonSize),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
         enabled = enabled,
@@ -243,8 +261,7 @@ fun FilledTonalIconButton(
         interactionSource = interactionSource,
         shape = shape,
         border = { border },
-        buttonSize = IconButtonDefaults.DefaultButtonSize,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         content = provideScopeContent(colors.contentColor(enabled = enabled), content)
     )
 
@@ -272,7 +289,6 @@ fun FilledTonalIconButton(
  * Example of [OutlinedIconButton]:
  *
  * @sample androidx.wear.compose.material3.samples.OutlinedIconButtonSample
- *
  * @param onClick Will be called when the user clicks the button.
  * @param modifier Modifier to be applied to the button.
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -309,7 +325,8 @@ fun OutlinedIconButton(
 ) =
     RoundButton(
         onClick = onClick,
-        modifier = modifier.minimumInteractiveComponentSize(),
+        modifier =
+            modifier.minimumInteractiveComponentSize().size(IconButtonDefaults.DefaultButtonSize),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
         enabled = enabled,
@@ -317,8 +334,7 @@ fun OutlinedIconButton(
         interactionSource = interactionSource,
         shape = shape,
         border = { border },
-        buttonSize = IconButtonDefaults.DefaultButtonSize,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         content = provideScopeContent(colors.contentColor(enabled = enabled), content)
     )
 
@@ -339,17 +355,21 @@ fun OutlinedIconButton(
  * [IconToggleButton] can be enabled or disabled. A disabled button will not respond to click
  * events. When enabled, the checked and unchecked events are propagated by [onCheckedChange].
  *
- * A simple icon toggle button using the default colors
+ * A simple icon toggle button using the default colors, animated when pressed.
  *
  * @sample androidx.wear.compose.material3.samples.IconToggleButtonSample
  *
+ * A simple icon toggle button using the default colors, animated when pressed and with different
+ * shapes for the checked and unchecked states.
+ *
+ * @sample androidx.wear.compose.material3.samples.IconToggleButtonVariantSample
  * @param checked Boolean flag indicating whether this toggle button is currently checked.
  * @param onCheckedChange Callback to be invoked when this toggle button is clicked.
  * @param modifier Modifier to be applied to the toggle button.
  * @param enabled Controls the enabled state of the toggle button. When `false`, this toggle button
  *   will not be clickable.
- * @param colors [ToggleButtonColors] that will be used to resolve the container and content color
- *   for this toggle button.
+ * @param colors [IconToggleButtonColors] that will be used to resolve the container and content
+ *   color for this toggle button.
  * @param interactionSource an optional hoisted [MutableInteractionSource] for observing and
  *   emitting [Interaction]s for this button. You can use this to change the button's appearance or
  *   preview the button in different states. Note that if `null` is provided, interactions will
@@ -365,7 +385,7 @@ fun IconToggleButton(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    colors: ToggleButtonColors = IconButtonDefaults.iconToggleButtonColors(),
+    colors: IconToggleButtonColors = IconToggleButtonDefaults.iconToggleButtonColors(),
     interactionSource: MutableInteractionSource? = null,
     shape: Shape = IconButtonDefaults.shape,
     border: BorderStroke? = null,
@@ -383,7 +403,7 @@ fun IconToggleButton(
         toggleButtonSize = IconButtonDefaults.DefaultButtonSize,
         interactionSource = interactionSource,
         shape = shape,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         content =
             provideScopeContent(colors.contentColor(enabled = enabled, checked = checked), content)
     )
@@ -392,8 +412,36 @@ fun IconToggleButton(
 /** Contains the default values used by [IconButton]. */
 object IconButtonDefaults {
     /** Recommended [Shape] for [IconButton]. */
-    val shape: Shape
-        @Composable get() = IconButtonTokens.ContainerShape.value
+    val shape: RoundedCornerShape
+        @Composable get() = ShapeTokens.CornerFull
+
+    /** Recommended pressed [Shape] for [IconButton]. */
+    val pressedShape: CornerBasedShape
+        @Composable get() = MaterialTheme.shapes.small
+
+    /** Recommended alpha to apply to an IconButton with Image content with disabled */
+    val disabledImageOpacity = DisabledContentAlpha
+
+    /**
+     * Creates a [Shape] with a animation between two CornerBasedShapes.
+     *
+     * A simple icon button using the default colors, animated when pressed.
+     *
+     * @sample androidx.wear.compose.material3.samples.IconButtonWithCornerAnimationSample
+     *
+     * A simple icon toggle button using the default colors, animated when pressed.
+     *
+     * @sample androidx.wear.compose.material3.samples.IconToggleButtonSample
+     * @param interactionSource the interaction source applied to the Button.
+     * @param shape The normal shape of the IconButton.
+     * @param pressedShape The pressed shape of the IconButton.
+     */
+    @Composable
+    fun animatedShape(
+        interactionSource: InteractionSource,
+        shape: CornerBasedShape = IconButtonDefaults.shape,
+        pressedShape: CornerBasedShape = IconButtonDefaults.pressedShape,
+    ) = animatedPressedButtonShape(interactionSource, shape, pressedShape)
 
     /**
      * Recommended icon size for a given icon button size.
@@ -438,6 +486,48 @@ object IconButtonDefaults {
         disabledContentColor: Color = Color.Unspecified
     ): IconButtonColors =
         MaterialTheme.colorScheme.defaultFilledIconButtonColors.copy(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            disabledContainerColor = disabledContainerColor,
+            disabledContentColor = disabledContentColor
+        )
+
+    /**
+     * Creates a [IconButtonColors] as an alternative to the [filledTonalIconButtonColors], giving a
+     * surface with more chroma to indicate selected or highlighted states that are not primary
+     * calls-to-action. If the icon button is disabled then the colors will default to the
+     * MaterialTheme onSurface color with suitable alpha values applied.
+     *
+     * Example of creating a [FilledIconButton] with [filledVariantIconButtonColors]:
+     *
+     * @sample androidx.wear.compose.material3.samples.FilledVariantIconButtonSample
+     */
+    @Composable
+    fun filledVariantIconButtonColors() =
+        MaterialTheme.colorScheme.defaultFilledVariantIconButtonColors
+
+    /**
+     * Creates a [IconButtonColors] as an alternative to the [filledTonalIconButtonColors], giving a
+     * surface with more chroma to indicate selected or highlighted states that are not primary
+     * calls-to-action. If the icon button is disabled then the colors will default to the
+     * MaterialTheme onSurface color with suitable alpha values applied.
+     *
+     * Example of creating a [FilledIconButton] with [filledVariantIconButtonColors]:
+     *
+     * @sample androidx.wear.compose.material3.samples.FilledVariantIconButtonSample
+     * @param containerColor The background color of this icon button when enabled.
+     * @param contentColor The color of this icon when enabled.
+     * @param disabledContainerColor The background color of this icon button when not enabled.
+     * @param disabledContentColor The color of this icon when not enabled.
+     */
+    @Composable
+    fun filledVariantIconButtonColors(
+        containerColor: Color = Color.Unspecified,
+        contentColor: Color = Color.Unspecified,
+        disabledContainerColor: Color = Color.Unspecified,
+        disabledContentColor: Color = Color.Unspecified
+    ): IconButtonColors =
+        MaterialTheme.colorScheme.defaultFilledVariantIconButtonColors.copy(
             containerColor = containerColor,
             contentColor = contentColor,
             disabledContainerColor = disabledContainerColor,
@@ -536,62 +626,6 @@ object IconButtonDefaults {
         )
 
     /**
-     * Creates a [ToggleButtonColors] for a [IconToggleButton]
-     * - by default, a colored background with a contrasting content color.
-     *
-     * If the button is disabled, then the colors will have an alpha ([DisabledContentAlpha] and
-     * [DisabledContainerAlpha]) value applied.
-     */
-    @Composable
-    fun iconToggleButtonColors() = MaterialTheme.colorScheme.defaultIconToggleButtonColors
-
-    /**
-     * Creates a [ToggleButtonColors] for a [IconToggleButton]
-     * - by default, a colored background with a contrasting content color.
-     *
-     * If the button is disabled, then the colors will have an alpha ([DisabledContentAlpha] and
-     * [DisabledContainerAlpha]) value applied.
-     *
-     * @param checkedContainerColor The container color of this [IconToggleButton] when enabled and
-     *   checked
-     * @param checkedContentColor The content color of this [IconToggleButton] when enabled and
-     *   checked
-     * @param uncheckedContainerColor The container color of this [IconToggleButton] when enabled
-     *   and unchecked
-     * @param uncheckedContentColor The content color of this [IconToggleButton] when enabled and
-     *   unchecked
-     * @param disabledCheckedContainerColor The container color of this [IconToggleButton] when
-     *   checked and not enabled
-     * @param disabledCheckedContentColor The content color of this [IconToggleButton] when checked
-     *   and not enabled
-     * @param disabledUncheckedContainerColor The container color of this [IconToggleButton] when
-     *   unchecked and not enabled
-     * @param disabledUncheckedContentColor The content color of this [IconToggleButton] when
-     *   unchecked and not enabled
-     */
-    @Composable
-    fun iconToggleButtonColors(
-        checkedContainerColor: Color = Color.Unspecified,
-        checkedContentColor: Color = Color.Unspecified,
-        uncheckedContainerColor: Color = Color.Unspecified,
-        uncheckedContentColor: Color = Color.Unspecified,
-        disabledCheckedContainerColor: Color = Color.Unspecified,
-        disabledCheckedContentColor: Color = Color.Unspecified,
-        disabledUncheckedContainerColor: Color = Color.Unspecified,
-        disabledUncheckedContentColor: Color = Color.Unspecified,
-    ): ToggleButtonColors =
-        MaterialTheme.colorScheme.defaultIconToggleButtonColors.copy(
-            checkedContainerColor = checkedContainerColor,
-            checkedContentColor = checkedContentColor,
-            uncheckedContainerColor = uncheckedContainerColor,
-            uncheckedContentColor = uncheckedContentColor,
-            disabledCheckedContainerColor = disabledCheckedContainerColor,
-            disabledCheckedContentColor = disabledCheckedContentColor,
-            disabledUncheckedContainerColor = disabledUncheckedContainerColor,
-            disabledUncheckedContentColor = disabledUncheckedContentColor,
-        )
-
-    /**
      * The recommended size of an icon when used inside an icon button with size [SmallButtonSize]
      * or [ExtraSmallButtonSize]. Use [iconSizeFor] to easily determine the icon size.
      */
@@ -653,6 +687,26 @@ object IconButtonDefaults {
                     .also { defaultFilledIconButtonColorsCached = it }
         }
 
+    private val ColorScheme.defaultFilledVariantIconButtonColors: IconButtonColors
+        get() {
+            return defaultFilledVariantIconButtonColorsCached
+                ?: IconButtonColors(
+                        containerColor = fromToken(FilledIconButtonTokens.VariantContainerColor),
+                        contentColor = fromToken(FilledIconButtonTokens.VariantContentColor),
+                        disabledContainerColor =
+                            fromToken(FilledIconButtonTokens.DisabledContainerColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledIconButtonTokens.DisabledContainerOpacity
+                                ),
+                        disabledContentColor =
+                            fromToken(FilledIconButtonTokens.DisabledContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledIconButtonTokens.DisabledContentOpacity
+                                )
+                    )
+                    .also { defaultFilledVariantIconButtonColorsCached = it }
+        }
+
     private val ColorScheme.defaultFilledTonalIconButtonColors: IconButtonColors
         get() {
             return defaultFilledTonalIconButtonColorsCached
@@ -705,45 +759,6 @@ object IconButtonDefaults {
                                 )
                     )
                     .also { defaultIconButtonColorsCached = it }
-        }
-
-    private val ColorScheme.defaultIconToggleButtonColors: ToggleButtonColors
-        get() {
-            return defaultIconToggleButtonColorsCached
-                ?: ToggleButtonColors(
-                        checkedContainerColor =
-                            fromToken(IconToggleButtonTokens.CheckedContainerColor),
-                        checkedContentColor = fromToken(IconToggleButtonTokens.CheckedContentColor),
-                        uncheckedContainerColor =
-                            fromToken(IconToggleButtonTokens.UncheckedContainerColor),
-                        uncheckedContentColor =
-                            fromToken(IconToggleButtonTokens.UncheckedContentColor),
-                        disabledCheckedContainerColor =
-                            fromToken(IconToggleButtonTokens.DisabledCheckedContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha =
-                                        IconToggleButtonTokens.DisabledCheckedContainerOpacity
-                                ),
-                        disabledCheckedContentColor =
-                            fromToken(IconToggleButtonTokens.DisabledCheckedContentColor)
-                                .toDisabledColor(
-                                    disabledAlpha =
-                                        IconToggleButtonTokens.DisabledCheckedContentOpacity
-                                ),
-                        disabledUncheckedContainerColor =
-                            fromToken(IconToggleButtonTokens.DisabledUncheckedContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha =
-                                        IconToggleButtonTokens.DisabledUncheckedContainerOpacity
-                                ),
-                        disabledUncheckedContentColor =
-                            fromToken(IconToggleButtonTokens.DisabledUncheckedContentColor)
-                                .toDisabledColor(
-                                    disabledAlpha =
-                                        IconToggleButtonTokens.DisabledUncheckedContentOpacity
-                                ),
-                    )
-                    .also { defaultIconToggleButtonColorsCached = it }
         }
 }
 
@@ -824,3 +839,277 @@ constructor(
         return result
     }
 }
+
+/** Contains the default values used by [IconToggleButton]. */
+object IconToggleButtonDefaults {
+
+    /**
+     * Creates a [Shape] with an animation between three [CornerSize]s based on the pressed state
+     * and checked/unchecked.
+     *
+     * A simple icon toggle button using the default colors, animated on Press and Check/Uncheck:
+     *
+     * @sample androidx.wear.compose.material3.samples.IconToggleButtonVariantSample
+     * @param interactionSource the interaction source applied to the Button.
+     * @param checked the current checked/unchecked state.
+     * @param uncheckedCornerSize the size of the corner when unchecked.
+     * @param checkedCornerSize the size of the corner when checked.
+     * @param pressedCornerSize the size of the corner when pressed.
+     * @param onPressAnimationSpec the spec for press animation.
+     * @param onReleaseAnimationSpec the spec for release animation.
+     */
+    @Composable
+    fun animatedToggleButtonShape(
+        interactionSource: InteractionSource,
+        checked: Boolean,
+        uncheckedCornerSize: CornerSize = UncheckedCornerSize,
+        checkedCornerSize: CornerSize = CheckedCornerSize,
+        pressedCornerSize: CornerSize = PressedCornerSize,
+        onPressAnimationSpec: FiniteAnimationSpec<Float> =
+            MaterialTheme.motionScheme.rememberFastSpatialSpec(),
+        onReleaseAnimationSpec: FiniteAnimationSpec<Float> =
+            MaterialTheme.motionScheme.slowSpatialSpec(),
+    ): Shape {
+        val pressed = interactionSource.collectIsPressedAsState()
+
+        return rememberAnimatedToggleRoundedCornerShape(
+            uncheckedCornerSize = uncheckedCornerSize,
+            checkedCornerSize = checkedCornerSize,
+            pressedCornerSize = pressedCornerSize,
+            pressed = pressed.value,
+            checked = checked,
+            onPressAnimationSpec = onPressAnimationSpec,
+            onReleaseAnimationSpec = onReleaseAnimationSpec,
+        )
+    }
+
+    /** The recommended size for an Unchecked button when animated. */
+    val UncheckedCornerSize: CornerSize = ShapeTokens.CornerFull.topEnd
+
+    /** The recommended size for a Checked button when animated. */
+    val CheckedCornerSize: CornerSize = CornerSize(percent = 30)
+
+    /** The recommended size for a Pressed button when animated. */
+    val PressedCornerSize: CornerSize = ShapeDefaults.Small.topEnd
+
+    /**
+     * Creates an [IconToggleButtonColors] for a [IconToggleButton]
+     * - by default, a colored background with a contrasting content color.
+     *
+     * If the button is disabled, then the colors will have an alpha ([DisabledContentAlpha] and
+     * [DisabledContainerAlpha]) value applied.
+     */
+    @Composable
+    fun iconToggleButtonColors() = MaterialTheme.colorScheme.defaultIconToggleButtonColors
+
+    /**
+     * Creates a [IconToggleButtonColors] for a [IconToggleButton]
+     * - by default, a colored background with a contrasting content color.
+     *
+     * If the button is disabled, then the colors will have an alpha ([DisabledContentAlpha] and
+     * [DisabledContainerAlpha]) value applied.
+     *
+     * @param checkedContainerColor The container color of this [IconToggleButton] when enabled and
+     *   checked
+     * @param checkedContentColor The content color of this [IconToggleButton] when enabled and
+     *   checked
+     * @param uncheckedContainerColor The container color of this [IconToggleButton] when enabled
+     *   and unchecked
+     * @param uncheckedContentColor The content color of this [IconToggleButton] when enabled and
+     *   unchecked
+     * @param disabledCheckedContainerColor The container color of this [IconToggleButton] when
+     *   checked and not enabled
+     * @param disabledCheckedContentColor The content color of this [IconToggleButton] when checked
+     *   and not enabled
+     * @param disabledUncheckedContainerColor The container color of this [IconToggleButton] when
+     *   unchecked and not enabled
+     * @param disabledUncheckedContentColor The content color of this [IconToggleButton] when
+     *   unchecked and not enabled
+     */
+    @Composable
+    fun iconToggleButtonColors(
+        checkedContainerColor: Color = Color.Unspecified,
+        checkedContentColor: Color = Color.Unspecified,
+        uncheckedContainerColor: Color = Color.Unspecified,
+        uncheckedContentColor: Color = Color.Unspecified,
+        disabledCheckedContainerColor: Color = Color.Unspecified,
+        disabledCheckedContentColor: Color = Color.Unspecified,
+        disabledUncheckedContainerColor: Color = Color.Unspecified,
+        disabledUncheckedContentColor: Color = Color.Unspecified,
+    ): IconToggleButtonColors =
+        MaterialTheme.colorScheme.defaultIconToggleButtonColors.copy(
+            checkedContainerColor = checkedContainerColor,
+            checkedContentColor = checkedContentColor,
+            uncheckedContainerColor = uncheckedContainerColor,
+            uncheckedContentColor = uncheckedContentColor,
+            disabledCheckedContainerColor = disabledCheckedContainerColor,
+            disabledCheckedContentColor = disabledCheckedContentColor,
+            disabledUncheckedContainerColor = disabledUncheckedContainerColor,
+            disabledUncheckedContentColor = disabledUncheckedContentColor,
+        )
+
+    private val ColorScheme.defaultIconToggleButtonColors: IconToggleButtonColors
+        get() {
+            return defaultIconToggleButtonColorsCached
+                ?: IconToggleButtonColors(
+                        checkedContainerColor =
+                            fromToken(IconToggleButtonTokens.CheckedContainerColor),
+                        checkedContentColor = fromToken(IconToggleButtonTokens.CheckedContentColor),
+                        uncheckedContainerColor =
+                            fromToken(IconToggleButtonTokens.UncheckedContainerColor),
+                        uncheckedContentColor =
+                            fromToken(IconToggleButtonTokens.UncheckedContentColor),
+                        disabledCheckedContainerColor =
+                            fromToken(IconToggleButtonTokens.DisabledCheckedContainerColor)
+                                .toDisabledColor(
+                                    disabledAlpha =
+                                        IconToggleButtonTokens.DisabledCheckedContainerOpacity
+                                ),
+                        disabledCheckedContentColor =
+                            fromToken(IconToggleButtonTokens.DisabledCheckedContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha =
+                                        IconToggleButtonTokens.DisabledCheckedContentOpacity
+                                ),
+                        disabledUncheckedContainerColor =
+                            fromToken(IconToggleButtonTokens.DisabledUncheckedContainerColor)
+                                .toDisabledColor(
+                                    disabledAlpha =
+                                        IconToggleButtonTokens.DisabledUncheckedContainerOpacity
+                                ),
+                        disabledUncheckedContentColor =
+                            fromToken(IconToggleButtonTokens.DisabledUncheckedContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha =
+                                        IconToggleButtonTokens.DisabledUncheckedContentOpacity
+                                ),
+                    )
+                    .also { defaultIconToggleButtonColorsCached = it }
+        }
+}
+
+/**
+ * Represents the different container and content colors used for [IconToggleButton] in various
+ * states, that are checked, unchecked, enabled and disabled.
+ *
+ * @param checkedContainerColor Container or background color when the toggle button is checked
+ * @param checkedContentColor Color of the content (text or icon) when the toggle button is checked
+ * @param uncheckedContainerColor Container or background color when the toggle button is unchecked
+ * @param uncheckedContentColor Color of the content (text or icon) when the toggle button is
+ *   unchecked
+ * @param disabledCheckedContainerColor Container or background color when the toggle button is
+ *   disabled and checked
+ * @param disabledCheckedContentColor Color of content (text or icon) when the toggle button is
+ *   disabled and checked
+ * @param disabledUncheckedContainerColor Container or background color when the toggle button is
+ *   disabled and unchecked
+ * @param disabledUncheckedContentColor Color of the content (text or icon) when the toggle button
+ *   is disabled and unchecked
+ */
+@Immutable
+class IconToggleButtonColors(
+    val checkedContainerColor: Color,
+    val checkedContentColor: Color,
+    val uncheckedContainerColor: Color,
+    val uncheckedContentColor: Color,
+    val disabledCheckedContainerColor: Color,
+    val disabledCheckedContentColor: Color,
+    val disabledUncheckedContainerColor: Color,
+    val disabledUncheckedContentColor: Color,
+) {
+    internal fun copy(
+        checkedContainerColor: Color,
+        checkedContentColor: Color,
+        uncheckedContainerColor: Color,
+        uncheckedContentColor: Color,
+        disabledCheckedContainerColor: Color,
+        disabledCheckedContentColor: Color,
+        disabledUncheckedContainerColor: Color,
+        disabledUncheckedContentColor: Color,
+    ): IconToggleButtonColors =
+        IconToggleButtonColors(
+            checkedContainerColor = checkedContainerColor.takeOrElse { this.checkedContainerColor },
+            checkedContentColor = checkedContentColor.takeOrElse { this.checkedContentColor },
+            uncheckedContainerColor =
+                uncheckedContainerColor.takeOrElse { this.uncheckedContainerColor },
+            uncheckedContentColor = uncheckedContentColor.takeOrElse { this.uncheckedContentColor },
+            disabledCheckedContainerColor =
+                disabledCheckedContainerColor.takeOrElse { this.disabledCheckedContainerColor },
+            disabledCheckedContentColor =
+                disabledCheckedContentColor.takeOrElse { this.disabledCheckedContentColor },
+            disabledUncheckedContainerColor =
+                disabledUncheckedContainerColor.takeOrElse { this.disabledUncheckedContainerColor },
+            disabledUncheckedContentColor =
+                disabledUncheckedContentColor.takeOrElse { this.disabledUncheckedContentColor },
+        )
+
+    /**
+     * Determines the container color based on whether the toggle button is [enabled] and [checked].
+     *
+     * @param enabled Whether the toggle button is enabled
+     * @param checked Whether the toggle button is checked
+     */
+    @Composable
+    internal fun containerColor(enabled: Boolean, checked: Boolean): State<Color> =
+        animateSelectionColor(
+            enabled = enabled,
+            checked = checked,
+            checkedColor = checkedContainerColor,
+            uncheckedColor = uncheckedContainerColor,
+            disabledCheckedColor = disabledCheckedContainerColor,
+            disabledUncheckedColor = disabledUncheckedContainerColor,
+            animationSpec = COLOR_ANIMATION_SPEC
+        )
+
+    /**
+     * Determines the content color based on whether the toggle button is [enabled] and [checked].
+     *
+     * @param enabled Whether the toggle button is enabled
+     * @param checked Whether the toggle button is checked
+     */
+    @Composable
+    internal fun contentColor(enabled: Boolean, checked: Boolean): State<Color> =
+        animateSelectionColor(
+            enabled = enabled,
+            checked = checked,
+            checkedColor = checkedContentColor,
+            uncheckedColor = uncheckedContentColor,
+            disabledCheckedColor = disabledCheckedContentColor,
+            disabledUncheckedColor = disabledUncheckedContentColor,
+            animationSpec = COLOR_ANIMATION_SPEC
+        )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null) return false
+        if (this::class != other::class) return false
+
+        other as IconToggleButtonColors
+
+        if (checkedContainerColor != other.checkedContainerColor) return false
+        if (checkedContentColor != other.checkedContentColor) return false
+        if (uncheckedContainerColor != other.uncheckedContainerColor) return false
+        if (uncheckedContentColor != other.uncheckedContentColor) return false
+        if (disabledCheckedContainerColor != other.disabledCheckedContainerColor) return false
+        if (disabledCheckedContentColor != other.disabledCheckedContentColor) return false
+        if (disabledUncheckedContainerColor != other.disabledUncheckedContainerColor) return false
+        if (disabledUncheckedContentColor != other.disabledUncheckedContentColor) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = checkedContainerColor.hashCode()
+        result = 31 * result + checkedContentColor.hashCode()
+        result = 31 * result + uncheckedContainerColor.hashCode()
+        result = 31 * result + uncheckedContentColor.hashCode()
+        result = 31 * result + disabledCheckedContainerColor.hashCode()
+        result = 31 * result + disabledCheckedContentColor.hashCode()
+        result = 31 * result + disabledUncheckedContainerColor.hashCode()
+        result = 31 * result + disabledUncheckedContentColor.hashCode()
+        return result
+    }
+}
+
+private val COLOR_ANIMATION_SPEC: AnimationSpec<Color> =
+    tween(MotionTokens.DurationMedium1, 0, MotionTokens.EasingStandardDecelerate)

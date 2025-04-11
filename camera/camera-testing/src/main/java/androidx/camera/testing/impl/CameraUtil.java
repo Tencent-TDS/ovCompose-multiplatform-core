@@ -42,7 +42,6 @@ import android.os.HandlerThread;
 import android.util.Log;
 import android.view.Surface;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
@@ -54,6 +53,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.CameraX;
 import androidx.camera.core.CameraXConfig;
+import androidx.camera.core.CompositionSettings;
 import androidx.camera.core.ExperimentalRetryPolicy;
 import androidx.camera.core.Logger;
 import androidx.camera.core.RetryPolicy;
@@ -181,7 +181,6 @@ public final class CameraUtil {
 
     @RequiresApi(28)
     private static class Api28Impl {
-        @DoNotInline
         static Set<String> getPhysicalCameraId(CameraCharacteristics cameraCharacteristics) {
             return cameraCharacteristics.getPhysicalCameraIds();
         }
@@ -631,7 +630,11 @@ public final class CameraUtil {
             CameraInternal camera =
                     cameraSelector.select(cameraX.getCameraRepository().getCameras());
             return new CameraUseCaseAdapter(camera,
+                    null,
                     new RestrictedCameraInfo(camera.getCameraInfoInternal(), cameraConfig),
+                    null,
+                    CompositionSettings.DEFAULT,
+                    CompositionSettings.DEFAULT,
                     cameraCoordinator,
                     cameraX.getCameraDeviceSurfaceManager(),
                     cameraX.getDefaultConfigFactory());

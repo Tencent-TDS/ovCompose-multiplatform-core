@@ -30,7 +30,7 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(project(":wear:watchface:watchface-complications"))
     api(project(":wear:watchface:watchface-complications-data"))
 
@@ -65,6 +65,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Wear Complications Data Source"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

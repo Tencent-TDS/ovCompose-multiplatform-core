@@ -62,7 +62,6 @@ import kotlin.math.max
  * Sample of dialog:
  *
  * @sample androidx.compose.material.samples.AlertDialogSample
- *
  * @param onDismissRequest Executes when the user tries to dismiss the Dialog by clicking outside or
  *   pressing the back button. This is not called when the dismiss button is clicked.
  * @param confirmButton A button which is meant to confirm a proposed action, thus resolving what
@@ -107,7 +106,6 @@ expect fun AlertDialog(
  * This function can be used to fully customize the button area, e.g. with:
  *
  * @sample androidx.compose.material.samples.CustomAlertDialogSample
- *
  * @param onDismissRequest Executes when the user tries to dismiss the Dialog by clicking outside or
  *   pressing the back button. This is not called when the dismiss button is clicked.
  * @param buttons Function that emits the layout with the buttons.
@@ -430,7 +428,7 @@ internal fun AlertDialogFlowRow(
                 val arrangement = Arrangement.Bottom
                 // TODO(soboleva): rtl support
                 // Handle vertical direction
-                val mainAxisPositions = IntArray(childrenMainAxisSizes.size) { 0 }
+                val mainAxisPositions = IntArray(childrenMainAxisSizes.size)
                 with(arrangement) {
                     arrange(mainAxisLayoutSize, childrenMainAxisSizes, mainAxisPositions)
                 }

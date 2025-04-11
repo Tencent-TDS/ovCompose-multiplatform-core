@@ -17,8 +17,12 @@
 package androidx.compose.runtime
 
 import androidx.compose.runtime.internal.PlatformOptimizedCancellationException
+import androidx.compose.runtime.platform.makeSynchronizedObject
+import androidx.compose.runtime.platform.synchronized
+import kotlin.concurrent.Volatile
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.jvm.JvmField
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -376,6 +380,14 @@ fun LaunchedEffect(vararg keys: Any?, block: suspend CoroutineScope.() -> Unit) 
     remember(*keys) { LaunchedEffectImpl(applyContext, block) }
 }
 
+// Maintenance note: this class once was used by the inlined implementation of
+// rememberCoroutineScope and must be maintained for binary compatibility. The new implementation
+// of RememberedCoroutineScope implements RememberObserver directly, since as of this writing the
+// compose runtime no longer implicitly treats objects incidentally stored in the slot table (e.g.
+// previous parameter values from a skippable invocation, remember keys, etc.) as eligible
+// RememberObservers. This dramatically reduces the risk of receiving unexpected RememberObserver
+// lifecycle callbacks when a reference to a RememberObserver is leaked into user code and we can
+// omit wrapper RememberObservers such as this one.
 @PublishedApi
 internal class CompositionScopedCoroutineScopeCanceller(val coroutineScope: CoroutineScope) :
     RememberObserver {
@@ -384,11 +396,111 @@ internal class CompositionScopedCoroutineScopeCanceller(val coroutineScope: Coro
     }
 
     override fun onForgotten() {
-        coroutineScope.cancel(LeftCompositionCancellationException())
+        val coroutineScope = coroutineScope
+        if (coroutineScope is RememberedCoroutineScope) {
+            coroutineScope.cancelIfCreated()
+        } else {
+            coroutineScope.cancel(LeftCompositionCancellationException())
+        }
     }
 
     override fun onAbandoned() {
-        coroutineScope.cancel(LeftCompositionCancellationException())
+        val coroutineScope = coroutineScope
+        if (coroutineScope is RememberedCoroutineScope) {
+            coroutineScope.cancelIfCreated()
+        } else {
+            coroutineScope.cancel(LeftCompositionCancellationException())
+        }
+    }
+}
+
+private class CancelledCoroutineContext : CoroutineContext.Element {
+    override val key: CoroutineContext.Key<*>
+        get() = Key
+
+    companion object Key : CoroutineContext.Key<CancelledCoroutineContext>
+}
+
+private class ForgottenCoroutineScopeException :
+    PlatformOptimizedCancellationException("rememberCoroutineScope left the composition")
+
+internal class RememberedCoroutineScope(
+    private val parentContext: CoroutineContext,
+    private val overlayContext: CoroutineContext,
+) : CoroutineScope, RememberObserver {
+    private val lock = makeSynchronizedObject(this)
+
+    // The goal of this implementation is to make cancellation as cheap as possible if the
+    // coroutineContext property was never accessed, consisting only of taking a monitor lock and
+    // setting a volatile field.
+
+    @Volatile private var _coroutineContext: CoroutineContext? = null
+
+    override val coroutineContext: CoroutineContext
+        get() {
+            var localCoroutineContext = _coroutineContext
+            if (
+                localCoroutineContext == null || localCoroutineContext === CancelledCoroutineContext
+            ) {
+                // Yes, we're leaking our lock here by using the instance of the object
+                // that also gets handled by user code as a CoroutineScope as an intentional
+                // tradeoff for avoiding the allocation of a dedicated lock object.
+                // Since we only use it here for this lazy initialization and control flow
+                // does not escape the creation of the CoroutineContext while holding the lock,
+                // the splash damage should be acceptable.
+                synchronized(lock) {
+                    localCoroutineContext = _coroutineContext
+                    if (localCoroutineContext == null) {
+                        val parentContext = parentContext
+                        val childJob = Job(parentContext[Job])
+                        localCoroutineContext = parentContext + childJob + overlayContext
+                    } else if (localCoroutineContext === CancelledCoroutineContext) {
+                        // Lazily initialize the child job here, already cancelled.
+                        // Assemble the CoroutineContext exactly as otherwise expected.
+                        val parentContext = parentContext
+                        val cancelledChildJob =
+                            Job(parentContext[Job]).apply {
+                                cancel(ForgottenCoroutineScopeException())
+                            }
+                        localCoroutineContext = parentContext + cancelledChildJob + overlayContext
+                    }
+                    _coroutineContext = localCoroutineContext
+                }
+            }
+            return localCoroutineContext!!
+        }
+
+    fun cancelIfCreated() {
+        // Take the lock unconditionally; this is internal API only used by internal
+        // RememberObserver implementations that are not leaked to user code; we can assume
+        // this won't be called repeatedly. If this assumption is violated we'll simply create a
+        // redundant exception.
+        synchronized(lock) {
+            val context = _coroutineContext
+            if (context == null) {
+                _coroutineContext = CancelledCoroutineContext
+            } else {
+                // Ignore optimizing the case where we might be cancelling an already cancelled job;
+                // only internal callers such as RememberObservers will invoke this method.
+                context.cancel(ForgottenCoroutineScopeException())
+            }
+        }
+    }
+
+    override fun onRemembered() {
+        // Do nothing
+    }
+
+    override fun onForgotten() {
+        cancelIfCreated()
+    }
+
+    override fun onAbandoned() {
+        cancelIfCreated()
+    }
+
+    companion object {
+        @JvmField val CancelledCoroutineContext: CoroutineContext = CancelledCoroutineContext()
     }
 }
 
@@ -411,7 +523,7 @@ internal fun createCompositionCoroutineScope(
         )
     } else {
         val applyContext = composer.applyCoroutineContext
-        CoroutineScope(applyContext + Job(applyContext[Job]) + coroutineContext)
+        RememberedCoroutineScope(applyContext, coroutineContext)
     }
 
 /**
@@ -444,10 +556,5 @@ inline fun rememberCoroutineScope(
     }
 ): CoroutineScope {
     val composer = currentComposer
-    val wrapper = remember {
-        CompositionScopedCoroutineScopeCanceller(
-            createCompositionCoroutineScope(getContext(), composer)
-        )
-    }
-    return wrapper.coroutineScope
+    return remember { createCompositionCoroutineScope(getContext(), composer) }
 }

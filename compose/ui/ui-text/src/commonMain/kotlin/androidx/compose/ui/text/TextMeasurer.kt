@@ -16,9 +16,9 @@
 
 package androidx.compose.ui.text
 
+import androidx.collection.LruCache
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
-import androidx.compose.ui.text.caches.LruCache
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -38,7 +38,7 @@ import kotlin.math.ceil
  * that cache does not becomes unnecessarily large and miss penalty stays low. Of course developers
  * should be aware that in a use case like that the cache should explicitly be disabled.
  */
-private val DefaultCacheSize = 8
+private const val DefaultCacheSize = 8
 
 /**
  * TextMeasurer is responsible for measuring a text in its entirety so that it's ready to be drawn.
@@ -80,8 +80,7 @@ private val DefaultCacheSize = 8
  *   would miss the cache.
  */
 @Immutable
-class TextMeasurer
-constructor(
+class TextMeasurer(
     private val defaultFontFamilyResolver: FontFamily.Resolver,
     private val defaultDensity: Density,
     private val defaultLayoutDirection: LayoutDirection,
@@ -136,7 +135,6 @@ constructor(
      *   specified, defaults to the value that was given during initialization of this
      *   [TextMeasurer].
      * @param skipCache Disables cache optimization if it is passed as true.
-     *
      * @sample androidx.compose.ui.text.samples.measureTextAnnotatedString
      */
     @Stable
@@ -146,7 +144,7 @@ constructor(
         overflow: TextOverflow = TextOverflow.Clip,
         softWrap: Boolean = true,
         maxLines: Int = Int.MAX_VALUE,
-        placeholders: List<AnnotatedString.Range<Placeholder>> = emptyList(),
+        placeholders: List<AnnotatedString.Range<Placeholder>> = listOf(),
         constraints: Constraints = Constraints(),
         layoutDirection: LayoutDirection = this.defaultLayoutDirection,
         density: Density = this.defaultDensity,
@@ -230,7 +228,6 @@ constructor(
      *   specified, defaults to the value that was given during initialization of this
      *   [TextMeasurer].
      * @param skipCache Disables cache optimization if it is passed as true.
-     *
      * @sample androidx.compose.ui.text.samples.measureTextStringWithConstraints
      */
     @Stable
@@ -280,7 +277,7 @@ constructor(
                     )
 
                 val minWidth = constraints.minWidth
-                val widthMatters = softWrap || overflow == TextOverflow.Ellipsis
+                val widthMatters = softWrap || overflow.isEllipsis
                 val maxWidth =
                     if (widthMatters && constraints.hasBoundedWidth) {
                         constraints.maxWidth
@@ -303,7 +300,7 @@ constructor(
                 //     AA…
                 // Here we assume there won't be any '\n' character when softWrap is false. And make
                 // maxLines 1 to implement the similar behavior.
-                val overwriteMaxLines = !softWrap && overflow == TextOverflow.Ellipsis
+                val overwriteMaxLines = !softWrap && overflow.isEllipsis
                 val finalMaxLines = if (overwriteMaxLines) 1 else maxLines
 
                 // if minWidth == maxWidth the width is fixed.
@@ -327,10 +324,15 @@ constructor(
                     MultiParagraph(
                         intrinsics = nonNullIntrinsics,
                         constraints =
-                            Constraints(maxWidth = width, maxHeight = constraints.maxHeight),
+                            Constraints.fitPrioritizingWidth(
+                                minWidth = 0,
+                                maxWidth = width,
+                                minHeight = 0,
+                                maxHeight = constraints.maxHeight
+                            ),
                         // This is a fallback behavior for ellipsis. Native
                         maxLines = finalMaxLines,
-                        ellipsis = overflow == TextOverflow.Ellipsis
+                        overflow = overflow
                     )
 
                 return TextLayoutResult(
@@ -349,18 +351,38 @@ constructor(
 }
 
 /**
- * Keeps an LRU layout cache of TextLayoutInput, TextLayoutResult pairs. Any non-layout affecting
- * change in TextLayoutInput (color, brush, shadow, TextDecoration) is ignored by this cache.
+ * Keeps a layout cache of TextLayoutInput, TextLayoutResult pairs. Any non-layout affecting change
+ * in TextLayoutInput (color, brush, shadow, TextDecoration) is ignored by this cache.
  *
- * @param capacity Maximum size of LRU cache. Size unit is the number of [CacheTextLayoutInput] and
+ * @param capacity Maximum size of the cache. Size unit is the number of [CacheTextLayoutInput] and
  *   [TextLayoutResult] pairs.
  * @throws IllegalArgumentException if capacity is not a positive integer.
  */
 internal class TextLayoutCache(capacity: Int = DefaultCacheSize) {
-    private val lruCache = LruCache<CacheTextLayoutInput, TextLayoutResult>(capacity)
+    // Do not allocate an LRU cache if the size is just 1.
+    private val cache: LruCache<CacheTextLayoutInput, TextLayoutResult>? =
+        if (capacity != 1) {
+            // 0 or negative cache size is also handled by LruCache.
+            LruCache(capacity)
+        } else {
+            null
+        }
+
+    private var singleSizeCacheInput: CacheTextLayoutInput? = null
+    private var singleSizeCacheResult: TextLayoutResult? = null
 
     fun get(key: TextLayoutInput): TextLayoutResult? {
-        val resultFromCache = lruCache.get(CacheTextLayoutInput(key)) ?: return null
+        val cacheKey = CacheTextLayoutInput(key)
+        val resultFromCache =
+            if (cache != null) {
+                cache[cacheKey]
+            } else if (singleSizeCacheInput == cacheKey) {
+                singleSizeCacheResult
+            } else {
+                return null
+            }
+
+        if (resultFromCache == null) return null
 
         if (resultFromCache.multiParagraph.intrinsics.hasStaleResolvedFonts) {
             // one of the resolved fonts has updated, and this MeasuredText is no longer valid for
@@ -371,12 +393,13 @@ internal class TextLayoutCache(capacity: Int = DefaultCacheSize) {
         return resultFromCache
     }
 
-    fun put(key: TextLayoutInput, value: TextLayoutResult): TextLayoutResult? {
-        return lruCache.put(CacheTextLayoutInput(key), value)
-    }
-
-    fun remove(key: TextLayoutInput): TextLayoutResult? {
-        return lruCache.remove(CacheTextLayoutInput(key))
+    fun put(key: TextLayoutInput, value: TextLayoutResult) {
+        if (cache != null) {
+            cache.put(CacheTextLayoutInput(key), value)
+        } else {
+            singleSizeCacheInput = CacheTextLayoutInput(key)
+            singleSizeCacheResult = value
+        }
     }
 }
 
@@ -398,8 +421,7 @@ internal class CacheTextLayoutInput(val textLayoutInput: TextLayoutInput) {
             result = 31 * result + density.hashCode()
             result = 31 * result + layoutDirection.hashCode()
             result = 31 * result + fontFamilyResolver.hashCode()
-            result = 31 * result + constraints.maxWidth.hashCode()
-            result = 31 * result + constraints.maxHeight.hashCode()
+            result = 31 * result + constraints.hashCode()
             return result
         }
 
@@ -417,10 +439,16 @@ internal class CacheTextLayoutInput(val textLayoutInput: TextLayoutInput) {
             if (density != other.textLayoutInput.density) return false
             if (layoutDirection != other.textLayoutInput.layoutDirection) return false
             if (fontFamilyResolver !== other.textLayoutInput.fontFamilyResolver) return false
-            if (constraints.maxWidth != other.textLayoutInput.constraints.maxWidth) return false
-            if (constraints.maxHeight != other.textLayoutInput.constraints.maxHeight) return false
+            if (constraints != other.textLayoutInput.constraints) return false
         }
 
         return true
     }
 }
+
+private val TextOverflow.isEllipsis: Boolean
+    get() {
+        return this == TextOverflow.Ellipsis ||
+            this == TextOverflow.StartEllipsis ||
+            this == TextOverflow.MiddleEllipsis
+    }

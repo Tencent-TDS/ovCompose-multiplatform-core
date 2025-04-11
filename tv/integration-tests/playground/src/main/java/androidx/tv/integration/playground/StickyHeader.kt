@@ -16,6 +16,7 @@
 
 package androidx.tv.integration.playground
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,8 +41,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.foundation.ExperimentalTvFoundationApi
-import androidx.tv.foundation.lazy.list.TvLazyColumn
 
 data class MonthActivity(
     val month: String,
@@ -63,10 +63,10 @@ val monthActivities =
         ),
     )
 
-@OptIn(ExperimentalTvFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StickyHeaderContent() {
-    TvLazyColumn(modifier = Modifier.fillMaxWidth()) {
+    LazyColumn(modifier = Modifier.fillMaxWidth()) {
         monthActivities.forEachIndexed { monthIndex, monthActivity ->
             val isLastMonth = monthIndex == monthActivities.lastIndex
 

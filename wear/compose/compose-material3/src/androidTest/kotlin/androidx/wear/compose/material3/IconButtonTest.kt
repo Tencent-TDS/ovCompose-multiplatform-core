@@ -339,7 +339,7 @@ class IconButtonTest {
             status = Status.Enabled,
             colors = { IconButtonDefaults.iconButtonColors() },
             expectedContainerColor = { Color.Transparent },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurface }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
@@ -384,12 +384,38 @@ class IconButtonTest {
 
     @RequiresApi(Build.VERSION_CODES.O)
     @Test
+    fun gives_enabled_filled_variant_icon_button_colors() {
+        rule.verifyIconButtonColors(
+            status = Status.Enabled,
+            colors = { IconButtonDefaults.filledVariantIconButtonColors() },
+            expectedContainerColor = { MaterialTheme.colorScheme.primaryContainer },
+            expectedContentColor = { MaterialTheme.colorScheme.onPrimaryContainer }
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
+    fun gives_disabled_filled_variant_icon_button_colors() {
+        rule.verifyIconButtonColors(
+            status = Status.Disabled,
+            colors = { IconButtonDefaults.filledVariantIconButtonColors() },
+            expectedContainerColor = {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContainerAlpha)
+            },
+            expectedContentColor = {
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledContentAlpha)
+            }
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Test
     fun gives_enabled_filled_tonal_icon_button_colors() {
         rule.verifyIconButtonColors(
             status = Status.Enabled,
             colors = { IconButtonDefaults.filledTonalIconButtonColors() },
             expectedContainerColor = { MaterialTheme.colorScheme.surfaceContainer },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurfaceVariant }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
@@ -415,7 +441,7 @@ class IconButtonTest {
             status = Status.Enabled,
             colors = { IconButtonDefaults.outlinedIconButtonColors() },
             expectedContainerColor = { Color.Transparent },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurface }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
@@ -450,7 +476,7 @@ class IconButtonTest {
         val status = Status.Disabled
         rule.verifyButtonBorderColor(
             expectedBorderColor = {
-                MaterialTheme.colorScheme.outline.copy(alpha = DisabledBorderAlpha)
+                MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledBorderAlpha)
             },
             content = { modifier: Modifier ->
                 OutlinedIconButton(onClick = {}, modifier = modifier, enabled = status.enabled()) {}

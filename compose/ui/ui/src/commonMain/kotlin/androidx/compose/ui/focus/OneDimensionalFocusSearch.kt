@@ -18,6 +18,8 @@ package androidx.compose.ui.focus
 
 import androidx.compose.runtime.collection.MutableVector
 import androidx.compose.runtime.collection.mutableVectorOf
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection.Companion.Next
 import androidx.compose.ui.focus.FocusDirection.Companion.Previous
 import androidx.compose.ui.focus.FocusStateImpl.Active
@@ -28,6 +30,7 @@ import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.Nodes
 import androidx.compose.ui.node.nearestAncestor
 import androidx.compose.ui.node.requireLayoutNode
+import androidx.compose.ui.node.requireOwner
 import androidx.compose.ui.node.visitChildren
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -111,12 +114,24 @@ private fun FocusTargetNode.generateAndSearchChildren(
         return true
     }
 
+    val focusTransactionManager = requireTransactionManager()
+    val generationBeforeSearch = focusTransactionManager.generation
+    val activeNodeBeforeSearch = requireOwner().focusOwner.activeFocusTargetNode
     // Generate more items until searchChildren() finds a result.
     return searchBeyondBounds(direction) {
-        // Search among the added children. (The search continues as long as we return null).
-        searchChildren(focusedItem, direction, onFound).takeIf { found ->
-            // Stop searching when we find a result or if we don't have any more content.
-            found || !hasMoreContent
+        if (
+            generationBeforeSearch != focusTransactionManager.generation ||
+                (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled &&
+                    activeNodeBeforeSearch !== requireOwner().focusOwner.activeFocusTargetNode)
+        ) {
+            // A new focus change was triggered during searchBeyondBounds.
+            true
+        } else {
+            // Search among the added children. (The search continues as long as we return null).
+            searchChildren(focusedItem, direction, onFound).takeIf { found ->
+                // Stop searching when we find a result or if we don't have any more content.
+                found || !hasMoreContent
+            }
         }
     } ?: false
 }
@@ -224,16 +239,16 @@ private inline fun <T> MutableVector<T>.forEachItemBefore(item: T, action: (T) -
  * the items makes the next focus search more efficient.
  */
 private object FocusableChildrenComparator : Comparator<FocusTargetNode> {
-    override fun compare(focusTarget1: FocusTargetNode, focusTarget2: FocusTargetNode): Int {
+    override fun compare(a: FocusTargetNode, b: FocusTargetNode): Int {
         // Ignore focus modifiers that won't be considered during focus search.
-        if (!focusTarget1.isEligibleForFocusSearch || !focusTarget2.isEligibleForFocusSearch) {
-            if (focusTarget1.isEligibleForFocusSearch) return -1
-            if (focusTarget2.isEligibleForFocusSearch) return 1
+        if (!a.isEligibleForFocusSearch || !b.isEligibleForFocusSearch) {
+            if (a.isEligibleForFocusSearch) return -1
+            if (b.isEligibleForFocusSearch) return 1
             return 0
         }
 
-        val layoutNode1 = focusTarget1.requireLayoutNode()
-        val layoutNode2 = focusTarget2.requireLayoutNode()
+        val layoutNode1 = a.requireLayoutNode()
+        val layoutNode2 = b.requireLayoutNode()
 
         // Use natural order for focus modifiers within the same layout node.
         if (layoutNode1 == layoutNode2) return 0

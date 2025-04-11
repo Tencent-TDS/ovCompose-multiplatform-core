@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalComposeUiApi::class)
-
 package androidx.compose.animation.demos.lookahead
 
 import android.annotation.SuppressLint
@@ -45,7 +43,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
@@ -74,7 +71,9 @@ fun LookaheadWithDisappearingMovableContentDemo() {
             Box(Modifier.padding(start = 50.dp, top = 200.dp, bottom = 100.dp)) {
                 val icon = remember { movableContentOf<Boolean> { MyIcon(it) } }
                 val title = remember {
-                    movableContentOf<Boolean> { Title(visible = it, Modifier.animatePosition()) }
+                    movableContentOf<Boolean> {
+                        Title(visible = it, Modifier.animatePosition(this@LookaheadScope))
+                    }
                 }
                 val details = remember { movableContentOf<Boolean> { Details(visible = it) } }
 
@@ -132,39 +131,41 @@ fun Details(visible: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-context(LookaheadScope)
 @OptIn(ExperimentalAnimatableApi::class)
 @SuppressLint("UnnecessaryComposedModifier")
-fun Modifier.animatePosition(): Modifier = composed {
-    val offsetAnimation = remember { DeferredTargetAnimation(IntOffset.VectorConverter) }
-    val coroutineScope = rememberCoroutineScope()
-    this.approachLayout(
-        isMeasurementApproachInProgress = { false },
-        isPlacementApproachInProgress = {
-            offsetAnimation.updateTarget(
-                lookaheadScopeCoordinates.localLookaheadPositionOf(it).round(),
-                coroutineScope,
-                spring(stiffness = Spring.StiffnessMediumLow)
-            )
-            !offsetAnimation.isIdle
-        }
-    ) { measurable, constraints ->
-        measurable.measure(constraints).run {
-            layout(width, height) {
-                val (x, y) =
-                    coordinates?.let { coordinates ->
-                        val origin = this.lookaheadScopeCoordinates
-                        val animOffset =
-                            offsetAnimation.updateTarget(
-                                origin.localLookaheadPositionOf(coordinates).round(),
-                                coroutineScope,
-                                spring(stiffness = Spring.StiffnessMediumLow),
-                            )
-                        val currentOffset = origin.localPositionOf(coordinates, Offset.Zero)
-                        animOffset - currentOffset.round()
-                    } ?: IntOffset.Zero
-                place(x, y)
+fun Modifier.animatePosition(lookaheadScope: LookaheadScope): Modifier =
+    with(lookaheadScope) {
+        composed {
+            val offsetAnimation = remember { DeferredTargetAnimation(IntOffset.VectorConverter) }
+            val coroutineScope = rememberCoroutineScope()
+            this.approachLayout(
+                isMeasurementApproachInProgress = { false },
+                isPlacementApproachInProgress = {
+                    offsetAnimation.updateTarget(
+                        lookaheadScopeCoordinates.localLookaheadPositionOf(it).round(),
+                        coroutineScope,
+                        spring(stiffness = Spring.StiffnessMediumLow)
+                    )
+                    !offsetAnimation.isIdle
+                }
+            ) { measurable, constraints ->
+                measurable.measure(constraints).run {
+                    layout(width, height) {
+                        val (x, y) =
+                            coordinates?.let { coordinates ->
+                                val origin = this.lookaheadScopeCoordinates
+                                val animOffset =
+                                    offsetAnimation.updateTarget(
+                                        origin.localLookaheadPositionOf(coordinates).round(),
+                                        coroutineScope,
+                                        spring(stiffness = Spring.StiffnessMediumLow),
+                                    )
+                                val currentOffset = origin.localPositionOf(coordinates, Offset.Zero)
+                                animOffset - currentOffset.round()
+                            } ?: IntOffset.Zero
+                        place(x, y)
+                    }
+                }
             }
         }
     }
-}

@@ -38,7 +38,7 @@ class LiveEditApiTests : BaseComposeTest() {
         invalidateGroupsWithKey(key)
     }
 
-    private fun compositionErrors(): List<Pair<Exception, Boolean>> = currentCompositionErrors()
+    private fun compositionErrors(): List<Pair<Throwable, Boolean>> = getCurrentCompositionErrors()
 
     @Before
     fun setUp() {

@@ -22,7 +22,6 @@ import android.media.CamcorderProfile.QUALITY_LOW
 import android.media.EncoderProfiles
 import android.os.Build
 import android.util.Size
-import androidx.annotation.DoNotInline
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraPipe
@@ -41,7 +40,7 @@ import javax.inject.Named
 
 /** Adapt the [EncoderProfilesProvider] interface to [CameraPipe]. */
 @CameraScope
-class EncoderProfilesProviderAdapter
+public class EncoderProfilesProviderAdapter
 @Inject
 constructor(
     @Named("CameraId") private val cameraIdString: String,
@@ -184,13 +183,12 @@ constructor(
 
     @RequiresApi(31)
     internal object Api31Impl {
-        @DoNotInline
         fun getAll(cameraId: String, quality: Int): EncoderProfiles? {
             return CamcorderProfile.getAll(cameraId, quality)
         }
     }
 
-    companion object {
+    public companion object {
         private const val TAG = "EncoderProfilesProviderAdapter"
     }
 }

@@ -229,6 +229,36 @@ internal class FloatObjectMapTest {
     }
 
     @Test
+    fun buildFloatObjectMapFunction() {
+        val contract: Boolean
+        val map = buildFloatObjectMap {
+            contract = true
+            put(1f, "World")
+            put(2f, "Monde")
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals("World", map[1f])
+        assertEquals("Monde", map[2f])
+    }
+
+    @Test
+    fun buildFloatObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildFloatObjectMap(20) {
+                contract = true
+                put(1f, "World")
+                put(2f, "Monde")
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals("World", map[1f])
+        assertEquals("Monde", map[2f])
+    }
+
+    @Test
     fun addToMap() {
         val map = MutableFloatObjectMap<String>()
         map[1f] = "World"
@@ -766,5 +796,16 @@ internal class FloatObjectMapTest {
 
         assertTrue(map.all { key, value -> key < 7f && value.isNotEmpty() })
         assertFalse(map.all { key, _ -> key < 6f })
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableFloatObjectMap<String>()
+
+        for (i in 0..1000000) {
+            map[i.toFloat()] = i.toString()
+            map.remove(i.toFloat())
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

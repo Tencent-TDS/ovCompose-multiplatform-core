@@ -16,13 +16,14 @@
 
 package androidx.navigation.serialization
 
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavArgument
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.savedstate.SavedState
+import kotlin.jvm.JvmInline
 import kotlin.reflect.typeOf
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -68,7 +69,7 @@ class NavArgumentGeneratorTest {
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
             navArgument("arg") {
-                type = NavType.StringType
+                type = InternalNavType.StringNonNullableType
                 nullable = false
             }
         assertThat(converted).containsExactlyInOrder(expected)
@@ -111,6 +112,34 @@ class NavArgumentGeneratorTest {
         val expected =
             navArgument("arg") {
                 type = InternalNavType.BoolNullableType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDouble() {
+        @Serializable class TestClass(val arg: Double)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleNullable() {
+        @Serializable class TestClass(val arg: Double?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleNullableType
                 nullable = true
             }
         assertThat(converted).containsExactlyInOrder(expected)
@@ -454,6 +483,62 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
+    fun convertToDoubleArray() {
+        @Serializable class TestClass(val arg: DoubleArray)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleArrayNullable() {
+        @Serializable class TestClass(val arg: DoubleArray?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleArrayType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleList() {
+        @Serializable class TestClass(val arg: List<Double>)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToDoubleListNullable() {
+        @Serializable class TestClass(val arg: List<Double>?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.DoubleListType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
     fun convertToStringArray() {
         @Serializable class TestClass(val arg: Array<String>)
 
@@ -482,22 +567,22 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
-    fun convertToStringList() {
-        @Serializable class TestClass(val arg: List<String>)
+    fun convertToStringNullableArrayNullable() {
+        @Serializable class TestClass(val arg: Array<String?>?)
 
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
             navArgument("arg") {
-                type = NavType.StringListType
-                nullable = false
+                type = InternalNavType.StringNullableArrayType
+                nullable = true
             }
         assertThat(converted).containsExactlyInOrder(expected)
         assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
     }
 
     @Test
-    fun convertArrayListToStringList() {
-        @Serializable class TestClass(val arg: ArrayList<String>)
+    fun convertToStringList() {
+        @Serializable class TestClass(val arg: List<String>)
 
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
@@ -524,17 +609,57 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
+    fun convertToStringNullableList() {
+        @Serializable class TestClass(val arg: List<String?>)
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.StringNullableListType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToStringNullableListNullable() {
+        @Serializable class TestClass(val arg: List<String?>?)
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalNavType.StringNullableListType
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertArrayListToStringList() {
+        @Serializable class TestClass(val arg: ArrayList<String>)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = NavType.StringListType
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
     fun convertToEnumArray() {
         @Serializable class TestClass(val arg: Array<TestEnum>)
         val navType =
             object : CollectionNavType<Array<TestEnum>>(false) {
-                override fun put(bundle: Bundle, key: String, value: Array<TestEnum>) {}
+                override fun put(bundle: SavedState, key: String, value: Array<TestEnum>) {}
 
                 override fun serializeAsValues(value: Array<TestEnum>) = emptyList<String>()
 
                 override fun emptyCollection(): Array<TestEnum> = emptyArray()
 
-                override fun get(bundle: Bundle, key: String) = null
+                override fun get(bundle: SavedState, key: String) = null
 
                 override fun parseValue(value: String) = emptyArray<TestEnum>()
             }
@@ -551,12 +676,45 @@ class NavArgumentGeneratorTest {
     }
 
     @Test
+    fun convertValueClass() {
+        // test value class as destination route
+        val converted = serializer<TestValueClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = NavType.IntType
+                nullable = false
+                unknownDefaultValuePresent = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+
+        // test value class as route arg
+        @Serializable class TestClass(val arg: TestValueClass)
+        val navType =
+            object : NavType<TestValueClass>(false) {
+                override fun put(bundle: SavedState, key: String, value: TestValueClass) {}
+
+                override fun get(bundle: SavedState, key: String): TestValueClass? = null
+
+                override fun parseValue(value: String): TestValueClass = TestValueClass(0)
+            }
+        val converted2 =
+            serializer<TestClass>().generateNavArguments(mapOf(typeOf<TestValueClass>() to navType))
+        val expected2 =
+            navArgument("arg") {
+                type = navType
+                nullable = false
+                unknownDefaultValuePresent = false
+            }
+        assertThat(converted2).containsExactlyInOrder(expected2)
+    }
+
+    @Test
     fun convertWithDefaultValue() {
         @Serializable class TestClass(val arg: String = "test")
         val converted = serializer<TestClass>().generateNavArguments()
         val expected =
             navArgument("arg") {
-                type = NavType.StringType
+                type = InternalNavType.StringNonNullableType
                 nullable = false
                 unknownDefaultValuePresent = true
             }
@@ -604,8 +762,10 @@ class NavArgumentGeneratorTest {
 
         assertThat(exception.message)
             .isEqualTo(
-                "Cannot cast arg of type kotlin.collections.LinkedHashSet to a NavType. " +
-                    "Make sure to provide custom NavType for this argument."
+                "Route androidx.navigation.serialization.NavArgumentGeneratorTest" +
+                    ".convertIllegalCustomType.TestClass could not find any NavType for " +
+                    "argument arg of type kotlin.collections.LinkedHashSet - typeMap " +
+                    "received was {}"
             )
     }
 
@@ -615,9 +775,9 @@ class NavArgumentGeneratorTest {
 
         val CustomNavType =
             object : NavType<ArrayList<String>>(false) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -640,9 +800,9 @@ class NavArgumentGeneratorTest {
 
         val CustomNavType =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -665,9 +825,9 @@ class NavArgumentGeneratorTest {
             object : NavType<ArrayList<String>>(false) {
                 override val name = "customNavType"
 
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
@@ -731,18 +891,18 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -780,18 +940,18 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<String>?>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<String>?) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<String>?) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<String> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<String> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<String> = arrayListOf()
             }
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -827,9 +987,9 @@ class NavArgumentGeneratorTest {
 
         val CustomStringList =
             object : NavType<ArrayList<List<String>>>(false) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<List<String>>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<List<String>>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<List<String>> =
+                override fun get(bundle: SavedState, key: String): ArrayList<List<String>> =
                     arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<List<String>> = arrayListOf()
@@ -853,9 +1013,9 @@ class NavArgumentGeneratorTest {
 
         val CustomIntList =
             object : NavType<ArrayList<Int>>(true) {
-                override fun put(bundle: Bundle, key: String, value: ArrayList<Int>) {}
+                override fun put(bundle: SavedState, key: String, value: ArrayList<Int>) {}
 
-                override fun get(bundle: Bundle, key: String): ArrayList<Int> = arrayListOf()
+                override fun get(bundle: SavedState, key: String): ArrayList<Int> = arrayListOf()
 
                 override fun parseValue(value: String): ArrayList<Int> = arrayListOf()
             }
@@ -865,7 +1025,7 @@ class NavArgumentGeneratorTest {
                 .generateNavArguments(mapOf(typeOf<ArrayList<Int>>() to CustomIntList))
         val expectedString =
             navArgument("arg") {
-                type = NavType.StringType
+                type = InternalNavType.StringNonNullableType
                 nullable = false
             }
         val expectedIntList =
@@ -883,9 +1043,9 @@ class NavArgumentGeneratorTest {
     fun convertPrioritizesProvidedNavType() {
         val CustomIntNavType =
             object : NavType<Int>(true) {
-                override fun put(bundle: Bundle, key: String, value: Int) {}
+                override fun put(bundle: SavedState, key: String, value: Int) {}
 
-                override fun get(bundle: Bundle, key: String): Int = 0
+                override fun get(bundle: SavedState, key: String): Int = 0
 
                 override fun parseValue(value: String): Int = 0
             }
@@ -997,52 +1157,71 @@ class NavArgumentGeneratorTest {
         assertThat(converted).containsExactlyInOrder(expected)
     }
 
+    @Serializable @JvmInline value class TestValueClass(val arg: Int)
+
     // writing our own assert so we don't need to override NamedNavArgument's equals
     // and hashcode which will need to be public api.
     private fun assertThat(actual: List<NamedNavArgument>) = actual
 
-    enum class TestEnum {
-        TEST
-    }
-}
-
-internal fun List<NamedNavArgument>.containsExactlyInOrder(
-    vararg expectedArgs: NamedNavArgument
-) {
-    if (expectedArgs.size != this.size) {
-        fail("expected list has size ${expectedArgs.size} and actual list has size $size}")
-    }
-    for (i in indices) {
-        val actual = this[i]
-        val expected = expectedArgs[i]
-        if (expected.name != actual.name) {
-            fail("expected name ${expected.name}, was actually ${actual.name}")
+    private fun List<NamedNavArgument>.containsExactlyInOrder(
+        vararg expectedArgs: NamedNavArgument
+    ) {
+        if (expectedArgs.size != this.size) {
+            fail("expected list has size ${expectedArgs.size} and actual list has size $size}")
         }
+        for (i in indices) {
+            val actual = this[i]
+            val expected = expectedArgs[i]
+            if (expected.name != actual.name) {
+                fail("expected name ${expected.name}, was actually ${actual.name}")
+            }
 
-        if (!expected.argument.isEqual(actual.argument)) {
-            fail(
-                """expected ${expected.name} to be:
+            if (!expected.argument.isEqual(actual.argument)) {
+                fail(
+                    """expected ${expected.name} to be:
                 |   ${expected.argument}
                 |   but was:
                 |   ${actual.argument}
                 """
-                    .trimMargin()
-            )
+                        .trimMargin()
+                )
+            }
+        }
+    }
+
+    private fun NavArgument.isEqual(other: NavArgument): Boolean {
+        if (this === other) return true
+        if (this::class != other::class) return false
+        if (isNullable != other.isNullable) return false
+        if (isDefaultValuePresent != other.isDefaultValuePresent) return false
+        if (isDefaultValueUnknown != other.isDefaultValueUnknown) return false
+        if (type != other.type) return false
+        // In context of serialization, we can only tell if defaultValue is present but don't know
+        // actual value, so we cannot compare it to the generated defaultValue. But if
+        // there is no defaultValue, we expect them both to be null.
+        return if (!isDefaultValuePresent) {
+            defaultValue == null && other.defaultValue == null
+        } else true
+    }
+
+    enum class TestEnum {
+        TEST
+    }
+
+    @SerialName("MyCustomSerialName")
+    enum class TestEnumCustomSerialName {
+        TEST
+    }
+
+    @Serializable
+    private class EnumWrapper {
+        enum class NestedEnum {
+            ONE,
+            TWO
         }
     }
 }
 
-internal fun NavArgument.isEqual(other: NavArgument): Boolean {
-    if (this === other) return true
-    if (this::class != other::class) return false
-    if (isNullable != other.isNullable) return false
-    if (isDefaultValuePresent != other.isDefaultValuePresent) return false
-    if (isDefaultValueUnknown != other.isDefaultValueUnknown) return false
-    if (type != other.type) return false
-    // In context of serialization, we can only tell if defaultValue is present but don't know
-    // actual value, so we cannot compare it to the generated defaultValue. But if
-    // there is no defaultValue, we expect them both to be null.
-    return if (!isDefaultValuePresent) {
-        defaultValue == null && other.defaultValue == null
-    } else true
+enum class TestTopLevelEnum {
+    TEST
 }

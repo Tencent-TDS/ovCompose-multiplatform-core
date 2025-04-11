@@ -98,11 +98,11 @@ fun Text(
     fontFamily: FontFamily? = null,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = null,
+    textAlign: TextAlign? = LocalTextConfiguration.current.textAlign,
     lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = TextOverflow.Clip,
+    overflow: TextOverflow = LocalTextConfiguration.current.overflow,
     softWrap: Boolean = true,
-    maxLines: Int = Int.MAX_VALUE,
+    maxLines: Int = LocalTextConfiguration.current.maxLines,
     minLines: Int = 1,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = LocalTextStyle.current
@@ -192,11 +192,11 @@ fun Text(
     fontFamily: FontFamily? = null,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = null,
+    textAlign: TextAlign? = LocalTextConfiguration.current.textAlign,
     lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = TextOverflow.Clip,
+    overflow: TextOverflow = LocalTextConfiguration.current.overflow,
     softWrap: Boolean = true,
-    maxLines: Int = Int.MAX_VALUE,
+    maxLines: Int = LocalTextConfiguration.current.maxLines,
     minLines: Int = 1,
     inlineContent: Map<String, InlineTextContent> = mapOf(),
     onTextLayout: (TextLayoutResult) -> Unit = {},
@@ -247,4 +247,63 @@ val LocalTextStyle: ProvidableCompositionLocal<TextStyle> =
 fun ProvideTextStyle(value: TextStyle, content: @Composable () -> Unit) {
     val mergedStyle = LocalTextStyle.current.merge(value)
     CompositionLocalProvider(LocalTextStyle provides mergedStyle, content = content)
+}
+
+/**
+ * CompositionLocal containing the preferred [TextConfiguration] that will be used by [Text]
+ * components by default consisting of text alignment, overflow specification and max lines.
+ * Material3 components related to text such as [Button], [CheckboxButton], [SwitchButton],
+ * [RadioButton] use [LocalTextConfiguration] to set values with which to style child text
+ * components.
+ */
+val LocalTextConfiguration: ProvidableCompositionLocal<TextConfiguration> =
+    compositionLocalOf(structuralEqualityPolicy()) {
+        TextConfiguration(
+            TextConfigurationDefaults.TextAlign,
+            TextConfigurationDefaults.Overflow,
+            TextConfigurationDefaults.MaxLines
+        )
+    }
+
+/**
+ * Class representing aspects of [Text] that can be configured with [LocalTextConfiguration].
+ *
+ * @param textAlign The alignment of the text within the lines of the paragraph.
+ * @param overflow How visual overflow should be handled.
+ * @param maxLines The maximum number of lines for the text to span, wrapping if necessary.
+ */
+class TextConfiguration(
+    val textAlign: TextAlign?,
+    val overflow: TextOverflow,
+    val maxLines: Int,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is TextConfiguration) return false
+
+        if (textAlign != other.textAlign) return false
+        if (overflow != other.overflow) return false
+        if (maxLines != other.maxLines) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = textAlign.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + maxLines.hashCode()
+        return result
+    }
+}
+
+/** Default values for [TextConfiguration] */
+object TextConfigurationDefaults {
+    /** Default text alignment for [Text] */
+    val TextAlign: TextAlign? = null
+
+    /** Default visual text overflow for [Text] */
+    val Overflow: TextOverflow = TextOverflow.Clip
+
+    /** Default max lines for [Text] */
+    const val MaxLines: Int = Int.MAX_VALUE
 }

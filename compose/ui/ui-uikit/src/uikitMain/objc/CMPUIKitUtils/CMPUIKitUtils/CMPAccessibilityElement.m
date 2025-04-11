@@ -18,42 +18,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@implementation CMPAccessibilityElement {
-    BOOL _inDealloc;
-}
-
-- (instancetype)initWithAccessibilityContainer:(id)container {
-    self = [super initWithAccessibilityContainer:container];
-    
-    if (self) {
-        _inDealloc = NO;
-    }
-    
-    return self;
-}
-
-- (void)dealloc {
-    _inDealloc = YES;
-}
-
-- (void)setAccessibilityContainer:(__nullable id)accessibilityContainer {
-    // NoOp
-}
-
-// Overrides default accessibilityContainer implementation.
-- (__nullable id)accessibilityContainer {
-    // see https://github.com/flutter/flutter/issues/87247
-    // TODO: investigate if this bug is still present on iOS versions supported by Compose, if it's not, fuse `accessibilityContainer` and `resolveAccessibilityContainer` implementations into a single one (like in `CMPAccessibilityContainer`)
-    if (_inDealloc) {
-        return nil;
-    }
-    
-    return [self resolveAccessibilityContainer];
-}
-
-- (__nullable id)resolveAccessibilityContainer {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
-}
+@implementation CMPAccessibilityElement
 
 + (__nullable id)accessibilityContainerOfObject:(id)object {
     // Duck-typing selector dispatch
@@ -61,43 +26,55 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityCustomActions];
 }
 
 - (UIAccessibilityTraits)accessibilityTraits {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityTraits];
+}
+
+- (UIAccessibilityContainerType)accessibilityContainerType {
+    return [super accessibilityContainerType];
 }
 
 - (NSString *__nullable)accessibilityIdentifier {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityIdentifier];
 }
 
 - (NSString *__nullable)accessibilityHint {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityHint];
 }
 
 - (NSString *__nullable)accessibilityLabel {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityLabel];
 }
 
 - (NSString *__nullable)accessibilityValue {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityValue];
 }
 
 - (CGRect)accessibilityFrame {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityFrame];
 }
 
 - (BOOL)isAccessibilityElement {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super isAccessibilityElement];
 }
 
 - (BOOL)accessibilityActivate {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityActivate];
+}
+
+- (void)accessibilityIncrement {
+    [super accessibilityIncrement];
+}
+
+- (void)accessibilityDecrement {
+    [super accessibilityDecrement];
 }
 
 - (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return [super accessibilityScroll:direction];
 }
 
 - (BOOL)accessibilityPerformEscape {
@@ -105,11 +82,11 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (BOOL)accessibilityScrollToVisible {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return NO;
 }
 
 - (BOOL)accessibilityScrollToVisibleWithChild:(id)child {
-    CMP_MUST_BE_OVERRIDED_INVARIANT_VIOLATION
+    return NO;
 }
 
 - (void)accessibilityElementDidBecomeFocused {
@@ -118,6 +95,18 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)accessibilityElementDidLoseFocus {
     [super accessibilityElementDidLoseFocus];
+}
+
+- (NSInteger)accessibilityElementCount {
+    return [super accessibilityElementCount];
+}
+
+- (NSInteger)indexOfAccessibilityElement:(nonnull id)element {
+    return [super indexOfAccessibilityElement:element];
+}
+
+- (id _Nullable)accessibilityElementAtIndex:(NSInteger)index {
+    return [super accessibilityElementAtIndex:index];
 }
 
 @end

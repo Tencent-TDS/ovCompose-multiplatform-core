@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(31) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.compat
 
 import android.hardware.camera2.CameraCaptureSession
@@ -65,9 +63,11 @@ internal interface CameraExtensionSessionWrapper :
         /** @see CameraExtensionSession.StateCallback.onConfigured */
         fun onConfigured(session: CameraExtensionSessionWrapper)
     }
+
+    fun getRealTimeCaptureLatency(): CameraExtensionSession.StillCaptureLatency?
 }
 
-@RequiresApi(31) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+@RequiresApi(31)
 internal class AndroidExtensionSessionStateCallback(
     private val device: CameraDeviceWrapper,
     private val stateCallback: CameraExtensionSessionWrapper.StateCallback,
@@ -137,7 +137,7 @@ internal class AndroidExtensionSessionStateCallback(
     }
 }
 
-@RequiresApi(31) // TODO(b/200306659): Remove and replace with annotation on package-info.java
+@RequiresApi(31)
 internal open class AndroidCameraExtensionSession(
     override val device: CameraDeviceWrapper,
     private val cameraExtensionSession: CameraExtensionSession,
@@ -250,6 +250,13 @@ internal open class AndroidCameraExtensionSession(
         return cameraExtensionSession.close()
     }
 
+    override fun getRealTimeCaptureLatency(): CameraExtensionSession.StillCaptureLatency? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return cameraExtensionSession.realtimeStillCaptureLatency
+        }
+        return null
+    }
+
     inner class Camera2CaptureSessionCallbackToExtensionCaptureCallback(
         private val captureCallback: Camera2CaptureCallback,
         private val frameQueue: Queue<Long>
@@ -270,6 +277,14 @@ internal open class AndroidCameraExtensionSession(
             session: CameraExtensionSession,
             request: CaptureRequest
         ) {}
+
+        override fun onCaptureProcessProgressed(
+            session: CameraExtensionSession,
+            request: CaptureRequest,
+            progress: Int
+        ) {
+            captureCallback.onCaptureProcessProgressed(request, progress)
+        }
 
         override fun onCaptureFailed(session: CameraExtensionSession, request: CaptureRequest) {
             val frameNumber = frameQueue.remove()
@@ -333,6 +348,14 @@ internal open class AndroidCameraExtensionSession(
                         captureRequestMap[request]!!.stream()
                 }
             }
+        }
+
+        override fun onCaptureProcessProgressed(
+            session: CameraExtensionSession,
+            request: CaptureRequest,
+            progress: Int
+        ) {
+            captureCallback.onCaptureProcessProgressed(request, progress)
         }
 
         override fun onCaptureSequenceCompleted(session: CameraExtensionSession, sequenceId: Int) {

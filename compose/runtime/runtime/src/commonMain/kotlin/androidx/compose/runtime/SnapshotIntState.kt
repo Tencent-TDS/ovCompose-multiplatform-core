@@ -21,13 +21,17 @@ package androidx.compose.runtime
 
 import androidx.compose.runtime.internal.JvmDefaultWithCompatibility
 import androidx.compose.runtime.snapshots.AutoboxingStateValueProperty
+import androidx.compose.runtime.snapshots.GlobalSnapshot
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.snapshots.SnapshotId
 import androidx.compose.runtime.snapshots.SnapshotMutableState
 import androidx.compose.runtime.snapshots.StateFactoryMarker
 import androidx.compose.runtime.snapshots.StateObjectImpl
 import androidx.compose.runtime.snapshots.StateRecord
+import androidx.compose.runtime.snapshots.currentSnapshot
 import androidx.compose.runtime.snapshots.overwritable
 import androidx.compose.runtime.snapshots.readable
+import androidx.compose.runtime.snapshots.toSnapshotId
 import androidx.compose.runtime.snapshots.withCurrent
 import kotlin.jvm.JvmMultifileClass
 import kotlin.jvm.JvmName
@@ -121,12 +125,12 @@ internal open class SnapshotMutableIntStateImpl(value: Int) :
     StateObjectImpl(), MutableIntState, SnapshotMutableState<Int> {
 
     private var next =
-        IntStateStateRecord(value).also {
-            if (Snapshot.isInSnapshot) {
-                it.next =
-                    IntStateStateRecord(value).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+        currentSnapshot().let { snapshot ->
+            IntStateStateRecord(snapshot.snapshotId, value).also {
+                if (snapshot !is GlobalSnapshot) {
+                    it.next =
+                        IntStateStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), value)
+                }
             }
         }
 
@@ -176,11 +180,15 @@ internal open class SnapshotMutableIntStateImpl(value: Int) :
     val debuggerDisplayValue: Int
         @JvmName("getDebuggerDisplayValue") get() = next.withCurrent { it.value }
 
-    private class IntStateStateRecord(var value: Int) : StateRecord() {
+    private class IntStateStateRecord(snapshotId: SnapshotId, var value: Int) :
+        StateRecord(snapshotId) {
         override fun assign(value: StateRecord) {
             this.value = (value as IntStateStateRecord).value
         }
 
-        override fun create(): StateRecord = IntStateStateRecord(value)
+        override fun create(): StateRecord = create(currentSnapshot().snapshotId)
+
+        override fun create(snapshotId: SnapshotId): StateRecord =
+            IntStateStateRecord(snapshotId, value)
     }
 }

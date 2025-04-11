@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.paint
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -55,6 +56,8 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.tokens.ChildButtonTokens
@@ -89,11 +92,6 @@ import androidx.wear.compose.material3.tokens.OutlinedButtonTokens
  * Example of a [Button]:
  *
  * @sample androidx.wear.compose.material3.samples.SimpleButtonSample
- *
- * Example of a [Button] with onLongClick:
- *
- * @sample androidx.wear.compose.material3.samples.ButtonWithOnLongClickSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -173,11 +171,6 @@ fun Button(
  * Example of a [FilledTonalButton]:
  *
  * @sample androidx.wear.compose.material3.samples.SimpleFilledTonalButtonSample
- *
- * Example of a [FilledTonalButton] with onLongClick:
- *
- * @sample androidx.wear.compose.material3.samples.FilledTonalButtonWithOnLongClickSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -256,11 +249,6 @@ fun FilledTonalButton(
  * Example of an [OutlinedButton]:
  *
  * @sample androidx.wear.compose.material3.samples.SimpleOutlinedButtonSample
- *
- * Example of a [OutlinedButton] with onLongClick:
- *
- * @sample androidx.wear.compose.material3.samples.OutlinedButtonWithOnLongClickSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -339,11 +327,6 @@ fun OutlinedButton(
  * Example of a [ChildButton]:
  *
  * @sample androidx.wear.compose.material3.samples.SimpleChildButtonSample
- *
- * Example of a [ChildButton] with onLongClick:
- *
- * @sample androidx.wear.compose.material3.samples.ChildButtonWithOnLongClickSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -425,6 +408,13 @@ fun ChildButton(
  *
  * @sample androidx.wear.compose.material3.samples.ButtonSample
  *
+ * Example of a [Button] with a large icon and adjusted content padding:
+ *
+ * @sample androidx.wear.compose.material3.samples.ButtonLargeIconSample
+ *
+ * Example of a [Button] with an extra large icon and adjusted content padding:
+ *
+ * @sample androidx.wear.compose.material3.samples.ButtonExtraLargeIconSample
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -477,17 +467,40 @@ fun Button(
         modifier = modifier.buttonSizeModifier(),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
-        secondaryLabel = secondaryLabel,
+        secondaryLabelContent =
+            provideNullableScopeContent(
+                contentColor = colors.secondaryContentColor(enabled),
+                textStyle = FilledButtonTokens.SecondaryLabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign = TextAlign.Start,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2
+                    ),
+                content = secondaryLabel
+            ),
         icon = icon,
         enabled = enabled,
         shape = shape,
         labelFont = FilledButtonTokens.LabelFont.value,
-        secondaryLabelFont = FilledButtonTokens.SecondaryLabelFont.value,
         colors = colors,
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        label = label
+        labelContent =
+            provideScopeContent(
+                contentColor = colors.contentColor(enabled),
+                textStyle = FilledButtonTokens.LabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign =
+                            if (icon != null || secondaryLabel != null) TextAlign.Start
+                            else TextAlign.Center,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 3
+                    ),
+                content = label
+            )
     )
 
 /**
@@ -524,7 +537,6 @@ fun Button(
  * Example of a [FilledTonalButton] with an icon and secondary label:
  *
  * @sample androidx.wear.compose.material3.samples.FilledTonalButtonSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -576,17 +588,40 @@ fun FilledTonalButton(
         modifier = modifier.buttonSizeModifier(),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
-        secondaryLabel = secondaryLabel,
+        secondaryLabelContent =
+            provideNullableScopeContent(
+                contentColor = colors.secondaryContentColor(enabled),
+                textStyle = FilledButtonTokens.SecondaryLabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign = TextAlign.Start,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                    ),
+                content = secondaryLabel
+            ),
         icon = icon,
         enabled = enabled,
         shape = shape,
         labelFont = FilledTonalButtonTokens.LabelFont.value,
-        secondaryLabelFont = FilledTonalButtonTokens.SecondaryLabelFont.value,
         colors = colors,
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        label = label
+        labelContent =
+            provideScopeContent(
+                contentColor = colors.contentColor(enabled),
+                textStyle = FilledButtonTokens.LabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign =
+                            if (icon != null || secondaryLabel != null) TextAlign.Start
+                            else TextAlign.Center,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 3,
+                    ),
+                content = label
+            )
     )
 
 /**
@@ -618,7 +653,6 @@ fun FilledTonalButton(
  * Example of an [OutlinedButton] with an icon and secondary label:
  *
  * @sample androidx.wear.compose.material3.samples.OutlinedButtonSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -670,17 +704,40 @@ fun OutlinedButton(
         modifier = modifier.buttonSizeModifier(),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
-        secondaryLabel = secondaryLabel,
+        secondaryLabelContent =
+            provideNullableScopeContent(
+                contentColor = colors.secondaryContentColor(enabled),
+                textStyle = FilledButtonTokens.SecondaryLabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign = TextAlign.Start,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                    ),
+                content = secondaryLabel
+            ),
         icon = icon,
         enabled = enabled,
         shape = shape,
         labelFont = OutlinedButtonTokens.LabelFont.value,
-        secondaryLabelFont = OutlinedButtonTokens.SecondaryLabelFont.value,
         colors = colors,
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        label = label
+        labelContent =
+            provideScopeContent(
+                contentColor = colors.contentColor(enabled),
+                textStyle = FilledButtonTokens.LabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign =
+                            if (icon != null || secondaryLabel != null) TextAlign.Start
+                            else TextAlign.Center,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 3,
+                    ),
+                content = label
+            )
     )
 
 /**
@@ -712,7 +769,6 @@ fun OutlinedButton(
  * Example of a [ChildButton] with an icon and secondary label:
  *
  * @sample androidx.wear.compose.material3.samples.ChildButtonSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
@@ -764,17 +820,40 @@ fun ChildButton(
         modifier = modifier.buttonSizeModifier(),
         onLongClick = onLongClick,
         onLongClickLabel = onLongClickLabel,
-        secondaryLabel = secondaryLabel,
+        secondaryLabelContent =
+            provideNullableScopeContent(
+                contentColor = colors.secondaryContentColor(enabled),
+                textStyle = FilledButtonTokens.SecondaryLabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign = TextAlign.Start,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                    ),
+                content = secondaryLabel
+            ),
         icon = icon,
         enabled = enabled,
         shape = shape,
         labelFont = ChildButtonTokens.LabelFont.value,
-        secondaryLabelFont = ChildButtonTokens.SecondaryLabelFont.value,
         colors = colors,
         border = border,
         contentPadding = contentPadding,
         interactionSource = interactionSource,
-        label = label
+        labelContent =
+            provideScopeContent(
+                contentColor = colors.contentColor(enabled),
+                textStyle = FilledButtonTokens.LabelFont.value,
+                textConfiguration =
+                    TextConfiguration(
+                        textAlign =
+                            if (icon != null || secondaryLabel != null) TextAlign.Start
+                            else TextAlign.Center,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 3,
+                    ),
+                content = label
+            )
     )
 
 /**
@@ -829,14 +908,14 @@ fun ChildButton(
  * Example of a [CompactButton] with onLongClick:
  *
  * @sample androidx.wear.compose.material3.samples.CompactButtonWithOnLongClickSample
- *
  * @param onClick Will be called when the user clicks the button
  * @param modifier Modifier to be applied to the button
  * @param onLongClick Called when this button is long clicked (long-pressed). When this callback is
  *   set, [onLongClickLabel] should be set as well.
  * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
- * @param label A slot for providing the button's main label. The contents are expected to be text
- *   which is "start" aligned if there is an icon preset and "center" aligned if not.
+ * @param label A slot for providing the button's main label. The contents are expected to be a
+ *   single line of text which is "start" aligned if there is an icon preset and "center" aligned if
+ *   not.
  * @param icon A slot for providing the button's icon. The contents are expected to be a
  *   horizontally and vertically aligned icon of size [ButtonDefaults.SmallIconSize] when used with
  *   a label or [ButtonDefaults.IconSize] when used as the only content in the button.
@@ -881,17 +960,27 @@ fun CompactButton(
                     .padding(ButtonDefaults.CompactButtonTapTargetPadding),
             onLongClick = onLongClick,
             onLongClickLabel = onLongClickLabel,
-            secondaryLabel = null,
+            secondaryLabelContent = null,
             icon = icon,
             enabled = enabled,
             shape = shape,
             labelFont = CompactButtonTokens.LabelFont.value,
-            secondaryLabelFont = null,
             colors = colors,
             border = border,
             contentPadding = contentPadding,
             interactionSource = interactionSource,
-            label = label
+            labelContent =
+                provideScopeContent(
+                    contentColor = colors.contentColor(enabled),
+                    textStyle = CompactButtonTokens.LabelFont.value,
+                    textConfiguration =
+                        TextConfiguration(
+                            textAlign = if (icon != null) TextAlign.Start else TextAlign.Center,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                        ),
+                    label
+                )
         )
     } else {
         // Icon only compact buttons have their own layout with a specific width and center aligned
@@ -978,6 +1067,67 @@ object ButtonDefaults {
         disabledIconColor: Color = Color.Unspecified
     ): ButtonColors =
         MaterialTheme.colorScheme.defaultFilledTonalButtonColors.copy(
+            containerColor = containerColor,
+            contentColor = contentColor,
+            secondaryContentColor = secondaryContentColor,
+            iconColor = iconColor,
+            disabledContainerColor = disabledContainerColor,
+            disabledContentColor = disabledContentColor,
+            disabledSecondaryContentColor = disabledSecondaryContentColor,
+            disabledIconColor = disabledIconColor
+        )
+
+    /**
+     * Creates a [ButtonColors] as an alternative to the [filledTonalButtonColors], giving a surface
+     * with more chroma to indicate selected or highlighted states that are not primary
+     * calls-to-action. If the icon button is disabled then the colors will default to the
+     * MaterialTheme onSurface color with suitable alpha values applied.
+     *
+     * If a button is disabled then the content will have an alpha([DisabledContentAlpha]) value
+     * applied and container will have alpha ([DisabledContainerAlpha]) value applied.
+     *
+     * Example of a [Button] with [filledVariantButtonColors]:
+     *
+     * @sample androidx.wear.compose.material3.samples.SimpleFilledVariantButtonSample
+     */
+    @Composable
+    fun filledVariantButtonColors() = MaterialTheme.colorScheme.defaultFilledVariantButtonColors
+
+    /**
+     * Creates a [ButtonColors] as an alternative to the [filledTonalButtonColors], giving a surface
+     * with more chroma to indicate selected or highlighted states that are not primary
+     * calls-to-action. If the icon button is disabled then the colors will default to the
+     * MaterialTheme onSurface color with suitable alpha values applied.
+     *
+     * If a button is disabled then the content will have an alpha([DisabledContentAlpha]) value
+     * applied and container will have alpha ([DisabledContainerAlpha]) value applied.
+     *
+     * Example of a [Button] with [filledVariantButtonColors]:
+     *
+     * @sample androidx.wear.compose.material3.samples.FilledVariantButtonSample
+     * @param containerColor The background color of this [Button] when enabled
+     * @param contentColor The content color of this [Button] when enabled
+     * @param secondaryContentColor The secondary content color of this [Button] when enabled, used
+     *   for secondaryLabel content
+     * @param iconColor The icon color of this [Button] when enabled, used for icon content
+     * @param disabledContainerColor The background color of this [Button] when not enabled
+     * @param disabledContentColor The content color of this [Button] when not enabled
+     * @param disabledSecondaryContentColor The secondary content color of this [Button] when not
+     *   enabled
+     * @param disabledIconColor The content color of this [Button] when not enabled
+     */
+    @Composable
+    fun filledVariantButtonColors(
+        containerColor: Color = Color.Unspecified,
+        contentColor: Color = Color.Unspecified,
+        secondaryContentColor: Color = Color.Unspecified,
+        iconColor: Color = Color.Unspecified,
+        disabledContainerColor: Color = Color.Unspecified,
+        disabledContentColor: Color = Color.Unspecified,
+        disabledSecondaryContentColor: Color = Color.Unspecified,
+        disabledIconColor: Color = Color.Unspecified
+    ): ButtonColors =
+        MaterialTheme.colorScheme.defaultFilledVariantButtonColors.copy(
             containerColor = containerColor,
             contentColor = contentColor,
             secondaryContentColor = secondaryContentColor,
@@ -1085,7 +1235,7 @@ object ButtonDefaults {
     /**
      * Creates a [ButtonColors] for a [Button] with an image background, typically with a scrim over
      * the image to ensure that the content is visible. Uses a default content color of
-     * [ColorScheme.onSurface].
+     * [ColorScheme.onBackground].
      *
      * @param backgroundImagePainter The [Painter] to use to draw the background of the [Button]
      * @param backgroundImageScrimBrush The [Brush] to use to paint a scrim over the background
@@ -1098,6 +1248,9 @@ object ButtonDefaults {
      * @param disabledSecondaryContentColor The secondary content color of this [Button] when
      *   disabled, used for secondary label content
      * @param disabledIconColor The icon color of this [Button] when disabled, used for icon content
+     * @param forcedSize The value for [Painter.intrinsicSize], a value of null will respect the
+     *   [backgroundImagePainter] size. Defaults to [Size.Unspecified] which does not affect
+     *   component size.
      */
     @Composable
     fun imageBackgroundButtonColors(
@@ -1115,7 +1268,10 @@ object ButtonDefaults {
                     )
             ),
         contentColor: Color = ImageButtonTokens.ContentColor.value,
-        secondaryContentColor: Color = ImageButtonTokens.SecondaryContentColor.value,
+        secondaryContentColor: Color =
+            ImageButtonTokens.SecondaryContentColor.value.copy(
+                alpha = ImageButtonTokens.SecondaryContentOpacity
+            ),
         iconColor: Color = ImageButtonTokens.IconColor.value,
         disabledContentColor: Color =
             ImageButtonTokens.DisabledContentColor.value.toDisabledColor(
@@ -1128,23 +1284,26 @@ object ButtonDefaults {
         disabledIconColor: Color =
             ImageButtonTokens.DisabledContentColor.value.toDisabledColor(
                 disabledAlpha = ImageButtonTokens.DisabledContentOpacity
-            )
+            ),
+        forcedSize: Size? = Size.Unspecified,
     ): ButtonColors {
         val backgroundPainter =
             remember(backgroundImagePainter, backgroundImageScrimBrush) {
                 androidx.wear.compose.materialcore.ImageWithScrimPainter(
                     imagePainter = backgroundImagePainter,
-                    brush = backgroundImageScrimBrush
+                    brush = backgroundImageScrimBrush,
+                    forcedSize = forcedSize,
                 )
             }
 
-        val disabledContentAlpha = ImageButtonTokens.DisabledContentOpacity
+        val disabledContainerAlpha = ImageButtonTokens.DisabledContainerOpacity
         val disabledBackgroundPainter =
-            remember(backgroundImagePainter, backgroundImageScrimBrush, disabledContentAlpha) {
+            remember(backgroundImagePainter, backgroundImageScrimBrush, disabledContainerAlpha) {
                 androidx.wear.compose.materialcore.ImageWithScrimPainter(
                     imagePainter = backgroundImagePainter,
                     brush = backgroundImageScrimBrush,
-                    alpha = disabledContentAlpha,
+                    alpha = disabledContainerAlpha,
+                    forcedSize = forcedSize,
                 )
             }
         return ButtonColors(
@@ -1226,7 +1385,16 @@ object ButtonDefaults {
             disabledIconColor = disabledIconColor
         )
 
+    /** The recommended horizontal padding used by [Button] by default */
     val ButtonHorizontalPadding = 14.dp
+
+    /** The recommended start padding to be used with [Button] with a large icon */
+    val ButtonLargeIconStartPadding = 12.dp
+
+    /** The recommended start padding to be used with [Button] with an extra large icon */
+    val ButtonExtraLargeIconStartPadding = 8.dp
+
+    /** The recommended vertical padding used by [Button] by default */
     val ButtonVerticalPadding = 6.dp
 
     /** The default content padding used by [Button] */
@@ -1236,11 +1404,35 @@ object ButtonDefaults {
             vertical = ButtonVerticalPadding,
         )
 
+    /** The default content padding used by [Button] with a large icon */
+    val ButtonWithLargeIconContentPadding: PaddingValues =
+        PaddingValues(
+            start = ButtonLargeIconStartPadding,
+            top = ButtonVerticalPadding,
+            end = ButtonHorizontalPadding,
+            bottom = ButtonVerticalPadding
+        )
+
+    /** The default content padding used by [Button] with an extra large icon */
+    val ButtonWithExtraLargeIconContentPadding: PaddingValues =
+        PaddingValues(
+            start = ButtonExtraLargeIconStartPadding,
+            top = ButtonVerticalPadding,
+            end = ButtonHorizontalPadding,
+            bottom = ButtonVerticalPadding
+        )
+
+    /** The size of the icon when used inside a "[CompactButton]. */
+    val SmallIconSize: Dp = CompactButtonTokens.IconSize
+
     /** The default size of the icon when used inside a [Button]. */
     val IconSize: Dp = FilledButtonTokens.IconSize
 
-    /** The size of the icon when used inside a Large "Avatar" [Button]. */
+    /** The recommended icon size when used in [Button]s for icons such as an app icon */
     val LargeIconSize: Dp = FilledButtonTokens.IconLargeSize
+
+    /** The recommended icon size when used in [Button]s for icons such as an avatar icon */
+    val ExtraLargeIconSize: Dp = FilledButtonTokens.IconExtraLargeSize
 
     /**
      * The default height applied for the [Button]. Note that you can override it by applying
@@ -1270,46 +1462,23 @@ object ButtonDefaults {
      */
     val CompactButtonHeight = CompactButtonTokens.ContainerHeight
 
-    /** The size of the icon when used inside a "[CompactButton]. */
-    val SmallIconSize: Dp = CompactButtonTokens.IconSize
+    /** The height to be applied for an extra small [EdgeButton]. */
+    val EdgeButtonHeightExtraSmall = 46.dp
+
+    /** The height to be applied for a small [EdgeButton]. */
+    val EdgeButtonHeightSmall = 56.dp
+
+    /** The height to be applied for a medium [EdgeButton]. */
+    val EdgeButtonHeightMedium = 70.dp
+
+    /** The height to be applied for a large [EdgeButton]. */
+    val EdgeButtonHeightLarge = 96.dp
 
     /**
      * The default padding to be provided around a [CompactButton] in order to ensure that its
      * tappable area meets minimum UX guidance.
      */
     val CompactButtonTapTargetPadding: PaddingValues = PaddingValues(top = 8.dp, bottom = 8.dp)
-
-    private val ColorScheme.defaultFilledButtonColors: ButtonColors
-        get() {
-            return defaultFilledButtonColorsCached
-                ?: ButtonColors(
-                        containerColor = fromToken(FilledButtonTokens.ContainerColor),
-                        contentColor = fromToken(FilledButtonTokens.LabelColor),
-                        secondaryContentColor = fromToken(FilledButtonTokens.SecondaryLabelColor),
-                        iconColor = fromToken(FilledButtonTokens.IconColor),
-                        disabledContainerColor =
-                            fromToken(FilledButtonTokens.DisabledContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha = FilledButtonTokens.DisabledContainerOpacity
-                                ),
-                        disabledContentColor =
-                            fromToken(FilledButtonTokens.DisabledContentColor)
-                                .toDisabledColor(
-                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
-                                ),
-                        disabledSecondaryContentColor =
-                            fromToken(FilledButtonTokens.DisabledContentColor)
-                                .toDisabledColor(
-                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
-                                ),
-                        disabledIconColor =
-                            fromToken(FilledButtonTokens.DisabledContentColor)
-                                .toDisabledColor(
-                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
-                                )
-                    )
-                    .also { defaultFilledButtonColorsCached = it }
-        }
 
     private val ColorScheme.defaultFilledTonalButtonColors: ButtonColors
         get() {
@@ -1342,6 +1511,40 @@ object ButtonDefaults {
                                 )
                     )
                     .also { defaultFilledTonalButtonColorsCached = it }
+        }
+
+    private val ColorScheme.defaultFilledVariantButtonColors: ButtonColors
+        get() {
+            return defaultFilledVariantButtonColorsCached
+                ?: ButtonColors(
+                        containerColor = fromToken(FilledButtonTokens.VariantContainerColor),
+                        contentColor = fromToken(FilledButtonTokens.VariantLabelColor),
+                        secondaryContentColor =
+                            fromToken(FilledButtonTokens.VariantSecondaryLabelColor)
+                                .copy(alpha = FilledButtonTokens.VariantSecondaryLabelOpacity),
+                        iconColor = fromToken(FilledButtonTokens.VariantIconColor),
+                        disabledContainerColor =
+                            fromToken(FilledButtonTokens.DisabledContainerColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledButtonTokens.DisabledContainerOpacity
+                                ),
+                        disabledContentColor =
+                            fromToken(FilledButtonTokens.DisabledContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
+                                ),
+                        disabledSecondaryContentColor =
+                            fromToken(FilledButtonTokens.DisabledContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
+                                ),
+                        disabledIconColor =
+                            fromToken(FilledButtonTokens.DisabledContentColor)
+                                .toDisabledColor(
+                                    disabledAlpha = FilledButtonTokens.DisabledContentOpacity
+                                )
+                    )
+                    .also { defaultFilledVariantButtonColorsCached = it }
         }
 
     private val ColorScheme.defaultOutlinedButtonColors: ButtonColors
@@ -1627,8 +1830,12 @@ private fun ButtonImpl(
     val borderModifier =
         if (border != null) modifier.border(border = border, shape = shape) else modifier
     Row(
+        verticalAlignment = Alignment.CenterVertically,
+        // Fill the container height but not its width as buttons have fixed size height but we
+        // want them to be able to fit their content
         modifier =
             borderModifier
+                .fillMaxHeight()
                 .clip(shape = shape)
                 .width(intrinsicSize = IntrinsicSize.Max)
                 .paint(
@@ -1641,7 +1848,7 @@ private fun ButtonImpl(
                     onLongClick = onLongClick,
                     onLongClickLabel = onLongClickLabel,
                     role = Role.Button,
-                    indication = rippleOrFallbackImplementation(),
+                    indication = ripple(),
                     interactionSource = interactionSource,
                 )
                 .padding(contentPadding),
@@ -1659,17 +1866,16 @@ private fun ButtonImpl(
     modifier: Modifier,
     onLongClick: (() -> Unit)?,
     onLongClickLabel: String?,
-    secondaryLabel: (@Composable RowScope.() -> Unit)?,
+    secondaryLabelContent: (@Composable RowScope.() -> Unit)?,
     icon: (@Composable BoxScope.() -> Unit)?,
     enabled: Boolean,
     shape: Shape,
     labelFont: TextStyle,
-    secondaryLabelFont: TextStyle?,
     colors: ButtonColors,
     border: BorderStroke?,
     contentPadding: PaddingValues,
     interactionSource: MutableInteractionSource?,
-    label: @Composable RowScope.() -> Unit
+    labelContent: @Composable RowScope.() -> Unit
 ) {
     ButtonImpl(
         onClick = onClick,
@@ -1684,32 +1890,18 @@ private fun ButtonImpl(
         contentPadding = contentPadding,
         interactionSource = interactionSource,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            // Fill the container height but not its width as buttons have fixed size height but we
-            // want them to be able to fit their content
-            modifier = Modifier.fillMaxHeight()
-        ) {
-            if (icon != null) {
-                Box(
-                    modifier = Modifier.wrapContentSize(align = Alignment.Center),
-                    content = provideScopeContent(colors.iconColor(enabled), icon)
-                )
-                Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-            }
-            Column {
-                Row(content = provideScopeContent(colors.contentColor(enabled), labelFont, label))
-                if (secondaryLabel != null && secondaryLabelFont != null) {
-                    Spacer(modifier = Modifier.size(2.dp))
-                    Row(
-                        content =
-                            provideScopeContent(
-                                colors.secondaryContentColor(enabled),
-                                secondaryLabelFont,
-                                secondaryLabel
-                            )
-                    )
-                }
+        if (icon != null) {
+            Box(
+                modifier = Modifier.wrapContentSize(align = Alignment.Center),
+                content = provideScopeContent(colors.iconColor(enabled), icon)
+            )
+            Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
+        }
+        Column {
+            Row(content = labelContent)
+            if (secondaryLabelContent != null) {
+                Spacer(modifier = Modifier.size(2.dp))
+                Row(content = secondaryLabelContent)
             }
         }
     }

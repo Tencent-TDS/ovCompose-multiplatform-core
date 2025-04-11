@@ -463,11 +463,6 @@ public final class androidx/compose/animation/core/InfiniteTransitionKt {
 	public static final fun rememberInfiniteTransition (Ljava/lang/String;Landroidx/compose/runtime/Composer;II)Landroidx/compose/animation/core/InfiniteTransition;
 }
 
-public final class androidx/compose/animation/core/IntListExtensionKt {
-	public static final fun binarySearch (Landroidx/collection/IntList;I)I
-	public static final fun binarySearch (Landroidx/collection/IntList;II)I
-}
-
 public abstract interface annotation class androidx/compose/animation/core/InternalAnimationApi : java/lang/annotation/Annotation {
 }
 

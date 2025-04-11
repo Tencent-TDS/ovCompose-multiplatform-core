@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2020 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,32 +28,34 @@ import androidx.navigation.compose.DialogNavigator.Destination
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Navigator that navigates through [Composable]s that will be hosted within a
- * [Dialog]. Every destination using this Navigator must  set a valid [Composable] by setting it
- * directly on an instantiated [Destination] or calling [dialog].
+ * Navigator that navigates through [Composable]s that will be hosted within a [Dialog]. Every
+ * destination using this Navigator must set a valid [Composable] by setting it directly on an
+ * instantiated [Destination] or calling [dialog].
  */
-public expect class DialogNavigator : Navigator<Destination> {
+public expect class DialogNavigator() : Navigator<Destination> {
 
-    /**
-     * Get the back stack from the [state].
-     */
+    /** Get the back stack from the [state]. */
     internal val backStack: StateFlow<List<NavBackStackEntry>>
 
-    /**
-     * Get the transitioning dialogs from the [state].
-     */
+    /** Get the transitioning dialogs from the [state]. */
     internal val transitionInProgress: StateFlow<Set<NavBackStackEntry>>
 
-    /**
-     * Dismiss the dialog destination associated with the given [backStackEntry].
-     */
+    /** Dismiss the dialog destination associated with the given [backStackEntry]. */
     internal fun dismiss(backStackEntry: NavBackStackEntry)
+
+    override fun navigate(
+        entries: List<NavBackStackEntry>,
+        navOptions: NavOptions?,
+        navigatorExtras: Extras?
+    )
+
+    override fun createDestination(): Destination
+
+    override fun popBackStack(popUpTo: NavBackStackEntry, savedState: Boolean)
 
     internal fun onTransitionComplete(entry: NavBackStackEntry)
 
-    /**
-     * NavDestination specific to [DialogNavigator]
-     */
+    /** NavDestination specific to [DialogNavigator] */
     public class Destination(
         navigator: DialogNavigator,
         dialogProperties: DialogProperties = DialogProperties(),

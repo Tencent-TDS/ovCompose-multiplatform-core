@@ -28,6 +28,7 @@ internal fun Translations.fr() = mapOf(
     Strings.DefaultErrorMessage to "Données incorrectes",
     Strings.SliderRangeStart to "Début de plage",
     Strings.SliderRangeEnd to "Fin de plage",
+    Strings.SnackbarPaneTitle to "Alerte",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -39,4 +40,5 @@ internal fun Translations.frCA() = mapOf(
     Strings.DefaultErrorMessage to "Entrée incorrecte",
     Strings.SliderRangeStart to "Début de plage",
     Strings.SliderRangeEnd to "Fin de plage",
+    Strings.SnackbarPaneTitle to "Alerte",
 )

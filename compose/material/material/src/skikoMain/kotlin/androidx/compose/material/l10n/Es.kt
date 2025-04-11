@@ -28,6 +28,7 @@ internal fun Translations.es() = mapOf(
     Strings.DefaultErrorMessage to "Entrada no válida",
     Strings.SliderRangeStart to "Inicio del intervalo",
     Strings.SliderRangeEnd to "Fin del intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )
 
 @Suppress("UnusedReceiverParameter", "DuplicatedCode")
@@ -39,4 +40,5 @@ internal fun Translations.esUS() = mapOf(
     Strings.DefaultErrorMessage to "Entrada no válida",
     Strings.SliderRangeStart to "Inicio de intervalo",
     Strings.SliderRangeEnd to "Final de intervalo",
+    Strings.SnackbarPaneTitle to "Alerta",
 )

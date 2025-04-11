@@ -19,8 +19,10 @@ package androidx.compose.foundation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,8 +33,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType.Companion.KeyDown
+import androidx.compose.ui.input.key.KeyEventType.Companion.KeyUp
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerButtons
 import androidx.compose.ui.input.pointer.PointerEvent
@@ -44,14 +51,22 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.isOutOfBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChangeConsumed
+import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
+import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.SemanticsModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.unit.center
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.util.fastAll
 import androidx.compose.ui.util.fastAny
+import java.awt.event.KeyEvent.VK_ENTER
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -203,7 +218,6 @@ private suspend fun AwaitPointerEventScope.waitForFirstInboundUpOrCancellation()
     }
 }
 
-
 internal fun Modifier.genericClickableWithoutGesture(
     interactionSource: MutableInteractionSource,
     indication: Indication?,
@@ -303,5 +317,52 @@ private class ClickableSemanticsElement(
         if (onClick !== other.onClick) return false
 
         return true
+    }
+}
+
+internal class ClickableSemanticsNode(
+    private var enabled: Boolean,
+    private var onClickLabel: String?,
+    private var role: Role?,
+    private var onClick: () -> Unit,
+    private var onLongClickLabel: String?,
+    private var onLongClick: (() -> Unit)?,
+) : SemanticsModifierNode, Modifier.Node() {
+    fun update(
+        enabled: Boolean,
+        onClickLabel: String?,
+        role: Role?,
+        onClick: () -> Unit,
+        onLongClickLabel: String?,
+        onLongClick: (() -> Unit)?,
+    ) {
+        this.enabled = enabled
+        this.onClickLabel = onClickLabel
+        this.role = role
+        this.onClick = onClick
+        this.onLongClickLabel = onLongClickLabel
+        this.onLongClick = onLongClick
+    }
+
+    override val shouldMergeDescendantSemantics: Boolean
+        get() = true
+
+    override fun SemanticsPropertyReceiver.applySemantics() {
+        if (this@ClickableSemanticsNode.role != null) {
+            role = this@ClickableSemanticsNode.role!!
+        }
+        onClick(
+            action = { onClick(); true },
+            label = onClickLabel
+        )
+        if (onLongClick != null) {
+            onLongClick(
+                action = { onLongClick?.invoke(); true },
+                label = onLongClickLabel
+            )
+        }
+        if (!enabled) {
+            disabled()
+        }
     }
 }

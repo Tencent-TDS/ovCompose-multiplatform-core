@@ -76,7 +76,7 @@ internal interface Selectable {
      * Return the [TextLayoutResult] of the selectable.
      *
      * @return [TextLayoutResult] of the [Selectable]. This could be null if called before
-     * composing.
+     *   composing.
      */
     fun textLayoutResult(): TextLayoutResult?
 
@@ -144,5 +144,11 @@ internal interface Selectable {
      */
     fun getLastVisibleOffset(): Int
 
-    fun getLineHeight(offset: Int): Float = 0f
+    /**
+     * Returns the text line height for the given offset.
+     *
+     * @param offset a character offset
+     * @return the line height for the given offset
+     */
+    fun getLineHeight(offset: Int): Float
 }

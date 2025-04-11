@@ -14,7 +14,7 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.core:core:1.6.0")
     api("androidx.versionedparcelable:versionedparcelable:1.1.1")
 
@@ -44,6 +44,5 @@ androidx {
     mavenVersion = LibraryVersions.WEAR_ONGOING
     inceptionYear = "2021"
     description = "Android Wear Ongoing Activities"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

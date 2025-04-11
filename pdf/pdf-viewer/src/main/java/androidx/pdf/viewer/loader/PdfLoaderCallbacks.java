@@ -21,6 +21,7 @@ import android.graphics.Rect;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.pdf.data.DisplayData;
 import androidx.pdf.data.PdfStatus;
 import androidx.pdf.models.Dimensions;
 import androidx.pdf.models.GotoLink;
@@ -29,7 +30,6 @@ import androidx.pdf.models.MatchRects;
 import androidx.pdf.models.PageSelection;
 import androidx.pdf.util.TileBoard.TileInfo;
 
-import java.io.FileOutputStream;
 import java.util.List;
 
 /**
@@ -48,7 +48,7 @@ public interface PdfLoaderCallbacks {
     void requestPassword(boolean incorrect);
 
     /** This when the PDF is first successfully loaded by PdfLoader. */
-    void documentLoaded(int numPages);
+    void documentLoaded(int numPages, @NonNull DisplayData data);
 
     /** Called if the Document can't be loaded. */
     void documentNotLoaded(@NonNull PdfStatus status);
@@ -79,20 +79,6 @@ public interface PdfLoaderCallbacks {
 
     /** This is called in response to getPageGotoLinks. */
     void setPageGotoLinks(int pageNum, @NonNull List<GotoLink> links);
-
-    /**
-     * This is called in response to a call to {@link PdfLoader#cloneWithoutSecurity}.
-     *
-     * @param result is true if the document was successfully cloned.
-     */
-    void documentCloned(boolean result);
-
-    /**
-     * This is called in response to a call to {@link PdfLoader#saveAs(FileOutputStream)}.
-     *
-     * @param result is true if the document was successfully saved.
-     */
-    void documentSavedAs(boolean result);
 
     /**
      * Called in response to form editing operations in {@link PdfLoader} to inform implementations

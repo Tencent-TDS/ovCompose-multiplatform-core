@@ -70,7 +70,7 @@ class IsDisplayedTest(val config: TestConfig) {
         fun createTestSet(): List<TestConfig> =
             listOf(
                 TestConfig(ComponentActivity::class.java),
-                TestConfig(ActivityWithActionBar::class.java)
+                TestConfig(CustomComposeHostActivity::class.java)
             )
     }
 
@@ -84,10 +84,10 @@ class IsDisplayedTest(val config: TestConfig) {
             Box(
                 modifier =
                     with(Modifier) { width?.let { requiredWidth(it) } ?: fillMaxWidth() }
-                        .then(
-                            with(Modifier) { height?.let { requiredHeight(it) } ?: fillMaxHeight() }
-                        )
-                        .background(colors[i % colors.size])
+                        .let {
+                            with(it) { height?.let { requiredHeight(it) } ?: fillMaxHeight() }
+                                .background(colors[i % colors.size])
+                        }
             )
         }
     }
@@ -314,7 +314,7 @@ class IsDisplayedTest(val config: TestConfig) {
 
     private fun setContent(content: @Composable () -> Unit) {
         when (val activity = rule.activity) {
-            is ActivityWithActionBar -> activity.setContent(content)
+            is CustomComposeHostActivity -> activity.setContent(content)
             else -> rule.setContent(content)
         }
     }

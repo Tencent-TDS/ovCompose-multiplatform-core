@@ -73,7 +73,6 @@ import androidx.compose.ui.node.ComposeUiNode
 import androidx.compose.ui.node.LayoutNode
 import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.Ref
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.TestActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
@@ -128,17 +127,15 @@ class AndroidViewCompatTest {
             Align {
                 Layout(
                     modifier = Modifier.testTag("content"),
-                    content =
-                        @Composable {
-                            AndroidView(::ColoredSquareView) {
-                                it.size = squareSize.value
-                                it.ref = squareRef
-                            }
+                    content = {
+                        AndroidView(::ColoredSquareView) {
+                            it.size = squareSize.value
+                            it.ref = squareRef
                         }
+                    }
                 ) { measurables, constraints ->
                     assertEquals(1, measurables.size)
-                    val placeable =
-                        measurables.first().measure(constraints.copy(minWidth = 0, minHeight = 0))
+                    val placeable = measurables.first().measure(constraints.copyMaxDimensions())
                     assertEquals(placeable.width, expectedSize)
                     assertEquals(placeable.height, expectedSize)
                     layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, 0) }
@@ -787,7 +784,6 @@ class AndroidViewCompatTest {
         rule.runOnIdle { assertFalse(view!!.isLayoutRequested) }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun hoverEventsAreDispatched() {
         val view = createCaptureEventsView()

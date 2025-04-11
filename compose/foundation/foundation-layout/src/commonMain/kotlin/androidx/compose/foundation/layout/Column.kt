@@ -18,6 +18,7 @@ package androidx.compose.foundation.layout
 
 import androidx.annotation.FloatRange
 import androidx.compose.foundation.layout.internal.JvmDefaultWithCompatibility
+import androidx.compose.foundation.layout.internal.requirePrecondition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -70,10 +71,10 @@ import androidx.compose.ui.unit.LayoutDirection
  * Example usage:
  *
  * @sample androidx.compose.foundation.layout.samples.SimpleColumn
- *
  * @param modifier The modifier to be applied to the Column.
  * @param verticalArrangement The vertical arrangement of the layout's children.
  * @param horizontalAlignment The horizontal alignment of the layout's children.
+ * @param content The content of the Column
  * @see Row
  * @see [androidx.compose.foundation.lazy.LazyColumn]
  */
@@ -302,7 +303,6 @@ interface ColumnScope {
      * @param weight The proportional height to give to this element, as related to the total of all
      *   weighted siblings. Must be positive.
      * @param fill When `true`, the element will occupy the whole height allocated.
-     *
      * @sample androidx.compose.foundation.layout.samples.SimpleColumn
      */
     @Stable
@@ -360,7 +360,7 @@ interface ColumnScope {
 internal object ColumnScopeInstance : ColumnScope {
     @Stable
     override fun Modifier.weight(weight: Float, fill: Boolean): Modifier {
-        require(weight > 0.0) { "invalid weight $weight; must be greater than zero" }
+        requirePrecondition(weight > 0.0) { "invalid weight; must be greater than zero" }
         return this.then(
             LayoutWeightElement(
                 // Coerce Float.POSITIVE_INFINITY to Float.MAX_VALUE to avoid errors

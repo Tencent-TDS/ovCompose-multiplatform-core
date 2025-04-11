@@ -87,11 +87,42 @@ import java.util.zip.CRC32;
 
 /**
  * This is a class for reading and writing Exif tags in various image file formats.
+ *
+ * <p>Supported for reading: JPEG, PNG, WebP, HEIC, DNG, CR2, NEF, NRW, ARW, RW2, ORF, PEF, SRW,
+ * RAF, AVIF (on API 31+).
+ *
+ * <p>Supported for writing: JPEG, PNG, WebP.
+ *
  * <p>
- * Supported for reading: JPEG, PNG, WebP, HEIF, DNG, CR2, NEF, NRW, ARW, RW2, ORF, PEF, SRW, RAF.
- * <p>
- * Supported for writing: JPEG, PNG, WebP.
- * <p>
+ *
+ * <h3>XMP Support</h3>
+ *
+ * This class can read raw XMP data from the supported image file formats.
+ *
+ * <p>XMP data can be stored within Exif data (under tag 700), but many of the formats also define a
+ * separate storage location for XMP. ExifInterface handles this ambiguity as follows:
+ *
+ * <ul>
+ *   <li>JPEG
+ *       <ul>
+ *         <li>The XMP spec part 3 section 3.3.2 forbids the XMP tag (700) being present in the Exif
+ *             segment of JPEG files (i.e. XMP should always be in a separate APP1 segment).
+ *         <li>If XMP is present in both Exif and separate segments, the XMP from the Exif segment
+ *             is returned from {@link #getAttributeBytes} and modifications to the XMP with {@link
+ *             #setAttribute} are written back to the XMP in the Exif segment, the XMP in the
+ *             separate segment is preserved unmodified. This is contrary to the spec described
+ *             above (which suggests the standalone XMP should be preferred over the XMP in the Exif
+ *             segment).
+ *         <li>If XMP is not present in either location, and is added with {@link #setAttribute}, it
+ *             is written as a standalone segment, in line with the spec described above.
+ *       </ul>
+ *   <li>HEIF
+ *       <ul>
+ *         <li>If XMP is present in both Exif and separate segments, the XMP from the Exif segment
+ *             is returned from {@link #getAttributeBytes}.
+ *       </ul>
+ * </ul>
+ *
  * Note: JPEG and HEIF files may contain XMP data either inside the Exif data chunk or outside of
  * it. This class will search both locations for XMP data, but if XMP data exist both inside and
  * outside Exif, will favor the XMP data inside Exif over the one outside.
@@ -2234,8 +2265,11 @@ public class ExifInterface {
     public static final String TAG_RW2_JPG_FROM_RAW = "JpgFromRaw";
     /**
      * Type is byte[]. See <a href=
-     * "https://en.wikipedia.org/wiki/Extensible_Metadata_Platform">Extensible
-     * Metadata Platform (XMP)</a> for details on contents.
+     * "https://en.wikipedia.org/wiki/Extensible_Metadata_Platform">Extensible Metadata Platform
+     * (XMP)</a> for details on contents.
+     *
+     * <p>See also notes about XMP handling in different containers in the class-level javadoc of
+     * this class.
      */
     public static final String TAG_XMP = "Xmp";
     /** Type is int. See JEITA CP-3451C Spec Section 3: Bilevel Images. */
@@ -3007,6 +3041,8 @@ public class ExifInterface {
     private static final byte[] HEIF_TYPE_FTYP = new byte[] {'f', 't', 'y', 'p'};
     private static final byte[] HEIF_BRAND_MIF1 = new byte[] {'m', 'i', 'f', '1'};
     private static final byte[] HEIF_BRAND_HEIC = new byte[] {'h', 'e', 'i', 'c'};
+    private static final byte[] HEIF_BRAND_AVIF = new byte[] {'a', 'v', 'i', 'f'};
+    private static final byte[] HEIF_BRAND_AVIS = new byte[] {'a', 'v', 'i', 's'};
 
     // See http://fileformats.archiveteam.org/wiki/Olympus_ORF
     private static final short ORF_SIGNATURE_1 = 0x4f52;
@@ -3937,9 +3973,10 @@ public class ExifInterface {
     static final int IMAGE_TYPE_RAF = 9;
     static final int IMAGE_TYPE_RW2 = 10;
     static final int IMAGE_TYPE_SRW = 11;
-    static final int IMAGE_TYPE_HEIF = 12;
+    static final int IMAGE_TYPE_HEIC = 12;
     static final int IMAGE_TYPE_PNG = 13;
     static final int IMAGE_TYPE_WEBP = 14;
+    static final int IMAGE_TYPE_AVIF = 15;
 
     static {
         sFormatterPrimary = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US);
@@ -4680,8 +4717,8 @@ public class ExifInterface {
                         return;
                     }
                 } else {
-                    if (mMimeType == IMAGE_TYPE_HEIF) {
-                        getHeifAttributes(inputStream);
+                    if (mMimeType == IMAGE_TYPE_HEIC || mMimeType == IMAGE_TYPE_AVIF) {
+                        getHeifAttributes(inputStream, mMimeType);
                     } else if (mMimeType == IMAGE_TYPE_ORF) {
                         getOrfAttributes(inputStream);
                     } else if (mMimeType == IMAGE_TYPE_RW2) {
@@ -5432,17 +5469,24 @@ public class ExifInterface {
         in.reset();
         if (isJpegFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_JPEG;
-        } else if (isRafFormat(signatureCheckBytes)) {
+        }
+        if (isRafFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_RAF;
-        } else if (isHeifFormat(signatureCheckBytes)) {
-            return IMAGE_TYPE_HEIF;
-        } else if (isOrfFormat(signatureCheckBytes)) {
+        }
+        int heicOrAvifImageType = isHeicOrAvifFormat(signatureCheckBytes);
+        if (heicOrAvifImageType != IMAGE_TYPE_UNKNOWN) {
+            return heicOrAvifImageType;
+        }
+        if (isOrfFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_ORF;
-        } else if (isRw2Format(signatureCheckBytes)) {
+        }
+        if (isRw2Format(signatureCheckBytes)) {
             return IMAGE_TYPE_RW2;
-        } else if (isPngFormat(signatureCheckBytes)) {
+        }
+        if (isPngFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_PNG;
-        } else if (isWebpFormat(signatureCheckBytes)) {
+        }
+        if (isWebpFormat(signatureCheckBytes)) {
             return IMAGE_TYPE_WEBP;
         }
         // Certain file formats (PEF) are identified in readImageFileDirectory()
@@ -5478,7 +5522,7 @@ public class ExifInterface {
         return true;
     }
 
-    private boolean isHeifFormat(byte[] signatureCheckBytes) throws IOException {
+    private int isHeicOrAvifFormat(byte[] signatureCheckBytes) throws IOException {
         ByteOrderedDataInputStream signatureInputStream = null;
         try {
             signatureInputStream = new ByteOrderedDataInputStream(signatureCheckBytes);
@@ -5488,7 +5532,7 @@ public class ExifInterface {
             signatureInputStream.readFully(chunkType);
 
             if (!Arrays.equals(chunkType, HEIF_TYPE_FTYP)) {
-                return false;
+                return IMAGE_TYPE_UNKNOWN;
             }
 
             long chunkDataOffset = 8;
@@ -5498,7 +5542,7 @@ public class ExifInterface {
                 chunkSize = signatureInputStream.readLong();
                 if (chunkSize < 16) {
                     // The smallest valid chunk is 16 bytes long in this case.
-                    return false;
+                    return IMAGE_TYPE_UNKNOWN;
                 }
                 chunkDataOffset += 8;
             }
@@ -5513,17 +5557,18 @@ public class ExifInterface {
             // It should at least have major brand (4-byte) and minor version (4-byte).
             // The rest of the chunk (if any) is a list of (4-byte) compatible brands.
             if (chunkDataSize < 8) {
-                return false;
+                return IMAGE_TYPE_UNKNOWN;
             }
 
             byte[] brand = new byte[4];
             boolean isMif1 = false;
             boolean isHeic = false;
+            boolean isAvif = false;
             for (long i = 0; i < chunkDataSize / 4;  ++i) {
                 try {
                     signatureInputStream.readFully(brand);
                 } catch (EOFException e) {
-                    return false;
+                    return IMAGE_TYPE_UNKNOWN;
                 }
                 if (i == 1) {
                     // Skip this index, it refers to the minorVersion, not a brand.
@@ -5533,9 +5578,16 @@ public class ExifInterface {
                     isMif1 = true;
                 } else if (Arrays.equals(brand, HEIF_BRAND_HEIC)) {
                     isHeic = true;
+                } else if (Arrays.equals(brand, HEIF_BRAND_AVIF)
+                        || Arrays.equals(brand, HEIF_BRAND_AVIS)) {
+                    isAvif = true;
                 }
-                if (isMif1 && isHeic) {
-                    return true;
+                if (isMif1) {
+                    if (isHeic) {
+                        return IMAGE_TYPE_HEIC;
+                    } else if (isAvif) {
+                        return IMAGE_TYPE_AVIF;
+                    }
                 }
             }
         } catch (Exception e) {
@@ -5548,7 +5600,7 @@ public class ExifInterface {
                 signatureInputStream = null;
             }
         }
-        return false;
+        return IMAGE_TYPE_UNKNOWN;
     }
 
     /**
@@ -5707,6 +5759,7 @@ public class ExifInterface {
                     length = 0;
 
                     if (startsWith(bytes, IDENTIFIER_EXIF_APP1)) {
+                        byte[] xmpBeforeReadingExif = getAttributeBytes(TAG_XMP);
                         final byte[] value = Arrays.copyOfRange(bytes, IDENTIFIER_EXIF_APP1.length,
                                 bytes.length);
                         // Save offset to EXIF data for handling thumbnail and attribute offsets.
@@ -5716,6 +5769,16 @@ public class ExifInterface {
                         readExifSegment(value, imageType);
 
                         setThumbnailData(new ByteOrderedDataInputStream(value));
+
+                        if (getAttributeBytes(TAG_XMP) == null) {
+                            // XMP should be stored in a separate APP1 segment (see XMP spec part 3
+                            // section 3.3.2). If the Exif segment didn't contain XMP then we set
+                            // this to true to ensure any XMP data added will get written out to a
+                            // separate segment.
+                            mXmpIsFromSeparateMarker = true;
+                        } else if (xmpBeforeReadingExif != getAttributeBytes(TAG_XMP)) {
+                            mXmpIsFromSeparateMarker = false;
+                        }
                     } else if (startsWith(bytes, IDENTIFIER_XMP_APP1)) {
                         // See XMP Specification Part 3: Storage in Files, 1.1.3 JPEG, Table 6
                         final int offset = start + IDENTIFIER_XMP_APP1.length;
@@ -5890,9 +5953,15 @@ public class ExifInterface {
     }
 
     // Support for getting MediaMetadataRetriever.METADATA_KEY_EXIF_OFFSET and
-    // MediaMetadataRetriever.METADATA_KEY_EXIF_LENGTH was added SDK 28.
-    private void getHeifAttributes(final SeekableByteOrderedDataInputStream in) throws IOException {
+    // MediaMetadataRetriever.METADATA_KEY_EXIF_LENGTH was added in SDK 28 for HEIC and in SDK 31
+    // for AVIF.
+    private void getHeifAttributes(final SeekableByteOrderedDataInputStream in, int imageType)
+            throws IOException {
         if (Build.VERSION.SDK_INT >= 28) {
+            if (imageType == IMAGE_TYPE_AVIF && Build.VERSION.SDK_INT < 31) {
+                throw new UnsupportedOperationException("Reading EXIF from AVIF files "
+                        + "is supported from SDK 31 and above");
+            }
             MediaMetadataRetriever retriever = new MediaMetadataRetriever();
             try {
                 Api23Impl.setDataSource(retriever, new MediaDataSource() {
@@ -6063,7 +6132,7 @@ public class ExifInterface {
                 }
             }
         } else {
-            throw new UnsupportedOperationException("Reading EXIF from HEIF files "
+            throw new UnsupportedOperationException("Reading EXIF from HEIC files "
                     + "is supported from SDK 28 and above");
         }
     }
@@ -6449,7 +6518,8 @@ public class ExifInterface {
                     if (identifier != null) {
                         dataInputStream.readFully(identifier);
                         if (startsWith(identifier, IDENTIFIER_EXIF_APP1)
-                                || startsWith(identifier, IDENTIFIER_XMP_APP1)) {
+                                || (startsWith(identifier, IDENTIFIER_XMP_APP1)
+                                        && mXmpIsFromSeparateMarker)) {
                             // Skip the original EXIF or XMP APP1 segment.
                             dataInputStream.skipFully(length - identifier.length);
                             break;
@@ -6728,8 +6798,8 @@ public class ExifInterface {
 
                         // Retrieve image width/height
                         widthAndHeight = totalInputStream.readInt();
-                        width = (widthAndHeight << 18) >> 18;
-                        height = (widthAndHeight << 2) >> 18;
+                        width = widthAndHeight & 0x3FFF;
+                        height = (widthAndHeight >> 16) & 0x3FFF;
                         bytesToRead -= (vp8Frame.length + vp8Signature.length + 4);
                     } else if (Arrays.equals(firstChunkType, WEBP_CHUNK_TYPE_VP8L)) {
                         // Check signature

@@ -16,19 +16,20 @@
 
 package androidx.wear.compose.material3.demos
 
-import android.widget.Toast
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.material3.ButtonDefaults
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.Text
@@ -36,6 +37,7 @@ import androidx.wear.compose.material3.TextButton
 import androidx.wear.compose.material3.TextButtonDefaults
 import androidx.wear.compose.material3.samples.FilledTextButtonSample
 import androidx.wear.compose.material3.samples.FilledTonalTextButtonSample
+import androidx.wear.compose.material3.samples.FilledVariantTextButtonSample
 import androidx.wear.compose.material3.samples.LargeFilledTonalTextButtonSample
 import androidx.wear.compose.material3.samples.OutlinedTextButtonSample
 import androidx.wear.compose.material3.samples.TextButtonSample
@@ -45,10 +47,7 @@ import androidx.wear.compose.material3.touchTargetAwareSize
 @Composable
 fun TextButtonDemo() {
     val context = LocalContext.current
-    ScalingLazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    ScalingLazyDemo {
         item { ListHeader { Text("Text Button") } }
         item {
             Row {
@@ -85,6 +84,20 @@ fun TextButtonDemo() {
                 }
             }
         }
+        item { ListHeader { Text("Filled Variant") } }
+        item {
+            Row {
+                FilledVariantTextButtonSample()
+                Spacer(modifier = Modifier.width(5.dp))
+                TextButton(
+                    onClick = {},
+                    enabled = false,
+                    colors = TextButtonDefaults.filledVariantTextButtonColors()
+                ) {
+                    Text(text = "ABC")
+                }
+            }
+        }
         item { ListHeader { Text("Outlined") } }
         item {
             Row {
@@ -101,9 +114,63 @@ fun TextButtonDemo() {
             }
         }
         item { ListHeader { Text("With onLongClick") } }
+        item { TextButtonWithOnLongClickSample { showOnLongClickToast(context) } }
+        item { ListHeader { Text("Corner Animation") } }
         item {
-            TextButtonWithOnLongClickSample {
-                Toast.makeText(context, "onLongClick triggered", Toast.LENGTH_SHORT).show()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val interactionSource1 = remember { MutableInteractionSource() }
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledTextButtonColors(),
+                    shape = TextButtonDefaults.animatedShape(interactionSource1),
+                    interactionSource = interactionSource1
+                ) {
+                    Text(text = "ABC")
+                }
+                Spacer(modifier = Modifier.width(5.dp))
+                val interactionSource2 = remember { MutableInteractionSource() }
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledVariantTextButtonColors(),
+                    shape = TextButtonDefaults.animatedShape(interactionSource2),
+                    interactionSource = interactionSource2
+                ) {
+                    Text(text = "ABC")
+                }
+            }
+        }
+        item { ListHeader { Text("Morphed Animation") } }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val interactionSource1 = remember { MutableInteractionSource() }
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledTextButtonColors(),
+                    shape =
+                        TextButtonDefaults.animatedShape(
+                            interactionSource1,
+                            shape = CutCornerShape(5.dp),
+                            pressedShape = RoundedCornerShape(5.dp)
+                        ),
+                    interactionSource = interactionSource1
+                ) {
+                    Text(text = "ABC")
+                }
+                Spacer(modifier = Modifier.width(5.dp))
+                val interactionSource2 = remember { MutableInteractionSource() }
+                TextButton(
+                    onClick = {},
+                    colors = TextButtonDefaults.filledVariantTextButtonColors(),
+                    shape =
+                        TextButtonDefaults.animatedShape(
+                            interactionSource2,
+                            shape = CutCornerShape(5.dp),
+                            pressedShape = RoundedCornerShape(5.dp)
+                        ),
+                    interactionSource = interactionSource2
+                ) {
+                    Text(text = "ABC")
+                }
             }
         }
         item { ListHeader { Text("Sizes") } }

@@ -76,7 +76,7 @@ import kotlin.math.min
  */
 @Suppress("DEPRECATION")
 // TODO(b/200306659): Remove and replace with annotation on package-info.java
-class SupportedSurfaceCombination(
+public class SupportedSurfaceCombination(
     context: Context,
     private val cameraMetadata: CameraMetadata,
     private val encoderProfilesProviderAdapter: EncoderProfilesProviderAdapter
@@ -98,6 +98,7 @@ class SupportedSurfaceCombination(
         MutableMap<FeatureSettings, List<SurfaceCombination>> =
         mutableMapOf()
     private val surfaceCombinations10Bit: MutableList<SurfaceCombination> = mutableListOf()
+    private val surfaceCombinationsUltraHdr: MutableList<SurfaceCombination> = mutableListOf()
     private var isRawSupported = false
     private var isBurstCaptureSupported = false
     private var isConcurrentCameraModeSupported = false
@@ -130,6 +131,10 @@ class SupportedSurfaceCombination(
             generate10BitSupportedCombinationList()
         }
 
+        if (isUltraHdrSupported()) {
+            generateUltraHdrSupportedCombinationList()
+        }
+
         if (isPreviewStabilizationSupported) {
             generatePreviewStabilizationSupportedCombinationList()
         }
@@ -150,13 +155,18 @@ class SupportedSurfaceCombination(
      * @param surfaceConfigList the surface configuration list to be compared
      * @return the check result that whether it could be supported
      */
-    fun checkSupported(
+    public fun checkSupported(
         featureSettings: FeatureSettings,
         surfaceConfigList: List<SurfaceConfig>
     ): Boolean {
         return getSurfaceCombinationsByFeatureSettings(featureSettings).any {
             it.getOrderedSupportedSurfaceConfigList(surfaceConfigList) != null
         }
+    }
+
+    private fun isUltraHdrSupported(): Boolean {
+        return getStreamConfigurationMapCompat().getOutputFormats()?.contains(ImageFormat.JPEG_R)
+            ?: false
     }
 
     private fun getOrderedSupportedStreamUseCaseSurfaceConfigList(
@@ -184,7 +194,12 @@ class SupportedSurfaceCombination(
             return featureSettingsToSupportedCombinationsMap[featureSettings]!!
         }
         var supportedSurfaceCombinations: MutableList<SurfaceCombination> = mutableListOf()
-        if (featureSettings.requiredMaxBitDepth == DynamicRange.BIT_DEPTH_8_BIT) {
+        if (featureSettings.isUltraHdrOn) {
+            // For Ultra HDR output, only the default camera mode is currently supported.
+            if (featureSettings.cameraMode == CameraMode.DEFAULT) {
+                supportedSurfaceCombinations.addAll(surfaceCombinationsUltraHdr)
+            }
+        } else if (featureSettings.requiredMaxBitDepth == DynamicRange.BIT_DEPTH_8_BIT) {
             when (featureSettings.cameraMode) {
                 CameraMode.CONCURRENT_CAMERA ->
                     supportedSurfaceCombinations = concurrentSurfaceCombinations
@@ -218,7 +233,11 @@ class SupportedSurfaceCombination(
      * @param size the size info for the surface configuration object
      * @return new [SurfaceConfig] object
      */
-    fun transformSurfaceConfig(cameraMode: Int, imageFormat: Int, size: Size): SurfaceConfig {
+    public fun transformSurfaceConfig(
+        cameraMode: Int,
+        imageFormat: Int,
+        size: Size
+    ): SurfaceConfig {
         return SurfaceConfig.transformSurfaceConfig(
             cameraMode,
             imageFormat,
@@ -235,16 +254,18 @@ class SupportedSurfaceCombination(
      * @param newUseCaseConfigsSupportedSizeMap newly added UseCaseConfig to supported output sizes
      *   map.
      * @param isPreviewStabilizationOn whether the preview stabilization is enabled.
+     * @param hasVideoCapture whether the use cases has video capture.
      * @return the suggested stream specs, which is a mapping from UseCaseConfig to the suggested
      *   stream specification.
      * @throws IllegalArgumentException if the suggested solution for newUseCaseConfigs cannot be
      *   found. This may be due to no available output size or no available surface combination.
      */
-    fun getSuggestedStreamSpecifications(
+    public fun getSuggestedStreamSpecifications(
         cameraMode: Int,
         attachedSurfaces: List<AttachedSurfaceInfo>,
         newUseCaseConfigsSupportedSizeMap: Map<UseCaseConfig<*>, List<Size>>,
-        isPreviewStabilizationOn: Boolean = false
+        isPreviewStabilizationOn: Boolean = false,
+        hasVideoCapture: Boolean = false
     ): Pair<Map<UseCaseConfig<*>, StreamSpec>, Map<AttachedSurfaceInfo, StreamSpec>> {
         // Refresh Preview Size based on current display configurations.
         refreshPreviewSize()
@@ -259,8 +280,14 @@ class SupportedSurfaceCombination(
                 newUseCaseConfigs,
                 useCasesPriorityOrder
             )
+        val isUltraHdrOn = isUltraHdrOn(attachedSurfaces, newUseCaseConfigsSupportedSizeMap)
         val featureSettings =
-            createFeatureSettings(cameraMode, resolvedDynamicRanges, isPreviewStabilizationOn)
+            createFeatureSettings(
+                cameraMode,
+                resolvedDynamicRanges,
+                isPreviewStabilizationOn,
+                isUltraHdrOn
+            )
         val isSurfaceCombinationSupported =
             isUseCasesCombinationSupported(
                 featureSettings,
@@ -336,6 +363,7 @@ class SupportedSurfaceCombination(
                 newUseCaseConfigs,
                 useCasesPriorityOrder,
                 resolvedDynamicRanges,
+                hasVideoCapture
             )
         val attachedSurfaceStreamSpecMap = mutableMapOf<AttachedSurfaceInfo, StreamSpec>()
 
@@ -358,12 +386,19 @@ class SupportedSurfaceCombination(
      * @param cameraMode the working camera mode.
      * @param resolvedDynamicRanges the resolved dynamic range list of the newly added UseCases
      * @param isPreviewStabilizationOn whether the preview stabilization is enabled.
+     * @param isUltraHdrOn whether the Ultra HDR image capture is enabled.
      */
     private fun createFeatureSettings(
         @CameraMode.Mode cameraMode: Int,
         resolvedDynamicRanges: Map<UseCaseConfig<*>, DynamicRange>,
-        isPreviewStabilizationOn: Boolean
+        isPreviewStabilizationOn: Boolean,
+        isUltraHdrOn: Boolean
     ): FeatureSettings {
+        require(!(cameraMode != CameraMode.DEFAULT && isUltraHdrOn)) {
+            "Camera device Id is $cameraId. Ultra HDR is not " +
+                "currently supported in ${CameraMode.toLabelString(cameraMode)} camera mode."
+        }
+
         val requiredMaxBitDepth = getRequiredMaxBitDepth(resolvedDynamicRanges)
         require(
             !(cameraMode != CameraMode.DEFAULT &&
@@ -372,7 +407,12 @@ class SupportedSurfaceCombination(
             "Camera device Id is $cameraId. 10 bit dynamic range is not " +
                 "currently supported in ${CameraMode.toLabelString(cameraMode)} camera mode."
         }
-        return FeatureSettings(cameraMode, requiredMaxBitDepth, isPreviewStabilizationOn)
+        return FeatureSettings(
+            cameraMode,
+            requiredMaxBitDepth,
+            isPreviewStabilizationOn,
+            isUltraHdrOn
+        )
     }
 
     /**
@@ -808,6 +848,7 @@ class SupportedSurfaceCombination(
         newUseCaseConfigs: List<UseCaseConfig<*>>,
         useCasesPriorityOrder: List<Int>,
         resolvedDynamicRanges: Map<UseCaseConfig<*>, DynamicRange>,
+        hasVideoCapture: Boolean
     ): MutableMap<UseCaseConfig<*>, StreamSpec> {
         val suggestedStreamSpecMap = mutableMapOf<UseCaseConfig<*>, StreamSpec>()
         var targetFrameRateForDevice: Range<Int>? = null
@@ -824,6 +865,7 @@ class SupportedSurfaceCombination(
                     .setImplementationOptions(
                         StreamUseCaseUtil.getStreamSpecImplementationOptions(useCaseConfig)
                     )
+                    .setZslDisabled(hasVideoCapture)
 
             if (targetFrameRateForDevice != null) {
                 streamSpecBuilder.setExpectedFrameRateRange(targetFrameRateForDevice)
@@ -1112,7 +1154,7 @@ class SupportedSurfaceCombination(
      * @see ResolutionCorrector
      */
     @VisibleForTesting
-    fun applyResolutionSelectionOrderRelatedWorkarounds(
+    public fun applyResolutionSelectionOrderRelatedWorkarounds(
         sizeList: List<Size>,
         imageFormat: Int
     ): List<Size> {
@@ -1214,9 +1256,7 @@ class SupportedSurfaceCombination(
                 isBurstCaptureSupported
             )
         )
-        surfaceCombinations.addAll(
-            extraSupportedSurfaceCombinationsContainer[cameraId, hardwareLevel]
-        )
+        surfaceCombinations.addAll(extraSupportedSurfaceCombinationsContainer[cameraId])
     }
 
     private fun generateUltraHighResolutionSupportedCombinationList() {
@@ -1240,6 +1280,12 @@ class SupportedSurfaceCombination(
     private fun generate10BitSupportedCombinationList() {
         surfaceCombinations10Bit.addAll(
             GuaranteedConfigurationsUtil.get10BitSupportedCombinationList()
+        )
+    }
+
+    private fun generateUltraHdrSupportedCombinationList() {
+        surfaceCombinationsUltraHdr.addAll(
+            GuaranteedConfigurationsUtil.getUltraHdrSupportedCombinationList()
         )
     }
 
@@ -1272,7 +1318,7 @@ class SupportedSurfaceCombination(
 
     /** Updates the surface size definition for the specified format then return it. */
     @VisibleForTesting
-    fun getUpdatedSurfaceSizeDefinitionByFormat(format: Int): SurfaceSizeDefinition {
+    public fun getUpdatedSurfaceSizeDefinitionByFormat(format: Int): SurfaceSizeDefinition {
         if (!surfaceSizeDefinitionFormats.contains(format)) {
             updateS720pOrS1440pSizeByFormat(
                 surfaceSizeDefinition.s720pSizeMap,
@@ -1552,16 +1598,38 @@ class SupportedSurfaceCombination(
      *   [CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT].
      * @param isPreviewStabilizationOn Whether the preview stabilization is enabled.
      */
-    data class FeatureSettings(
+    public data class FeatureSettings(
         @CameraMode.Mode val cameraMode: Int,
         val requiredMaxBitDepth: Int,
-        val isPreviewStabilizationOn: Boolean = false
+        val isPreviewStabilizationOn: Boolean = false,
+        val isUltraHdrOn: Boolean = false
     )
 
-    data class BestSizesAndMaxFpsForConfigs(
+    public data class BestSizesAndMaxFpsForConfigs(
         val bestSizes: List<Size>,
         val bestSizesForStreamUseCase: List<Size>?,
         val maxFps: Int,
         val maxFpsForStreamUseCase: Int
     )
+
+    public companion object {
+        private fun isUltraHdrOn(
+            attachedSurfaces: List<AttachedSurfaceInfo>,
+            newUseCaseConfigsSupportedSizeMap: Map<UseCaseConfig<*>, List<Size>>
+        ): Boolean {
+            for (surfaceInfo in attachedSurfaces) {
+                if (surfaceInfo.imageFormat == ImageFormat.JPEG_R) {
+                    return true
+                }
+            }
+
+            for (useCaseConfig in newUseCaseConfigsSupportedSizeMap.keys) {
+                if (useCaseConfig.inputFormat == ImageFormat.JPEG_R) {
+                    return true
+                }
+            }
+
+            return false
+        }
+    }
 }

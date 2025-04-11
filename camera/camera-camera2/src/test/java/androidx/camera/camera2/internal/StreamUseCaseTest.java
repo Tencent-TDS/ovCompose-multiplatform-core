@@ -40,6 +40,7 @@ import androidx.annotation.NonNull;
 import androidx.camera.camera2.impl.Camera2ImplConfig;
 import androidx.camera.camera2.internal.SupportedSurfaceCombination.FeatureSettings;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
+import androidx.camera.core.CompositionSettings;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.UseCase;
@@ -481,7 +482,8 @@ public class StreamUseCaseTest {
                 UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE));
         children.add(new FakeUseCase(new FakeUseCaseConfig.Builder().getUseCaseConfig(),
                 UseCaseConfigFactory.CaptureType.VIDEO_CAPTURE));
-        StreamSharing streamSharing = new StreamSharing(new FakeCamera(), children,
+        StreamSharing streamSharing = new StreamSharing(new FakeCamera(), null,
+                CompositionSettings.DEFAULT, CompositionSettings.DEFAULT, children,
                 useCaseConfigFactory);
         Map<Integer, AttachedSurfaceInfo> surfaceConfigAttachedSurfaceInfoMap =
                 new HashMap<>();

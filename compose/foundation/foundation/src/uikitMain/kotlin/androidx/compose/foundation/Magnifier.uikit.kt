@@ -25,7 +25,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.interop.LocalUIViewController
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
@@ -42,6 +41,7 @@ import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.platform.inspectable
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.uikit.LocalUIViewController
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
@@ -213,11 +213,11 @@ internal class MagnifierNode(
     private var previousSize: IntSize? = null
 
     fun update(
-        sourceCenter: Density.() -> Offset,
-        magnifierCenter: (Density.() -> Offset)?,
-        onSizeChanged: ((DpSize) -> Unit)?,
-        color: Color,
-        platformMagnifierFactory: PlatformMagnifierFactory
+        sourceCenter: Density.() -> Offset = this.sourceCenter,
+        magnifierCenter: (Density.() -> Offset)? = this.magnifierCenter,
+        onSizeChanged: ((DpSize) -> Unit)? = this.onSizeChanged,
+        color: Color = this.color,
+        platformMagnifierFactory: PlatformMagnifierFactory = this.platformMagnifierFactory
     ) {
         val previousPlatformMagnifierFactory = this.platformMagnifierFactory
         val previousColor = this.color
@@ -316,12 +316,6 @@ internal class MagnifierNode(
         // Once the position is set, it's never null again, so we don't need to worry
         // about dismissing the magnifier if this expression changes value.
         if (sourceCenterInView != null) {
-            // Calculate magnifier center if it's provided. Only accept if the returned value is
-            // specified. Then add [anchorPositionInWindow] for relative positioning.
-            magnifierCenter?.invoke(density)
-                ?.takeIf { it.isSpecified }
-                ?.let { anchorPositionInWindow + it }
-
             magnifier.update(sourceCenter = sourceCenterInView)
             updateSizeIfNecessary()
         } else {

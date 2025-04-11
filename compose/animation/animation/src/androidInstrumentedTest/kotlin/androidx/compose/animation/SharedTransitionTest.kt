@@ -76,9 +76,13 @@ import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ScaleFactor
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.layout.approachLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -104,15 +108,20 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import kotlin.random.Random
 import kotlinx.coroutines.runBlocking
+import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class SharedTransitionTest {
+    val rule = createComposeRule()
 
-    @get:Rule val rule = createComposeRule()
+    // Detect leaks BEFORE and AFTER compose rule work
+    @get:Rule
+    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(rule)
 
     @Test
     fun transitionInterruption() {
@@ -561,7 +570,6 @@ class SharedTransitionTest {
     }
 
     @SdkSuppress(minSdkVersion = 26)
-    @OptIn(ExperimentalAnimationApi::class)
     @Test
     fun testBothContentShowing() {
         var visible by mutableStateOf(false)
@@ -656,6 +664,81 @@ class SharedTransitionTest {
             }
             rule.waitForIdle()
             rule.mainClock.advanceTimeByFrame()
+        }
+    }
+
+    @Test
+    fun testObserverScopeClearedAfterDisposing() {
+        var visible by mutableStateOf(false)
+        val tween = tween<Float>(100, easing = LinearEasing)
+        var transitionScope: SharedTransitionScopeImpl? = null
+        var shouldDispose by mutableStateOf(false)
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                if (!shouldDispose) {
+                    SharedTransitionLayout(
+                        Modifier.requiredSize(100.dp).testTag("scope").background(Color.White)
+                    ) {
+                        transitionScope = this as SharedTransitionScopeImpl
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = EnterTransition.None,
+                            exit = ExitTransition.None
+                        ) {
+                            Box(
+                                Modifier.sharedBounds(
+                                        rememberSharedContentState(key = "test"),
+                                        this@AnimatedVisibility,
+                                        fadeIn(tween),
+                                        fadeOut(tween)
+                                    )
+                                    .fillMaxSize()
+                            ) {
+                                Box(
+                                    Modifier.fillMaxHeight()
+                                        .fillMaxWidth(0.5f)
+                                        .background(Color.Red)
+                                        .align(Alignment.CenterStart)
+                                )
+                            }
+                        }
+                        AnimatedVisibility(
+                            visible = !visible,
+                            enter = EnterTransition.None,
+                            exit = ExitTransition.None
+                        ) {
+                            Box(
+                                Modifier.sharedBounds(
+                                        rememberSharedContentState(key = "test"),
+                                        this@AnimatedVisibility,
+                                        fadeIn(tween),
+                                        fadeOut(tween)
+                                    )
+                                    .fillMaxSize()
+                            ) {
+                                Box(
+                                    Modifier.fillMaxHeight()
+                                        .fillMaxWidth(0.5f)
+                                        .background(Color.Blue)
+                                        .align(Alignment.CenterEnd)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertFalse(transitionScope!!.isTransitionActive)
+        visible = true
+        rule.waitForIdle()
+
+        shouldDispose = true
+        rule.waitForIdle()
+
+        assertTrue(transitionScope!!.disposed)
+        transitionScope!!.observerForTest.clearIf {
+            error("Scope $it is not cleared from SharedTransitionScopeObserver")
         }
     }
 
@@ -1572,7 +1655,8 @@ class SharedTransitionTest {
                                     clipInOverlayDuringTransition =
                                         object : SharedTransitionScope.OverlayClip {
                                             override fun getClipPath(
-                                                state: SharedTransitionScope.SharedContentState,
+                                                sharedContentState:
+                                                    SharedTransitionScope.SharedContentState,
                                                 bounds: Rect,
                                                 layoutDirection: LayoutDirection,
                                                 density: Density
@@ -2565,6 +2649,47 @@ class SharedTransitionTest {
     }
 
     @Test
+    fun testPlaceHolderLogicSkippedWhenNoMatch() {
+        var parentSize: IntSize? = null
+        val changeInProgress = true
+        var testSize by mutableStateOf(IntSize.Zero)
+        rule.setContent {
+            AnimatedVisibility(visible = true) {
+                SharedTransitionLayout {
+                    Box(
+                        Modifier.onSizeChanged { parentSize = it }
+                            .sharedBounds(
+                                rememberSharedContentState("test"),
+                                this@AnimatedVisibility
+                            )
+                    ) {
+                        Box(
+                            Modifier.approachLayout(
+                                    isMeasurementApproachInProgress = { changeInProgress }
+                                ) { measurable, constraints ->
+                                    measurable.measure(constraints).run {
+                                        layout(testSize.width, testSize.height) { place(0, 0) }
+                                    }
+                                }
+                                .requiredSize(40.dp, 40.dp)
+                        )
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+
+        testSize = IntSize(20, 25)
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+
+        testSize = IntSize(35, 10)
+        rule.waitForIdle()
+        assertEquals(testSize, parentSize)
+    }
+
+    @Test
     fun testUserModifierInSharedTransitionLayout() {
         var scope: SharedTransitionScope? = null
         rule.setContent {
@@ -2739,6 +2864,59 @@ class SharedTransitionTest {
 
         // Transition into a Red box
         clickAndAssertColorDuringTransition(Color.Red)
+    }
+
+    @Test
+    fun foundMatchedElementButNeverMeasured() {
+        var target by mutableStateOf(true)
+        rule.setContent {
+            SharedTransitionLayout {
+                AnimatedContent(target) {
+                    SubcomposeLayout {
+                        subcompose(0) {
+                            Box(
+                                Modifier.sharedBounds(
+                                        rememberSharedContentState("test"),
+                                        animatedVisibilityScope = this@AnimatedContent
+                                    )
+                                    .size(200.dp)
+                                    .background(Color.Red)
+                            )
+                        }
+                        // Skip measure and return size
+                        layout(200, 200) {}
+                    }
+                    Box(Modifier.size(200.dp).background(Color.Black))
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        target = !target
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun intrinsicsQueryComingFromAboveLookaheadRoot() {
+        var intrinsicWidth = 0
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                Layout(
+                    content = {
+                        SharedTransitionLayout { Box(Modifier.skipToLookaheadSize().size(100.dp)) }
+                    },
+                ) { measurables, constraints ->
+                    val measurable = measurables[0]
+                    intrinsicWidth = measurable.maxIntrinsicWidth(constraints.maxHeight)
+                    val placeable = measurable.measure(constraints)
+                    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, 0) }
+                }
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(100, intrinsicWidth)
     }
 }
 

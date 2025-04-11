@@ -86,7 +86,7 @@ credentials with the AOSP Gerrit code review system by signing in to
 least once using the account you will use to submit patches.
 
 Next, you will need to
-[set up authentication](https://android-review.googlesource.com/new-password).
+[set up authentication](https://android.googlesource.com/new-password).
 This will give you a shell command to update your local Git cookies, which will
 allow you to upload changes.
 
@@ -573,6 +573,14 @@ version -- we record three different types of API surfaces.
     [Experimental APIs](/docs/api_guidelines/index.md#experimental-api))
     and API review
 
+NOTE: Experimental API tracking for KLib is enabled by default for KMP projects
+via parallel `updateAbi` and `checkAbi` tasks. If you have a problem with these
+tools,
+[please file an issue](https://issuetracker.google.com/issues/new?component=1102332&template=1780493).
+As a workaround, you may opt-out by setting
+`enableBinaryCompatibilityValidator = false` under
+`AndroidxMultiplatformExtension` in your library's `build.gradle` file.
+
 ### Release notes & the `Relnote:` tag {#relnote}
 
 Prior to releasing, release notes are pre-populated using a script and placed
@@ -963,7 +971,7 @@ First, use the `createArchive` Gradle task to generate the local Maven
 repository artifact:
 
 ```shell
-# Creates <path-to-checkout>/out/androidx/build/support_repo/
+# Creates <path-to-checkout>/out/repository/
 ./gradlew createArchive
 ```
 
@@ -980,7 +988,7 @@ dependencyResolutionManagement {
         mavenCentral()
         // Add this
         maven {
-            setUrl("<path-to-sdk>/out/androidx/build/support_repo/")
+            setUrl("<path-to-sdk>/out/repository/")
         }
     }
 }
@@ -1010,8 +1018,8 @@ module. We recommend only replacing the module you are modifying instead of the
 full m2repository to avoid version issues of other modules. You can either take
 the unzipped directory from
 `<path-to-checkout>/out/dist/top-of-tree-m2repository-##.zip`, or from
-`<path-to-checkout>/out/androidx/build/support_repo/` after building `androidx`.
-Here is an example of replacing the RecyclerView module:
+`<path-to-checkout>/out/repository/` after building `androidx`. Here is an
+example of replacing the RecyclerView module:
 
 ```shell
 $TARGET=YOUR_ANDROID_PATH/prebuilts/sdk/current/androidx/m2repository/androidx/recyclerview/recyclerview/1.1.0-alpha07;
@@ -1021,26 +1029,6 @@ cp -a <path-to-sdk>/extras/m2repository/androidx/recyclerview/recyclerview/1.1.0
 
 Make sure the library versions are the same before and after replacement. Then
 you can build the Android platform code with the new `androidx` code.
-
-### How do I measure library size? {#library-size}
-
-Method count and bytecode size are tracked in CI
-[alongside benchmarks](/docs/benchmarking.md#monitoring) to
-detect regressions.
-
-For local measurements, use the `:reportLibraryMetrics` task. For example:
-
-```shell
-./gradlew benchmark:benchmark-macro:reportLibraryMetrics
-cat ../../out/dist/librarymetrics/androidx.benchmark_benchmark-macro.json
-```
-
-Will output something like: `{"method_count":1256,"bytecode_size":178822}`
-
-Note: this only counts the weight of your library's jar/aar, including
-resources. It does not count library dependencies. It does not account for a
-minification step (e.g. with R8), as that is dynamic, and done at app build time
-(and depend on which entrypoints the app uses).
 
 ### How do I add content to a library's Overview reference doc page?
 
@@ -1054,18 +1042,4 @@ includes content from
 
 ### How do I enable MultiDex for my library?
 
-Go to your project/app level build.gradle file, and add
-
-```
-android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
-}
-```
-
-as well as `androidTestImplementation(libs.multidex)` to the dependenices block.
-
-If you want it enabled for the application and not test APK, add
-`implementation(libs.multidex)` to the dependencies block instead. Any prior
-failures may not re-occur now that the software is multi-dexed. Rerun the build.
+It is enabled automatically as androidx minSdkVersion is API >=21.

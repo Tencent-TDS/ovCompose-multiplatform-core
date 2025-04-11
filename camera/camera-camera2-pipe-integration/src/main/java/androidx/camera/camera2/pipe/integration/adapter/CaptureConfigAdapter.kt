@@ -16,14 +16,15 @@
 
 package androidx.camera.camera2.pipe.integration.adapter
 
-import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import androidx.annotation.OptIn
+import androidx.camera.camera2.pipe.CameraMetadata.Companion.isHardwareLevelLegacy
 import androidx.camera.camera2.pipe.FrameInfo
 import androidx.camera.camera2.pipe.InputRequest
 import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.RequestTemplate
+import androidx.camera.camera2.pipe.integration.compat.workaround.TemplateParamsOverride
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraScope
 import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
 import androidx.camera.camera2.pipe.integration.impl.CAMERAX_TAG_BUNDLE
@@ -44,17 +45,16 @@ import javax.inject.Inject
  * CameraPipe can submit to the camera.
  */
 @UseCaseCameraScope
-class CaptureConfigAdapter
+public class CaptureConfigAdapter
 @Inject
 constructor(
     cameraProperties: CameraProperties,
     private val useCaseGraphConfig: UseCaseGraphConfig,
     private val zslControl: ZslControl,
     private val threads: UseCaseThreads,
+    private val templateParamsOverride: TemplateParamsOverride,
 ) {
-    private val isLegacyDevice =
-        cameraProperties.metadata[CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL] ==
-            CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY
+    private val isLegacyDevice = cameraProperties.metadata.isHardwareLevelLegacy
 
     /**
      * Maps [CaptureConfig] to [Request].
@@ -63,7 +63,7 @@ constructor(
      *   surface is not recognized in [UseCaseGraphConfig.surfaceToStreamMap]
      */
     @OptIn(ExperimentalGetImage::class)
-    fun mapToRequest(
+    public fun mapToRequest(
         captureConfig: CaptureConfig,
         requestTemplate: RequestTemplate,
         sessionConfigOptions: Config,
@@ -137,17 +137,21 @@ constructor(
                 captureConfig.getStillCaptureTemplate(requestTemplate, isLegacyDevice)
         }
 
+        val parameters =
+            templateParamsOverride.getOverrideParams(requestTemplateToSubmit) +
+                optionBuilder.build().toParameters()
+
         return Request(
             streams = streamIdList,
             listeners = listOf(callbacks) + additionalListeners,
-            parameters = optionBuilder.build().toParameters(),
+            parameters = parameters,
             extras = mapOf(CAMERAX_TAG_BUNDLE to captureConfig.tagBundle),
             template = requestTemplateToSubmit,
             inputRequest = inputRequest,
         )
     }
 
-    companion object {
+    public companion object {
         internal fun CaptureConfig.getStillCaptureTemplate(
             sessionTemplate: RequestTemplate,
             isLegacyDevice: Boolean,

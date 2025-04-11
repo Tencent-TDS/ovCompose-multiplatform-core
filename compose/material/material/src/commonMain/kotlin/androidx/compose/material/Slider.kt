@@ -67,7 +67,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.shadow
@@ -105,7 +104,6 @@ import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMinByOrNull
 import androidx.compose.ui.util.lerp
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
@@ -135,7 +133,6 @@ import kotlinx.coroutines.launch
  * of steps between min and max values:
  *
  * @sample androidx.compose.material.samples.StepsSliderSample
- *
  * @param value current value of the Slider. If outside of [valueRange] provided, value will be
  *   coerced to this range.
  * @param onValueChange lambda in which value should be updated
@@ -143,9 +140,10 @@ import kotlinx.coroutines.launch
  * @param enabled whether or not component is enabled and can be interacted with or not
  * @param valueRange range of values that Slider value can take. Passed [value] will be coerced to
  *   this range
- * @param steps if positive, specifies the amount of discrete allowable values (in addition to the
- *   endpoints of the value range). Step values are evenly distributed across the range. If 0, the
- *   slider will behave continuously and allow any value from the range. Must not be negative.
+ * @param steps if positive, specifies the amount of discrete allowable values between the endpoints
+ *   of [valueRange]. For example, a range from 0 to 10 with 4 [steps] allows 4 values evenly
+ *   distributed between 0 and 10 (i.e., 2, 4, 6, 8). If [steps] is 0, the slider will behave
+ *   continuously and allow any value from the range. Must not be negative.
  * @param onValueChangeFinished lambda to be invoked when value change has ended. This callback
  *   shouldn't be used to update the slider value (use [onValueChange] for that), but rather to know
  *   when the user has completed selecting a new value by ending a drag or a click.
@@ -174,7 +172,6 @@ fun Slider(
     val onValueChangeState = rememberUpdatedState(onValueChange)
     val onValueChangeFinishedState = rememberUpdatedState(onValueChangeFinished)
     val tickFractions = remember(steps) { stepsToTickFractions(steps) }
-    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     val focusRequester = remember { FocusRequester() }
     BoxWithConstraints(
@@ -191,8 +188,17 @@ fun Slider(
             )
             .focusRequester(focusRequester)
             .focusable(enabled, interactionSource)
-            .slideOnKeyEvents(enabled, steps, valueRange, value, isRtl, onValueChangeState, onValueChangeFinishedState)
+            .slideOnKeyEvents(
+                enabled,
+                steps,
+                valueRange,
+                value,
+                LocalLayoutDirection.current == LayoutDirection.Rtl,
+                onValueChangeState,
+                onValueChangeFinishedState
+            )
     ) {
+        val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
         val widthPx = constraints.maxWidth.toFloat()
         val maxPx: Float
         val minPx: Float
@@ -276,8 +282,6 @@ fun Slider(
     }
 }
 
-// TODO: Edge case - losing focus on slider while key is pressed will end up with onValueChangeFinished not being invoked
-@OptIn(ExperimentalComposeUiApi::class)
 private fun Modifier.slideOnKeyEvents(
     enabled: Boolean,
     steps: Int,
@@ -288,75 +292,71 @@ private fun Modifier.slideOnKeyEvents(
     onValueChangeFinishedState: State<(() -> Unit)?>
 ): Modifier {
     require(steps >= 0) { "steps should be >= 0" }
-
     return this.onKeyEvent {
         if (!enabled) return@onKeyEvent false
-
         when (it.type) {
             KeyEventType.KeyDown -> {
                 val rangeLength = abs(valueRange.endInclusive - valueRange.start)
-                // When steps == 0, it means that a user is not limited by a step length (delta) when using touch or mouse.
-                // But it is not possible to adjust the value continuously when using keyboard buttons -
-                // the delta has to be discrete. In this case, 1% of the valueRange seems to make sense.
+                // When steps == 0, it means that a user is not limited by a step length (delta)
+                // when using touch or mouse. But it is not possible to adjust the value
+                // continuously when using keyboard buttons - the delta has to be discrete.
+                // In this case, 1% of the valueRange seems to make sense.
                 val actualSteps = if (steps > 0) steps + 1 else 100
                 val delta = rangeLength / actualSteps
-                when {
-                    it.isDirectionUp -> {
+                when (it.key) {
+                    Key.DirectionUp -> {
                         onValueChangeState.value((value + delta).coerceIn(valueRange))
                         true
                     }
-
-                    it.isDirectionDown -> {
+                    Key.DirectionDown -> {
                         onValueChangeState.value((value - delta).coerceIn(valueRange))
                         true
                     }
-
-                    it.isDirectionRight -> {
+                    Key.DirectionRight -> {
                         val sign = if (isRtl) -1 else 1
                         onValueChangeState.value((value + sign * delta).coerceIn(valueRange))
                         true
                     }
-
-                    it.isDirectionLeft -> {
+                    Key.DirectionLeft -> {
                         val sign = if (isRtl) -1 else 1
                         onValueChangeState.value((value - sign * delta).coerceIn(valueRange))
                         true
                     }
-
-                    it.isHome -> {
+                    Key.MoveHome -> {
                         onValueChangeState.value(valueRange.start)
                         true
                     }
-
-                    it.isMoveEnd -> {
+                    Key.MoveEnd -> {
                         onValueChangeState.value(valueRange.endInclusive)
                         true
                     }
-
-                    it.isPgUp -> {
+                    Key.PageUp -> {
                         val page = (actualSteps / 10).coerceIn(1, 10)
                         onValueChangeState.value((value - page * delta).coerceIn(valueRange))
                         true
                     }
-
-                    it.isPgDn -> {
+                    Key.PageDown -> {
                         val page = (actualSteps / 10).coerceIn(1, 10)
                         onValueChangeState.value((value + page * delta).coerceIn(valueRange))
                         true
                     }
-
                     else -> false
                 }
             }
-
             KeyEventType.KeyUp -> {
-                if (it.isDirectionDown || it.isDirectionUp || it.isDirectionRight
-                    || it.isDirectionLeft || it.isHome || it.isMoveEnd || it.isPgUp || it.isPgDn
-                ) {
-                    onValueChangeFinishedState.value?.invoke()
-                    true
-                } else {
-                    false
+                when (it.key) {
+                    Key.DirectionUp,
+                    Key.DirectionDown,
+                    Key.DirectionRight,
+                    Key.DirectionLeft,
+                    Key.MoveHome,
+                    Key.MoveEnd,
+                    Key.PageUp,
+                    Key.PageDown -> {
+                        onValueChangeFinishedState.value?.invoke()
+                        true
+                    }
+                    else -> false
                 }
             }
             else -> false
@@ -381,7 +381,6 @@ private fun Modifier.slideOnKeyEvents(
  * of steps between min and max values:
  *
  * @sample androidx.compose.material.samples.StepRangeSliderSample
- *
  * @param value current values of the RangeSlider. If either value is outside of [valueRange]
  *   provided, it will be coerced to this range.
  * @param onValueChange lambda in which values should be updated
@@ -389,9 +388,10 @@ private fun Modifier.slideOnKeyEvents(
  * @param enabled whether or not component is enabled and can we interacted with or not
  * @param valueRange range of values that Range Slider values can take. Passed [value] will be
  *   coerced to this range
- * @param steps if positive, specifies the amount of discrete allowable values (in addition to the
- *   endpoints of the value range). Step values are evenly distributed across the range. If 0, the
- *   range slider will behave continuously and allow any value from the range. Must not be negative.
+ * @param steps if positive, specifies the amount of discrete allowable values between the endpoints
+ *   of [valueRange]. For example, a range from 0 to 10 with 4 [steps] allows 4 values evenly
+ *   distributed between 0 and 10 (i.e., 2, 4, 6, 8). If [steps] is 0, the slider will behave
+ *   continuously and allow any value from the range. Must not be negative.
  * @param onValueChangeFinished lambda to be invoked when value change has ended. This callback
  *   shouldn't be used to update the range slider values (use [onValueChange] for that), but rather
  *   to know when the user has completed selecting a new value by ending a drag or a click.
@@ -819,8 +819,7 @@ private fun BoxScope.SliderThumb(
                 .size(thumbSize, thumbSize)
                 .indication(
                     interactionSource = interactionSource,
-                    indication =
-                        rippleOrFallbackImplementation(bounded = false, radius = ThumbRippleRadius)
+                    indication = ripple(bounded = false, radius = ThumbRippleRadius)
                 )
                 .hoverable(interactionSource = interactionSource)
                 .shadow(if (enabled) elevation else 0.dp, CircleShape, clip = false)

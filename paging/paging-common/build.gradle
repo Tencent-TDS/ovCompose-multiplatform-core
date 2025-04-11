@@ -27,15 +27,12 @@ import androidx.build.PlatformIdentifier
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
 
-
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
     jvm()
     mac()
     linux()
@@ -49,7 +46,7 @@ androidXMultiplatform {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
-                api("androidx.annotation:annotation:1.8.0")
+                api(project(":annotation:annotation"))
             }
         }
 
@@ -98,7 +95,6 @@ androidXMultiplatform {
             dependencies {
                 implementation(libs.testRunner)
                 implementation(libs.mockitoAndroid5)
-                implementation(libs.multidex)
             }
         }
 
@@ -151,8 +147,4 @@ androidx {
 
 android {
     namespace "androidx.paging.common"
-
-    defaultConfig {
-        multiDexEnabled = true
-    }
 }

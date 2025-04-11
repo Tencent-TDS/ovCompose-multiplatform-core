@@ -40,11 +40,11 @@ internal object PlistSanityCheck {
 
                 if (displayLinkEntry?.boolValue != true) {
                     val message = """
-                            Error: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry. 
+                            Error: `Info.plist` doesn't have a valid `CADisableMinimumFrameDurationOnPhone` entry, or has it set to `false`. 
                             This will result in an inadequate performance on iPhones with high refresh rate. 
-                            Add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to `Info.plist` to fix this error. 
-                            If you don't have a separate plist file, add the entry to the target from within Xcode: Project -> Targets -> Info -> Custom iOS Target Properties.                            
-                            Or set `ComposeUIViewController(configure = { enforceStrictPlistSanityCheck = false }) { .. }`, if it's intended.                            
+                            Add `<key>CADisableMinimumFrameDurationOnPhone</key><true/>` entry to the `Info.plist` file to fix this error. 
+                            If you don't have a separate .plist file, add the entry to the target from within Xcode: Project -> Targets -> Info -> Custom iOS Target Properties.                            
+                            To disable this check, set `ComposeUIViewController(configure = { enforceStrictPlistSanityCheck = false }) { .. }`.                            
                         """.trimIndent()
                     error(message)
                 }

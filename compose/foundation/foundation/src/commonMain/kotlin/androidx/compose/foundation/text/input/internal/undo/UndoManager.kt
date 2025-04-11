@@ -16,10 +16,14 @@
 
 package androidx.compose.foundation.text.input.internal.undo
 
+import androidx.compose.foundation.internal.checkPrecondition
+import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.util.fastForEach
+import kotlin.collections.removeFirst as removeFirstKt
+import kotlin.collections.removeLast as removeLastKt
 
 /**
  * A generic purpose undo/redo stack manager.
@@ -48,10 +52,9 @@ internal class UndoManager<T>(
         get() = undoStack.size + redoStack.size
 
     init {
-        require(capacity >= 0) { "Capacity must be a positive integer" }
-        require(size <= capacity) {
-            "Initial list of undo and redo operations have a size=($size) greater " +
-                "than the given capacity=($capacity)."
+        requirePrecondition(capacity >= 0) { "Capacity must be a positive integer" }
+        requirePrecondition(size <= capacity) {
+            "Initial list of undo and redo operations have a size greater than the given capacity."
         }
     }
 
@@ -60,7 +63,7 @@ internal class UndoManager<T>(
         redoStack.clear()
 
         while (size > capacity - 1) { // leave room for the immediate `add`
-            undoStack.removeFirst()
+            undoStack.removeFirstKt()
         }
         undoStack.add(undoableAction)
     }
@@ -72,12 +75,12 @@ internal class UndoManager<T>(
      * returns, the given item has already been carried to the redo stack.
      */
     fun undo(): T {
-        check(canUndo) {
+        checkPrecondition(canUndo) {
             "It's an error to call undo while there is nothing to undo. " +
                 "Please first check `canUndo` value before calling the `undo` function."
         }
 
-        val topOperation = undoStack.removeLast()
+        val topOperation = undoStack.removeLastKt()
 
         redoStack.add(topOperation)
         return topOperation
@@ -90,12 +93,12 @@ internal class UndoManager<T>(
      * returns, the given item has already been carried back to the undo stack.
      */
     fun redo(): T {
-        check(canRedo) {
+        checkPrecondition(canRedo) {
             "It's an error to call redo while there is nothing to redo. " +
                 "Please first check `canRedo` value before calling the `redo` function."
         }
 
-        val topOperation = redoStack.removeLast()
+        val topOperation = redoStack.removeLastKt()
 
         undoStack.add(topOperation)
         return topOperation

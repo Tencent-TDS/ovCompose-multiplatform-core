@@ -615,19 +615,19 @@ internal class IntListTest {
         assertEquals(list, l)
     }
 
-    @Test // https://youtrack.jetbrains.com/issue/CMP-5698
-    fun sortEmpty() {
-        val l = MutableIntList(0)
-        l.sort()
-        l.sortDescending()
-        assertEquals(MutableIntList(0), l)
-    }
-
     @Test
     fun sortDescending() {
         val l = mutableIntListOf(1, 4, 2, 5, 3)
         l.sortDescending()
         assertEquals(mutableIntListOf(5, 4, 3, 2, 1), l)
+    }
+
+    @Test
+    fun sortEmpty() {
+        val l = MutableIntList(0)
+        l.sort()
+        l.sortDescending()
+        assertEquals(MutableIntList(0), l)
     }
 
     @Test
@@ -712,5 +712,47 @@ internal class IntListTest {
         assertEquals(10, l[1])
         assertEquals(-1, l[2])
         assertEquals(10, l[3])
+    }
+
+    @Test
+    fun buildIntListFunction() {
+        val contract: Boolean
+        val l = buildIntList {
+            contract = true
+            add(2)
+            add(10)
+        }
+        assertTrue(contract)
+        assertEquals(2, l.size)
+        assertEquals(2, l[0])
+        assertEquals(10, l[1])
+    }
+
+    @Test
+    fun buildIntListWithCapacityFunction() {
+        val contract: Boolean
+        val l =
+            buildIntList(20) {
+                contract = true
+                add(2)
+                add(10)
+            }
+        assertTrue(contract)
+        assertEquals(2, l.size)
+        assertTrue(l.content.size >= 20)
+        assertEquals(2, l[0])
+        assertEquals(10, l[1])
+    }
+
+    @Test
+    fun binarySearchIntList() {
+        val l = mutableIntListOf(-2, -1, 2, 10, 10)
+        assertEquals(0, l.binarySearch(-2))
+        assertEquals(2, l.binarySearch(2))
+        assertEquals(3, l.binarySearch(10))
+
+        assertEquals(-1, l.binarySearch(-20))
+        assertEquals(-4, l.binarySearch(3))
+        assertEquals(-6, l.binarySearch(20))
     }
 }

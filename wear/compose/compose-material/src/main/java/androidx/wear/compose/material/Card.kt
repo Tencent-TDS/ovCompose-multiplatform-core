@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.wear.compose.materialcore.ImageWithScrimPainter
 import kotlin.math.min
 
 /**
@@ -115,7 +116,7 @@ public fun Card(
         shape = shape,
         interactionSource = interactionSource,
         role = role,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor,
@@ -207,7 +208,7 @@ public fun AppCard(
         containerPainter = backgroundPainter,
         interactionSource = null,
         shape = MaterialTheme.shapes.large,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
         appImage = appImage?.let { { appImage() } },
         appName = {
             CompositionLocalProvider(
@@ -317,7 +318,7 @@ public fun TitleCard(
         interactionSource = null,
         role = null,
         shape = MaterialTheme.shapes.large,
-        ripple = rippleOrFallbackImplementation(),
+        ripple = ripple(),
     ) {
         Column {
             Row(

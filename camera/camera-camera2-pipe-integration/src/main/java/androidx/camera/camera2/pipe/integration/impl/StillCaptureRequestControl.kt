@@ -19,7 +19,7 @@ package androidx.camera.camera2.pipe.integration.impl
 import androidx.annotation.GuardedBy
 import androidx.camera.camera2.pipe.core.Log.debug
 import androidx.camera.camera2.pipe.integration.adapter.asListenableFuture
-import androidx.camera.camera2.pipe.integration.adapter.propagateOnceTo
+import androidx.camera.camera2.pipe.integration.adapter.propagateCompletion
 import androidx.camera.camera2.pipe.integration.config.CameraScope
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -40,7 +40,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 @CameraScope
-class StillCaptureRequestControl
+public class StillCaptureRequestControl
 @Inject
 constructor(
     private val flashControl: FlashControl,
@@ -48,15 +48,15 @@ constructor(
 ) : UseCaseCameraControl {
     private val mutex = Mutex()
 
-    private var _useCaseCamera: UseCaseCamera? = null
-    override var useCaseCamera: UseCaseCamera?
-        get() = _useCaseCamera
+    private var _requestControl: UseCaseCameraRequestControl? = null
+    override var requestControl: UseCaseCameraRequestControl?
+        get() = _requestControl
         set(value) {
-            _useCaseCamera = value
-            _useCaseCamera?.let { submitPendingRequests() }
+            _requestControl = value
+            _requestControl?.let { submitPendingRequests() }
         }
 
-    data class CaptureRequest(
+    public data class CaptureRequest(
         val captureConfigs: List<CaptureConfig>,
         @ImageCapture.CaptureMode val captureMode: Int,
         @ImageCapture.FlashType val flashType: Int,
@@ -89,7 +89,7 @@ constructor(
         }
     }
 
-    fun issueCaptureRequests(
+    public fun issueCaptureRequests(
         captureConfigs: List<CaptureConfig>,
         @ImageCapture.CaptureMode captureMode: Int,
         @ImageCapture.FlashType flashType: Int,
@@ -98,8 +98,9 @@ constructor(
 
         threads.sequentialScope.launch {
             val request = CaptureRequest(captureConfigs, captureMode, flashType, signal)
-            useCaseCamera?.let { camera ->
-                submitRequest(request, camera).propagateResultOrEnqueueRequest(request, camera)
+            requestControl?.let { requestControl ->
+                submitRequest(request, requestControl)
+                    .propagateResultOrEnqueueRequest(request, requestControl)
             }
                 ?: run {
                     // UseCaseCamera may become null by the time the coroutine is started
@@ -119,11 +120,11 @@ constructor(
             mutex.withLock {
                 while (pendingRequests.isNotEmpty()) {
                     pendingRequests.poll()?.let { request ->
-                        useCaseCamera?.let { camera ->
-                            submitRequest(request, camera)
+                        requestControl?.let { requestControl ->
+                            submitRequest(request, requestControl)
                                 .propagateResultOrEnqueueRequest(
                                     submittedRequest = request,
-                                    requestCamera = camera
+                                    currentRequestControl = requestControl
                                 )
                         }
                     }
@@ -134,9 +135,9 @@ constructor(
 
     private suspend fun submitRequest(
         request: CaptureRequest,
-        camera: UseCaseCamera
+        requestControl: UseCaseCameraRequestControl
     ): Deferred<List<Void?>> {
-        debug { "StillCaptureRequestControl: submitting $request at $camera" }
+        debug { "StillCaptureRequestControl: submitting $request at $requestControl" }
         val flashMode = flashControl.flashMode
         // Prior to submitStillCaptures, wait until the pending flash mode session change is
         // completed. On some devices, AE preCapture triggered in submitStillCaptures may not
@@ -145,7 +146,7 @@ constructor(
         flashControl.updateSignal.join()
         debug { "StillCaptureRequestControl: Issuing single capture" }
         val deferredList =
-            camera.requestControl.issueSingleCaptureAsync(
+            requestControl.issueSingleCaptureAsync(
                 request.captureConfigs,
                 request.captureMode,
                 request.flashType,
@@ -164,7 +165,7 @@ constructor(
 
     private fun Deferred<List<Void?>>.propagateResultOrEnqueueRequest(
         submittedRequest: CaptureRequest,
-        requestCamera: UseCaseCamera
+        currentRequestControl: UseCaseCameraRequestControl
     ) {
         invokeOnCompletion { cause: Throwable? ->
             if (
@@ -174,13 +175,13 @@ constructor(
                 threads.sequentialScope.launch {
                     var isPending = true
 
-                    useCaseCamera?.let { latestCamera ->
-                        if (requestCamera != latestCamera) {
+                    requestControl?.let { latestRequestControl ->
+                        if (currentRequestControl != latestRequestControl) {
                             // camera has already been changed, can retry immediately
-                            submitRequest(submittedRequest, latestCamera)
+                            submitRequest(submittedRequest, latestRequestControl)
                                 .propagateResultOrEnqueueRequest(
                                     submittedRequest = submittedRequest,
-                                    requestCamera = latestCamera
+                                    currentRequestControl = latestRequestControl
                                 )
                             isPending = false
                         }
@@ -196,15 +197,17 @@ constructor(
                     }
                 }
             } else {
-                propagateOnceTo(submittedRequest.result, cause)
+                propagateCompletion(submittedRequest.result, cause)
             }
         }
     }
 
     @Module
-    abstract class Bindings {
+    public abstract class Bindings {
         @Binds
         @IntoSet
-        abstract fun provideControls(control: StillCaptureRequestControl): UseCaseCameraControl
+        public abstract fun provideControls(
+            control: StillCaptureRequestControl
+        ): UseCaseCameraControl
     }
 }

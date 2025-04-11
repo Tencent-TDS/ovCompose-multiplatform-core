@@ -299,6 +299,19 @@ class MainActivity : AppCompatActivity() {
             lastForegroundWorkRequest = request
             workManager.enqueue(request)
         }
+        findViewById<View>(R.id.run_foreground_worker_location).setOnClickListener {
+            lastNotificationId += 1
+            val inputData =
+                workDataOf(ForegroundLocationWorker.InputNotificationId to lastNotificationId)
+
+            val request =
+                OneTimeWorkRequest.Builder(ForegroundLocationWorker::class.java)
+                    .setInputData(inputData)
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .build()
+            lastForegroundWorkRequest = request
+            workManager.enqueue(request)
+        }
         findViewById<View>(R.id.run_foreground_worker_network_request).setOnClickListener {
             lastNotificationId += 1
             val inputData = workDataOf(ForegroundWorker.InputNotificationId to lastNotificationId)
@@ -382,9 +395,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.crash_app).setOnClickListener {
             throw RuntimeException("Crashed app")
         }
-        findViewById<View>(R.id.enqueue_infinite_work_charging).setOnClickListener {
-            queueLotsOfWorkers(workManager)
-        }
+        findViewById<View>(R.id.stress_test).setOnClickListener { queueLotsOfWorkers(workManager) }
         findViewById<View>(R.id.enqueue_network_request).setOnClickListener {
             enqueueWithNetworkRequest(workManager)
         }

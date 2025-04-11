@@ -102,10 +102,6 @@ internal class ViewLayer(
         this.parentLayer = parentLayer
     }
 
-    fun resetDrawBlock() {
-        drawBlock = DefaultDrawBlock
-    }
-
     init {
         setWillNotDraw(false) // we WILL draw
         this.clipBounds = null
@@ -157,6 +153,7 @@ internal class ViewLayer(
 
 internal class GraphicsViewLayer(
     private val layerContainer: DrawChildContainer,
+    override val ownerId: Long,
     val canvasHolder: CanvasHolder = CanvasHolder(),
     canvasDrawScope: CanvasDrawScope = CanvasDrawScope()
 ) : GraphicsLayerImpl {
@@ -395,7 +392,8 @@ internal class GraphicsViewLayer(
         this.y = y
     }
 
-    override fun setOutline(outline: Outline?) {
+    override fun setOutline(outline: Outline?, outlineSize: IntSize) {
+        // outlineSize is not required for this GraphicsLayer implementation
         // b/18175261 On the initial Lollipop release invalidateOutline
         // would not invalidate shadows. As a workaround there is a reflective call to
         // invoke View#rebuildOutline directly. However, if the reflection fails
@@ -422,6 +420,9 @@ internal class GraphicsViewLayer(
         layer: GraphicsLayer,
         block: DrawScope.() -> Unit
     ) {
+        if (viewLayer.parent == null) {
+            layerContainer.addView(viewLayer)
+        }
         viewLayer.setDrawParams(density, layoutDirection, layer, block)
         // According to View#canHaveDisplaylist, a View can only have a displaylist
         // if it is attached and there is a valid ThreadedRenderer instance on the corresponding
@@ -436,7 +437,14 @@ internal class GraphicsViewLayer(
                 val pictureCanvas = p.beginRecording(size.width, size.height)
                 try {
                     pictureCanvasHolder?.drawInto(pictureCanvas) {
-                        pictureDrawScope?.draw(density, layoutDirection, this, size.toSize(), block)
+                        pictureDrawScope?.draw(
+                            density,
+                            layoutDirection,
+                            this,
+                            size.toSize(),
+                            layer,
+                            block
+                        )
                     }
                 } finally {
                     p.endRecording()
@@ -491,12 +499,6 @@ internal class GraphicsViewLayer(
         layerContainer.removeViewInLayout(viewLayer)
     }
 
-    override fun onReused() {
-        viewLayer.resetDrawBlock()
-        // it was removed in discardDisplayList()
-        layerContainer.addView(viewLayer)
-    }
-
     companion object {
 
         val mayRenderInSoftware = !isLockHardwareCanvasAvailable()
@@ -519,7 +521,6 @@ internal class GraphicsViewLayer(
 @RequiresApi(Build.VERSION_CODES.S)
 private object ViewLayerVerificationHelper31 {
 
-    @androidx.annotation.DoNotInline
     fun setRenderEffect(view: View, target: RenderEffect?) {
         view.setRenderEffect(target?.asAndroidRenderEffect())
     }
@@ -528,17 +529,14 @@ private object ViewLayerVerificationHelper31 {
 @RequiresApi(Build.VERSION_CODES.P)
 private object ViewLayerVerificationHelper28 {
 
-    @androidx.annotation.DoNotInline
     fun setOutlineAmbientShadowColor(view: View, target: Int) {
         view.outlineAmbientShadowColor = target
     }
 
-    @androidx.annotation.DoNotInline
     fun setOutlineSpotShadowColor(view: View, target: Int) {
         view.outlineSpotShadowColor = target
     }
 
-    @androidx.annotation.DoNotInline
     fun resetPivot(view: View) {
         view.resetPivot()
     }

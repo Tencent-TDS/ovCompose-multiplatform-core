@@ -184,9 +184,9 @@ public abstract class PasswordDialog extends DialogFragment {
     @Override
     public void onStart() {
         super.onStart();
-        mTextDefaultColor = getResources().getColor(R.color.text_default);
-        mTextErrorColor = getResources().getColor(R.color.text_error);
-        mBlueColor = getResources().getColor(R.color.google_blue);
+        mTextDefaultColor = getResources().getColor(R.color.pdf_viewer_color_on_surface);
+        mTextErrorColor = getResources().getColor(R.color.pdf_viewer_color_error);
+        mBlueColor = getResources().getColor(R.color.pdf_viewer_color_primary);
 
         EditText textField = (EditText) getDialog().findViewById(R.id.password);
         textField.getBackground().setColorFilter(mBlueColor, PorterDuff.Mode.SRC_ATOP);
@@ -256,7 +256,7 @@ public abstract class PasswordDialog extends DialogFragment {
     private void swapBackground(EditText textField, boolean reverse) {
         if (!reverse) {
             textField.setBackground(
-                    getResources().getDrawable(R.drawable.textfield_default_mtrl_alpha));
+                    getResources().getDrawable(R.drawable.drag_indicator));
         } else {
             EditText sample = new EditText(getActivity());
             textField.setBackground(sample.getBackground());

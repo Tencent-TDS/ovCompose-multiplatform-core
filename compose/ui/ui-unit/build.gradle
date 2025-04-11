@@ -74,12 +74,12 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 api(project(":compose:ui:ui-geometry"))
 
+                implementation(project(":annotation:annotation"))
                 implementation(project(":compose:runtime:runtime"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation(project(":annotation:annotation"))
             }
             jvmMain.dependencies {
                 implementation(libs.kotlinStdlib)
@@ -106,7 +106,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
             }
 
             commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(kotlin("test"))
             }
 
             // TODO(b/214407011): These dependencies leak into instrumented tests as well. If you

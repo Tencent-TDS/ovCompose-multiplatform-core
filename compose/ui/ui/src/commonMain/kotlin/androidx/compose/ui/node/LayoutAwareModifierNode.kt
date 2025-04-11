@@ -32,9 +32,7 @@ import androidx.compose.ui.unit.IntSize
  * Example usage:
  *
  * @sample androidx.compose.ui.samples.OnSizeChangedSample
- *
  * @sample androidx.compose.ui.samples.OnPlaced
- *
  * @sample androidx.compose.ui.samples.LayoutAwareModifierNodeSample
  */
 interface LayoutAwareModifierNode : DelegatableNode {
@@ -55,6 +53,7 @@ interface LayoutAwareModifierNode : DelegatableNode {
     fun onRemeasured(size: IntSize) {}
 }
 
+// TODO(b/309776096): Make it public
 internal interface OnUnplacedModifierNode : DelegatableNode {
     fun onUnplaced()
 }

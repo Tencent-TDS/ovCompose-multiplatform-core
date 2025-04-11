@@ -19,6 +19,7 @@ package androidx.room.compiler.processing
 import androidx.kruth.assertThat
 import androidx.room.compiler.processing.javac.JavacMethodElement
 import androidx.room.compiler.processing.javac.JavacTypeElement
+import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.compileFiles
@@ -171,7 +172,8 @@ class MethodSpecHelperTest(
             """
                     .trimIndent()
             )
-        overridesCheck(source)
+        // https://github.com/google/ksp/issues/1640
+        overridesCheck(source, kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS)
     }
 
     @Test
@@ -467,7 +469,11 @@ class MethodSpecHelperTest(
     }
 
     @Suppress("NAME_SHADOWING") // intentional
-    private fun overridesCheck(vararg sources: Source, ignoreInheritedMethods: Boolean = false) {
+    private fun overridesCheck(
+        vararg sources: Source,
+        ignoreInheritedMethods: Boolean = false,
+        kotlincArgs: List<String> = emptyList()
+    ) {
         val (sources: List<Source>, classpath: List<File>) =
             if (preCompiledCode) {
                 emptyList<Source>() to compileFiles(sources.toList())
@@ -483,7 +489,8 @@ class MethodSpecHelperTest(
             )
         runProcessorTest(
             sources = sources + Source.kotlin("Placeholder.kt", ""),
-            classpath = classpath
+            classpath = classpath,
+            kotlincArguments = kotlincArgs
         ) { invocation ->
             val (target, methods) = invocation.getOverrideTestTargets(ignoreInheritedMethods)
             methods.forEachIndexed { index, method ->

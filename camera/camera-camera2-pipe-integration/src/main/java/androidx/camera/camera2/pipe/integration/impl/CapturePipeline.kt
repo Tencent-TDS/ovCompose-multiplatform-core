@@ -49,6 +49,7 @@ import androidx.camera.camera2.pipe.Result3A
 import androidx.camera.camera2.pipe.core.Log.debug
 import androidx.camera.camera2.pipe.core.Log.info
 import androidx.camera.camera2.pipe.integration.adapter.CaptureConfigAdapter
+import androidx.camera.camera2.pipe.integration.compat.workaround.Lock3ABehaviorWhenCaptureImage
 import androidx.camera.camera2.pipe.integration.compat.workaround.UseTorchAsFlash
 import androidx.camera.camera2.pipe.integration.compat.workaround.isFlashAvailable
 import androidx.camera.camera2.pipe.integration.compat.workaround.shouldStopRepeatingBeforeCapture
@@ -84,11 +85,11 @@ private val CHECK_3A_TIMEOUT_IN_NS = TimeUnit.SECONDS.toNanos(1)
 private val CHECK_3A_WITH_FLASH_TIMEOUT_IN_NS = TimeUnit.SECONDS.toNanos(5)
 private val CHECK_3A_WITH_SCREEN_FLASH_TIMEOUT_IN_NS = TimeUnit.SECONDS.toNanos(2)
 
-interface CapturePipeline {
+public interface CapturePipeline {
 
-    var template: Int
+    public var template: Int
 
-    suspend fun submitStillCaptures(
+    public suspend fun submitStillCaptures(
         configs: List<CaptureConfig>,
         requestTemplate: RequestTemplate,
         sessionConfigOptions: Config,
@@ -100,7 +101,7 @@ interface CapturePipeline {
 
 /** Implementations for the single capture. */
 @UseCaseCameraScope
-class CapturePipelineImpl
+public class CapturePipelineImpl
 @Inject
 constructor(
     private val configAdapter: CaptureConfigAdapter,
@@ -109,6 +110,7 @@ constructor(
     private val threads: UseCaseThreads,
     private val requestListener: ComboRequestListener,
     private val useTorchAsFlash: UseTorchAsFlash,
+    private val lock3ABehaviorWhenCaptureImage: Lock3ABehaviorWhenCaptureImage,
     cameraProperties: CameraProperties,
     private val useCaseCameraState: UseCaseCameraState,
     useCaseGraphConfig: UseCaseGraphConfig,
@@ -119,7 +121,7 @@ constructor(
     // If there is no flash unit, skip the flash related task instead of failing the pipeline.
     private val hasFlashUnit = cameraProperties.isFlashAvailable()
 
-    override var template = CameraDevice.TEMPLATE_PREVIEW
+    override var template: Int = CameraDevice.TEMPLATE_PREVIEW
 
     override suspend fun submitStillCaptures(
         configs: List<CaptureConfig>,
@@ -341,7 +343,7 @@ constructor(
      * @return The previous preferred AE mode in [State3AControl], null if not modified.
      */
     @VisibleForTesting
-    suspend fun invokeScreenFlashPreCaptureTasks(@CaptureMode captureMode: Int) {
+    public suspend fun invokeScreenFlashPreCaptureTasks(@CaptureMode captureMode: Int) {
         flashControl.startScreenFlashCaptureTasks()
 
         graph.acquireSession().use { session ->
@@ -360,7 +362,7 @@ constructor(
     }
 
     @VisibleForTesting
-    suspend fun invokeScreenFlashPostCaptureTasks(@CaptureMode captureMode: Int) {
+    public suspend fun invokeScreenFlashPostCaptureTasks(@CaptureMode captureMode: Int) {
         flashControl.stopScreenFlashCaptureTasks()
 
         // Unlock 3A
@@ -373,15 +375,22 @@ constructor(
         }
     }
 
-    private suspend fun lock3A(timeLimitNs: Long): Result3A =
+    private suspend fun lock3A(convergedTimeLimitNs: Long): Result3A =
         graph
             .acquireSession()
             .use {
+                val (aeLockBehavior, afLockBehavior, awbLockBehavior) =
+                    lock3ABehaviorWhenCaptureImage.getLock3ABehaviors(
+                        defaultAeBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
+                        defaultAfBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
+                        defaultAwbBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
+                    )
                 it.lock3A(
-                    aeLockBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
-                    afLockBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
-                    awbLockBehavior = Lock3ABehavior.AFTER_CURRENT_SCAN,
-                    timeLimitNs = timeLimitNs,
+                    aeLockBehavior = aeLockBehavior,
+                    afLockBehavior = afLockBehavior,
+                    awbLockBehavior = awbLockBehavior,
+                    convergedTimeLimitNs = convergedTimeLimitNs,
+                    lockedTimeLimitNs = CHECK_3A_TIMEOUT_IN_NS
                 )
             }
             .await()
@@ -629,13 +638,13 @@ constructor(
  *   timeLimitNs is reached.
  * @constructor
  */
-class ResultListener(
+public class ResultListener(
     private val timeLimitNs: Long,
     private val checker: (totalCaptureResult: FrameInfo) -> Boolean,
 ) : Request.Listener {
 
     private val completeSignal = CompletableDeferred<FrameInfo?>()
-    val result: Deferred<FrameInfo?>
+    public val result: Deferred<FrameInfo?>
         get() = completeSignal
 
     @Volatile private var timestampOfFirstUpdateNs: Long? = null

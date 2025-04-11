@@ -41,6 +41,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.WithTouchSlop
 import androidx.compose.testutils.assertPixels
@@ -72,6 +73,10 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import kotlin.collections.removeLast as removeLastKt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -360,7 +365,7 @@ class LazyColumnTest(val useLookaheadScope: Boolean) {
             LazyColumn { items(items) { item -> Spacer(Modifier.size(itemSize).testTag(item)) } }
         }
 
-        rule.runOnIdle { items.removeLast() }
+        rule.runOnIdle { items.removeLastKt() }
 
         rule.onNodeWithTag("1").assertIsDisplayed()
 
@@ -549,6 +554,27 @@ class LazyColumnTest(val useLookaheadScope: Boolean) {
         }
         rule.runOnIdle { compose = false }
         rule.runOnIdle { runBlocking { state.scrollBy(itemSize) } }
+    }
+
+    @Test
+    fun awaitFirstLayoutIsCancellable() {
+        val itemSize = 10f
+        val itemSizeDp = with(rule.density) { itemSize.toDp() }
+        val state = LazyListState()
+        lateinit var scope: CoroutineScope
+
+        rule.setContent {
+            LazyColumn(Modifier.size(itemSizeDp).layout { _, _ -> layout(10, 10) {} }, state) {
+                items(100) { Box(Modifier.size(itemSizeDp)) }
+            }
+            scope = rememberCoroutineScope()
+        }
+
+        val job = scope.launch(Dispatchers.Main + AutoTestFrameClock()) { state.scrollToItem(99) }
+        rule.waitForIdle()
+
+        job.cancel()
+        rule.waitUntil { job.isCompleted }
     }
 
     @Composable

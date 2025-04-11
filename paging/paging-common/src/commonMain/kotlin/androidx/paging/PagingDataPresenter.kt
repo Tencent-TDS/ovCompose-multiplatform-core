@@ -34,9 +34,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 
 /**
  * The class that connects the UI layer to the underlying Paging operations. Takes input from UI
@@ -160,6 +163,9 @@ public abstract class PagingDataPresenter<T : Any>(
                             )
                         }
                         event is Insert -> {
+                            if (inGetItem.value) {
+                                yield()
+                            }
                             // Process APPEND/PREPEND and send to presenter
                             presentPagingDataEvent(pageStore.processEvent(event))
 
@@ -215,6 +221,9 @@ public abstract class PagingDataPresenter<T : Any>(
                             }
                         }
                         event is Drop -> {
+                            if (inGetItem.value) {
+                                yield()
+                            }
                             // Process DROP and send to presenter
                             presentPagingDataEvent(pageStore.processEvent(event))
 
@@ -249,6 +258,8 @@ public abstract class PagingDataPresenter<T : Any>(
         }
     }
 
+    private val inGetItem = MutableStateFlow(false)
+
     /**
      * Returns the presented item at the specified position, notifying Paging of the item access to
      * trigger any loads necessary to fulfill [prefetchDistance][PagingConfig.prefetchDistance].
@@ -258,12 +269,13 @@ public abstract class PagingDataPresenter<T : Any>(
      */
     @MainThread
     public operator fun get(@IntRange(from = 0) index: Int): T? {
+        inGetItem.update { true }
         lastAccessedIndexUnfulfilled = true
         lastAccessedIndex = index
 
         log(VERBOSE) { "Accessing item index[$index]" }
         hintReceiver?.accessHint(pageStore.accessHintForPresenterIndex(index))
-        return pageStore.get(index)
+        return pageStore.get(index).also { inGetItem.update { false } }
     }
 
     /**
@@ -312,9 +324,8 @@ public abstract class PagingDataPresenter<T : Any>(
      * Invalidation due repository-layer signals, such as DB-updates, should instead use
      * [PagingSource.invalidate].
      *
-     * @see PagingSource.invalidate
-     *
      * @sample androidx.paging.samples.refreshSample
+     * @see PagingSource.invalidate
      */
     public fun refresh() {
         log(DEBUG) { "Refresh signal received" }
@@ -407,9 +418,8 @@ public abstract class PagingDataPresenter<T : Any>(
      * [PagingData] yet, and thus has no state to emit.
      *
      * @param listener [LoadStates] listener to receive updates.
-     * @see removeLoadStateListener
-     *
      * @sample androidx.paging.samples.addLoadStateListenerSample
+     * @see removeLoadStateListener
      */
     public fun addLoadStateListener(listener: (@JvmSuppressWildcards CombinedLoadStates) -> Unit) {
         combinedLoadStatesCollection.addListener(listener)

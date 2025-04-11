@@ -33,6 +33,7 @@ import androidx.privacysandbox.ads.adservices.common.ExperimentalFeatures
  */
 @ExperimentalFeatures.Ext10OptIn
 class PersistAdSelectionResultRequest
+@JvmOverloads
 public constructor(
     val adSelectionId: Long,
     val seller: AdTechIdentifier? = null,
@@ -66,6 +67,7 @@ public constructor(
     @RequiresExtension(extension = Build.VERSION_CODES.S, version = 10)
     internal fun convertToAdServices():
         android.adservices.adselection.PersistAdSelectionResultRequest {
+        @Suppress("DEPRECATION")
         return android.adservices.adselection.PersistAdSelectionResultRequest.Builder()
             .setAdSelectionId(adSelectionId)
             .setSeller(seller?.convertToAdServices())

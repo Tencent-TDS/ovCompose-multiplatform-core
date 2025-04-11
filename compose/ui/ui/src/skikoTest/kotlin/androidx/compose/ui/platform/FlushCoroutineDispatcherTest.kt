@@ -23,7 +23,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 
 class FlushCoroutineDispatcherTest {
 
@@ -44,7 +46,7 @@ class FlushCoroutineDispatcherTest {
             actualNumbers.add(3)
         }
 
-        while (dispatcher.hasTasks()) {
+        while (dispatcher.hasImmediateTasks()) {
             dispatcher.flush()
         }
 
@@ -71,7 +73,7 @@ class FlushCoroutineDispatcherTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(listOf(1, 2, 3), actualNumbers)
-        assertFalse(dispatcher.hasTasks())
+        assertFalse(dispatcher.hasImmediateTasks())
     }
 
     @Test
@@ -81,10 +83,10 @@ class FlushCoroutineDispatcherTest {
         val job = launch(dispatcher) {
             delay(Long.MAX_VALUE/2)
         }
-        assertTrue(dispatcher.hasTasks())
+        assertTrue(dispatcher.hasDelayedTasks())
         job.cancel()
-        assertTrue(
-            !dispatcher.hasTasks(),
+        assertFalse(
+            dispatcher.hasDelayedTasks(),
             "FlushCoroutineDispatcher has a delayed task that has been cancelled"
         )
     }
@@ -112,13 +114,15 @@ class FlushCoroutineDispatcherTest {
             ignoreDispatch = true
             delay(Long.MAX_VALUE/2)
         }
-        assertTrue(dispatcher.hasTasks())
         // Needed because the cancellation notification is itself dispatched with the coroutine
-        // dispatcher.
+        // dispatcher. Additionally, it's needed *before* the assertion, because if the assertion
+        // fails while ignoreDispatch is true, the cancellation of the coroutine will be ignored and
+        // the test will be stuck.
         ignoreDispatch = false
+        assertTrue(dispatcher.hasDelayedTasks())
         job.cancel()
-        assertTrue(
-            actual = !dispatcher.hasTasks(),
+        assertFalse(
+            actual = dispatcher.hasDelayedTasks(),
             message = "FlushCoroutineDispatcher has a delayed task that has been cancelled"
         )
     }
@@ -143,5 +147,19 @@ class FlushCoroutineDispatcherTest {
         }
 
         assertEquals(2, executionCount)
+    }
+
+    @Test
+    fun blocked_task_becomes_immediate_when_unblocked() = runTest {
+        val dispatcher = FlushCoroutineDispatcher(this)
+        val channel = Channel<Unit>(capacity = 1)
+        launch(dispatcher) {
+            channel.receive()
+        }
+        testScheduler.advanceTimeBy(1.milliseconds)
+        assertFalse(dispatcher.hasImmediateTasks())
+        assertFalse(dispatcher.hasDelayedTasks())
+        channel.trySend(Unit)
+        assertTrue(dispatcher.hasImmediateTasks())
     }
 }

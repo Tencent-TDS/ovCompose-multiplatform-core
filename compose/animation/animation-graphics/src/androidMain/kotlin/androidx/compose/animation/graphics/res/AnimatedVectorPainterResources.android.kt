@@ -18,7 +18,6 @@ package androidx.compose.animation.graphics.res
 
 import androidx.annotation.VisibleForTesting
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.animation.graphics.vector.StateVectorConfig
 import androidx.compose.runtime.Composable
@@ -35,13 +34,12 @@ import androidx.compose.ui.util.fastForEach
  * at the start or the end of all the animations depending on the [atEnd]. Changes to [atEnd] are
  * animated.
  *
+ * @param [animatedImageVector] An [AnimatedImageVector] object to be remembered and animated.
  * @param atEnd Whether the animated vector should be rendered at the end of all its animations.
- *
  * @sample androidx.compose.animation.graphics.samples.AnimatedVectorSample
  */
-@ExperimentalAnimationGraphicsApi
 @Composable
-fun rememberAnimatedVectorPainter(
+public fun rememberAnimatedVectorPainter(
     animatedImageVector: AnimatedImageVector,
     atEnd: Boolean
 ): Painter {
@@ -50,7 +48,6 @@ fun rememberAnimatedVectorPainter(
     }
 }
 
-@ExperimentalAnimationGraphicsApi
 @VisibleForTesting
 @Composable
 internal fun rememberAnimatedVectorPainter(

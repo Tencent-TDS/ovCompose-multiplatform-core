@@ -183,7 +183,7 @@ fun SemanticsNodeInteraction.assertTextEquals(
 /**
  * Asserts that the node's text contains the given [value].
  *
- * This will also search in [SemanticsProperties.EditableText].
+ * This will also search in [SemanticsProperties.EditableText] and [SemanticsProperties.InputText].
  *
  * Note that in merged semantics tree there can be a list of text items that got merged from the
  * child nodes. Typically an accessibility tooling will decide based on its heuristics which ones to
@@ -342,7 +342,6 @@ fun SemanticsNodeInteractionCollection.assertAll(
  * multiple nodes match, throws an [AssertionError].
  *
  * @sample androidx.compose.ui.test.samples.waitForDisplayed
- *
  * @throws AssertionError If multiple nodes match this [SemanticsNodeInteraction].
  */
 fun SemanticsNodeInteraction.isDisplayed(): Boolean = checkIsDisplayed(assertIsFullyVisible = false)
@@ -353,7 +352,6 @@ fun SemanticsNodeInteraction.isDisplayed(): Boolean = checkIsDisplayed(assertIsF
  * If no matching node is found, returns true. If multiple nodes match, throws an [AssertionError].
  *
  * @sample androidx.compose.ui.test.samples.waitForNotDisplayed
- *
  * @throws AssertionError If multiple nodes match this [SemanticsNodeInteraction].
  */
 fun SemanticsNodeInteraction.isNotDisplayed(): Boolean =

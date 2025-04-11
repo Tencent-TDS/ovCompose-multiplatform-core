@@ -37,6 +37,7 @@ fun SemanticsNodeInteraction.performTextClearance() {
  */
 fun SemanticsNodeInteraction.performTextInput(text: String) {
     @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
     getNodeAndFocus()
     performSemanticsAction(SemanticsActions.InsertTextAtCursor) { it(AnnotatedString(text)) }
 }
@@ -48,7 +49,7 @@ fun SemanticsNodeInteraction.performTextInput(text: String) {
  */
 @ExperimentalTestApi
 fun SemanticsNodeInteraction.performTextInputSelection(selection: TextRange) {
-    getNodeAndFocus()
+    getNodeAndFocus(requireEditable = false)
     performSemanticsAction(SemanticsActions.SetSelection) {
         // Pass true as the last parameter since this range is relative to the text before any
         // VisualTransformation is applied.
@@ -83,7 +84,8 @@ fun SemanticsNodeInteraction.performImeAction() {
     assert(hasPerformImeAction()) { errorOnFail }
     assert(!hasImeAction(ImeAction.Default)) { errorOnFail }
     @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
-    val node = getNodeAndFocus(errorOnFail)
+    tryPerformAccessibilityChecks()
+    val node = getNodeAndFocus(errorOnFail, requireEditable = false)
 
     wrapAssertionErrorsWithNodeInfo(selector, node) {
         performSemanticsAction(OnImeAction) {
@@ -99,14 +101,18 @@ fun SemanticsNodeInteraction.performImeAction() {
 }
 
 private fun SemanticsNodeInteraction.getNodeAndFocus(
-    errorOnFail: String = "Failed to perform text input."
+    errorOnFail: String = "Failed to perform text input.",
+    requireEditable: Boolean = true
 ): SemanticsNode {
     @OptIn(ExperimentalTestApi::class) invokeGlobalAssertions()
+    tryPerformAccessibilityChecks()
     val node = fetchSemanticsNode(errorOnFail)
     assert(isEnabled()) { errorOnFail }
-    assert(hasSetTextAction()) { errorOnFail }
     assert(hasRequestFocusAction()) { errorOnFail }
-    assert(hasInsertTextAtCursorAction()) { errorOnFail }
+    if (requireEditable) {
+        assert(hasSetTextAction()) { errorOnFail }
+        assert(hasInsertTextAtCursorAction()) { errorOnFail }
+    }
 
     if (!isFocused().matches(node)) {
         // Get focus
@@ -116,28 +122,8 @@ private fun SemanticsNodeInteraction.getNodeAndFocus(
     return node
 }
 
-private inline fun <R> wrapAssertionErrorsWithNodeInfo(
+internal expect inline fun <R> wrapAssertionErrorsWithNodeInfo(
     selector: SemanticsSelector,
     node: SemanticsNode,
     block: () -> R
-): R {
-    try {
-        return block()
-    } catch (e: AssertionError) {
-        throw ProxyAssertionError(e.message.orEmpty(), selector, node, e)
-    }
-}
-
-private class ProxyAssertionError(
-    message: String,
-    selector: SemanticsSelector,
-    node: SemanticsNode,
-    cause: Throwable
-) : AssertionError(buildGeneralErrorMessage(message, selector, node)) {
-// TODO: [1.4 Update] JDK functionality is commented out. Also cause not passed to constructor
-
-//    init {
-//        // Duplicate the stack trace to make troubleshooting easier.
-//        stackTrace = cause.stackTrace
-//    }
-}
+): R

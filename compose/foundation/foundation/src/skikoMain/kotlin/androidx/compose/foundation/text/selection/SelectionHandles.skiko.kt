@@ -86,7 +86,8 @@ internal actual fun SelectionHandle(
                 return offset
             }
         },
-        handleReferencePoint = handleReferencePoint) {
+        handleReferencePoint = handleReferencePoint
+    ) {
         SelectionHandleIcon(
             modifier = modifier.semantics {
                 val position = offsetProvider.provide()
@@ -105,7 +106,6 @@ internal actual fun SelectionHandle(
 }
 
 @Composable
-/*@VisibleForTesting*/
 internal fun SelectionHandleIcon(
     modifier: Modifier,
     iconVisible: () -> Boolean,

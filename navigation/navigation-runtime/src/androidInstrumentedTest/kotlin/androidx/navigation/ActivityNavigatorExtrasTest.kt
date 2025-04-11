@@ -20,8 +20,8 @@ import android.content.Intent
 import androidx.core.app.ActivityOptionsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
 import org.junit.Test
 import org.junit.runner.RunWith
 

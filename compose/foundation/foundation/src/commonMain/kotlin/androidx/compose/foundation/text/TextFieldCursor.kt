@@ -25,19 +25,15 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.isUnspecified
 import androidx.compose.ui.platform.LocalCursorBlinkEnabled
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastCoerceIn
-import kotlinx.coroutines.withContext
 import androidx.compose.ui.unit.Dp
 import kotlin.math.floor
+import kotlin.math.round
 
 internal fun Modifier.cursor(
     state: LegacyTextFieldState,
@@ -52,7 +48,8 @@ internal fun Modifier.cursor(
             val cursorAnimation = remember(animateCursor) { CursorAnimationState(animateCursor) }
             // Don't bother animating the cursor if it wouldn't draw any pixels.
             val isBrushSpecified = !(cursorBrush is SolidColor && cursorBrush.value.isUnspecified)
-            // Only animate the cursor when its window is actually focused. This also disables the cursor
+            // Only animate the cursor when its window is actually focused. This also disables the
+            // cursor
             // animation when the screen is off.
             // TODO confirm screen-off behavior.
             val isWindowFocused = LocalWindowInfo.current.isWindowFocused
@@ -68,32 +65,38 @@ internal fun Modifier.cursor(
                     if (cursorAlphaValue != 0f) {
                         val transformedOffset =
                             offsetMapping.originalToTransformed(value.selection.start)
-                        val cursorRect = state.layoutResult?.value?.getCursorRect(transformedOffset)
-                            ?: Rect(0f, 0f, 0f, 0f)
+                        val cursorRect =
+                            state.layoutResult?.value?.getCursorRect(transformedOffset)
+                                ?: Rect(0f, 0f, 0f, 0f)
                         val cursorWidth = floor(DefaultCursorThickness.toPx()).coerceAtLeast(1f)
-                        val cursorX = (cursorRect.left + cursorWidth / 2)
-                            // Do not use coerceIn because it is not guaranteed that the minimum value is
-                            // smaller than the maximum value.
-                            .coerceAtMost(size.width - cursorWidth / 2)
-                            .coerceAtLeast(cursorWidth / 2)
-
-                        // TODO(demin): check how it looks on android before upstream
-                        drawIntoCanvas {
-                            it.drawLine(
-                                Offset(cursorX, cursorRect.top),
-                                Offset(cursorX, cursorRect.bottom),
-                                Paint().apply {
-                                    cursorBrush.applyTo(size, this, cursorAlphaValue)
-                                    strokeWidth = cursorWidth
-                                    isAntiAlias = false
+                        val cursorX =
+                            (cursorRect.left + cursorWidth / 2)
+                                // Do not use coerceIn because it is not guaranteed that the minimum
+                                // value is
+                                // smaller than the maximum value.
+                                .coerceAtMost(size.width - cursorWidth / 2)
+                                .coerceAtLeast(cursorWidth / 2)
+                                .let {
+                                    // When cursor width is odd, draw it in the middle of a pixel,
+                                    // to avoid blurring due to antialiasing.
+                                    if (cursorWidth.toInt() % 2 == 1) {
+                                        floor(it) + 0.5f // round to nearest n+0.5
+                                    } else round(it)
                                 }
-                            )
-                        }
+
+                        drawLine(
+                            brush = cursorBrush,
+                            start = Offset(cursorX, cursorRect.top),
+                            end = Offset(cursorX, cursorRect.bottom),
+                            alpha = cursorAlphaValue,
+                            strokeWidth = cursorWidth
+                        )
                     }
                 }
             } else {
                 Modifier
             }
-        } else this
+        }
+    else this
 
 internal expect val DefaultCursorThickness: Dp

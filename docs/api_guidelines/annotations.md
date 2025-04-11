@@ -112,6 +112,10 @@ NOTE Experimental marker annotation *are themselves* experimental, meaning that
 it's considered binary compatible to refactor or remove an experimental marker
 annotation.
 
+Note: Experimental APIs are reviewed by API Council both when the APIs are first
+introduced, and when they are stabilized. API Council may have additional
+feedback during stabilization.
+
 ### `@RestrictTo` APIs {#restricted-api}
 
 Jetpack's library tooling supports hiding JVM-visible (ex. `public` and
@@ -255,7 +259,7 @@ Java visibility should be set as appropriate for the code in question
 (`private`, `package`, or `public`) and is unrelated to hiding.
 
 For more, read the section in
-[Android API Council Guidelines](https://android.googlesource.com/platform/developers/docs/+/refs/heads/master/api-guidelines/index.md#no-public-typedefs)
+[Android API Council Guidelines](https://android.googlesource.com/platform/developers/docs/+/refs/heads/main/api-guidelines/framework.md#framework-hide-typedefs)
 
 #### `*current.txt` File Explanation {#currenttxt}
 

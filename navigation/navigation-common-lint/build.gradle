@@ -21,16 +21,21 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.BundleInsideHelper
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("kotlin")
 }
 
+BundleInsideHelper.forInsideLintJar(project)
+
 dependencies {
-    compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
+    compileOnly(libs.androidLintApi)
+    bundleInside(projectOrArtifact(":navigation:navigation-lint-common"))
 
     testImplementation(libs.kotlinStdlib)
     testImplementation(libs.androidLint)
@@ -41,7 +46,7 @@ dependencies {
 
 androidx {
     name = "Navigation Common Lint"
-    type = LibraryType.LINT
+    type = SoftwareType.LINT
     inceptionYear = "2022"
     description = "Lint checks for Navigation Common"
 }

@@ -65,8 +65,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import kotlin.jvm.JvmName
 import androidx.compose.ui.util.fastCoerceIn
+import kotlin.jvm.JvmName
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -435,7 +435,6 @@ fun rememberBottomDrawerState(
  * navigation.
  *
  * @sample androidx.compose.material.samples.ModalDrawerSample
- *
  * @param drawerContent composable that represents content inside the drawer
  * @param modifier optional modifier for the drawer
  * @param drawerState state of the drawer
@@ -562,7 +561,6 @@ fun ModalDrawer(
  * See [ModalDrawer] for a layout that introduces a classic from-the-side drawer.
  *
  * @sample androidx.compose.material.samples.BottomDrawerSample
- *
  * @param drawerContent composable that represents content inside the drawer
  * @param modifier optional [Modifier] for the entire component
  * @param drawerState state of the drawer

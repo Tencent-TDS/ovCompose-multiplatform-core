@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.events
 
-import androidx.compose.ui.input.key.Key
 import org.w3c.dom.events.KeyboardEvent
 import org.w3c.dom.events.KeyboardEventInit
 import org.w3c.dom.events.MouseEvent
@@ -25,37 +24,39 @@ internal external interface KeyboardEventInitExtended : KeyboardEventInit {
     var keyCode: Int?
 }
 
-private fun KeyboardEventInit.keyDownEvent() = KeyboardEvent("keydown", this)
-private fun KeyboardEventInit.withKeyCode(keyCode: Int) = (this as KeyboardEventInitExtended).apply {
-    this.keyCode = keyCode
-}
+private fun KeyboardEventInit.keyEvent(type: String) = KeyboardEvent(type, this)
 
-internal fun keyDownEvent(
+@Suppress("UNCHECKED_CAST_TO_EXTERNAL_INTERFACE")
+internal fun keyEvent(
     key: String,
     code: String = "Key${key.uppercase()}",
     keyCode: Int = key.uppercase().first().code,
+    type: String = "keydown",
     ctrlKey: Boolean = false,
     metaKey: Boolean = false,
     altKey: Boolean = false,
     shiftKey: Boolean = false,
-    cancelable: Boolean = true
-): KeyboardEvent =
-    KeyboardEventInit(
+    cancelable: Boolean = true,
+    repeat: Boolean = false,
+    isComposing: Boolean = false
+): KeyboardEvent {
+    val keyboardEventInit = KeyboardEventInit(
         key = key,
         code = code,
         ctrlKey = ctrlKey,
         metaKey = metaKey,
         altKey = altKey,
         shiftKey = shiftKey,
-        cancelable = cancelable
-    )
-        .withKeyCode(keyCode)
-        .keyDownEvent()
+        cancelable = cancelable,
+        repeat = repeat,
+        isComposing = isComposing,
+    ) as KeyboardEventInitExtended
 
-internal fun keyDownEventUnprevented(): KeyboardEvent =
-    KeyboardEventInit(ctrlKey = true, cancelable = true, key = "Control")
-        .withKeyCode(Key.CtrlLeft.keyCode.toInt())
-        .keyDownEvent()
+    keyboardEventInit.keyCode = keyCode
+
+    return keyboardEventInit
+        .keyEvent(type)
+}
 
 private fun DummyTouchEventInit(): TouchEventInit = js("({ changedTouches: [new Touch({identifier: 0, target: document})] })")
 

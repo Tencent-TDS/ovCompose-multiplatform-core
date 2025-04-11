@@ -38,7 +38,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 0.dp, bottom = 0.dp)
             )
         )
@@ -49,7 +48,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 20.dp, bottom = 20.dp)
             )
         )
@@ -60,7 +58,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 35.dp, bottom = 0.dp)
             )
         )
@@ -71,7 +68,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 0.dp, bottom = 35.dp)
             )
         )
@@ -82,7 +78,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 50.dp, bottom = 0.dp)
             )
         )
@@ -93,7 +88,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 0.dp, bottom = 50.dp)
             )
         )
@@ -104,41 +98,31 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(top = 50.dp, bottom = 50.dp)
             )
         )
 
-        // Small current offset
+        // Focused rect is above the canvas
         assertEquals(
-            IntOffset(0, -5.dp.roundToPx()),
+            IntOffset(0, 0),
             adjustedToFocusedRectOffset(
-                focusedRect = rect,
+                focusedRect = DpRect(
+                    top = (-20).dp, bottom = (-10).dp, left = 5.dp, right = 55.dp
+                ).toRect(),
                 size = size,
-                currentOffset = IntOffset(0, 10.dp.roundToPx()),
-                insets = PlatformInsets(top = 0.dp, bottom = 35.dp)
+                insets = PlatformInsets.Zero
             )
         )
 
-        // Negative current offset
+        // Focused rect is below the canvas
         assertEquals(
-            IntOffset(0, -25.dp.roundToPx()),
+            IntOffset(0, 0),
             adjustedToFocusedRectOffset(
-                focusedRect = rect,
+                focusedRect = DpRect(
+                    top = (100).dp, bottom = (110).dp, left = 5.dp, right = 55.dp
+                ).toRect(),
                 size = size,
-                currentOffset = IntOffset(0, -10.dp.roundToPx()),
-                insets = PlatformInsets(top = 0.dp, bottom = 35.dp)
-            )
-        )
-
-        // Huge current offset
-        assertEquals(
-            IntOffset.Zero,
-            adjustedToFocusedRectOffset(
-                focusedRect = rect,
-                size = size,
-                currentOffset = IntOffset(0, 50.dp.roundToPx()),
-                insets = PlatformInsets(top = 0.dp, bottom = 35.dp)
+                insets = PlatformInsets.Zero
             )
         )
     }
@@ -154,7 +138,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 0.dp, right = 0.dp)
             )
         )
@@ -165,7 +148,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 20.dp, right = 20.dp)
             )
         )
@@ -176,7 +158,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 35.dp, right = 0.dp)
             )
         )
@@ -187,7 +168,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 0.dp, right = 35.dp)
             )
         )
@@ -198,7 +178,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 50.dp, right = 0.dp)
             )
         )
@@ -209,7 +188,6 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 0.dp, right = 50.dp)
             )
         )
@@ -220,41 +198,31 @@ class OffsetToFocusedRectTests {
             adjustedToFocusedRectOffset(
                 focusedRect = rect,
                 size = size,
-                currentOffset = IntOffset.Zero,
                 insets = PlatformInsets(left = 50.dp, right = 50.dp)
             )
         )
 
-        // Small current offset
+        // Focused rect is left outside canvas
         assertEquals(
-            IntOffset(-5.dp.roundToPx(), 0),
+            IntOffset(0, 0),
             adjustedToFocusedRectOffset(
-                focusedRect = rect,
+                focusedRect = DpRect(
+                    top = 5.dp, bottom = 55.dp, left = (-20).dp, right = (-10).dp
+                ).toRect(),
                 size = size,
-                currentOffset = IntOffset(10.dp.roundToPx(), 0),
-                insets = PlatformInsets(left = 0.dp, right = 35.dp)
+                insets = PlatformInsets.Zero
             )
         )
 
-        // Negative current offset
+        // Focused rect is right outside canvas
         assertEquals(
-            IntOffset(-25.dp.roundToPx(), 0),
+            IntOffset(0, 0),
             adjustedToFocusedRectOffset(
-                focusedRect = rect,
+                focusedRect = DpRect(
+                    top = 5.dp, bottom = 55.dp, left = 110.dp, right = 120.dp
+                ).toRect(),
                 size = size,
-                currentOffset = IntOffset(-10.dp.roundToPx(), 0),
-                insets = PlatformInsets(left = 0.dp, right = 35.dp)
-            )
-        )
-
-        // Huge current offset
-        assertEquals(
-            IntOffset.Zero,
-            adjustedToFocusedRectOffset(
-                focusedRect = rect,
-                size = size,
-                currentOffset = IntOffset(50.dp.roundToPx(), 0),
-                insets = PlatformInsets(left = 0.dp, right = 35.dp)
+                insets = PlatformInsets.Zero
             )
         )
     }

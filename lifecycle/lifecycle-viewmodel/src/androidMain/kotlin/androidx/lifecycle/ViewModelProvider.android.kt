@@ -18,6 +18,7 @@
 package androidx.lifecycle
 
 import android.app.Application
+import androidx.annotation.MainThread
 import androidx.annotation.RestrictTo
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.CreationExtras.Key
@@ -86,6 +87,7 @@ private constructor(
         defaultCreationExtras = ViewModelProviders.getDefaultCreationExtras(owner)
     )
 
+    @MainThread
     public actual operator fun <T : ViewModel> get(modelClass: KClass<T>): T =
         impl.getViewModel(modelClass)
 
@@ -103,6 +105,7 @@ private constructor(
      */
     public open operator fun <T : ViewModel> get(modelClass: Class<T>): T = get(modelClass.kotlin)
 
+    @MainThread
     public actual operator fun <T : ViewModel> get(key: String, modelClass: KClass<T>): T =
         impl.getViewModel(modelClass, key)
 
@@ -221,7 +224,7 @@ private constructor(
              *
              * @see ViewModelProvider.VIEW_MODEL_KEY
              */
-            @JvmField public val VIEW_MODEL_KEY: Key<String> = ViewModelProviders.ViewModelKey
+            @JvmField public val VIEW_MODEL_KEY: Key<String> = ViewModelProvider.VIEW_MODEL_KEY
         }
     }
 
@@ -326,7 +329,7 @@ private constructor(
             /**
              * A [CreationExtras.Key] to query an application in which ViewModel is being created.
              */
-            @JvmField public val APPLICATION_KEY: Key<Application> = object : Key<Application> {}
+            @JvmField public val APPLICATION_KEY: Key<Application> = CreationExtras.Companion.Key()
         }
     }
 
@@ -347,6 +350,6 @@ private constructor(
             extras: CreationExtras
         ): ViewModelProvider = ViewModelProvider(store, factory, extras)
 
-        @JvmField public actual val VIEW_MODEL_KEY: Key<String> = ViewModelProviders.ViewModelKey
+        @JvmField public actual val VIEW_MODEL_KEY: Key<String> = CreationExtras.Companion.Key()
     }
 }

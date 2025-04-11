@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
 import platform.UIKit.UIKeyModifierAlternate
 import platform.UIKit.UIKeyModifierCommand
 import platform.UIKit.UIKeyModifierControl
+import platform.UIKit.UIKeyModifierFlags
 import platform.UIKit.UIKeyModifierShift
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressPhase.UIPressPhaseBegan
@@ -54,13 +55,7 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
     // TODO: Reuse `String.codePointAt` helper to support multi-char code points
     val codePoint = key?.characters?.firstOrNull()?.code ?: 0
 
-    val modifierFlags = key?.modifierFlags ?: 0L
-    val modifiers = PointerKeyboardModifiers(
-        isCtrlPressed = modifierFlags and UIKeyModifierControl != 0L,
-        isMetaPressed = modifierFlags and UIKeyModifierCommand != 0L,
-        isAltPressed = modifierFlags and UIKeyModifierAlternate != 0L,
-        isShiftPressed = modifierFlags and UIKeyModifierShift != 0L,
-    )
+    val modifiers = PointerKeyboardModifiers(key?.modifierFlags ?: 0L)
 
     return KeyEvent(
         nativeKeyEvent = InternalKeyEvent(
@@ -72,3 +67,10 @@ internal fun UIPress.toComposeEvent(): KeyEvent {
         )
     )
 }
+
+internal fun PointerKeyboardModifiers(modifierFlags: UIKeyModifierFlags) = PointerKeyboardModifiers(
+    isCtrlPressed = modifierFlags and UIKeyModifierControl != 0L,
+    isMetaPressed = modifierFlags and UIKeyModifierCommand != 0L,
+    isAltPressed = modifierFlags and UIKeyModifierAlternate != 0L,
+    isShiftPressed = modifierFlags and UIKeyModifierShift != 0L
+)

@@ -42,7 +42,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import androidx.compose.ui.util.fastMaxOfOrNull
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.HierarchicalFocusCoordinator
 import androidx.wear.compose.foundation.rememberActiveFocusRequester
 import kotlin.math.roundToInt
@@ -66,7 +65,6 @@ import kotlinx.coroutines.coroutineScope
  * Example of an auto centering picker group where the total width exceeds screen's width
  *
  * @sample androidx.wear.compose.material.samples.AutoCenteringPickerGroup
- *
  * @param pickers List of [Picker]s represented using [PickerGroupItem] in the same order of display
  *   from left to right.
  * @param modifier Modifier to be applied to the PickerGroup
@@ -84,7 +82,6 @@ import kotlinx.coroutines.coroutineScope
  *   The integer parameter to the composable depicts the index where it will be kept. For example, 0
  *   would represent the separator between the first and second picker.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 public fun PickerGroup(
     vararg pickers: PickerGroupItem,

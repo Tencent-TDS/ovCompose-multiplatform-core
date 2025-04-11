@@ -28,4 +28,5 @@ internal fun Translations.ca() = mapOf(
     Strings.DefaultErrorMessage to "L\'entrada no és vàlida",
     Strings.SliderRangeStart to "Inici de l\'interval",
     Strings.SliderRangeEnd to "Fi de l\'interval",
+    Strings.SnackbarPaneTitle to "Alerta",
 )

@@ -26,8 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
@@ -36,8 +36,8 @@ import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalScrollCaptureInProgress
 import androidx.compose.ui.semantics.ScrollAxisRange
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.horizontalScrollAxisRange
-import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.scrollByOffset
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.verticalScrollAxisRange
@@ -58,7 +58,6 @@ import org.junit.runner.RunWith
  * Tests the scroll capture implementation's integration with semantics. Tests in this class should
  * not use any scrollable components from Foundation.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 31)
@@ -200,11 +199,20 @@ class ScrollCaptureTest {
         }
 
     @Test
-    fun search_doesNotFindTarget_whenInvisibleToUser() =
+    fun search_doesNotFindTarget_whenHidingFromAccessibility() =
         captureTester.runTest {
             captureTester.setContent {
-                TestVerticalScrollable(Modifier.semantics { invisibleToUser() })
+                TestVerticalScrollable(Modifier.semantics { hideFromAccessibility() })
             }
+
+            val targets = captureTester.findCaptureTargets()
+            assertThat(targets).isEmpty()
+        }
+
+    @Test
+    fun search_doesNotFindTarget_whenTransparent() =
+        captureTester.runTest {
+            captureTester.setContent { TestVerticalScrollable(Modifier.alpha(0f)) }
 
             val targets = captureTester.findCaptureTargets()
             assertThat(targets).isEmpty()

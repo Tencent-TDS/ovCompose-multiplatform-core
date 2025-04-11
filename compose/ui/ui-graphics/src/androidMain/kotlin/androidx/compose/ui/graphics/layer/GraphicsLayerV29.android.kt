@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.toSize
 /** GraphicsLayer implementation for Android Q+ that uses the public RenderNode API */
 @RequiresApi(Build.VERSION_CODES.Q)
 internal class GraphicsLayerV29(
+    override val ownerId: Long,
     private val canvasHolder: CanvasHolder = CanvasHolder(),
     private val canvasDrawScope: CanvasDrawScope = CanvasDrawScope()
 ) : GraphicsLayerImpl {
@@ -222,7 +223,8 @@ internal class GraphicsLayerV29(
         this.size = size.toSize()
     }
 
-    override fun setOutline(outline: Outline?) {
+    override fun setOutline(outline: Outline?, outlineSize: IntSize) {
+        // outlineSize is not required for this GraphicsLayer implementation
         renderNode.setOutline(outline)
         outlineIsProvided = outline != null
         applyClip()
@@ -289,7 +291,6 @@ internal class GraphicsLayerV29(
 @RequiresApi(Build.VERSION_CODES.S)
 internal object RenderNodeVerificationHelper {
 
-    @androidx.annotation.DoNotInline
     fun setRenderEffect(renderNode: RenderNode, target: RenderEffect?) {
         renderNode.setRenderEffect(target?.asAndroidRenderEffect())
     }

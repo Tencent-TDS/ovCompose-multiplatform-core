@@ -63,7 +63,6 @@ import kotlinx.coroutines.launch
  * an enabled BackHandler.
  *
  * @sample androidx.activity.compose.samples.PredictiveBack
- *
  * @param enabled if this BackHandler should be enabled, true by default
  * @param onBack the action invoked by back gesture
  */
@@ -77,10 +76,10 @@ public fun PredictiveBackHandler(
     // ensure we don't re-register callbacks when onBack changes
     val currentOnBack by rememberUpdatedState(onBack)
     val onBackScope = rememberCoroutineScope()
+    var onBackInstance: OnBackInstance? = null
 
     val backCallBack = remember {
         object : OnBackPressedCallback(enabled) {
-            var onBackInstance: OnBackInstance? = null
 
             override fun handleOnBackStarted(backEvent: BackEventCompat) {
                 super.handleOnBackStarted(backEvent)
@@ -114,17 +113,25 @@ public fun PredictiveBackHandler(
                 // finally, we close the channel to ensure no more events can be sent
                 // but let the job complete normally
                 onBackInstance?.close()
+                onBackInstance?.isPredictiveBack = false
             }
 
             override fun handleOnBackCancelled() {
                 super.handleOnBackCancelled()
                 // cancel will purge the channel of any sent events that are yet to be received
                 onBackInstance?.cancel()
+                onBackInstance?.isPredictiveBack = false
             }
         }
     }
 
-    LaunchedEffect(enabled) { backCallBack.isEnabled = enabled }
+    LaunchedEffect(enabled) {
+        backCallBack.isEnabled = enabled
+        if (!enabled) {
+            onBackInstance?.close()
+            onBackInstance = null
+        }
+    }
 
     val backDispatcher =
         checkNotNull(LocalOnBackPressedDispatcherOwner.current) {
@@ -144,7 +151,7 @@ public fun PredictiveBackHandler(
 
 private class OnBackInstance(
     scope: CoroutineScope,
-    val isPredictiveBack: Boolean,
+    var isPredictiveBack: Boolean,
     onBack: suspend (progress: Flow<BackEventCompat>) -> Unit,
 ) {
     val channel = Channel<BackEventCompat>(capacity = BUFFERED, onBufferOverflow = SUSPEND)

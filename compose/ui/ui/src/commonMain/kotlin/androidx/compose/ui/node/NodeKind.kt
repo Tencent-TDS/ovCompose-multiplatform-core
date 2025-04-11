@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package androidx.compose.ui.node
 
 import androidx.collection.mutableObjectIntMapOf
+import androidx.compose.ui.ComposeUiFlags
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.classKeyForObject
@@ -43,6 +44,7 @@ import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.modifier.ModifierLocalConsumer
 import androidx.compose.ui.modifier.ModifierLocalModifierNode
 import androidx.compose.ui.modifier.ModifierLocalProvider
+import androidx.compose.ui.relocation.BringIntoViewModifierNode
 import androidx.compose.ui.semantics.SemanticsModifier
 import kotlin.jvm.JvmInline
 import kotlin.jvm.JvmStatic
@@ -71,7 +73,6 @@ internal val NodeKind<*>.includeSelfInTraversal: Boolean
 // Note that these don't inherit from Modifier.Node to allow for a single Modifier.Node
 // instance to implement multiple Node interfaces
 
-@OptIn(ExperimentalComposeUiApi::class)
 internal object Nodes {
     @JvmStatic
     inline val Any
@@ -146,8 +147,12 @@ internal object Nodes {
         get() = NodeKind<TraversableNode>(0b1 shl 18)
 
     @JvmStatic
+    inline val BringIntoView
+        get() = NodeKind<BringIntoViewModifierNode>(0b1 shl 19)
+
+    @JvmStatic
     inline val Unplaced
-        get() = NodeKind<OnUnplacedModifierNode>(0b1 shl 19)
+        get() = NodeKind<OnUnplacedModifierNode>(0b1 shl 20)
     // ...
 }
 
@@ -185,12 +190,14 @@ internal fun calculateNodeKindSetFrom(element: Modifier.Element): Int {
     if (element is OnPlacedModifier || element is OnRemeasuredModifier) {
         mask = mask or Nodes.LayoutAware
     }
+    if (element is BringIntoViewModifierNode) {
+        mask = mask or Nodes.BringIntoView
+    }
     return mask
 }
 
 private val classToKindSetMap = mutableObjectIntMapOf<Any>()
 
-@OptIn(ExperimentalComposeUiApi::class)
 internal fun calculateNodeKindSetFrom(node: Modifier.Node): Int {
     // This function does not take delegates into account, as a result, the kindSet will never
     // change, so if it is non-zero, it means we've already calculated it and we can just bail
@@ -248,6 +255,9 @@ internal fun calculateNodeKindSetFrom(node: Modifier.Node): Int {
         }
         if (node is TraversableNode) {
             mask = mask or Nodes.Traversable
+        }
+        if (node is BringIntoViewModifierNode) {
+            mask = mask or Nodes.BringIntoView
         }
         if (node is OnUnplacedModifierNode) {
             mask = mask or Nodes.Unplaced
@@ -321,24 +331,23 @@ private fun autoInvalidateNodeSelf(node: Modifier.Node, selfKindSet: Int, phase:
         node.invalidateDraw()
     }
     if (Nodes.Semantics in selfKindSet && node is SemanticsModifierNode) {
-        node.invalidateSemantics()
+        node.requireLayoutNode().isSemanticsInvalidated = true
     }
     if (Nodes.ParentData in selfKindSet && node is ParentDataModifierNode) {
         node.invalidateParentData()
     }
-    if (Nodes.FocusTarget in selfKindSet && node is FocusTargetNode) {
-        if (phase != Removed) {
-            node.invalidateFocusTarget()
-        }
-    }
     if (
         Nodes.FocusProperties in selfKindSet &&
-        node is FocusPropertiesModifierNode &&
-        node.specifiesCanFocusProperty()
+            node is FocusPropertiesModifierNode &&
+            node.specifiesCanFocusProperty()
     ) {
-        when (phase) {
-            Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
-            else -> node.invalidateFocusProperties()
+        if (@OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isTrackFocusEnabled)
+            node.scheduleInvalidationOfAssociatedFocusTargets()
+        else {
+            when (phase) {
+                Removed -> node.scheduleInvalidationOfAssociatedFocusTargets()
+                else -> node.invalidateFocusProperties()
+            }
         }
     }
     if (Nodes.FocusEvent in selfKindSet && node is FocusEventModifierNode) {

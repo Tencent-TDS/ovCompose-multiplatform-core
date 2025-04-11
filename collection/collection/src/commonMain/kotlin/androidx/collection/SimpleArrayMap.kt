@@ -19,6 +19,7 @@ package androidx.collection
 import androidx.collection.internal.EMPTY_INTS
 import androidx.collection.internal.EMPTY_OBJECTS
 import androidx.collection.internal.binarySearch
+import androidx.collection.internal.requirePrecondition
 import kotlin.jvm.JvmName
 import kotlin.jvm.JvmOverloads
 
@@ -273,7 +274,7 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @return Returns the value associated with the given key, or `null` if there is no such key.
      */
     public open operator fun get(key: K): V? {
-        // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+        // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
         return getOrDefaultInternal<V?>(key, null)
     }
 
@@ -289,7 +290,7 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
     // Java's Map interface, which is necessary since ArrayMap is written in Java and implements
     // both Map and SimpleArrayMap.
     public open fun getOrDefault(key: Any?, defaultValue: V): V {
-        // TODO: revert the change: this function was changed in JB fork because of https://youtrack.jetbrains.com/issue/KT-65061
+        // TODO(b/375562182) revert the change done here in aosp/375562182 after lib targets K2
         return getOrDefaultInternal<V>(key, defaultValue)
     }
 
@@ -311,7 +312,9 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @throws IllegalArgumentException if [index] is not between 0 and [size]-1
      */
     public open fun keyAt(index: Int): K {
-        require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+        requirePrecondition(index in 0 until size) {
+            "Expected index to be within 0..size()-1, but was $index"
+        }
 
         @Suppress("UNCHECKED_CAST") return array[index shl 1] as K
     }
@@ -324,7 +327,9 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @throws IllegalArgumentException if [index] is not between 0 and [size]-1
      */
     public open fun valueAt(index: Int): V {
-        require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+        requirePrecondition(index in 0 until size) {
+            "Expected index to be within 0..size()-1, but was $index"
+        }
 
         @Suppress("UNCHECKED_CAST") return array[(index shl 1) + 1] as V
     }
@@ -338,7 +343,9 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @throws IllegalArgumentException if [index] is not between 0 and [size]-1
      */
     public open fun setValueAt(index: Int, value: V): V {
-        require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+        requirePrecondition(index in 0 until size) {
+            "Expected index to be within 0..size()-1, but was $index"
+        }
 
         val indexInArray = (index shl 1) + 1
 
@@ -502,7 +509,9 @@ public open class SimpleArrayMap<K, V> @JvmOverloads public constructor(capacity
      * @throws IllegalArgumentException if [index] is not between 0 and [size]-1
      */
     public open fun removeAt(index: Int): V {
-        require(index in 0 until size) { "Expected index to be within 0..size()-1, but was $index" }
+        requirePrecondition(index in 0 until size) {
+            "Expected index to be within 0..size()-1, but was $index"
+        }
 
         val old = array[(index shl 1) + 1]
         val osize = size

@@ -23,9 +23,9 @@ import android.os.Bundle
 import android.os.ParcelUuid
 import android.telecom.Call
 import android.telecom.CallAudioState
+import android.telecom.CallEndpoint
 import android.telecom.DisconnectCause
 import android.util.Log
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.core.telecom.CallAttributesCompat
@@ -35,11 +35,15 @@ import androidx.core.telecom.CallEndpointCompat
 import androidx.core.telecom.CallException
 import androidx.core.telecom.internal.utils.EndpointUtils
 import androidx.core.telecom.internal.utils.EndpointUtils.Companion.getSpeakerEndpoint
+import androidx.core.telecom.internal.utils.EndpointUtils.Companion.isBluetoothAvailable
 import androidx.core.telecom.internal.utils.EndpointUtils.Companion.isEarpieceEndpoint
 import androidx.core.telecom.internal.utils.EndpointUtils.Companion.isWiredHeadsetOrBtEndpoint
+import androidx.core.telecom.internal.utils.EndpointUtils.Companion.toCallEndpointCompat
+import androidx.core.telecom.internal.utils.EndpointUtils.Companion.toCallEndpointsCompat
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -55,18 +59,23 @@ internal class CallSessionLegacy(
     val onSetActiveCallback: suspend () -> Unit,
     val onSetInactiveCallback: suspend () -> Unit,
     val onEventCallback: suspend (event: String, extras: Bundle) -> Unit,
+    private val preferredStartingCallEndpoint: CallEndpointCompat? = null,
+    private val preCallEndpointMapping: PreCallEndpoints? = null,
     private val blockingSessionExecution: CompletableDeferred<Unit>
 ) : android.telecom.Connection() {
     // instance vars
     private val TAG: String = CallSessionLegacy::class.java.simpleName
     private var mCachedBluetoothDevices: ArrayList<BluetoothDevice> = ArrayList()
+    private var mAlreadyRequestedStartingEndpointSwitch: Boolean = false
     private var mAlreadyRequestedSpeaker: Boolean = false
+    private var mPreviousCallEndpoint: CallEndpointCompat? = null
     private var mCurrentCallEndpoint: CallEndpointCompat? = null
+    private var mAvailableCallEndpoints: List<CallEndpointCompat>? = null
     private var mLastClientRequestedEndpoint: CallEndpointCompat? = null
 
     companion object {
-        private val TAG: String = CallSessionLegacy::class.java.simpleName
-
+        private const val WAIT_FOR_BT_TO_CONNECT_TIMEOUT: Long = 1000L
+        private const val DELAY_INITIAL_ENDPOINT_SWITCH: Long = 1000L
         // CallStates. All these states mirror the values in the platform.
         const val STATE_INITIALIZING = 0
         const val STATE_NEW = 1
@@ -104,28 +113,82 @@ internal class CallSessionLegacy(
      * Audio Updates
      * =========================================================================================
      */
+    @VisibleForTesting
+    internal fun toRemappedCallEndpointCompat(endpoint: CallEndpointCompat): CallEndpointCompat {
+        if (endpoint.isBluetoothType()) {
+            val key = endpoint.name.toString()
+            val btEndpointMapping = preCallEndpointMapping?.mBluetoothEndpoints
+            return if (btEndpointMapping != null && btEndpointMapping.containsKey(key)) {
+                btEndpointMapping[key]!!
+            } else {
+                endpoint
+            }
+        } else {
+            val key = endpoint.type
+            val nonBtEndpointMapping = preCallEndpointMapping?.mNonBluetoothEndpoints
+            return if (nonBtEndpointMapping != null && nonBtEndpointMapping.containsKey(key)) {
+                nonBtEndpointMapping[key]!!
+            } else {
+                endpoint
+            }
+        }
+    }
+
+    private fun setCurrentCallEndpoint(state: CallAudioState) {
+        mPreviousCallEndpoint = mCurrentCallEndpoint
+        mCurrentCallEndpoint = toRemappedCallEndpointCompat(toCallEndpointCompat(state))
+        callChannels.currentEndpointChannel.trySend(mCurrentCallEndpoint!!).getOrThrow()
+    }
+
+    private fun setAvailableCallEndpoints(state: CallAudioState) {
+        val availableEndpoints =
+            toCallEndpointsCompat(state).map { toRemappedCallEndpointCompat(it) }.sorted()
+        mAvailableCallEndpoints = availableEndpoints
+        callChannels.availableEndpointChannel.trySend(availableEndpoints).getOrThrow()
+    }
+
     override fun onCallAudioStateChanged(state: CallAudioState) {
         if (Build.VERSION.SDK_INT >= VERSION_CODES.P) {
             Api28PlusImpl.refreshBluetoothDeviceCache(mCachedBluetoothDevices, state)
         }
-        val previousCallEndpoint = mCurrentCallEndpoint
-        mCurrentCallEndpoint = EndpointUtils.toCallEndpointCompat(state)
-        callChannels.currentEndpointChannel.trySend(mCurrentCallEndpoint!!).getOrThrow()
-
-        val availableEndpoints = EndpointUtils.toCallEndpointsCompat(state)
-        callChannels.availableEndpointChannel.trySend(availableEndpoints).getOrThrow()
-
+        setCurrentCallEndpoint(state)
+        setAvailableCallEndpoints(state)
         callChannels.isMutedChannel.trySend(state.isMuted).getOrThrow()
-
-        maybeSwitchToSpeakerOnCallStart(mCurrentCallEndpoint!!, availableEndpoints)
+        // On the first call audio state change, determine if the platform started on the correct
+        // audio route.  Otherwise, request an endpoint switch.
+        switchStartingCallEndpointOnCallStart(mAvailableCallEndpoints!!)
+        // In the event the users headset disconnects, they will likely want to continue the call
+        // via the speakerphone
         maybeSwitchToSpeakerOnHeadsetDisconnect(
             mCurrentCallEndpoint!!,
-            previousCallEndpoint,
-            availableEndpoints
+            mPreviousCallEndpoint,
+            mAvailableCallEndpoints!!,
         )
         // clear out the last user requested CallEndpoint. It's only used to determine if the
         // change in current endpoints was intentional.
-        mLastClientRequestedEndpoint = null
+        if (mLastClientRequestedEndpoint?.type == mCurrentCallEndpoint?.type) {
+            mLastClientRequestedEndpoint = null
+        }
+    }
+
+    private fun switchStartingCallEndpointOnCallStart(endpoints: List<CallEndpointCompat>) {
+        if (preferredStartingCallEndpoint != null) {
+            if (!mAlreadyRequestedStartingEndpointSwitch) {
+                CoroutineScope(coroutineContext).launch {
+                    // Delay the switch to a new [CallEndpointCompat] if there is a BT device
+                    // because the request will be overridden once the BT device connects!
+                    if (endpoints.any { it.isBluetoothType() }) {
+                        Log.i(TAG, "switchStartingCallEndpointOnCallStart: BT delay START")
+                        delay(DELAY_INITIAL_ENDPOINT_SWITCH)
+                        Log.i(TAG, "switchStartingCallEndpointOnCallStart: BT delay END")
+                    }
+                    requestEndpointChange(preferredStartingCallEndpoint)
+                }
+            }
+        } else {
+            maybeSwitchToSpeakerOnCallStart(mCurrentCallEndpoint!!, endpoints)
+        }
+        mAlreadyRequestedStartingEndpointSwitch = true
     }
 
     /**
@@ -146,13 +209,40 @@ internal class CallSessionLegacy(
                         "maybeSwitchToSpeaker: detected a video call that started" +
                             " with the earpiece audio route. requesting switch to speaker."
                     )
-                    requestEndpointChange(speakerEndpoint)
+                    CoroutineScope(coroutineContext).launch {
+                        // Users reported in b/345309071 that the call started on speakerphone
+                        // instead of bluetooth.  Upon inspection, the platform was echoing the
+                        // earpiece audio route first while BT was still connecting. Avoid
+                        // overriding the BT route by waiting a second. TODO:: b/351899854
+                        if (isBluetoothAvailable(availableEndpoints)) {
+                            delay(WAIT_FOR_BT_TO_CONNECT_TIMEOUT)
+                            if (!isBluetoothConnected()) {
+                                Log.i(TAG, "maybeSwitchToSpeaker: BT did not connect in time!")
+                                requestEndpointChange(speakerEndpoint)
+                            } else {
+                                Log.i(
+                                    TAG,
+                                    "maybeSwitchToSpeaker: BT connected! void speaker switch"
+                                )
+                            }
+                        } else {
+                            // otherwise, immediately change from earpiece to speaker because the
+                            // platform is
+                            // not in the process of connecting a BT device.
+                            requestEndpointChange(speakerEndpoint)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "maybeSwitchToSpeaker: hit exception=[$e]")
             }
             mAlreadyRequestedSpeaker = true
         }
+    }
+
+    private fun isBluetoothConnected(): Boolean {
+        return mCurrentCallEndpoint != null &&
+            mCurrentCallEndpoint!!.type == CallEndpoint.TYPE_BLUETOOTH
     }
 
     /**
@@ -256,7 +346,6 @@ internal class CallSessionLegacy(
     @RequiresApi(VERSION_CODES.O)
     private object Api26PlusImpl {
         @JvmStatic
-        @DoNotInline
         fun setAudio(callEndpoint: CallEndpointCompat, connection: CallSessionLegacy) {
             connection.setAudioRoute(EndpointUtils.mapTypeToRoute(callEndpoint.type))
         }
@@ -266,7 +355,6 @@ internal class CallSessionLegacy(
     @RequiresApi(VERSION_CODES.P)
     private object Api28PlusImpl {
         @JvmStatic
-        @DoNotInline
         fun setAudio(
             callEndpoint: CallEndpointCompat,
             connection: CallSessionLegacy,
@@ -286,7 +374,6 @@ internal class CallSessionLegacy(
         }
 
         @JvmStatic
-        @DoNotInline
         fun refreshBluetoothDeviceCache(
             btCacheList: ArrayList<BluetoothDevice>,
             state: CallAudioState
@@ -296,7 +383,6 @@ internal class CallSessionLegacy(
         }
 
         @JvmStatic
-        @DoNotInline
         fun getBluetoothDeviceFromEndpoint(
             btCacheList: ArrayList<BluetoothDevice>,
             endpoint: CallEndpointCompat
@@ -386,7 +472,7 @@ internal class CallSessionLegacy(
             } catch (e: Exception) {
                 throw e
             } finally {
-                setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
+                setConnectionDisconnect(DisconnectCause(DisconnectCause.REJECTED))
                 blockingSessionExecution.complete(Unit)
             }
         }
@@ -401,7 +487,7 @@ internal class CallSessionLegacy(
             } catch (e: Exception) {
                 throw e
             } finally {
-                setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
+                setConnectionDisconnect(DisconnectCause(DisconnectCause.REJECTED))
                 blockingSessionExecution.complete(Unit)
             }
         }
@@ -416,7 +502,7 @@ internal class CallSessionLegacy(
             } catch (e: Exception) {
                 throw e
             } finally {
-                setDisconnected(DisconnectCause(DisconnectCause.REJECTED))
+                setConnectionDisconnect(DisconnectCause(DisconnectCause.REJECTED))
                 blockingSessionExecution.complete(Unit)
             }
         }

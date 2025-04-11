@@ -44,12 +44,8 @@ internal fun AssertThat<Float>.isEqualTo(f: Float, eps: Float = 0f) {
     }
 }
 
-internal fun AssertThat<Int>.isNotEqualTo(i: Int) {
-    assertNotEquals(i, t)
-}
-
-internal fun <T> AssertThat<T>.isNotEqualTo(i: T) {
-    assertNotEquals(i, t)
+internal fun <T> AssertThat<T>.isNotEqualTo(a: Any?) {
+    assertNotEquals(a, t)
 }
 
 internal fun AssertThat<Int>.isEqualTo(i: Int, d: Int = 0) {
@@ -128,6 +124,9 @@ internal fun <K, T : Collection<*>> AssertThat<T>.contains(vararg items: K) {
     }
 }
 
+internal fun AssertThat<*>.isZero() = isEqualTo(0)
+
+internal fun AssertThat<*>.isNonZero() = isNotEqualTo(0)
 
 internal fun AssertThat<*>.isNull() {
     assertEquals(null, t, message ?: "$t expected to be null")

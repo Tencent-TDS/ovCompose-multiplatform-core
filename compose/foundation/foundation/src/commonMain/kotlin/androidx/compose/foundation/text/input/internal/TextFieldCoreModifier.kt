@@ -16,7 +16,6 @@
 
 package androidx.compose.foundation.text.input.internal
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollBy
@@ -122,7 +121,6 @@ internal data class TextFieldCoreModifier(
 }
 
 /** Modifier node for [TextFieldCoreModifier]. */
-@OptIn(ExperimentalFoundationApi::class)
 internal class TextFieldCoreModifierNode(
     // true iff this component is focused and the window is focused
     private var isFocused: Boolean,
@@ -355,6 +353,9 @@ internal class TextFieldCoreModifierNode(
         currSelection: TextRange,
         layoutDirection: LayoutDirection
     ) {
+        // update the viewport size
+        scrollState.viewportSize = containerSize
+
         // update the maximum scroll value
         val difference = textLayoutSize - containerSize
         scrollState.maxValue = difference

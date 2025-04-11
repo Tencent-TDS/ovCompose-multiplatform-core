@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,8 @@ import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -55,11 +57,13 @@ import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireDensity
+import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.node.requireLayoutDirection
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
@@ -117,11 +121,8 @@ object MarqueeDefaults {
  * your own by placing modifiers before this one.
  *
  * @sample androidx.compose.foundation.samples.BasicMarqueeSample
- *
  * @sample androidx.compose.foundation.samples.BasicMarqueeWithFadedEdgesSample
- *
  * @sample androidx.compose.foundation.samples.BasicFocusableMarqueeSample
- *
  * @param iterations The number of times to repeat the animation. `Int.MAX_VALUE` will repeat
  *   forever, and 0 will disable animation.
  * @param animationMode Whether the marquee should start animating [Immediately] or only
@@ -211,6 +212,7 @@ private class MarqueeModifierNode(
     private var containerWidth by mutableIntStateOf(0)
     private var hasFocus by mutableStateOf(false)
     private var animationJob: Job? = null
+    private var marqueeLayer: GraphicsLayer? = null
     var spacing: MarqueeSpacing by mutableStateOf(spacing)
     var animationMode: MarqueeAnimationMode by mutableStateOf(animationMode)
 
@@ -228,12 +230,27 @@ private class MarqueeModifierNode(
     }
 
     override fun onAttach() {
+        val layer = marqueeLayer
+        val graphicsContext = requireGraphicsContext()
+        // Shouldn't happen as detach should be called in between in onAttach call but
+        // just in case
+        if (layer != null) {
+            graphicsContext.releaseGraphicsLayer(layer)
+        }
+
+        marqueeLayer = graphicsContext.createGraphicsLayer()
         restartAnimation()
     }
 
     override fun onDetach() {
         animationJob?.cancel()
         animationJob = null
+
+        val layer = marqueeLayer
+        if (layer != null) {
+            requireGraphicsContext().releaseGraphicsLayer(layer)
+            marqueeLayer = null
+        }
     }
 
     fun update(
@@ -323,17 +340,31 @@ private class MarqueeModifierNode(
                 else -> -contentWidth - spacingPx
             }.toFloat()
 
-        clipRect(left = clipOffset, right = clipOffset + containerWidth) {
-            // TODO(b/262284225) When both copies are visible, we call drawContent twice. This is
-            //  generally a bad practice, however currently the only alternative is to compose the
-            //  content twice, which can't be done with a modifier. In the future we might get the
-            //  ability to create intrinsic layers in draw scopes, which we should use here to avoid
-            //  invalidating the contents' draw scopes.
-            if (firstCopyVisible) {
+        val drawHeight = size.height
+        marqueeLayer?.let { layer ->
+            layer.record(size = IntSize(contentWidth, drawHeight.roundToInt())) {
                 this@draw.drawContent()
             }
-            if (secondCopyVisible) {
-                translate(left = secondCopyOffset) { this@draw.drawContent() }
+        }
+        clipRect(left = clipOffset, right = clipOffset + containerWidth) {
+            val layer = marqueeLayer
+            // Unless there are circumstances where the Modifier's draw call can be invoked without
+            // an attach call, the else case here is optional. However we can be safe and make sure
+            // that we definitely draw even when the layer could not be initialized for any reason.
+            if (layer != null) {
+                if (firstCopyVisible) {
+                    drawLayer(layer)
+                }
+                if (secondCopyVisible) {
+                    translate(left = secondCopyOffset) { drawLayer(layer) }
+                }
+            } else {
+                if (firstCopyVisible) {
+                    this@draw.drawContent()
+                }
+                if (secondCopyVisible) {
+                    translate(left = secondCopyOffset) { this@draw.drawContent() }
+                }
             }
         }
     }

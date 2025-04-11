@@ -30,7 +30,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
 import android.view.ViewTreeObserver
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.customview.poolingcontainer.PoolingContainerListener
@@ -117,6 +116,9 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private val globalLayoutChangeListener =
         ViewTreeObserver.OnGlobalLayoutListener { updateAndSetClippingBounds() }
 
+    private val scrollChangedListener =
+        ViewTreeObserver.OnScrollChangedListener { signalMeasurer?.maybeSendSignals() }
+
     private var adapter: SandboxedUiAdapter? = null
     private var client: Client? = null
     private var isZOrderOnTop = true
@@ -131,6 +133,10 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     internal val stateListenerManager: StateListenerManager = StateListenerManager()
     private var viewContainingPoolingContainerListener: View? = null
     private var poolingContainerListener = PoolingContainerListener {}
+    private val frameCommitCallback = Runnable {
+        stateListenerManager.currentUiSessionState = Active
+    }
+    internal var signalMeasurer: SandboxedSdkViewSignalMeasurer? = null
 
     /** Adds a state change listener to the UI session and immediately reports the current state. */
     fun addStateChangedListener(stateChangedListener: SandboxedSdkUiSessionStateChangedListener) {
@@ -148,6 +154,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         if (this.adapter === sandboxedUiAdapter) return
         client?.close()
         client = null
+        signalMeasurer = null
         this.adapter = sandboxedUiAdapter
         checkClientOpenSession()
     }
@@ -201,7 +208,12 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private fun checkClientOpenSession() {
         val adapter = adapter
         if (
-            client == null && adapter != null && windowInputToken != null && width > 0 && height > 0
+            client == null &&
+                adapter != null &&
+                windowInputToken != null &&
+                width > 0 &&
+                height > 0 &&
+                windowVisibility == View.VISIBLE
         ) {
             stateListenerManager.currentUiSessionState = SandboxedSdkUiSessionState.Loading
             client = Client(this)
@@ -217,7 +229,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         }
     }
 
-    internal fun requestSize(width: Int, height: Int) {
+    internal fun requestResize(width: Int, height: Int) {
         if (width == this.width && height == this.height) return
         requestedWidth = width
         requestedHeight = height
@@ -225,13 +237,26 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     }
 
     private fun removeContentView() {
-        removeCallbacks()
         if (childCount == 1) {
             super.removeViewAt(0)
         }
     }
 
+    /**
+     * Adds callbacks and listeners that are only valid while this view is attached to a window. All
+     * callbacks and listeners added here will be removed in [removeCallbacksOnWindowDetachment].
+     */
+    private fun addCallbacksOnWindowAttachment() {
+        viewTreeObserver.addOnScrollChangedListener(scrollChangedListener)
+    }
+
+    private fun removeCallbacksOnWindowDetachment() {
+        viewTreeObserver.removeOnScrollChangedListener(scrollChangedListener)
+        CompatImpl.unregisterFrameCommitCallback(viewTreeObserver, frameCommitCallback)
+    }
+
     private fun removeCallbacks() {
+        // TODO(b/339377737): Handle leak of listeners when this is called.
         (contentView as? SurfaceView)?.holder?.removeCallback(surfaceChangedCallback)
         viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutChangeListener)
     }
@@ -251,9 +276,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         }
 
         // Wait for the next frame commit before sending an ACTIVE state change to listeners.
-        CompatImpl.registerFrameCommitCallback(viewTreeObserver) {
-            stateListenerManager.currentUiSessionState = Active
-        }
+        CompatImpl.registerFrameCommitCallback(viewTreeObserver, frameCommitCallback)
 
         if (contentView is SurfaceView) {
             contentView.holder.addCallback(surfaceChangedCallback)
@@ -262,6 +285,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
 
     internal fun onClientClosedSession(error: Throwable? = null) {
         removeContentView()
+        signalMeasurer?.dropPendingUpdates()
+        signalMeasurer = null
         stateListenerManager.currentUiSessionState =
             if (error != null) {
                 SandboxedSdkUiSessionState.Error(error)
@@ -339,6 +364,20 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         previousHeight = height
         previousWidth = width
         checkClientOpenSession()
+        signalMeasurer?.maybeSendSignals()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE) {
+            checkClientOpenSession()
+        }
+        signalMeasurer?.maybeSendSignals()
+    }
+
+    override fun setAlpha(alpha: Float) {
+        super.setAlpha(alpha)
+        signalMeasurer?.maybeSendSignals()
     }
 
     private fun closeClient() {
@@ -379,6 +418,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        addCallbacksOnWindowAttachment()
         if (client == null || viewContainingPoolingContainerListener == null) {
             if (this.isWithinPoolingContainer) {
                 attachPoolingContainerListener()
@@ -391,6 +431,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         if (!this.isWithinPoolingContainer) {
             closeClient()
         }
+        removeCallbacksOnWindowDetachment()
         super.onDetachedFromWindow()
     }
 
@@ -501,7 +542,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                 session.close()
                 return
             }
-            sandboxedSdkView?.setContentView(session.view)
+            val view = checkNotNull(sandboxedSdkView) { "SandboxedSdkView should not be null" }
+            view.setContentView(session.view)
             this.session = session
             val width = pendingWidth
             val height = pendingHeight
@@ -512,6 +554,9 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             pendingConfiguration = null
             pendingZOrderOnTop?.let { session.notifyZOrderChanged(it) }
             pendingZOrderOnTop = null
+            if (session.signalOptions.isNotEmpty()) {
+                view.signalMeasurer = SandboxedSdkViewSignalMeasurer(view, session)
+            }
         }
 
         override fun onSessionError(throwable: Throwable) {
@@ -522,7 +567,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
 
         override fun onResizeRequested(width: Int, height: Int) {
             if (sandboxedSdkView == null) return
-            sandboxedSdkView?.requestSize(width, height)
+            sandboxedSdkView?.requestResize(width, height)
         }
     }
 
@@ -593,11 +638,16 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             }
         }
 
+        fun unregisterFrameCommitCallback(observer: ViewTreeObserver, callback: Runnable) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Api29PlusImpl.unregisterFrameCommitCallback(observer, callback)
+            }
+        }
+
         @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
         private object Api34PlusImpl {
 
             @JvmStatic
-            @DoNotInline
             fun setClippingBounds(
                 contentView: View?,
                 isAttachedToWindow: Boolean,
@@ -635,7 +685,6 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
             }
 
             @JvmStatic
-            @DoNotInline
             fun attachTemporarySurfaceViewAndOpenSession(
                 context: Context,
                 sandboxedSdkView: SandboxedSdkView
@@ -645,6 +694,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
                     object : OnAttachStateChangeListener {
                         override fun onViewAttachedToWindow(view: View) {
                             view.removeOnAttachStateChangeListener(this)
+                            @Suppress("DEPRECATION")
                             sandboxedSdkView.windowInputToken = surfaceView.hostToken
                             sandboxedSdkView.removeTemporarySurfaceView(surfaceView)
                             sandboxedSdkView.checkClientOpenSession()
@@ -661,9 +711,13 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         private object Api29PlusImpl {
 
             @JvmStatic
-            @DoNotInline
             fun registerFrameCommitCallback(observer: ViewTreeObserver, callback: Runnable) {
                 observer.registerFrameCommitCallback(callback)
+            }
+
+            @JvmStatic
+            fun unregisterFrameCommitCallback(observer: ViewTreeObserver, callback: Runnable) {
+                observer.unregisterFrameCommitCallback(callback)
             }
         }
     }

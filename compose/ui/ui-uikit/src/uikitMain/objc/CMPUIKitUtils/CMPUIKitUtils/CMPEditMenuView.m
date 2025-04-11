@@ -30,9 +30,6 @@
 
 @property (assign, nonatomic) CGRect targetRect;
 @property (assign, nonatomic) BOOL isEditMenuShown;
-/// Due to the internal implementation of UIEditMenuInteraction, it disappears with animation when a touch is detected.
-/// HACK: Keep tracking incoming touches to show UIEditMenuInteraction again after a short delay.
-@property (assign, nonatomic) BOOL isPossibleTouchDetected;
 
 @property (readwrite) UIEditMenuInteraction* editInteraction API_AVAILABLE(ios(16.0));
 
@@ -64,40 +61,22 @@ id _editInteraction;
     self.cutBlock = cutBlock;
     self.pasteBlock = pasteBlock;
     self.selectAllBlock = selectAllBlock;
-    self.isEditMenuShown = YES;
 
     if (@available(iOS 16, *)) {
-        if (self.editInteraction == nil) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                self.editInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
-                [self addInteraction:self.editInteraction];
-                [self presentEditMenuInteraction];
-                self.isPossibleTouchDetected = NO;
-            });
-        } else {
-            if (self.isPossibleTouchDetected) {
-                [self cancelPresentEditMenuInteraction];
-                [self schedulePresentEditMenuInteraction];
-            } else {
-                if (contextMenuItemsChanged) {
-                    [self.editInteraction reloadVisibleMenu];
-                }
-                if (positionChanged) {
-                    [self.editInteraction updateVisibleMenuPositionAnimated:NO];
-                }
-            }
+        if (self.editInteraction == nil || contextMenuItemsChanged || !self.isEditMenuShown) {
+            [self cancelPresentEditMenuInteraction];
+            NSTimeInterval delay = self.presentInteractionBlock == nil ? 0 : [self editMenuDelay];
+            [self schedulePresentEditMenuInteractionWithDelay:delay];
+        } else if (positionChanged) {
+            [self.editInteraction updateVisibleMenuPositionAnimated:NO];
         }
     } else {
+        self.isEditMenuShown = YES;
         if (contextMenuItemsChanged || positionChanged) {
             [self hideEditMenu];
             [self scheduleShowMenuController];
         }
     }
-}
-
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    self.isPossibleTouchDetected = YES;
-    return [super hitTest:point withEvent:event];
 }
 
 - (void)scheduleShowMenuController {
@@ -146,15 +125,18 @@ id _editInteraction;
     [self.editInteraction presentEditMenuWithConfiguration:config];
 }
 
-- (void)schedulePresentEditMenuInteraction API_AVAILABLE(ios(16.0)) {
+- (void)schedulePresentEditMenuInteractionWithDelay:(NSTimeInterval)delay API_AVAILABLE(ios(16.0)) {
     __weak __auto_type weak_self = self;
     self.presentInteractionBlock = dispatch_block_create(0 ,^{
         __auto_type self = weak_self;
+        if (self.editInteraction == nil) {
+            self.editInteraction = [[UIEditMenuInteraction alloc] initWithDelegate:self];
+            [self addInteraction:self.editInteraction];
+        }
         [self presentEditMenuInteraction];
         self.presentInteractionBlock = nil;
-        self.isPossibleTouchDetected = NO;
     });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)([self editMenuDelay] * NSEC_PER_SEC)),
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delay * NSEC_PER_SEC)),
                    dispatch_get_main_queue(),
                    self.presentInteractionBlock);
 }
@@ -170,7 +152,6 @@ id _editInteraction;
 }
 
 - (void)hideEditMenu {
-    self.isEditMenuShown = NO;
     if (@available(iOS 16, *)) {
         [self cancelPresentEditMenuInteraction];
 
@@ -180,9 +161,11 @@ id _editInteraction;
             self.editInteraction = nil;
         }
     } else if (@available(iOS 13, *)) {
+        self.isEditMenuShown = NO;
         [self cancelShowMenuController];
         [[UIMenuController sharedMenuController] hideMenu];
     } else {
+        self.isEditMenuShown = NO;
         [self cancelShowMenuController];
         [[UIMenuController sharedMenuController] setMenuVisible:NO];
     }
@@ -232,6 +215,30 @@ id _editInteraction;
 - (CGRect)editMenuInteraction:(UIEditMenuInteraction *)interaction
    targetRectForConfiguration:(UIEditMenuConfiguration *)configuration API_AVAILABLE(ios(16.0)) {
     return self.targetRect;
+}
+
+- (void)editMenuInteraction:(UIEditMenuInteraction *)interaction
+willDismissMenuForConfiguration:(UIEditMenuConfiguration *)configuration
+                   animator:(id<UIEditMenuInteractionAnimating>)animator API_AVAILABLE(ios(16.0)) {
+    __weak __auto_type weak_self = self;
+    [animator addCompletion:^{
+        __auto_type self = weak_self;
+        if (self.editInteraction == interaction) {
+            self.isEditMenuShown = NO;
+        }
+    }];
+}
+
+- (void)editMenuInteraction:(UIEditMenuInteraction *)interaction
+willPresentMenuForConfiguration:(UIEditMenuConfiguration *)configuration
+                   animator:(id<UIEditMenuInteractionAnimating>)animator API_AVAILABLE(ios(16.0)) {
+    __weak __auto_type weak_self = self;
+    [animator addCompletion:^{
+        __auto_type self = weak_self;
+        if (self.editInteraction == interaction) {
+            self.isEditMenuShown = YES;
+        }
+    }];
 }
 
 @end

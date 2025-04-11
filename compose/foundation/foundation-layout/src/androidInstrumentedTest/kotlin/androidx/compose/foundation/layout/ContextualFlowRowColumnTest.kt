@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.foundation.layout
 
 import androidx.compose.foundation.background
@@ -545,7 +547,7 @@ class ContextualFlowRowColumnTest {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     maxItemsInEachRow = 3,
-                ) {
+                ) { index ->
                     Box(
                         Modifier.onSizeChanged { listOfHeights.add(it.height) }
                             .width(100.dp)
@@ -553,7 +555,7 @@ class ContextualFlowRowColumnTest {
                             .background(Color.Green)
                             .fillMaxRowHeight()
                     ) {
-                        val height = Random.Default.nextInt(1, 200) - it
+                        val height = 200 - index
                         Box(modifier = Modifier.height(height.dp))
                     }
                 }
@@ -919,6 +921,44 @@ class ContextualFlowRowColumnTest {
     }
 
     @Test
+    fun testContextualFlowRow_alignItemsCenterVertically_UsingTopLevelAPI() {
+        val totalRowHeight = 20
+        val shorterHeight = 10
+        val expectedResult = (totalRowHeight - shorterHeight) / 2
+        var positionInParentY = 0f
+        rule.setContent {
+            with(LocalDensity.current) {
+                Box(Modifier.size(200.toDp())) {
+                    ContextualFlowRow(
+                        itemCount = 5,
+                        itemVerticalAlignment = Alignment.CenterVertically
+                    ) { index ->
+                        Box(
+                            Modifier.size(
+                                    20.toDp(),
+                                    if (index == 4) {
+                                        shorterHeight.toDp()
+                                    } else {
+                                        totalRowHeight.toDp()
+                                    }
+                                )
+                                .onPlaced {
+                                    if (index == 4) {
+                                        val positionInParent = it.positionInParent()
+                                        positionInParentY = positionInParent.y
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        Truth.assertThat(positionInParentY).isEqualTo(expectedResult)
+    }
+
+    @Test
     fun testContextualFlowColumn_alignItemsDefaultsToTop() {
         val shorterWidth = 10
         val expectedResult = 0f
@@ -955,6 +995,44 @@ class ContextualFlowRowColumnTest {
                         Box(
                             Modifier.align(Alignment.CenterHorizontally)
                                 .size(
+                                    if (index == 4) {
+                                        shorterWidth.toDp()
+                                    } else {
+                                        totalColumnWidth.toDp()
+                                    },
+                                    20.toDp()
+                                )
+                                .onPlaced {
+                                    if (index == 4) {
+                                        val positionInParent = it.positionInParent()
+                                        positionInParentX = positionInParent.x
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        Truth.assertThat(positionInParentX).isEqualTo(expectedResult)
+    }
+
+    @Test
+    fun testContextualFlowColumn_alignItemsCenterHorizontally_UsingTopLevelAPI() {
+        val totalColumnWidth = 20
+        val shorterWidth = 10
+        val expectedResult = (totalColumnWidth - shorterWidth) / 2
+        var positionInParentX = 0f
+        rule.setContent {
+            with(LocalDensity.current) {
+                Box(Modifier.size(200.toDp())) {
+                    ContextualFlowColumn(
+                        itemCount = 5,
+                        itemHorizontalAlignment = Alignment.CenterHorizontally
+                    ) { index ->
+                        Box(
+                            Modifier.size(
                                     if (index == 4) {
                                         shorterWidth.toDp()
                                     } else {
@@ -1687,7 +1765,6 @@ class ContextualFlowRowColumnTest {
             Truth.assertThat(itemsShownCount).isEqualTo(5)
             Truth.assertThat(seeMoreShown).isTrue()
             Truth.assertThat(collapseShown).isFalse()
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(collapseOnScope.shownItemCount)
             Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(itemsShownCount)
         }
         rule.onNodeWithTag(seeMoreTag).performTouchInput { click() }
@@ -1699,7 +1776,6 @@ class ContextualFlowRowColumnTest {
             Truth.assertThat(finalMaxLines).isEqualTo(4)
             Truth.assertThat(seeMoreShown).isTrue()
             Truth.assertThat(collapseShown).isFalse()
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(collapseOnScope.shownItemCount)
             Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(itemsShownCount)
         }
 
@@ -1711,7 +1787,6 @@ class ContextualFlowRowColumnTest {
             Truth.assertThat(finalMaxLines).isEqualTo(6)
             Truth.assertThat(seeMoreShown).isTrue()
             Truth.assertThat(collapseShown).isFalse()
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(collapseOnScope.shownItemCount)
             Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(itemsShownCount)
         }
 
@@ -1723,8 +1798,7 @@ class ContextualFlowRowColumnTest {
             Truth.assertThat(finalMaxLines).isEqualTo(8)
             Truth.assertThat(collapseShown).isTrue()
             Truth.assertThat(seeMoreShown).isFalse()
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(collapseOnScope.shownItemCount)
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(itemsShownCount)
+            Truth.assertThat(collapseOnScope.shownItemCount).isEqualTo(itemsShownCount)
         }
         rule.onNodeWithTag(collapseTag).performTouchInput { click() }
 
@@ -1734,7 +1808,6 @@ class ContextualFlowRowColumnTest {
             Truth.assertThat(finalMaxLines).isEqualTo(2)
             Truth.assertThat(seeMoreShown).isTrue()
             Truth.assertThat(collapseShown).isFalse()
-            Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(collapseOnScope.shownItemCount)
             Truth.assertThat(expandOnScope.shownItemCount).isEqualTo(5)
         }
     }

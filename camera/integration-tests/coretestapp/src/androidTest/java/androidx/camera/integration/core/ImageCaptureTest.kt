@@ -63,6 +63,7 @@ import androidx.camera.core.impl.ImageCaptureConfig
 import androidx.camera.core.impl.ImageOutputConfig
 import androidx.camera.core.impl.ImageOutputConfig.OPTION_RESOLUTION_SELECTOR
 import androidx.camera.core.impl.MutableOptionsBundle
+import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.impl.utils.CameraOrientationUtil
 import androidx.camera.core.impl.utils.Exif
@@ -82,8 +83,8 @@ import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CoreAppTestUtil
 import androidx.camera.testing.impl.SurfaceTextureProvider
 import androidx.camera.testing.impl.WakelockEmptyActivityRule
-import androidx.camera.testing.impl.fakes.FakeImageCaptureCallback
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.fakes.FakeOnImageCapturedCallback
 import androidx.camera.testing.impl.fakes.FakeSessionProcessor
 import androidx.camera.testing.impl.mocks.MockScreenFlash
 import androidx.camera.video.Recorder
@@ -101,6 +102,8 @@ import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -124,7 +127,7 @@ private val DEFAULT_RESOLUTION = Size(640, 480)
 private val BACK_SELECTOR = CameraSelector.DEFAULT_BACK_CAMERA
 private val FRONT_SELECTOR = CameraSelector.DEFAULT_FRONT_CAMERA
 private const val BACK_LENS_FACING = CameraSelector.LENS_FACING_BACK
-private const val CAPTURE_TIMEOUT = 15_000.toLong() //  15 seconds
+private val CAPTURE_TIMEOUT = 15.seconds
 private const val TOLERANCE = 1e-3f
 private val EXIF_GAINMAP_PATTERNS =
     listOf(
@@ -203,10 +206,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun capturedImageHasCorrectSize_whenOutputFormatIsUltraHdr() {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         takeImageAndVerifySize(outputFormat = OUTPUT_FORMAT_JPEG_ULTRA_HDR)
     }
 
@@ -233,14 +232,14 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         }
 
         // Act.
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Assert.
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         var sizeEnvelope = imageProperties.size
 
         // Some devices may not be able to fit the requested resolution. In this case, the returned
@@ -277,10 +276,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun canCaptureMultipleImages_whenOutputFormatIsUltraHdr() {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         canTakeImages(defaultBuilder.setOutputFormat(OUTPUT_FORMAT_JPEG_ULTRA_HDR), numImages = 5) {
             assumeUltraHdrSupported(BACK_SELECTOR)
         }
@@ -297,10 +292,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun canCaptureMultipleImagesWithMaxQuality_whenOutputFormatIsUltraHdr() {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         val builder =
             ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
@@ -321,13 +312,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
 
         if (camera.cameraInfo.isZslSupported) {
             val numImages = 5
-            val callback = FakeImageCaptureCallback(captureCount = numImages)
+            val callback = FakeOnImageCapturedCallback(captureCount = numImages)
             for (i in 0 until numImages) {
                 useCase.takePicture(mainExecutor, callback)
             }
 
             callback.awaitCapturesAndAssert(
-                timeout = numImages * CAPTURE_TIMEOUT,
+                timeout = CAPTURE_TIMEOUT.times(numImages),
                 capturedImagesCount = numImages
             )
         }
@@ -411,14 +402,74 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         }
 
         // Act.
-        val callback = FakeImageCaptureCallback(captureCount = numImages)
+        val callback = FakeOnImageCapturedCallback(captureCount = numImages)
         repeat(numImages) { useCase.takePicture(mainExecutor, callback) }
 
         // Assert.
         callback.awaitCapturesAndAssert(
-            timeout = numImages * CAPTURE_TIMEOUT,
+            timeout = CAPTURE_TIMEOUT.times(numImages),
             capturedImagesCount = numImages
         )
+    }
+
+    @Test
+    fun canTakeImage_whenSessionErrorListenerReceivesError(): Unit = runBlocking {
+        val imageCapture = ImageCapture.Builder().build()
+        // Arrange.
+        withContext(Dispatchers.Main) {
+            cameraProvider.bindToLifecycle(
+                fakeLifecycleOwner,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                imageCapture
+            )
+        }
+
+        // Retrieves the initial session config
+        val initialSessionConfig = imageCapture.sessionConfig
+
+        // Checks that image can be taken successfully when onError is received.
+        triggerOnErrorAndTakePicture(imageCapture, initialSessionConfig)
+
+        if (CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_FRONT)) {
+            withContext(Dispatchers.Main) {
+                // Binds the ImageCapture use case to the other camera
+                cameraProvider.unbind(imageCapture)
+                cameraProvider.bindToLifecycle(
+                    fakeLifecycleOwner,
+                    CameraSelector.DEFAULT_FRONT_CAMERA,
+                    imageCapture
+                )
+            }
+
+            // Checks that image can be taken successfully when onError is received by the old
+            // error listener.
+            triggerOnErrorAndTakePicture(imageCapture, initialSessionConfig)
+        }
+
+        // Checks that image can be taken successfully when onError is received by the new
+        // error listener.
+        triggerOnErrorAndTakePicture(imageCapture, imageCapture.sessionConfig)
+    }
+
+    private suspend fun triggerOnErrorAndTakePicture(
+        imageCapture: ImageCapture,
+        sessionConfig: SessionConfig
+    ) {
+        withContext(Dispatchers.Main) {
+            // Forces invoke the onError callback
+            sessionConfig.errorListener!!.onError(
+                sessionConfig,
+                SessionConfig.SessionError.SESSION_ERROR_UNKNOWN
+            )
+        }
+
+        // Act.
+        val callback = FakeOnImageCapturedCallback()
+        imageCapture.takePicture(mainExecutor, callback)
+
+        // Assert.
+        // Image can still be taken when an error reported to the session config error listener
+        callback.awaitCapturesAndAssert(capturedImagesCount = 1)
     }
 
     @Test
@@ -472,10 +523,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun canSaveToFile_withGainmapInfoInMetadata_whenOutputFormatIsUltraHdr(): Unit = runBlocking {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         val cameraSelector = BACK_SELECTOR
         assumeUltraHdrSupported(cameraSelector)
 
@@ -511,10 +558,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun canSaveToUri_whenOutputFormatIsUltraHdr() {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         saveToUri(outputFormat = OUTPUT_FORMAT_JPEG_ULTRA_HDR)
     }
 
@@ -570,10 +613,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @SdkSuppress(minSdkVersion = 34)
     @Test
     fun canSaveToOutputStream_whenOutputFormatIsUltraHdr() {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/340210589): Enable when camera-pipe has Ultra HDR support"
-        )
-
         saveToOutputStream(outputFormat = OUTPUT_FORMAT_JPEG_ULTRA_HDR)
     }
 
@@ -785,7 +824,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
 
         // Wait for the signal that all the images have been saved.
         callback.awaitCapturesAndAssert(
-            timeout = numImages * CAPTURE_TIMEOUT,
+            timeout = CAPTURE_TIMEOUT.times(numImages),
             savedImagesCount = numImages
         )
     }
@@ -844,7 +883,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
 
         useCase.takePicture(mainExecutor, callback)
 
@@ -875,14 +914,14 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
 
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         assertThat(imageProperties.format).isEqualTo(ImageFormat.RAW10)
     }
 
@@ -999,13 +1038,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         // directly know  onStateAttached() callback has been received. Therefore, taking a
         // picture and waiting for the capture success callback to know the use case's
         // onStateAttached() callback has been received.
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         imageCapture.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val callback2 = FakeImageCaptureCallback(captureCount = 3)
+        val callback2 = FakeOnImageCapturedCallback(captureCount = 3)
         imageCapture.takePicture(mainExecutor, callback2)
         imageCapture.takePicture(mainExecutor, callback2)
         imageCapture.takePicture(mainExecutor, callback2)
@@ -1028,7 +1067,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, imageCapture)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 3)
+        val callback = FakeOnImageCapturedCallback(captureCount = 3)
         imageCapture.takePicture(mainExecutor, callback)
         imageCapture.takePicture(mainExecutor, callback)
         imageCapture.takePicture(mainExecutor, callback)
@@ -1056,7 +1095,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
     @Test
     fun takePictureReturnsErrorNO_CAMERA_whenNotBound() = runBlocking {
         val imageCapture = ImageCapture.Builder().build()
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
 
         imageCapture.takePicture(mainExecutor, callback)
 
@@ -1205,7 +1244,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
@@ -1215,7 +1254,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         // same as original one.
         val expectedCroppingRatio = Rational(DEFAULT_RESOLUTION.width, DEFAULT_RESOLUTION.height)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         val cropRect = imageProperties.cropRect
 
         // Rotate the captured ImageProxy's crop rect into the coordinate space of the final
@@ -1242,7 +1281,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
 
         // Checks camera device sensor degrees to set target cropping aspect ratio match the
         // sensor orientation.
@@ -1260,7 +1299,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
 
         // After target rotation is updated, the result cropping aspect ratio should still the
         // same as original one.
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         val cropRect = imageProperties.cropRect
 
         // Rotate the captured ImageProxy's crop rect into the coordinate space of the final
@@ -1315,7 +1354,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCaseGroup)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
 
         useCase.takePicture(mainExecutor, callback)
 
@@ -1324,7 +1363,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
 
         // After target rotation is updated, the result cropping aspect ratio should still the
         // same as original one.
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         val cropRect = imageProperties.cropRect
 
         // Rotate the captured ImageProxy's crop rect into the coordinate space of the final
@@ -1409,13 +1448,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             cameraProvider.bindToLifecycle(fakeLifecycleOwner, BACK_SELECTOR, useCase)
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         val cropRect = imageProperties.cropRect
         val cropRectAspectRatio = Rational(cropRect!!.height(), cropRect.width())
 
@@ -1572,13 +1611,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
                 )
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
 
         // Check the output image rotation degrees value is correct.
         assertThat(imageProperties.rotationDegrees)
@@ -1645,13 +1684,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
                 )
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         // Check the output image rotation degrees value is correct.
         assertThat(imageProperties.rotationDegrees)
             .isEqualTo(camera.cameraInfo.getSensorRotationDegrees(useCase.targetRotation))
@@ -1683,13 +1722,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
                 )
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         useCase.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
 
         // Check the output image rotation degrees value is correct.
         assertThat(imageProperties.rotationDegrees)
@@ -1729,13 +1768,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
                 )
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         imageCapture.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
 
         // Check the output image rotation degrees value is correct.
         assertThat(imageProperties.rotationDegrees)
@@ -1777,13 +1816,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             )
         }
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         imageCapture.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
 
         // Check the output image rotation degrees value is correct.
         if (isRotationOptionSupportedDevice()) {
@@ -1889,7 +1928,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
             .isTrue()
 
         // Act.
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         withContext(Dispatchers.Main) {
             // Test the reproduce step in b/235119898
             cameraProvider.unbind(preview)
@@ -1916,7 +1955,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         }
 
         // wait for camera to start by taking a picture
-        val callback1 = FakeImageCaptureCallback(captureCount = 1)
+        val callback1 = FakeOnImageCapturedCallback(captureCount = 1)
         imageCapture.takePicture(mainExecutor, callback1)
         try {
             callback1.awaitCapturesAndAssert(capturedImagesCount = 1)
@@ -1925,7 +1964,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         }
 
         // Act.
-        val callback2 = FakeImageCaptureCallback(captureCount = 1)
+        val callback2 = FakeOnImageCapturedCallback(captureCount = 1)
         withContext(Dispatchers.Main) {
             cameraProvider.unbind(videoCapture)
             imageCapture.takePicture(mainExecutor, callback2)
@@ -2032,11 +2071,6 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         preview: Preview? = null,
         imageAnalysis: ImageAnalysis? = null
     ) = runBlocking {
-        implName.ignoreTestForCameraPipe(
-            "TODO(b/247492645) Remove camera-pipe-integration restriction after porting" +
-                " ResolutionSelector logic"
-        )
-
         val cameraInfo =
             withContext(Dispatchers.Main) {
                 cameraProvider
@@ -2082,13 +2116,13 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
 
         assertThat(imageCapture.resolutionInfo!!.resolution).isEqualTo(maxHighResolutionOutputSize)
 
-        val callback = FakeImageCaptureCallback(captureCount = 1)
+        val callback = FakeOnImageCapturedCallback(captureCount = 1)
         imageCapture.takePicture(mainExecutor, callback)
 
         // Wait for the signal that the image has been captured.
         callback.awaitCapturesAndAssert(capturedImagesCount = 1)
 
-        val imageProperties = callback.results.first()
+        val imageProperties = callback.results.first().properties
         assertThat(imageProperties.size).isEqualTo(maxHighResolutionOutputSize)
     }
 
@@ -2226,7 +2260,7 @@ class ImageCaptureTest(private val implName: String, private val cameraXConfig: 
         }
 
         suspend fun awaitCapturesAndAssert(
-            timeout: Long = CAPTURE_TIMEOUT,
+            timeout: Duration = CAPTURE_TIMEOUT,
             savedImagesCount: Int = 0,
             errorsCount: Int = 0
         ) {

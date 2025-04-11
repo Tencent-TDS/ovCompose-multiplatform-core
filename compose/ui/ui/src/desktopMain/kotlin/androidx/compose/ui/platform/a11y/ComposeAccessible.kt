@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.platform.a11y
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.node.Nodes
@@ -315,8 +314,12 @@ internal class ComposeAccessible(
         }
 
         override fun getAccessibleValue(): AccessibleValue? {
+            val role = semanticsConfig.getOrNull(SemanticsProperties.Role)
+            // On macOS/VoiceOver, the a11y system appears to inspect the value we return here for
+            // checkboxes and radio buttons. On Windows, it looks at getAccessibleStateSet instead.
             return when {
                 toggleableState != null -> ToggleableAccessibleValue(this)
+                role == Role.RadioButton -> RadioButtonAccessibleValue(this)
                 progressBarRangeInfo != null -> ProgressBarAccessibleValue(this)
                 else -> null
             }
@@ -359,10 +362,11 @@ internal class ComposeAccessible(
             return semanticsNode.size.toAwtDimension()
         }
 
-        @OptIn(ExperimentalComposeUiApi::class)
+        @Suppress("DEPRECATION")
         override fun isVisible(): Boolean =
-            !semanticsConfig.contains(SemanticsProperties.InvisibleToUser) &&
-            !semanticsNode.outerSemanticsNode.requireCoordinator(Nodes.Semantics).isTransparent()
+            !semanticsNode.outerSemanticsNode.requireCoordinator(Nodes.Semantics).isTransparent() &&
+                !semanticsConfig.contains(SemanticsProperties.InvisibleToUser) &&
+                !semanticsConfig.contains(SemanticsProperties.HideFromAccessibility)
 
         override fun isEnabled(): Boolean =
             semanticsConfig.getOrNull(SemanticsProperties.Disabled) == null
@@ -455,15 +459,6 @@ internal class ComposeAccessible(
                 if (focused == true)
                     add(AccessibleState.FOCUSED)
 
-                when (toggleableState) {
-                    ToggleableState.On ->
-                        add(AccessibleState.CHECKED)
-                    ToggleableState.Indeterminate ->
-                        add(AccessibleState.INDETERMINATE)
-                    ToggleableState.Off, null -> {
-                    }
-                }
-
                 val canExpand = semanticsConfig.getOrNull(SemanticsActions.Expand) != null
                 val canCollapse = semanticsConfig.getOrNull(SemanticsActions.Collapse) != null
 
@@ -476,15 +471,50 @@ internal class ComposeAccessible(
                 if (canCollapse)
                     add(AccessibleState.EXPANDED)
 
-                if (canCollapse)
-                    add(AccessibleState.EXPANDED)
+                when (semanticsConfig.getOrNull(SemanticsProperties.Role)) {
+                    // Note that this is not executed on macOS (for checkboxes or radio buttons),
+                    // where the system inspects the value returned by getAccessibleValue instead.
+                    Role.Checkbox -> addCheckedStateForCheckbox()
+                    Role.RadioButton -> addCheckedStateForRadioButton()
+                    else -> {  // Default case, for other (possibly null) roles
+                        addDefaultStateForToggleableState()
 
-                if (selected != null)
-                    add(AccessibleState.SELECTABLE)
+                        if (selected != null)
+                            add(AccessibleState.SELECTABLE)
 
-                if (selected == true)
-                    add(AccessibleState.SELECTED)
+                        if (selected == true)
+                            add(AccessibleState.SELECTED)
+                    }
+                }
             }
+        }
+
+        private fun AccessibleStateSet.addCheckedStateForCheckbox() {
+            // Checkbox uses Modifier.triStateToggleable, which sets
+            // SemanticsPropertyReceiver.toggleableState
+            addDefaultStateForToggleableState()
+        }
+
+        private fun AccessibleStateSet.addCheckedStateForRadioButton() {
+            // RadioButton uses Modifier.selectable, which sets
+            // SemanticsPropertyReceiver.selected
+            if (selected == true) {
+                add(AccessibleState.CHECKED)
+            }
+        }
+
+        private fun AccessibleStateSet.addDefaultStateForToggleableState() {
+            val state = when (toggleableState) {
+                ToggleableState.On -> AccessibleState.CHECKED
+                // AccessibleState.INDETERMINATE doesn't appear to affect NVDA, and it's not clear
+                // whether it's even suitable to this case, but we return it anyway because there
+                // don't appear to be any adverse effects, and perhaps some other screen reader,
+                // or a testing framework will find it useful.
+                ToggleableState.Indeterminate -> AccessibleState.INDETERMINATE
+                ToggleableState.Off, null -> null
+            }
+            if (state != null)
+                add(state)
         }
 
         open inner class ComposeAccessibleText : AccessibleText,
@@ -842,6 +872,27 @@ private class ToggleableAccessibleValue(
             ToggleableState.On -> 1
             else -> 0
         }
+    }
+
+    override fun setCurrentAccessibleValue(n: Number?): Boolean {
+        // TODO: Implement this
+        return false
+    }
+
+    override fun getMinimumAccessibleValue(): Number {
+        return 0
+    }
+
+    override fun getMaximumAccessibleValue(): Number {
+        return 1
+    }
+}
+
+private class RadioButtonAccessibleValue(
+    val component: ComposeAccessible.ComposeAccessibleComponent
+): AccessibleValue {
+    override fun getCurrentAccessibleValue(): Number {
+        return if (component.selected == true) 1 else 0
     }
 
     override fun setCurrentAccessibleValue(n: Number?): Boolean {

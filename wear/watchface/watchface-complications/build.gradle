@@ -32,11 +32,10 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.8.1")
     api(libs.kotlinStdlib)
     api(project(":wear:watchface:watchface-complications-data"))
     implementation("androidx.core:core:1.1.0")
-    implementation("androidx.annotation:annotation:1.2.0")
     testImplementation(libs.testCore)
     testImplementation(libs.testRunner)
     testImplementation(libs.testRules)
@@ -70,6 +69,5 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "Android Wear Complications"
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
 }

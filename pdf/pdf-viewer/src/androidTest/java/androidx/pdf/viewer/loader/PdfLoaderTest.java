@@ -29,6 +29,7 @@ import android.graphics.Rect;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 
+import androidx.annotation.NonNull;
 import androidx.pdf.data.DisplayData;
 import androidx.pdf.data.Opener;
 import androidx.pdf.data.PdfStatus;
@@ -59,6 +60,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -227,6 +229,7 @@ public class PdfLoaderTest {
         assertThat(mPdfLoader.getPageLoader(PAGE).mSelectionTask).isNotNull();
     }
 
+    @Ignore // b/342212541
     @Test
     @UiThreadTest
     public void testLoadTiles() {
@@ -267,17 +270,6 @@ public class PdfLoaderTest {
 
     @Test
     @UiThreadTest
-    public void testCloneWithoutSecurity() throws InterruptedException, RemoteException {
-        CountDownLatch latch = new CountDownLatch(1);
-        mWeakPdfLoaderCallbacks.setClonedLatch(latch);
-        mPdfLoader.cloneWithoutSecurity(mFileOutputStream);
-        /** Wait for {@link TestCallbacks#documentCloned(boolean)} to be called. */
-        latch.await(LATCH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        verify(mPdfDocument).cloneWithoutSecurity(any(ParcelFileDescriptor.class));
-    }
-
-    @Test
-    @UiThreadTest
     public void testGotoLinksTask() throws RemoteException, InterruptedException {
         getGotoLinks(mPdfLoader);
         verify(mPdfDocument).getPageGotoLinks(PAGE);
@@ -288,6 +280,8 @@ public class PdfLoaderTest {
     public void testLoadDocumentTask() throws InterruptedException, RemoteException {
         CountDownLatch latch = new CountDownLatch(1);
         mWeakPdfLoaderCallbacks.setDocumentLoadedLatch(latch);
+        // ensure document is not already loaded
+        when(mConnection.isLoaded()).thenReturn(false);
         mPdfLoader.applyPassword(TEST_PW);
         /** Wait for {@link TestCallbacks#documentLoaded(int)} ()} to be called. */
         latch.await(LATCH_TIMEOUT_MS, TimeUnit.MILLISECONDS);
@@ -363,16 +357,8 @@ public class PdfLoaderTest {
         }
 
         @Override
-        public void documentCloned(boolean result) {
-            super.documentCloned(result);
-            if (mClonedLatch != null) {
-                mClonedLatch.countDown();
-            }
-        }
-
-        @Override
-        public void documentLoaded(int numPages) {
-            super.documentLoaded(numPages);
+        public void documentLoaded(int numPages, @NonNull DisplayData data) {
+            super.documentLoaded(numPages, data);
             if (mDocumentLoadedLatch != null) {
                 mDocumentLoadedLatch.countDown();
             }

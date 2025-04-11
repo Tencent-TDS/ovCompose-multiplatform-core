@@ -69,8 +69,6 @@ class AndroidXIssueRegistry : IssueRegistry() {
                     BanSynchronizedMethods.ISSUE,
                     MetadataTagInsideApplicationTagDetector.ISSUE,
                     PrivateConstructorForUtilityClassDetector.ISSUE,
-                    ClassVerificationFailureDetector.METHOD_CALL_ISSUE,
-                    ClassVerificationFailureDetector.IMPLICIT_CAST_ISSUE,
                     IdeaSuppressionDetector.ISSUE,
                     CameraXQuirksClassDetector.ISSUE,
                     NullabilityAnnotationsDetector.ISSUE,
@@ -85,6 +83,10 @@ class AndroidXIssueRegistry : IssueRegistry() {
                     RestrictToDetector.RESTRICTED,
                     ObsoleteCompatDetector.ISSUE,
                     ReplaceWithDetector.ISSUE,
+                    // This issue is only enabled when `-Pandroidx.useJSpecifyAnnotations=true`.
+                    JSpecifyNullnessMigration.ISSUE,
+                    TypeMirrorToString.ISSUE,
+                    BanNullMarked.ISSUE,
                 )
             }
     }

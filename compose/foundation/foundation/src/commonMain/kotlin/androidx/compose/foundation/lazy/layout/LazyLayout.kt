@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import androidx.collection.mutableObjectIntMapOf
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,32 +28,6 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.SubcomposeLayoutState
 import androidx.compose.ui.layout.SubcomposeSlotReusePolicy
 import androidx.compose.ui.unit.Constraints
-
-/**
- * A layout that only composes and lays out currently needed items. Can be used to build efficient
- * scrollable layouts.
- *
- * @param itemProvider provides all the needed info about the items which could be used to compose
- *   and measure items as part of [measurePolicy].
- * @param modifier to apply on the layout
- * @param prefetchState allows to schedule items for prefetching
- * @param measurePolicy Measure policy which allows to only compose and measure needed items.
- */
-@Deprecated(
-    message = "Use an overload accepting a lambda prodicing an item provider instead",
-    replaceWith =
-        ReplaceWith("LazyLayout({ itemProvider }, modifier, prefetchState, measurePolicy)")
-)
-@ExperimentalFoundationApi
-@Composable
-fun LazyLayout(
-    itemProvider: LazyLayoutItemProvider,
-    modifier: Modifier = Modifier,
-    prefetchState: LazyLayoutPrefetchState? = null,
-    measurePolicy: LazyLayoutMeasureScope.(Constraints) -> MeasureResult
-) {
-    LazyLayout({ itemProvider }, modifier, prefetchState, measurePolicy)
-}
 
 /**
  * A layout that only composes and lays out currently needed items. Can be used to build efficient
@@ -108,23 +83,19 @@ fun LazyLayout(
     }
 }
 
-@ExperimentalFoundationApi
 private class LazyLayoutItemReusePolicy(private val factory: LazyLayoutItemContentFactory) :
     SubcomposeSlotReusePolicy {
-    private val countPerType = mutableMapOf<Any?, Int>()
+    private val countPerType = mutableObjectIntMapOf<Any?>()
 
     override fun getSlotsToRetain(slotIds: SubcomposeSlotReusePolicy.SlotIdsSet) {
         countPerType.clear()
-        with(slotIds.iterator()) {
-            while (hasNext()) {
-                val slotId = next()
-                val type = factory.getContentType(slotId)
-                val currentCount = countPerType[type] ?: 0
-                if (currentCount == MaxItemsToRetainForReuse) {
-                    remove()
-                } else {
-                    countPerType[type] = currentCount + 1
-                }
+        slotIds.forEach { slotId ->
+            val type = factory.getContentType(slotId)
+            val currentCount = countPerType.getOrDefault(type, 0)
+            if (currentCount == MaxItemsToRetainForReuse) {
+                slotIds.remove(slotId)
+            } else {
+                countPerType[type] = currentCount + 1
             }
         }
     }

@@ -20,6 +20,7 @@ import androidx.kruth.assertThat
 import androidx.kruth.assertThrows
 import androidx.room.AutoMigration
 import androidx.room.ColumnInfo
+import androidx.room.ConstructedBy
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -28,6 +29,8 @@ import androidx.room.PrimaryKey
 import androidx.room.ProvidedAutoMigrationSpec
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
+import androidx.room.integration.multiplatformtestapp.test.BaseAutoMigrationTest.AutoMigrationDatabase
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.SQLiteConnection
@@ -115,6 +118,12 @@ abstract class BaseAutoMigrationTest {
             .contains("Unexpected auto migration specs found.")
     }
 
+    @Test
+    fun subclassedProvidedAutoMigrationSpec() {
+        val db = getDatabaseBuilder().addAutoMigrationSpec(SubProvidedSpecFrom2To3()).build()
+        db.close()
+    }
+
     @Entity
     data class AutoMigrationEntity(
         @PrimaryKey val pk: Long,
@@ -139,6 +148,7 @@ abstract class BaseAutoMigrationTest {
                 AutoMigration(from = 2, to = 3, spec = ProvidedSpecFrom2To3::class)
             ]
     )
+    @ConstructedBy(BaseAutoMigrationTest_AutoMigrationDatabaseConstructor::class)
     abstract class AutoMigrationDatabase : RoomDatabase() {
         abstract fun dao(): AutoMigrationDao
     }
@@ -150,5 +160,12 @@ abstract class BaseAutoMigrationTest {
         }
     }
 
+    class SubProvidedSpecFrom2To3 : ProvidedSpecFrom2To3()
+
     class ExtraProvidedSpec : AutoMigrationSpec
+}
+
+expect object BaseAutoMigrationTest_AutoMigrationDatabaseConstructor :
+    RoomDatabaseConstructor<AutoMigrationDatabase> {
+    override fun initialize(): AutoMigrationDatabase
 }

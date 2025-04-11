@@ -530,12 +530,13 @@ class SurfaceControlCompat internal constructor(internal val scImpl: SurfaceCont
             @ChangeFrameRateStrategy changeFrameRateStrategy: Int
         ): Transaction {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                mImpl.setFrameRate(
-                    surfaceControl.scImpl,
-                    frameRate,
-                    compatibility,
-                    changeFrameRateStrategy
-                )
+                val strategy =
+                    when (changeFrameRateStrategy) {
+                        CHANGE_FRAME_RATE_ALWAYS -> changeFrameRateStrategy
+                        CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS -> changeFrameRateStrategy
+                        else -> CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS
+                    }
+                mImpl.setFrameRate(surfaceControl.scImpl, frameRate, compatibility, strategy)
             }
             return this
         }
@@ -685,19 +686,15 @@ internal class SurfaceControlVerificationHelper private constructor() {
 
     companion object {
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        @androidx.annotation.DoNotInline
         fun createBuilderV33(): SurfaceControlImpl.Builder = SurfaceControlV33.Builder()
 
         @RequiresApi(Build.VERSION_CODES.Q)
-        @androidx.annotation.DoNotInline
         fun createBuilderV29(): SurfaceControlImpl.Builder = SurfaceControlV29.Builder()
 
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        @androidx.annotation.DoNotInline
         fun createTransactionV33(): SurfaceControlImpl.Transaction = SurfaceControlV33.Transaction()
 
         @RequiresApi(Build.VERSION_CODES.Q)
-        @androidx.annotation.DoNotInline
         fun createTransactionV29(): SurfaceControlImpl.Transaction = SurfaceControlV29.Transaction()
     }
 }

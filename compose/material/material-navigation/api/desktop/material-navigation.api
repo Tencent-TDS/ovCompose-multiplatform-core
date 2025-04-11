@@ -1,5 +1,6 @@
 public final class androidx/compose/material/navigation/BottomSheetKt {
-	public static final fun ModalBottomSheetLayout-4erKP6g (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final synthetic fun ModalBottomSheetLayout-4erKP6g (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;Landroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun ModalBottomSheetLayout-BzaUkTc (Landroidx/compose/material/navigation/BottomSheetNavigator;Landroidx/compose/ui/Modifier;ZLandroidx/compose/ui/graphics/Shape;FJJJLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class androidx/compose/material/navigation/BottomSheetNavigator : androidx/navigation/Navigator {
@@ -18,6 +19,13 @@ public final class androidx/compose/material/navigation/BottomSheetNavigator$Des
 	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Lkotlin/jvm/functions/Function4;)V
 }
 
+public final class androidx/compose/material/navigation/BottomSheetNavigatorDestinationBuilder : androidx/navigation/NavDestinationBuilder {
+	public static final field $stable I
+	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Ljava/lang/String;Lkotlin/jvm/functions/Function4;)V
+	public fun <init> (Landroidx/compose/material/navigation/BottomSheetNavigator;Lkotlin/reflect/KClass;Ljava/util/Map;Lkotlin/jvm/functions/Function4;)V
+	public synthetic fun instantiateDestination ()Landroidx/navigation/NavDestination;
+}
+
 public final class androidx/compose/material/navigation/BottomSheetNavigatorKt {
 	public static final fun rememberBottomSheetNavigator (Landroidx/compose/animation/core/AnimationSpec;Landroidx/compose/runtime/Composer;II)Landroidx/compose/material/navigation/BottomSheetNavigator;
 }
@@ -32,13 +40,14 @@ public final class androidx/compose/material/navigation/BottomSheetNavigatorShee
 
 public final class androidx/compose/material/navigation/ComposableSingletons$BottomSheetNavigator_jbKt {
 	public static final field INSTANCE Landroidx/compose/material/navigation/ComposableSingletons$BottomSheetNavigator_jbKt;
-	public static field lambda-1 Lkotlin/jvm/functions/Function4;
 	public fun <init> ()V
 	public final fun getLambda-1$material_navigation ()Lkotlin/jvm/functions/Function4;
 }
 
 public final class androidx/compose/material/navigation/NavGraphBuilderKt {
 	public static final fun bottomSheet (Landroidx/navigation/NavGraphBuilder;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;)V
+	public static final fun bottomSheet (Landroidx/navigation/NavGraphBuilder;Lkotlin/reflect/KClass;Ljava/util/Map;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;)V
 	public static synthetic fun bottomSheet$default (Landroidx/navigation/NavGraphBuilder;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
+	public static synthetic fun bottomSheet$default (Landroidx/navigation/NavGraphBuilder;Lkotlin/reflect/KClass;Ljava/util/Map;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function4;ILjava/lang/Object;)V
 }
 

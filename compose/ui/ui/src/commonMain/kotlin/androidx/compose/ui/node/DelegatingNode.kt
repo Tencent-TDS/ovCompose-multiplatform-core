@@ -16,7 +16,6 @@
 
 package androidx.compose.ui.node
 
-import androidx.annotation.VisibleForTesting
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.internal.checkPrecondition
 
@@ -26,15 +25,10 @@ import androidx.compose.ui.internal.checkPrecondition
  * This can be useful to compose multiple node implementations into one.
  *
  * @sample androidx.compose.ui.samples.DelegatedNodeSampleExplicit
- *
  * @sample androidx.compose.ui.samples.DelegatedNodeSampleImplicit
- *
  * @sample androidx.compose.ui.samples.LazyDelegationExample
- *
  * @sample androidx.compose.ui.samples.ConditionalDelegationExample
- *
  * @sample androidx.compose.ui.samples.DelegateInAttachSample
- *
  * @see DelegatingNode
  */
 abstract class DelegatingNode : Modifier.Node() {
@@ -52,11 +46,12 @@ abstract class DelegatingNode : Modifier.Node() {
 
     internal var delegate: Modifier.Node? = null
 
-    @VisibleForTesting
+    // @TestOnly
     internal fun <T : DelegatableNode> delegateUnprotected(delegatableNode: T): T =
         delegate(delegatableNode)
 
-    @VisibleForTesting internal fun undelegateUnprotected(instance: DelegatableNode) = undelegate(instance)
+    // @TestOnly
+    internal fun undelegateUnprotected(instance: DelegatableNode) = undelegate(instance)
 
     override fun setAsDelegateTo(owner: Modifier.Node) {
         super.setAsDelegateTo(owner)

@@ -20,14 +20,6 @@ import androidx.activity.OnBackPressedDispatcher
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStore
 
-/**
- * Subclass of [NavController] that offers additional APIs for use by a [NavHost] to connect the
- * NavController to external dependencies.
- *
- * Apps should generally not construct controllers, instead obtain a relevant controller directly
- * from a navigation host via [NavHost.getNavController] or by using one of the utility methods on
- * the [Navigation] class.
- */
 public actual open class NavHostController
 /**
  * Construct a new controller for a given [Context] suitable for use in a [NavHost]. Controllers
@@ -43,12 +35,6 @@ public actual open class NavHostController
  * @param context context for this controller
  */
 (context: Context) : NavController(context) {
-    /**
-     * Sets the host's [LifecycleOwner].
-     *
-     * @param owner The [LifecycleOwner] associated with the containing [NavHost].
-     * @see NavHostController.setOnBackPressedDispatcher
-     */
     public actual final override fun setLifecycleOwner(owner: LifecycleOwner) {
         super.setLifecycleOwner(owner)
     }
@@ -82,18 +68,6 @@ public actual open class NavHostController
         super.enableOnBackPressed(enabled)
     }
 
-    /**
-     * Sets the host's ViewModelStore used by the NavController to store ViewModels at the
-     * navigation graph level. This is required to call [getViewModelStoreOwner] and should
-     * generally be called for you by your [NavHost].
-     *
-     * You must call this method before [setGraph] or similar methods, because the [ViewModelStore]
-     * set here will be used by the created [NavBackStackEntry] items.
-     *
-     * @param viewModelStore ViewModelStore used to store ViewModels at the navigation graph level
-     * @throws IllegalStateException if this method is called when graph was already set via
-     *   [setGraph] or similar methods.
-     */
     public actual final override fun setViewModelStore(viewModelStore: ViewModelStore) {
         super.setViewModelStore(viewModelStore)
     }

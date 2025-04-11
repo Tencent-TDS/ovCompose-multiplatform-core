@@ -121,5 +121,5 @@ internal object AndroidFlingSpline {
     )
 }
 
-fun <T> splineBasedDecay(density: Density): DecayAnimationSpec<T> =
+public fun <T> splineBasedDecay(density: Density): DecayAnimationSpec<T> =
     SplineBasedFloatDecayAnimationSpec(density).generateDecayAnimationSpec()

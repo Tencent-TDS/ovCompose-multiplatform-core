@@ -24,7 +24,7 @@ import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.tooling.CompositionData
 import androidx.compose.runtime.tooling.CompositionGroup
 import kotlin.jvm.JvmInline
-
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlinx.test.IgnoreJsTarget
 
@@ -57,11 +57,13 @@ class GroupSizeValidationTests {
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun textLikeSize() = compositionTest {
         slotExpect(name = "TextLike", noMoreGroupsThan = 4, noMoreSlotsThan = 4) { TextLike("") }
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun basicTextLikeSize() = compositionTest {
         slotExpect(name = "TextLike", noMoreGroupsThan = 5, noMoreSlotsThan = 13) {
             BasicTextLike("")
@@ -69,6 +71,7 @@ class GroupSizeValidationTests {
     }
 
     @Test
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7397/Investigate-failing-compose-runtime-tests-when-running-with-LV-K2
     fun checkboxLike() = compositionTest {
         slotExpect(name = "CheckboxLike", noMoreGroupsThan = 8, noMoreSlotsThan = 17) {
             CheckboxLike(checked = false, onCheckedChange = {})

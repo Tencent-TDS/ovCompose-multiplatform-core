@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.DpOffset
 
 internal interface IOSSkikoInput {
@@ -26,6 +26,16 @@ internal interface IOSSkikoInput {
     fun updateFloatingCursor(offset: DpOffset)
 
     fun endFloatingCursor()
+
+    /**
+     * Delays all edit commands until [endEditBatch] is being called.
+     */
+    fun beginEditBatch()
+
+    /**
+     * Performs all editing commands, starting from the [beginEditBatch] call.
+     */
+    fun endEditBatch()
 
     /**
      * A Boolean value that indicates whether the text-entry object has any text.
@@ -52,7 +62,7 @@ internal interface IOSSkikoInput {
      * The text position for the end of a document.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614555-endofdocument
      */
-    fun endOfDocument(): Long
+    fun endOfDocument(): Int
 
     /**
      * The range of selected text in a document.
@@ -61,9 +71,9 @@ internal interface IOSSkikoInput {
      * If the text-range object is nil, it indicates that there is no current selection.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614541-selectedtextrange
      */
-    fun getSelectedTextRange(): IntRange?
+    fun getSelectedTextRange(): TextRange?
 
-    fun setSelectedTextRange(range: IntRange?)
+    fun setSelectedTextRange(range: TextRange?)
 
     fun selectAll()
 
@@ -73,7 +83,7 @@ internal interface IOSSkikoInput {
      * @param range A range of text in a document.
      * @return A substring of a document that falls within the specified range.
      */
-    fun textInRange(range: IntRange): String
+    fun textInRange(range: TextRange): String?
 
     /**
      * Replaces the text in a document that is in the specified range.
@@ -81,7 +91,7 @@ internal interface IOSSkikoInput {
      * @param range A range of text in a document.
      * @param text A string to replace the text in range.
      */
-    fun replaceRange(range: IntRange, text: String)
+    fun replaceRange(range: TextRange, text: String)
 
     /**
      * Inserts the provided text and marks it to indicate that it is part of an active input session.
@@ -92,7 +102,7 @@ internal interface IOSSkikoInput {
      * @param selectedRange A range within markedText that indicates the current selection.
      * This range is always relative to markedText.
      */
-    fun setMarkedText(markedText: String?, selectedRange: IntRange)
+    fun setMarkedText(markedText: String?, selectedRange: TextRange)
 
     /**
      * The range of currently marked text in a document.
@@ -102,7 +112,7 @@ internal interface IOSSkikoInput {
      * The current selection, which can be a caret or an extended range, always occurs within the marked text.
      * https://developer.apple.com/documentation/uikit/uitextinput/1614489-markedtextrange
      */
-    fun markedTextRange(): IntRange?
+    fun markedTextRange(): TextRange?
 
     /**
      * Unmarks the currently marked text.
@@ -115,24 +125,11 @@ internal interface IOSSkikoInput {
      * Returns the text position at a specified offset from another text position.
      * Returned value must be in range between 0 and length of text (inclusive).
      */
-    fun positionFromPosition(position: Long, offset: Long): Long
+    fun positionFromPosition(position: Int, offset: Int): Int?
 
-    object Empty : IOSSkikoInput {
-        override fun beginFloatingCursor(offset: DpOffset) = Unit
-        override fun updateFloatingCursor(offset: DpOffset)  = Unit
-        override fun endFloatingCursor()  = Unit
-        override fun hasText(): Boolean = false
-        override fun insertText(text: String) = Unit
-        override fun deleteBackward() = Unit
-        override fun endOfDocument(): Long = 0L
-        override fun getSelectedTextRange(): IntRange? = null
-        override fun setSelectedTextRange(range: IntRange?) = Unit
-        override fun selectAll() = Unit
-        override fun textInRange(range: IntRange): String = ""
-        override fun replaceRange(range: IntRange, text: String) = Unit
-        override fun setMarkedText(markedText: String?, selectedRange: IntRange) = Unit
-        override fun markedTextRange(): IntRange? = null
-        override fun unmarkText() = Unit
-        override fun positionFromPosition(position: Long, offset: Long): Long = 0
-    }
+    /**
+     * Returns the text position at a specified offset from another text position.
+     * Returned value must be in range between 0 and length of the text (inclusive).
+     */
+    fun verticalPositionFromPosition(position: Int, verticalOffset: Int): Int?
 }

@@ -37,6 +37,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.annotation.WorkerThread;
 import androidx.arch.core.util.Function;
+import androidx.camera.core.CameraXThreads;
 import androidx.camera.core.DynamicRange;
 import androidx.camera.core.Logger;
 import androidx.camera.core.SurfaceOutput;
@@ -45,6 +46,7 @@ import androidx.camera.core.SurfaceRequest;
 import androidx.camera.core.impl.utils.MatrixExt;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
 import androidx.camera.core.impl.utils.futures.Futures;
+import androidx.camera.core.processing.util.GLUtils.InputFormat;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.auto.value.AutoValue;
@@ -55,6 +57,7 @@ import kotlin.Triple;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -96,24 +99,25 @@ public class DefaultSurfaceProcessor implements SurfaceProcessorInternal,
 
     /** Constructs {@link DefaultSurfaceProcessor} with default shaders. */
     DefaultSurfaceProcessor(@NonNull DynamicRange dynamicRange) {
-        this(dynamicRange, ShaderProvider.DEFAULT);
+        this(dynamicRange, Collections.emptyMap());
     }
 
     /**
      * Constructs {@link DefaultSurfaceProcessor} with custom shaders.
      *
-     * @param shaderProvider custom shader provider for OpenGL rendering.
-     * @throws IllegalArgumentException if the shaderProvider provides invalid shader.
+     * @param shaderProviderOverrides custom shader providers for OpenGL rendering, for each input
+     *                                format.
+     * @throws IllegalArgumentException if any shaderProvider override provides invalid shader.
      */
     DefaultSurfaceProcessor(@NonNull DynamicRange dynamicRange,
-            @NonNull ShaderProvider shaderProvider) {
-        mGlThread = new HandlerThread("GL Thread");
+            @NonNull Map<InputFormat, ShaderProvider> shaderProviderOverrides) {
+        mGlThread = new HandlerThread(CameraXThreads.TAG + "GL Thread");
         mGlThread.start();
         mGlHandler = new Handler(mGlThread.getLooper());
         mGlExecutor = CameraXExecutors.newHandlerExecutor(mGlHandler);
         mGlRenderer = new OpenGlRenderer();
         try {
-            initGlRenderer(dynamicRange, shaderProvider);
+            initGlRenderer(dynamicRange, shaderProviderOverrides);
         } catch (RuntimeException e) {
             release();
             throw e;
@@ -136,10 +140,10 @@ public class DefaultSurfaceProcessor implements SurfaceProcessorInternal,
                     surfaceRequest.getResolution().getHeight());
             Surface surface = new Surface(surfaceTexture);
             surfaceRequest.setTransformationInfoListener(mGlExecutor, transformationInfo -> {
-                OpenGlRenderer.InputFormat inputFormat = OpenGlRenderer.InputFormat.DEFAULT;
+                InputFormat inputFormat = InputFormat.DEFAULT;
                 if (surfaceRequest.getDynamicRange().is10BitHdr()
                         && transformationInfo.hasCameraTransform()) {
-                    inputFormat = OpenGlRenderer.InputFormat.YUV;
+                    inputFormat = InputFormat.YUV;
                 }
 
                 mGlRenderer.setInputFormat(inputFormat);
@@ -354,11 +358,11 @@ public class DefaultSurfaceProcessor implements SurfaceProcessorInternal,
     }
 
     private void initGlRenderer(@NonNull DynamicRange dynamicRange,
-            @NonNull ShaderProvider shaderProvider) {
+            @NonNull Map<InputFormat, ShaderProvider> shaderProviderOverrides) {
         ListenableFuture<Void> initFuture = CallbackToFutureAdapter.getFuture(completer -> {
             executeSafely(() -> {
                 try {
-                    mGlRenderer.init(dynamicRange, shaderProvider);
+                    mGlRenderer.init(dynamicRange, shaderProviderOverrides);
                     completer.set(null);
                 } catch (RuntimeException e) {
                     completer.setException(e);

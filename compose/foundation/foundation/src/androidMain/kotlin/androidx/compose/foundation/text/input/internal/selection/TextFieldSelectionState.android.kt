@@ -16,18 +16,50 @@
 
 package androidx.compose.foundation.text.input.internal.selection
 
+import android.os.Build
 import androidx.compose.foundation.contextmenu.ContextMenuScope
 import androidx.compose.foundation.contextmenu.ContextMenuState
+import androidx.compose.foundation.text.MenuItemsAvailability
 import androidx.compose.foundation.text.TextContextMenuItems
 import androidx.compose.foundation.text.TextItem
+import androidx.compose.runtime.State
 
 internal fun TextFieldSelectionState.contextMenuBuilder(
     state: ContextMenuState,
+    itemsAvailability: State<MenuItemsAvailability>,
+    onMenuItemClicked: TextFieldSelectionState.(TextContextMenuItems) -> Unit
 ): ContextMenuScope.() -> Unit = {
-    TextItem(state, TextContextMenuItems.Cut, enabled = canCut()) { cut() }
-    TextItem(state, TextContextMenuItems.Copy, enabled = canCopy()) {
-        copy(cancelSelection = false)
+    val availability: MenuItemsAvailability = itemsAvailability.value
+    TextItem(state, TextContextMenuItems.Cut, enabled = availability.canCut) {
+        onMenuItemClicked(TextContextMenuItems.Cut)
     }
-    TextItem(state, TextContextMenuItems.Paste, enabled = canPaste()) { paste() }
-    TextItem(state, TextContextMenuItems.SelectAll, enabled = canSelectAll()) { selectAll() }
+    TextItem(state, TextContextMenuItems.Copy, enabled = availability.canCopy) {
+        onMenuItemClicked(TextContextMenuItems.Copy)
+    }
+    TextItem(state, TextContextMenuItems.Paste, enabled = availability.canPaste) {
+        onMenuItemClicked(TextContextMenuItems.Paste)
+    }
+    TextItem(state, TextContextMenuItems.SelectAll, enabled = availability.canSelectAll) {
+        onMenuItemClicked(TextContextMenuItems.SelectAll)
+    }
+    if (Build.VERSION.SDK_INT >= 26) {
+        TextItem(state, TextContextMenuItems.Autofill, enabled = availability.canAutofill) {
+            onMenuItemClicked(TextContextMenuItems.Autofill)
+        }
+    }
 }
+
+/** Runs platform-specific text tap gestures logic. */
+internal actual suspend fun PointerInputScope.detectTextFieldTapGestures(
+    selectionState: TextFieldSelectionState,
+    interactionSource: MutableInteractionSource?,
+    requestFocus: () -> Unit,
+    showKeyboard: () -> Unit
+) = defaultDetectTextFieldTapGestures(selectionState, interactionSource, requestFocus, showKeyboard)
+
+/** Runs platform-specific text selection gestures logic. */
+internal actual suspend fun PointerInputScope.getTextFieldSelectionGestures(
+    selectionState: TextFieldSelectionState,
+    mouseSelectionObserver: MouseSelectionObserver,
+    textDragObserver: TextDragObserver
+) = defaultTextFieldSelectionGestures(mouseSelectionObserver, textDragObserver)

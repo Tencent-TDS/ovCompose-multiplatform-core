@@ -22,7 +22,7 @@ internal actual class WeakKeysCache<K : Any, V> : Cache<K, V> {
     // TODO Use WeakHashMap once available https://youtrack.jetbrains.com/issue/KT-48075
     private val cache = HashMap<Key<K>, V>()
 
-    override fun get(key: K, loader: (K) -> V): V {
+    actual override fun get(key: K, loader: (K) -> V): V {
         clean()
         return cache.getOrPut(Key(key)) { loader(key) }
     }

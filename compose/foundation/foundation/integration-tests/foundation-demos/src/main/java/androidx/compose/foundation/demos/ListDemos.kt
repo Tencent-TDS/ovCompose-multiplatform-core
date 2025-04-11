@@ -18,16 +18,18 @@
 package androidx.compose.foundation.demos
 
 import android.annotation.SuppressLint
+import android.content.ClipData
 import android.content.res.Configuration
 import androidx.compose.animation.core.AnimationConstants
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.animateTo
 import androidx.compose.animation.core.calculateTargetValue
 import androidx.compose.animation.rememberSplineBasedDecay
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
@@ -54,7 +56,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -66,7 +70,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.samples.StickyHeaderSample
+import androidx.compose.foundation.samples.StickyHeaderGridSample
+import androidx.compose.foundation.samples.StickyHeaderHeaderIndexSample
+import androidx.compose.foundation.samples.StickyHeaderListSample
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.integration.demos.common.ComposableDemo
@@ -94,6 +100,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Red
@@ -125,7 +135,11 @@ val LazyListDemos =
         ComposableDemo("Rtl list") { RtlListDemo() },
         ComposableDemo("LazyColumn DSL") { LazyColumnScope() },
         ComposableDemo("LazyRow DSL") { LazyRowScope() },
-        ComposableDemo("LazyColumn with sticky headers") { StickyHeaderSample() },
+        ComposableDemo("LazyColumn with sticky headers") { StickyHeaderListSample() },
+        ComposableDemo("LazyVerticalGrid with sticky headers") { StickyHeaderGridSample() },
+        ComposableDemo("LazyColumn with sticky headers - header index") {
+            StickyHeaderHeaderIndexSample()
+        },
         ComposableDemo("Arrangements") { LazyListArrangements() },
         ComposableDemo("ReverseLayout and RTL") { ReverseLayoutAndRtlDemo() },
         ComposableDemo("Nested lazy lists") { NestedLazyDemo() },
@@ -135,6 +149,7 @@ val LazyListDemos =
         ComposableDemo("Fling Config") { LazyWithFlingConfig() },
         ComposableDemo("Item reordering") { PopularBooksDemo() },
         ComposableDemo("List drag and drop") { LazyColumnDragAndDropDemo() },
+        ComposableDemo("Cross List drag and drop") { CrossListDragAndDropDemo() },
         ComposableDemo("Grid drag and drop") { LazyGridDragAndDropDemo() },
         ComposableDemo("Staggered grid") { LazyStaggeredGridDemo() },
         ComposableDemo("Animate item placement") { AnimateItemPlacementDemo() },
@@ -620,7 +635,6 @@ private fun LazyGridForMode(mode: GridCells) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
 private fun LazyGridWithSpacingDemo() {
@@ -779,7 +793,6 @@ private fun LazyGridWithSpacingForMode(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ReorderWithCustomKeys() {
     var names by remember { mutableStateOf(listOf("John", "Sara", "Dan")) }
@@ -926,7 +939,6 @@ private fun LazyStaggeredGridDemo() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AnimateItemPlacementDemo() {
     val items = remember { mutableStateListOf<Int>().apply { repeat(20) { add(it) } } }
@@ -995,4 +1007,93 @@ private fun BringIntoViewDemo() {
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun CrossListDragAndDropDemo() {
+    val targetListState = rememberLazyListState()
+    val dragAndDropListState = remember(targetListState) { DragAndDropListState(targetListState) }
+
+    Row {
+        LazyColumn(Modifier.weight(0.5f).fillMaxHeight().padding(4.dp)) {
+            items(dragAndDropListState.sourceListData, key = { it }) {
+                DragAndDropItem(it, if (it % 2 == 0) Color.Cyan else Color.Red)
+            }
+        }
+
+        LazyColumn(
+            Modifier.dragAndDropTarget(
+                    shouldStartDragAndDrop = { true },
+                    target = dragAndDropListState.dragAndDropTarget
+                )
+                .background(dragAndDropListState.targetListBackground)
+                .weight(0.5f)
+                .fillMaxHeight()
+                .padding(4.dp),
+            state = targetListState
+        ) {
+            items(dragAndDropListState.targetListData, key = { it }) {
+                DragAndDropItem(it, if (it % 2 == 0) Color.Cyan else Color.Red)
+            }
+        }
+    }
+}
+
+@Composable
+private fun LazyItemScope.DragAndDropItem(index: Int, color: Color) {
+    Box(
+        Modifier.dragAndDropSource { _ ->
+                DragAndDropTransferData(
+                    clipData = ClipData.newPlainText("item_id", index.toString()),
+                    localState = index
+                )
+            }
+            .animateItem()
+            .fillMaxWidth()
+            .height(72.dp)
+            .padding(8.dp)
+            .background(color)
+    ) {
+        Text(index.toString())
+    }
+}
+
+@SuppressLint("PrimitiveInCollection")
+private class DragAndDropListState(val targetListState: LazyListState) {
+
+    private val dragAndDropList = (0..200).toList()
+
+    var targetListBackground by mutableStateOf(Color.Transparent)
+        private set
+
+    var sourceListData by mutableStateOf(dragAndDropList.filter { it % 2 == 0 })
+        private set
+
+    var targetListData by mutableStateOf(dragAndDropList.filter { it % 2 != 0 })
+        private set
+
+    fun onDragAndDropEventDropped(event: DragAndDropEvent) {
+        (event.toAndroidDragEvent().localState as? Int)?.let { transferredItem ->
+            sourceListData = sourceListData.filter { it != transferredItem }
+            targetListData = (listOf(transferredItem) + targetListData)
+            targetListState.requestScrollToItem(0)
+        }
+    }
+
+    val dragAndDropTarget =
+        object : DragAndDropTarget {
+            override fun onStarted(event: DragAndDropEvent) {
+                targetListBackground = Color.DarkGray.copy(alpha = 0.2f)
+            }
+
+            override fun onDrop(event: DragAndDropEvent): Boolean {
+                onDragAndDropEventDropped(event)
+                return true
+            }
+
+            override fun onEnded(event: DragAndDropEvent) {
+                targetListBackground = Color.Transparent
+            }
+        }
 }

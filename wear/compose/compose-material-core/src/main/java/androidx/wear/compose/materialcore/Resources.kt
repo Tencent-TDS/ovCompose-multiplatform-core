@@ -16,9 +16,11 @@
 
 package androidx.wear.compose.materialcore
 
+import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -40,7 +42,35 @@ fun isRoundDevice(): Boolean {
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @Composable
+fun isLeftyModeEnabled(): Boolean {
+    val context = LocalContext.current
+    return remember(context) {
+        Settings.System.getInt(
+            context.contentResolver,
+            Settings.System.USER_ROTATION,
+            android.view.Surface.ROTATION_0
+        ) == android.view.Surface.ROTATION_180
+    }
+}
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Composable
 fun is24HourFormat(): Boolean = DateFormat.is24HourFormat(LocalContext.current)
 
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 fun currentTimeMillis(): Long = System.currentTimeMillis()
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Composable
+fun screenHeightDp() = LocalConfiguration.current.screenHeightDp
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Composable
+fun screenWidthDp() = LocalConfiguration.current.screenWidthDp
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+@Composable
+fun isSmallScreen() =
+    LocalContext.current.resources.configuration.screenWidthDp <= SMALL_SCREEN_WIDTH_DP
+
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) const val SMALL_SCREEN_WIDTH_DP = 225

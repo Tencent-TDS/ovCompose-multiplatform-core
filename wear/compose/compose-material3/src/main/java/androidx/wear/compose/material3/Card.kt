@@ -17,7 +17,10 @@
 package androidx.wear.compose.material3
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +34,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -38,6 +42,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -46,7 +52,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.takeOrElse
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.tokens.CardTokens
@@ -69,12 +75,19 @@ import androidx.wear.compose.materialcore.Text
  *
  * @sample androidx.wear.compose.material3.samples.CardSample
  *
+ * Example of [Card] with onLongClick:
+ *
+ * @sample androidx.wear.compose.material3.samples.CardWithOnLongClickSample
+ *
  * For more information, see the
  * [Cards](https://developer.android.com/training/wearables/components/cards) Wear OS Material
  * design guide.
  *
  * @param onClick Will be called when the user clicks the card
  * @param modifier Modifier to be applied to the card
+ * @param onLongClick Called when this card is long clicked (long-pressed). When this callback is
+ *   set, [onLongClickLabel] should be set as well.
+ * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
  * @param enabled Controls the enabled state of the card. When false, this card will not be
  *   clickable and there will be no ripple effect on click. Wear cards do not have any specific
  *   elevation or alpha differences when not enabled - they are simply not clickable.
@@ -95,6 +108,8 @@ import androidx.wear.compose.materialcore.Text
 fun Card(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     enabled: Boolean = true,
     shape: Shape = CardTokens.Shape.value,
     colors: CardColors = CardDefaults.cardColors(),
@@ -105,16 +120,23 @@ fun Card(
 ) {
     CardImpl(
         onClick = onClick,
-        typography = CardTokens.ContentTypography.value,
         modifier = modifier.cardSizeModifier(),
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
         enabled = enabled,
         colors = colors,
         border = border,
         interactionSource = interactionSource,
         contentPadding = contentPadding,
-        shape = shape,
-        content = content
-    )
+        shape = shape
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides colors.contentColor,
+            LocalTextStyle provides CardTokens.ContentTypography.value,
+        ) {
+            content()
+        }
+    }
 }
 
 /**
@@ -164,6 +186,9 @@ fun Card(
  * @param title A slot for displaying the title of the card, expected to be one or two lines of
  *   start aligned text of [Typography.titleMedium]
  * @param modifier Modifier to be applied to the card
+ * @param onLongClick Called when this card is long clicked (long-pressed). When this callback is
+ *   set, [onLongClickLabel] should be set as well.
+ * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
  * @param enabled Controls the enabled state of the card. When false, this card will not be
  *   clickable and there will be no ripple effect on click. Wear cards do not have any specific
  *   elevation or alpha differences when not enabled - they are simply not clickable.
@@ -190,6 +215,8 @@ fun AppCard(
     appName: @Composable RowScope.() -> Unit,
     title: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     enabled: Boolean = true,
     shape: Shape = CardTokens.Shape.value,
     colors: CardColors = CardDefaults.cardColors(),
@@ -200,17 +227,17 @@ fun AppCard(
     time: @Composable (RowScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.wear.compose.materialcore.Card(
+    CardImpl(
         onClick = onClick,
         modifier = modifier.cardSizeModifier(),
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
         enabled = enabled,
-        containerPainter = colors.containerPainter,
+        colors = colors,
         border = border,
-        contentPadding = contentPadding,
         interactionSource = interactionSource,
-        role = null,
-        shape = shape,
-        ripple = rippleOrFallbackImplementation(),
+        contentPadding = contentPadding,
+        shape = shape
     ) {
         Column {
             Row(
@@ -309,6 +336,9 @@ fun AppCard(
  * @param title A slot for displaying the title of the card, expected to be one or two lines of
  *   text.
  * @param modifier Modifier to be applied to the card
+ * @param onLongClick Called when this card is long clicked (long-pressed). When this callback is
+ *   set, [onLongClickLabel] should be set as well.
+ * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
  * @param time An optional slot for displaying the time relevant to the contents of the card,
  *   expected to be a short piece of text. Depending on whether we have a [content] or not, can be
  *   placed at the end of the [title] line or above it.
@@ -336,6 +366,8 @@ fun TitleCard(
     onClick: () -> Unit,
     title: @Composable RowScope.() -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     time: @Composable (() -> Unit)? = null,
     subtitle: @Composable (ColumnScope.() -> Unit)? = null,
     enabled: Boolean = true,
@@ -359,20 +391,20 @@ fun TitleCard(
         }
     }
 
-    androidx.wear.compose.materialcore.Card(
+    CardImpl(
         onClick = onClick,
         modifier = modifier.cardSizeModifier(),
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
         enabled = enabled,
-        containerPainter = colors.containerPainter,
+        colors = colors,
         border = border,
-        contentPadding = contentPadding,
         interactionSource = interactionSource,
-        role = null,
-        shape = shape,
-        ripple = rippleOrFallbackImplementation(),
+        contentPadding = contentPadding,
+        shape = shape
     ) {
         Column {
-            if (content == null) {
+            if (content == null && time != null) {
                 timeWithTextStyle()
                 Spacer(modifier = Modifier.height(4.dp))
             }
@@ -412,9 +444,6 @@ fun TitleCard(
                     subtitle()
                 }
             }
-            if (colors.containerPainter.isImagePainter()) {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
         }
     }
 }
@@ -440,6 +469,9 @@ fun TitleCard(
  *
  * @param onClick Will be called when the user clicks the card
  * @param modifier Modifier to be applied to the card
+ * @param onLongClick Called when this card is long clicked (long-pressed). When this callback is
+ *   set, [onLongClickLabel] should be set as well.
+ * @param onLongClickLabel Semantic / accessibility label for the [onLongClick] action.
  * @param enabled Controls the enabled state of the card. When false, this card will not be
  *   clickable and there will be no ripple effect on click. Wear cards do not have any specific
  *   elevation or alpha differences when not enabled - they are simply not clickable.
@@ -460,6 +492,8 @@ fun TitleCard(
 fun OutlinedCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
+    onLongClickLabel: String? = null,
     enabled: Boolean = true,
     shape: Shape = OutlinedCardTokens.Shape.value,
     colors: CardColors = CardDefaults.outlinedCardColors(),
@@ -470,16 +504,23 @@ fun OutlinedCard(
 ) {
     CardImpl(
         onClick = onClick,
-        typography = OutlinedCardTokens.ContentTypography.value,
         modifier = modifier.cardSizeModifier(),
+        onLongClick = onLongClick,
+        onLongClickLabel = onLongClickLabel,
         enabled = enabled,
         colors = colors,
         border = border,
         interactionSource = interactionSource,
         contentPadding = contentPadding,
         shape = shape,
-        content = content
-    )
+    ) {
+        CompositionLocalProvider(
+            LocalContentColor provides colors.contentColor,
+            LocalTextStyle provides OutlinedCardTokens.ContentTypography.value,
+        ) {
+            content()
+        }
+    }
 }
 
 /** Contains the default values used by [Card] */
@@ -555,14 +596,14 @@ object CardDefaults {
 
     /**
      * Creates a [CardColors] that represents the default container and content colors used in a
-     * [Card], [AppCard] or [TitleCard] with Image set as a background.
+     * [TitleCard] with Image set as a background.
      *
      * @param containerPainter a Painter which is used for background drawing.
      * @param contentColor the content color of this [Card].
      * @param appNameColor the color used for appName, only applies to [AppCard].
-     * @param timeColor the color used for time, applies to [AppCard] and [TitleCard].
-     * @param titleColor the color used for title, applies to [AppCard] and [TitleCard].
-     * @param subtitleColor the color used for subtitle, applies to [TitleCard].
+     * @param timeColor the color used for time.
+     * @param titleColor the color used for title.
+     * @param subtitleColor the color used for subtitle.
      */
     @Composable
     fun imageCardColors(
@@ -600,15 +641,20 @@ object CardDefaults {
      * @param backgroundImagePainter The [Painter] to use to draw the background of the [Card]
      * @param backgroundImageScrimBrush The [Brush] to use to paint a scrim over the background
      *   image to ensure that any text drawn over the image is legible
+     * @param forcedSize The value for [Painter.intrinsicSize], a value of null will respect the
+     *   [backgroundImagePainter] size. Defaults to [Size.Unspecified] which does not affect
+     *   component size.
      */
     @Composable
     fun imageWithScrimBackgroundPainter(
         backgroundImagePainter: Painter,
-        backgroundImageScrimBrush: Brush = SolidColor(overlayScrimColor)
+        backgroundImageScrimBrush: Brush = SolidColor(overlayScrimColor),
+        forcedSize: Size? = Size.Unspecified,
     ): Painter {
         return ImageWithScrimPainter(
             imagePainter = backgroundImagePainter,
-            brush = backgroundImageScrimBrush
+            brush = backgroundImageScrimBrush,
+            forcedSize = forcedSize,
         )
     }
 
@@ -642,6 +688,21 @@ object CardDefaults {
             top = CardVerticalPadding,
             end = CardHorizontalPadding,
             bottom = CardVerticalPadding
+        )
+
+    /** Additional bottom padding added for TitleCard with an image background */
+    val ImageBottomPadding = 12.dp
+
+    /**
+     * ContentPadding for use with an image background in order to show more of the image. Expected
+     * to be used with TitleCard's with an image background
+     */
+    val ImageContentPadding: PaddingValues =
+        PaddingValues(
+            start = CardHorizontalPadding,
+            top = CardVerticalPadding,
+            end = CardHorizontalPadding,
+            bottom = CardVerticalPadding + ImageBottomPadding
         )
 
     /** The default size of the app icon/image when used inside a [AppCard]. */
@@ -679,8 +740,6 @@ object CardDefaults {
 @Composable
 private fun Modifier.cardSizeModifier(): Modifier =
     defaultMinSize(minHeight = CardTokens.ContainerMinHeight).height(IntrinsicSize.Min)
-
-private fun Painter.isImagePainter() = intrinsicSize != Size.Unspecified
 
 /**
  * Represents Colors used in [Card]. Unlike other Material 3 components, Cards do not change their
@@ -748,11 +807,13 @@ class CardColors(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CardImpl(
     onClick: () -> Unit,
-    typography: TextStyle,
     modifier: Modifier,
+    onLongClick: (() -> Unit)?,
+    onLongClickLabel: String?,
     enabled: Boolean,
     shape: Shape,
     colors: CardColors,
@@ -761,23 +822,23 @@ private fun CardImpl(
     interactionSource: MutableInteractionSource?,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.wear.compose.materialcore.Card(
-        onClick = onClick,
-        modifier = modifier,
-        border = border,
-        containerPainter = colors.containerPainter,
-        enabled = enabled,
-        contentPadding = contentPadding,
-        interactionSource = interactionSource,
-        role = null,
-        shape = shape,
-        ripple = rippleOrFallbackImplementation()
-    ) {
-        CompositionLocalProvider(
-            LocalContentColor provides colors.contentColor,
-            LocalTextStyle provides typography,
-        ) {
-            content()
-        }
-    }
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(shape = shape)
+                .paint(painter = colors.containerPainter, contentScale = ContentScale.Crop)
+                .combinedClickable(
+                    enabled = enabled,
+                    onClick = onClick,
+                    onLongClick = onLongClick,
+                    onLongClickLabel = onLongClickLabel,
+                    role = null,
+                    indication = ripple(),
+                    interactionSource = interactionSource,
+                )
+                .then(border?.let { Modifier.border(border = border, shape = shape) } ?: Modifier)
+                .padding(contentPadding),
+        content = content
+    )
 }

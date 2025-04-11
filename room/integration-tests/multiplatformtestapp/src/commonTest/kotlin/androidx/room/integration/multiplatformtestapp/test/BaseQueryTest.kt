@@ -18,6 +18,9 @@ package androidx.room.integration.multiplatformtestapp.test
 
 import androidx.kruth.assertThat
 import androidx.kruth.assertThrows
+import androidx.paging.PagingSource
+import androidx.paging.PagingSource.LoadResult
+import androidx.room.RoomRawQuery
 import androidx.room.execSQL
 import androidx.room.immediateTransaction
 import androidx.room.useReaderConnection
@@ -59,6 +62,18 @@ abstract class BaseQueryTest {
         val dao = db.dao()
         assertThat(dao.insertItem(1)).isEqualTo(1)
         assertThat(dao.getSingleItem().pk).isEqualTo(1)
+        assertThat(dao.getSingleItemSkipVerification().pk).isEqualTo(1)
+        assertThat(dao.getSingleItemRaw(RoomRawQuery("SELECT * FROM SampleEntity")).pk).isEqualTo(1)
+        assertThat(
+                dao.getSingleItemRaw(
+                        RoomRawQuery(
+                            sql = "SELECT * FROM SampleEntity WHERE pk = ?",
+                            onBindStatement = { it.bindLong(1, 1) }
+                        )
+                    )
+                    .pk
+            )
+            .isEqualTo(1)
         assertThat(dao.deleteItem(1)).isEqualTo(1)
         assertThat(dao.deleteItem(1)).isEqualTo(0) // Nothing deleted
         assertThrows<IllegalStateException> { dao.getSingleItem() }
@@ -235,6 +250,9 @@ abstract class BaseQueryTest {
 
         val map = dao.getMapWithDupeColumns()
         assertThat(map[sampleEntity1]).isEqualTo(sampleEntity2)
+
+        val map2 = dao.getMapWithDupeColumnsSkipVerification()
+        assertThat(map2[sampleEntity1]).isEqualTo(sampleEntity2)
     }
 
     @Test
@@ -466,16 +484,88 @@ abstract class BaseQueryTest {
 
     @Test
     fun relationManytoMany() = runTest {
-        val sampleEntity1 = SampleEntity(1, 1)
-        val sampleEntity1s = listOf(sampleEntity1, SampleEntity(2, 2))
+        val sampleEntity1 = StringSampleEntity1("1", "1")
+        val sampleEntity1s = listOf(sampleEntity1, StringSampleEntity1("2", "2"))
 
-        val sampleEntity2 = SampleEntity2(1, 1)
-        val sampleEntity2s = listOf(sampleEntity2, SampleEntity2(2, 2))
+        val sampleEntity2 = StringSampleEntity2("1", "1")
+        val sampleEntity2s = listOf(sampleEntity2, StringSampleEntity2("2", "2"))
 
-        db.dao().insertSampleEntityList(sampleEntity1s)
-        db.dao().insertSampleEntity2List(sampleEntity2s)
+        db.dao().insertSampleEntity1WithString(sampleEntity1s)
+        db.dao().insertSampleEntity2WithString(sampleEntity2s)
 
         assertThat(db.dao().getSampleManyToMany())
             .isEqualTo(SampleDao.SampleManyAndMany(sample1 = sampleEntity1, sample2s = listOf()))
+    }
+
+    @Test
+    fun invalidRawQueryOnBindStatement() = runTest {
+        val query =
+            RoomRawQuery(sql = "SELECT * FROM SampleEntity", onBindStatement = { it.step() })
+        assertThrows<IllegalStateException> { db.dao().getSingleItemRaw(query) }
+            .hasMessageThat()
+            .contains("Only bind*() calls are allowed")
+    }
+
+    @Test
+    fun simplePagingQuery() = runTest {
+        val entity1 = SampleEntity(1, 1)
+        val entity2 = SampleEntity(2, 2)
+        val sampleEntities = listOf(entity1, entity2)
+        val dao = db.dao()
+
+        dao.insertSampleEntityList(sampleEntities)
+        val pagingSource = dao.getAllIds()
+
+        val onlyLoadFirst =
+            pagingSource.load(
+                PagingSource.LoadParams.Refresh(
+                    key = null,
+                    loadSize = 1,
+                    placeholdersEnabled = true
+                )
+            ) as LoadResult.Page
+        assertThat(onlyLoadFirst.data).containsExactly(entity1)
+
+        val loadAll =
+            pagingSource.load(
+                PagingSource.LoadParams.Refresh(
+                    key = null,
+                    loadSize = 2,
+                    placeholdersEnabled = true
+                )
+            ) as LoadResult.Page
+        assertThat(loadAll.data).containsExactlyElementsIn(sampleEntities)
+    }
+
+    @Test
+    fun pagingQueryWithParams() = runTest {
+        val entity1 = SampleEntity(1, 1)
+        val entity2 = SampleEntity(2, 2)
+        val entity3 = SampleEntity(3, 3)
+        val sampleEntities = listOf(entity1, entity2, entity3)
+        val dao = db.dao()
+
+        dao.insertSampleEntityList(sampleEntities)
+        val pagingSource = dao.getAllIdsWithArgs(1)
+
+        val onlyLoadFirst =
+            pagingSource.load(
+                PagingSource.LoadParams.Refresh(
+                    key = null,
+                    loadSize = 1,
+                    placeholdersEnabled = true
+                )
+            ) as LoadResult.Page
+        assertThat(onlyLoadFirst.data).containsExactly(entity2)
+
+        val loadAll =
+            pagingSource.load(
+                PagingSource.LoadParams.Refresh(
+                    key = null,
+                    loadSize = 2,
+                    placeholdersEnabled = true
+                )
+            ) as LoadResult.Page
+        assertThat(loadAll.data).containsExactlyElementsIn(listOf(entity2, entity3))
     }
 }

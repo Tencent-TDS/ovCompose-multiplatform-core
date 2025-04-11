@@ -28,4 +28,5 @@ internal fun Translations.sk() = mapOf(
     Strings.DefaultErrorMessage to "Neplatný vstup",
     Strings.SliderRangeStart to "Začiatok rozsahu",
     Strings.SliderRangeEnd to "Koniec rozsahu",
+    Strings.SnackbarPaneTitle to "Upozornenie",
 )

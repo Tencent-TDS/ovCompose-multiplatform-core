@@ -17,7 +17,9 @@
 package androidx.compose.foundation.text.input.internal
 
 import android.graphics.Typeface
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,10 +29,13 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.font.toFontFamily
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
@@ -41,6 +46,7 @@ import androidx.test.filters.FlakyTest
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
 import kotlin.test.assertNotNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -69,6 +75,7 @@ class TextFieldLayoutStateCacheTest {
     private var textStyle = TextStyle()
     private var singleLine = false
     private var softWrap = false
+    private var keyboardOptions = KeyboardOptions.Default
     private var cache = TextFieldLayoutStateCache()
     private var density = Density(1f, 1f)
     private var layoutDirection = LayoutDirection.Ltr
@@ -197,6 +204,22 @@ class TextFieldLayoutStateCacheTest {
     }
 
     @Test
+    fun updateNonMeasureInputs_invalidatesSnapshot_whenKeyboardTypePhoneChanged() {
+        assertInvalidationsOnChange(1) {
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            updateNonMeasureInputs()
+        }
+    }
+
+    @Test
+    fun updateNonMeasureInputs_doesNotInvalidateSnapshot_whenKeyboardTypeNotPhoneChanged() {
+        assertInvalidationsOnChange(0) {
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            updateNonMeasureInputs()
+        }
+    }
+
+    @Test
     fun updateMeasureInputs_invalidatesSnapshot_whenDensityInstanceChangedWithDifferentValues() {
         density = Density(1f, 1f)
         assertInvalidationsOnChange(1) {
@@ -298,7 +321,6 @@ class TextFieldLayoutStateCacheTest {
      * To fix this, we manually record reads done by the transformation function and re-read them
      * explicitly when checking for a full cache hit.
      */
-    @Ignore("b/306198696")
     @Test
     fun invalidatesAllReaders_whenTransformationDependenciesChanged_producingSameVisualText() {
         var transformationState by mutableStateOf(1)
@@ -320,7 +342,7 @@ class TextFieldLayoutStateCacheTest {
         val expectedVisualText = "i"
 
         fun assertVisualText() {
-            Truth.assertThat(cache.value?.layoutInput?.text?.text).isEqualTo(expectedVisualText)
+            assertThat(cache.value?.layoutInput?.text?.text).isEqualTo(expectedVisualText)
         }
 
         updateNonMeasureInputs()
@@ -344,7 +366,7 @@ class TextFieldLayoutStateCacheTest {
             ) {
                 assertVisualText()
             }
-            Truth.assertThat(transformationInvocations).isEqualTo(1)
+            assertThat(transformationInvocations).isEqualTo(1)
 
             // This should be a full cache hit.
             secondaryObserver.observeReads(
@@ -356,7 +378,7 @@ class TextFieldLayoutStateCacheTest {
             ) {
                 assertVisualText()
             }
-            Truth.assertThat(transformationInvocations).isEqualTo(1)
+            assertThat(transformationInvocations).isEqualTo(1)
 
             // Invalidate the transformation.
             transformationState++
@@ -366,9 +388,9 @@ class TextFieldLayoutStateCacheTest {
         }
 
         assertVisualText()
-        Truth.assertThat(transformationInvocations).isEqualTo(2)
-        Truth.assertThat(primaryInvalidations).isEqualTo(1)
-        Truth.assertThat(secondaryInvalidations).isEqualTo(1)
+        assertThat(transformationInvocations).isEqualTo(2)
+        assertThat(primaryInvalidations).isEqualTo(1)
+        assertThat(secondaryInvalidations).isEqualTo(1)
     }
 
     @FlakyTest(bugId = 299662404)
@@ -392,7 +414,7 @@ class TextFieldLayoutStateCacheTest {
         var expectedVisualText = "i"
 
         fun assertVisualText() {
-            Truth.assertThat(cache.value?.layoutInput?.text?.text).isEqualTo(expectedVisualText)
+            assertThat(cache.value?.layoutInput?.text?.text).isEqualTo(expectedVisualText)
         }
 
         updateNonMeasureInputs()
@@ -416,7 +438,7 @@ class TextFieldLayoutStateCacheTest {
             ) {
                 assertVisualText()
             }
-            Truth.assertThat(transformationInvocations).isEqualTo(1)
+            assertThat(transformationInvocations).isEqualTo(1)
 
             // This should be a full cache hit.
             secondaryObserver.observeReads(
@@ -428,7 +450,7 @@ class TextFieldLayoutStateCacheTest {
             ) {
                 assertVisualText()
             }
-            Truth.assertThat(transformationInvocations).isEqualTo(1)
+            assertThat(transformationInvocations).isEqualTo(1)
 
             // Invalidate the transformation.
             expectedVisualText = "j"
@@ -440,9 +462,9 @@ class TextFieldLayoutStateCacheTest {
 
         assertVisualText()
         // Two more reads means two more applications of the transformation.
-        Truth.assertThat(transformationInvocations).isEqualTo(2)
-        Truth.assertThat(primaryInvalidations).isEqualTo(1)
-        Truth.assertThat(secondaryInvalidations).isEqualTo(1)
+        assertThat(transformationInvocations).isEqualTo(2)
+        assertThat(primaryInvalidations).isEqualTo(1)
+        assertThat(secondaryInvalidations).isEqualTo(1)
     }
 
     @Test
@@ -459,8 +481,8 @@ class TextFieldLayoutStateCacheTest {
                 }
             },
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.text.text).isEqualTo("h")
-            Truth.assertThat(new.layoutInput.text.text).isEqualTo("hello")
+            assertThat(old.layoutInput.text.text).isEqualTo("h")
+            assertThat(new.layoutInput.text.text).isEqualTo("hello")
         }
     }
 
@@ -472,22 +494,93 @@ class TextFieldLayoutStateCacheTest {
         }
         assertLayoutChange(
             change = {
-                textFieldState.editAsUser(inputTransformation = null) { setComposingRegion(2, 3) }
+                textFieldState.editAsUser(inputTransformation = null) { setComposition(2, 3) }
             },
         ) { old, new ->
-            Truth.assertThat(
+            assertThat(
                     old.multiParagraph.intrinsics.annotatedString.spanStyles.any {
                         it.item.textDecoration == TextDecoration.Underline
                     }
                 )
                 .isFalse()
-            Truth.assertThat(
+            assertThat(
                     new.multiParagraph.intrinsics.annotatedString.spanStyles.any {
                         it.item.textDecoration == TextDecoration.Underline
                     }
                 )
                 .isTrue()
         }
+    }
+
+    @Test
+    fun value_returnsCachedLayout_whenCompositionDoesNotChange() {
+        textFieldState.editAsUser(inputTransformation = null) {
+            replace(0, length, "hello")
+            setSelectionCoerced(0)
+            setComposition(0, 5)
+        }
+        updateNonMeasureInputs()
+        updateMeasureInputs()
+        val initialLayout = cache.value
+        // this shouldn't cause a recompute
+        val secondLayout = cache.value
+        assertThat(initialLayout).isSameInstanceAs(secondLayout)
+    }
+
+    @Test
+    fun value_returnsNewLayout_whenComposingAnnotationsChanged() {
+        textFieldState.editAsUser(inputTransformation = null) {
+            replace(0, length, "hello")
+            setComposition(
+                0,
+                5,
+                listOf(AnnotatedString.Range(SpanStyle(background = Color.Blue), 0, 5))
+            )
+        }
+        // change composing region but not the annotations.
+        assertLayoutChange(
+            change = {
+                textFieldState.editAsUser(inputTransformation = null) {
+                    setComposition(
+                        0,
+                        5,
+                        listOf(AnnotatedString.Range(SpanStyle(background = Color.Red), 0, 5))
+                    )
+                }
+            },
+        ) { old, new ->
+            assertThat(
+                    old.multiParagraph.intrinsics.annotatedString.spanStyles.any {
+                        it.item.background == Color.Blue
+                    }
+                )
+                .isTrue()
+            assertThat(
+                    new.multiParagraph.intrinsics.annotatedString.spanStyles.any {
+                        it.item.background == Color.Red
+                    }
+                )
+                .isTrue()
+        }
+    }
+
+    @Test
+    fun value_returnsCachedLayout_whenComposingAnnotationsDoNotChange() {
+        textFieldState.editAsUser(inputTransformation = null) {
+            replace(0, length, "hello")
+            setSelectionCoerced(0)
+            setComposition(
+                0,
+                5,
+                listOf(AnnotatedString.Range(SpanStyle(background = Color.Red), 0, 5))
+            )
+        }
+        updateNonMeasureInputs()
+        updateMeasureInputs()
+        val initialLayout = cache.value
+        // this shouldn't cause a recompute
+        val secondLayout = cache.value
+        assertThat(initialLayout).isSameInstanceAs(secondLayout)
     }
 
     @Test
@@ -499,7 +592,7 @@ class TextFieldLayoutStateCacheTest {
         assertLayoutChange(change = { textFieldState.edit { placeCursorBeforeCharAt(1) } }) {
             old,
             new ->
-            Truth.assertThat(new).isSameInstanceAs(old)
+            assertThat(new).isSameInstanceAs(old)
         }
     }
 
@@ -525,8 +618,8 @@ class TextFieldLayoutStateCacheTest {
                 updateNonMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.text.text).isEqualTo("h")
-            Truth.assertThat(new.layoutInput.text.text).isEqualTo("i")
+            assertThat(old.layoutInput.text.text).isEqualTo("h")
+            assertThat(new.layoutInput.text.text).isEqualTo("i")
         }
     }
 
@@ -552,7 +645,7 @@ class TextFieldLayoutStateCacheTest {
                 updateNonMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isSameInstanceAs(old)
+            assertThat(new).isSameInstanceAs(old)
         }
     }
 
@@ -565,9 +658,9 @@ class TextFieldLayoutStateCacheTest {
                 updateNonMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.style.fontSize).isEqualTo(12.sp)
-            Truth.assertThat(new.layoutInput.style.fontSize).isEqualTo(23.sp)
-            Truth.assertThat(old.multiParagraph).isNotSameInstanceAs(new.multiParagraph)
+            assertThat(old.layoutInput.style.fontSize).isEqualTo(12.sp)
+            assertThat(new.layoutInput.style.fontSize).isEqualTo(23.sp)
+            assertThat(old.multiParagraph).isNotSameInstanceAs(new.multiParagraph)
         }
     }
 
@@ -581,7 +674,7 @@ class TextFieldLayoutStateCacheTest {
             }
         ) { old, new ->
             // TextLayoutInput needs to change. We only care whether multiParagraph is reused.
-            Truth.assertThat(new.multiParagraph).isSameInstanceAs(old.multiParagraph)
+            assertThat(new.multiParagraph).isSameInstanceAs(old.multiParagraph)
         }
     }
 
@@ -593,9 +686,9 @@ class TextFieldLayoutStateCacheTest {
                 updateNonMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isNotSameInstanceAs(old)
-            Truth.assertThat(old.layoutInput.maxLines).isEqualTo(Int.MAX_VALUE)
-            Truth.assertThat(new.layoutInput.maxLines).isEqualTo(1)
+            assertThat(new).isNotSameInstanceAs(old)
+            assertThat(old.layoutInput.maxLines).isEqualTo(Int.MAX_VALUE)
+            assertThat(new.layoutInput.maxLines).isEqualTo(1)
         }
     }
 
@@ -607,8 +700,8 @@ class TextFieldLayoutStateCacheTest {
                 updateNonMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.softWrap).isEqualTo(!softWrap)
-            Truth.assertThat(new.layoutInput.softWrap).isEqualTo(softWrap)
+            assertThat(old.layoutInput.softWrap).isEqualTo(!softWrap)
+            assertThat(new.layoutInput.softWrap).isEqualTo(softWrap)
         }
     }
 
@@ -628,7 +721,7 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isNotSameInstanceAs(old)
+            assertThat(new).isNotSameInstanceAs(old)
         }
     }
 
@@ -647,7 +740,7 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isNotSameInstanceAs(old)
+            assertThat(new).isNotSameInstanceAs(old)
         }
     }
 
@@ -660,7 +753,7 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isSameInstanceAs(old)
+            assertThat(new).isSameInstanceAs(old)
         }
     }
 
@@ -673,8 +766,8 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
-            Truth.assertThat(new.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
+            assertThat(old.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
+            assertThat(new.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
         }
     }
 
@@ -687,7 +780,7 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(new).isNotSameInstanceAs(old)
+            assertThat(new).isNotSameInstanceAs(old)
         }
     }
 
@@ -697,7 +790,7 @@ class TextFieldLayoutStateCacheTest {
         fontFamilyResolver =
             createFontFamilyResolver(InstrumentationRegistry.getInstrumentation().context)
         assertLayoutChange(change = { TODO("b/294443266: make fonts stale") }) { old, new ->
-            Truth.assertThat(new).isNotSameInstanceAs(old)
+            assertThat(new).isNotSameInstanceAs(old)
         }
     }
 
@@ -710,8 +803,8 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
             }
         ) { old, new ->
-            Truth.assertThat(old.layoutInput.constraints).isEqualTo(Constraints.fixed(5, 5))
-            Truth.assertThat(new.layoutInput.constraints).isEqualTo(Constraints.fixed(6, 5))
+            assertThat(old.layoutInput.constraints).isEqualTo(Constraints.fixed(5, 5))
+            assertThat(new.layoutInput.constraints).isEqualTo(Constraints.fixed(6, 5))
         }
     }
 
@@ -729,25 +822,21 @@ class TextFieldLayoutStateCacheTest {
                 updateMeasureInputs()
 
                 val newLayout = cache.value!!
-                Truth.assertThat(initialLayout.layoutInput.layoutDirection)
-                    .isEqualTo(LayoutDirection.Ltr)
-                Truth.assertThat(newLayout.layoutInput.layoutDirection)
-                    .isEqualTo(LayoutDirection.Rtl)
-                Truth.assertThat(cache.value!!).isSameInstanceAs(newLayout)
+                assertThat(initialLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
+                assertThat(newLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
+                assertThat(cache.value!!).isSameInstanceAs(newLayout)
             }
 
             // Not visible in parent yet.
-            Truth.assertThat(initialLayout.layoutInput.layoutDirection)
-                .isEqualTo(LayoutDirection.Ltr)
-            Truth.assertThat(cache.value!!).isSameInstanceAs(initialLayout)
+            assertThat(initialLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
+            assertThat(cache.value!!).isSameInstanceAs(initialLayout)
             snapshot.apply().check()
 
             // Now visible in parent.
             val newLayout = cache.value!!
-            Truth.assertThat(initialLayout.layoutInput.layoutDirection)
-                .isEqualTo(LayoutDirection.Ltr)
-            Truth.assertThat(newLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
-            Truth.assertThat(cache.value!!).isSameInstanceAs(newLayout)
+            assertThat(initialLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
+            assertThat(newLayout.layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
+            assertThat(cache.value!!).isSameInstanceAs(newLayout)
         } finally {
             snapshot.dispose()
         }
@@ -770,26 +859,26 @@ class TextFieldLayoutStateCacheTest {
                 layoutDirection = LayoutDirection.Rtl
                 updateMeasureInputs()
                 with(cache.value!!) {
-                    Truth.assertThat(layoutInput.softWrap).isEqualTo(false)
-                    Truth.assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
-                    Truth.assertThat(cache.value!!).isSameInstanceAs(this)
+                    assertThat(layoutInput.softWrap).isEqualTo(false)
+                    assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
+                    assertThat(cache.value!!).isSameInstanceAs(this)
                 }
             }
 
             // Parent only sees its update.
             with(cache.value!!) {
-                Truth.assertThat(layoutInput.softWrap).isEqualTo(true)
-                Truth.assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
-                Truth.assertThat(this).isSameInstanceAs(initialLayout)
-                Truth.assertThat(cache.value!!).isSameInstanceAs(this)
+                assertThat(layoutInput.softWrap).isEqualTo(true)
+                assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Ltr)
+                assertThat(this).isSameInstanceAs(initialLayout)
+                assertThat(cache.value!!).isSameInstanceAs(this)
             }
             snapshot.apply().check()
 
             // Cache should now reflect merged inputs.
             with(cache.value!!) {
-                Truth.assertThat(layoutInput.softWrap).isEqualTo(true)
-                Truth.assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
-                Truth.assertThat(cache.value!!).isSameInstanceAs(this)
+                assertThat(layoutInput.softWrap).isEqualTo(true)
+                assertThat(layoutInput.layoutDirection).isEqualTo(LayoutDirection.Rtl)
+                assertThat(cache.value!!).isSameInstanceAs(this)
             }
         } finally {
             snapshot.dispose()
@@ -811,23 +900,22 @@ class TextFieldLayoutStateCacheTest {
         snapshot.enter {
             with(cache.value!!) {
                 layoutFromSnapshot = this
-                Truth.assertThat(initialLayout.layoutInput.maxLines).isEqualTo(1)
-                Truth.assertThat(layoutInput.maxLines).isEqualTo(Int.MAX_VALUE)
+                assertThat(initialLayout.layoutInput.maxLines).isEqualTo(1)
+                assertThat(layoutInput.maxLines).isEqualTo(Int.MAX_VALUE)
             }
         }
 
         val finalLayout = cache.value!!
 
-        Truth.assertThat(initialLayout.multiParagraph)
+        assertThat(initialLayout.multiParagraph)
             .isNotSameInstanceAs(layoutFromSnapshot.multiParagraph)
 
         // Even though the initial text layout calculation after TextStyle change was done in a
         // read-only snapshot, we still expect to get the same MultiParagraph instance when called
         // with the same measure/non-measure arguments.
-        Truth.assertThat(finalLayout.multiParagraph)
-            .isSameInstanceAs(layoutFromSnapshot.multiParagraph)
+        assertThat(finalLayout.multiParagraph).isSameInstanceAs(layoutFromSnapshot.multiParagraph)
 
-        Truth.assertThat(finalLayout.layoutInput).isEqualTo(layoutFromSnapshot.layoutInput)
+        assertThat(finalLayout.layoutInput).isEqualTo(layoutFromSnapshot.layoutInput)
     }
 
     private fun assertLayoutChange(
@@ -879,7 +967,8 @@ class TextFieldLayoutStateCacheTest {
             textFieldState = transformedTextFieldState,
             textStyle = textStyle,
             singleLine = singleLine,
-            softWrap = softWrap
+            softWrap = softWrap,
+            keyboardOptions = keyboardOptions
         )
     }
 

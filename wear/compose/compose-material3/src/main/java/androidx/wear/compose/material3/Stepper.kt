@@ -33,19 +33,18 @@ import kotlin.math.roundToInt
  * increase and decrease buttons. Buttons can have custom icons - [decreaseIcon] and [increaseIcon].
  * Step value is calculated as the difference between min and max values divided by [steps]+1.
  * Stepper itself doesn't show the current value but can be displayed via the content slot or
- * [PositionIndicator] if required. If [value] is not equal to any step value, then it will be
- * coerced to the closest step value. However, the [value] itself will not be changed and
- * [onValueChange] in this case will not be triggered. To add range semantics on Stepper, use
+ * [LevelIndicator] if required. If [value] is not equal to any step value, then it will be coerced
+ * to the closest step value. However, the [value] itself will not be changed and [onValueChange] in
+ * this case will not be triggered. To add range semantics on Stepper, use
  * [Modifier.rangeSemantics].
  *
- * Example of a simple [Stepper]:
+ * Example of a simple [Stepper] with [LevelIndicator]:
  *
  * @sample androidx.wear.compose.material3.samples.StepperSample
  *
  * Example of a [Stepper] with range semantics:
  *
  * @sample androidx.wear.compose.material3.samples.StepperWithRangeSemanticsSample
- *
  * @param value Current value of the Stepper. If outside of [valueRange] provided, value will be
  *   coerced to this range.
  * @param onValueChange Lambda in which value should be updated
@@ -95,7 +94,7 @@ fun Stepper(
             arrayOf(
                 LocalContentColor provides iconColor.copy(alpha = DisabledContentAlpha),
             ),
-        buttonRipple = rippleOrFallbackImplementation(bounded = false)
+        buttonRipple = ripple(bounded = false)
     ) {
         CompositionLocalProvider(LocalContentColor provides contentColor) { content() }
     }
@@ -107,8 +106,7 @@ fun Stepper(
  * either [Text] or [Button]) in the middle. Value can be increased and decreased by clicking on the
  * increase and decrease buttons. Buttons can have custom icons - [decreaseIcon] and [increaseIcon].
  * Stepper itself doesn't show the current value but can be displayed via the content slot or
- * [PositionIndicator] if required. To add range semantics on Stepper, use
- * [Modifier.rangeSemantics].
+ * [LevelIndicator] if required. To add range semantics on Stepper, use [Modifier.rangeSemantics].
  *
  * Example of a [Stepper] with integer values:
  *

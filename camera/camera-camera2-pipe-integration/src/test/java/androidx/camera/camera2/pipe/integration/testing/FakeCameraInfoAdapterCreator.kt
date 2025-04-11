@@ -87,7 +87,7 @@ object FakeCameraInfoAdapterCreator {
                 intArrayOf(CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA)
         )
 
-    private val zoomControl = ZoomControl(useCaseThreads, FakeZoomCompat())
+    private val zoomControl = ZoomControl(FakeZoomCompat())
 
     fun createCameraInfoAdapter(
         cameraId: CameraId = CAMERA_ID_0,
@@ -113,7 +113,7 @@ object FakeCameraInfoAdapterCreator {
                     mapOf(CameraBackendId(cameraId.value) to listOf(cameraProperties.metadata))
             )
     ): CameraInfoAdapter {
-        val fakeUseCaseCamera = FakeUseCaseCamera()
+        val fakeRequestControl = FakeUseCaseCameraRequestControl()
         val fakeStreamConfigurationMap =
             StreamConfigurationMapCompat(
                 streamConfigurationMap,
@@ -130,7 +130,7 @@ object FakeCameraInfoAdapterCreator {
                     NoOpAutoFlashAEModeDisabler,
                     AeFpsRange(fakeCameraQuirks),
                 )
-                .apply { useCaseCamera = fakeUseCaseCamera }
+                .apply { requestControl = fakeRequestControl }
         return CameraInfoAdapter(
             cameraProperties,
             CameraConfig(cameraId),
@@ -150,7 +150,7 @@ object FakeCameraInfoAdapterCreator {
                     useCaseThreads,
                     FakeZoomCompat(),
                 )
-                .apply { useCaseCamera = fakeUseCaseCamera },
+                .apply { requestControl = fakeRequestControl },
             fakeCameraQuirks,
             EncoderProfilesProviderAdapter(cameraId.value, fakeCameraQuirks.quirks),
             fakeStreamConfigurationMap,

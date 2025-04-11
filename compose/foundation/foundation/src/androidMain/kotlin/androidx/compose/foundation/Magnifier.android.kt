@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
@@ -72,7 +73,6 @@ internal val MagnifierPositionInRoot = SemanticsPropertyKey<() -> Offset>("Magni
  * since the magnifier widget does not support constraining to the bounds of composables.
  *
  * @sample androidx.compose.foundation.samples.MagnifierSample
- *
  * @param sourceCenter The offset of the center of the magnified content. Measured in pixels from
  *   the top-left of the layout node this modifier is applied to. This offset is passed to
  *   [Magnifier.show].
@@ -376,7 +376,8 @@ internal class MagnifierNode(
     override fun onAttach() {
         onObservedReadsChanged()
         drawSignalChannel = Channel()
-        coroutineScope.launch {
+        // Launch undispatched, otherwise we could miss the first draw signal
+        coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
             while (true) {
                 drawSignalChannel?.receive()
                 // don't update the magnifier immediately, actual frame draw happens right after

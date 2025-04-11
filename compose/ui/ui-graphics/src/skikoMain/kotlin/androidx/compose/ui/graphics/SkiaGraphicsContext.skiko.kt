@@ -16,25 +16,44 @@
 
 package androidx.compose.ui.graphics
 
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.layer.GraphicsLayer
-import kotlin.js.JsName
+import org.jetbrains.skiko.node.RenderNode
+import org.jetbrains.skiko.node.RenderNodeContext
 
-/**
- * Create a new [GraphicsContext].
- */
 @InternalComposeUiApi
-@JsName("createGraphicsContext")
-fun GraphicsContext(snapshotObserver: SnapshotStateObserver): GraphicsContext =
-    SkiaGraphicsContext(snapshotObserver)
+class SkiaGraphicsContext(
+    measureDrawBounds: Boolean = false,
+): GraphicsContext {
+    private val renderNodeContext = RenderNodeContext(
+        measureDrawBounds = measureDrawBounds,
+    )
 
-private class SkiaGraphicsContext(
-    private val snapshotObserver: SnapshotStateObserver
-) : GraphicsContext {
-    override fun createGraphicsLayer(): GraphicsLayer {
-        return GraphicsLayer(snapshotObserver)
+    fun dispose() {
+        renderNodeContext.close()
     }
+
+    fun setLightingInfo(
+        centerX: Float = Float.MIN_VALUE,
+        centerY: Float = Float.MIN_VALUE,
+        centerZ: Float = Float.MIN_VALUE,
+        radius: Float = 0f,
+        ambientShadowAlpha: Float = 0f,
+        spotShadowAlpha: Float = 0f
+    ) {
+        renderNodeContext.setLightingInfo(
+            centerX,
+            centerY,
+            centerZ,
+            radius,
+            ambientShadowAlpha,
+            spotShadowAlpha
+        )
+    }
+
+    override fun createGraphicsLayer() = GraphicsLayer(
+        renderNode = RenderNode(renderNodeContext)
+    )
 
     override fun releaseGraphicsLayer(layer: GraphicsLayer) {
         layer.release()

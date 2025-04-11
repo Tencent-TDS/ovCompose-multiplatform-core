@@ -16,10 +16,10 @@
 package androidx.compose.ui.test
 
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.identityHashCode
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.node.RootForTest
+import androidx.compose.ui.test.internal.identityHashCode
 
 internal expect fun createInputDispatcher(
     testContext: TestContext,
@@ -64,6 +64,15 @@ internal expect fun createInputDispatcher(
  *
  * Chaining methods:
  * * [advanceEventTime]
+ *
+ * [exitHoverOnPress] and [moveOnScroll] allow controlling Android-specific behaviors that may not
+ * be appropriate on other platforms. While it is a quick and simple solution, if more significant
+ * differences are discovered, this problem may need to be revisited for a more robust solution.
+ *
+ * Note that the extra events sent due to [exitHoverOnPress] and [moveOnScroll] are in fact filtered
+ * out on Android before they reach any Compose elements. They nevertheless need to be sent for the
+ * benefit of any interop Android views inside Compose, which expect an Android-native model of the
+ * event stream.
  */
 @OptIn(InternalComposeApi::class)
 internal abstract class InputDispatcher(
@@ -151,7 +160,6 @@ internal abstract class InputDispatcher(
         }
     }
 
-    @OptIn(InternalTestApi::class)
     private val TestContext.currentTime
         get() = testOwner.mainClock.currentTime
 
@@ -397,9 +405,11 @@ internal abstract class InputDispatcher(
         }
         mouse.setButtonBit(buttonId)
 
-        // Exit hovering if necessary
-        if (mouse.isEntered && exitHoverOnPress) {
-            mouse.exitHover()
+        // Exit hovering if necessary (Android-specific behavior)
+        if (exitHoverOnPress) {
+            if (mouse.isEntered) {
+                mouse.exitHover()
+            }
         }
         // down/move + press
         mouse.enqueuePress(buttonId)
@@ -465,10 +475,12 @@ internal abstract class InputDispatcher(
         mouse.unsetButtonBit(buttonId)
         mouse.enqueueRelease(buttonId)
 
-        // When no buttons remaining, enter hover state immediately
-        if (exitHoverOnPress && mouse.hasNoButtonsPressed && isWithinRootBounds(currentMousePosition)) {
-            mouse.enterHover()
-            mouse.enqueueMove()
+        // When no buttons remaining, enter hover state immediately (Android-specific behavior)
+        if (exitHoverOnPress) {
+            if (mouse.hasNoButtonsPressed && isWithinRootBounds(currentMousePosition)) {
+                mouse.enterHover()
+                mouse.enqueueMove()
+            }
         }
     }
 
@@ -526,7 +538,6 @@ internal abstract class InputDispatcher(
      * a column, or at the end of a row), negative values correspond to scrolling backward (new
      * content appears at the top of a column, or at the start of a row).
      */
-    @OptIn(ExperimentalTestApi::class)
     fun enqueueMouseScroll(delta: Float, scrollWheel: ScrollWheel) {
         val mouse = mouseInputState
 
@@ -709,7 +720,6 @@ internal abstract class InputDispatcher(
     protected open val KeyInputState.scrollLockOn: Boolean
         get() = scrollLockState.isLockKeyOnIncludingOffPress
 
-    @OptIn(ExperimentalTestApi::class)
     protected abstract fun MouseInputState.enqueueScroll(delta: Float, scrollWheel: ScrollWheel)
 
     protected abstract fun RotaryInputState.enqueueRotaryScrollHorizontally(

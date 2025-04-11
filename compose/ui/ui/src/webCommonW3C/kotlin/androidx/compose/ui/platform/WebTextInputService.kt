@@ -18,26 +18,25 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
-import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
-    fun isVirtualKeyboard(): Boolean
+    fun processKeyboardEvent(keyboardEvent: KeyEvent): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
-    private val webImeInputService = WebImeInputService(this)
-    private val webKeyboardInputService = WebKeyboardInputService()
 
-    private fun delegatedService(): PlatformTextInputService {
-        return if (isVirtualKeyboard()) webImeInputService else webKeyboardInputService
-    }
+    private var backingDomInput: BackingDomInput? = null
+        set(value) {
+            field?.dispose()
+            field = value
+        }
 
     override fun startInput(
         value: TextFieldValue,
@@ -45,26 +44,43 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        delegatedService().startInput(value, imeOptions, onEditCommand, onImeActionPerformed)
+        backingDomInput =
+            BackingDomInput(
+                imeOptions = imeOptions,
+                composeCommunicator = object : ComposeCommandCommunicator {
+                    override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
+                        return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
+                    }
+
+                    override fun sendEditCommand(commands: List<EditCommand>) {
+                        onEditCommand(commands)
+                    }
+                }
+            )
+        backingDomInput?.register()
+
+        showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        delegatedService().stopInput()
+        backingDomInput?.dispose()
     }
 
     override fun showSoftwareKeyboard() {
-        delegatedService().showSoftwareKeyboard()
+        backingDomInput?.focus()
     }
 
     override fun hideSoftwareKeyboard() {
-        delegatedService().hideSoftwareKeyboard()
+        backingDomInput?.blur()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        delegatedService().updateState(oldValue, newValue)
+        backingDomInput?.updateState(newValue)
     }
 
     override fun notifyFocusedRect(rect: Rect) {
-        delegatedService().notifyFocusedRect(rect)
+        super.notifyFocusedRect(rect)
+        backingDomInput?.updateHtmlInputPosition(getOffset(rect))
     }
+
 }

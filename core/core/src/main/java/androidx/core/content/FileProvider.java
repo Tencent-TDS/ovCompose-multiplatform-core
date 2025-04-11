@@ -45,7 +45,6 @@ import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -96,12 +95,11 @@ import java.util.Map;
  * <p>
  * <b>Defining a FileProvider</b>
  * <p>
- * Extend FileProvider with a default constructor, and call super with an XML resource file that
- * specifies the available files (see below for the structure of the XML file):
+ * Extend FileProvider with a default constructor:
  * <pre class="prettyprint">
  * public class MyFileProvider extends FileProvider {
  *    public MyFileProvider() {
- *        super(R.xml.file_paths)
+ *        ...
  *    }
  * }
  * </pre>
@@ -993,7 +991,6 @@ public class FileProvider extends ContentProvider {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static File[] getExternalMediaDirs(Context context) {
             // Deprecated, otherwise this would belong on ContextCompat as a public method.
             return context.getExternalMediaDirs();

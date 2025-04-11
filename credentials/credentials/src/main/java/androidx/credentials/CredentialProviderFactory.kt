@@ -23,8 +23,10 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
+import androidx.credentials.ClearCredentialStateRequest.Companion.TYPE_CLEAR_RESTORE_CREDENTIAL
 
 /** Factory that returns the credential provider to be used by Credential Manager. */
+@OptIn(ExperimentalDigitalCredentialApi::class)
 internal class CredentialProviderFactory(val context: Context) {
 
     @set:VisibleForTesting
@@ -54,6 +56,38 @@ internal class CredentialProviderFactory(val context: Context) {
          * manifest file.
          */
         private const val CREDENTIAL_PROVIDER_KEY = "androidx.credentials.CREDENTIAL_PROVIDER_KEY"
+    }
+
+    /**
+     * Returns the best available provider. The best available provider is determined by the
+     * provided [request]. If the provided request is for the use-case of [RestoreCredential], then
+     * the pre-U provider is used. If not, then the provider is determined by the API level.
+     *
+     * @param request is a credential request of either [CreateRestoreCredentialRequest],
+     *   [TYPE_CLEAR_RESTORE_CREDENTIAL], or [GetCredentialRequest] that can determine
+     *   [CredentialProvider] type.
+     * @return the best available provider, or null if no provider is available.
+     */
+    fun getBestAvailableProvider(
+        request: Any,
+        shouldFallbackToPreU: Boolean = true
+    ): CredentialProvider? {
+        if (request is CreateRestoreCredentialRequest || request == TYPE_CLEAR_RESTORE_CREDENTIAL) {
+            return tryCreatePreUOemProvider()
+        } else if (request is GetCredentialRequest) {
+            for (option in request.credentialOptions) {
+                if (option is GetRestoreCredentialOption || option is GetDigitalCredentialOption) {
+                    if (request.credentialOptions.any { it !is GetDigitalCredentialOption }) {
+                        throw IllegalArgumentException(
+                            "`GetDigitalCredentialOption` cannot be" +
+                                " combined with other option types in a single request"
+                        )
+                    }
+                    return tryCreatePreUOemProvider()
+                }
+            }
+        }
+        return getBestAvailableProvider(shouldFallbackToPreU)
     }
 
     /**
@@ -148,7 +182,7 @@ internal class CredentialProviderFactory(val context: Context) {
 
         val classNames = mutableListOf<String>()
         if (packageInfo.services != null) {
-            for (serviceInfo in packageInfo.services) {
+            for (serviceInfo in packageInfo.services!!) {
                 if (serviceInfo.metaData != null) {
                     val className = serviceInfo.metaData.getString(CREDENTIAL_PROVIDER_KEY)
                     if (className != null) {

@@ -15,6 +15,7 @@
  */
 
 @file:JvmName("ActivityKt")
+@file:JvmMultifileClass
 
 package androidx.navigation
 

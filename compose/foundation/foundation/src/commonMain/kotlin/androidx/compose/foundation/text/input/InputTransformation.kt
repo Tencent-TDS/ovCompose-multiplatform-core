@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.input
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -25,7 +26,6 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.substring
 import androidx.compose.ui.text.toUpperCase
-import kotlin.jvm.JvmName
 
 /**
  * A function that is ran after every change made to a [TextFieldState] by user input and can change
@@ -93,7 +93,6 @@ fun interface InputTransformation {
  * the options from this transformation.
  *
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationChainingSample
- *
  * @param next The [InputTransformation] that will be ran after this one.
  */
 @Stable
@@ -110,7 +109,6 @@ fun InputTransformation.then(next: InputTransformation): InputTransformation =
  * [InputTransformation] directly.
  *
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationByValueChooseSample
- *
  * @sample androidx.compose.foundation.samples.BasicTextFieldInputTransformationByValueReplaceSample
  */
 @Stable
@@ -225,7 +223,7 @@ private data class AllCapsTransformation(private val locale: Locale) : InputTran
 private data class MaxLengthFilter(private val maxLength: Int) : InputTransformation {
 
     init {
-        require(maxLength >= 0) { "maxLength must be at least zero, was $maxLength" }
+        requirePrecondition(maxLength >= 0) { "maxLength must be at least zero" }
     }
 
     override fun SemanticsPropertyReceiver.applySemantics() {

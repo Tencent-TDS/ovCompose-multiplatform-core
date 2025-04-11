@@ -30,6 +30,7 @@ import androidx.work.impl.WorkManagerImpl.MIN_JOB_SCHEDULER_API_LEVEL
 import androidx.work.impl.model.WorkSpec
 import androidx.work.impl.workers.ARGUMENT_CLASS_NAME
 import androidx.work.impl.workers.ConstraintTrackingWorker
+import kotlin.collections.removeLast as removeLastKt
 
 internal fun checkContentUriTriggerWorkerLimits(
     workDatabase: WorkDatabase,
@@ -40,7 +41,7 @@ internal fun checkContentUriTriggerWorkerLimits(
     val continuations = mutableListOf(continuation)
     var newCount = 0
     while (continuations.isNotEmpty()) {
-        val current = continuations.removeLast()
+        val current = continuations.removeLastKt()
         newCount += current.work.count { it.workSpec.constraints.hasContentUriTriggers() }
         (current.parents as List<WorkContinuationImpl>?)?.let { continuations.addAll(it) }
     }
@@ -142,11 +143,6 @@ private fun usesScheduler(schedulers: List<Scheduler>, className: String): Boole
     }
 }
 
-// The name of the worker to delegate to when it's a Remote Listenable Worker
-
-internal const val REMOTE_DELEGATING_LISTENABLE_WORKER_CLASS_NAME =
-    "androidx.work.multiprocess.RemoteListenableDelegatingWorker"
-
 // Redefine the keys
 
 internal const val ARGUMENT_SERVICE_PACKAGE_NAME =
@@ -154,6 +150,16 @@ internal const val ARGUMENT_SERVICE_PACKAGE_NAME =
 
 internal const val ARGUMENT_SERVICE_CLASS_NAME =
     "androidx.work.impl.workers.RemoteListenableWorker.ARGUMENT_CLASS_NAME"
+
+/**
+ * Originally defined in `RemoteListenableDelegatingWorker.kt`. This method is being re-defined here
+ * to avoid a circular dependency on the multiprocess library.
+ *
+ * The fully qualified name of the class that is used when running in the context of a remote
+ * process. This constant is useful when migrating remote workers between processes.
+ */
+internal const val REMOTE_DELEGATING_LISTENABLE_WORKER_CLASS_NAME =
+    "androidx.work.multiprocess.RemoteListenableDelegatingWorker"
 
 // The RemoteListenableWorker class to delegate to.
 

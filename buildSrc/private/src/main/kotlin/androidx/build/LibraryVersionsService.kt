@@ -74,7 +74,13 @@ abstract class LibraryVersionsService : BuildService<LibraryVersionsService.Para
                     versionForTag
                 } else {
                     // Do not use version from toml to about accidentally publish "stable" version
-                    "0.0.0-SNAPSHOT"
+                    //
+                    // We use a big version, so it will win in case of version conflict during
+                    // local runs:
+                    // project("compose:ui") -> lifecycle-runtime-compose:2.8.4 -> compose.runtime:runtime:1.6.11
+                    // project("compose:ui") -> project("compose:runtime")
+                    // project("compose:runtime") should override compose.runtime:runtime:1.6.11 by default
+                    "9999.0.0-SNAPSHOT"
                 }
             Version.parseOrNull(versionValue)
                 ?: throw GradleException(

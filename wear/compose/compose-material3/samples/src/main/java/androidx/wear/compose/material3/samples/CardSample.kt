@@ -59,6 +59,18 @@ fun CardSample() {
 
 @Sampled
 @Composable
+fun CardWithOnLongClickSample(onLongClickHandler: () -> Unit) {
+    Card(
+        onClick = { /* Do something */ },
+        onLongClick = onLongClickHandler,
+        onLongClickLabel = "Long click"
+    ) {
+        Text("Card with long click")
+    }
+}
+
+@Sampled
+@Composable
 fun AppCardSample() {
     AppCard(
         onClick = { /* Do something */ },
@@ -199,6 +211,7 @@ fun TitleCardWithImageBackgroundSample() {
                 contentColor = MaterialTheme.colorScheme.onSurface,
                 titleColor = MaterialTheme.colorScheme.onSurface
             ),
+        contentPadding = CardDefaults.ImageContentPadding,
         modifier = Modifier.semantics { contentDescription = "Background image" }
     ) {
         Text("Card content")

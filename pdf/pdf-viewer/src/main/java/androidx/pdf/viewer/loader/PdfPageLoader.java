@@ -20,7 +20,6 @@ import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.os.RemoteException;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
@@ -31,13 +30,10 @@ import androidx.pdf.models.LinkRects;
 import androidx.pdf.models.MatchRects;
 import androidx.pdf.models.PageSelection;
 import androidx.pdf.models.SelectionBoundary;
-import androidx.pdf.pdflib.PdfDocumentRemoteProto;
-import androidx.pdf.util.BitmapParcel;
-import androidx.pdf.util.StrictModeUtils;
+import androidx.pdf.service.PdfDocumentRemoteProto;
 import androidx.pdf.util.TileBoard.TileInfo;
 
-import com.google.common.collect.ImmutableList;
-
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -59,14 +55,6 @@ public class PdfPageLoader {
     /** Arbitrary dimensions used for pages that are broken. */
     private static final Dimensions DEFAULT_PAGE = new Dimensions(400, 400);
 
-    static {
-        // TODO: StrictMode- disk read 14ms.
-        // NOTE: this line can break when running with --noforge, such as when debugging with
-        // Android Studio. You may need to comment it out locally if you see errors like
-        // `java.lang.UnsatisfiedLinkError: no bitmap_parcel in java.library.path`.
-        StrictModeUtils.bypass(() -> BitmapParcel.loadNdkLib());
-    }
-
     private final PdfLoader mParent;
     private final int mPageNum;
     private final boolean mHideTextAnnotations;
@@ -78,6 +66,7 @@ public class PdfPageLoader {
     SelectionTask mSelectionTask;
     GetPageLinksTask mLinksTask;
     GetPageGotoLinksTask mGotoLinksTask;
+    ReleasePageTask mReleasePageTask;
 
     /**
      * All currently scheduled tile tasks.
@@ -268,6 +257,14 @@ public class PdfPageLoader {
         }
     }
 
+    /** Releases object in memory related to a page when that page is no longer visible. */
+    public void releasePage() {
+        if (mReleasePageTask == null) {
+            mReleasePageTask = new ReleasePageTask();
+            mParent.mExecutor.schedule(mReleasePageTask);
+        }
+    }
+
     /**
      *
      */
@@ -289,7 +286,6 @@ public class PdfPageLoader {
     private void setBroken() {
         // TODO: Track the broken state of the FileInfo object.
         if (!mIsBroken) {
-            Log.w(TAG, String.format("Page %d is broken", mPageNum));
             mIsBroken = true;
         }
     }
@@ -375,6 +371,40 @@ public class PdfPageLoader {
         public String toString() {
             return String.format("RenderBitmapTask(page=%d width=%d height=%d)",
                     mPageNum, mDimensions.getWidth(), mDimensions.getHeight());
+        }
+    }
+
+    /** AsyncTask for releasing page objects from memory after it is no longer visible. */
+    class ReleasePageTask extends AbstractPdfTask<Void> {
+        ReleasePageTask() {
+            super(mParent, Priority.RELEASE);
+        }
+
+        @Override
+        protected String getLogTag() {
+            return "ReleasePageTask";
+        }
+
+        @Override
+        protected Void doInBackground(PdfDocumentRemoteProto pdfDocument) throws RemoteException {
+            pdfDocument.getPdfDocumentRemote().releasePage(mPageNum);
+            return null;
+        }
+
+        @Override
+        protected void doCallback(PdfLoaderCallbacks callbacks, Void unused) {
+            /* no-op */
+        }
+
+        @Override
+        protected void cleanup() {
+            mReleasePageTask = null;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return String.format("ReleasePageTask(page=%d)", mPageNum);
         }
     }
 
@@ -485,11 +515,6 @@ public class PdfPageLoader {
         @Override
         public String toString() {
             return String.format("GetPageTextTask(page=%d)", mPageNum);
-        }
-
-        @Override
-        public String resultToString(String result) {
-            return result.length() + "characters";
         }
     }
 
@@ -624,7 +649,7 @@ public class PdfPageLoader {
         protected List<GotoLink> doInBackground(PdfDocumentRemoteProto pdfDocument)
                 throws RemoteException {
             if (TaskDenyList.sDisableLinks) {
-                return ImmutableList.of();
+                return Collections.emptyList();
             } else {
                 return pdfDocument.getPdfDocumentRemote().getPageGotoLinks(mPageNum);
             }

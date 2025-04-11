@@ -28,4 +28,5 @@ internal fun Translations.bg() = mapOf(
     Strings.DefaultErrorMessage to "Въведеното е невалидно",
     Strings.SliderRangeStart to "Начало на обхвата",
     Strings.SliderRangeEnd to "Край на обхвата",
+    Strings.SnackbarPaneTitle to "Сигнал",
 )

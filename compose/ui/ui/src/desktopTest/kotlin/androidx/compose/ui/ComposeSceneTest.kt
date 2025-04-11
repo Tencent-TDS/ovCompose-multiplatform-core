@@ -41,7 +41,9 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
@@ -78,6 +80,7 @@ import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.renderingTest
 import androidx.compose.ui.test.InternalTestApi
 import androidx.compose.ui.test.junit4.DesktopScreenshotTestRule
+import androidx.compose.ui.test.junit4.ScreenshotTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyPress
@@ -85,15 +88,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.runApplicationTest
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.fail
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.jetbrains.skia.Surface
 import org.junit.Assert.assertFalse
 import org.junit.Ignore
 import org.junit.Rule
@@ -106,6 +115,10 @@ class ComposeSceneTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    private fun ScreenshotTestRule.snap(surface: Surface, idSuffix: String? = null) {
+        assertImageAgainstGolden(surface.makeImageSnapshot(), idSuffix)
+    }
 
     @Test(timeout = 5000)
     fun `rendering of Box state change`() = renderingTest(width = 40, height = 40) {
@@ -407,7 +420,6 @@ class ComposeSceneTest {
     }
 
     @Test(timeout = 5000)
-    @Ignore("b/271123970 Fails in AOSP. Will be fixed after upstreaming Compose for Desktop")
     fun `rendering of LazyColumn`() = renderingTest(
         width = 40,
         height = 40
@@ -680,6 +692,72 @@ class ComposeSceneTest {
 
         done.await()
         assertNull(exceptionThrown, "Exception thrown setting snapshot state from non-UI thread")
+    }
+
+    @Test
+    fun sendApplyNotificationsFromNonUiThreadDoesntDeadlock() = runApplicationTest {
+        // https://youtrack.jetbrains.com/issue/CMP-7838
+        var value by mutableStateOf(0)
+        val derivedValue by derivedStateOf {
+            // derivedState is what causes SnapshotStateObserver.drainChanges to be called while
+            // holding observedScopeMapsLock
+            value + 1
+        }
+
+        lateinit var sendApplyNotificationsThread: Thread
+        val dispatcher = Executors.newSingleThreadExecutor {
+            Thread(it).apply {
+                name = "sendApplyNotifications-thread"
+                sendApplyNotificationsThread = this
+            }
+        }.asCoroutineDispatcher()
+
+        val timedOut = AtomicBoolean(false)
+
+        launchTestApplication {
+            Window(onCloseRequest = {}) {
+                Canvas(Modifier.size(100.dp)) {
+                    @Suppress("UNUSED_EXPRESSION")
+                    derivedValue
+                }
+                DisposableEffect(Unit) {
+                    val handle = Snapshot.registerGlobalWriteObserver {
+                        if (timedOut.get())
+                            return@registerGlobalWriteObserver
+
+                        launch(dispatcher) {
+                            Snapshot.sendApplyNotifications()
+                        }
+                    }
+                    onDispose {
+                        handle.dispose()
+                    }
+                }
+            }
+        }
+
+        // The usual timeout facility doesn't work here because when the deadlock happens, the
+        // thread executing the test is stuck waiting to acquire a Java monitor.
+        // Furthermore, because of that it can't even be interrupted.
+        // But the thread calling `sendApplyNotifications` can be interrupted because it's stuck in
+        // `Object.wait` which is interruptible.
+        thread(isDaemon = true) {
+            Thread.sleep(5000)
+            timedOut.set(true)
+            sendApplyNotificationsThread.interrupt()
+        }
+
+        // Try to cause changes while sendApplyNotifications is being called, to get
+        // SnapshotStateObserver.sendNotifications to call drainChanges.
+        for (i in 1..500) {
+            repeat(100) {
+                value++
+                if (timedOut.get()) {
+                    fail("Reached timeout; was probably stuck in a deadlock")
+                }
+            }
+            delay(1)
+        }
     }
 
     private class TestException : RuntimeException()

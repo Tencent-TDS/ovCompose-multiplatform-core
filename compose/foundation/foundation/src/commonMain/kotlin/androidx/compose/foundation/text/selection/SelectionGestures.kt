@@ -197,9 +197,7 @@ private suspend fun AwaitPointerEventScope.mouseSelection(
                 }
 
             if (shouldConsumeUp && dragConsumed) {
-                currentEvent.changes.fastForEach {
-                    if (it.changedToUp()) it.consume()
-                }
+                currentEvent.changes.fastForEach { if (it.changedToUp()) it.consume() }
             }
 
             observer.onDragDone()
@@ -240,7 +238,7 @@ internal suspend fun PointerInputScope.selectionGesturePointerInputBtf2(
  * press instead of immediately looking for drags. If no long press is found, this does not trigger
  * any observer.
  */
-private suspend fun AwaitPointerEventScope.touchSelectionFirstPress(
+internal suspend fun AwaitPointerEventScope.touchSelectionFirstPress(
     observer: TextDragObserver,
     downEvent: PointerEvent
 ) {
@@ -353,7 +351,7 @@ private suspend fun AwaitPointerEventScope.touchSelectionSubsequentPress(
 }
 
 /** Gesture handler for mouse selection. */
-private suspend fun AwaitPointerEventScope.mouseSelectionBtf2(
+internal suspend fun AwaitPointerEventScope.mouseSelectionBtf2(
     observer: MouseSelectionObserver,
     clicksCounter: ClicksCounter,
     down: PointerEvent
@@ -400,9 +398,7 @@ private suspend fun AwaitPointerEventScope.mouseSelectionBtf2(
                     }
 
                 if (shouldConsumeUp && dragConsumed) {
-                    currentEvent.changes.fastForEach {
-                        if (it.changedToUp()) it.consume()
-                    }
+                    currentEvent.changes.fastForEach { if (it.changedToUp()) it.consume() }
                 }
             } finally {
                 observer.onDragDone()

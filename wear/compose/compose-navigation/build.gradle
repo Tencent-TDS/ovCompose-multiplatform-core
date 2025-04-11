@@ -31,8 +31,8 @@ plugins {
 }
 
 dependencies {
-    api("androidx.compose.ui:ui:1.7.0-beta02")
-    api("androidx.compose.runtime:runtime:1.6.0")
+    api("androidx.compose.ui:ui:1.7.0")
+    api("androidx.compose.runtime:runtime:1.7.0")
     api("androidx.navigation:navigation-runtime:2.6.0")
     api(project(":wear:compose:compose-material"))
     api("androidx.activity:activity-compose:1.7.0")
@@ -41,11 +41,10 @@ dependencies {
     implementation(libs.kotlinStdlib)
     implementation("androidx.navigation:navigation-common:2.6.0")
     implementation("androidx.navigation:navigation-compose:2.6.0")
-    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
+    implementation("androidx.profileinstaller:profileinstaller:1.4.0")
 
     androidTestImplementation(project(":compose:test-utils"))
     androidTestImplementation(project(":compose:ui:ui-test-junit4"))
-    androidTestImplementation(project(":navigation:navigation-common"))
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(project(":wear:compose:compose-material"))
     androidTestImplementation(project(":wear:compose:compose-navigation-samples"))
@@ -55,6 +54,8 @@ dependencies {
 }
 
 android {
+    compileSdk 35
+
     defaultConfig {
         minSdkVersion 25
     }
@@ -74,7 +75,6 @@ androidx {
             "to write Jetpack Compose applications for Wearable devices by providing " +
             "functionality to support navigation. " +
             "It builds upon the Jetpack Compose libraries."
-    metalavaK2UastEnabled = true
     legacyDisableKotlinStrictApiMode = true
     samples(project(":wear:compose:compose-navigation-samples"))
 }

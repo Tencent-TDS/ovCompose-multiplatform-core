@@ -34,7 +34,6 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
@@ -48,12 +47,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @MediumTest
-@OptIn(ExperimentalTestApi::class)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.N)
 @RunWith(AndroidJUnit4::class)
 class CoreTextFieldHoverTest {
     @get:Rule val rule = createComposeRule()
 
+    @Suppress("DEPRECATION")
     @Test
     fun whenDefaultIcon_inBoxWithDefaultIcon_textIconIsUsed() =
         runTest(
@@ -63,6 +62,7 @@ class CoreTextFieldHoverTest {
             expectedTextIcon = TYPE_TEXT
         )
 
+    @Suppress("DEPRECATION")
     @Test
     fun whenSetIcon_inBoxWithDefaultIcon_textIconIsUsed() =
         runTest(
@@ -72,6 +72,7 @@ class CoreTextFieldHoverTest {
             expectedTextIcon = TYPE_TEXT
         )
 
+    @Suppress("DEPRECATION")
     @Test
     fun whenSetIcon_withOverride_inBoxWithDefaultIcon_setIconIsUsed() =
         runTest(
@@ -150,6 +151,6 @@ class CoreTextFieldHoverTest {
 
             // Exit hovering over element
             rule.onNodeWithTag(boxTag).performMouseInput { exit() }
-            assertIcon(TYPE_DEFAULT)
+            @Suppress("DEPRECATION") assertIcon(TYPE_DEFAULT)
         }
 }

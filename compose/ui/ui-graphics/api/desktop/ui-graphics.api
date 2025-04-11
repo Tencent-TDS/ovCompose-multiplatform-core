@@ -416,6 +416,7 @@ public final class androidx/compose/ui/graphics/ImageBitmapConfig$Companion {
 public final class androidx/compose/ui/graphics/ImageBitmapKt {
 	public static final fun ImageBitmap-x__-hDU (IIIZLandroidx/compose/ui/graphics/colorspace/ColorSpace;)Landroidx/compose/ui/graphics/ImageBitmap;
 	public static synthetic fun ImageBitmap-x__-hDU$default (IIIZLandroidx/compose/ui/graphics/colorspace/ColorSpace;ILjava/lang/Object;)Landroidx/compose/ui/graphics/ImageBitmap;
+	public static final fun decodeToImageBitmap ([B)Landroidx/compose/ui/graphics/ImageBitmap;
 	public static final fun toPixelMap (Landroidx/compose/ui/graphics/ImageBitmap;IIII[III)Landroidx/compose/ui/graphics/PixelMap;
 	public static synthetic fun toPixelMap$default (Landroidx/compose/ui/graphics/ImageBitmap;IIII[IIIILjava/lang/Object;)Landroidx/compose/ui/graphics/PixelMap;
 }
@@ -994,8 +995,15 @@ public final class androidx/compose/ui/graphics/SkiaColorFilter_skikoKt {
 	public static final fun asSkiaColorFilter (Landroidx/compose/ui/graphics/ColorFilter;)Lorg/jetbrains/skia/ColorFilter;
 }
 
-public final class androidx/compose/ui/graphics/SkiaGraphicsContext_skikoKt {
-	public static final fun GraphicsContext (Landroidx/compose/runtime/snapshots/SnapshotStateObserver;)Landroidx/compose/ui/graphics/GraphicsContext;
+public final class androidx/compose/ui/graphics/SkiaGraphicsContext : androidx/compose/ui/graphics/GraphicsContext {
+	public fun <init> ()V
+	public fun <init> (Z)V
+	public synthetic fun <init> (ZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun createGraphicsLayer ()Landroidx/compose/ui/graphics/layer/GraphicsLayer;
+	public final fun dispose ()V
+	public fun releaseGraphicsLayer (Landroidx/compose/ui/graphics/layer/GraphicsLayer;)V
+	public final fun setLightingInfo (FFFFFF)V
+	public static synthetic fun setLightingInfo$default (Landroidx/compose/ui/graphics/SkiaGraphicsContext;FFFFFFILjava/lang/Object;)V
 }
 
 public final class androidx/compose/ui/graphics/SkiaImageAsset_skikoKt {
@@ -1199,6 +1207,8 @@ public final class androidx/compose/ui/graphics/colorspace/ColorSpaces {
 	public final fun getAcescg ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getAdobeRgb ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getBt2020 ()Landroidx/compose/ui/graphics/colorspace/Rgb;
+	public final fun getBt2020Hlg ()Landroidx/compose/ui/graphics/colorspace/Rgb;
+	public final fun getBt2020Pq ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getBt709 ()Landroidx/compose/ui/graphics/colorspace/Rgb;
 	public final fun getCieLab ()Landroidx/compose/ui/graphics/colorspace/ColorSpace;
 	public final fun getCieXyz ()Landroidx/compose/ui/graphics/colorspace/ColorSpace;

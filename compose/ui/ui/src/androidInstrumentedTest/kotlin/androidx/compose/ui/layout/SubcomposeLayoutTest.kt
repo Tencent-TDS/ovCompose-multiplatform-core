@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -54,6 +55,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.draw.assertColor
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.isExactly
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
@@ -64,6 +66,8 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.semanticsId
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.TestActivity
 import androidx.compose.ui.test.assertCountEquals
@@ -77,20 +81,25 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -106,6 +115,19 @@ class SubcomposeLayoutTest {
     @get:Rule val rule = createAndroidComposeRule<TestActivity>()
 
     @get:Rule val excessiveAssertions = AndroidOwnerExtraAssertionsRule()
+
+    @After
+    fun teardown() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val activity = rule.activity
+        while (!activity.isDestroyed) {
+            instrumentation.runOnMainSync {
+                if (!activity.isDestroyed) {
+                    activity.finish()
+                }
+            }
+        }
+    }
 
     @Test
     fun useSizeOfTheFirstItemInSecondSubcomposition() {
@@ -812,10 +834,14 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(2))
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
+        val id1 = rule.onNodeWithTag("1").semanticsId()
 
         rule.runOnIdle { items.value = listOf(2, 3) }
 
-        assertNodes(active = listOf(2, 3), deactivated = listOf(0, 1), disposed = listOf(4))
+        assertNodes(active = listOf(2, 3), disposed = listOf(4))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
     }
 
     @Test
@@ -824,6 +850,7 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(2))
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
 
         rule.runOnIdle {
             items.value = listOf(2, 3)
@@ -835,7 +862,8 @@ class SubcomposeLayoutTest {
             // the last reusable slot (1) will be used for composing 5
         }
 
-        assertNodes(active = listOf(2, 3, 5), deactivated = listOf(0), disposed = listOf(1, 4))
+        assertNodes(active = listOf(2, 3, 5), disposed = listOf(1, 4))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
     }
 
     @Test
@@ -844,6 +872,7 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(2))
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
 
         rule.runOnIdle {
             items.value = listOf(2, 3)
@@ -855,7 +884,8 @@ class SubcomposeLayoutTest {
             // slot 1 should be taken back from reusable
         }
 
-        assertNodes(active = listOf(2, 3, 1), deactivated = listOf(0))
+        assertNodes(active = listOf(2, 3, 1))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
     }
 
     @Test
@@ -864,6 +894,7 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(2))
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
 
         rule.runOnIdle {
             items.value = listOf(2, 3)
@@ -875,7 +906,8 @@ class SubcomposeLayoutTest {
             // prefetch should take slot 1 from reuse
         }
 
-        assertNodes(active = listOf(2, 3) + /*prefetch*/ listOf(5), deactivated = listOf(0))
+        assertNodes(active = listOf(2, 3) + /*prefetch*/ listOf(5))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
     }
 
     @Test
@@ -884,6 +916,8 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(3))
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
+        val id1 = rule.onNodeWithTag("1").semanticsId()
 
         rule.runOnIdle {
             items.value = listOf(2)
@@ -895,11 +929,9 @@ class SubcomposeLayoutTest {
             // prefetch should take slot 3 from reuse
         }
 
-        assertNodes(
-            active = listOf(2) + /*prefetch*/ listOf(3),
-            deactivated = listOf(0, 1),
-            disposed = listOf(4)
-        )
+        assertNodes(active = listOf(2) + /*prefetch*/ listOf(3), disposed = listOf(4))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
     }
 
     @Test
@@ -920,10 +952,12 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(SubcomposeSlotReusePolicy(1))
 
         composeItems(state, items)
+        val id2 = rule.onNodeWithTag("2").semanticsId()
 
         rule.runOnIdle { items.value = listOf(0, 1) }
 
-        assertNodes(active = listOf(0, 1), deactivated = listOf(2), disposed = listOf(3))
+        assertNodes(active = listOf(0, 1), disposed = listOf(3))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id2)
     }
 
     @SuppressLint("RememberReturnType")
@@ -1322,14 +1356,15 @@ class SubcomposeLayoutTest {
         }
 
         rule.onNodeWithTag("child").assertExists()
+        val idChild = rule.onNodeWithTag("child").semanticsId()
 
         needChild.value = false
 
-        rule.onNodeWithTag("child").assertIsDeactivated()
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(idChild)
 
         layoutState.value = SubcomposeLayoutState(SubcomposeSlotReusePolicy(1))
 
-        rule.onNodeWithTag("child").assertIsDeactivated()
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(idChild)
     }
 
     @Test
@@ -1351,9 +1386,11 @@ class SubcomposeLayoutTest {
             }
         }
 
+        val idChild = rule.onNodeWithTag("child").semanticsId()
+
         rule.runOnIdle { needChild.value = false }
 
-        rule.onNodeWithTag("child").assertIsDeactivated()
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(idChild)
 
         layoutState.value = SubcomposeLayoutState(SubcomposeSlotReusePolicy(0))
 
@@ -1413,11 +1450,12 @@ class SubcomposeLayoutTest {
         }
 
         rule.onNodeWithTag("child").assertExists()
+        val idChild = rule.onNodeWithTag("child").semanticsId()
 
         assertThat(composed).isTrue()
         needChild.value = false
 
-        rule.onNodeWithTag("child").assertIsDeactivated()
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(idChild)
         assertThat(composed).isFalse()
         needChild.value = true
 
@@ -1444,10 +1482,12 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(policy)
 
         composeItems(state, items)
+        val id2 = rule.onNodeWithTag("2").semanticsId()
 
         rule.runOnIdle { items.value = listOf(0, 3) }
 
-        assertNodes(active = listOf(0, 3), deactivated = listOf(2), disposed = listOf(1, 4))
+        assertNodes(active = listOf(0, 3), disposed = listOf(1, 4))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id2)
 
         rule.runOnIdle { items.value = listOf(0, 3, 5) }
 
@@ -1533,6 +1573,7 @@ class SubcomposeLayoutTest {
         fun isOdd(number: Any?): Boolean {
             return (number as Int) % 2 == 1
         }
+
         val items = mutableStateOf(listOf(0, 1, 2, 3, 4, 5, 6))
         val policy =
             object : SubcomposeSlotReusePolicy {
@@ -1547,10 +1588,16 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(policy)
 
         composeItems(state, items)
+        val id1 = rule.onNodeWithTag("1").semanticsId()
+        val id3 = rule.onNodeWithTag("3").semanticsId()
+        val id5 = rule.onNodeWithTag("5").semanticsId()
 
         rule.runOnIdle { items.value = listOf() }
 
-        assertNodes(deactivated = listOf(1, 3, 5), disposed = listOf(0, 2, 4, 6))
+        assertNodes(disposed = listOf(0, 2, 4, 6))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id5)
 
         rule.runOnIdle {
             items.value = listOf(8, 9, 10)
@@ -1558,7 +1605,9 @@ class SubcomposeLayoutTest {
             // 5 is reused for 9
         }
 
-        assertNodes(active = listOf(8, 9, 10), deactivated = listOf(1, 3), disposed = listOf(5))
+        assertNodes(active = listOf(8, 9, 10), disposed = listOf(5))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
     }
 
     @Test
@@ -1566,6 +1615,7 @@ class SubcomposeLayoutTest {
         fun isOdd(number: Any?): Boolean {
             return (number as Int) % 2 == 1
         }
+
         val items = mutableStateOf(listOf(0, 1, 2, 3))
         val policy =
             object : SubcomposeSlotReusePolicy {
@@ -1578,16 +1628,26 @@ class SubcomposeLayoutTest {
         val state = SubcomposeLayoutState(policy)
 
         composeItems(state, items)
+        val id0 = rule.onNodeWithTag("0").semanticsId()
+        val id1 = rule.onNodeWithTag("1").semanticsId()
+        val id2 = rule.onNodeWithTag("2").semanticsId()
+        val id3 = rule.onNodeWithTag("3").semanticsId()
 
         rule.runOnIdle { items.value = listOf() }
 
-        assertNodes(deactivated = listOf(0, 1, 2, 3))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id2)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
 
         rule.runOnIdle {
             items.value = listOf(10) // slot 2 should be reused
         }
 
-        assertNodes(active = listOf(10), deactivated = listOf(0, 1, 3), disposed = listOf(2))
+        assertNodes(active = listOf(10), disposed = listOf(2))
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id0)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id1)
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(id3)
     }
 
     @Test
@@ -2119,13 +2179,15 @@ class SubcomposeLayoutTest {
             }
         }
 
+        val idTag = rule.onNodeWithTag("tag").semanticsId()
+
         rule.runOnIdle { flag = false }
 
         // the node will exist when after `flag` was switched to false it will first cause
         // remeasure, and because during the remeasure we will not subcompose the child
         // the node will be deactivated before its block recomposes causing the Box to be
         // removed from the hierarchy.
-        rule.onNodeWithTag("tag").assertIsDeactivated()
+        rule.onRoot().fetchSemanticsNode().assertLayoutDeactivatedById(idTag)
     }
 
     // Regression test of b/271156218
@@ -2498,6 +2560,15 @@ class SubcomposeLayoutTest {
         rule.runOnIdle { assertThat(disposeOrder).isExactly("inner 2", "outer", "inner 1") }
     }
 
+    @SdkSuppress(
+        excludedSdks =
+            [
+                // API 28 is using ViewLayer which invalidates when layer is created
+                Build.VERSION_CODES.P,
+                // waitForIdle doesn't wait for draw on API 26 (b/372068529)
+                Build.VERSION_CODES.O
+            ]
+    )
     @Test
     fun precomposeAndPremeasureAreNotCausingViewInvalidations() {
         val state = SubcomposeLayoutState()
@@ -2524,6 +2595,439 @@ class SubcomposeLayoutTest {
         rule.runOnIdle { assertThat(drawingCount).isEqualTo(0) }
     }
 
+    @Test
+    fun placeChildrenWithoutFirstPlacingThemInLookahead() {
+        var lookaheadPos: Offset? = null
+        var approachPos: Offset? = null
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                    SubcomposeLayout(Modifier.size(200.dp, 600.dp)) {
+                        val m1 = subcompose(1) { Box(Modifier.size(200.dp)) }
+                        val m2 =
+                            subcompose(2) {
+                                // This box's placement is skipped in lookahead
+                                Box(
+                                    Modifier.passThroughLayout { placementScope ->
+                                            with(placementScope) {
+                                                val pos = coordinates?.positionInParent()
+                                                if (isLookingAhead) {
+                                                    lookaheadPos = pos ?: lookaheadPos
+                                                } else {
+                                                    approachPos = pos ?: lookaheadPos
+                                                }
+                                            }
+                                        }
+                                        .size(200.dp)
+                                )
+                            }
+                        val p1 = m1[0].measure(it)
+                        val p2 = m2[0].measure(it)
+                        layout(200, 400) {
+                            if (isLookingAhead) {
+                                p1.place(0, 0)
+                            } else {
+                                p1.place(0, 0)
+                                p2.place(0, 200)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.runOnIdle {
+            assertEquals(Offset(0f, 200f), lookaheadPos)
+            assertEquals(Offset(0f, 200f), approachPos)
+        }
+    }
+
+    @Test
+    fun placeChildrenWithMFRWithoutFirstPlacingThemInLookahead() {
+        // Check that place with motion frame of reference is picked up by lookahead
+        var lookaheadPos: Offset? = null
+        var approachPos: Offset? = null
+        var lookaheadPosExcludeMFR: Offset? = null
+        var approachPosExcludeMFR: Offset? = null
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                    SubcomposeLayout(Modifier.size(200.dp, 600.dp)) {
+                        val m1 = subcompose(1) { Box(Modifier.size(200.dp)) }
+                        val m2 =
+                            subcompose(2) {
+                                // This box's placement is skipped in lookahead
+                                Box(
+                                    Modifier.passThroughLayout { placementScope ->
+                                            with(placementScope) {
+                                                val pos = coordinates?.positionInParent()
+                                                val posExcludeMFR =
+                                                    coordinates
+                                                        ?.parentCoordinates
+                                                        ?.localPositionOf(
+                                                            coordinates!!,
+                                                            includeMotionFrameOfReference = false
+                                                        )
+                                                if (isLookingAhead) {
+                                                    lookaheadPos = pos ?: lookaheadPos
+                                                    lookaheadPosExcludeMFR = posExcludeMFR
+                                                } else {
+                                                    approachPos = pos ?: lookaheadPos
+                                                    approachPosExcludeMFR = posExcludeMFR
+                                                }
+                                            }
+                                        }
+                                        .size(200.dp)
+                                )
+                            }
+                        val p1 = m1[0].measure(it)
+                        val p2 = m2[0].measure(it)
+                        layout(200, 400) {
+                            if (isLookingAhead) {
+                                p1.place(0, 0)
+                            } else {
+                                p1.place(0, 0)
+                                withMotionFrameOfReferencePlacement { p2.place(0, 200) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        rule.runOnIdle {
+            assertEquals(Offset(0f, 200f), lookaheadPos)
+            assertEquals(Offset(0f, 200f), approachPos)
+            assertEquals(Offset.Zero, lookaheadPosExcludeMFR)
+            assertEquals(Offset.Zero, approachPosExcludeMFR)
+        }
+    }
+
+    @Test
+    fun addContentToItemDetachedFromLookaheadPlacement() {
+        // Add content to the child of subcomposeLayout that has intentionally skipped lookahead
+        // placement, and make sure that the new content gets accounted for in both
+        // lookahead and approach.
+        var lookaheadSize: IntSize? = null
+        var approachSize: IntSize? = null
+        var itemCount by mutableStateOf(1)
+        var lookaheadPos: Array<Offset?> = arrayOfNulls(6)
+        var approachPos: Array<Offset?> = arrayOfNulls(6)
+        rule.setContent {
+            SubcomposeLayoutWithItemDetachedFromLookaheadPlacement {
+                // The content that is detached from LookaheadPlacement
+                Column(
+                    Modifier.wrapContentSize().layout { m, c ->
+                        m.measure(c).run {
+                            if (isLookingAhead) {
+                                lookaheadSize = IntSize(width, height)
+                            } else {
+                                approachSize = IntSize(width, height)
+                            }
+                            layout(width, height) { place(0, 0) }
+                        }
+                    }
+                ) {
+                    repeat(itemCount) { id ->
+                        Box(
+                            Modifier.passThroughLayout {
+                                    with(it) {
+                                        if (isLookingAhead) {
+                                            lookaheadPos[id] = coordinates?.positionInParent()
+                                        } else {
+                                            approachPos[id] = coordinates?.positionInParent()
+                                        }
+                                    }
+                                }
+                                .size(100.dp, 100.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        repeat(5) {
+            rule.waitForIdle()
+            assertEquals(IntSize(100, 100 * itemCount), lookaheadSize)
+            assertEquals(IntSize(100, 100 * itemCount), approachSize)
+            repeat(itemCount) {
+                assertEquals(Offset(0f, it * 100f), lookaheadPos[it])
+                assertEquals(Offset(0f, it * 100f), approachPos[it])
+            }
+            itemCount = it + 1
+        }
+    }
+
+    /* Add content to the child of subcomposeLayout that is nested in another
+     * SubcomposeLayout that has intentionally skipped lookahead
+     * placement, and make sure that the new content gets accounted for in both
+     * lookahead and approach.
+     */
+    @Test
+    fun addContentToNestedItemDetachedFromLookaheadPlacement() {
+        var lookaheadSize: IntSize? = null
+        var approachSize: IntSize? = null
+        var itemCount by mutableStateOf(1)
+        var lookaheadPos: Array<Offset?> = arrayOfNulls(6)
+        var approachPos: Array<Offset?> = arrayOfNulls(6)
+        rule.setContent {
+            SubcomposeLayoutWithItemDetachedFromLookaheadPlacement {
+                SubcomposeLayoutWithItemDetachedFromLookaheadPlacement {
+                    // The content that is detached from LookaheadPlacement
+                    Column(
+                        Modifier.wrapContentSize().layout { m, c ->
+                            m.measure(c).run {
+                                if (isLookingAhead) {
+                                    lookaheadSize = IntSize(width, height)
+                                } else {
+                                    approachSize = IntSize(width, height)
+                                }
+                                layout(width, height) { place(0, 0) }
+                            }
+                        }
+                    ) {
+                        repeat(itemCount) { id ->
+                            Box(
+                                Modifier.passThroughLayout {
+                                        with(it) {
+                                            if (isLookingAhead) {
+                                                lookaheadPos[id] = coordinates?.positionInParent()
+                                            } else {
+                                                approachPos[id] = coordinates?.positionInParent()
+                                            }
+                                        }
+                                    }
+                                    .size(100.dp, 100.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        repeat(5) {
+            rule.waitForIdle()
+            assertEquals(IntSize(100, 100 * itemCount), lookaheadSize)
+            assertEquals(IntSize(100, 100 * itemCount), approachSize)
+            repeat(itemCount) {
+                assertEquals(Offset(0f, it * 100f), lookaheadPos[it])
+                assertEquals(Offset(0f, it * 100f), approachPos[it])
+            }
+            itemCount = it + 1
+        }
+    }
+
+    @Test
+    fun changePositionOfItemDetachedFromLookaheadPlacement() {
+        var lookaheadPos: Offset? = null
+        var approachPos: Offset? = null
+        var itemPos: IntOffset by mutableStateOf(IntOffset(0, 200))
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                    SubcomposeLayout(Modifier.size(200.dp, 600.dp)) {
+                        val m1 = subcompose(1) { Box(Modifier.size(200.dp)) }
+                        val m2 =
+                            subcompose(2) {
+                                // This box's placement is skipped in lookahead
+                                Box(
+                                    Modifier.passThroughLayout { placementScope ->
+                                            with(placementScope) {
+                                                val pos = coordinates?.positionInParent()
+                                                if (isLookingAhead) {
+                                                    lookaheadPos = pos ?: lookaheadPos
+                                                } else {
+                                                    approachPos = pos ?: lookaheadPos
+                                                }
+                                            }
+                                        }
+                                        .size(200.dp)
+                                )
+                            }
+                        val p1 = m1[0].measure(it)
+                        val p2 = m2[0].measure(it)
+                        layout(200, 400) {
+                            if (isLookingAhead) {
+                                p1.place(0, 0)
+                            } else {
+                                p1.place(0, 0)
+                                p2.place(itemPos.x, itemPos.y)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        rule.waitForIdle()
+        assertEquals(itemPos, lookaheadPos?.round())
+        assertEquals(itemPos, approachPos?.round())
+
+        itemPos = IntOffset(70, 50)
+        rule.waitForIdle()
+        assertEquals(itemPos, lookaheadPos?.round())
+        assertEquals(itemPos, approachPos?.round())
+    }
+
+    @Test
+    fun changeLookaheadPositionOfContentDetachedFromParentLookaheadPlacement() {
+        var lookaheadOffset by mutableStateOf(IntOffset(50, 20))
+        var lookaheadOffsetFromParent: Offset? = null
+        var approachOffsetFromParent: Offset? = null
+        rule.setContent {
+            SubcomposeLayoutWithItemDetachedFromLookaheadPlacement {
+                Box(
+                    Modifier.size(100.dp)
+                        .layout { m, c ->
+                            m.measure(c).run {
+                                layout(width, height) {
+                                    if (isLookingAhead) {
+                                        place(lookaheadOffset.x, lookaheadOffset.y)
+                                    } else {
+                                        place(100, 0)
+                                    }
+                                }
+                            }
+                        }
+                        .passThroughLayout {
+                            with(it) {
+                                val offset =
+                                    coordinates
+                                        ?.parentCoordinates
+                                        ?.parentCoordinates
+                                        ?.localPositionOf(coordinates!!)
+                                if (isLookingAhead) {
+                                    lookaheadOffsetFromParent = offset
+                                } else {
+                                    approachOffsetFromParent = offset
+                                }
+                            }
+                        }
+                )
+            }
+        }
+        rule.waitForIdle()
+        assertEquals(lookaheadOffset, lookaheadOffsetFromParent?.round())
+        assertEquals(IntOffset(100, 0), approachOffsetFromParent?.round())
+
+        lookaheadOffset = IntOffset(23, 45)
+        rule.waitForIdle()
+        assertEquals(lookaheadOffset, lookaheadOffsetFromParent?.round())
+        assertEquals(IntOffset(100, 0), approachOffsetFromParent?.round())
+
+        lookaheadOffset = IntOffset(65, 432)
+        rule.waitForIdle()
+        assertEquals(lookaheadOffset, lookaheadOffsetFromParent?.round())
+        assertEquals(IntOffset(100, 0), approachOffsetFromParent?.round())
+    }
+
+    @Composable
+    private fun SubcomposeLayoutWithItemDetachedFromLookaheadPlacement(
+        detachedFromParentLookaheadPlacmeentItemContent: @Composable () -> Unit
+    ) {
+        LookaheadScope {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                SubcomposeLayout(Modifier.size(200.dp, 600.dp)) {
+                    val m1 = subcompose(1) { Box(Modifier.size(200.dp)) }
+                    val m2 =
+                        subcompose(2) {
+                            // This box's placement is skipped in lookahead
+                            detachedFromParentLookaheadPlacmeentItemContent()
+                        }
+                    val p1 = m1[0].measure(it)
+                    val p2 = m2[0].measure(it)
+                    layout(200, 400) {
+                        if (isLookingAhead) {
+                            p1.place(0, 0)
+                        } else {
+                            p1.place(0, 0)
+                            p2.place(0, 200)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun subcomposePlacementFromPlacedToNotPlaced() {
+        alternateLookaheadPlacement(booleanArrayOf(true, false, true))
+    }
+
+    @Test
+    fun subcomposePlacementFromNotPlacedToPlaced() {
+        alternateLookaheadPlacement(booleanArrayOf(false, true, false))
+    }
+
+    private fun alternateLookaheadPlacement(shouldPlaceItem: BooleanArray) {
+        var lookaheadPos: Offset? = null
+        var approachPos: Offset? = null
+        var placeItem2InLookahead: Boolean by mutableStateOf(shouldPlaceItem[0])
+        rule.setContent {
+            LookaheadScope {
+                CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                    SubcomposeLayout(Modifier.size(200.dp, 600.dp)) {
+                        val m1 = subcompose(1) { Box(Modifier.size(200.dp)) }
+                        val m2 =
+                            subcompose(2) {
+                                // This box's placement is skipped in lookahead
+                                Box(
+                                    Modifier.passThroughLayout { placementScope ->
+                                            with(placementScope) {
+                                                val pos = coordinates?.positionInParent()
+                                                if (isLookingAhead) {
+                                                    lookaheadPos = pos ?: lookaheadPos
+                                                } else {
+                                                    approachPos = pos ?: lookaheadPos
+                                                }
+                                            }
+                                        }
+                                        .size(200.dp)
+                                )
+                            }
+                        val p1 = m1[0].measure(it)
+                        val p2 = m2[0].measure(it)
+                        layout(200, 400) {
+                            if (isLookingAhead) {
+                                p1.place(0, 0)
+                                if (placeItem2InLookahead) {
+                                    p2.place(0, 300)
+                                }
+                            } else {
+                                p1.place(0, 0)
+                                p2.place(0, 200)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        repeat(shouldPlaceItem.size) { id ->
+            rule.runOnIdle {
+                assertEquals(shouldPlaceItem[id], placeItem2InLookahead)
+                if (placeItem2InLookahead) {
+                    assertEquals(Offset(0f, 300f), lookaheadPos)
+                } else {
+                    assertEquals(Offset(0f, 200f), lookaheadPos)
+                }
+                assertEquals(Offset(0f, 200f), approachPos)
+            }
+            if (shouldPlaceItem.size > id + 1) {
+                placeItem2InLookahead = shouldPlaceItem[id + 1]
+            }
+        }
+    }
+
+    private fun Modifier.passThroughLayout(
+        beforePlace: MeasureScope.(Placeable.PlacementScope) -> Unit
+    ) =
+        this.layout { m, c ->
+            m.measure(c).run {
+                layout(width, height) {
+                    beforePlace(this)
+                    place(0, 0)
+                }
+            }
+        }
+
     private fun SubcomposeMeasureScope.measure(
         slotId: Any,
         constraints: Constraints,
@@ -2546,13 +3050,8 @@ class SubcomposeLayoutTest {
         Box(Modifier.fillMaxSize().testTag("$index"))
     }
 
-    private fun assertNodes(
-        active: List<Int> = emptyList(),
-        deactivated: List<Int> = emptyList(),
-        disposed: List<Int> = emptyList()
-    ) {
+    private fun assertNodes(active: List<Int> = emptyList(), disposed: List<Int> = emptyList()) {
         active.forEach { rule.onNodeWithTag("$it").assertExists() }
-        deactivated.forEach { rule.onNodeWithTag("$it").assertIsDeactivated() }
         disposed.forEach { rule.onNodeWithTag("$it").assertDoesNotExist() }
     }
 
@@ -2560,6 +3059,14 @@ class SubcomposeLayoutTest {
         assertDoesNotExist()
         // we want to verify the node is not deactivated, but such API does not exist yet
         expectAssertionError { assertIsDeactivated() }
+    }
+
+    private fun SemanticsNode.assertLayoutDeactivatedById(id: Int) {
+        children.fastForEach {
+            if (it.id == id) {
+                assert(it.layoutInfo.isDeactivated)
+            }
+        }
     }
 }
 

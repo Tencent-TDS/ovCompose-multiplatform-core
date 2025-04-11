@@ -24,6 +24,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.internal.readAnnotatedString
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -58,6 +60,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.assertPixelColor
 import androidx.compose.testutils.assertShape
+import androidx.compose.testutils.expectError
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -71,15 +74,19 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -159,6 +166,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import kotlin.test.assertFailsWith
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -404,7 +412,7 @@ class TextFieldTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = Color.White,
                 backgroundColor = Color.White,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -447,7 +455,7 @@ class TextFieldTest : FocusedWindowTest {
     }
 
     @Test
-    fun semantics_setTextAction_doesNothingWhenReadOnly() {
+    fun semantics_setTextAction_throwsAssertionErrorWhenReadOnly() {
         rule.setContent {
             var value by remember { mutableStateOf("") }
             BasicTextField(
@@ -458,7 +466,9 @@ class TextFieldTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(Tag).performTextReplacement("hello")
+        expectError<AssertionError>(expectedMessage = "Failed to perform text input.*") {
+            rule.onNodeWithTag(Tag).performTextReplacement("hello")
+        }
         rule.onNodeWithTag(Tag).assertEditableTextEquals("")
     }
 
@@ -478,7 +488,7 @@ class TextFieldTest : FocusedWindowTest {
     }
 
     @Test
-    fun semantics_insertTextAction_doesNothingWhenReadOnly() {
+    fun semantics_insertTextAction_throwsAssertionErrorWhenReadOnly() {
         rule.setContent {
             var value by remember { mutableStateOf("") }
             BasicTextField(
@@ -489,7 +499,10 @@ class TextFieldTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(Tag).performTextInput("hello")
+        expectError<AssertionError>(expectedMessage = "Failed to perform text input.*") {
+            rule.onNodeWithTag(Tag).performTextInput("hello")
+        }
+
         rule.onNodeWithTag(Tag).assertEditableTextEquals("")
     }
 
@@ -1288,25 +1301,28 @@ class TextFieldTest : FocusedWindowTest {
 
     // Regression test for b/311834126
     @Test
-    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() {
+    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() = runTest {
         val longText = "Text".repeat(4)
         val shortText = "Text".repeat(2)
 
         var tfv by mutableStateOf(TextFieldValue(shortText))
-        val clipboardManager =
-            object : ClipboardManager {
+        val clipboard =
+            object : Clipboard {
                 var contents: AnnotatedString? = null
 
-                override fun setText(annotatedString: AnnotatedString) {
-                    contents = annotatedString
+                override suspend fun getClipEntry(): ClipEntry? {
+                    return contents?.toClipEntry()
                 }
 
-                override fun getText(): AnnotatedString? {
-                    return contents
+                override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+                    contents = clipEntry?.readAnnotatedString()
                 }
+
+                override val nativeClipboard: NativeClipboard
+                    get() = error("FakeClipboard doesn't have a backing NativeClipboard")
             }
         rule.setTextFieldTestContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     value = tfv,
                     onValueChange = { tfv = it },
@@ -1314,7 +1330,7 @@ class TextFieldTest : FocusedWindowTest {
                 )
             }
         }
-        clipboardManager.setText(AnnotatedString(longText))
+        clipboard.setClipEntry(AnnotatedString(longText).toClipEntry())
         rule.waitForIdle()
 
         val node = rule.onNodeWithTag(Tag)
@@ -1533,6 +1549,25 @@ class TextFieldTest : FocusedWindowTest {
         rule.waitForIdle()
 
         assertThat(tfvState.value.selection).isEqualTo(TextRange(targetOffset))
+    }
+
+    @Test
+    fun doesNotStopBeingTextEditor_whenWindowFocusLost() {
+        var windowFocus by mutableStateOf(true)
+        inputMethodInterceptor.setContent {
+            CompositionLocalProvider(
+                LocalWindowInfo provides
+                    object : WindowInfo {
+                        override val isWindowFocused: Boolean
+                            get() = windowFocus
+                    }
+            ) {
+                BasicTextField("", {}, Modifier.testTag(Tag))
+            }
+        }
+        rule.onNodeWithTag(Tag).requestFocus()
+        rule.runOnIdle { windowFocus = false }
+        inputMethodInterceptor.assertSessionActive()
     }
 }
 

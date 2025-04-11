@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
 
 package androidx.compose.ui.graphics.colorspace
 
 import androidx.annotation.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces.transferHlgEotf
+import androidx.compose.ui.graphics.colorspace.ColorSpaces.transferHlgOetf
+import androidx.compose.ui.graphics.colorspace.ColorSpaces.transferSt2048Eotf
+import androidx.compose.ui.graphics.colorspace.ColorSpaces.transferSt2048Oetf
 import androidx.compose.ui.util.packFloats
 import kotlin.math.abs
 import kotlin.math.pow
@@ -484,40 +488,8 @@ internal constructor(
         primaries,
         whitePoint,
         null,
-        if (function.e == 0.0 && function.f == 0.0)
-            DoubleFunction { x ->
-                rcpResponse(x, function.a, function.b, function.c, function.d, function.gamma)
-            }
-        else
-            DoubleFunction { x ->
-                rcpResponse(
-                    x,
-                    function.a,
-                    function.b,
-                    function.c,
-                    function.d,
-                    function.e,
-                    function.f,
-                    function.gamma
-                )
-            },
-        if (function.e == 0.0 && function.f == 0.0)
-            DoubleFunction { x ->
-                response(x, function.a, function.b, function.c, function.d, function.gamma)
-            }
-        else
-            DoubleFunction { x ->
-                response(
-                    x,
-                    function.a,
-                    function.b,
-                    function.c,
-                    function.d,
-                    function.e,
-                    function.f,
-                    function.gamma
-                )
-            },
+        generateOetf(function),
+        generateEotf(function),
         0.0f,
         1.0f,
         function,
@@ -881,10 +853,9 @@ internal constructor(
         var result = super.hashCode()
         result = 31 * result + whitePoint.hashCode()
         result = 31 * result + primaries.contentHashCode()
-        result = 31 * result + (if (min != +0.0f) min.toBits() else 0)
-        result = 31 * result + (if (max != +0.0f) max.toBits() else 0)
-        result =
-            (31 * result + if (transferParameters != null) transferParameters.hashCode() else 0)
+        result = 31 * result + (if (min != 0.0f) min.toBits() else 0)
+        result = 31 * result + (if (max != 0.0f) max.toBits() else 0)
+        result = (31 * result + (transferParameters?.hashCode() ?: 0))
         if (transferParameters == null) {
             result = 31 * result + oetfOrig.hashCode()
             result = 31 * result + eotfOrig.hashCode()
@@ -1215,6 +1186,65 @@ internal constructor(
                 bY,
                 bYBy * (1f - bx - by)
             )
+        }
+
+        private fun generateOetf(function: TransferParameters): DoubleFunction {
+            return if (function.isHLGish) {
+                DoubleFunction { x: Double -> transferHlgOetf(function, x) }
+            } else if (function.isPQish) {
+                DoubleFunction { x: Double -> transferSt2048Oetf(function, x) }
+            } else {
+                if (function.e == 0.0 && function.f == 0.0)
+                    DoubleFunction { x: Double ->
+                        rcpResponse(
+                            x,
+                            function.a,
+                            function.b,
+                            function.c,
+                            function.d,
+                            function.gamma
+                        )
+                    }
+                else
+                    DoubleFunction { x: Double ->
+                        rcpResponse(
+                            x,
+                            function.a,
+                            function.b,
+                            function.c,
+                            function.d,
+                            function.e,
+                            function.f,
+                            function.gamma
+                        )
+                    }
+            }
+        }
+
+        private fun generateEotf(function: TransferParameters): DoubleFunction {
+            return if (function.isHLGish) {
+                DoubleFunction { x: Double -> transferHlgEotf(function, x) }
+            } else if (function.isPQish) {
+                DoubleFunction { x: Double -> transferSt2048Eotf(function, x) }
+            } else {
+                if (function.e == 0.0 && function.f == 0.0)
+                    DoubleFunction { x: Double ->
+                        response(x, function.a, function.b, function.c, function.d, function.gamma)
+                    }
+                else
+                    DoubleFunction { x: Double ->
+                        response(
+                            x,
+                            function.a,
+                            function.b,
+                            function.c,
+                            function.d,
+                            function.e,
+                            function.f,
+                            function.gamma
+                        )
+                    }
+            }
         }
     }
 }

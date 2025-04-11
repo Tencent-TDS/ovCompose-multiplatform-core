@@ -46,6 +46,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
+@OptIn(ExperimentalFoundationApi::class)
 @LargeTest
 @RunWith(Parameterized::class)
 class LazyGridPrefetcherTest(orientation: Orientation) :
@@ -103,7 +104,6 @@ class LazyGridPrefetcherTest(orientation: Orientation) :
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
         waitForPrefetch()
-        waitForPrefetch()
 
         rule.onNodeWithTag("4").assertExists()
         rule.onNodeWithTag("5").assertExists()
@@ -116,7 +116,6 @@ class LazyGridPrefetcherTest(orientation: Orientation) :
 
         rule.runOnIdle { runBlocking { state.scrollBy(-5f) } }
 
-        waitForPrefetch()
         waitForPrefetch()
 
         rule.onNodeWithTag("2").assertExists()
@@ -131,7 +130,6 @@ class LazyGridPrefetcherTest(orientation: Orientation) :
         rule.runOnIdle { runBlocking { state.scrollBy(5f) } }
 
         waitForPrefetch()
-        waitForPrefetch()
 
         rule.onNodeWithTag("6").assertExists()
         rule.onNodeWithTag("7").assertExists()
@@ -144,7 +142,6 @@ class LazyGridPrefetcherTest(orientation: Orientation) :
             }
         }
 
-        waitForPrefetch()
         waitForPrefetch()
 
         rule.onNodeWithTag("0").assertExists()

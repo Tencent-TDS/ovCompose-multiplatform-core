@@ -23,7 +23,10 @@ import androidx.compose.ui.input.pointer.PointerEventType.Companion.Press
 import androidx.compose.ui.input.pointer.PointerEventType.Companion.Release
 import androidx.compose.ui.input.pointer.PointerInputEvent
 import androidx.compose.ui.input.pointer.SyntheticEventSender
+import androidx.compose.ui.scene.PointerEventResult
 import kotlin.test.Test
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalComposeUiApi::class)
 class SyntheticEventSenderTest {
@@ -179,11 +182,289 @@ class SyntheticEventSenderTest {
         )
     }
 
+    @Test
+    fun `touch, should generate one press at a time on simultaneous touches press`() {
+        eventsSentBy(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true)
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true)
+            ),
+        ) positionAndDownShouldEqual listOf(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true)
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true)
+            )
+        )
+    }
+
+    @Test
+    fun `touch, should generate one release at a time on simultaneous touches release`() {
+        eventsSentBy(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+        ) positionAndDownShouldEqual listOf(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = false),
+            ),
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                1 to touch(1f, 3f, pressed = false),
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = true),
+            ),
+            event(
+                Release,
+                2 to touch(10f, 20f, pressed = false),
+                3 to touch(100f, 200f, pressed = false),
+            )
+        )
+    }
+
+    @Test
+    fun `should consume move event when synthetic events added`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only synthetic move event
+            PointerEventResult(anyMovementConsumed = event.eventType == Move)
+        }
+
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertTrue(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
+    }
+
+    @Test
+    fun `should not consume event none of synthetic events consumed`() {
+        val sender = SyntheticEventSender {
+            PointerEventResult(anyMovementConsumed = false)
+        }
+
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertFalse(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
+    }
+
+    @Test
+    fun `should consume event when any synthetic event consumed`() {
+        val sender = SyntheticEventSender { event ->
+            PointerEventResult(anyMovementConsumed = event.eventType == Move)
+        }
+
+        assertFalse(
+            sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+                .anyMovementConsumed
+        )
+        assertTrue(
+            sender.send(mouseEvent(Press, 10f, 25f, pressed = true))
+                .anyMovementConsumed
+        )
+    }
+
+    @Test
+    fun `should consume press event when any synthetic event consumed`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only first synthetic Press event
+            PointerEventResult(
+                anyMovementConsumed = event.eventType == Press &&
+                    event.pointers.singleOrNull { it.down } != null
+            )
+        }
+
+        assertTrue(
+            sender.send(
+                event(
+                    Press,
+                    1 to touch(1f, 3f, pressed = true),
+                    2 to touch(10f, 20f, pressed = true),
+                    3 to touch(100f, 200f, pressed = true),
+                )
+            ).anyMovementConsumed
+        )
+    }
+
+    @Test
+    fun `should consume release event when synthetic events consumed`() {
+        val sender = SyntheticEventSender { event ->
+            // Consume only first synthetic Release event
+            PointerEventResult(
+                anyMovementConsumed = event.eventType == Release &&
+                    event.pointers.singleOrNull { !it.down } != null
+            )
+        }
+
+        sender.send(
+            event(
+                Press,
+                1 to touch(1f, 3f, pressed = true),
+                2 to touch(10f, 20f, pressed = true),
+                3 to touch(100f, 200f, pressed = true),
+            )
+        )
+
+        assertTrue(
+            sender.send(
+                event(
+                    Release,
+                    1 to touch(1f, 3f, pressed = false),
+                    2 to touch(10f, 20f, pressed = false),
+                    3 to touch(100f, 200f, pressed = false),
+                ),
+            ).anyMovementConsumed
+        )
+    }
+
+    @Test
+    fun `should update pointer position with move event after hover event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(mouseEvent(Enter, 10f, 20f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Enter, 1 to touch(10f, 20f, pressed = false)),
+            event(Move, 1 to touch(10f, 20f, pressed = false))
+        )
+
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = false))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = false)),
+            event(Move, 1 to touch(5f, 15f, pressed = false))
+        )
+    }
+
+    @Test
+    fun `should update pointer position with move event after pressed event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(mouseEvent(Press, 10f, 20f, pressed = true))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Press, 1 to touch(10f, 20f, pressed = true)),
+            event(Move, 1 to touch(10f, 20f, pressed = true))
+        )
+
+        received.clear()
+        sender.send(mouseEvent(Move, 5f, 15f, pressed = true))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
+            event(Move, 1 to touch(5f, 15f, pressed = true))
+        )
+    }
+
+    @Test
+    fun `should not update pointer position with move event after touch event`() {
+        val received = mutableListOf<PointerInputEvent>()
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
+        sender.send(event(Press, 1 to touch(10f, 20f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Press, 1 to touch(10f, 20f, pressed = true)),
+        )
+
+        received.clear()
+        sender.send(event(Move, 1 to touch(5f, 15f, pressed = true)))
+
+        sender.needUpdatePointerPosition = true
+        sender.updatePointerPosition()
+
+        received positionAndDownShouldEqual listOf(
+            event(Move, 1 to touch(5f, 15f, pressed = true)),
+        )
+    }
+
     private fun eventsSentBy(
         vararg inputEvents: PointerInputEvent
     ): List<PointerInputEvent> {
         val received = mutableListOf<PointerInputEvent>()
-        val sender = SyntheticEventSender(received::add)
+        val sender = SyntheticEventSender {
+            PointerEventResult(received.add(it))
+        }
         for (inputEvent in inputEvents) {
             sender.send(inputEvent)
         }

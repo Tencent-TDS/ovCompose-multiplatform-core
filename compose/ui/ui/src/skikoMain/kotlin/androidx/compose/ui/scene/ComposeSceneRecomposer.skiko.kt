@@ -57,8 +57,8 @@ internal class ComposeSceneRecomposer(
      */
     val hasPendingWork: Boolean
         get() = recomposer.hasPendingWork ||
-        effectDispatcher.hasTasks() ||
-        recomposeDispatcher.hasTasks()
+        effectDispatcher.hasImmediateTasks() ||
+        recomposeDispatcher.hasImmediateTasks()
 
     val compositionContext: CompositionContext
         get() = recomposer

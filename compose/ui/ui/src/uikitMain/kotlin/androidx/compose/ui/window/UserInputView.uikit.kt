@@ -16,18 +16,32 @@
 
 package androidx.compose.ui.window
 
-import androidx.compose.ui.platform.CUPERTINO_TOUCH_SLOP
+import androidx.compose.ui.backhandler.UIKitBackGestureRecognizer
+import androidx.compose.ui.scene.PointerEventResult
 import androidx.compose.ui.uikit.utils.CMPGestureRecognizer
-import androidx.compose.ui.uikit.utils.CMPGestureRecognizerHandlerProtocol
+import androidx.compose.ui.uikit.utils.CMPHoverGestureHandler
+import androidx.compose.ui.uikit.utils.CMPPanGestureRecognizer
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.asDpOffset
 import androidx.compose.ui.viewinterop.InteropView
 import androidx.compose.ui.viewinterop.InteropWrappingView
 import androidx.compose.ui.viewinterop.UIKitInteropInteractionMode
+import kotlin.math.abs
 import kotlinx.cinterop.CValue
+import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.readValue
 import kotlinx.cinterop.useContents
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.OSVersion
+import org.jetbrains.skiko.available
 import platform.CoreGraphics.CGPoint
-import platform.CoreGraphics.CGPointMake
 import platform.CoreGraphics.CGRectZero
+import platform.Foundation.NSSelectorFromString
 import platform.UIKit.UIEvent
 import platform.UIKit.UIGestureRecognizer
 import platform.UIKit.UIGestureRecognizerState
@@ -37,12 +51,16 @@ import platform.UIKit.UIGestureRecognizerStateChanged
 import platform.UIKit.UIGestureRecognizerStateEnded
 import platform.UIKit.UIGestureRecognizerStateFailed
 import platform.UIKit.UIGestureRecognizerStatePossible
+import platform.UIKit.UIPanGestureRecognizer
 import platform.UIKit.UIPress
 import platform.UIKit.UIPressesEvent
+import platform.UIKit.UIScreenEdgePanGestureRecognizer
+import platform.UIKit.UIScrollTypeMaskAll
+import platform.UIKit.UIScrollView
 import platform.UIKit.UITouch
 import platform.UIKit.UIView
+import platform.UIKit.endEditing
 import platform.UIKit.setState
-import platform.darwin.NSObject
 
 /**
  * A reason for why touches are sent to Compose
@@ -61,31 +79,6 @@ internal enum class TouchesEventKind {
     /**
      * [UIEvent] when `touchesEnded`
      */
-    ENDED,
-
-    /**
-     * [UIEvent] when `touchesCancelled`
-     */
-    CANCELLED,
-
-    /**
-     * Compose withdraws from processing touches. They are now processed by an interop view.
-     */
-    REDIRECTED
-}
-
-/**
- * An event of gesture lifecycle change.
- */
-internal enum class GestureEvent {
-    /**
-     * First touch in the sequence just happened.
-     */
-    BEGAN,
-
-    /**
-     * No more touches are present.
-     */
     ENDED
 }
 
@@ -97,376 +90,383 @@ private val UIGestureRecognizerState.isOngoing: Boolean
         }
 
 /**
- * Enum class representing the possible hit test result of [UserInputViewHitTestResult].
- * This enum is used solely to determine the strategy of touch event delivery and
- * doesn't require any additional information about the hit-tested view itself.
- */
-private sealed interface UserInputViewHitTestResult {
-    data object Self : UserInputViewHitTestResult
-
-    data object NonCooperativeChildView : UserInputViewHitTestResult
-
-    /**
-     * Hit test result is Cooperative child view, that allows a delay of [delayMillis] milliseconds.
-     */
-    class CooperativeChildView(
-        val delayMillis: Int
-    ) : UserInputViewHitTestResult {
-        val delaySeconds: Double
-            get() = delayMillis.toDouble() / 1000.0
-    }
-}
-
-/**
- * Implementation of [CMPGestureRecognizer] that handles touch events and forwards
+ * Implementation of [UIGestureRecognizer] that handles touch events and forwards
  * them. The main difference from the original [UIView] touches based is that it's built on top of
- * [CMPGestureRecognizer], which play differently with UIKit touches processing and are required
+ * [UIGestureRecognizer], which play differently with UIKit touches processing and are required
  * for the correct handling of the touch events in interop scenarios, because they rely on
  * [UIGestureRecognizer] failure requirements and touches interception, which is an exclusive way
  * to control touches delivery to [UIView]s and their [UIGestureRecognizer]s in a fine-grain manner.
  */
-private class GestureRecognizerHandlerImpl(
-    private var onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> Unit,
-    private var onGestureEvent: (GestureEvent) -> Unit,
-    private var view: UIView?,
-) : NSObject(), CMPGestureRecognizerHandlerProtocol {
-    /**
-     * The actual view that was hit-tested by the first touch in the sequence.
-     * It could be interop view, for example. If there are tracked touches, assignment is ignored.
-     */
-    var hitTestResult: UserInputViewHitTestResult? = null
-        set(value) {
-            /**
-             * Only remember the first hit-tested view in the sequence.
-             */
-            if (initialLocation == null) {
-                field = value
-            }
-        }
-
-    /**
-     * [CMPGestureRecognizer] that is associated with this handler.
-     */
-    var gestureRecognizer: CMPGestureRecognizer? = null
-
-    private var gestureRecognizerState: UIGestureRecognizerState
-        get() = gestureRecognizer?.state ?: UIGestureRecognizerStateFailed
-        set(value) {
-            gestureRecognizer?.setState(value)
-        }
-
-    /**
-     * Initial centroid location in the sequence to measure the motion slop and to determine whether the gesture
-     * should be recognized or failed and pass touches to interop views.
-     */
-    private var initialLocation: CValue<CGPoint>? = null
-
+private class TouchesGestureRecognizer(
+    private var onTouchesEvent: (touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> PointerEventResult,
+    private var onCancelAllTouches: (touches: Set<*>) -> Unit,
+    private var canIgnoreDragGesture: (UIGestureRecognizer) -> Boolean
+) : CMPGestureRecognizer(target = null, action = null) {
     /**
      * Touches that are currently tracked by the gesture recognizer.
      */
-    private val trackedTouches: MutableSet<UITouch> = mutableSetOf()
+    private val trackedTouches: MutableMap<UITouch, UIView?> = mutableMapOf()
+
+    val hasTrackedTouches: Boolean get() = trackedTouches.isNotEmpty()
 
     /**
-     * Checks whether the centroid location of [trackedTouches] has exceeded the scrolling slop
-     * relative to [initialLocation]
+     * Scheduled job for the gesture recognizer failure.
      */
-    private val isLocationDeltaAboveSlop: Boolean
-        get() {
-            val initialLocation = initialLocation ?: return false
-            val centroidLocation = trackedTouchesCentroidLocation ?: return false
+    private var failureJob: Job? = null
 
-            val slop = CUPERTINO_TOUCH_SLOP.toDouble()
+    init {
+        // When recognized, immediately cancel all touches in the subviews.
+        // This scenario shouldn't happen due to `delaysTouchesBegan`, so it's
+        // more of a defensive line.
+        cancelsTouchesInView = true
 
-            val dx = centroidLocation.useContents { x - initialLocation.useContents { x } }
-            val dy = centroidLocation.useContents { y - initialLocation.useContents { y } }
+        // Delays touches reception by underlying views until the gesture recognizer is explicitly
+        // stated as failed (aka, the touch sequence is targeted to the interop view).
+        delaysTouchesBegan = true
+    }
 
-            return dx * dx + dy * dy > slop * slop
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesBegan(touches, withEvent)
+
+        val touchesToInteractionMode = touches.map { touch ->
+            touch as UITouch
+            val point = touch.locationInView(view)
+            val hitTestResult = view?.hitTest(point, withEvent)?.takeIf { it != view }
+            touch to hitTestResult
+        }.toMap()
+
+        fun startTouchesEvent() {
+            val isInitialTouches = trackedTouches.isEmpty()
+            trackedTouches.putAll(touchesToInteractionMode)
+            onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.BEGAN)
+            if (isInitialTouches) {
+                setState(UIGestureRecognizerStatePossible)
+            } else if (state.isOngoing) {
+                setState(UIGestureRecognizerStateChanged)
+            }
         }
 
-    /**
-     * Calculates the centroid of the tracked touches.
-     */
-    private val trackedTouchesCentroidLocation: CValue<CGPoint>?
-        get() = view?.let {
-            trackedTouches.centroidLocationInView(it)
+        val interactionMode = touchesToInteractionMode.values.map {
+            it?.findAncestorInteropWrappingView()?.interactionMode
+        }.findMostRestrictedInteractionMode()
+        when (interactionMode) {
+            is UIKitInteropInteractionMode.Cooperative -> {
+                startTouchesEvent()
+                scheduleTouchesFailureIfNeeded(interactionMode.delayMillis)
+            }
+
+            UIKitInteropInteractionMode.NonCooperative -> {
+                cancelAllTrackedTouches()
+            }
+
+            null -> {
+                startTouchesEvent()
+            }
         }
+    }
 
-    /**
-     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesBegan event and
-     * forwards it here.
-     *
-     * There are following scenarios:
-     * 1. Those are first touches in the sequence, the interaction view is hit-tested. In this case, we
-     * should start the gesture recognizer immediately and start passing touches to the Compose
-     * runtime.
-     *
-     * 2. Those are first touches in the sequence, an interop view is hit-tested. In this case we
-     * intercept touches from interop views until the gesture recognizer is explicitly failed.
-     * See [UIGestureRecognizer.delaysTouchesBegan]. In the same time we schedule a failure in
-     * [CMPGestureRecognizer.scheduleFailure], which will pass intercepted touches to the interop
-     * views if the gesture is not recognized within a time frame allowed by hit tested cooperative
-     * child view.
-     * The similar approach is used by [UIScrollView](https://developer.apple.com/documentation/uikit/uiscrollview)
-     *
-     * 3. Those are not the first touches in the sequence. A gesture is recognized.
-     * We should continue with scenario (1), we don't yet support multitouch sequence in
-     * compose and interop view simultaneously (e.g. scrolling native horizontal
-     * scroll and compose horizontal scroll with different fingers)
-     *
-     * 4. Those are not the first touches in the sequence. A gesture is not recognized.
-     * See if centroid of the tracked touches has moved enough to recognize the gesture.
-     *
-     * TODO (not yet tracked):
-     *  An improvement to the current implementation would be to remove the delay if hitTest
-     *  on ComposeScene didn't go through a node, that has a PointerFilter attached
-     *  (e.g. a scrollable)
-     *
-     */
-    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent?) {
-        if (hitTestResult == UserInputViewHitTestResult.NonCooperativeChildView) {
-            // If child view doesn't want delay logic applied, we should immediately fail the gesture
-            // and allow touches to go through directly to that view, gesture recognizer should
-            // fail immediately, no touches will be received by Compose and the gesture recognizer after
-            // this point until all fingers are lifted.
-            gestureRecognizerState = UIGestureRecognizerStateFailed
-            return
-        }
+    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesMoved(touches, withEvent)
 
-        val areTouchesInitial = startTrackingTouches(touches)
-
-        onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.BEGAN)
-
-        if (gestureRecognizerState.isOngoing || hitTestResult == UserInputViewHitTestResult.Self) {
-            // Golden path, immediately start/continue the gesture recognizer if possible and pass touches.
-            when (gestureRecognizerState) {
-                UIGestureRecognizerStatePossible -> {
-                    gestureRecognizerState = UIGestureRecognizerStateBegan
-                }
-
-                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    gestureRecognizerState = UIGestureRecognizerStateChanged
+        fun processGesture() {
+            if (trackedTouches.isEmpty()) {
+                return
+            }
+            val result = onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.MOVED)
+            if (result.anyMovementConsumed) {
+                if (!state.isOngoing) {
+                    setState(UIGestureRecognizerStateBegan)
+                    cancelTouchesFailure()
                 }
             }
+        }
+
+        // The UserInputGestureRecognizer receives touches earlier than its interop scroll views,
+        // if any. If an interop scroll view is involved in tracking touches, we let it capture
+        // the pan gesture first in order to prioritise the scrolling gesture of the child scroll
+        // view.
+        val postponeGesture = state == UIGestureRecognizerStatePossible &&
+            touches.any { trackedTouches[it].hasTrackingUIScrollView() }
+        if (postponeGesture) {
+            CoroutineScope(Dispatchers.Main).launch { processGesture() }
         } else {
-            if (areTouchesInitial) {
-                // We are in the scenario (2), we should schedule failure and pass touches to the
-                // interop view.
-                when (val cooperativeChildView = hitTestResult) {
-                    is UserInputViewHitTestResult.CooperativeChildView ->
-                        gestureRecognizer?.scheduleFailure(cooperativeChildView.delaySeconds)
-                    else -> {}
-                }
+            processGesture()
+        }
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesEnded(touches, withEvent)
+
+        fun endTouchesEvent() {
+            onTouchesEvent(trackedTouches.keys, withEvent, TouchesEventKind.ENDED)
+            stopTrackingTouches(touches)
+            if (trackedTouches.isEmpty()) {
+                setState(UIGestureRecognizerStateEnded)
+            }
+        }
+
+        if (state.isOngoing) {
+            endTouchesEvent()
+        } else {
+            val hasHitTestResult = touches.firstNotNullOfOrNull { trackedTouches[it] } != null
+            if (hasHitTestResult) {
+                cancelAllTrackedTouches()
             } else {
-                // We are in the scenario (4), check if the gesture recognizer should be recognized.
-                checkPanIntent()
+                endTouchesEvent()
             }
         }
     }
 
-    /**
-     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesMoved event and
-     * forwards it here.
-     *
-     * There are following scenarios:
-     * 1. The interaction view is hit-tested, or a gesture is recognized.
-     * In this case, we should just forward the touches.
-     *
-     * 2. An interop view is hit-tested. In this case we should check if the pan intent is met.
-     */
-    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent?) {
-        onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.MOVED)
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent) {
+        super.touchesCancelled(touches, withEvent)
 
-        if (gestureRecognizerState.isOngoing || hitTestResult == UserInputViewHitTestResult.Self) {
-            // Golden path, just update the gesture recognizer state and pass touches to
-            // the Compose runtime.
+        cancelAllTrackedTouches()
+    }
 
-            when (gestureRecognizerState) {
-                UIGestureRecognizerStateBegan, UIGestureRecognizerStateChanged -> {
-                    gestureRecognizerState = UIGestureRecognizerStateChanged
-                }
+    private fun cancelAllTrackedTouches() {
+        setState(UIGestureRecognizerStateCancelled)
+        onCancelAllTouches(trackedTouches.keys)
+        trackedTouches.clear()
+        cancelTouchesFailure()
+    }
+
+    private fun Collection<UIKitInteropInteractionMode?>.findMostRestrictedInteractionMode() =
+        minBy {
+            when (it) {
+                UIKitInteropInteractionMode.NonCooperative -> 0
+                is UIKitInteropInteractionMode.Cooperative -> it.delayMillis
+                null -> Int.MAX_VALUE
+            }
+        }
+
+    override fun canBePreventedByGestureRecognizer(
+        preventingGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return if (preventingGestureRecognizer is UIKitBackGestureRecognizer) {
+            cancelAllTrackedTouches()
+            true
+        } else if (canIgnoreDragGesture(preventingGestureRecognizer)) {
+            false
+        } else if (preventingGestureRecognizer is ScrollGestureRecognizer
+            && preventingGestureRecognizer.state.isOngoing) {
+            cancelAllTrackedTouches()
+            true
+        } else if (isInChildHierarchy(preventingGestureRecognizer.view)) {
+            if ((state == UIGestureRecognizerStatePossible || state.isOngoing) &&
+                isScrollViewAtTheEndOfScrollableContent(preventingGestureRecognizer)
+            ) {
+                false
+            } else {
+                cancelAllTrackedTouches()
+                true
             }
         } else {
-            checkPanIntent()
+            if (state.isOngoing || !preventingGestureRecognizer.state.isOngoing) {
+                false
+            } else {
+                cancelAllTrackedTouches()
+                true
+            }
         }
     }
 
-    /**
-     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesEnded event and
-     * forwards it here.
-     *
-     * There are following scenarios:
-     * 1. The interaction view is hit-tested, or a gesture is recognized. Just update the gesture
-     * recognizer state and pass touches to the Compose runtime.
-     *
-     * 2. An interop view is hit-tested. In this case if there are no tracked touches left -
-     * we need to allow all the touches to be passed to the interop view by failing explicitly.
-     */
-    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent?) {
-        onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.ENDED)
-
-        stopTrackingTouches(touches)
-
-        if (gestureRecognizerState.isOngoing || hitTestResult == UserInputViewHitTestResult.Self) {
-            // Golden path, just update the gesture recognizer state and pass touches to
-            // the Compose runtime.
-
-            if (gestureRecognizerState.isOngoing) {
-                gestureRecognizerState = if (trackedTouches.isEmpty()) {
-                    UIGestureRecognizerStateEnded
-                } else {
-                    UIGestureRecognizerStateChanged
-                }
-            }
+    override fun canPreventGestureRecognizer(
+        preventedGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return if (isInChildHierarchy(preventedGestureRecognizer.view)) {
+            super.canPreventGestureRecognizer(preventedGestureRecognizer)
+        } else if (preventedGestureRecognizer is UIScreenEdgePanGestureRecognizer) {
+            false
         } else {
-            if (trackedTouches.isEmpty()) {
-                // Explicitly fail the gesture, cancelling a scheduled failure
-                gestureRecognizer?.cancelFailure()
-
-                gestureRecognizerState = UIGestureRecognizerStateFailed
-            }
+            state == UIGestureRecognizerStatePossible || state.isOngoing
         }
     }
 
+    private val activeGestureStates = listOf(
+        UIGestureRecognizerStatePossible,
+        UIGestureRecognizerStateBegan,
+        UIGestureRecognizerStateChanged
+    )
+    override fun shouldRequireFailureOfGestureRecognizer(
+        otherGestureRecognizer: UIGestureRecognizer
+    ): Boolean {
+        return (otherGestureRecognizer is UIKitBackGestureRecognizer &&
+            otherGestureRecognizer.state in activeGestureStates) ||
+            super.shouldRequireFailureOfGestureRecognizer(otherGestureRecognizer)
+    }
+
     /**
-     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles touchesCancelled event and
-     * forwards it here.
+     * Checks if compose can get priority over interop view with UIScrollView on it.
      *
-     * There are following scenarios:
-     * 1. The interaction view is hit-tested, or a gesture is recognized. Just update the gesture
-     * recognizer state and pass touches to the Compose runtime.
-     *
-     * 2. An interop view is hit-tested. In this case if there are no tracked touches left -
-     * we need to allow all the touches to be passed to the interop view by failing explicitly.
+     * @return return true if UIScrollView can no longer scroll content in the direction of the user
+     * gesture that UIScrollView detected.
      */
-    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent?) {
-        onTouchesEvent(trackedTouches, withEvent, TouchesEventKind.CANCELLED)
+    private fun isScrollViewAtTheEndOfScrollableContent(recognizer: UIGestureRecognizer): Boolean {
+        val pan = recognizer as? UIPanGestureRecognizer ?: return false
+        val scrollView = recognizer.view as? UIScrollView ?: return false
 
-        stopTrackingTouches(touches)
+        val (diffX, diffY) = pan.translationInView(scrollView).useContents { x to y }
+        val (offsetX, offsetY) = scrollView.contentOffset.useContents { x to y }
+        val (contentWidth, contentHeight) = scrollView.contentSize.useContents { width to height }
+        val (scrollWidth, scrollHeight) = scrollView.bounds.useContents { size.width to size.height }
+        val insets = scrollView.contentInset.useContents { this }
 
-        if (hitTestResult == UserInputViewHitTestResult.Self) {
-            // Golden path, just update the gesture recognizer state.
+        val endOfHorizontal = (diffX >= 0 && offsetX.equalWithinPixelTolerance(-insets.left)) ||
+            (diffX <= 0 &&
+                offsetX.equalWithinPixelTolerance(contentWidth - scrollWidth + insets.right))
 
-            if (gestureRecognizerState.isOngoing) {
-                gestureRecognizerState = if (trackedTouches.isEmpty()) {
-                    UIGestureRecognizerStateCancelled
-                } else {
-                    UIGestureRecognizerStateChanged
-                }
+        val endOfVertical = (diffY >= 0 && offsetY.equalWithinPixelTolerance(-insets.top)) ||
+            (diffY <= 0 &&
+                offsetY.equalWithinPixelTolerance(contentHeight - scrollHeight + insets.bottom))
+
+        return endOfHorizontal && endOfVertical
+    }
+
+    private fun isInChildHierarchy(child: UIView?): Boolean {
+        val view = view ?: return false
+        var iteratingView = child
+        while (iteratingView != null) {
+            if (view == iteratingView) {
+                return true
             }
-        } else {
-            if (trackedTouches.isEmpty()) {
-                // Those were the last touches in the sequence
-                // Explicitly fail the gesture, cancelling a scheduled failure
-                gestureRecognizer?.cancelFailure()
-
-                // If touches were withheld, give it a chance to be passed to the interop view
-                gestureRecognizerState = UIGestureRecognizerStateFailed
-            }
+            iteratingView = iteratingView.superview
         }
+        return false
     }
 
     /**
-     * Implementation of [CMPGestureRecognizerHandlerProtocol] that handles the failure of
-     * the gesture if it's not recognized within the certain time frame.
-     *
-     * It means we need to pass all the tracked touches to the runtime as cancelled and set failed
-     * state on the gesture recognizer.
-     *
-     * Intercepted touches will be passed to the interop views by UIKit due to
-     * [UIGestureRecognizer.delaysTouchesBegan]
-     */
-    override fun onFailure() {
-        // Allow withheld touches to be passed to the interop view
-        gestureRecognizerState = UIGestureRecognizerStateFailed
-
-        // We won't receive other touches events until all fingers are lifted, so we can't rely
-        // on touchesEnded/touchesCancelled to reset the state.  We need to immediately notify
-        // Compose about the redirected touches and reset the state manually.
-        onTouchesEvent(trackedTouches, null, TouchesEventKind.REDIRECTED)
-        stopTrackingAllTouches()
-    }
-
-    /**
-     * Intentionally clean up all dependencies of GestureRecognizerHandlerImpl to prevent retain cycles that
-     * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
+     * Intentionally clean up all dependencies to prevent retain cycles that
+     * can be caused by implicit capture of the view by UIKit objects (such as [UIEvent]) in
+     * some rare scenarios.
      */
     fun dispose() {
-        onTouchesEvent = { _, _, _, _ -> }
-        onGestureEvent = {}
-        gestureRecognizer = null
+        cancelTouchesFailure()
+        onTouchesEvent = { _, _, _ -> PointerEventResult(anyMovementConsumed = false) }
+        onCancelAllTouches = {}
+        canIgnoreDragGesture = { false }
         trackedTouches.clear()
     }
 
     /**
-     * Starts tracking the given touches. Remember initial location if those are the first touches
-     * in the sequence.
-     * @return `true` if the touches are initial, `false` otherwise.
+     * Schedule the gesture recognizer failure after [delayMills].
+     *
+     * We still pass the touches to the interop view
+     * until the gesture recognizer is explicitly failed.
+     *
+     * But when failure happens,
+     * all tracked touches are forwarded to runtime as
+     * and stop receiving touches from the system.
+     *
+     * This only happens if the hitTest is not the [UserInputView] itself.
+     *
+     * @see [cancelTouchesFailure]
      */
-    private fun startTrackingTouches(touches: Set<*>): Boolean {
-        val areTouchesInitial = trackedTouches.isEmpty()
+    private fun scheduleTouchesFailureIfNeeded(delayMills: Int) {
+        failureJob?.cancel()
 
-        for (touch in touches) {
-            trackedTouches.add(touch as UITouch)
+        if (delayMills != Int.MAX_VALUE) {
+            failureJob = CoroutineScope(Dispatchers.Main).launch {
+                delay(delayMills.toLong())
+
+                cancelAllTrackedTouches()
+            }
         }
-
-        if (areTouchesInitial) {
-            onGestureEvent(GestureEvent.BEGAN)
-            initialLocation = trackedTouchesCentroidLocation
-        }
-
-        return areTouchesInitial
     }
 
-    /**
-     * Check if the tracked touches have moved enough to recognize the gesture.
-     */
-    private fun checkPanIntent() {
-        if (isLocationDeltaAboveSlop) {
-            gestureRecognizer?.cancelFailure()
-
-            // When this gesture state transits to UIGestureRecognizerStateBegan, the gesture
-            // iOS stops withholding the intercepted touches and prevents them from being sent
-            // to the interop view.
-            gestureRecognizerState = UIGestureRecognizerStateBegan
-        }
+    private fun cancelTouchesFailure() {
+        failureJob?.cancel()
+        failureJob = null
     }
 
     /**
      * Stops tracking the given touches associated with [UIEvent]. If those are the last touches,
-     * end the gesture and reset internal state.
+     * end the gesture and reset the internal state.
      */
     private fun stopTrackingTouches(touches: Set<*>) {
         for (touch in touches) {
             trackedTouches.remove(touch as UITouch)
         }
+    }
+}
 
-        if (trackedTouches.isEmpty()) {
-            onGestureEnded()
+private class ScrollGestureRecognizer(
+    private var onScrollEvent: (position: DpOffset, delta: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
+    private var onCancelScroll: () -> Unit
+) : CMPPanGestureRecognizer(target = null, action = null) {
+
+    init {
+        setDelaysTouchesBegan(false)
+        setDelaysTouchesEnded(false)
+        setCancelsTouchesInView(false)
+        setAllowedScrollTypesMask(UIScrollTypeMaskAll)
+        addTarget(this, NSSelectorFromString(::onPan.name + ":"))
+    }
+
+    private var cursorPosition: DpOffset? = null
+    private var previousPosition: DpOffset? = null
+    private var event: UIEvent? = null
+
+    @ObjCAction
+    fun onPan(gestureRecognizer: UIPanGestureRecognizer) {
+        val position = gestureRecognizer.locationInView(view).asDpOffset()
+
+        when (gestureRecognizer.state) {
+            UIGestureRecognizerStateBegan -> {
+                onScrollEvent(position, DpOffset.Zero, event, TouchesEventKind.BEGAN)
+                cursorPosition = position
+                previousPosition = position
+            }
+
+            UIGestureRecognizerStateChanged -> {
+                val delta = (previousPosition ?: position) - position
+                onScrollEvent(cursorPosition ?: position, delta, event, TouchesEventKind.MOVED)
+                previousPosition = position
+            }
+
+            UIGestureRecognizerStateEnded -> {
+                val delta = (previousPosition ?: position) - position
+                onScrollEvent(cursorPosition ?: position, delta, event, TouchesEventKind.ENDED)
+                cursorPosition = null
+                previousPosition = null
+                event = null
+            }
+
+            UIGestureRecognizerStateCancelled, UIGestureRecognizerStateFailed -> {
+                onCancelScroll()
+                cursorPosition = null
+                previousPosition = null
+                event = null
+            }
+
+            else -> {}
         }
     }
 
-    /**
-     * Stops tracking all [trackedTouches]. End the gesture and reset internal state.
-     */
-    private fun stopTrackingAllTouches() {
-        trackedTouches.clear()
-
-        onGestureEnded()
+    override fun shouldReceiveEvent(event: UIEvent): Boolean {
+        this.event = event
+        return super.shouldReceiveEvent(event)
     }
 
-    private fun onGestureEnded() {
-        initialLocation = null
-        onGestureEvent(GestureEvent.ENDED)
+    fun dispose() {
+        removeTarget(this, null)
+        onScrollEvent = { _, _, _, _  -> }
+        onCancelScroll = {}
     }
 
-    private fun onTouchesEvent(
-        touches: Set<*>,
-        event: UIEvent?,
-        phase: TouchesEventKind
-    ) {
-        val view = view ?: return
+    override fun touchesBegan(touches: Set<*>, withEvent: UIEvent) {
+        // Do nothing. No need to handle touches for scroll gesture
+    }
 
-        onTouchesEvent(view, touches, event, phase)
+    override fun touchesMoved(touches: Set<*>, withEvent: UIEvent) {
+        // Do nothing. No need to handle touches for scroll gesture
+    }
+
+    override fun touchesEnded(touches: Set<*>, withEvent: UIEvent) {
+        // Do nothing. No need to handle touches for scroll gesture
+    }
+
+    override fun touchesCancelled(touches: Set<*>, withEvent: UIEvent) {
+        // Do nothing. No need to handle touches for scroll gesture
     }
 }
 
@@ -476,7 +476,6 @@ private class GestureRecognizerHandlerImpl(
  *
  * @param hitTestInteropView A callback to find an [InteropView] at the given point.
  * @param onTouchesEvent A callback to notify the Compose runtime about touch events.
- * @param onGestureEvent A callback to notify that touches sequence state has began or ended.
  * @param isPointInsideInteractionBounds A callback to check if the given point is within the interaction
  * bounds as defined by the owning implementation.
  * @param onKeyboardPresses A callback to notify the Compose runtime about keyboard presses.
@@ -484,34 +483,54 @@ private class GestureRecognizerHandlerImpl(
  * lightweight generics.
  */
 internal class UserInputView(
-    private var hitTestInteropView: (point: CValue<CGPoint>, event: UIEvent?) -> UIView?,
-    onTouchesEvent: (view: UIView, touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> Unit,
-    onGestureEvent: (GestureEvent) -> Unit,
+    private var hitTestInteropView: (point: CValue<CGPoint>) -> UIView?,
     private var isPointInsideInteractionBounds: (CValue<CGPoint>) -> Boolean,
+    onTouchesEvent: (touches: Set<*>, event: UIEvent?, phase: TouchesEventKind) -> PointerEventResult,
+    onCancelAllTouches: (touches: Set<*>) -> Unit,
+    onScrollEvent: (position: DpOffset, delta: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
+    onCancelScroll: () -> Unit,
+    private var onHoverEvent: (position: DpOffset, event: UIEvent?, eventKind: TouchesEventKind) -> Unit,
     private var onKeyboardPresses: (Set<*>) -> Unit,
 ) : UIView(CGRectZero.readValue()) {
-    private val gestureRecognizerHandler = GestureRecognizerHandlerImpl(
-        view = this,
+    /**
+     * Gesture recognizer responsible for processing touches
+     * and sending them to the Compose runtime.
+     *
+     * Also involved in the decision-making process of whether the touch sequence should be
+     * passed to the Compose runtime or to the interop view.
+     */
+    private val touchesGestureRecognizer = TouchesGestureRecognizer(
         onTouchesEvent = onTouchesEvent,
-        onGestureEvent = onGestureEvent
+        onCancelAllTouches = onCancelAllTouches,
+        canIgnoreDragGesture = { canIgnoreDragGesture(it) }
     )
 
-    private val gestureRecognizer = CMPGestureRecognizer()
+    private val scrollGestureRecognizer by lazy {
+        if (available(OS.Ios to OSVersion(major = 13, minor = 4))) {
+            ScrollGestureRecognizer(
+                onScrollEvent = onScrollEvent,
+                onCancelScroll = onCancelScroll
+            )
+        } else {
+            null
+        }
+    }
+
+    private val hoverGestureHandler by lazy {
+        CMPHoverGestureHandler(this, NSSelectorFromString(::onHover.name + ":"))
+    }
+
+    // See [UIKitDragAndDropManager] for more context
+    var canIgnoreDragGesture: (UIGestureRecognizer) -> Boolean = { false }
 
     init {
         multipleTouchEnabled = true
-        userInteractionEnabled = true
 
-        // When CMPGestureRecognizer is recognized, immediately cancel all touches in the subviews.
-        gestureRecognizer.cancelsTouchesInView = true
-
-        // Delays touches reception by underlying views until the gesture recognizer is explicitly
-        // stated as failed (aka, the touch sequence is targeted to the interop view).
-        gestureRecognizer.delaysTouchesBegan = true
-
-        addGestureRecognizer(gestureRecognizer)
-        gestureRecognizer.handler = gestureRecognizerHandler
-        gestureRecognizerHandler.gestureRecognizer = gestureRecognizer
+        addGestureRecognizer(touchesGestureRecognizer)
+        scrollGestureRecognizer?.let {
+            addGestureRecognizer(it)
+        }
+        hoverGestureHandler.attachToView(this)
     }
 
     override fun canBecomeFirstResponder() = true
@@ -527,86 +546,69 @@ internal class UserInputView(
     }
 
     override fun hitTest(point: CValue<CGPoint>, withEvent: UIEvent?): UIView? =
-        savingHitTestResult {
-            if (!isPointInsideInteractionBounds(point)) {
-                null
-            } else {
-                // Find if a scene contains an [InteropView]
-                val interopView = hitTestInteropView(point, withEvent)
-
-                if (interopView == null) {
-                    // Native [hitTest] happens after [pointInside] is checked. If hit testing
-                    // inside ComposeScene didn't yield any interop view, then we should return [this]
-                    this
-                } else {
-                    // Transform the point to the interop view's coordinate system.
-                    // And perform native [hitTest] on the interop view.
-                    // Return this view if the interop view doesn't handle the hit test.
-                    interopView.hitTest(
-                        point = convertPoint(point, toView = interopView),
-                        withEvent = withEvent
-                    ) ?: this
-                }
-            }
+        if (isPointInsideInteractionBounds(point)) {
+            hitTestInteropView(point)?.let { interopView ->
+                interopView.hitTest(
+                    point = convertPoint(point, toView = interopView),
+                    withEvent = withEvent
+                )
+            } ?: this
+        } else {
+            null
         }
+
+    private var lastHoverPosition: DpOffset? = null
+    @ObjCAction
+    fun onHover(gestureRecognizer: UIPanGestureRecognizer) {
+        val position = gestureRecognizer.locationInView(this).asDpOffset()
+        val lastEvent = hoverGestureHandler.lastHandledEvent
+        when (gestureRecognizer.state) {
+            UIGestureRecognizerStateBegan ->
+                onHoverEvent(position, lastEvent, TouchesEventKind.BEGAN)
+
+            UIGestureRecognizerStateChanged ->
+                if (lastHoverPosition != position && !touchesGestureRecognizer.hasTrackedTouches) {
+                    onHoverEvent(position, lastEvent, TouchesEventKind.MOVED)
+                }
+
+            UIGestureRecognizerStateEnded ->
+                onHoverEvent(position, lastEvent, TouchesEventKind.ENDED)
+
+            UIGestureRecognizerStateCancelled,
+            UIGestureRecognizerStateFailed ->
+                onHoverEvent(lastHoverPosition ?: position, lastEvent, TouchesEventKind.ENDED)
+
+            else -> {}
+        }
+        lastHoverPosition = position
+    }
 
     /**
      * Intentionally clean up all dependencies of InteractionUIView to prevent retain cycles that
      * can be caused by implicit capture of the view by UIKit objects (such as UIEvent).
      */
     fun dispose() {
-        gestureRecognizerHandler.dispose()
-        gestureRecognizer.handler = null
-        removeGestureRecognizer(gestureRecognizer)
-
-        hitTestInteropView = { _, _ -> null }
-
-        isPointInsideInteractionBounds = { false }
-        onKeyboardPresses = {}
-    }
-
-    /**
-     * Execute the given [hitTestBlock] and save the result to the gesture recognizer handler, so
-     * that it can be used later to determine if the gesture recognizer should be recognized
-     * or failed.
-     */
-    private fun savingHitTestResult(hitTestBlock: () -> UIView?): UIView? {
-        val result = hitTestBlock()
-        gestureRecognizerHandler.hitTestResult = if (result == null) {
-            null
-        } else {
-            if (result == this) {
-                UserInputViewHitTestResult.Self
-            } else {
-                // All views beneath are considered to be interop views.
-                // If the hit-tested view is not a descendant of [InteropWrappingView], then it
-                // should be considered as a view that doesn't want to cooperate with Compose.
-
-                val interactionMode = result.findAncestorInteropWrappingView()?.interactionMode
-
-                when (interactionMode) {
-                    is UIKitInteropInteractionMode.Cooperative -> {
-                        UserInputViewHitTestResult.CooperativeChildView(
-                            delayMillis = interactionMode.delayMillis
-                        )
-                    }
-
-                    is UIKitInteropInteractionMode.NonCooperative -> {
-                        UserInputViewHitTestResult.NonCooperativeChildView
-                    }
-
-                    null -> UserInputViewHitTestResult.Self
-                }
-            }
+        endEditing(force = true)
+        removeGestureRecognizer(touchesGestureRecognizer)
+        touchesGestureRecognizer.dispose()
+        scrollGestureRecognizer?.let {
+            removeGestureRecognizer(it)
+            it.dispose()
         }
-        return result
+        hoverGestureHandler.detachFromViewAndDispose(this)
+        onHoverEvent = { _, _, _ -> }
+
+        hitTestInteropView = { null }
+        isPointInsideInteractionBounds = { false }
+        canIgnoreDragGesture = { false }
+        onKeyboardPresses = {}
     }
 }
 
 /**
- * There is no way to associate [InteropWrappingView.interactionMode] with a given hitTest query.
- * This extension property allows to find the nearest [InteropWrappingView] up the view hierarchy
- * and request the value retroactively.
+ * There is no way to associate [InteropWrappingView.interactionMode] with a given [UIView.hitTest]
+ * query. This extension method allows finding the nearest [InteropWrappingView] up the view
+ * hierarchy and request the value retroactively.
  */
 private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
     var view: UIView? = this
@@ -619,32 +621,27 @@ private fun UIView.findAncestorInteropWrappingView(): InteropWrappingView? {
     return null
 }
 
-/**
- * Calculate the centroid location of the touches in the given collection.
- *
- * @param view The view in which coordinate space calculation is performed.
- *
- * @return The centroid location of the touches in [this] collection in the coordinate space
- * of the given [view]. Or `null` if [this] is empty.
- */
-internal fun Collection<UITouch>.centroidLocationInView(view: UIView): CValue<CGPoint>? {
-    if (isEmpty()) {
-        return null
-    }
+private fun Double.equalWithinPixelTolerance(other: Double): Boolean {
+    return abs(other - this) < 0.1 // Any number smaller than a pixel size is sufficient here
+}
 
-    var centroidX = 0.0
-    var centroidY = 0.0
-
-    for (touch in this) {
-        val location = touch.locationInView(view)
-        location.useContents {
-            centroidX += x
-            centroidY += y
+private fun UIView?.hasTrackingUIScrollView(): Boolean {
+    var view: UIView? = this
+    while (view != null) {
+        if (view is InteropWrappingView) {
+            return false
         }
+        if (view is UIScrollView &&
+            view.userInteractionEnabled &&
+            view.panGestureRecognizer.isEnabled()) {
+            if ((view.panGestureRecognizer.state == UIGestureRecognizerStatePossible ||
+                    view.panGestureRecognizer.state == UIGestureRecognizerStateBegan) &&
+                view.isTracking()
+            ) {
+                return true
+            }
+        }
+        view = view.superview
     }
-
-    return CGPointMake(
-        x = centroidX / size.toDouble(),
-        y = centroidY / size.toDouble()
-    )
+    return false
 }

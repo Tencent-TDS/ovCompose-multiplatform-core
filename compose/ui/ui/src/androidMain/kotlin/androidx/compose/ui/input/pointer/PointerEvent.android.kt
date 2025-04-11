@@ -16,16 +16,38 @@
 
 package androidx.compose.ui.input.pointer
 
+import android.os.Build
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.MotionEvent.ACTION_SCROLL
+import android.view.MotionEvent.CLASSIFICATION_AMBIGUOUS_GESTURE
+import android.view.MotionEvent.CLASSIFICATION_DEEP_PRESS
+import android.view.MotionEvent.CLASSIFICATION_NONE
+import android.view.MotionEvent.CLASSIFICATION_PINCH
+import android.view.MotionEvent.CLASSIFICATION_TWO_FINGER_SWIPE
+import androidx.annotation.IntDef
 import androidx.collection.LongSparseArray
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.util.fastForEach
 
 internal actual typealias NativePointerButtons = Int
 
 internal actual typealias NativePointerKeyboardModifiers = Int
+
+/**
+ * Restricts Ints to `MotionEvent`'s classification types. See the
+ * [Android documentation on MotionEvent.getClassification()]
+ * (https://developer.android.com/reference/android/view/MotionEvent#getClassification()) for more
+ * details.
+ */
+@IntDef(
+    CLASSIFICATION_NONE,
+    CLASSIFICATION_AMBIGUOUS_GESTURE,
+    CLASSIFICATION_DEEP_PRESS,
+    CLASSIFICATION_TWO_FINGER_SWIPE,
+    CLASSIFICATION_PINCH
+)
+@Retention(AnnotationRetention.SOURCE) // Only for compile-time checks
+internal annotation class MotionEventClassification
 
 /** Describes a pointer input change event that has occurred at a particular point in time. */
 actual class PointerEvent
@@ -36,6 +58,19 @@ internal actual constructor(
 ) {
     internal val motionEvent: MotionEvent?
         get() = internalPointerEvent?.motionEvent
+
+    /**
+     * Returns
+     * [`MotionEvent`'s classification](https://developer.android.com/reference/android/view/MotionEvent#getClassification()).
+     */
+    @get:MotionEventClassification
+    val classification: Int
+        get() =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                motionEvent?.classification ?: CLASSIFICATION_NONE
+            } else {
+                CLASSIFICATION_NONE // Return NONE for versions lower than Android Q
+            }
 
     /** @param changes The changes. */
     actual constructor(changes: List<PointerInputChange>) : this(changes, null)
@@ -79,7 +114,6 @@ internal actual constructor(
     fun component1(): List<PointerInputChange> = changes
 
     // only because PointerEvent was a data class
-    @OptIn(ExperimentalComposeUiApi::class)
     fun copy(changes: List<PointerInputChange>, motionEvent: MotionEvent?): PointerEvent =
         when (motionEvent) {
             null -> PointerEvent(changes, null)

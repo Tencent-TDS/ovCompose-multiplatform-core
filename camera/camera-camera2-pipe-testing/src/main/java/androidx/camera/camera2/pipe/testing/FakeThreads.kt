@@ -21,20 +21,18 @@ import androidx.camera.camera2.pipe.core.Threads
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 
-object FakeThreads {
-    fun fromDispatcher(dispatcher: CoroutineDispatcher): Threads {
-        val scope = CoroutineScope(dispatcher.plus(CoroutineName("CXCP-TestScope")))
+public object FakeThreads {
+    public fun fromDispatcher(dispatcher: CoroutineDispatcher): Threads {
+        val scope = CoroutineScope(dispatcher + CoroutineName("CXCP-TestScope"))
         return create(scope, dispatcher)
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun fromTestScope(scope: TestScope): Threads {
-        val dispatcher = StandardTestDispatcher(scope.testScheduler)
+    public fun fromTestScope(scope: TestScope): Threads {
+        val dispatcher = StandardTestDispatcher(scope.testScheduler, "CXCP-TestScope")
         return create(scope, dispatcher)
     }
 

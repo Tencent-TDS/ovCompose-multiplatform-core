@@ -36,9 +36,8 @@ if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          * When updating dependencies, make sure to make the an analogous update in the
          * corresponding block below
          */
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation(libs.kotlinCoroutinesCore)
-        implementation(libs.atomicFu)
 
         api(project(":compose:ui:ui-graphics"))
         api(project(":compose:ui:ui-unit"))
@@ -103,9 +102,8 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(libs.atomicFu)
 
                 api(project(":compose:ui:ui-graphics"))
                 api(project(":compose:ui:ui-unit"))
@@ -118,6 +116,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 implementation(project(":compose:ui:ui-geometry"))
 
                 implementation(project(":annotation:annotation"))
+                implementation(project(":collection:collection"))
             }
 
             jvmMain.dependencies {
@@ -128,6 +127,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 dependsOn(commonMain)
                 dependencies {
                     api(libs.skikoCommon)
+                    implementation(libs.atomicFu)
                 }
             }
 
@@ -164,7 +164,6 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api("androidx.annotation:annotation:1.1.0")
                 implementation("androidx.core:core:1.7.0")
                 implementation("androidx.emoji2:emoji2:1.2.0")
-                implementation('androidx.collection:collection:1.0.0')
             }
 
             androidMain.kotlin.srcDirs("${supportRootFolder}/text/text/src/main/java")

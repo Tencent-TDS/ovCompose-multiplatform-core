@@ -53,6 +53,7 @@ package androidx.glance.appwidget {
   }
 
   public abstract class GlanceAppWidget {
+    ctor public GlanceAppWidget();
     ctor public GlanceAppWidget(optional @LayoutRes int errorUiLayout);
     method public androidx.glance.appwidget.SizeMode getSizeMode();
     method public androidx.glance.state.GlanceStateDefinition<? extends java.lang.Object?>? getStateDefinition();
@@ -77,6 +78,7 @@ package androidx.glance.appwidget {
     method public androidx.glance.GlanceId? getGlanceIdBy(android.content.Intent configurationIntent);
     method public androidx.glance.GlanceId getGlanceIdBy(int appWidgetId);
     method public suspend <T extends androidx.glance.appwidget.GlanceAppWidget> Object? getGlanceIds(Class<T> provider, kotlin.coroutines.Continuation<? super java.util.List<? extends androidx.glance.GlanceId>>);
+    method public suspend <T extends androidx.glance.appwidget.GlanceAppWidgetReceiver> Object? requestPinGlanceAppWidget(Class<T> receiver, optional androidx.glance.appwidget.GlanceAppWidget? preview, optional androidx.compose.ui.unit.DpSize? previewSize, optional Object? previewState, optional android.app.PendingIntent? successCallback, kotlin.coroutines.Continuation<? super java.lang.Boolean>);
     method public suspend <T extends androidx.glance.appwidget.GlanceAppWidgetReceiver> Object? requestPinGlanceAppWidget(Class<T> receiver, optional androidx.glance.appwidget.GlanceAppWidget? preview, optional Object? previewState, optional android.app.PendingIntent? successCallback, kotlin.coroutines.Continuation<? super java.lang.Boolean>);
   }
 
@@ -96,6 +98,11 @@ package androidx.glance.appwidget {
   @SuppressCompatibility @androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi public final class GlanceRemoteViews {
     ctor public GlanceRemoteViews();
     method public suspend Object? compose(android.content.Context context, long size, optional Object? state, optional android.os.Bundle appWidgetOptions, kotlin.jvm.functions.Function0<kotlin.Unit> content, kotlin.coroutines.Continuation<? super androidx.glance.appwidget.RemoteViewsCompositionResult>);
+  }
+
+  public class GlanceRemoteViewsService extends android.widget.RemoteViewsService {
+    ctor public GlanceRemoteViewsService();
+    method public android.widget.RemoteViewsService.RemoteViewsFactory onGetViewFactory(android.content.Intent? intent);
   }
 
   public final class ImageProvidersKt {
@@ -176,6 +183,19 @@ package androidx.glance.appwidget.action {
 
   public interface ActionCallback {
     method public suspend Object? onAction(android.content.Context context, androidx.glance.GlanceId glanceId, androidx.glance.action.ActionParameters parameters, kotlin.coroutines.Continuation<? super kotlin.Unit>);
+  }
+
+  public class ActionCallbackBroadcastReceiver extends android.content.BroadcastReceiver {
+    ctor public ActionCallbackBroadcastReceiver();
+    method public void onReceive(android.content.Context? context, android.content.Intent? intent);
+  }
+
+  public class ActionTrampolineActivity extends android.app.Activity {
+    ctor public ActionTrampolineActivity();
+  }
+
+  public class InvisibleActionTrampolineActivity extends android.app.Activity {
+    ctor public InvisibleActionTrampolineActivity();
   }
 
   public final class RunCallbackActionKt {

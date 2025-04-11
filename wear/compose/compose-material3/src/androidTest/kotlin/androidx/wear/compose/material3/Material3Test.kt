@@ -16,6 +16,7 @@
 
 package androidx.wear.compose.material3
 
+import android.content.res.Configuration
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -26,11 +27,13 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.testutils.assertContainsColor
 import androidx.compose.ui.Alignment
@@ -41,6 +44,8 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -69,10 +74,58 @@ import androidx.compose.ui.unit.toSize
 import androidx.test.screenshot.AndroidXScreenshotTestRule
 import kotlin.math.abs
 import org.junit.Assert
+import org.junit.rules.TestName
 
 /** Constant to emulate very big but finite constraints */
 val BigTestMaxWidth = 5000.dp
 val BigTestMaxHeight = 5000.dp
+
+/** Screen size constants for screenshot tests */
+val SCREEN_SIZE_SMALL = 192
+val SCREEN_SIZE_LARGE = 228
+
+enum class ScreenSize(val size: Int) {
+    SMALL(SCREEN_SIZE_SMALL),
+    LARGE(SCREEN_SIZE_LARGE)
+}
+
+enum class ScreenShape(val isRound: Boolean) {
+    ROUND_DEVICE(true),
+    SQUARE_DEVICE(false)
+}
+
+@Composable
+fun ScreenConfiguration(screenSizeDp: Int, content: @Composable () -> Unit) {
+    val originalConfiguration = LocalConfiguration.current
+    val originalContext = LocalContext.current
+
+    val fixedScreenSizeConfiguration =
+        remember(originalConfiguration) {
+            Configuration(originalConfiguration).apply {
+                screenWidthDp = screenSizeDp
+                screenHeightDp = screenSizeDp
+            }
+        }
+    originalContext.resources.configuration.updateFrom(fixedScreenSizeConfiguration)
+
+    CompositionLocalProvider(
+        LocalContext provides originalContext,
+        LocalConfiguration provides fixedScreenSizeConfiguration
+    ) {
+        Box(
+            modifier =
+                Modifier.size(screenSizeDp.dp).background(MaterialTheme.colorScheme.background),
+        ) {
+            content()
+        }
+    }
+}
+
+/**
+ * Valid characters for golden identifiers are [A-Za-z0-9_-] TestParameterInjector adds '[' +
+ * parameter_values + ']' to the test name.
+ */
+fun TestName.goldenIdentifier(): String = methodName.replace("[", "_").replace("]", "")
 
 internal const val TEST_TAG = "test-item"
 
@@ -338,3 +391,5 @@ internal enum class Status {
 
     fun enabled() = this == Enabled
 }
+
+class StableRef<T>(var value: T)

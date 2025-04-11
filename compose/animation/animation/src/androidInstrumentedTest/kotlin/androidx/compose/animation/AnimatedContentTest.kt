@@ -18,6 +18,7 @@
 
 package androidx.compose.animation
 
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.InternalAnimationApi
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.MutableTransitionState
@@ -28,7 +29,9 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,13 +47,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -59,11 +62,13 @@ import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -74,6 +79,7 @@ import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -82,15 +88,18 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class AnimatedContentTest {
+    val rule = createComposeRule()
 
-    @get:Rule val rule = createComposeRule()
+    // Detect leaks BEFORE and AFTER compose rule work
+    @get:Rule
+    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(rule)
 
-    @OptIn(InternalAnimationApi::class)
     @Test
     fun AnimatedContentSizeTransformTest() {
         val size1 = 40
@@ -893,7 +902,6 @@ class AnimatedContentTest {
         assertTrue(box2EnterFinished)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun AnimatedContentLookaheadTest() {
         // Test that AnimatedContent's lookahead size is its target content's lookahead size.
@@ -988,7 +996,76 @@ class AnimatedContentTest {
         rule.waitForIdle()
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
+    @OptIn(ExperimentalSharedTransitionApi::class)
+    @SuppressLint("UnusedContentLambdaTargetStateParameter")
+    @Test
+    fun testSizeTransformAlwaysContinuous() {
+        var large by mutableStateOf(false)
+        var currentWidth: Int = 0
+        var currentHeight: Int = 0
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                LookaheadScope {
+                    Box(Modifier.clickable { large = !large }) {
+                        AnimatedContent(
+                            label = "Test",
+                            modifier =
+                                Modifier.animateBounds(
+                                        this@LookaheadScope,
+                                        if (!large) Modifier.size(200.dp) else Modifier.size(300.dp)
+                                    )
+                                    .layout { m, c ->
+                                        m.measure(
+                                                c.copy(
+                                                    maxWidth = Constraints.Infinity,
+                                                    maxHeight = Constraints.Infinity
+                                                )
+                                            )
+                                            .run {
+                                                if (!isLookingAhead) {
+                                                    currentWidth = width
+                                                    currentHeight = height
+                                                }
+                                                layout(width, height) { place(0, 0) }
+                                            }
+                                    }
+                                    .background(Color.Gray),
+                            targetState = large,
+                            contentKey = { true },
+                            transitionSpec = { fadeIn().togetherWith(fadeOut()) }
+                        ) {
+                            Box(Modifier.background(Color.Black).size(200.dp, 100.dp))
+                        }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        large = true
+
+        assertEquals(200, currentWidth)
+        assertEquals(200, currentHeight)
+        // Expect size to grow
+        var lastWidth: Int = 200
+        var lastHeight: Int = 200
+
+        fun doFrame() {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+            assertTrue(currentWidth >= lastWidth)
+            assertTrue(currentHeight >= lastHeight)
+            lastWidth = currentWidth
+            lastHeight = currentHeight
+        }
+
+        repeat(5) { doFrame() }
+
+        while (currentWidth != 300 || currentHeight != 300) {
+            doFrame()
+        }
+    }
+
     @Test
     fun testTargetChangeLookaheadPlacement() {
         var lookaheadPosition1: Offset? = null
@@ -1081,12 +1158,81 @@ class AnimatedContentTest {
         }
     }
 
+    @Test
+    fun testRecreatingTransitionInAnimatedContent() {
+        var toggle by mutableStateOf(true)
+        var targetState by mutableStateOf(true)
+        var currentSize = IntSize(200, 200)
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f)) {
+                val transition = key(toggle) { updateTransition(targetState) }
+                Column {
+                    transition.AnimatedContent(
+                        modifier =
+                            Modifier.onSizeChanged {
+                                currentSize = it
+                                assertNotEquals(IntSize.Zero, it)
+                            },
+                        transitionSpec = { fadeIn() togetherWith fadeOut() }
+                    ) {
+                        if (it) {
+                            Box(Modifier.background(Color.Red).size(200.dp))
+                        } else {
+                            Box(Modifier.background(Color.Green).size(300.dp))
+                        }
+                    }
+                }
+            }
+        }
+        rule.runOnIdle { toggle = !toggle }
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        targetState = !targetState
+        while (currentSize == IntSize(200, 200)) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        var lastSize = IntSize(200, 200)
+        var frameCount = 0
+        while (currentSize.width < 290f && currentSize.height < 290f || frameCount < 10) {
+            // Assert that the size is monotonically increasing, never jumps to 0
+            assert(lastSize.width < currentSize.width)
+            assert(lastSize.height < currentSize.height)
+            lastSize = currentSize
+            rule.mainClock.advanceTimeByFrame()
+            frameCount++
+        }
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+
+        // Now recreate the transition again
+        rule.runOnIdle { toggle = !toggle }
+        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false
+        targetState = !targetState
+        while (currentSize == IntSize(300, 300)) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitForIdle()
+        }
+        lastSize = IntSize(300, 300)
+        frameCount = 0
+        while (currentSize.width > 210f && currentSize.height > 210f || frameCount < 10) {
+            // Assert that the size is monotonically increasing, never jumps to 0
+            assert(lastSize.width > currentSize.width)
+            assert(lastSize.height > currentSize.height)
+            lastSize = currentSize
+            rule.mainClock.advanceTimeByFrame()
+            frameCount++
+        }
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+    }
+
     private fun assertOffsetEquals(expected: Offset, actual: Offset) {
         assertEquals(expected.x, actual.x, 0.00001f)
         assertEquals(expected.y, actual.y, 0.00001f)
     }
 
-    @OptIn(InternalAnimationApi::class)
     private val Transition<*>.playTimeMillis
         get() = (playTimeNanos / 1_000_000L).toInt()
 }

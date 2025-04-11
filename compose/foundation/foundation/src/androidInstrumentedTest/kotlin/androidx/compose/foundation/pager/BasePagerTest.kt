@@ -19,9 +19,12 @@ package androidx.compose.foundation.pager
 import android.view.View
 import androidx.compose.foundation.BaseLazyLayoutTestWithOrientation
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.BringIntoViewSpec.Companion.DefaultBringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
 import androidx.compose.foundation.gestures.snapping.SnapPosition
@@ -31,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.layout.PrefetchScheduler
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -46,6 +50,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
@@ -64,7 +69,6 @@ import kotlin.math.absoluteValue
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 
-@OptIn(ExperimentalFoundationApi::class)
 open class BasePagerTest(private val config: ParamConfig) :
     BaseLazyLayoutTestWithOrientation(config.orientation) {
 
@@ -117,6 +121,7 @@ open class BasePagerTest(private val config: ParamConfig) :
             this.fillMaxHeight()
         }
 
+    @OptIn(ExperimentalFoundationApi::class)
     internal fun createPager(
         initialPage: Int = 0,
         initialPageOffsetFraction: Float = 0f,
@@ -125,6 +130,7 @@ open class BasePagerTest(private val config: ParamConfig) :
         beyondViewportPageCount: Int = config.beyondViewportPageCount,
         pageSize: () -> PageSize = { PageSize.Fill },
         userScrollEnabled: Boolean = true,
+        overscrollEffect: @Composable () -> OverscrollEffect? = { rememberOverscrollEffect() },
         snappingPage: PagerSnapDistance = PagerSnapDistance.atMost(1),
         nestedScrollConnection: NestedScrollConnection = object : NestedScrollConnection {},
         additionalContent: @Composable () -> Unit = {},
@@ -136,59 +142,68 @@ open class BasePagerTest(private val config: ParamConfig) :
         snapPosition: SnapPosition = config.snapPosition.first,
         flingBehavior: TargetedFlingBehavior? = null,
         prefetchScheduler: PrefetchScheduler? = null,
+        userLookahead: Boolean = config.useLookahead,
+        bringIntoViewSpec: BringIntoViewSpec = DefaultBringIntoViewSpec,
         pageContent: @Composable PagerScope.(page: Int) -> Unit = { Page(index = it) }
     ) {
 
         rule.setContent {
-            val state =
-                if (prefetchScheduler == null) {
-                    rememberPagerState(initialPage, initialPageOffsetFraction, pageCount)
-                } else {
-                    remember {
-                        object :
-                            PagerState(initialPage, initialPageOffsetFraction, prefetchScheduler) {
-                            override val pageCount: Int
-                                get() = pageCount()
+            ConfigurableLookaheadScope(userLookahead) {
+                val state =
+                    if (prefetchScheduler == null) {
+                        rememberPagerState(initialPage, initialPageOffsetFraction, pageCount)
+                    } else {
+                        remember {
+                            object :
+                                PagerState(
+                                    initialPage,
+                                    initialPageOffsetFraction,
+                                    prefetchScheduler
+                                ) {
+                                override val pageCount: Int
+                                    get() = pageCount()
+                            }
                         }
                     }
-                }
-            pagerState = state
-            composeView = LocalView.current
-            focusManager = LocalFocusManager.current
-            CompositionLocalProvider(
-                LocalLayoutDirection provides config.layoutDirection,
-                LocalOverscrollConfiguration provides null
-            ) {
-                val resolvedFlingBehavior =
-                    flingBehavior
-                        ?: PagerDefaults.flingBehavior(
-                            state = state,
-                            pagerSnapDistance = snappingPage,
-                            snapPositionalThreshold = snapPositionalThreshold
-                        )
+                pagerState = state
+                composeView = LocalView.current
+                focusManager = LocalFocusManager.current
+                CompositionLocalProvider(
+                    LocalLayoutDirection provides config.layoutDirection,
+                    LocalBringIntoViewSpec provides bringIntoViewSpec
+                ) {
+                    val resolvedFlingBehavior =
+                        flingBehavior
+                            ?: PagerDefaults.flingBehavior(
+                                state = state,
+                                pagerSnapDistance = snappingPage,
+                                snapPositionalThreshold = snapPositionalThreshold
+                            )
 
-                scope = rememberCoroutineScope()
-                Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
-                    HorizontalOrVerticalPager(
-                        state = state,
-                        beyondViewportPageCount = beyondViewportPageCount,
-                        modifier =
-                            modifier.testTag(PagerTestTag).onSizeChanged {
-                                pagerSize = if (vertical) it.height else it.width
-                            },
-                        pageSize = pageSize(),
-                        userScrollEnabled = userScrollEnabled,
-                        reverseLayout = reverseLayout,
-                        flingBehavior = resolvedFlingBehavior,
-                        pageSpacing = pageSpacing,
-                        contentPadding = contentPadding,
-                        pageContent = pageContent,
-                        snapPosition = snapPosition,
-                        key = key
-                    )
+                    scope = rememberCoroutineScope()
+                    Box(modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection)) {
+                        HorizontalOrVerticalPager(
+                            state = state,
+                            beyondViewportPageCount = beyondViewportPageCount,
+                            modifier =
+                                modifier.testTag(PagerTestTag).onSizeChanged {
+                                    pagerSize = if (vertical) it.height else it.width
+                                },
+                            pageSize = pageSize(),
+                            userScrollEnabled = userScrollEnabled,
+                            overscrollEffect = overscrollEffect(),
+                            reverseLayout = reverseLayout,
+                            flingBehavior = resolvedFlingBehavior,
+                            pageSpacing = pageSpacing,
+                            contentPadding = contentPadding,
+                            pageContent = pageContent,
+                            snapPosition = snapPosition,
+                            key = key
+                        )
+                    }
                 }
+                additionalContent()
             }
-            additionalContent()
         }
     }
 
@@ -299,12 +314,12 @@ open class BasePagerTest(private val config: ParamConfig) :
                 }
             }
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     internal fun HorizontalOrVerticalPager(
         state: PagerState = rememberPagerState(pageCount = { DefaultPageCount }),
         modifier: Modifier = Modifier,
         userScrollEnabled: Boolean = true,
+        overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
         reverseLayout: Boolean = false,
         contentPadding: PaddingValues = PaddingValues(0.dp),
         beyondViewportPageCount: Int = 0,
@@ -315,36 +330,40 @@ open class BasePagerTest(private val config: ParamConfig) :
         snapPosition: SnapPosition = config.snapPosition.first,
         pageContent: @Composable PagerScope.(pager: Int) -> Unit
     ) {
-        if (vertical) {
-            VerticalPager(
-                state = state,
-                modifier = modifier,
-                userScrollEnabled = userScrollEnabled,
-                reverseLayout = reverseLayout,
-                contentPadding = contentPadding,
-                beyondViewportPageCount = beyondViewportPageCount,
-                pageSize = pageSize,
-                flingBehavior = flingBehavior,
-                pageSpacing = pageSpacing,
-                key = key,
-                snapPosition = snapPosition,
-                pageContent = pageContent
-            )
-        } else {
-            HorizontalPager(
-                state = state,
-                modifier = modifier,
-                userScrollEnabled = userScrollEnabled,
-                reverseLayout = reverseLayout,
-                contentPadding = contentPadding,
-                beyondViewportPageCount = beyondViewportPageCount,
-                pageSize = pageSize,
-                flingBehavior = flingBehavior,
-                pageSpacing = pageSpacing,
-                key = key,
-                snapPosition = snapPosition,
-                pageContent = pageContent
-            )
+        ConfigurableLookaheadScope(useLookahead = config.useLookahead) {
+            if (vertical) {
+                VerticalPager(
+                    state = state,
+                    modifier = modifier,
+                    userScrollEnabled = userScrollEnabled,
+                    overscrollEffect = overscrollEffect,
+                    reverseLayout = reverseLayout,
+                    contentPadding = contentPadding,
+                    beyondViewportPageCount = beyondViewportPageCount,
+                    pageSize = pageSize,
+                    flingBehavior = flingBehavior,
+                    pageSpacing = pageSpacing,
+                    key = key,
+                    snapPosition = snapPosition,
+                    pageContent = pageContent
+                )
+            } else {
+                HorizontalPager(
+                    state = state,
+                    modifier = modifier,
+                    userScrollEnabled = userScrollEnabled,
+                    overscrollEffect = overscrollEffect,
+                    reverseLayout = reverseLayout,
+                    contentPadding = contentPadding,
+                    beyondViewportPageCount = beyondViewportPageCount,
+                    pageSize = pageSize,
+                    flingBehavior = flingBehavior,
+                    pageSpacing = pageSpacing,
+                    key = key,
+                    snapPosition = snapPosition,
+                    pageContent = pageContent
+                )
+            }
         }
     }
 
@@ -391,7 +410,15 @@ open class BasePagerTest(private val config: ParamConfig) :
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun ConfigurableLookaheadScope(useLookahead: Boolean, content: @Composable () -> Unit) {
+    if (useLookahead) {
+        LookaheadScope { content() }
+    } else {
+        content()
+    }
+}
+
 class ParamConfig(
     val orientation: Orientation,
     val reverseLayout: Boolean = false,
@@ -400,6 +427,7 @@ class ParamConfig(
     val mainAxisContentPadding: PaddingValues = PaddingValues(0.dp),
     val beyondViewportPageCount: Int = 0,
     val snapPosition: Pair<SnapPosition, String> = SnapPosition.Start to "Start",
+    val useLookahead: Boolean = false
 ) {
     override fun toString(): String {
         return "orientation=$orientation " +
@@ -408,7 +436,8 @@ class ParamConfig(
             "pageSpacing=$pageSpacing " +
             "mainAxisContentPadding=$mainAxisContentPadding " +
             "beyondViewportPageCount=$beyondViewportPageCount " +
-            "snapPosition=${snapPosition.second}"
+            "snapPosition=${snapPosition.second} " +
+            "useLookahead=${useLookahead}"
     }
 }
 
@@ -417,7 +446,6 @@ internal const val DefaultPageCount = 20
 internal const val DefaultAnimationRepetition = 2
 internal val TestOrientation = listOf(Orientation.Vertical, Orientation.Horizontal)
 
-@OptIn(ExperimentalFoundationApi::class)
 internal val AllOrientationsParams =
     mutableListOf<ParamConfig>().apply {
         for (orientation in TestOrientation) {

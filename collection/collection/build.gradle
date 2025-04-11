@@ -41,7 +41,9 @@ androidXComposeMultiplatform {
 }
 
 kotlin {
-    jvm()
+    jvm {
+        withJava()
+    }
     // Not all modules can have these targets, so declare them here instead of androidXComposeMultiplatform.
     // We can support the kotlin-native targets supported by kotlin coroutines:
     // https://github.com/Kotlin/kotlinx.coroutines/blob/master/gradle/compile-native-multiplatform.gradle
@@ -86,14 +88,14 @@ kotlin {
         }
 
         jbMain.dependsOn(commonMain)
-        jsNativeMain.dependsOn(jbMain)
-        jsWasmMain.dependsOn(jsNativeMain)
-        jsMain.dependsOn(jsWasmMain)
         jvmMain.dependsOn(jbMain)
+        nonJvmMain.dependsOn(jbMain)
+        jsWasmMain.dependsOn(nonJvmMain)
+        jsMain.dependsOn(jsWasmMain)
 
         wasmJsMain.dependsOn(jsWasmMain)
 
-        nativeMain.dependsOn(jsNativeMain)
+        nativeMain.dependsOn(nonJvmMain)
         linuxArm64Main.dependsOn(nativeMain)
         linuxArm64Test.dependsOn(nativeTest)
         linuxX64Main.dependsOn(nativeMain)
@@ -129,6 +131,7 @@ kotlin {
         tvosSimulatorArm64Test.dependsOn(tvOsTest)
 
         def commonNonWebTest = sourceSets.create("commonNonWebTest")
+        commonNonWebTest.dependsOn(commonTest)
         commonNonWebTest.dependencies {
             implementation(libs.kotlinTest)
             implementation(libs.kotlinTestAnnotationsCommon)
@@ -158,6 +161,11 @@ androidx {
     type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Standalone efficient collections."
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 androidxCompose {

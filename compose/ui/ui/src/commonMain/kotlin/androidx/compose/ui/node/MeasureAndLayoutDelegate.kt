@@ -51,7 +51,7 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
         get() = onPositionedDispatcher.isNotEmpty()
 
     /** Flag to indicate that we're currently measuring. */
-    private var duringMeasureLayout = false
+    internal var duringMeasureLayout = false
     /**
      * True when we are currently executing a full measure/layout pass, which mean we will iterate
      * through all the nodes in [relayoutNodes].
@@ -424,7 +424,7 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
     private fun remeasureLookaheadRootsInSubtree(layoutNode: LayoutNode) {
         layoutNode.forEachChild {
             if (it.measureAffectsParent) {
-                if (it.isOutMostLookaheadRoot()) {
+                if (it.isOutMostLookaheadRoot) {
                     // This call will walk the subtree to look for lookaheadMeasurePending nodes and
                     // do a recursive lookahead remeasure starting at the root.
                     remeasureOnly(it, affectsLookahead = true)
@@ -577,6 +577,12 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                                 layoutNode.replace()
                             }
                             onPositionedDispatcher.onNodePositioned(layoutNode)
+                            // Since there has been an update to a coordinator somewhere in the
+                            // modifier chain of this layout node, we might have onRectChanged
+                            // callbacks that need to be notified of that change. As a result, even
+                            // if the outer rect of this layout node hasn't changed, we want to
+                            // invalidate the callbacks for them
+                            layoutNode.requireOwner().rectManager.invalidateCallbacksFor(layoutNode)
                             consistencyChecker?.assertConsistent()
                         }
                     }
@@ -673,7 +679,7 @@ internal class MeasureAndLayoutDelegate(private val root: LayoutNode) {
                 // both lookahead invalidation and non-lookahead invalidation, just like a measure()
                 // call from LookaheadRoot's parent would start the two tracks - lookahead and post
                 // lookahead measurements.
-                if (child.isOutMostLookaheadRoot() && !affectsLookahead) {
+                if (child.isOutMostLookaheadRoot && !affectsLookahead) {
                     // Force subtree measure hitting a lookahead root, pending lookahead measure.
                     // This could happen when the "applyChanges" cause nodes to be attached in
                     // lookahead subtree while the "applyChanges" is a part of the ancestor's

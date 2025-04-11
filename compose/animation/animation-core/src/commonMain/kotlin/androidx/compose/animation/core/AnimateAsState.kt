@@ -49,7 +49,6 @@ private val defaultAnimation = spring<Float>()
  * from the tree. See [Animatable] for cancelable animations.
  *
  * @sample androidx.compose.animation.core.samples.AlphaAnimationSample
- *
  * @param targetValue Target value of the animation
  * @param animationSpec The animation that will be used to change the value through time. [spring]
  *   will be used by default.
@@ -60,7 +59,7 @@ private val defaultAnimation = spring<Float>()
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateFloatAsState(
+public fun animateFloatAsState(
     targetValue: Float,
     animationSpec: AnimationSpec<Float> = defaultAnimation,
     visibilityThreshold: Float = 0.01f,
@@ -97,7 +96,6 @@ fun animateFloatAsState(
  * from the tree. See [Animatable] for cancelable animations.
  *
  * @sample androidx.compose.animation.core.samples.DpAnimationSample
- *
  * @param targetValue Target value of the animation
  * @param animationSpec The animation that will be used to change the value through time. Physics
  *   animation will be used by default.
@@ -106,7 +104,7 @@ fun animateFloatAsState(
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateDpAsState(
+public fun animateDpAsState(
     targetValue: Dp,
     animationSpec: AnimationSpec<Dp> = dpDefaultSpring,
     label: String = "DpAnimation",
@@ -147,7 +145,7 @@ private val dpDefaultSpring = spring<Dp>(visibilityThreshold = Dp.VisibilityThre
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateSizeAsState(
+public fun animateSizeAsState(
     targetValue: Size,
     animationSpec: AnimationSpec<Size> = sizeDefaultSpring,
     label: String = "SizeAnimation",
@@ -178,7 +176,6 @@ private val sizeDefaultSpring = spring(visibilityThreshold = Size.VisibilityThre
  * from the tree. See [Animatable] for cancelable animations.
  *
  * @sample androidx.compose.animation.core.samples.AnimateOffsetSample
- *
  * @param targetValue Target value of the animation
  * @param animationSpec The animation that will be used to change the value through time. Physics
  *   animation will be used by default.
@@ -187,7 +184,7 @@ private val sizeDefaultSpring = spring(visibilityThreshold = Size.VisibilityThre
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateOffsetAsState(
+public fun animateOffsetAsState(
     targetValue: Offset,
     animationSpec: AnimationSpec<Offset> = offsetDefaultSpring,
     label: String = "OffsetAnimation",
@@ -228,7 +225,7 @@ private val offsetDefaultSpring = spring(visibilityThreshold = Offset.Visibility
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateRectAsState(
+public fun animateRectAsState(
     targetValue: Rect,
     animationSpec: AnimationSpec<Rect> = rectDefaultSpring,
     label: String = "RectAnimation",
@@ -266,7 +263,7 @@ private val rectDefaultSpring = spring(visibilityThreshold = Rect.VisibilityThre
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateIntAsState(
+public fun animateIntAsState(
     targetValue: Int,
     animationSpec: AnimationSpec<Int> = intDefaultSpring,
     label: String = "IntAnimation",
@@ -297,7 +294,6 @@ private val intDefaultSpring = spring(visibilityThreshold = Int.VisibilityThresh
  * function from the tree. See [Animatable] for cancelable animations.
  *
  * @sample androidx.compose.animation.core.samples.AnimateOffsetSample
- *
  * @param targetValue Target value of the animation
  * @param animationSpec The animation that will be used to change the value through time. Physics
  *   animation will be used by default.
@@ -306,7 +302,7 @@ private val intDefaultSpring = spring(visibilityThreshold = Int.VisibilityThresh
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateIntOffsetAsState(
+public fun animateIntOffsetAsState(
     targetValue: IntOffset,
     animationSpec: AnimationSpec<IntOffset> = intOffsetDefaultSpring,
     label: String = "IntOffsetAnimation",
@@ -344,7 +340,7 @@ private val intOffsetDefaultSpring = spring(visibilityThreshold = IntOffset.Visi
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun animateIntSizeAsState(
+public fun animateIntSizeAsState(
     targetValue: IntSize,
     animationSpec: AnimationSpec<IntSize> = intSizeDefaultSpring,
     label: String = "IntSizeAnimation",
@@ -376,9 +372,11 @@ private val intSizeDefaultSpring = spring(visibilityThreshold = IntSize.Visibili
  *
  * @sample androidx.compose.animation.core.samples.ArbitraryValueTypeTransitionSample
  *
- *     data class MySize(val width: Dp, val height: Dp)
+ *   data class MySize(val width: Dp, val height: Dp)
  *
  * @param targetValue Target value of the animation
+ * @param typeConverter A [TwoWayConverter] to convert from the animation value from and to an
+ *   [AnimationVector]
  * @param animationSpec The animation that will be used to change the value through time. Physics
  *   animation will be used by default.
  * @param visibilityThreshold An optional threshold to define when the animation value can be
@@ -388,7 +386,7 @@ private val intSizeDefaultSpring = spring(visibilityThreshold = IntSize.Visibili
  * @return A [State] object, the value of which is updated by animation.
  */
 @Composable
-fun <T, V : AnimationVector> animateValueAsState(
+public fun <T, V : AnimationVector> animateValueAsState(
     targetValue: T,
     typeConverter: TwoWayConverter<T, V>,
     animationSpec: AnimationSpec<T> = remember { spring() },
@@ -440,7 +438,7 @@ fun <T, V : AnimationVector> animateValueAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateFloatAsState(
+public fun animateFloatAsState(
     targetValue: Float,
     animationSpec: AnimationSpec<Float> = defaultAnimation,
     visibilityThreshold: Float = 0.01f,
@@ -458,7 +456,7 @@ fun animateFloatAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateDpAsState(
+public fun animateDpAsState(
     targetValue: Dp,
     animationSpec: AnimationSpec<Dp> = dpDefaultSpring,
     finishedListener: ((Dp) -> Unit)? = null
@@ -476,7 +474,7 @@ fun animateDpAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateSizeAsState(
+public fun animateSizeAsState(
     targetValue: Size,
     animationSpec: AnimationSpec<Size> = sizeDefaultSpring,
     finishedListener: ((Size) -> Unit)? = null
@@ -494,7 +492,7 @@ fun animateSizeAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateOffsetAsState(
+public fun animateOffsetAsState(
     targetValue: Offset,
     animationSpec: AnimationSpec<Offset> = offsetDefaultSpring,
     finishedListener: ((Offset) -> Unit)? = null
@@ -512,7 +510,7 @@ fun animateOffsetAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateRectAsState(
+public fun animateRectAsState(
     targetValue: Rect,
     animationSpec: AnimationSpec<Rect> = rectDefaultSpring,
     finishedListener: ((Rect) -> Unit)? = null
@@ -530,7 +528,7 @@ fun animateRectAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateIntAsState(
+public fun animateIntAsState(
     targetValue: Int,
     animationSpec: AnimationSpec<Int> = intDefaultSpring,
     finishedListener: ((Int) -> Unit)? = null
@@ -548,7 +546,7 @@ fun animateIntAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateIntOffsetAsState(
+public fun animateIntOffsetAsState(
     targetValue: IntOffset,
     animationSpec: AnimationSpec<IntOffset> = intOffsetDefaultSpring,
     finishedListener: ((IntOffset) -> Unit)? = null
@@ -566,7 +564,7 @@ fun animateIntOffsetAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun animateIntSizeAsState(
+public fun animateIntSizeAsState(
     targetValue: IntSize,
     animationSpec: AnimationSpec<IntSize> = intSizeDefaultSpring,
     finishedListener: ((IntSize) -> Unit)? = null
@@ -584,7 +582,7 @@ fun animateIntSizeAsState(
     level = DeprecationLevel.HIDDEN
 )
 @Composable
-fun <T, V : AnimationVector> animateValueAsState(
+public fun <T, V : AnimationVector> animateValueAsState(
     targetValue: T,
     typeConverter: TwoWayConverter<T, V>,
     animationSpec: AnimationSpec<T> = remember { spring() },

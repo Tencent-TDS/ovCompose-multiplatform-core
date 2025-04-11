@@ -45,7 +45,7 @@ dependencies {
         api("androidx.compose.ui:ui:1.2.1")
         api("androidx.compose.ui:ui-text:1.2.1")
 
-        implementation(libs.kotlinStdlibCommon)
+        implementation(libs.kotlinStdlib)
         implementation("androidx.compose.animation:animation:1.2.1")
         implementation("androidx.compose.foundation:foundation-layout:1.2.1")
         implementation("androidx.compose.ui:ui-util:1.2.1")
@@ -95,7 +95,7 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
          */
         sourceSets {
             commonMain.dependencies {
-                implementation(libs.kotlinStdlibCommon)
+                implementation(libs.kotlinStdlib)
                 api(project(":compose:animation:animation-core"))
                 api(project(":compose:foundation:foundation"))
                 api("org.jetbrains.compose.material:material-icons-core:1.6.11") {
@@ -108,10 +108,10 @@ if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
                 api(project(":compose:ui:ui"))
                 api(project(":compose:ui:ui-text"))
 
+                implementation(project(":annotation:annotation"))
                 implementation(project(":compose:animation:animation"))
                 implementation(project(":compose:foundation:foundation-layout"))
                 implementation(project(":compose:ui:ui-util"))
-                implementation(project(":annotation:annotation"))
             }
 
             androidMain.dependencies {
@@ -211,6 +211,7 @@ tasks.register("updateTranslations", UpdateTranslationsTask.class) {
             "dropdown_menu": "ExposedDropdownMenu",
             "range_start": "SliderRangeStart",
             "range_end": "SliderRangeEnd",
+            "snackbar_pane_title": "SnackbarPaneTitle",
     ]
     // This is all the locales translated by Compose on Android in the ui module:
     // https://github.com/androidx/androidx/tree/androidx-main/compose/ui/ui/src/androidMain/res

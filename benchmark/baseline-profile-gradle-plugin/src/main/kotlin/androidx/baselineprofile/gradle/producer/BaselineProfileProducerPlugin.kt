@@ -19,6 +19,7 @@ package androidx.baselineprofile.gradle.producer
 import androidx.baselineprofile.gradle.configuration.ConfigurationManager
 import androidx.baselineprofile.gradle.producer.tasks.CollectBaselineProfileTask
 import androidx.baselineprofile.gradle.producer.tasks.InstrumentationTestTaskWrapper
+import androidx.baselineprofile.gradle.utils.AgpFeature.CONFIGURATION_CACHE_FIX_B348136774
 import androidx.baselineprofile.gradle.utils.AgpFeature.TEST_MODULE_SUPPORTS_MULTIPLE_BUILD_TYPES
 import androidx.baselineprofile.gradle.utils.AgpFeature.TEST_VARIANT_SUPPORTS_INSTRUMENTATION_RUNNER_ARGUMENTS
 import androidx.baselineprofile.gradle.utils.AgpFeature.TEST_VARIANT_TESTED_APKS
@@ -32,6 +33,7 @@ import androidx.baselineprofile.gradle.utils.CONFIGURATION_NAME_BASELINE_PROFILE
 import androidx.baselineprofile.gradle.utils.INSTRUMENTATION_ARG_ENABLED_RULES
 import androidx.baselineprofile.gradle.utils.INSTRUMENTATION_ARG_ENABLED_RULES_BASELINE_PROFILE
 import androidx.baselineprofile.gradle.utils.INSTRUMENTATION_ARG_ENABLED_RULES_BENCHMARK
+import androidx.baselineprofile.gradle.utils.INSTRUMENTATION_ARG_SKIP_ON_EMULATOR
 import androidx.baselineprofile.gradle.utils.INSTRUMENTATION_ARG_TARGET_PACKAGE_NAME
 import androidx.baselineprofile.gradle.utils.InstrumentationTestRunnerArgumentsAgp82
 import androidx.baselineprofile.gradle.utils.MAX_AGP_VERSION_RECOMMENDED_EXCLUSIVE
@@ -77,16 +79,16 @@ private class BaselineProfileProducerAgpPlugin(private val project: Project) :
     private val baselineProfileExtension = BaselineProfileProducerExtension.register(project)
     private val configurationManager = ConfigurationManager(project)
     private val shouldSkipGeneration by lazy {
-        project.properties.containsKey(PROP_SKIP_GENERATION)
+        project.providers.gradleProperty(PROP_SKIP_GENERATION).isPresent
     }
     private val forceOnlyConnectedDevices: Boolean by lazy {
-        project.properties.containsKey(PROP_FORCE_ONLY_CONNECTED_DEVICES)
+        project.providers.gradleProperty(PROP_FORCE_ONLY_CONNECTED_DEVICES).isPresent
     }
     private val addEnabledRulesInstrumentationArgument by lazy {
-        !project.properties.containsKey(PROP_DONT_DISABLE_RULES)
+        !project.providers.gradleProperty(PROP_DONT_DISABLE_RULES).isPresent
     }
     private val addTargetPackageNameInstrumentationArgument by lazy {
-        !project.properties.containsKey(PROP_SEND_TARGET_PACKAGE_NAME)
+        !project.providers.gradleProperty(PROP_SEND_TARGET_PACKAGE_NAME).isPresent
     }
 
     // This maps all the extended build types to the original ones. Note that release does not
@@ -252,17 +254,26 @@ private class BaselineProfileProducerAgpPlugin(private val project: Project) :
         // If this is a benchmark variant sets the instrumentation runner argument to run only
         // tests with MacroBenchmark rules.
         if (
-            addEnabledRulesInstrumentationArgument &&
-                enabledRulesNotSet &&
-                variant.buildType in benchmarkExtendedToOriginalTypeMap.keys
+            variant.buildType in benchmarkExtendedToOriginalTypeMap.keys &&
+                supportsFeature(TEST_VARIANT_SUPPORTS_INSTRUMENTATION_RUNNER_ARGUMENTS)
         ) {
-            if (supportsFeature(TEST_VARIANT_SUPPORTS_INSTRUMENTATION_RUNNER_ARGUMENTS)) {
+
+            InstrumentationTestRunnerArgumentsAgp82.set(
+                variant = variant,
+                arguments =
+                    listOf(
+                        INSTRUMENTATION_ARG_SKIP_ON_EMULATOR to
+                            baselineProfileExtension.skipBenchmarksOnEmulator.toString()
+                    )
+            )
+
+            if (addEnabledRulesInstrumentationArgument && enabledRulesNotSet) {
                 InstrumentationTestRunnerArgumentsAgp82.set(
                     variant = variant,
                     arguments =
                         listOf(
                             INSTRUMENTATION_ARG_ENABLED_RULES to
-                                INSTRUMENTATION_ARG_ENABLED_RULES_BENCHMARK
+                                INSTRUMENTATION_ARG_ENABLED_RULES_BENCHMARK,
                         )
                 )
             }
@@ -272,7 +283,9 @@ private class BaselineProfileProducerAgpPlugin(private val project: Project) :
         // app as an instrumentation runner argument. BaselineProfileRule and MacrobenchmarkRule
         // can pick that up during the test execution.
         if (
-            addTargetPackageNameInstrumentationArgument && supportsFeature(TEST_VARIANT_TESTED_APKS)
+            addTargetPackageNameInstrumentationArgument &&
+                supportsFeature(TEST_VARIANT_TESTED_APKS) &&
+                supportsFeature(CONFIGURATION_CACHE_FIX_B348136774)
         ) {
             InstrumentationTestRunnerArgumentsAgp82.set(
                 variant = variant,

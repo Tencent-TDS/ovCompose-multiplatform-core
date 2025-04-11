@@ -25,11 +25,13 @@ import androidx.compose.foundation.gestures.ScrollableState
 import androidx.compose.foundation.gestures.stopScroll
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.lazy.layout.AwaitFirstLayoutModifier
 import androidx.compose.foundation.lazy.layout.LazyLayoutBeyondBoundsInfo
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.compose.foundation.lazy.layout.LazyLayoutPinnedItemList
 import androidx.compose.foundation.lazy.layout.LazyLayoutPrefetchState
+import androidx.compose.foundation.lazy.layout.LazyLayoutScrollDeltaBetweenPasses
 import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
 import androidx.compose.foundation.lazy.layout.animateScrollToItem
 import androidx.compose.runtime.Composable
@@ -52,6 +54,7 @@ import androidx.compose.ui.util.fastForEach
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.ranges.IntRange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -134,12 +137,20 @@ constructor(
         firstVisibleItemScrollOffset: Int = 0
     ) : this(firstVisibleItemIndex, firstVisibleItemScrollOffset, LazyGridPrefetchStrategy())
 
+    internal var hasLookaheadOccurred: Boolean = false
+        private set
+
+    internal var approachLayoutInfo: LazyGridMeasureResult? = null
+        private set
+
     /** The holder class for the current scroll position. */
     private val scrollPosition =
         LazyGridScrollPosition(firstVisibleItemIndex, firstVisibleItemScrollOffset)
 
     /**
-     * The index of the first item that is visible.
+     * The index of the first item that is visible within the scrollable viewport area, this means,
+     * not including items in the content padding region. For the first visible item that includes
+     * items in the content padding please use [LazyGridLayoutInfo.visibleItemsInfo].
      *
      * Note that this property is observable and if you use it in the composable function it will be
      * recomposed on every change causing potential performance issues.
@@ -264,15 +275,24 @@ constructor(
                 // prefetch is best effort.
                 val prefetchHandles = mutableListOf<LazyLayoutPrefetchState.PrefetchHandle>()
                 Snapshot.withoutReadObservation {
-                    layoutInfoState.value.prefetchInfoRetriever(lineIndex).fastForEach {
-                        prefetchHandles.add(prefetchState.schedulePrefetch(it.first, it.second))
+                    val layoutInfo =
+                        if (hasLookaheadOccurred) {
+                            approachLayoutInfo
+                        } else {
+                            layoutInfoState.value
+                        }
+
+                    layoutInfo?.let {
+                        it.prefetchInfoRetriever(lineIndex).fastForEach { lineInfo ->
+                            prefetchHandles.add(
+                                prefetchState.schedulePrefetch(lineInfo.first, lineInfo.second)
+                            )
+                        }
                     }
                 }
                 return prefetchHandles
             }
         }
-
-    private val animateScrollScope = LazyGridAnimateScrollScope(this)
 
     /** Stores currently pinned items which are always composed. */
     internal val pinnedItems = LazyLayoutPinnedItemList()
@@ -384,8 +404,8 @@ constructor(
         if (distance < 0 && !canScrollForward || distance > 0 && !canScrollBackward) {
             return 0f
         }
-        check(abs(scrollToBeConsumed) <= 0.5f) {
-            "entered drag with non-zero pending scroll: $scrollToBeConsumed"
+        checkPrecondition(abs(scrollToBeConsumed) <= 0.5f) {
+            "entered drag with non-zero pending scroll"
         }
         scrollToBeConsumed += distance
 
@@ -393,15 +413,42 @@ constructor(
         // inside measuring we do scrollToBeConsumed.roundToInt() so there will be no scroll if
         // we have less than 0.5 pixels
         if (abs(scrollToBeConsumed) > 0.5f) {
-            val layoutInfo = layoutInfoState.value
             val preScrollToBeConsumed = scrollToBeConsumed
             val intDelta = scrollToBeConsumed.roundToInt()
-            if (layoutInfo.tryToApplyScrollWithoutRemeasure(intDelta)) {
-                applyMeasureResult(result = layoutInfo, visibleItemsStayedTheSame = true)
+            var scrolledLayoutInfo =
+                layoutInfoState.value.copyWithScrollDeltaWithoutRemeasure(
+                    delta = intDelta,
+                    updateAnimations = !hasLookaheadOccurred
+                )
+            if (scrolledLayoutInfo != null && this.approachLayoutInfo != null) {
+                // if we were able to scroll the lookahead layout info without remeasure, lets
+                // try to do the same for post lookahead layout info (sometimes they diverge).
+                val scrolledApproachLayoutInfo =
+                    approachLayoutInfo?.copyWithScrollDeltaWithoutRemeasure(
+                        delta = intDelta,
+                        updateAnimations = true
+                    )
+                if (scrolledApproachLayoutInfo != null) {
+                    // we can apply scroll delta for both phases without remeasure
+                    approachLayoutInfo = scrolledApproachLayoutInfo
+                } else {
+                    // we can't apply scroll delta for post lookahead, so we have to remeasure
+                    scrolledLayoutInfo = null
+                }
+            }
+            if (scrolledLayoutInfo != null) {
+                applyMeasureResult(
+                    result = scrolledLayoutInfo,
+                    isLookingAhead = hasLookaheadOccurred,
+                    visibleItemsStayedTheSame = true
+                )
                 // we don't need to remeasure, so we only trigger re-placement:
                 placementScopeInvalidator.invalidateScope()
 
-                notifyPrefetchOnScroll(preScrollToBeConsumed - scrollToBeConsumed, layoutInfo)
+                notifyPrefetchOnScroll(
+                    preScrollToBeConsumed - scrollToBeConsumed,
+                    scrolledLayoutInfo
+                )
             } else {
                 remeasurement?.forceRemeasure()
                 notifyPrefetchOnScroll(preScrollToBeConsumed - scrollToBeConsumed, this.layoutInfo)
@@ -440,31 +487,55 @@ constructor(
      *   scroll the item further upward (taking it partly offscreen).
      */
     suspend fun animateScrollToItem(@AndroidXIntRange(from = 0) index: Int, scrollOffset: Int = 0) {
-        animateScrollScope.animateScrollToItem(index, scrollOffset, numOfItemsToTeleport, density)
+        scroll {
+            LazyLayoutScrollScope(this@LazyGridState, this)
+                .animateScrollToItem(index, scrollOffset, numOfItemsToTeleport, density)
+        }
     }
 
     /** Updates the state with the new calculated scroll position and consumed scroll. */
     internal fun applyMeasureResult(
         result: LazyGridMeasureResult,
+        isLookingAhead: Boolean,
         visibleItemsStayedTheSame: Boolean = false
     ) {
-        scrollToBeConsumed -= result.consumedScroll
-        layoutInfoState.value = result
-
-        canScrollBackward = result.canScrollBackward
-        canScrollForward = result.canScrollForward
-
-        if (visibleItemsStayedTheSame) {
-            scrollPosition.updateScrollOffset(result.firstVisibleLineScrollOffset)
+        if (!isLookingAhead && hasLookaheadOccurred) {
+            // If there was already a lookahead pass, record this result as Approach result
+            approachLayoutInfo = result
         } else {
-            scrollPosition.updateFromMeasureResult(result)
-            if (prefetchingEnabled) {
-                with(prefetchStrategy) { prefetchScope.onVisibleItemsUpdated(result) }
+            if (isLookingAhead) {
+                hasLookaheadOccurred = true
             }
-        }
+            scrollToBeConsumed -= result.consumedScroll
+            layoutInfoState.value = result
 
-        numMeasurePasses++
+            canScrollBackward = result.canScrollBackward
+            canScrollForward = result.canScrollForward
+
+            if (visibleItemsStayedTheSame) {
+                scrollPosition.updateScrollOffset(result.firstVisibleLineScrollOffset)
+            } else {
+                scrollPosition.updateFromMeasureResult(result)
+                if (prefetchingEnabled) {
+                    with(prefetchStrategy) { prefetchScope.onVisibleItemsUpdated(result) }
+                }
+            }
+
+            if (isLookingAhead) {
+                _lazyLayoutScrollDeltaBetweenPasses.updateScrollDeltaForApproach(
+                    result.scrollBackAmount,
+                    result.density,
+                    result.coroutineScope
+                )
+            }
+            numMeasurePasses++
+        }
     }
+
+    private val _lazyLayoutScrollDeltaBetweenPasses = LazyLayoutScrollDeltaBetweenPasses()
+
+    internal val scrollDeltaBetweenPasses
+        get() = _lazyLayoutScrollDeltaBetweenPasses.scrollDeltaBetweenPasses
 
     /**
      * When the user provided custom keys for the items we can try to detect when there were items
@@ -524,6 +595,7 @@ private val EmptyLazyGridLayoutInfo =
 
                 override fun placeChildren() {}
             },
+        scrollBackAmount = 0f,
         visibleItemsInfo = emptyList(),
         viewportStartOffset = 0,
         viewportEndOffset = 0,

@@ -363,7 +363,7 @@ data class RelationCollector(
                     val context =
                         baseContext.fork(
                             element = relation.field.element,
-                            forceSuppressedWarnings = setOf(Warning.CURSOR_MISMATCH),
+                            forceSuppressedWarnings = setOf(Warning.QUERY_MISMATCH),
                             forceBuiltInConverters =
                                 BuiltInConverterFlags.DEFAULT.copy(
                                     byteBuffer = BuiltInTypeConverters.State.ENABLED
@@ -410,7 +410,7 @@ data class RelationCollector(
                             )
                         } else {
                             val keyTypeMirror = context.processingEnv.requireType(keyTypeName)
-                            val set = checkNotNull(context.COMMON_TYPES.SET.typeElement)
+                            val set = context.processingEnv.requireTypeElement(CommonTypeNames.SET)
                             val keySet = context.processingEnv.getDeclaredType(set, keyTypeMirror)
                             QueryParameter(
                                 name = RelationCollectorFunctionWriter.KEY_SET_VARIABLE,
@@ -575,8 +575,9 @@ data class RelationCollector(
             relation.field.type.let { fieldType ->
                 if (fieldType.typeArguments.isNotEmpty()) {
                     val rawType = fieldType.rawType
+                    val setType = context.processingEnv.requireType(CommonTypeNames.SET)
                     val paramTypeName =
-                        if (context.COMMON_TYPES.SET.rawType.isAssignableFrom(rawType)) {
+                        if (setType.rawType.isAssignableFrom(rawType)) {
                             when (context.codeLanguage) {
                                 CodeLanguage.KOTLIN ->
                                     CommonTypeNames.MUTABLE_SET.parametrizedBy(
@@ -610,7 +611,8 @@ data class RelationCollector(
             val canUseLongSparseArray =
                 context.processingEnv.findTypeElement(LONG_SPARSE_ARRAY.canonicalName) != null
             val canUseArrayMap =
-                context.processingEnv.findTypeElement(ARRAY_MAP.canonicalName) != null
+                context.processingEnv.findTypeElement(ARRAY_MAP.canonicalName) != null &&
+                    context.isAndroidOnlyTarget()
             return when {
                 canUseLongSparseArray && affinity == SQLTypeAffinity.INTEGER ->
                     LONG_SPARSE_ARRAY.parametrizedBy(valueTypeName)

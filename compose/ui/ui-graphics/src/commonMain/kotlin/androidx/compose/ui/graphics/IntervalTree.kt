@@ -17,6 +17,7 @@
 package androidx.compose.ui.graphics
 
 import androidx.annotation.RestrictTo
+import kotlin.jvm.JvmField
 import kotlin.math.max
 import kotlin.math.min
 
@@ -81,9 +82,9 @@ class IntervalTree<T> {
     // structure beyond what can be found in various descriptions of binary search
     // trees and red/black trees
 
-    private val terminator = Node(Float.MAX_VALUE, Float.MIN_VALUE, null, TreeColor.Black)
-    private var root = terminator
-    private val stack = ArrayList<Node>()
+    @JvmField internal val terminator = Node(Float.MAX_VALUE, Float.MIN_VALUE, null, TreeColorBlack)
+    @JvmField internal var root = terminator
+    @JvmField internal val stack = ArrayList<Node>()
 
     /**
      * Clears this tree and prepares it for reuse. After calling [clear], any call to [findOverlaps]
@@ -152,7 +153,7 @@ class IntervalTree<T> {
             val s = stack
             s.add(root)
             while (s.size > 0) {
-                val node = s.removeLast()
+                val node = s.removeAt(s.size - 1)
                 if (node.overlaps(start, end)) block(node)
                 if (node.left !== terminator && node.left.max >= start) {
                     s.add(node.left)
@@ -201,7 +202,7 @@ class IntervalTree<T> {
      * @param data Data to associate with the interval
      */
     fun addInterval(start: Float, end: Float, data: T?) {
-        val node = Node(start, end, data, TreeColor.Red)
+        val node = Node(start, end, data, TreeColorRed)
 
         // Update the tree without doing any balancing
         var current = root
@@ -237,44 +238,44 @@ class IntervalTree<T> {
     private fun rebalance(target: Node) {
         var node = target
 
-        while (node !== root && node.parent.color == TreeColor.Red) {
+        while (node !== root && node.parent.color == TreeColorRed) {
             val ancestor = node.parent.parent
             if (node.parent === ancestor.left) {
                 val right = ancestor.right
-                if (right.color == TreeColor.Red) {
-                    right.color = TreeColor.Black
-                    node.parent.color = TreeColor.Black
-                    ancestor.color = TreeColor.Red
+                if (right.color == TreeColorRed) {
+                    right.color = TreeColorBlack
+                    node.parent.color = TreeColorBlack
+                    ancestor.color = TreeColorRed
                     node = ancestor
                 } else {
                     if (node === node.parent.right) {
                         node = node.parent
                         rotateLeft(node)
                     }
-                    node.parent.color = TreeColor.Black
-                    ancestor.color = TreeColor.Red
+                    node.parent.color = TreeColorBlack
+                    ancestor.color = TreeColorRed
                     rotateRight(ancestor)
                 }
             } else {
                 val left = ancestor.left
-                if (left.color == TreeColor.Red) {
-                    left.color = TreeColor.Black
-                    node.parent.color = TreeColor.Black
-                    ancestor.color = TreeColor.Red
+                if (left.color == TreeColorRed) {
+                    left.color = TreeColorBlack
+                    node.parent.color = TreeColorBlack
+                    ancestor.color = TreeColorRed
                     node = ancestor
                 } else {
                     if (node === node.parent.left) {
                         node = node.parent
                         rotateRight(node)
                     }
-                    node.parent.color = TreeColor.Black
-                    ancestor.color = TreeColor.Red
+                    node.parent.color = TreeColorBlack
+                    ancestor.color = TreeColorRed
                     rotateLeft(ancestor)
                 }
             }
         }
 
-        root.color = TreeColor.Black
+        root.color = TreeColorBlack
     }
 
     private fun rotateLeft(node: Node) {
@@ -338,11 +339,6 @@ class IntervalTree<T> {
         }
     }
 
-    internal enum class TreeColor {
-        Red,
-        Black
-    }
-
     internal inner class Node(start: Float, end: Float, data: T?, var color: TreeColor) :
         Interval<T>(start, end, data) {
         var min: Float = start
@@ -376,3 +372,8 @@ class IntervalTree<T> {
         }
     }
 }
+
+private typealias TreeColor = Int
+
+private const val TreeColorRed = 0
+private const val TreeColorBlack = 1

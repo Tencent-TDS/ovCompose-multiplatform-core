@@ -17,12 +17,11 @@
 package androidx.compose.mpp.demo.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.content.contentReceiver
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -56,7 +55,7 @@ import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 actual fun DragAndDropExample() {
     val exportedText = "Hello, DnD!"
@@ -90,27 +89,20 @@ actual fun DragAndDropExample() {
                         )
                     )
                 }
-            ) {
-                detectDragGestures(
-                    onDragStart = { offset ->
-                        startTransfer(
-                            DragAndDropTransferData(
-                                transferable = DragAndDropTransferable(
-                                    StringSelection(exportedText)
-                                ),
-                                supportedActions = listOf(
-                                    DragAndDropTransferAction.Copy,
-                                    DragAndDropTransferAction.Move,
-                                    DragAndDropTransferAction.Link,
-                                ),
-                                dragDecorationOffset = offset,
-                                onTransferCompleted = { action ->
-                                    println("Action at source: $action")
-                                }
-                            )
-                        )
-                    },
-                    onDrag = { _, _ -> },
+            ) { offset ->
+                DragAndDropTransferData(
+                    transferable = DragAndDropTransferable(
+                        StringSelection(exportedText)
+                    ),
+                    supportedActions = listOf(
+                        DragAndDropTransferAction.Copy,
+                        DragAndDropTransferAction.Move,
+                        DragAndDropTransferAction.Link,
+                    ),
+                    dragDecorationOffset = offset,
+                    onTransferCompleted = { action ->
+                        println("Action at source: $action")
+                    }
                 )
             }
         ) {

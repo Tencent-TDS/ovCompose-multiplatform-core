@@ -18,11 +18,11 @@ package androidx.pdf.viewer.loader;
 
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
+import androidx.pdf.data.DisplayData;
 import androidx.pdf.data.PdfStatus;
 import androidx.pdf.models.Dimensions;
 import androidx.pdf.models.GotoLink;
@@ -69,10 +69,10 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void documentLoaded(int numPages) {
+    public void documentLoaded(int numPages, @NonNull DisplayData data) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
-            callbacks.documentLoaded(numPages);
+            callbacks.documentLoaded(numPages, data);
         }
     }
 
@@ -157,22 +157,6 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void documentCloned(boolean result) {
-        PdfLoaderCallbacks callbacks = getCallbacks();
-        if (callbacks != null) {
-            callbacks.documentCloned(result);
-        }
-    }
-
-    @Override
-    public void documentSavedAs(boolean result) {
-        PdfLoaderCallbacks callbacks = getCallbacks();
-        if (callbacks != null) {
-            callbacks.documentSavedAs(result);
-        }
-    }
-
-    @Override
     public void setInvalidRects(int pageNum, @NonNull List<Rect> invalidRects) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
@@ -182,9 +166,6 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
 
     private PdfLoaderCallbacks getCallbacks() {
         PdfLoaderCallbacks callbacks = mDelegate.get();
-        if (callbacks == null) {
-            Log.w(TAG, "Callbacks have been garbage collected - nothing to do.");
-        }
         return callbacks;
     }
 }

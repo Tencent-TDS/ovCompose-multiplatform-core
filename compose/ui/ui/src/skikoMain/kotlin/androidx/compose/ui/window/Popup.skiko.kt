@@ -444,7 +444,6 @@ private fun PopupLayout(
     content: @Composable () -> Unit
 ) {
     val currentContent by rememberUpdatedState(content)
-    val platformInsets = properties.platformInsets
     var layoutParentBoundsInWindow: IntRect? by remember { mutableStateOf(null) }
     EmptyLayout(Modifier.parentBoundsInWindow { layoutParentBoundsInWindow = it })
     val layer = rememberComposeSceneLayer(
@@ -453,6 +452,7 @@ private fun PopupLayout(
     layer.setKeyEventListener(onPreviewKeyEvent, onKeyEvent)
     layer.setOutsidePointerEventListener(onOutsidePointerEvent)
     layer.Content {
+        val platformInsets = properties.platformInsets
         val parentBoundsInWindow = layoutParentBoundsInWindow ?: return@Content
         val containerSize = LocalWindowInfo.current.containerSize
         val layoutDirection = LocalLayoutDirection.current

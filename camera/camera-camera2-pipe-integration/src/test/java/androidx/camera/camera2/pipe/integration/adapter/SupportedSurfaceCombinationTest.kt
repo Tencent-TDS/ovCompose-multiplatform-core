@@ -18,12 +18,15 @@ package androidx.camera.camera2.pipe.integration.adapter
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.ImageFormat
+import android.graphics.ImageFormat.JPEG_R
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraCharacteristics.REQUEST_AVAILABLE_DYNAMIC_RANGE_PROFILES
 import android.hardware.camera2.CameraCharacteristics.REQUEST_RECOMMENDED_TEN_BIT_DYNAMIC_RANGE_PROFILE
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
+import android.hardware.camera2.CameraMetadata.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED
+import android.hardware.camera2.CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT
 import android.hardware.camera2.params.DynamicRangeProfiles
 import android.hardware.camera2.params.StreamConfigurationMap
 import android.media.CamcorderProfile.QUALITY_1080P
@@ -66,6 +69,8 @@ import androidx.camera.core.CameraSelector.LensFacing
 import androidx.camera.core.CameraX
 import androidx.camera.core.CameraXConfig
 import androidx.camera.core.DynamicRange
+import androidx.camera.core.DynamicRange.BIT_DEPTH_10_BIT
+import androidx.camera.core.DynamicRange.HLG_10_BIT
 import androidx.camera.core.UseCase
 import androidx.camera.core.concurrent.CameraCoordinator
 import androidx.camera.core.impl.AttachedSurfaceInfo
@@ -79,6 +84,7 @@ import androidx.camera.core.impl.StreamSpec
 import androidx.camera.core.impl.SurfaceConfig
 import androidx.camera.core.impl.UseCaseConfig
 import androidx.camera.core.impl.UseCaseConfigFactory
+import androidx.camera.core.impl.UseCaseConfigFactory.CaptureType
 import androidx.camera.core.internal.utils.SizeUtil
 import androidx.camera.core.internal.utils.SizeUtil.RESOLUTION_1440P
 import androidx.camera.core.internal.utils.SizeUtil.RESOLUTION_720P
@@ -1466,6 +1472,34 @@ class SupportedSurfaceCombinationTest {
         )
     }
 
+    @Test
+    fun hasVideoCapture_suggestedStreamSpecZslDisabled() {
+        val useCase1 = createUseCase(CaptureType.VIDEO_CAPTURE) // VIDEO
+        val useCase2 = createUseCase(CaptureType.PREVIEW) // PREVIEW
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply {
+                put(useCase1, recordSize)
+                put(useCase2, previewSize)
+            }
+        getSuggestedSpecsAndVerify(
+            useCaseExpectedResultMap,
+            hardwareLevel = INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED,
+            hasVideoCapture = true
+        )
+    }
+
+    @Test
+    fun hasNoVideoCapture_suggestedStreamSpecZslNotDisabled() {
+        val privUseCase = createUseCase(CaptureType.PREVIEW) // PREVIEW
+        val jpegUseCase = createUseCase(CaptureType.IMAGE_CAPTURE) // JPEG
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply {
+                put(privUseCase, if (Build.VERSION.SDK_INT == 21) RESOLUTION_VGA else previewSize)
+                put(jpegUseCase, maximumSize)
+            }
+        getSuggestedSpecsAndVerify(useCaseExpectedResultMap, hasVideoCapture = false)
+    }
+
     private fun getSuggestedSpecsAndVerify(
         useCasesExpectedResultMap: Map<UseCase, Size>,
         attachedSurfaceInfoList: List<AttachedSurfaceInfo> = emptyList(),
@@ -1475,14 +1509,18 @@ class SupportedSurfaceCombinationTest {
         compareExpectedFps: Range<Int>? = null,
         cameraMode: Int = CameraMode.DEFAULT,
         useCasesExpectedDynamicRangeMap: Map<UseCase, DynamicRange> = emptyMap(),
+        supportedOutputFormats: IntArray? = null,
         dynamicRangeProfiles: DynamicRangeProfiles? = null,
         default10BitProfile: Long? = null,
+        isPreviewStabilizationOn: Boolean = false,
+        hasVideoCapture: Boolean = false
     ): Pair<Map<UseCaseConfig<*>, StreamSpec>, Map<AttachedSurfaceInfo, StreamSpec>> {
         setupCamera(
             hardwareLevel = hardwareLevel,
             capabilities = capabilities,
             dynamicRangeProfiles = dynamicRangeProfiles,
-            default10BitProfile = default10BitProfile
+            default10BitProfile = default10BitProfile,
+            supportedFormats = supportedOutputFormats
         )
         val supportedSurfaceCombination =
             SupportedSurfaceCombination(context, fakeCameraMetadata, mockEncoderProfilesAdapter)
@@ -1494,7 +1532,9 @@ class SupportedSurfaceCombinationTest {
             supportedSurfaceCombination.getSuggestedStreamSpecifications(
                 cameraMode,
                 attachedSurfaceInfoList,
-                useCaseConfigToOutputSizesMap
+                useCaseConfigToOutputSizesMap,
+                isPreviewStabilizationOn,
+                hasVideoCapture
             )
         val suggestedStreamSpecsForNewUseCases = resultPair.first
         val suggestedStreamSpecsForOldSurfaces = resultPair.second
@@ -1515,6 +1555,8 @@ class SupportedSurfaceCombinationTest {
                     )
                     .isEqualTo(compareExpectedFps)
             }
+            val zslDisabled = suggestedStreamSpecsForNewUseCases[useCaseConfigMap[it]]!!.zslDisabled
+            assertThat(zslDisabled == hasVideoCapture)
         }
 
         useCasesExpectedDynamicRangeMap.keys.forEach {
@@ -1580,6 +1622,146 @@ class SupportedSurfaceCombinationTest {
     /** Helper function that returns whether size is <= maxSize */
     private fun sizeIsAtMost(size: Size, maxSize: Size): Boolean {
         return (size.height * size.width) <= (maxSize.height * maxSize.width)
+    }
+
+    // //////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Resolution selection tests for Ultra HDR
+    //
+    // //////////////////////////////////////////////////////////////////////////////////////////
+
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun checkUltraHdrCombinationsSupported() {
+        setupCamera(
+            supportedFormats = intArrayOf(JPEG_R),
+            capabilities = intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT)
+        )
+        val supportedSurfaceCombination =
+            SupportedSurfaceCombination(context, fakeCameraMetadata, mockEncoderProfilesAdapter)
+
+        GuaranteedConfigurationsUtil.getUltraHdrSupportedCombinationList().forEach {
+            assertThat(
+                    supportedSurfaceCombination.checkSupported(
+                        SupportedSurfaceCombination.FeatureSettings(
+                            CameraMode.DEFAULT,
+                            requiredMaxBitDepth = BIT_DEPTH_10_BIT,
+                            isUltraHdrOn = true
+                        ),
+                        it.surfaceConfigList
+                    )
+                )
+                .isTrue()
+        }
+    }
+
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun checkUltraHdrCombinationsSupported_when8bit() {
+        // Device might support Ultra HDR but not 10-bit.
+        setupCamera(supportedFormats = intArrayOf(JPEG_R))
+        val supportedSurfaceCombination =
+            SupportedSurfaceCombination(context, fakeCameraMetadata, mockEncoderProfilesAdapter)
+
+        GuaranteedConfigurationsUtil.getUltraHdrSupportedCombinationList().forEach {
+            assertThat(
+                    supportedSurfaceCombination.checkSupported(
+                        SupportedSurfaceCombination.FeatureSettings(
+                            CameraMode.DEFAULT,
+                            requiredMaxBitDepth = DynamicRange.BIT_DEPTH_8_BIT,
+                            isUltraHdrOn = true
+                        ),
+                        it.surfaceConfigList
+                    )
+                )
+                .isTrue()
+        }
+    }
+
+    /** JPEG_R/MAXIMUM when Ultra HDR is ON. */
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun canSelectCorrectSizes_onlyJpegr_whenUltraHdrIsOn() {
+        val jpegUseCase = createUseCase(CaptureType.IMAGE_CAPTURE, imageFormat = JPEG_R) // JPEG
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply { put(jpegUseCase, maximumSize) }
+        getSuggestedSpecsAndVerify(
+            useCasesExpectedResultMap = useCaseExpectedResultMap,
+            dynamicRangeProfiles = HLG10_CONSTRAINED,
+            capabilities = intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT),
+            supportedOutputFormats = intArrayOf(JPEG_R),
+        )
+    }
+
+    /** PRIV/PREVIEW + JPEG_R/MAXIMUM when Ultra HDR is ON. */
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun canSelectCorrectSizes_privPlusJpegr_whenUltraHdrIsOn() {
+        val privUseCase = createUseCase(CaptureType.PREVIEW) // PRIV
+        val jpegUseCase =
+            createUseCase(
+                CaptureType.IMAGE_CAPTURE,
+                imageFormat = JPEG_R,
+            ) // JPEG
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply {
+                put(privUseCase, previewSize)
+                put(jpegUseCase, maximumSize)
+            }
+        getSuggestedSpecsAndVerify(
+            useCasesExpectedResultMap = useCaseExpectedResultMap,
+            supportedOutputFormats = intArrayOf(JPEG_R),
+        )
+    }
+
+    /** HLG10 PRIV/PREVIEW + JPEG_R/MAXIMUM when Ultra HDR is ON. */
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun canSelectCorrectSizes_hlg10PrivPlusJpegr_whenUltraHdrIsOn() {
+        val privUseCase = createUseCase(CaptureType.PREVIEW, dynamicRange = HLG_10_BIT) // PRIV
+        val jpegUseCase =
+            createUseCase(
+                CaptureType.IMAGE_CAPTURE,
+                imageFormat = JPEG_R,
+            ) // JPEG
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply {
+                put(privUseCase, previewSize)
+                put(jpegUseCase, maximumSize)
+            }
+        getSuggestedSpecsAndVerify(
+            useCasesExpectedResultMap = useCaseExpectedResultMap,
+            dynamicRangeProfiles = HLG10_CONSTRAINED,
+            capabilities = intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT),
+            supportedOutputFormats = intArrayOf(JPEG_R),
+        )
+    }
+
+    /** Unsupported PRIV + PRIV + JPEG when Ultra HDR is ON. */
+    @Config(minSdk = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun throwsException_unsupportedConfiguration_whenUltraHdrIsOn() {
+        val privUseCase1 = createUseCase(CaptureType.PREVIEW) // PRIV
+        val privUseCase2 = createUseCase(CaptureType.VIDEO_CAPTURE) // PRIV
+        val jpegUseCase =
+            createUseCase(
+                CaptureType.IMAGE_CAPTURE,
+                imageFormat = JPEG_R,
+            ) // JPEG
+        val useCaseExpectedResultMap =
+            mutableMapOf<UseCase, Size>().apply {
+                put(privUseCase1, previewSize)
+                put(privUseCase2, RESOLUTION_VGA)
+                put(jpegUseCase, maximumSize)
+            }
+        assertThrows(IllegalArgumentException::class.java) {
+            getSuggestedSpecsAndVerify(
+                useCasesExpectedResultMap = useCaseExpectedResultMap,
+                dynamicRangeProfiles = HLG10_CONSTRAINED,
+                capabilities = intArrayOf(REQUEST_AVAILABLE_CAPABILITIES_DYNAMIC_RANGE_TEN_BIT),
+                supportedOutputFormats = intArrayOf(JPEG_R),
+            )
+        }
     }
 
     // //////////////////////////////////////////////////////////////////////////////////////////
@@ -3023,6 +3205,7 @@ class SupportedSurfaceCombinationTest {
         sensorOrientation: Int = sensorOrientation90,
         pixelArraySize: Size = landscapePixelArraySize,
         supportedSizes: Array<Size> = this.supportedSizes,
+        supportedFormats: IntArray? = null,
         highResolutionSupportedSizes: Array<Size>? = null,
         maximumResolutionSupportedSizes: Array<Size>? = null,
         maximumResolutionHighResolutionSupportedSizes: Array<Size>? = null,
@@ -3139,6 +3322,8 @@ class SupportedSurfaceCombinationTest {
         whenever(mockMap.getOutputSizes(SurfaceTexture::class.java)).thenReturn(supportedSizes)
         // This is setup for the test to determine RECORD size from StreamConfigurationMap
         whenever(mockMap.getOutputSizes(MediaRecorder::class.java)).thenReturn(supportedSizes)
+        // This is setup for the test to determine output formats from StreamConfigurationMap
+        whenever(mockMap.outputFormats).thenReturn(supportedFormats)
         // This is setup for high resolution output sizes
         highResolutionSupportedSizes?.let {
             if (Build.VERSION.SDK_INT >= 23) {
@@ -3310,16 +3495,18 @@ class SupportedSurfaceCombinationTest {
         captureType: UseCaseConfigFactory.CaptureType,
         targetFrameRate: Range<Int>? = null,
         dynamicRange: DynamicRange? = DynamicRange.UNSPECIFIED,
-        streamUseCaseOverride: Boolean
+        streamUseCaseOverride: Boolean = false,
+        imageFormat: Int? = null
     ): UseCase {
         val builder =
             FakeUseCaseConfig.Builder(
                 captureType,
-                when (captureType) {
-                    UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE -> ImageFormat.JPEG
-                    UseCaseConfigFactory.CaptureType.IMAGE_ANALYSIS -> ImageFormat.YUV_420_888
-                    else -> ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
-                }
+                imageFormat
+                    ?: when (captureType) {
+                        UseCaseConfigFactory.CaptureType.IMAGE_CAPTURE -> ImageFormat.JPEG
+                        UseCaseConfigFactory.CaptureType.IMAGE_ANALYSIS -> ImageFormat.YUV_420_888
+                        else -> ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
+                    }
             )
         targetFrameRate?.let {
             builder.mutableConfig.insertOption(UseCaseConfig.OPTION_TARGET_FRAME_RATE, it)

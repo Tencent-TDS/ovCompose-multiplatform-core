@@ -38,6 +38,34 @@ import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class NavArgumentGeneratorAndroidTest {
+    
+    @Test
+    fun convertToEnumList() {
+        @Serializable class TestClass(val arg: List<TestEnum>)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                nullable = false
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
+
+    @Test
+    fun convertToEnumListNullable() {
+        @Serializable class TestClass(val arg: List<TestEnum>?)
+
+        val converted = serializer<TestClass>().generateNavArguments()
+        val expected =
+            navArgument("arg") {
+                type = InternalAndroidNavType.EnumListType(TestEnum::class.java)
+                nullable = true
+            }
+        assertThat(converted).containsExactlyInOrder(expected)
+        assertThat(converted[0].argument.isDefaultValueUnknown).isFalse()
+    }
 
     @Test
     fun convertToParcelable() {
@@ -303,7 +331,8 @@ class NavArgumentGeneratorAndroidTest {
         @Suppress("UNCHECKED_CAST")
         val expected =
             navArgument("arg") {
-                type = InternalNavType.EnumNullableType(TestEnum::class.java as Class<Enum<*>?>)
+                type =
+                    InternalAndroidNavType.EnumNullableType(TestEnum::class.java as Class<Enum<*>?>)
                 nullable = true
             }
         val converted = serializer<TestClass>().generateNavArguments()
@@ -336,7 +365,9 @@ class NavArgumentGeneratorAndroidTest {
         assertThat(exception.message)
             .isEqualTo(
                 "Cannot find class with name \"MyCustomSerialName\". Ensure that the " +
-                    "serialName for this argument is the default fully qualified name"
+                    "serialName for this argument is the default fully qualified name." +
+                    "\nIf the build is minified, try annotating the Enum class " +
+                    "with \"androidx.annotation.Keep\" to ensure the Enum is not removed."
             )
     }
 

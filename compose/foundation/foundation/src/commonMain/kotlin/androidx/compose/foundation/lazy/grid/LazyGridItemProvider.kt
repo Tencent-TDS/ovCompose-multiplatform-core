@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.grid
 
+import androidx.collection.IntList
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemProvider
 import androidx.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
@@ -27,13 +28,14 @@ import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 
-@ExperimentalFoundationApi
+@Suppress("PrimitiveInCollection")
+@OptIn(ExperimentalFoundationApi::class)
 internal interface LazyGridItemProvider : LazyLayoutItemProvider {
     val keyIndexMap: LazyLayoutKeyIndexMap
     val spanLayoutProvider: LazyGridSpanLayoutProvider
+    val headerIndexes: IntList
 }
 
-@ExperimentalFoundationApi
 @Composable
 internal fun rememberLazyGridItemProviderLambda(
     state: LazyGridState,
@@ -59,7 +61,6 @@ internal fun rememberLazyGridItemProviderLambda(
     }
 }
 
-@ExperimentalFoundationApi
 private class LazyGridItemProviderImpl(
     private val state: LazyGridState,
     private val intervalContent: LazyGridIntervalContent,
@@ -73,6 +74,9 @@ private class LazyGridItemProviderImpl(
         keyIndexMap.getKey(index) ?: intervalContent.getKey(index)
 
     override fun getContentType(index: Int): Any? = intervalContent.getContentType(index)
+
+    override val headerIndexes: IntList
+        get() = intervalContent.headerIndexes
 
     @Composable
     override fun Item(index: Int, key: Any) {

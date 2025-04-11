@@ -30,7 +30,7 @@ import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.input.pointer.PositionCalculator
+import androidx.compose.ui.input.pointer.MatrixPositionCalculator
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextInputServiceAndroid.TextInputCommand.HideKeyboard
@@ -57,7 +57,7 @@ private const val DEBUG_CLASS = "TextInputServiceAndroid"
 )
 internal class TextInputServiceAndroid(
     val view: View,
-    rootPositionCalculator: PositionCalculator,
+    rootPositionCalculator: MatrixPositionCalculator,
     private val inputMethodManager: InputMethodManager,
     private val inputCommandProcessorExecutor: Executor = Choreographer.getInstance().asExecutor(),
 ) : PlatformTextInputService {
@@ -118,7 +118,7 @@ internal class TextInputServiceAndroid(
 
     constructor(
         view: View,
-        positionCalculator: PositionCalculator
+        positionCalculator: MatrixPositionCalculator
     ) : this(
         view,
         positionCalculator,
@@ -270,6 +270,19 @@ internal class TextInputServiceAndroid(
     }
 
     private fun processInputCommands() {
+        // If the associated view is not focused anymore, we should check whether the focus has
+        // transitioned into another Editor.
+        if (!view.isFocused) {
+            val focusedView = view.rootView.findFocus()
+            // If a view is focused and is an editor, we can skip the queued up commands since the
+            // new editor is going to manage the keyboard and the input session. Otherwise we should
+            // process the queue since it probably contains StopInput or HideKeyboard calls to
+            // clean up after us.
+            if (focusedView?.onCheckIsTextEditor() == true) {
+                textInputCommandQueue.clear()
+                return
+            }
+        }
         // Multiple commands may have been queued up in the channel while this function was
         // waiting to be resumed. We don't execute the commands as they come in because making a
         // bunch of calls to change the actual IME quickly can result in flickers. Instead, we

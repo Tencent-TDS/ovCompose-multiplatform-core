@@ -16,14 +16,13 @@
 
 package androidx.compose.ui.test
 
-import android.os.Build
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Recomposer
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.InfiniteAnimationPolicy
@@ -40,10 +39,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 
 @ExperimentalTestApi
 actual fun runComposeUiTest(effectContext: CoroutineContext, block: ComposeUiTest.() -> Unit) {
@@ -59,7 +60,9 @@ actual fun runComposeUiTest(effectContext: CoroutineContext, block: ComposeUiTes
  * @param A The Activity type to be launched, which typically (but not necessarily) hosts the
  *   Compose content
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  * @param block The test function.
  */
 @ExperimentalTestApi
@@ -80,7 +83,9 @@ inline fun <reified A : ComponentActivity> runAndroidComposeUiTest(
  *   Compose content
  * @param activityClass The [Class] of the Activity type to be launched, corresponding to [A].
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  * @param block The test function.
  */
 @ExperimentalTestApi
@@ -144,8 +149,8 @@ fun runEmptyComposeUiTest(block: ComposeUiTest.() -> Unit) {
 }
 
 /**
- * Variant of [ComposeUiTest] for when you want to have access to the current [activity] of type
- * [A]. The activity might not always be available, for example if the test navigates to another
+ * Variant of [ComposeUiTest] for when you want to have access the current [activity] of type [A].
+ * The activity might not always be available, for example if the test navigates to another
  * activity. In such cases, [activity] will return `null`.
  *
  * An instance of [AndroidComposeUiTest] can be obtained by calling [runAndroidComposeUiTest], the
@@ -195,7 +200,9 @@ sealed interface AndroidComposeUiTest<A : ComponentActivity> : ComposeUiTest {
  * @param A The Activity type to be interacted with, which typically (but not necessarily) is the
  *   activity that was launched and hosts the Compose content.
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 inline fun <A : ComponentActivity> AndroidComposeUiTestEnvironment(
@@ -213,16 +220,30 @@ inline fun <A : ComponentActivity> AndroidComposeUiTestEnvironment(
  * some of the properties and methods on [test] will only work during the call to [runTest], as they
  * require that the environment has been set up.
  *
+ * If the [effectContext] contains a [TestDispatcher], that dispatcher will be used to run
+ * composition on and its [TestCoroutineScheduler] will be used to construct the [MainTestClock]. If
+ * the `effectContext` does not contain a `TestDispatcher`, an [UnconfinedTestDispatcher] will be
+ * created, using the `TestCoroutineScheduler` from the `effectContext` if present.
+ *
  * @param A The Activity type to be interacted with, which typically (but not necessarily) is the
  *   activity that was launched and hosts the Compose content.
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
-@OptIn(InternalTestApi::class, ExperimentalCoroutinesApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
     private val effectContext: CoroutineContext = EmptyCoroutineContext
 ) {
+    /**
+     * Returns the current host activity of type [A]. If no such activity is available, for example
+     * if you've navigated to a different activity and the original host has now been destroyed,
+     * this will return `null`.
+     */
+    protected abstract val activity: A?
+
     private val idlingResourceRegistry = IdlingResourceRegistry()
 
     internal val composeRootRegistry = ComposeRootRegistry()
@@ -234,7 +255,11 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
     private lateinit var recomposer: Recomposer
     // We can only accept a TestDispatcher here because we need to access its scheduler.
     private val testCoroutineDispatcher =
-        effectContext[ContinuationInterceptor] as? TestDispatcher ?: UnconfinedTestDispatcher()
+        // Use the TestDispatcher if it is provided in the effectContext
+        effectContext[ContinuationInterceptor] as? TestDispatcher
+            ?:
+            // Otherwise, use the TestCoroutineScheduler if it is provided
+            UnconfinedTestDispatcher(effectContext[TestCoroutineScheduler])
     private val testCoroutineScope = TestScope(testCoroutineDispatcher)
     private lateinit var recomposerCoroutineScope: CoroutineScope
     private val coroutineExceptionHandler = UncaughtExceptionHandler()
@@ -315,14 +340,7 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
 
     internal val testReceiverScope = AndroidComposeUiTestImpl()
     private val testOwner = AndroidTestOwner()
-    private val testContext = createTestContext(testOwner)
-
-    /**
-     * Returns the current host activity of type [A]. If no such activity is available, for example
-     * if you've navigated to a different activity and the original host has now been destroyed,
-     * this will return `null`.
-     */
-    protected abstract val activity: A?
+    private val testContext = TestContext(testOwner)
 
     /**
      * The receiver scope of the test passed to [runTest]. Note that some of the properties and
@@ -336,7 +354,7 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
      * down after running the test.
      */
     fun <R> runTest(block: AndroidComposeUiTest<A>.() -> R): R {
-        if (Build.FINGERPRINT.lowercase() == "robolectric") {
+        if (HasRobolectricFingerprint) {
             idlingStrategy = RobolectricIdlingStrategy(composeRootRegistry, composeIdlingResource)
         }
         // Need to await quiescence before registering our ComposeIdlingResource because the host
@@ -363,8 +381,27 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
         composeRootRegistry.waitForComposeRoots(atLeastOneRootExpected)
         // Then await composition(s)
         idlingStrategy.runUntilIdle()
+        // Then wait for the next frame to ensure any scheduled drawing has completed
+        waitForNextChoreographerFrame()
         // Check if a coroutine threw an uncaught exception
         coroutineExceptionHandler.throwUncaught()
+    }
+
+    private fun waitForNextChoreographerFrame() {
+        val view =
+            composeRootRegistry
+                .getRegisteredComposeRoots()
+                .map { it.view.rootView }
+                .firstOrNull { it.isAttachedToWindow }
+        if (view != null) {
+            var frameHit = false
+            // The animation callback is called before draw, so post a message from the callback
+            // that will be executed after draw happened
+            view.postOnAnimation { view.post { frameHit = true } }
+            while (!frameHit) {
+                idlingStrategy.runUntilIdle()
+            }
+        }
     }
 
     private fun <R> withWindowRecomposer(block: () -> R): R {
@@ -418,6 +455,10 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
         override val mainClock: MainTestClock
             get() = mainClockImpl
 
+        override fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?) {
+            testContext.platform.composeAccessibilityValidator = validator
+        }
+
         override fun <T> runOnUiThread(action: () -> T): T {
             return testOwner.runOnUiThread(action)
         }
@@ -436,8 +477,13 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
         override suspend fun awaitIdle() {
             // First wait until we have a compose root (in case an Activity is being started)
             composeRootRegistry.awaitComposeRoots()
-            // Then await composition(s)
-            idlingStrategy.awaitIdle()
+            // Switch to a thread where we're allowed to call synchronization methods
+            withContext(idlingStrategy.synchronizationContext) {
+                // Then await composition(s)
+                idlingStrategy.runUntilIdle()
+                // Then wait for the next frame to ensure any scheduled drawing has completed
+                waitForNextChoreographerFrame()
+            }
             // Check if a coroutine threw an uncaught exception
             coroutineExceptionHandler.throwUncaught()
         }
@@ -545,7 +591,7 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
         }
     }
 
-    internal inner class AndroidTestOwner : TestOwner {
+    private inner class AndroidTestOwner : TestOwner {
         override val mainClock: MainTestClock
             get() = mainClockImpl
 
@@ -557,6 +603,10 @@ abstract class AndroidComposeUiTestEnvironment<A : ComponentActivity>(
             waitForIdle(atLeastOneRootExpected)
             return composeRootRegistry.getRegisteredComposeRoots()
         }
+    }
+
+    private companion object {
+        val TAG = "ComposeUiTest"
     }
 }
 
@@ -570,6 +620,13 @@ internal fun <A : ComponentActivity> ActivityScenario<A>.getActivity(): A? {
 actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
     actual val density: Density
     actual val mainClock: MainTestClock
+
+    /**
+     * Sets the [ComposeAccessibilityValidator] to perform the accessibility checks with. Providing
+     * `null` means disabling the accessibility checks
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?)
 
     actual fun <T> runOnUiThread(action: () -> T): T
 
@@ -585,9 +642,20 @@ actual sealed interface ComposeUiTest : SemanticsNodeInteractionsProvider {
         condition: () -> Boolean
     )
 
-    actual fun registerIdlingResource(idlingResource: IdlingResource)
+    /** Registers an [IdlingResource] in this test. */
+    fun registerIdlingResource(idlingResource: IdlingResource)
 
-    actual fun unregisterIdlingResource(idlingResource: IdlingResource)
+    /** Unregisters an [IdlingResource] from this test. */
+    fun unregisterIdlingResource(idlingResource: IdlingResource)
 
     actual fun setContent(composable: @Composable () -> Unit)
+}
+
+/**
+ * A validator that is used to run accessibility checks before every action through
+ * [tryPerformAccessibilityChecks]
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+interface ComposeAccessibilityValidator {
+    fun check(view: View)
 }

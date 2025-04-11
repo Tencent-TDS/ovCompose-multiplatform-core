@@ -34,7 +34,6 @@ import androidx.compose.ui.text.TextLayoutResult
  * it with [stopInput].
  */
 // Open for testing purposes.
-@Deprecated("Use PlatformTextInputModifierNode instead.")
 open class TextInputService(private val platformTextInputService: PlatformTextInputService) {
     private val _currentInputSession: AtomicReference<TextInputSession?> = AtomicReference(null)
 
@@ -93,6 +92,8 @@ open class TextInputService(private val platformTextInputService: PlatformTextIn
     @InternalTextApi
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     fun stopInput() {
+        // This is a direct stop call, there's no need to compare the current input session.
+        _currentInputSession.set(null)
         platformTextInputService.stopInput()
     }
 
@@ -284,7 +285,6 @@ class TextInputSession(
 }
 
 /** Platform specific text input service. */
-@Deprecated("Use PlatformTextInputModifierNode instead.")
 interface PlatformTextInputService {
     /**
      * Start text input session for given client.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
+@file:JvmName("NavBackStackEntryProviderKt")
+@file:JvmMultifileClass
+
 package androidx.navigation.compose
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavBackStackEntry
+import kotlin.jvm.JvmMultifileClass
+import kotlin.jvm.JvmName
 
 /**
  * Provides [this] [NavBackStackEntry] as [LocalViewModelStoreOwner], [LocalLifecycleOwner] and
  * [LocalSavedStateRegistryOwner] to the [content] and saves the [content]'s saveable states with
  * the given [saveableStateHolder].
  *
- * @param saveableStateHolder The [SaveableStateHolder] that holds the saved states. The same
- * holder should be used for all [NavBackStackEntry]s in the encapsulating [Composable] and the
- * holder should be hoisted.
+ * @param saveableStateHolder The [SaveableStateHolder] that holds the saved states. The same holder
+ *   should be used for all [NavBackStackEntry]s in the encapsulating [Composable] and the holder
+ *   should be hoisted.
  * @param content The content [Composable]
  */
 @Composable

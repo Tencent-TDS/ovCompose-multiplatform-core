@@ -16,10 +16,10 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import androidx.collection.mutableScatterMapOf
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.saveable.SaveableStateHolder
 import kotlin.jvm.JvmInline
@@ -33,13 +33,13 @@ import kotlin.jvm.JvmInline
  * 3) Adds state restoration on top of the composable returned by [itemProvider] with help of
  *    [saveableStateHolder].
  */
-@ExperimentalFoundationApi
+@OptIn(ExperimentalFoundationApi::class)
 internal class LazyLayoutItemContentFactory(
     private val saveableStateHolder: SaveableStateHolder,
     val itemProvider: () -> LazyLayoutItemProvider,
 ) {
     /** Contains the cached lambdas produced by the [itemProvider]. */
-    private val lambdasCache = mutableMapOf<Any, CachedItemContent>()
+    private val lambdasCache = mutableScatterMapOf<Any, CachedItemContent>()
 
     /**
      * Returns the content type for the item with the given key. It is used to improve the item
@@ -93,7 +93,7 @@ internal class LazyLayoutItemContentFactory(
                     if (index != -1) this.index = index
                 }
 
-                ReusableContentHost(active = index != -1) {
+                if (index != -1) {
                     SkippableItem(
                         itemProvider,
                         StableValue(saveableStateHolder),

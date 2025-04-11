@@ -51,6 +51,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
+import kotlin.collections.removeLast as removeLastKt
 import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.CancellableContinuation
@@ -127,8 +128,9 @@ class WorkerWrapper internal constructor(builder: Builder) {
     }
 
     private suspend fun runWorker(): Resolution {
+        val isTracingEnabled = configuration.tracer.isEnabled()
         val traceTag = workSpec.traceTag
-        if (traceTag != null) {
+        if (isTracingEnabled && traceTag != null) {
             configuration.tracer.beginAsyncSection(
                 traceTag,
                 // Use hashCode() instead of a generational id given we want to allow concurrent
@@ -274,7 +276,7 @@ class WorkerWrapper internal constructor(builder: Builder) {
             if (it is WorkerStoppedException) {
                 worker.stop(it.reason)
             }
-            if (traceTag != null) {
+            if (isTracingEnabled && traceTag != null) {
                 configuration.tracer.endAsyncSection(traceTag, workSpec.hashCode())
             }
         }
@@ -419,7 +421,7 @@ class WorkerWrapper internal constructor(builder: Builder) {
     private fun iterativelyFailWorkAndDependents(workSpecId: String) {
         val idsToProcess = mutableListOf(workSpecId)
         while (idsToProcess.isNotEmpty()) {
-            val id = idsToProcess.removeLast()
+            val id = idsToProcess.removeLastKt()
             // Don't fail already cancelled work.
             if (workSpecDao.getState(id) !== WorkInfo.State.CANCELLED) {
                 workSpecDao.setState(WorkInfo.State.FAILED, id)

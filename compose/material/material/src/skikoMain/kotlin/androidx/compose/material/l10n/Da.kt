@@ -28,4 +28,5 @@ internal fun Translations.da() = mapOf(
     Strings.DefaultErrorMessage to "Ugyldigt input",
     Strings.SliderRangeStart to "Startinterval",
     Strings.SliderRangeEnd to "Slutinterval",
+    Strings.SnackbarPaneTitle to "Underretning",
 )

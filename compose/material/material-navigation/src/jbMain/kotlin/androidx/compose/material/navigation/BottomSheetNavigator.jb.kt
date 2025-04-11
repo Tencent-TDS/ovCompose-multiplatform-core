@@ -167,7 +167,7 @@ public actual class BottomSheetNavigator actual constructor(
         attached = true
     }
 
-    override fun createDestination(): Destination = Destination(
+    actual override fun createDestination(): Destination = Destination(
         navigator = this,
         content = {}
     )

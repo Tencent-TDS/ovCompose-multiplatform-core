@@ -18,14 +18,14 @@ package androidx.room.solver.query.result
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
-import androidx.room.compiler.codegen.XMemberName.Companion.packageMember
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.box
 import androidx.room.ext.AndroidTypeNames
 import androidx.room.ext.InvokeWithLambdaParameter
 import androidx.room.ext.LambdaSpec
-import androidx.room.ext.RoomTypeNames
+import androidx.room.ext.RoomMemberNames.DB_UTIL_PERFORM_BLOCKING
+import androidx.room.ext.RoomMemberNames.DB_UTIL_QUERY
 import androidx.room.ext.SQLiteDriverTypeNames
 import androidx.room.solver.CodeGenScope
 
@@ -57,7 +57,7 @@ class InstantQueryResultBinder(adapter: QueryResultAdapter?) : QueryResultBinder
                     XCodeBlock.of(
                         language,
                         "%M(%N, %L, %L, %L)",
-                        RoomTypeNames.DB_UTIL.packageMember("query"),
+                        DB_UTIL_QUERY,
                         dbProperty,
                         roomSQLiteQueryVar,
                         if (shouldCopyCursor) "true" else "false",
@@ -85,7 +85,7 @@ class InstantQueryResultBinder(adapter: QueryResultAdapter?) : QueryResultBinder
     override fun convertAndReturn(
         sqlQueryVar: String,
         dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
+        bindStatement: (CodeGenScope.(String) -> Unit)?,
         returnTypeName: XTypeName,
         inTransaction: Boolean,
         scope: CodeGenScope
@@ -94,7 +94,7 @@ class InstantQueryResultBinder(adapter: QueryResultAdapter?) : QueryResultBinder
         val performBlock =
             InvokeWithLambdaParameter(
                 scope = scope,
-                functionName = RoomTypeNames.DB_UTIL.packageMember("performBlocking"),
+                functionName = DB_UTIL_PERFORM_BLOCKING,
                 argFormat = listOf("%N", "%L", "%L"),
                 args = listOf(dbProperty, /* isReadOnly= */ true, inTransaction),
                 lambdaSpec =
@@ -120,7 +120,7 @@ class InstantQueryResultBinder(adapter: QueryResultAdapter?) : QueryResultBinder
                                 sqlQueryVar
                             )
                             beginControlFlow("try")
-                            bindStatement(scope, statementVar)
+                            bindStatement?.invoke(scope, statementVar)
                             val outVar = scope.getTmpVar("_result")
                             adapter?.convert(outVar, statementVar, scope)
                             addStatement("$returnPrefix%L", outVar)

@@ -21,8 +21,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import androidx.test.filters.LargeTest
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
 import org.junit.Assert.fail
 import org.junit.Rule
 import org.junit.Test

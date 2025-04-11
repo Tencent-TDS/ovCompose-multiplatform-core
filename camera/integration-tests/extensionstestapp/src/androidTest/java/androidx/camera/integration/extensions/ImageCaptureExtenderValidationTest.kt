@@ -21,8 +21,8 @@ import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.os.Build
 import android.util.Rational
-import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.utils.AspectRatioUtil
 import androidx.camera.core.internal.utils.SizeUtil
 import androidx.camera.extensions.ExtensionsManager
@@ -68,8 +68,6 @@ class ImageCaptureExtenderValidationTest(private val config: CameraXExtensionTes
             PreTestCameraIdList(config.cameraXConfig)
         )
 
-    private val context = ApplicationProvider.getApplicationContext<Context>()
-
     private lateinit var cameraProvider: ProcessCameraProvider
     private lateinit var extensionsManager: ExtensionsManager
     private lateinit var cameraCharacteristics: CameraCharacteristics
@@ -99,7 +97,8 @@ class ImageCaptureExtenderValidationTest(private val config: CameraXExtensionTes
                 cameraProvider.bindToLifecycle(FakeLifecycleOwner(), extensionCameraSelector)
             }
 
-        cameraCharacteristics = Camera2CameraInfo.extractCameraCharacteristics(camera.cameraInfo)
+        cameraCharacteristics =
+            (camera.cameraInfo as CameraInfoInternal).cameraCharacteristics as CameraCharacteristics
     }
 
     @After
@@ -115,6 +114,7 @@ class ImageCaptureExtenderValidationTest(private val config: CameraXExtensionTes
     }
 
     companion object {
+        val context = ApplicationProvider.getApplicationContext<Context>()
         @JvmStatic
         @get:Parameterized.Parameters(name = "config = {0}")
         val parameters: Collection<CameraXExtensionTestParams>

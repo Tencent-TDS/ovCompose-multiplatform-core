@@ -58,7 +58,6 @@ kotlin {
                 api project(":compose:ui:ui")
 
                 implementation(libs.kotlinStdlib)
-                implementation project(":core:core-bundle")
             }
         }
 
@@ -85,10 +84,6 @@ kotlin {
         nonJvmMain.dependsOn(jbMain)
         nativeMain.dependsOn(nonJvmMain)
         webMain.dependsOn(nonJvmMain)
-
-        webMain.dependsOn(jbMain)
-        jsMain.dependsOn(webMain)
-        wasmJsMain.dependsOn(webMain)
 
         targets.all { target ->
             if (target.platformType == KotlinPlatformType.native) {

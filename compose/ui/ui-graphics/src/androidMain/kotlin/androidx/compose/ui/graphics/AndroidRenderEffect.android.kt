@@ -123,14 +123,20 @@ actual constructor(private val renderEffect: RenderEffect?, private val offset: 
 @RequiresApi(Build.VERSION_CODES.S)
 private object RenderEffectVerificationHelper {
 
-    @androidx.annotation.DoNotInline
     fun createBlurEffect(
         inputRenderEffect: RenderEffect?,
         radiusX: Float,
         radiusY: Float,
         edgeTreatment: TileMode
     ): android.graphics.RenderEffect =
-        if (inputRenderEffect == null) {
+        if (radiusX == 0f && radiusY == 0f) {
+            // Workaround for preventing exceptions to be thrown if apps animate blur radii values
+            // through 0f. In which case the visual effect should be a no-op.
+            // The return value for each of the RenderEffect API is an opaque RenderEffect instance
+            // that wraps a native pointer, so return a no-op offset effect instead
+            // See b/241546169
+            android.graphics.RenderEffect.createOffsetEffect(0f, 0f)
+        } else if (inputRenderEffect == null) {
             android.graphics.RenderEffect.createBlurEffect(
                 radiusX,
                 radiusY,
@@ -145,7 +151,6 @@ private object RenderEffectVerificationHelper {
             )
         }
 
-    @androidx.annotation.DoNotInline
     fun createOffsetEffect(
         inputRenderEffect: RenderEffect?,
         offset: Offset

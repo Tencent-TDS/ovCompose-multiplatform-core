@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package androidx.compose.foundation.samples
 
+import androidx.annotation.Sampled
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.AnchoredDraggableDefaults
 import androidx.compose.foundation.gestures.AnchoredDraggableState
 import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,16 +37,20 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.samples.AnchoredDraggableSampleValue.Center
 import androidx.compose.foundation.samples.AnchoredDraggableSampleValue.End
 import androidx.compose.foundation.samples.AnchoredDraggableSampleValue.HalfEnd
 import androidx.compose.foundation.samples.AnchoredDraggableSampleValue.HalfStart
 import androidx.compose.foundation.samples.AnchoredDraggableSampleValue.Start
+import androidx.compose.material.Button
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -181,53 +182,6 @@ fun AnchoredDraggableCustomAnchoredSample() {
 
 @Preview
 @Composable
-fun AnchoredDraggableCatchAnimatingWidgetSample() {
-    // Attempting to press the box while it is settling to one anchor won't stop the box from
-    // animating to that anchor. If you want to catch it while it is animating, you need to press
-    // the box and drag it past the touchSlop. This is because startDragImmediately is set to false.
-    val state =
-        rememberSaveable(saver = AnchoredDraggableState.Saver()) {
-            AnchoredDraggableState(initialValue = Start)
-        }
-    val density = LocalDensity.current
-    val draggableSize = 100.dp
-    val draggableSizePx = with(density) { draggableSize.toPx() }
-    Box(
-        Modifier.fillMaxWidth().onSizeChanged { layoutSize ->
-            val dragEndPoint = layoutSize.width - draggableSizePx
-            state.updateAnchors(
-                DraggableAnchors {
-                    Start at 0f
-                    End at dragEndPoint
-                }
-            )
-        }
-    ) {
-        Box(
-            Modifier.size(draggableSize)
-                .offset { IntOffset(x = state.requireOffset().roundToInt(), y = 0) }
-                .anchoredDraggable(
-                    state = state,
-                    orientation = Orientation.Horizontal,
-                    startDragImmediately = false,
-                    flingBehavior =
-                        AnchoredDraggableDefaults.flingBehavior(
-                            state,
-                            positionalThreshold = { with(density) { 56.dp.toPx() } },
-                            // Setting the duration of the snapAnimationSpec to 3000ms gives more
-                            // time
-                            // to attempt to press or drag the settling box.
-                            animationSpec = tween(durationMillis = 3000)
-                        )
-                )
-                .background(Color.Red)
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Preview
-@Composable
 fun AnchoredDraggableWithOverscrollSample() {
     val state =
         rememberSaveable(saver = AnchoredDraggableState.Saver()) {
@@ -235,7 +189,7 @@ fun AnchoredDraggableWithOverscrollSample() {
         }
     val draggableSize = 80.dp
     val draggableSizePx = with(LocalDensity.current) { draggableSize.toPx() }
-    val overscrollEffect = ScrollableDefaults.overscrollEffect()
+    val overscrollEffect = rememberOverscrollEffect()
 
     Box(
         Modifier.fillMaxWidth().onSizeChanged { layoutSize ->
@@ -335,7 +289,10 @@ fun DraggableAnchorsSample() {
                     state =
                         rememberDraggableState { delta ->
                             offset =
-                                (offset + delta).coerceIn(anchors.minAnchor(), anchors.maxAnchor())
+                                (offset + delta).coerceIn(
+                                    anchors.minPosition(),
+                                    anchors.maxPosition()
+                                )
                         },
                     orientation = Orientation.Horizontal,
                     onDragStopped = { velocity ->
@@ -345,6 +302,74 @@ fun DraggableAnchorsSample() {
                 )
                 .background(Color.Red)
         )
+    }
+}
+
+@Sampled
+@Composable
+fun AnchoredDraggableDynamicAnchorsSample() {
+    val open = "Open"
+    val closed = "Closed"
+
+    @Composable
+    fun DrawerLayout(
+        state: AnchoredDraggableState<String>,
+        activePositions: List<String> = listOf(open, closed),
+        modifier: Modifier = Modifier,
+        drawerContent: @Composable () -> Unit,
+        content: @Composable () -> Unit
+    ) {
+        Box(modifier) {
+            Box(Modifier.anchoredDraggable(state, Orientation.Horizontal)) { content() }
+            Box(
+                Modifier.onSizeChanged { measuredSize ->
+                        state.updateAnchors(
+                            DraggableAnchors {
+                                if (closed in activePositions) {
+                                    closed at -measuredSize.width.toFloat()
+                                }
+                                if (open in activePositions) {
+                                    open at 0f
+                                }
+                            }
+                        )
+                    }
+                    .offset { IntOffset(x = state.requireOffset().roundToInt(), y = 0) }
+            ) {
+                drawerContent()
+            }
+        }
+    }
+
+    val state =
+        rememberSaveable(saver = AnchoredDraggableState.Saver()) {
+            AnchoredDraggableState(initialValue = closed)
+        }
+    val activePositions = remember { mutableStateListOf(open, closed) }
+    DrawerLayout(
+        state,
+        activePositions,
+        drawerContent = {
+            Button(
+                onClick = {
+                    if (closed in activePositions) {
+                        activePositions.remove(closed)
+                    } else {
+                        activePositions.add(closed)
+                    }
+                }
+            ) {
+                val text =
+                    if (closed in activePositions) {
+                        "Click to disallow closing drawer"
+                    } else {
+                        "Click to allow closing"
+                    }
+                Text(text)
+            }
+        },
+    ) {
+        Text("Swipe to expand Drawer")
     }
 }
 

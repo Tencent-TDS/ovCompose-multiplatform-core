@@ -16,16 +16,26 @@
 
 package androidx.compose.ui.platform.a11y
 
-import androidx.compose.ui.platform.a11y.ComposeSceneAccessible.ComposeSceneAccessibleContext
-import java.awt.*
+import androidx.compose.ui.scene.ComposeScene
+import java.awt.Color
+import java.awt.Cursor
+import java.awt.Dimension
+import java.awt.Font
+import java.awt.FontMetrics
+import java.awt.Point
+import java.awt.Rectangle
 import java.awt.event.FocusListener
 import java.util.*
-import javax.accessibility.*
+import javax.accessibility.Accessible
+import javax.accessibility.AccessibleComponent
+import javax.accessibility.AccessibleContext
+import javax.accessibility.AccessibleRole
+import javax.accessibility.AccessibleStateSet
 import org.jetbrains.skiko.OS
 import org.jetbrains.skiko.hostOs
 
 /**
- * This is a root [Accessible] for a [androidx.compose.ui.ComposeScene]
+ * This is a root [Accessible] for a [ComposeScene]
  *
  * It provides [AccessibleContext] to Swing accessibility support.
  * This context has no parents and provides [ComposeAccessible] as its children.

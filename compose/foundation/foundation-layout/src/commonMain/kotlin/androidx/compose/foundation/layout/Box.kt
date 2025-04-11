@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.layout
 
+import androidx.collection.MutableScatterMap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -55,7 +56,6 @@ import kotlin.math.max
  * Example usage:
  *
  * @sample androidx.compose.foundation.layout.samples.SimpleBox
- *
  * @param modifier The modifier to be applied to the layout.
  * @param contentAlignment The default alignment inside the Box.
  * @param propagateMinConstraints Whether the incoming min constraints should be passed to content.
@@ -76,31 +76,28 @@ inline fun Box(
     )
 }
 
-private fun cacheFor(propagateMinConstraints: Boolean) =
-    HashMap<Alignment, MeasurePolicy>(9).apply {
-        fun putAlignment(it: Alignment) {
-            put(it, BoxMeasurePolicy(it, propagateMinConstraints))
-        }
-        putAlignment(Alignment.TopStart)
-        putAlignment(Alignment.TopCenter)
-        putAlignment(Alignment.TopEnd)
-        putAlignment(Alignment.CenterStart)
-        putAlignment(Alignment.Center)
-        putAlignment(Alignment.CenterEnd)
-        putAlignment(Alignment.BottomStart)
-        putAlignment(Alignment.BottomCenter)
-        putAlignment(Alignment.BottomEnd)
+private fun cacheFor(propagate: Boolean) =
+    MutableScatterMap<Alignment, MeasurePolicy>(9).apply {
+        this[Alignment.TopStart] = BoxMeasurePolicy(Alignment.TopStart, propagate)
+        this[Alignment.TopCenter] = BoxMeasurePolicy(Alignment.TopCenter, propagate)
+        this[Alignment.TopEnd] = BoxMeasurePolicy(Alignment.TopEnd, propagate)
+        this[Alignment.CenterStart] = BoxMeasurePolicy(Alignment.CenterStart, propagate)
+        this[Alignment.Center] = BoxMeasurePolicy(Alignment.Center, propagate)
+        this[Alignment.CenterEnd] = BoxMeasurePolicy(Alignment.CenterEnd, propagate)
+        this[Alignment.BottomStart] = BoxMeasurePolicy(Alignment.BottomStart, propagate)
+        this[Alignment.BottomCenter] = BoxMeasurePolicy(Alignment.BottomCenter, propagate)
+        this[Alignment.BottomEnd] = BoxMeasurePolicy(Alignment.BottomEnd, propagate)
     }
 
-private val cache1 = cacheFor(true)
-private val cache2 = cacheFor(false)
+private val Cache1 = cacheFor(true)
+private val Cache2 = cacheFor(false)
 
 @PublishedApi
 internal fun maybeCachedBoxMeasurePolicy(
     alignment: Alignment,
     propagateMinConstraints: Boolean
 ): MeasurePolicy {
-    val cache = if (propagateMinConstraints) cache1 else cache2
+    val cache = if (propagateMinConstraints) Cache1 else Cache2
     return cache[alignment] ?: BoxMeasurePolicy(alignment, propagateMinConstraints)
 }
 
@@ -136,7 +133,7 @@ private data class BoxMeasurePolicy(
             if (propagateMinConstraints) {
                 constraints
             } else {
-                constraints.copy(minWidth = 0, minHeight = 0)
+                constraints.copyMaxDimensions()
             }
 
         if (measurables.size == 1) {
@@ -230,7 +227,6 @@ private fun Placeable.PlacementScope.placeInBox(
  * Example usage:
  *
  * @sample androidx.compose.foundation.layout.samples.SimpleBox
- *
  * @param modifier The modifier to be applied to the layout.
  */
 @Composable

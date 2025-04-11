@@ -230,6 +230,9 @@ interface BooksDao {
     fun getBookFlowable(bookId: String): Flowable<Book>
 
     @Query("SELECT * FROM book WHERE bookId = :bookId")
+    fun getBookObservable(bookId: String): Observable<Book>
+
+    @Query("SELECT * FROM book WHERE bookId = :bookId")
     fun getBookJavaOptional(bookId: String): java.util.Optional<Book>
 
     @Query("SELECT * FROM book WHERE bookId = :bookId")
@@ -250,28 +253,28 @@ interface BooksDao {
     @Query("SELECT * FROM book WHERE bookId = :bookId")
     fun getBookMaybe(bookId: String): Maybe<Book>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisher(): List<BookWithPublisher>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisherLiveData(): LiveData<List<BookWithPublisher>>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisherFlowable(): Flowable<List<BookWithPublisher>>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "

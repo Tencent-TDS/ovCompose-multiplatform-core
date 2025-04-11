@@ -21,31 +21,29 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CMPAccessibilityElement : UIAccessibilityElement
 
-- (__nullable id)resolveAccessibilityContainer CMP_MUST_BE_OVERRIDED;
+- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions;
 
-+ (__nullable id)accessibilityContainerOfObject:(id)object;
+- (UIAccessibilityTraits)accessibilityTraits;
 
-// MARK: Unexported methods redeclaration block
-// Redeclared to make it visible to Kotlin for override purposes, workaround for the following issue:
-// https://youtrack.jetbrains.com/issue/KT-56001/Kotlin-Native-import-Objective-C-category-members-as-class-members-if-the-category-is-located-in-the-same-file
+- (UIAccessibilityContainerType)accessibilityContainerType;
 
-- (NSArray<UIAccessibilityCustomAction *> *)accessibilityCustomActions CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityIdentifier;
 
-- (UIAccessibilityTraits)accessibilityTraits CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityHint;
 
-- (NSString *__nullable)accessibilityIdentifier CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityLabel;
 
-- (NSString *__nullable)accessibilityHint CMP_MUST_BE_OVERRIDED;
+- (NSString *__nullable)accessibilityValue;
 
-- (NSString *__nullable)accessibilityLabel CMP_MUST_BE_OVERRIDED;
+- (CGRect)accessibilityFrame;
 
-- (NSString *__nullable)accessibilityValue CMP_MUST_BE_OVERRIDED;
+- (BOOL)isAccessibilityElement;
 
-- (CGRect)accessibilityFrame CMP_MUST_BE_OVERRIDED;
+- (BOOL)accessibilityActivate;
 
-- (BOOL)isAccessibilityElement CMP_MUST_BE_OVERRIDED;
+- (void)accessibilityIncrement;
 
-- (BOOL)accessibilityActivate CMP_MUST_BE_OVERRIDED;
+- (void)accessibilityDecrement;
 
 // Private SDK method. Calls when the item is swipe-to-focused in VoiceOver.
 - (BOOL)accessibilityScrollToVisible;
@@ -57,9 +55,15 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)accessibilityElementDidLoseFocus;
 
-- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction CMP_MUST_BE_OVERRIDED;
+- (BOOL)accessibilityScroll:(UIAccessibilityScrollDirection)direction;
 
 - (BOOL)accessibilityPerformEscape;
+
+- (__nullable id)accessibilityElementAtIndex:(NSInteger)index;
+
+- (NSInteger)accessibilityElementCount;
+
+- (NSInteger)indexOfAccessibilityElement:(id)element;
 
 @end
 

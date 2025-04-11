@@ -19,6 +19,7 @@ package androidx.window.embedding
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Rect
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -79,6 +80,7 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
                 .setLayoutDirection(LOCALE)
+                .setAnimationBackground(EmbeddingAnimationBackground.DEFAULT)
                 .build()
         assertNull(rule.tag)
         assertEquals(SPLIT_MIN_DIMENSION_DP_DEFAULT, rule.minWidthDp)
@@ -136,6 +138,9 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.3f))
                 .setLayoutDirection(TOP_TO_BOTTOM)
+                .setAnimationBackground(
+                    EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
+                )
                 .build()
         assertEquals(TEST_TAG, rule.tag)
         assertEquals(NEVER, rule.finishPrimaryWithSecondary)
@@ -144,6 +149,83 @@ class RuleParserTests {
         assertEquals(expectedSplitLayout, rule.defaultSplitAttributes)
         assertTrue(rule.checkParentBounds(density, validBounds))
         assertFalse(rule.checkParentBounds(density, invalidBounds))
+    }
+
+    /**
+     * Verifies that params are set correctly when reading {@link SplitPairRule} from XML with
+     * divider attributes.
+     *
+     * @see R.xml.test_split_config_custom_split_pair_rule_with_divider for customized value.
+     */
+    @Test
+    fun testCustom_SplitPairRule_withDivider() {
+        val rules =
+            RuleController.parseRules(
+                application,
+                R.xml.test_split_config_custom_split_pair_rule_with_divider
+            )
+        assertEquals(4, rules.size)
+        val expectedDividerColor = 0xff112233
+
+        val expectedDividerAttributes1 = DividerAttributes.FixedDividerAttributes.Builder().build()
+
+        val expectedDividerAttributes2 =
+            DividerAttributes.DraggableDividerAttributes.Builder().build()
+
+        val expectedDividerAttributes3 =
+            DividerAttributes.FixedDividerAttributes.Builder()
+                .setWidthDp(1)
+                .setColor(expectedDividerColor.toInt())
+                .build()
+
+        val expectedDividerAttributes4 =
+            DividerAttributes.DraggableDividerAttributes.Builder()
+                .setWidthDp(1)
+                .setColor(expectedDividerColor.toInt())
+                .setDragRange(DividerAttributes.DragRange.SplitRatioDragRange(0.2f, 0.8f))
+                .build()
+
+        rules.forEach {
+            val rule = it as SplitPairRule
+            when (rule.tag) {
+                "rule1" ->
+                    assertEquals(
+                        expectedDividerAttributes1,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule2" ->
+                    assertEquals(
+                        expectedDividerAttributes2,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule3" ->
+                    assertEquals(
+                        expectedDividerAttributes3,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule4" ->
+                    assertEquals(
+                        expectedDividerAttributes4,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                else -> throw IllegalStateException("Unexpected rule tag ${rule.tag}")
+            }
+        }
+    }
+
+    /**
+     * Verifies that a `IllegalArgumentException` thrown for invalid divider attributes.
+     *
+     * @see R.xml.test_split_config_custom_split_pair_rule_with_divider_error for customized value.
+     */
+    @Test
+    fun testCustom_SplitPairRule_withDividerError() {
+        assertThrows(IllegalArgumentException::class.java) {
+            RuleController.parseRules(
+                application,
+                R.xml.test_split_config_custom_split_pair_rule_with_divider_error
+            )
+        }
     }
 
     /**
@@ -163,6 +245,7 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
                 .setLayoutDirection(LOCALE)
+                .setAnimationBackground(EmbeddingAnimationBackground.DEFAULT)
                 .build()
         assertNull(rule.tag)
         assertEquals(SPLIT_MIN_DIMENSION_DP_DEFAULT, rule.minWidthDp)
@@ -226,6 +309,11 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.3f))
                 .setLayoutDirection(BOTTOM_TO_TOP)
+                .setAnimationBackground(
+                    EmbeddingAnimationBackground.createColorBackground(
+                        application.resources.getColor(R.color.testColor, null)
+                    )
+                )
                 .build()
         assertEquals(TEST_TAG, rule.tag)
         assertEquals(ALWAYS, rule.finishPrimaryWithPlaceholder)

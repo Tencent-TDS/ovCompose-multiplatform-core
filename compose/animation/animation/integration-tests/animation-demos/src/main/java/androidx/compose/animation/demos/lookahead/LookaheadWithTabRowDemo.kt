@@ -16,6 +16,8 @@
 
 package androidx.compose.animation.demos.lookahead
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.animateBounds
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,7 +45,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.LookaheadScope
@@ -51,7 +52,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 fun LookaheadWithTabRowDemo() {
@@ -65,7 +66,10 @@ fun LookaheadWithTabRowDemo() {
             }
         Column(
             Modifier.fillMaxWidth()
-                .animateBounds(if (isWide) Modifier else Modifier.padding(end = 100.dp))
+                .animateBounds(
+                    this@LookaheadScope,
+                    if (isWide) Modifier else Modifier.padding(end = 100.dp)
+                )
                 .fillMaxHeight()
                 .background(Color(0xFFfffbd0))
         ) {
@@ -117,7 +121,6 @@ fun FancyTab(title: String, onClick: () -> Unit, selected: Boolean) {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ScrollingTextTabs() {
     var state by remember { mutableIntStateOf(0) }

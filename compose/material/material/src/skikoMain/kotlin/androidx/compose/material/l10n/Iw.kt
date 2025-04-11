@@ -28,4 +28,5 @@ internal fun Translations.iw() = mapOf(
     Strings.DefaultErrorMessage to "הקלט לא תקין",
     Strings.SliderRangeStart to "תחילת הטווח",
     Strings.SliderRangeEnd to "סוף הטווח",
+    Strings.SnackbarPaneTitle to "התראה",
 )

@@ -64,6 +64,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasPerformImeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -368,7 +369,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -406,7 +407,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -434,7 +435,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
 
         // no cursor when should be no cursor
@@ -447,7 +448,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -545,7 +546,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
 
         toggle = !toggle
@@ -568,7 +569,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -603,7 +604,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -673,7 +674,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -697,7 +698,8 @@ class TextFieldCursorTest : FocusedWindowTest {
         rule.mainClock.advanceTimeBy(100)
         rule.mainClock.advanceTimeByFrame()
 
-        rule.onNode(hasSetTextAction()).captureToImage().assertDoesNotContainColor(cursorColor)
+        // readonly fields do not have setText action
+        rule.onNode(hasPerformImeAction()).captureToImage().assertDoesNotContainColor(cursorColor)
     }
 
     @Test
@@ -721,12 +723,13 @@ class TextFieldCursorTest : FocusedWindowTest {
         rule.mainClock.advanceTimeBy(100)
         rule.mainClock.advanceTimeByFrame()
 
-        rule.onNode(hasSetTextAction()).captureToImage().assertDoesNotContainColor(cursorColor)
+        // readonly fields do not have setText action
+        rule.onNode(hasPerformImeAction()).captureToImage().assertDoesNotContainColor(cursorColor)
 
         readOnly = false
         rule.mainClock.advanceTimeByFrame()
 
-        rule.onNode(hasSetTextAction()).captureToImage().assertCursor(cursorTopCenterInLtr)
+        rule.onNode(hasPerformImeAction()).captureToImage().assertCursor(cursorTopCenterInLtr)
     }
 
     @Test
@@ -933,7 +936,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -1024,7 +1027,7 @@ class TextFieldCursorTest : FocusedWindowTest {
     }
 
     private fun focusAndWait() {
-        rule.onNode(hasSetTextAction()).requestFocus()
+        rule.onNode(hasPerformImeAction()).requestFocus()
         rule.mainClock.advanceTimeUntil { isFocused }
     }
 

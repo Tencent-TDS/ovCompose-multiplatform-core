@@ -229,6 +229,36 @@ internal class FloatLongMapTest {
     }
 
     @Test
+    fun buildFloatLongMapFunction() {
+        val contract: Boolean
+        val map = buildFloatLongMap {
+            contract = true
+            put(1f, 1L)
+            put(2f, 2L)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1L, map[1f])
+        assertEquals(2L, map[2f])
+    }
+
+    @Test
+    fun buildFloatObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildFloatLongMap(20) {
+                contract = true
+                put(1f, 1L)
+                put(2f, 2L)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1L, map[1f])
+        assertEquals(2L, map[2f])
+    }
+
+    @Test
     fun addToMap() {
         val map = MutableFloatLongMap()
         map[1f] = 1L
@@ -633,6 +663,13 @@ internal class FloatLongMapTest {
 
         map2[1f] = 1L
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(
+            mutableFloatLongMapOf(1f, 1L, 2f, 2L),
+            mutableFloatLongMapOf(1f, 1L, 3f, 2L)
+        )
     }
 
     @Test
@@ -751,5 +788,16 @@ internal class FloatLongMapTest {
 
         assertEquals(1024, map.trim())
         assertEquals(0, map.trim())
+    }
+
+    @Test
+    fun insertManyRemoveMany() {
+        val map = MutableFloatLongMap()
+
+        for (i in 0..1000000) {
+            map[i.toFloat()] = i.toLong()
+            map.remove(i.toFloat())
+            assertTrue(map.capacity < 16, "Map grew larger than 16 after step $i")
+        }
     }
 }

@@ -25,6 +25,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -153,6 +154,7 @@ private const val LEFT_COMPLICATION_ID = 1000
 private const val RIGHT_COMPLICATION_ID = 1001
 private const val EDGE_COMPLICATION_ID = 1002
 private const val MOCK_COMPLICATION_ID = 1003
+private const val MOCK_COMPLICATION_ID2 = 1004
 private const val BACKGROUND_COMPLICATION_ID = 1111
 private const val NO_COMPLICATIONS = "NO_COMPLICATIONS"
 private const val LEFT_COMPLICATION = "LEFT_COMPLICATION"
@@ -352,6 +354,29 @@ public class WatchFaceServiceTest {
         ComplicationSlot.createRoundRectComplicationSlotBuilder(
                 MOCK_COMPLICATION_ID,
                 { _, _ -> mockCanvasComplication },
+                listOf(
+                    ComplicationType.RANGED_VALUE,
+                    ComplicationType.LONG_TEXT,
+                    ComplicationType.SHORT_TEXT,
+                    ComplicationType.MONOCHROMATIC_IMAGE,
+                    ComplicationType.SMALL_IMAGE
+                ),
+                DefaultComplicationDataSourcePolicy(
+                    SystemDataSources.DATA_SOURCE_DAY_OF_WEEK,
+                    ComplicationType.LONG_TEXT
+                ),
+                ComplicationSlotBounds(
+                    bounds = RectF(0.6f, 0.4f, 0.8f, 0.6f),
+                    margins = RectF(0.1f, 0.1f, 0.1f, 0.1f)
+                )
+            )
+            .build()
+
+    private val mockCanvasComplication2 = mock<CanvasComplication>()
+    private val mockComplication2 =
+        ComplicationSlot.createRoundRectComplicationSlotBuilder(
+                MOCK_COMPLICATION_ID2,
+                { _, _ -> mockCanvasComplication2 },
                 listOf(
                     ComplicationType.RANGED_VALUE,
                     ComplicationType.LONG_TEXT,
@@ -675,6 +700,7 @@ public class WatchFaceServiceTest {
                 null
             ),
         complicationCache: MutableMap<String, ByteArray>? = null,
+        requestUpdateScreenshotOnConfigurationChange: Boolean = false
     ) {
         testWatchFaceService =
             TestWatchFaceService(
@@ -697,7 +723,9 @@ public class WatchFaceServiceTest {
                 null,
                 choreographer,
                 mockSystemTimeMillis = looperTimeMillis,
-                complicationCache = complicationCache
+                complicationCache = complicationCache,
+                requestUpdateScreenshotOnConfigurationChange =
+                    requestUpdateScreenshotOnConfigurationChange,
             )
 
         InteractiveInstanceManager
@@ -3059,10 +3087,27 @@ public class WatchFaceServiceTest {
     }
 
     @Test
-    public fun clearComplicationSlotAfterEditing() {
+    public fun clearComplicationSlotAfterEditing_dataSourceChanged() {
         initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(
+                    MOCK_COMPLICATION_ID,
+                    WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                        .setLongText(WireComplicationText.plainText("Live complication"))
+                        .setDataSource(ComponentName("one.com", "one"))
+                        .build()
+                )
+            )
+        )
+        val previewData =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview"))
+                .setDataSource(ComponentName("two.com", "two"))
+                .build()
+                .toApiComplicationData()
 
-        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID)
+        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID, previewData)
         engineWrapper.onEditSessionFinished()
 
         verify(mockCanvasComplication)
@@ -3070,20 +3115,176 @@ public class WatchFaceServiceTest {
     }
 
     @Test
+    public fun clearComplicationSlotAfterEditing_doesNothing_dataSourceUnchanged() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(
+                    MOCK_COMPLICATION_ID,
+                    WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                        .setLongText(WireComplicationText.plainText("Live complication"))
+                        .setDataSource(ComponentName("one.com", "one"))
+                        .build()
+                )
+            )
+        )
+        val previewComplication =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+                .toApiComplicationData()
+
+        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID, previewComplication)
+        engineWrapper.onEditSessionFinished()
+
+        verify(mockCanvasComplication, times(0))
+            .loadData(EmptyComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
     public fun clearComplicationSlotAfterEditing_doesNotBlockOverrideComplicationData() {
         initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(mockComplication))
-        val data =
+        val previewData =
             WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
-                .setLongText(WireComplicationText.plainText("TYPE_LONG_TEXT"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .setLongText(WireComplicationText.plainText("Preview complication"))
                 .build()
         interactiveWatchFaceInstance.overrideComplicationData(
-            listOf(IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, data))
+            listOf(IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewData))
         )
 
-        engineWrapper.clearComplicationSlotAfterEditing(MOCK_COMPLICATION_ID)
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID,
+            previewData.toApiComplicationData()
+        )
 
         verify(mockCanvasComplication)
-            .loadData(data.toApiComplicationData(), loadDrawablesAsynchronous = true)
+            .loadData(previewData.toApiComplicationData(), loadDrawablesAsynchronous = true)
+    }
+
+    @Test
+    public fun overrideComplicationData() {
+        initWallpaperInteractiveWatchFaceInstance(
+            complicationSlots = listOf(mockComplication, mockComplication2)
+        )
+        // Set initial complications.
+        val liveComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val liveComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, liveComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, liveComplication2)
+            )
+        )
+        reset(mockCanvasComplication)
+        reset(mockCanvasComplication2)
+
+        // Preview complications set by the editor.
+        val previewComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val previewComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.overrideComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, previewComplication2)
+            )
+        )
+
+        // The updates should be synchronous.
+        verify(mockCanvasComplication)
+            .loadData(
+                previewComplication1.toApiComplicationData(),
+                loadDrawablesAsynchronous = false
+            )
+        verify(mockCanvasComplication2)
+            .loadData(
+                previewComplication2.toApiComplicationData(),
+                loadDrawablesAsynchronous = false
+            )
+    }
+
+    @Test
+    public fun overrideComplicationData_onEditSessionFinished() {
+        initWallpaperInteractiveWatchFaceInstance(
+            complicationSlots = listOf(mockComplication, mockComplication2)
+        )
+        // Set initial complications.
+        val liveComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val liveComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Live complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, liveComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, liveComplication2)
+            )
+        )
+        // Preview complications set by the editor.
+        val previewComplication1 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication1"))
+                .setDataSource(ComponentName("one.com", "one"))
+                .build()
+        val previewComplication2 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication2"))
+                .setDataSource(ComponentName("two.com", "one"))
+                .build()
+        interactiveWatchFaceInstance.overrideComplicationData(
+            listOf(
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID, previewComplication1),
+                IdAndComplicationDataWireFormat(MOCK_COMPLICATION_ID2, previewComplication2)
+            )
+        )
+        val previewComplication3 =
+            WireComplicationData.Builder(WireComplicationData.TYPE_LONG_TEXT)
+                .setLongText(WireComplicationText.plainText("Preview complication3"))
+                .setDataSource(ComponentName("three.com", "one"))
+                .build()
+        // Simulate the user changing MOCK_COMPLICATION_ID to point to the same complication.
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID,
+            previewComplication1.toApiComplicationData()
+        )
+        // Simulate the user changing MOCK_COMPLICATION_ID2 to point to a new complication.
+        engineWrapper.clearComplicationSlotAfterEditing(
+            MOCK_COMPLICATION_ID2,
+            previewComplication3.toApiComplicationData()
+        )
+        reset(mockCanvasComplication)
+        reset(mockCanvasComplication2)
+
+        engineWrapper.onEditSessionFinished()
+
+        // MOCK_COMPLICATION_ID was unchanged so we should load the origional.
+        verify(mockCanvasComplication)
+            .loadData(liveComplication1.toApiComplicationData(), loadDrawablesAsynchronous = false)
+        // MOCK_COMPLICATION_ID was changed so we should load empty to prevent the user from seeing
+        // a glimpse of the old complication.
+        verify(mockCanvasComplication2)
+            .loadData(EmptyComplicationData(), loadDrawablesAsynchronous = false)
     }
 
     @Test
@@ -3556,6 +3757,43 @@ public class WatchFaceServiceTest {
         }
 
         instance2.release()
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.O_MR1])
+    public fun timeline_tapAction() {
+        initWallpaperInteractiveWatchFaceInstance(complicationSlots = listOf(leftComplication))
+        val basePendingIntent = mock<PendingIntent>()
+        val timelineOverridePendingIntent = mock<PendingIntent>()
+        val baseComplication =
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("A"))
+                .setTapAction(basePendingIntent)
+                .build()
+        val timelineOverride =
+            WireComplicationData.Builder(WireComplicationData.TYPE_SHORT_TEXT)
+                .setShortText(WireComplicationText.plainText("B"))
+                .setTapAction(timelineOverridePendingIntent)
+                .build()
+        timelineOverride.timelineStartEpochSecond = 2
+        timelineOverride.timelineEndEpochSecond = Long.MAX_VALUE
+        baseComplication.setTimelineEntryCollection(listOf(timelineOverride))
+        interactiveWatchFaceInstance.updateComplicationData(
+            listOf(IdAndComplicationDataWireFormat(LEFT_COMPLICATION_ID, baseComplication))
+        )
+
+        // Tap left complication.
+        tapAt(30, 50)
+
+        // We expect the default intent to have been sent.
+        verify(basePendingIntent).send()
+
+        // Simulate tapping again after 2 seconds.
+        runPostedTasksFor(2000)
+        tapAt(30, 50)
+
+        // We expect the timeline override intent to have been sent.
+        verify(timelineOverridePendingIntent).send()
     }
 
     @Test
@@ -6950,6 +7188,49 @@ public class WatchFaceServiceTest {
 
     @Test
     @Config(sdk = [Build.VERSION_CODES.R])
+    public fun setUpdateScreenshotOnConfigurationChange() {
+        initWallpaperInteractiveWatchFaceInstance(
+            WatchFaceType.ANALOG,
+            listOf(leftComplication),
+            UserStyleSchema(emptyList()),
+            WallpaperInteractiveWatchFaceInstanceParams(
+                INTERACTIVE_INSTANCE_ID,
+                DeviceConfig(false, false, 0, 0),
+                WatchUiState(false, 0),
+                UserStyle(emptyMap()).toWireFormat(),
+                null,
+                null,
+                null
+            ),
+            requestUpdateScreenshotOnConfigurationChange = true
+        )
+        var lastPreviewImageUpdateRequestedWatchFaceId: String? = null
+        interactiveWatchFaceInstance.addWatchFaceListener(
+            object : IWatchfaceListener.Stub() {
+                override fun getApiVersion() = 1
+
+                override fun onWatchfaceReady() {}
+
+                override fun onWatchfaceColorsChanged(
+                    watchFaceColors: WatchFaceColorsWireFormat?
+                ) {}
+
+                override fun onPreviewImageUpdateRequested(watchFaceId: String) {
+                    lastPreviewImageUpdateRequestedWatchFaceId = watchFaceId
+                }
+
+                override fun onEngineDetached() {}
+            }
+        )
+
+        testWatchFaceService.onConfigurationChanged(mock<Configuration>())
+
+        assertThat(lastPreviewImageUpdateRequestedWatchFaceId)
+            .isEqualTo(SYSTEM_SUPPORTS_CONSISTENT_IDS_PREFIX + "Interactive")
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.R])
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     public fun doNotDisplayComplicationWhenScreenLocked() {
         initWallpaperInteractiveWatchFaceInstance(
@@ -7530,6 +7811,14 @@ class TestNopCanvasWatchFaceServiceWithHandler : WatchFaceService() {
                     zonedDateTime: ZonedDateTime
                 ) {
                     // Intentionally empty.
+                }
+
+                var destroyed: Boolean = false
+
+                override fun onDestroy() {
+                    super.onDestroy()
+                    assert(!destroyed) { "onDestroy already called!!" }
+                    destroyed = true
                 }
             }
         )

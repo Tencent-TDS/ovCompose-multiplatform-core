@@ -30,9 +30,6 @@ plugins {
 }
 
 android {
-    defaultConfig {
-        multiDexEnabled = true
-    }
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
@@ -44,7 +41,6 @@ dependencies {
     api(libs.kotlinStdlib)
     api(libs.kotlinCoroutinesAndroid)
     api(libs.guavaListenableFuture)
-    implementation("androidx.core:core:1.12.0")
     implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0-alpha03")
     implementation("androidx.room:room-runtime:2.6.1")
     androidTestImplementation(libs.testExtJunit)
@@ -54,7 +50,6 @@ dependencies {
     androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
     androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.multidex)
 }
 
 androidx {

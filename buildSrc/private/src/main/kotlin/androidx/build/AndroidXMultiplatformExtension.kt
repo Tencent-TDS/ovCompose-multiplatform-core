@@ -25,11 +25,10 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.KotlinTarget
-import org.jetbrains.kotlin.gradle.plugin.KotlinTargetPreset
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsBrowserDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
@@ -294,27 +293,31 @@ open class AndroidXMultiplatformExtension(val project: Project) {
 
     @JvmOverloads
     fun js(
-        block: Action<KotlinJsTargetDsl>? = null
+        block: Action<KotlinJsBrowserDsl>? = null
     ): KotlinJsTargetDsl? {
         requestedPlatforms.add(PlatformIdentifier.JS)
         return if (project.enableJs()) {
             kotlinExtension.js().also {
-                block?.execute(it)
+                it.browser {
+                    block?.execute(this)
+                }
             }
         } else {
             null
         }
     }
 
-    @OptIn(ExperimentalWasmDsl::class)
+    @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     @JvmOverloads
     fun wasm(
-        block: Action<KotlinJsTargetDsl>? = null
+        block: Action<KotlinJsBrowserDsl>? = null
     ): KotlinJsTargetDsl? {
         requestedPlatforms.add(PlatformIdentifier.WASM)
         return if (project.enableWasm()) {
             kotlinExtension.wasmJs().also {
-                block?.execute(it)
+                it.browser {
+                    block?.execute(this)
+                }
             }
         } else {
             null

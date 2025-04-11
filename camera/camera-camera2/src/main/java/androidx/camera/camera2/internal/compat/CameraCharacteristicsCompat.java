@@ -17,6 +17,7 @@
 package androidx.camera.camera2.internal.compat;
 
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Build;
 
@@ -72,11 +73,8 @@ public class CameraCharacteristicsCompat {
      * caching it.
      */
     private boolean isKeyNonCacheable(@NonNull CameraCharacteristics.Key<?> key) {
-        // SENSOR_ORIENTATION value scould change in some circumstances.
-        if (key.equals(CameraCharacteristics.SENSOR_ORIENTATION)) {
-            return true;
-        }
-        return false;
+        // SENSOR_ORIENTATION value should change in some circumstances.
+        return key.equals(CameraCharacteristics.SENSOR_ORIENTATION);
     }
 
     /**
@@ -121,6 +119,24 @@ public class CameraCharacteristicsCompat {
     }
 
     /**
+     * Returns {@code true} if overriding zoom setting is available, otherwise {@code false}.
+     */
+    public boolean isZoomOverrideAvailable() {
+        if (Build.VERSION.SDK_INT >= 34) {
+            int[] availableSettingsOverrides = mCameraCharacteristicsImpl.get(
+                    CameraCharacteristics.CONTROL_AVAILABLE_SETTINGS_OVERRIDES);
+            if (availableSettingsOverrides != null) {
+                for (int i : availableSettingsOverrides) {
+                    if (i == CameraMetadata.CONTROL_SETTINGS_OVERRIDE_ZOOM) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Obtains the {@link StreamConfigurationMapCompat} which contains the output sizes related
      * workarounds in it.
      */
@@ -131,7 +147,7 @@ public class CameraCharacteristicsCompat {
             try {
                 map = get(
                         CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            } catch (AssertionError e) {
+            } catch (NullPointerException | AssertionError e) {
                 // Some devices may throw AssertionError when querying stream configuration map
                 // from CameraCharacteristics during bindToLifecycle. Catch the AssertionError and
                 // throw IllegalArgumentException so app level can decide how to handle.
@@ -158,17 +174,25 @@ public class CameraCharacteristicsCompat {
     }
 
     /**
+     * Returns the camera id associated with the camera characteristics.
+     */
+    @NonNull
+    public String getCameraId() {
+        return mCameraId;
+    }
+
+    /**
      * CameraCharacteristic Implementation Interface
      */
     public interface CameraCharacteristicsCompatImpl {
         /**
-         * Gets the key/values from the CameraCharacteristics .
+         * Gets the key/values from the CameraCharacteristics.
          */
         @Nullable
         <T> T get(@NonNull CameraCharacteristics.Key<T> key);
 
         /**
-         * Get physical camera ids.
+         * Gets physical camera ids.
          */
         @NonNull
         Set<String> getPhysicalCameraIds();

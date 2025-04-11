@@ -16,15 +16,17 @@
 
 package androidx.health.connect.client.impl
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ext.SdkExtensions
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
+import androidx.health.connect.client.feature.ExperimentalFeatureAvailabilityApi
 import androidx.health.connect.client.impl.converters.datatype.RECORDS_CLASS_NAME_MAP
+import androidx.health.connect.client.impl.platform.aggregate.AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10
 import androidx.health.connect.client.permission.HealthPermission.Companion.PERMISSION_PREFIX
 import androidx.health.connect.client.readRecord
 import androidx.health.connect.client.records.BloodPressureRecord
@@ -57,18 +59,21 @@ import java.time.Period
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertThrows
 import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalFeatureAvailabilityApi::class)
 @RunWith(AndroidJUnit4::class)
 @MediumTest
-@TargetApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE, codeName = "UpsideDownCake")
 class HealthConnectClientUpsideDownImplTest {
 
@@ -88,7 +93,7 @@ class HealthConnectClientUpsideDownImplTest {
                 context.packageName,
                 PackageManager.PackageInfoFlags.of(PackageManager.GET_PERMISSIONS.toLong())
             )
-            .requestedPermissions
+            .requestedPermissions!!
             .filter { it.startsWith(PERMISSION_PREFIX) }
             .toTypedArray()
 
@@ -106,6 +111,36 @@ class HealthConnectClientUpsideDownImplTest {
     fun tearDown() = runTest {
         for (recordType in RECORDS_CLASS_NAME_MAP.keys) {
             healthConnectClient.deleteRecords(recordType, TimeRangeFilter.none())
+        }
+    }
+
+    @Test
+    fun backgroundReads_ext13_isSupported() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 13)
+
+        assertThat(
+                healthConnectClient.features.getFeatureStatus(
+                    HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND
+                )
+            )
+            .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_AVAILABLE)
+    }
+
+    @Test
+    fun allFeatures_belowUExt13_noneSupported() {
+        assumeTrue(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) < 13)
+
+        val features =
+            listOf(
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
+                HealthConnectFeatures.FEATURE_HEALTH_DATA_HISTORIC_READ,
+                HealthConnectFeatures.FEATURE_SKIN_TEMPERATURE,
+                HealthConnectFeatures.FEATURE_PLANNED_EXERCISE
+            )
+
+        for (feature in features) {
+            assertThat(healthConnectClient.features.getFeatureStatus(feature))
+                .isEqualTo(HealthConnectFeatures.FEATURE_STATUS_UNAVAILABLE)
         }
     }
 
@@ -398,6 +433,45 @@ class HealthConnectClientUpsideDownImplTest {
         }
     }
 
+    // TODO(b/361297592): Remove once the aggregation bug is fixed
+    @Test
+    fun aggregateRecords_unsupportedMetrics_throwsUOE() = runTest {
+        for (metric in AGGREGATE_METRICS_ADDED_IN_SDK_EXT_10) {
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregate(
+                        AggregateRequest(setOf(metric), TimeRangeFilter.none())
+                    )
+                }
+            }
+
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregateGroupByDuration(
+                        AggregateGroupByDurationRequest(
+                            setOf(metric),
+                            TimeRangeFilter.none(),
+                            Duration.ofDays(1)
+                        )
+                    )
+                }
+            }
+
+            assertThrows(UnsupportedOperationException::class.java) {
+                runBlocking {
+                    healthConnectClient.aggregateGroupByPeriod(
+                        AggregateGroupByPeriodRequest(
+                            setOf(metric),
+                            TimeRangeFilter.none(),
+                            Period.ofDays(1)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    @Ignore("b/326414908")
     @Test
     fun aggregateRecords_belowSdkExt10() = runTest {
         assumeFalse(SdkExtensions.getExtensionVersion(Build.VERSION_CODES.UPSIDE_DOWN_CAKE) >= 10)

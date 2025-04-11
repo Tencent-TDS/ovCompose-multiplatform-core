@@ -20,7 +20,6 @@ import android.content.Context
 import android.graphics.Rect
 import android.os.Build
 import android.view.WindowMetrics
-import androidx.annotation.DoNotInline
 import androidx.annotation.IntRange
 import androidx.annotation.RequiresApi
 import androidx.core.util.Preconditions
@@ -51,7 +50,6 @@ import kotlin.math.min
  * directions with different device states.
  *
  * @sample androidx.window.samples.embedding.splitWithOrientations
- *
  * @see androidx.window.embedding.SplitPairRule
  * @see androidx.window.embedding.SplitPlaceholderRule
  */
@@ -131,6 +129,8 @@ internal constructor(
      * The default [SplitAttributes] to apply on the activity containers pair when the host task
      * bounds satisfy [minWidthDp], [minHeightDp], [minSmallestWidthDp], [maxAspectRatioInPortrait]
      * and [maxAspectRatioInLandscape] requirements.
+     *
+     * It is set to split the host parent task vertically and equally by default.
      */
     val defaultSplitAttributes: SplitAttributes,
 ) : EmbeddingRule(tag) {
@@ -278,7 +278,6 @@ internal constructor(
 
     @RequiresApi(30)
     internal object Api30Impl {
-        @DoNotInline
         fun getBounds(windowMetrics: WindowMetrics): Rect {
             return windowMetrics.bounds
         }
@@ -286,7 +285,6 @@ internal constructor(
 
     @RequiresApi(34)
     internal object Api34Impl {
-        @DoNotInline
         fun getDensity(windowMetrics: WindowMetrics, context: Context): Float {
             // TODO(b/265089843) remove the try catch after U is finalized.
             return try {

@@ -21,14 +21,15 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import android.system.Os
 import androidx.annotation.RequiresApi
-import androidx.annotation.RestrictTo
 import androidx.webkit.WebViewCompat
-import java.io.File
 import java.util.regex.Pattern
 
 /**
+ * This class is a wrapper around AOSP {@link android.os.SecurityStateManager} service API added in
+ * SDK 35. Support for features on older SDKs is provided on a best effort basis.
+ *
  * Manages the retrieval and storage of security patch levels and module information for an Android
  * device. This class provides methods to fetch the current security state of the system, including
  * patch levels for the system, vendor, and kernel as well as module updates available through
@@ -44,9 +45,9 @@ public open class SecurityStateManager(private val context: Context) {
         private const val TAG = "SecurityStateManager"
         private val kernelReleasePattern: Pattern = Pattern.compile("(\\d+\\.\\d+\\.\\d+)(.*)")
 
-        public const val VENDOR_SECURITY_PATCH_PROPERTY_KEY: String =
+        private const val VENDOR_SECURITY_PATCH_PROPERTY_KEY: String =
             "ro.vendor.build.security_patch"
-        public const val ANDROID_MODULE_METADATA_PROVIDER: String = "com.android.modulemetadata"
+        private const val ANDROID_MODULE_METADATA_PROVIDER: String = "com.android.modulemetadata"
 
         /**
          * The system SPL key returned as part of the {@code Bundle} from {@code
@@ -78,7 +79,7 @@ public open class SecurityStateManager(private val context: Context) {
      * @return A Bundle containing keys and values representing the security state of the system,
      *   vendor, and kernel.
      */
-    @SuppressLint("NewApi")
+    @SuppressLint("NewApi") // Lint does not detect version check below.
     public open fun getGlobalSecurityState(moduleMetadataProvider: String? = null): Bundle {
         return Bundle().apply {
             // TODO(musashi): add call to SecurityStateManager API when it becomes available
@@ -104,7 +105,10 @@ public open class SecurityStateManager(private val context: Context) {
                     )
                 }
             }
-            putString(KEY_KERNEL_VERSION, getKernelVersion())
+            val kernelVersion = getKernelVersion()
+            if (kernelVersion.isNotEmpty()) {
+                putString(KEY_KERNEL_VERSION, kernelVersion)
+            }
             addWebViewPackages(this)
         }
     }
@@ -119,13 +123,12 @@ public open class SecurityStateManager(private val context: Context) {
      *   occurs.
      * @throws PackageManager.NameNotFoundException if the package name provided does not exist.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    public open fun getPackageVersion(packageName: String): String {
+    internal open fun getPackageVersion(packageName: String): String {
         if (packageName.isNotEmpty()) {
-            try {
-                return packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+            return try {
+                packageManager.getPackageInfo(packageName, 0).versionName ?: ""
             } catch (e: PackageManager.NameNotFoundException) {
-                Log.e(TAG, "Failed to get SPL for package $packageName.", e)
+                ""
             }
         }
         return ""
@@ -163,7 +166,7 @@ public open class SecurityStateManager(private val context: Context) {
             } else {
                 null
             }
-        return webViewPackageInfo?.versionName ?: ""
+        return webViewPackageInfo?.packageName ?: ""
     }
 
     /**
@@ -171,8 +174,7 @@ public open class SecurityStateManager(private val context: Context) {
      *
      * @return the SDK version as an integer.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    public open fun getAndroidSdkInt(): Int {
+    internal open fun getAndroidSdkInt(): Int {
         return Build.VERSION.SDK_INT
     }
 
@@ -184,9 +186,8 @@ public open class SecurityStateManager(private val context: Context) {
      * @return A string representing the current security patch level, or empty string if it cannot
      *   be retrieved.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @SuppressLint("NewApi")
-    public fun getSecurityPatchLevelSafe(): String {
+    @SuppressLint("NewApi") // Lint does not detect version check below.
+    internal fun getSecurityPatchLevelSafe(): String {
         return if (getAndroidSdkInt() >= Build.VERSION_CODES.M) {
             Build.VERSION.SECURITY_PATCH
         } else {
@@ -195,7 +196,7 @@ public open class SecurityStateManager(private val context: Context) {
     }
 
     /**
-     * Attempts to retrieve the kernel version of the device from the system's '/proc/version' file.
+     * Attempts to retrieve the kernel version of the device using the system's uname() command.
      * This method is used to determine the current kernel version which is a part of the security
      * state assessment.
      *
@@ -204,7 +205,7 @@ public open class SecurityStateManager(private val context: Context) {
      */
     private fun getKernelVersion(): String {
         try {
-            val matcher = kernelReleasePattern.matcher(File("/proc/version").readText())
+            val matcher = kernelReleasePattern.matcher(Os.uname().release)
             return if (matcher.matches()) matcher.group(1)!! else ""
         } catch (e: Exception) {
             return ""
@@ -219,7 +220,7 @@ public open class SecurityStateManager(private val context: Context) {
      * @return A string representing the vendor's security patch level, or an empty string if it
      *   cannot be retrieved.
      */
-    @Suppress("BanUncheckedReflection")
+    @Suppress("BanUncheckedReflection") // For accessing vendor SPL on SDK older than 35.
     private fun getVendorSpl(): String {
         try {
             // This is the only way to get vendor SPL from public API level on Android 14 or older

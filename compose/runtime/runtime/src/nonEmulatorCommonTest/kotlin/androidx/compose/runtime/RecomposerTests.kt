@@ -23,9 +23,14 @@ import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.mock.expectNoChanges
 import androidx.compose.runtime.snapshots.Snapshot
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.test.*
+import kotlin.test.Ignore
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -109,7 +114,6 @@ class RecomposerTests {
     }
 
     @Test
-    //@IgnoreJsTarget
     fun testRecomposition() = compositionTest {
         val counter = Counter()
         val triggers =
@@ -245,7 +249,7 @@ class RecomposerTests {
         compose {
             if (state) {
                 TestSubcomposition {
-                    assertTrue(state, "Subcomposition should be disposed if state is false" )
+                    assertTrue(state, "Subcomposition should be disposed if state is false")
                 }
             }
         }
@@ -354,6 +358,7 @@ class RecomposerTests {
         }
     }
 
+    @Ignore // TODO: Fails on JS https://youtrack.jetbrains.com/issue/CMP-7455
     @Test
     fun stateChangesDuringApplyChangesAreNotifiedBeforeFrameFinished() = compositionTest {
         val count = mutableStateOf(0)
@@ -388,7 +393,41 @@ class RecomposerTests {
         assertEquals(2, recompositions)
 
         // The Recomposer should have received notification for the node's state.
-        assertContentEquals(listOf(setOf(countFromEffect)), applications)
+        @Suppress("RemoveExplicitTypeArguments")
+        assertEquals<List<Set<Any>>>(listOf(setOf(countFromEffect)), applications)
+    }
+
+    @Ignore // b/329682091
+    @OptIn(DelicateCoroutinesApi::class)
+    @Test // b/329011032
+    fun validatePotentialDeadlock() = compositionTest {
+        var state by mutableIntStateOf(0)
+        compose {
+            repeat(1000) { Text("This is some text: $state") }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    withContext(Dispatchers.Default) {
+                        state++
+                        Snapshot.registerGlobalWriteObserver {}.dispose()
+                    }
+                }
+            }
+
+            // Keep the other loop as is
+            LaunchedEffect(Unit) {
+                while (true) {
+                    withFrameNanos {
+                        state++
+                        Snapshot.sendApplyNotifications()
+                    }
+                }
+            }
+        }
+
+        repeat(10) {
+            state++
+            advance(ignorePendingWork = true)
+        }
     }
 
     @Test

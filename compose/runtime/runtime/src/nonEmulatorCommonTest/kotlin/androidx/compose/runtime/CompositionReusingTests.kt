@@ -700,7 +700,6 @@ class CompositionReusingTests {
     }
 
     @Test
-    @IgnoreJsTarget // TODO (o.k.): remove ignore when k/wasm implements KT-65411
     fun forceReuseForgetsWhenContentDidntChange() = compositionTest {
         var active by mutableStateOf(true)
 
@@ -855,6 +854,34 @@ class CompositionReusingTests {
         assertEquals(2, rememberedState.rememberCount)
         assertEquals(1, rememberedState.forgottenCount)
         assertEquals(0, rememberedState.abandonCount)
+    }
+
+    @Test
+    fun reusableContentHost_movableContent() = compositionTest {
+        var active by mutableStateOf(true)
+        var state by mutableIntStateOf(0)
+        var subcomposition: Composition? = null
+        val movableContent = movableContentOf { Text("State: $state") }
+
+        compose {
+            if (active) {
+                val context = rememberCompositionContext()
+                if (subcomposition == null) {
+                    subcomposition =
+                        Composition(ViewApplier(root), context).apply {
+                            setContent { movableContent() }
+                        }
+                }
+            }
+        }
+
+        state++
+        active = false
+        advance()
+
+        // Validate that detaching the composition will not leave the composition in an invalid
+        // state.
+        subcomposition?.setContent { Text("This is a test") }
     }
 }
 

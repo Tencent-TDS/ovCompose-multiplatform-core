@@ -46,6 +46,7 @@ import androidx.camera.camera2.internal.compat.params.DynamicRangesCompat;
 import androidx.camera.camera2.internal.compat.quirk.DeviceQuirks;
 import androidx.camera.camera2.internal.compat.quirk.LegacyCameraOutputConfigNullPointerQuirk;
 import androidx.camera.camera2.internal.compat.quirk.LegacyCameraSurfaceCleanupQuirk;
+import androidx.camera.camera2.internal.compat.workaround.CloseCameraBeforeCreateNewSession;
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraState;
 import androidx.camera.core.CameraUnavailableException;
@@ -83,6 +84,7 @@ import androidx.camera.core.impl.utils.futures.Futures;
 import androidx.camera.core.streamsharing.StreamSharing;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.core.util.Preconditions;
+import androidx.tracing.Trace;
 
 import com.google.auto.value.AutoValue;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -176,16 +178,19 @@ final class Camera2CameraImpl implements CameraInternal {
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     final Map<CaptureSessionInterface, ListenableFuture<Void>> mReleasedCaptureSessions =
             new LinkedHashMap<>();
+    // Used to keep track of number of state errors while tracing is enabled
+    private int mTraceStateErrorCount = 0;
 
     @NonNull final CameraAvailability mCameraAvailability;
     @NonNull final CameraConfigureAvailable mCameraConfigureAvailable;
     @NonNull final CameraCoordinator mCameraCoordinator;
     @NonNull final CameraStateRegistry mCameraStateRegistry;
 
-    private final boolean mCloseCameraBeforeCreateNewSessionQuirk;
+    private final boolean mShouldCloseCameraBeforeCreateNewSession;
     private final boolean mConfigAndCloseQuirk;
     private boolean mIsConfigAndCloseRequired = false;
     private boolean mIsConfiguringForClose = false;
+    private boolean mIsPrimary = true;
 
     // The metering repeating use case for ImageCapture only case.
     private MeteringRepeatingSession mMeteringRepeatingSession;
@@ -277,8 +282,9 @@ final class Camera2CameraImpl implements CameraInternal {
         mCaptureSessionOpenerBuilder = new SynchronizedCaptureSession.OpenerBuilder(mExecutor,
                 mScheduledExecutorService, schedulerHandler, mCaptureSessionRepository,
                 cameraInfoImpl.getCameraQuirks(), DeviceQuirks.getAll());
-        mCloseCameraBeforeCreateNewSessionQuirk = cameraInfoImpl.getCameraQuirks().contains(
-                LegacyCameraOutputConfigNullPointerQuirk.class);
+        mShouldCloseCameraBeforeCreateNewSession =
+                CloseCameraBeforeCreateNewSession.shouldCloseCamera(
+                        cameraInfoImpl.getCameraQuirks());
         mConfigAndCloseQuirk = cameraInfoImpl.getCameraQuirks().contains(
                 LegacyCameraSurfaceCleanupQuirk.class);
 
@@ -773,7 +779,8 @@ final class Camera2CameraImpl implements CameraInternal {
     public void onUseCaseActive(@NonNull UseCase useCase) {
         Preconditions.checkNotNull(useCase);
         String useCaseId = getUseCaseId(useCase);
-        SessionConfig sessionConfig = useCase.getSessionConfig();
+        SessionConfig sessionConfig = mIsPrimary ? useCase.getSessionConfig()
+                : useCase.getSecondarySessionConfig();
         UseCaseConfig<?> useCaseConfig = useCase.getCurrentConfig();
         StreamSpec streamSpec = useCase.getAttachedStreamSpec();
         List<UseCaseConfigFactory.CaptureType> captureTypes = getCaptureTypes(useCase);
@@ -806,7 +813,8 @@ final class Camera2CameraImpl implements CameraInternal {
     public void onUseCaseUpdated(@NonNull UseCase useCase) {
         Preconditions.checkNotNull(useCase);
         String useCaseId = getUseCaseId(useCase);
-        SessionConfig sessionConfig = useCase.getSessionConfig();
+        SessionConfig sessionConfig = mIsPrimary ? useCase.getSessionConfig()
+                : useCase.getSecondarySessionConfig();
         UseCaseConfig<?> useCaseConfig = useCase.getCurrentConfig();
         StreamSpec streamSpec = useCase.getAttachedStreamSpec();
         List<UseCaseConfigFactory.CaptureType> captureTypes = getCaptureTypes(useCase);
@@ -821,7 +829,8 @@ final class Camera2CameraImpl implements CameraInternal {
     @Override
     public void onUseCaseReset(@NonNull UseCase useCase) {
         Preconditions.checkNotNull(useCase);
-        SessionConfig sessionConfig = useCase.getSessionConfig();
+        SessionConfig sessionConfig = mIsPrimary ? useCase.getSessionConfig()
+                : useCase.getSecondarySessionConfig();
         UseCaseConfig<?> useCaseConfig = useCase.getCurrentConfig();
         StreamSpec streamSpec = useCase.getAttachedStreamSpec();
         List<UseCaseConfigFactory.CaptureType> captureTypes = getCaptureTypes(useCase);
@@ -1005,7 +1014,7 @@ final class Camera2CameraImpl implements CameraInternal {
         List<UseCaseInfo> useCaseInfos = new ArrayList<>();
 
         for (UseCase useCase : useCases) {
-            useCaseInfos.add(UseCaseInfo.from(useCase));
+            useCaseInfos.add(UseCaseInfo.from(useCase, mIsPrimary));
         }
 
         return useCaseInfos;
@@ -1250,7 +1259,7 @@ final class Camera2CameraImpl implements CameraInternal {
 
         try {
             mSupportedSurfaceCombination.getSuggestedStreamSpecifications(cameraMode,
-                    attachedSurfaces, useCaseConfigToSizeMap, false);
+                    attachedSurfaces, useCaseConfigToSizeMap, false, false);
         } catch (IllegalArgumentException e) {
             debugLog("Surface combination with metering repeating  not supported!", e);
             return false;
@@ -1358,6 +1367,11 @@ final class Camera2CameraImpl implements CameraInternal {
             return;
         }
         openCameraDevice(fromScheduledCameraReopen);
+    }
+
+    @Override
+    public void setPrimary(boolean isPrimary) {
+        mIsPrimary = isPrimary;
     }
 
     @Override
@@ -1633,9 +1647,8 @@ final class Camera2CameraImpl implements CameraInternal {
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
     void postSurfaceClosedError(@NonNull SessionConfig sessionConfig) {
         Executor executor = CameraXExecutors.mainThreadExecutor();
-        List<SessionConfig.ErrorListener> errorListeners = sessionConfig.getErrorListeners();
-        if (!errorListeners.isEmpty()) {
-            SessionConfig.ErrorListener errorListener = errorListeners.get(0);
+        SessionConfig.ErrorListener errorListener = sessionConfig.getErrorListener();
+        if (errorListener != null) {
             debugLog("Posting surface closed", new Throwable());
             executor.execute(() -> errorListener.onError(sessionConfig,
                     SessionConfig.SessionError.SESSION_ERROR_SURFACE_NEEDS_RESET));
@@ -1664,7 +1677,7 @@ final class Camera2CameraImpl implements CameraInternal {
         mCaptureSession.issueCaptureRequests(unissuedCaptureConfigs);
         switch (mState) {
             case OPENED:
-                if (mCloseCameraBeforeCreateNewSessionQuirk && oldCaptureSession.isInOpenState()) {
+                if (mShouldCloseCameraBeforeCreateNewSession && oldCaptureSession.isInOpenState()) {
                     debugLog("Close camera before creating new session");
                     setState(InternalState.REOPENING_QUIRK);
                 }
@@ -1823,6 +1836,19 @@ final class Camera2CameraImpl implements CameraInternal {
 
     enum InternalState {
         /**
+         * A stable state where the camera has been permanently closed.
+         *
+         * <p>During this state all resources should be released and all operations on the camera
+         * will do nothing.
+         */
+        RELEASED,
+        /**
+         * A transitional state where the camera will be closing permanently.
+         *
+         * <p>At the end of this state, the camera should move into the RELEASED state.
+         */
+        RELEASING,
+        /**
          * Stable state once the camera has been constructed.
          *
          * <p>At this state the {@link CameraDevice} should be invalid, but threads should be still
@@ -1842,6 +1868,33 @@ final class Camera2CameraImpl implements CameraInternal {
          * <p>At the end of this state, the camera should move into the OPENING state.
          */
         PENDING_OPEN,
+        /**
+         * A transitional state where the camera device is currently closing.
+         *
+         * <p>At the end of this state, the camera should move into the INITIALIZED state.
+         */
+        CLOSING,
+        /**
+         * A transitional state where the camera is actively transitioning from the OPENED state
+         * towards being fully closed, with the intention of being immediately reopened.
+         *
+         * <p>This state can serve the {@link LegacyCameraOutputConfigNullPointerQuirk}
+         * workaround: Forcing the camera to close and reopen to address device-specific quirks.
+         *
+         * <p>At the end of this state, the camera should move into the OPENING state, assuming
+         * successful initialization.
+         */
+        REOPENING_QUIRK,
+        /**
+         * A transitional state where the camera was previously closing, but not fully closed before
+         * a call to open was made.
+         *
+         * <p>At the end of this state, the camera should move into one of two states. The OPENING
+         * state if the device becomes fully closed, since it must restart the process of opening a
+         * camera. The OPENED state if the device becomes opened, which can occur if a call to close
+         * had been done during the OPENING state.
+         */
+        REOPENING,
         /**
          * A transitional state where the camera device is currently opening.
          *
@@ -1863,46 +1916,6 @@ final class Camera2CameraImpl implements CameraInternal {
          * capture session configuration status.
          */
         CONFIGURED,
-        /**
-         * A transitional state where the camera device is currently closing.
-         *
-         * <p>At the end of this state, the camera should move into the INITIALIZED state.
-         */
-        CLOSING,
-        /**
-         * A transitional state where the camera was previously closing, but not fully closed before
-         * a call to open was made.
-         *
-         * <p>At the end of this state, the camera should move into one of two states. The OPENING
-         * state if the device becomes fully closed, since it must restart the process of opening a
-         * camera. The OPENED state if the device becomes opened, which can occur if a call to close
-         * had been done during the OPENING state.
-         */
-        REOPENING,
-        /**
-         * A transitional state where the camera is actively transitioning from the OPENED state
-         * towards being fully closed, with the intention of being immediately reopened.
-         *
-         * <p>This state can serve the {@link LegacyCameraOutputConfigNullPointerQuirk}
-         * workaround: Forcing the camera to close and reopen to address device-specific quirks.
-         *
-         * <p>At the end of this state, the camera should move into the OPENING state, assuming
-         * successful initialization.
-         */
-        REOPENING_QUIRK,
-        /**
-         * A transitional state where the camera will be closing permanently.
-         *
-         * <p>At the end of this state, the camera should move into the RELEASED state.
-         */
-        RELEASING,
-        /**
-         * A stable state where the camera has been permanently closed.
-         *
-         * <p>During this state all resources should be released and all operations on the camera
-         * will do nothing.
-         */
-        RELEASED
     }
 
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -1930,6 +1943,7 @@ final class Camera2CameraImpl implements CameraInternal {
     void setState(@NonNull InternalState state, @Nullable CameraState.StateError stateError,
             boolean notifyImmediately) {
         debugLog("Transitioning camera internal state: " + mState + " --> " + state);
+        traceInternalState(state, stateError);
         mState = state;
         // Convert the internal state to the publicly visible state
         State publicState;
@@ -1966,6 +1980,25 @@ final class Camera2CameraImpl implements CameraInternal {
         mCameraStateRegistry.markCameraState(this, publicState, notifyImmediately);
         mObservableState.postValue(publicState);
         mCameraStateMachine.updateState(publicState, stateError);
+    }
+
+    @ExecutedBy("mExecutor")
+    void traceInternalState(@NonNull InternalState state,
+            @Nullable CameraState.StateError stateError) {
+        if (Trace.isEnabled()) {
+            String counterName = "CX:C2State[" + this + "]";
+            Trace.setCounter(counterName, state.ordinal());
+
+            if (stateError != null) {
+                mTraceStateErrorCount++;
+            }
+
+            if (mTraceStateErrorCount > 0) {
+                String errorCounterName = "CX:C2StateErrorCode[" + this + "]";
+                int errorCode = stateError != null ? stateError.getCode() : 0;
+                Trace.setCounter(errorCounterName, errorCode);
+            }
+        }
     }
 
     @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -2010,9 +2043,12 @@ final class Camera2CameraImpl implements CameraInternal {
         }
 
         @NonNull
-        static UseCaseInfo from(@NonNull UseCase useCase) {
-            return create(Camera2CameraImpl.getUseCaseId(useCase), useCase.getClass(),
-                    useCase.getSessionConfig(), useCase.getCurrentConfig(),
+        static UseCaseInfo from(@NonNull UseCase useCase, boolean isPrimary) {
+            return create(Camera2CameraImpl.getUseCaseId(useCase),
+                    useCase.getClass(),
+                    isPrimary ? useCase.getSessionConfig()
+                            : useCase.getSecondarySessionConfig(),
+                    useCase.getCurrentConfig(),
                     useCase.getAttachedSurfaceResolution(),
                     useCase.getAttachedStreamSpec(), Camera2CameraImpl.getCaptureTypes(useCase));
         }

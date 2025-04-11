@@ -102,9 +102,7 @@ internal class RenderNodeLayer(
 
     @RequiresApi(29)
     private object UniqueDrawingIdApi29 {
-        @JvmStatic
-        @androidx.annotation.DoNotInline
-        fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
+        @JvmStatic fun getUniqueDrawingId(view: View) = view.uniqueDrawingId
     }
 
     private var mutatedFields: Int = 0
@@ -340,24 +338,22 @@ internal class RenderNodeLayer(
         ownerView.recycle(this)
     }
 
+    override val underlyingMatrix: Matrix
+        get() = matrixCache.calculateMatrix(renderNode)
+
     override fun mapOffset(point: Offset, inverse: Boolean): Offset {
         return if (inverse) {
-            matrixCache.calculateInverseMatrix(renderNode)?.map(point) ?: Offset.Infinite
+            matrixCache.mapInverse(renderNode, point)
         } else {
-            matrixCache.calculateMatrix(renderNode).map(point)
+            matrixCache.map(renderNode, point)
         }
     }
 
     override fun mapBounds(rect: MutableRect, inverse: Boolean) {
         if (inverse) {
-            val matrix = matrixCache.calculateInverseMatrix(renderNode)
-            if (matrix == null) {
-                rect.set(0f, 0f, 0f, 0f)
-            } else {
-                matrix.map(rect)
-            }
+            matrixCache.mapInverse(renderNode, rect)
         } else {
-            matrixCache.calculateMatrix(renderNode).map(rect)
+            matrixCache.map(renderNode, rect)
         }
     }
 
@@ -365,6 +361,7 @@ internal class RenderNodeLayer(
         drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
         invalidateParentLayer: () -> Unit
     ) {
+        matrixCache.reset()
         isDirty = false
         isDestroyed = false
         drawnWithZ = false
@@ -398,7 +395,6 @@ internal class RenderNodeLayer(
  */
 @RequiresApi(Build.VERSION_CODES.O)
 internal object WrapperRenderNodeLayerHelperMethods {
-    @androidx.annotation.DoNotInline
     fun onDescendantInvalidated(ownerView: AndroidComposeView) {
         ownerView.parent?.onDescendantInvalidated(ownerView, ownerView)
     }

@@ -16,11 +16,6 @@
 
 package androidx.compose.ui.platform
 
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.text.input.TextFieldValue
-
 actual interface PlatformTextInputSession {
     actual suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing
-    @ExperimentalComposeUiApi
-    fun updateSelectionState(newState: TextFieldValue) = Unit
 }

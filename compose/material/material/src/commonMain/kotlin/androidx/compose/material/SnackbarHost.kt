@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.util.fastFilterNotNull
 import androidx.compose.ui.util.fastForEach
@@ -142,7 +143,6 @@ class SnackbarHostState {
  * of the [SnackbarHost] to the [Scaffold]:
  *
  * @sample androidx.compose.material.samples.ScaffoldWithCustomSnackbar
- *
  * @param hostState state of this component to read and show [Snackbar]s accordingly
  * @param modifier optional modifier for this component
  * @param snackbar the instance of the [Snackbar] to be shown at the appropriate time with
@@ -245,6 +245,7 @@ private fun FadeInFadeOutWithScale(
     content: @Composable (SnackbarData) -> Unit
 ) {
     val state = remember { FadeInFadeOutState<SnackbarData?>() }
+    val a11yPaneTitle = getString(Strings.SnackbarPaneTitle)
     if (current != state.current) {
         state.current = current
         val keys = state.items.fastMap { it.key }.toMutableList()
@@ -297,7 +298,10 @@ private fun FadeInFadeOutWithScale(
                             alpha = opacity.value
                         )
                         .semantics {
-                            liveRegion = LiveRegionMode.Polite
+                            if (isVisible) {
+                                liveRegion = LiveRegionMode.Polite
+                            }
+                            paneTitle = a11yPaneTitle
                             dismiss {
                                 key.dismiss()
                                 true

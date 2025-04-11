@@ -14,9 +14,7 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
     private val composeProperties by lazy {
         ComposeProperties(project)
     }
-    private val isArtifactRedirectingPublication: Boolean by lazy {
-        composeProperties.isArtifactRedirecting
-    }
+
     private val targetPlatforms: Set<ComposePlatforms> by lazy {
         composeProperties.targetPlatforms
     }
@@ -35,30 +33,19 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
         }
     }
 
-    // android is always published in ArtifactRedirecting mode (published by androidx team, not jb),
-    // therefore add it unconditionally ArtifactRedirecting set
-    private val defaultArtifactRedirectingTargetNames = setOf("android")
-
     fun publishMultiplatform(component: ComposeComponent) {
-        val artifactRedirectingTargetNames = (project.rootProject.findProject(component.path)!!
-            .findProperty("artifactRedirecting.publication.targetNames").let {
-                (it as? String)?.split(",") ?: emptyList()
-            }.toSet() + defaultArtifactRedirectingTargetNames).toMutableSet()
+        val project = project.rootProject.findProject(component.path) ?:
+            throw IllegalArgumentException("Cannot find project ${component.path}")
 
-
-        if (component.neverRedirect) {
-            artifactRedirectingTargetNames.clear()
-        }
-
-        val useArtifactRedirectingPublication = !component.neverRedirect &&
+        val useArtifactRedirectionPublication =
             component.supportedPlatforms.any {
-                it.matchesAnyIgnoringCase(artifactRedirectingTargetNames)
+                project.hasRedirection(it)
             }
 
-        // To make ArtifactRedirecting publishing work properly with kotlin >= 1.9.0,
+        // To make ArtifactRedirection publishing work properly with kotlin >= 1.9.0,
         // we use decorated `KotlinMultiplatform` publication named - 'KotlinMultiplatformDecorated'.
         // see AndroidXComposeMultiplatformExtensionImpl.publishAndroidxReference for details.
-        if (useArtifactRedirectingPublication) {
+        if (useArtifactRedirectionPublication) {
             val kotlinCommonPublicationName = "${ComposePlatforms.KotlinMultiplatform.name}Decorated"
             dependsOnComposeTask("${component.path}:publish${kotlinCommonPublicationName}PublicationTo$repository")
         } else {
@@ -77,7 +64,7 @@ abstract class AbstractComposePublishingTask : DefaultTask() {
                 else -> platform
             }
             if (platform !in targetPlatforms && fixedPlatform !in targetPlatforms) continue
-            if (platform.matchesAnyIgnoringCase(artifactRedirectingTargetNames)) continue
+            if (project.hasRedirection(platform)) continue
 
             dependsOnComposeTask("${component.path}:publish${platform.name}PublicationTo$repository")
         }

@@ -22,18 +22,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.animation.withAnimationProgress
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.PlatformInsets
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toOffset
+import androidx.compose.ui.unit.toSize
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.nanoseconds
 
 @Composable
 internal fun OffsetToFocusedRect(
@@ -54,9 +56,8 @@ internal fun OffsetToFocusedRect(
         if (animationDuration.isPositive()) {
             if (startOffset == density.adjustedToFocusedRectOffset(
                     insets = insets,
-                    focusedRect = getFocusedRect(),
-                    size = size,
-                    currentOffset = currentOffset
+                    focusedRect = getFocusedRect()?.translate(-currentOffset.toOffset()),
+                    size = size
                 )
             ) {
                 offsetProgress = 1f
@@ -76,9 +77,8 @@ internal fun OffsetToFocusedRect(
         measurePolicy = { measurables, constraints ->
             val endOffset = density.adjustedToFocusedRectOffset(
                 insets = insets,
-                focusedRect = getFocusedRect(),
-                size = size,
-                currentOffset = currentOffset
+                focusedRect = getFocusedRect()?.translate(-currentOffset.toOffset()),
+                size = size
             )
 
             // Intentionally update state within composition to trigger second measure and
@@ -102,8 +102,7 @@ internal fun OffsetToFocusedRect(
 internal fun Density.adjustedToFocusedRectOffset(
     insets: PlatformInsets,
     focusedRect: Rect?,
-    size: IntSize?,
-    currentOffset: IntOffset,
+    size: IntSize?
 ): IntOffset {
     focusedRect ?: return IntOffset.Zero
     size ?: return IntOffset.Zero
@@ -111,22 +110,31 @@ internal fun Density.adjustedToFocusedRectOffset(
         return IntOffset.Zero
     }
 
-    return IntOffset(
-        x = directionalFocusOffset(
-            contentSize = size.width.toFloat(),
-            contentInsetStart = insets.left.toPx(),
-            contentInsetEnd = insets.right.toPx(),
-            focusStart = focusedRect.left - currentOffset.x,
-            focusEnd = focusedRect.right - currentOffset.x
-        ),
-        y = directionalFocusOffset(
-            contentSize = size.height.toFloat(),
-            contentInsetStart = insets.top.toPx(),
-            contentInsetEnd = insets.bottom.toPx(),
-            focusStart = focusedRect.top - currentOffset.y,
-            focusEnd = focusedRect.bottom - currentOffset.y
+    val visibleAfterOffset = Rect(offset = Offset.Zero, size = size.toSize())
+        .intersect(focusedRect)
+        .isEmpty
+        .not()
+
+    return if (visibleAfterOffset) {
+        IntOffset(
+            x = directionalFocusOffset(
+                contentSize = size.width.toFloat(),
+                contentInsetStart = insets.left.toPx(),
+                contentInsetEnd = insets.right.toPx(),
+                focusStart = focusedRect.left,
+                focusEnd = focusedRect.right
+            ),
+            y = directionalFocusOffset(
+                contentSize = size.height.toFloat(),
+                contentInsetStart = insets.top.toPx(),
+                contentInsetEnd = insets.bottom.toPx(),
+                focusStart = focusedRect.top,
+                focusEnd = focusedRect.bottom,
+            )
         )
-    )
+    } else {
+        IntOffset.Zero
+    }
 }
 
 private fun directionalFocusOffset(
@@ -145,30 +153,5 @@ private fun directionalFocusOffset(
         max(0f, min(hiddenFromPart, -hiddenToPart)).roundToInt()
     } else {
         min(0f, max(hiddenFromPart, -hiddenToPart)).roundToInt()
-    }
-}
-
-private suspend fun withAnimationProgress(duration: Duration, update: (Float) -> Unit) {
-    fun easeInOutProgress(progress: Float) = if (progress < 0.5) {
-        2 * progress * progress
-    } else {
-        (-2 * progress * progress) + (4 * progress) - 1
-    }
-
-    update(0f)
-
-    var firstFrameTime = 0L
-    var progressDuration = Duration.ZERO
-    while (progressDuration < duration) {
-        withFrameNanos { frameTime ->
-            if (firstFrameTime == 0L) {
-                firstFrameTime = frameTime
-            }
-            progressDuration = (frameTime - firstFrameTime).nanoseconds
-            val progress = easeInOutProgress(
-                min(1.0, progressDuration / duration).toFloat()
-            )
-            update(progress)
-        }
     }
 }

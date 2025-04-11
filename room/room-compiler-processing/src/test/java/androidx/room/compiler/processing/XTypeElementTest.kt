@@ -33,6 +33,7 @@ import androidx.room.compiler.processing.util.getDeclaredField
 import androidx.room.compiler.processing.util.getDeclaredMethodByJvmName
 import androidx.room.compiler.processing.util.getField
 import androidx.room.compiler.processing.util.getMethodByJvmName
+import androidx.room.compiler.processing.util.kspProcessingEnv
 import androidx.room.compiler.processing.util.runJavaProcessorTest
 import androidx.room.compiler.processing.util.runKspTest
 import androidx.room.compiler.processing.util.runProcessorTest
@@ -53,7 +54,11 @@ import org.junit.runners.Parameterized
 class XTypeElementTest(
     private val isPreCompiled: Boolean,
 ) {
-    private fun runTest(sources: List<Source>, handler: (XTestInvocation) -> Unit) {
+    private fun runTest(
+        sources: List<Source>,
+        kotlincArgs: List<String> = emptyList(),
+        handler: (XTestInvocation) -> Unit
+    ) {
         if (isPreCompiled) {
             val compiled = compileFiles(sources)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
@@ -66,9 +71,14 @@ class XTypeElementTest(
             val newSources =
                 kotlinSources +
                     Source.java("PlaceholderJava", "public class " + "PlaceholderJava {}")
-            runProcessorTest(sources = newSources, handler = handler, classpath = compiled)
+            runProcessorTest(
+                sources = newSources,
+                handler = handler,
+                classpath = compiled,
+                kotlincArguments = kotlincArgs
+            )
         } else {
-            runProcessorTest(sources = sources, handler = handler)
+            runProcessorTest(sources = sources, handler = handler, kotlincArguments = kotlincArgs)
         }
     }
 
@@ -187,10 +197,12 @@ class XTypeElementTest(
             }
             invocation.processingEnv.requireTypeElement("foo.bar.AbstractClass").let {
                 assertThat(it.superClass!!.asTypeName())
-                    .isEqualTo(invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName())
+                    .isEqualTo(
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
+                    )
                 assertThat(it.type.superTypes.map(XType::asTypeName))
                     .containsExactly(
-                        invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName()
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
                     )
                 assertThat(it.isAbstract()).isTrue()
                 assertThat(it.isInterface()).isFalse()
@@ -203,7 +215,7 @@ class XTypeElementTest(
                 assertThat(it.superClass).isNull()
                 assertThat(it.type.superTypes.map(XType::asTypeName))
                     .containsExactly(
-                        invocation.processingEnv.requireType(JTypeName.OBJECT).asTypeName()
+                        invocation.processingEnv.requireType(XTypeName.ANY_OBJECT).asTypeName()
                     )
                 assertThat(it.isInterface()).isTrue()
                 assertThat(it.type.asTypeName())
@@ -1345,7 +1357,7 @@ class XTypeElementTest(
             """
                             .trimIndent()
                     )
-                ),
+                )
         ) { invocation ->
             val appSubject = invocation.processingEnv.requireTypeElement("test.Subject")
             val methodNames = appSubject.getAllMethods().map { it.name }.toList()
@@ -1353,7 +1365,11 @@ class XTypeElementTest(
             val objectMethodNames = invocation.objectMethodNames()
             if (invocation.isKsp) {
                 assertThat(methodNames - objectMethodNames).containsExactly("f1", "f2")
-                assertThat(methodJvmNames - objectMethodNames).containsExactly("notF1", "notF2")
+                if (invocation.kspProcessingEnv.isKsp2 && isPreCompiled) {
+                    assertThat(methodJvmNames - objectMethodNames).containsExactly("f1", "f2")
+                } else {
+                    assertThat(methodJvmNames - objectMethodNames).containsExactly("notF1", "notF2")
+                }
             } else {
                 assertThat(methodNames - objectMethodNames).containsExactly("f1", "f1", "f2")
                 assertThat(methodJvmNames - objectMethodNames)
@@ -1646,24 +1662,45 @@ class XTypeElementTest(
                     )
                     .inOrder()
             } else {
-                assertThat(defaultArgsConstructors)
-                    .containsExactly(
-                        "DefaultArgs(int,double,long)",
-                        "DefaultArgs(double)",
-                        "DefaultArgs(int,double)"
-                    )
-                    .inOrder()
+                if (invocation.isKsp) {
+                    assertThat(defaultArgsConstructors)
+                        .containsExactly(
+                            "DefaultArgs(int,double,long)",
+                            "DefaultArgs(double)",
+                            "DefaultArgs(int,double)",
+                        )
+                        .inOrder()
+                } else {
+                    assertThat(defaultArgsConstructors)
+                        .containsExactly(
+                            "DefaultArgs(double)",
+                            "DefaultArgs(int,double)",
+                            "DefaultArgs(int,double,long)",
+                        )
+                        .inOrder()
+                }
                 assertThat(noDefaultArgsConstructors)
                     .containsExactly("NoDefaultArgs(int,double,long)")
                     .inOrder()
-                assertThat(allDefaultArgsConstructors)
-                    .containsExactly(
-                        "AllDefaultArgs(int,double,long)",
-                        "AllDefaultArgs()",
-                        "AllDefaultArgs(int)",
-                        "AllDefaultArgs(int,double)"
-                    )
-                    .inOrder()
+                if (invocation.isKsp) {
+                    assertThat(allDefaultArgsConstructors)
+                        .containsExactly(
+                            "AllDefaultArgs(int,double,long)",
+                            "AllDefaultArgs()",
+                            "AllDefaultArgs(int)",
+                            "AllDefaultArgs(int,double)",
+                        )
+                        .inOrder()
+                } else {
+                    assertThat(allDefaultArgsConstructors)
+                        .containsExactly(
+                            "AllDefaultArgs()",
+                            "AllDefaultArgs(int)",
+                            "AllDefaultArgs(int,double)",
+                            "AllDefaultArgs(int,double,long)",
+                        )
+                        .inOrder()
+                }
             }
 
             val subjects = listOf("DefaultArgs", "NoDefaultArgs", "AllDefaultArgs")

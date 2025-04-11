@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.foundation.layout
 
 import androidx.collection.IntIntPair
@@ -54,6 +56,7 @@ import androidx.compose.ui.unit.dp
  * - [expandOrCollapseIndicator]: Extends the [expandIndicator] functionality by adding a 'Collapse'
  *   option. After expanding the content, users can choose to collapse it back to the summary view.
  */
+@Deprecated("FlowLayout overflow is no longer maintained")
 @ExperimentalLayoutApi
 class FlowRowOverflow
 private constructor(
@@ -93,7 +96,6 @@ private constructor(
          * other composable element that indicates the presence of additional items.
          *
          * @sample androidx.compose.foundation.layout.samples.SimpleFlowRowMaxLinesWithSeeMore
-         *
          * @param content composable that visually indicates more items can be loaded.
          */
         @ExperimentalLayoutApi
@@ -120,7 +122,6 @@ private constructor(
          * the [expandIndicator] or the [collapseIndicator] is rendered.
          *
          * @sample androidx.compose.foundation.layout.samples.SimpleFlowRowMaxLinesDynamicSeeMore
-         *
          * @param minRowsToShowCollapse Specifies the minimum number of rows that should be visible
          *   before showing the collapse option. This parameter is useful when the number of rows is
          *   too small to be reduced further.
@@ -190,6 +191,7 @@ private constructor(
  * - [expandOrCollapseIndicator]: Extends the [expandIndicator] functionality by adding a 'Collapse'
  *   option. After expanding the content, users can choose to collapse it back to the summary view.
  */
+@Deprecated("FlowLayout overflow is no longer maintained")
 @ExperimentalLayoutApi
 class FlowColumnOverflow
 private constructor(
@@ -206,6 +208,8 @@ private constructor(
         seeMoreGetter,
         collapseGetter
     ) {
+    @Deprecated("FlowLayout overflow is no longer maintained")
+    @ExperimentalLayoutApi
     companion object {
         /** Display all content, even if there is not enough space in the specified bounds. */
         @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
@@ -228,7 +232,6 @@ private constructor(
          * other composable element that indicates the presence of additional items.
          *
          * @sample androidx.compose.foundation.layout.samples.SimpleFlowColumnMaxLinesWithSeeMore
-         *
          * @param content composable that visually indicates more items can be loaded.
          */
         @ExperimentalLayoutApi
@@ -257,7 +260,6 @@ private constructor(
          * the [expandIndicator] or the [collapseIndicator] is rendered.
          *
          * @sample androidx.compose.foundation.layout.samples.SimpleFlowColumnMaxLinesDynamicSeeMore
-         *
          * @param minColumnsToShowCollapse Specifies the minimum number of columns that should be
          *   visible before showing the collapse option. This parameter is useful when the number of
          *   columns is too small to be reduced further.
@@ -327,6 +329,7 @@ private constructor(
  * - [expandOrCollapseIndicator]: Extends the [expandIndicator] functionality by adding a 'Collapse'
  *   option. After expanding the content, users can choose to collapse it back to the summary view.
  */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @ExperimentalLayoutApi
 class ContextualFlowRowOverflow
 private constructor(
@@ -344,6 +347,8 @@ private constructor(
         collapseGetter
     ) {
 
+    @Deprecated("FlowLayout overflow is no longer maintained")
+    @ExperimentalLayoutApi
     companion object {
         /** Display all content, even if there is not enough space in the specified bounds. */
         @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
@@ -397,7 +402,6 @@ private constructor(
          * the [expandIndicator] or the [collapseIndicator] is rendered.
          *
          * @sample androidx.compose.foundation.layout.samples.ContextualFlowRowMaxLineDynamicSeeMore
-         *
          * @param minRowsToShowCollapse Specifies the minimum number of rows that should be visible
          *   before showing the collapse option. This parameter is useful when the number of rows is
          *   too small to be reduced further.
@@ -467,6 +471,7 @@ private constructor(
  * - [expandOrCollapseIndicator]: Extends the [expandIndicator] functionality by adding a 'Collapse'
  *   option. After expanding the content, users can choose to collapse it back to the summary view.
  */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @ExperimentalLayoutApi
 class ContextualFlowColumnOverflow
 private constructor(
@@ -484,6 +489,8 @@ private constructor(
         collapseGetter
     ) {
 
+    @Deprecated("ContextualFlowLayouts are no longer maintained")
+    @ExperimentalLayoutApi
     companion object {
         /** Display all content, even if there is not enough space in the specified bounds. */
         @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
@@ -537,7 +544,6 @@ private constructor(
          * the [expandIndicator] or the [collapseIndicator] is rendered.
          *
          * @sample androidx.compose.foundation.layout.samples.ContextualFlowColMaxLineDynamicSeeMore
-         *
          * @param minColumnsToShowCollapse Specifies the minimum number of columns that should be
          *   visible before showing the collapse option. This parameter is useful when the number of
          *   columns is too small to be reduced further.
@@ -602,6 +608,7 @@ private constructor(
  * @see [ContextualFlowRowOverflow]
  * @see [ContextualFlowColumnOverflow]
  */
+@Deprecated("FlowLayout overflow is no longer maintained")
 @ExperimentalLayoutApi
 sealed class FlowLayoutOverflow(
     internal val type: OverflowType,
@@ -638,6 +645,33 @@ sealed class FlowLayoutOverflow(
     }
 }
 
+internal fun lazyInt(
+    errorMessage: String = "Lazy item is not yet initialized",
+    initializer: () -> Int
+): Lazy<Int> = LazyImpl(initializer, errorMessage)
+
+private class LazyImpl(val initializer: () -> Int, val errorMessage: String) : Lazy<Int> {
+    private var _value: Int = UNINITIALIZED_VALUE
+    override val value: Int
+        get() {
+            if (_value == UNINITIALIZED_VALUE) {
+                _value = initializer()
+            }
+            if (_value == UNINITIALIZED_VALUE) {
+                throw IllegalStateException(errorMessage)
+            }
+            return _value
+        }
+
+    override fun isInitialized(): Boolean = _value != UNINITIALIZED_VALUE
+
+    override fun toString(): String = if (isInitialized()) value.toString() else errorMessage
+
+    companion object {
+        internal const val UNINITIALIZED_VALUE: Int = -1
+    }
+}
+
 /** Overflow State for managing overflow state within FlowLayouts. */
 @OptIn(ExperimentalLayoutApi::class)
 internal data class FlowLayoutOverflowState
@@ -649,17 +683,18 @@ internal constructor(
     internal val shownItemCount: Int
         get() {
             if (itemShown == -1) {
-                throw IllegalStateException(
-                    "Accessing shownItemCount before it is set. " +
-                        "Are you calling this in the Composition phase, " +
-                        "rather than in the draw phase? " +
-                        "Consider our samples on how to use it during the draw phase " +
-                        "or consider using ContextualFlowRow/ContextualFlowColumn " +
-                        "which initializes this method in the composition phase."
-                )
+                throw IllegalStateException(shownItemLazyErrorMessage)
             }
             return itemShown
         }
+
+    internal val shownItemLazyErrorMessage =
+        "Accessing shownItemCount before it is set. " +
+            "Are you calling this in the Composition phase, " +
+            "rather than in the draw phase? " +
+            "Consider our samples on how to use it during the draw phase " +
+            "or consider using ContextualFlowRow/ContextualFlowColumn " +
+            "which initializes this method in the composition phase."
 
     internal var itemShown: Int = -1
     internal var itemCount = 0

@@ -16,6 +16,7 @@
 
 package androidx.wear.compose.material3
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.TextStyle
@@ -61,9 +62,10 @@ import androidx.wear.compose.foundation.sizeIn
  * Additionally, for [color], if [color] is not set, and [style] does not have a color, then
  * [LocalContentColor] will be used.
  *
- * For samples explicitly specifying style see:
+ * For samples using curved text in a [CurvedLayout] see:
  *
- * For examples using CompositionLocal to specify the style, see:
+ * @sample androidx.wear.compose.material3.samples.CurvedTextTop
+ * @sample androidx.wear.compose.material3.samples.CurvedTextBottom
  *
  * For more information, see the
  * [Curved Text](https://developer.android.com/training/wearables/compose/curved-text) guide.
@@ -86,9 +88,6 @@ import androidx.wear.compose.foundation.sizeIn
  *   needs to be reversed in a Rtl layout. If not specified, it will be inherited from the enclosing
  *   [curvedRow] or [CurvedLayout] See [CurvedDirection.Angular].
  * @param overflow How visual overflow should be handled.
- *
- * TODO(b/283777480): Add CurvedText samples
- * TODO(b/283777480): Add CurvedText samples
  */
 fun CurvedScope.curvedText(
     text: String,
@@ -111,7 +110,7 @@ fun CurvedScope.curvedText(
         angularDirection = angularDirection,
         overflow = overflow
     ) {
-        val baseStyle = style ?: CurvedTextStyle(LocalTextStyle.current)
+        val baseStyle = style ?: CurvedTextStyle(MaterialTheme.typography.arcMedium)
         val textColor =
             color.takeOrElse { baseStyle.color.takeOrElse { LocalContentColor.current } }
         baseStyle.merge(
@@ -143,4 +142,10 @@ object CurvedTextDefaults {
      * scrollable content.
      */
     const val StaticContentMaxSweepAngle: Float = 120f
+
+    /**
+     * The recommended background color to use when displaying curved text so it is visible on top
+     * of other content.
+     */
+    @Composable fun backgroundColor() = MaterialTheme.colorScheme.background.copy(alpha = 0.85f)
 }

@@ -54,9 +54,9 @@ import androidx.room.solver.binderprovider.InstantQueryResultBinderProvider
 import androidx.room.solver.binderprovider.ListenableFuturePagingSourceQueryResultBinderProvider
 import androidx.room.solver.binderprovider.LiveDataQueryResultBinderProvider
 import androidx.room.solver.binderprovider.PagingSourceQueryResultBinderProvider
-import androidx.room.solver.binderprovider.RxCallableQueryResultBinderProvider
 import androidx.room.solver.binderprovider.RxJava2PagingSourceQueryResultBinderProvider
 import androidx.room.solver.binderprovider.RxJava3PagingSourceQueryResultBinderProvider
+import androidx.room.solver.binderprovider.RxLambdaQueryResultBinderProvider
 import androidx.room.solver.binderprovider.RxQueryResultBinderProvider
 import androidx.room.solver.prepared.binder.PreparedQueryResultBinder
 import androidx.room.solver.prepared.binderprovider.GuavaListenableFuturePreparedQueryResultBinderProvider
@@ -94,15 +94,12 @@ import androidx.room.solver.shortcut.binder.DeleteOrUpdateMethodBinder
 import androidx.room.solver.shortcut.binder.InsertOrUpsertMethodBinder
 import androidx.room.solver.shortcut.binderprovider.DeleteOrUpdateMethodBinderProvider
 import androidx.room.solver.shortcut.binderprovider.GuavaListenableFutureDeleteOrUpdateMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.GuavaListenableFutureInsertMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.GuavaListenableFutureUpsertMethodBinderProvider
+import androidx.room.solver.shortcut.binderprovider.GuavaListenableFutureInsertOrUpsertMethodBinderProvider
 import androidx.room.solver.shortcut.binderprovider.InsertOrUpsertMethodBinderProvider
 import androidx.room.solver.shortcut.binderprovider.InstantDeleteOrUpdateMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.InstantInsertMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.InstantUpsertMethodBinderProvider
+import androidx.room.solver.shortcut.binderprovider.InstantInsertOrUpsertMethodBinderProvider
 import androidx.room.solver.shortcut.binderprovider.RxCallableDeleteOrUpdateMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.RxCallableInsertMethodBinderProvider
-import androidx.room.solver.shortcut.binderprovider.RxCallableUpsertMethodBinderProvider
+import androidx.room.solver.shortcut.binderprovider.RxCallableInsertOrUpsertMethodBinderProvider
 import androidx.room.solver.shortcut.result.DeleteOrUpdateMethodAdapter
 import androidx.room.solver.shortcut.result.InsertOrUpsertMethodAdapter
 import androidx.room.solver.types.BoxedBooleanToBoxedIntConverter
@@ -211,7 +208,7 @@ private constructor(
             add(LiveDataQueryResultBinderProvider(context))
             add(GuavaListenableFutureQueryResultBinderProvider(context))
             addAll(RxQueryResultBinderProvider.getAll(context))
-            addAll(RxCallableQueryResultBinderProvider.getAll(context))
+            addAll(RxLambdaQueryResultBinderProvider.getAll(context))
             add(DataSourceQueryResultBinderProvider(context))
             add(DataSourceFactoryQueryResultBinderProvider(context))
             add(RxJava2PagingSourceQueryResultBinderProvider(context))
@@ -229,11 +226,11 @@ private constructor(
             add(InstantPreparedQueryResultBinderProvider(context))
         }
 
-    private val insertBinderProviders: List<InsertOrUpsertMethodBinderProvider> =
+    private val insertOrUpsertBinderProviders: List<InsertOrUpsertMethodBinderProvider> =
         mutableListOf<InsertOrUpsertMethodBinderProvider>().apply {
-            addAll(RxCallableInsertMethodBinderProvider.getAll(context))
-            add(GuavaListenableFutureInsertMethodBinderProvider(context))
-            add(InstantInsertMethodBinderProvider(context))
+            addAll(RxCallableInsertOrUpsertMethodBinderProvider.getAll(context))
+            add(GuavaListenableFutureInsertOrUpsertMethodBinderProvider(context))
+            add(InstantInsertOrUpsertMethodBinderProvider(context))
         }
 
     private val deleteOrUpdateBinderProvider: List<DeleteOrUpdateMethodBinderProvider> =
@@ -241,13 +238,6 @@ private constructor(
             addAll(RxCallableDeleteOrUpdateMethodBinderProvider.getAll(context))
             add(GuavaListenableFutureDeleteOrUpdateMethodBinderProvider(context))
             add(InstantDeleteOrUpdateMethodBinderProvider(context))
-        }
-
-    private val upsertBinderProviders: List<InsertOrUpsertMethodBinderProvider> =
-        mutableListOf<InsertOrUpsertMethodBinderProvider>().apply {
-            addAll(RxCallableUpsertMethodBinderProvider.getAll(context))
-            add(GuavaListenableFutureUpsertMethodBinderProvider(context))
-            add(InstantUpsertMethodBinderProvider(context))
         }
 
     /** Searches 1 way to bind a value into a statement. */
@@ -425,14 +415,18 @@ private constructor(
         typeMirror: XType,
         params: List<ShortcutQueryParameter>
     ): InsertOrUpsertMethodBinder {
-        return insertBinderProviders.first { it.matches(typeMirror) }.provide(typeMirror, params)
+        return insertOrUpsertBinderProviders
+            .first { it.matches(typeMirror) }
+            .provide(typeMirror, params, false)
     }
 
     fun findUpsertMethodBinder(
         typeMirror: XType,
         params: List<ShortcutQueryParameter>
     ): InsertOrUpsertMethodBinder {
-        return upsertBinderProviders.first { it.matches(typeMirror) }.provide(typeMirror, params)
+        return insertOrUpsertBinderProviders
+            .first { it.matches(typeMirror) }
+            .provide(typeMirror, params, true)
     }
 
     fun findQueryResultBinder(
@@ -801,12 +795,13 @@ private constructor(
         mapInfo: MapInfo?,
         mapValueTypeArg: XType
     ): MapValueResultAdapter? {
-        val collectionTypeRaw = context.COMMON_TYPES.READONLY_COLLECTION.rawType
+        val collectionTypeRaw =
+            context.processingEnv.requireType(CommonTypeNames.COLLECTION).rawType
         if (collectionTypeRaw.isAssignableFrom(mapValueTypeArg.rawType)) {
             // The Map's value type argument is assignable to a Collection, we need to make
             // sure it is either a list or a set.
-            val listTypeRaw = context.COMMON_TYPES.LIST.rawType
-            val setTypeRaw = context.COMMON_TYPES.SET.rawType
+            val listTypeRaw = context.processingEnv.requireType(CommonTypeNames.LIST).rawType
+            val setTypeRaw = context.processingEnv.requireType(CommonTypeNames.SET).rawType
             val collectionValueType =
                 when {
                     mapValueTypeArg.rawType.isAssignableFrom(listTypeRaw) ->
@@ -946,7 +941,9 @@ private constructor(
                 // we don't know what query returns. Check for entity.
                 if (typeElement.isEntityElement()) {
                     return EntityRowAdapter(
-                        EntityProcessor(context = context, element = typeElement).process()
+                        entity =
+                            EntityProcessor(context = context, element = typeElement).process(),
+                        out = typeMirror
                     )
                 }
             }
@@ -1025,7 +1022,8 @@ private constructor(
         typeMirror: XType,
         isMultipleParameter: Boolean
     ): QueryParameterAdapter? {
-        if (context.COMMON_TYPES.READONLY_COLLECTION.rawType.isAssignableFrom(typeMirror)) {
+        val collectionType = context.processingEnv.requireType(CommonTypeNames.COLLECTION)
+        if (collectionType.rawType.isAssignableFrom(typeMirror)) {
             val typeArg = typeMirror.typeArguments.first().extendsBoundOrSelf()
             // An adapter for the collection type arg wrapped in the built-in collection adapter.
             val wrappedCollectionAdapter =

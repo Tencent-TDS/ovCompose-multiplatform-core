@@ -16,10 +16,10 @@
 
 package androidx.navigation.serialization
 
-import androidx.core.bundle.Bundle
 import androidx.kruth.assertThat
 import androidx.navigation.CollectionNavType
 import androidx.navigation.NavType
+import androidx.savedstate.SavedState
 import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 import kotlin.test.Test
@@ -211,9 +211,9 @@ class RoutePatternTest {
                 override val name: String
                     get() = "CustomType"
 
-                override fun put(bundle: Bundle, key: String, value: CustomType) {}
+                override fun put(bundle: SavedState, key: String, value: CustomType) {}
 
-                override fun get(bundle: Bundle, key: String): CustomType? = null
+                override fun get(bundle: SavedState, key: String): CustomType? = null
 
                 override fun parseValue(value: String): CustomType = CustomType()
 
@@ -237,9 +237,9 @@ class RoutePatternTest {
                 override val name: String
                     get() = "CustomType"
 
-                override fun put(bundle: Bundle, key: String, value: CustomType) {}
+                override fun put(bundle: SavedState, key: String, value: CustomType) {}
 
-                override fun get(bundle: Bundle, key: String): CustomType? = null
+                override fun get(bundle: SavedState, key: String): CustomType? = null
 
                 override fun parseValue(value: String): CustomType = CustomType(NestedCustomType())
 
@@ -261,9 +261,9 @@ class RoutePatternTest {
                 override val name: String
                     get() = "CustomType"
 
-                override fun put(bundle: Bundle, key: String, value: CustomSerializerClass) {}
+                override fun put(bundle: SavedState, key: String, value: CustomSerializerClass) {}
 
-                override fun get(bundle: Bundle, key: String): CustomSerializerClass? = null
+                override fun get(bundle: SavedState, key: String): CustomSerializerClass? = null
 
                 override fun parseValue(value: String): CustomSerializerClass =
                     CustomSerializerClass(1L)
@@ -288,9 +288,9 @@ class RoutePatternTest {
                 override val name: String
                     get() = "CustomType"
 
-                override fun put(bundle: Bundle, key: String, value: CustomType<TypeParam>) {}
+                override fun put(bundle: SavedState, key: String, value: CustomType<TypeParam>) {}
 
-                override fun get(bundle: Bundle, key: String): CustomType<TypeParam>? = null
+                override fun get(bundle: SavedState, key: String): CustomType<TypeParam>? = null
 
                 override fun parseValue(value: String): CustomType<TypeParam> = CustomType()
 
@@ -316,13 +316,13 @@ class RoutePatternTest {
                     get() = "CustomType"
 
                 override fun put(
-                    bundle: Bundle,
+                    bundle: SavedState,
                     key: String,
                     value: CustomType<TypeParam<TypeParamNested>>
                 ) {}
 
                 override fun get(
-                    bundle: Bundle,
+                    bundle: SavedState,
                     key: String
                 ): CustomType<TypeParam<TypeParamNested>>? = null
 
@@ -375,9 +375,9 @@ class RoutePatternTest {
                 override val name: String
                     get() = "CustomType"
 
-                override fun put(bundle: Bundle, key: String, value: CustomType) {}
+                override fun put(bundle: SavedState, key: String, value: CustomType) {}
 
-                override fun get(bundle: Bundle, key: String): CustomType? = null
+                override fun get(bundle: SavedState, key: String): CustomType? = null
 
                 override fun parseValue(value: String): CustomType = CustomType()
 
@@ -468,13 +468,13 @@ class RoutePatternTest {
 
         val type =
             object : CollectionNavType<List<CustomType>>(false) {
-                override fun put(bundle: Bundle, key: String, value: List<CustomType>) {}
+                override fun put(bundle: SavedState, key: String, value: List<CustomType>) {}
 
                 override fun serializeAsValues(value: List<CustomType>): List<String> = emptyList()
 
                 override fun emptyCollection(): List<CustomType> = emptyList()
 
-                override fun get(bundle: Bundle, key: String): List<CustomType>? = null
+                override fun get(bundle: SavedState, key: String): List<CustomType>? = null
 
                 override fun parseValue(value: String): List<CustomType> = listOf()
 
@@ -533,7 +533,8 @@ internal sealed class SealedClass {
 @Serializable(with = CustomSerializer::class)
 internal open class CustomSerializerClass(val longArg: Long)
 
-internal class CustomSerializer : KSerializer<CustomSerializerClass> {
+//the object class is required here because of https://youtrack.jetbrains.com/issue/KT-71530
+internal object CustomSerializer : KSerializer<CustomSerializerClass> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("Date", PrimitiveKind.LONG)
 

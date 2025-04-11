@@ -16,6 +16,8 @@
 
 package androidx.compose.ui.test
 
+import android.content.Context
+import android.hardware.input.InputManager
 import android.view.InputEvent
 import android.view.KeyCharacterMap
 import android.view.KeyEvent
@@ -42,6 +44,8 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.test.platform.makeSynchronizedObject
+import androidx.compose.ui.test.platform.synchronized
 import androidx.core.view.InputDeviceCompat.SOURCE_MOUSE
 import androidx.core.view.InputDeviceCompat.SOURCE_ROTARY_ENCODER
 import androidx.core.view.InputDeviceCompat.SOURCE_TOUCHSCREEN
@@ -88,7 +92,7 @@ internal class AndroidInputDispatcher(
     private val sendEvent: (InputEvent) -> Unit
 ) : InputDispatcher(testContext, root) {
 
-    private val batchLock = Any()
+    private val batchLock = makeSynchronizedObject()
     private var batchedEvents = mutableListOf<InputEvent>()
     private var disposed = false
     private var currentClockTime = currentTime
@@ -181,7 +185,6 @@ internal class AndroidInputDispatcher(
         enqueueMouseEvent(ACTION_CANCEL)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     override fun MouseInputState.enqueueScroll(delta: Float, scrollWheel: ScrollWheel) {
         enqueueMouseEvent(
             ACTION_SCROLL,
@@ -478,7 +481,7 @@ internal class AndroidInputDispatcher(
                     /* buttonState = */ 0,
                     /* xPrecision = */ 1f,
                     /* yPrecision = */ 1f,
-                    /* deviceId = */ 0,
+                    /* deviceId = */ findInputDevice(root.view.context, SOURCE_ROTARY_ENCODER),
                     /* edgeFlags = */ 0,
                     /* source = */ SOURCE_ROTARY_ENCODER,
                     /* flags = */ 0
@@ -543,7 +546,6 @@ internal class AndroidInputDispatcher(
 
     override fun flush() {
         // Must inject on the main thread, because it might modify View properties
-        @OptIn(InternalTestApi::class)
         testContext.testOwner.runOnUiThread {
             val events =
                 synchronized(batchLock) {
@@ -564,7 +566,6 @@ internal class AndroidInputDispatcher(
         }
     }
 
-    @OptIn(InternalTestApi::class)
     private fun advanceClockTime(millis: Long) {
         // Don't bother advancing the clock if there's nothing to advance
         if (millis > 0) {
@@ -599,5 +600,20 @@ internal class AndroidInputDispatcher(
      */
     private fun recycleEventIfPossible(event: InputEvent) {
         (event as? MotionEvent)?.recycle()
+    }
+
+    private fun findInputDevice(context: Context, source: Int): Int {
+        with(context.getSystemService(Context.INPUT_SERVICE) as InputManager) {
+            inputDeviceIds.forEach { deviceId ->
+                getInputDevice(deviceId)?.apply {
+                    motionRanges
+                        .find { it.source == source }
+                        ?.let {
+                            return deviceId
+                        }
+                }
+            }
+        }
+        return 0
     }
 }

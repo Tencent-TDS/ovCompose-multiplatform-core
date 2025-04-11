@@ -28,4 +28,5 @@ internal fun Translations.pa() = mapOf(
     Strings.DefaultErrorMessage to "ਅਵੈਧ ਇਨਪੁੱਟ",
     Strings.SliderRangeStart to "ਰੇਂਜ ਸ਼ੁਰੂ",
     Strings.SliderRangeEnd to "ਰੇਂਜ ਸਮਾਪਤ",
+    Strings.SnackbarPaneTitle to "ਅਲਰਟ",
 )

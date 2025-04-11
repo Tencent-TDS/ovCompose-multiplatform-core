@@ -23,7 +23,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.os.Build;
 import android.view.Surface;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
@@ -182,10 +181,8 @@ class Camera2CaptureRequestBuilder {
             }
         }
 
-        if (isRepeatingRequest) {
-            applyTemplateParamsOverrideWorkaround(builder, captureConfig.getTemplateType(),
-                    mTemplateParamsOverride);
-        }
+        applyTemplateParamsOverrideWorkaround(builder, captureConfig.getTemplateType(),
+                mTemplateParamsOverride);
 
         applyAeFpsRange(captureConfig, builder);
 
@@ -233,11 +230,14 @@ class Camera2CaptureRequestBuilder {
         if (device == null) {
             return null;
         }
+        Logger.d(TAG, "template type = " + captureConfig.getTemplateType());
         CaptureRequest.Builder builder = device.createCaptureRequest(
                 captureConfig.getTemplateType());
 
         applyTemplateParamsOverrideWorkaround(builder, captureConfig.getTemplateType(),
                 templateParamsOverride);
+
+        applyAeFpsRange(captureConfig, builder);
 
         applyImplementationOptionToCaptureBuilder(builder,
                 captureConfig.getImplementationOptions());
@@ -254,7 +254,6 @@ class Camera2CaptureRequestBuilder {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static CaptureRequest.Builder createReprocessCaptureRequest(
                 @NonNull CameraDevice cameraDevice,
                 @NonNull TotalCaptureResult totalCaptureResult)

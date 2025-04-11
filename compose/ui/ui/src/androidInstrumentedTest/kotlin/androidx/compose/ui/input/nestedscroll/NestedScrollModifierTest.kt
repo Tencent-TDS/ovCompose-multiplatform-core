@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -38,7 +39,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
@@ -1180,7 +1180,6 @@ class NestedScrollModifierTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @MediumTest
     @Test
     fun testPreScrollConsumption_verticalScrollMouse_postScrollAvailableIsZero() {
@@ -1251,7 +1250,6 @@ class NestedScrollModifierTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @MediumTest
     @Test
     fun testNoPreScrollConsumption_verticalScrollMouse_postScrollAvailableNotZero() {
@@ -1450,7 +1448,6 @@ class NestedScrollModifierTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @MediumTest
     @Test
     fun testFlingCallbacks_verticalScrollMouse_shouldNotTriggerCallbacks() {
@@ -1550,6 +1547,52 @@ class NestedScrollModifierTest {
         rule.runOnIdle {
             assertThat(preFlingCount).isGreaterThan(0)
             assertThat(postFlingCount).isGreaterThan(0)
+        }
+    }
+
+    @Test
+    fun modifierIsRemoved_shouldKeepInfoAboutPreviousParent() {
+        val innerDispatcher = NestedScrollDispatcher()
+        val outerDispatcher = NestedScrollDispatcher()
+        var keepAround by mutableStateOf(true)
+
+        rule.setContent {
+            Column(
+                modifier =
+                    Modifier.nestedScroll(
+                        dispatcher = outerDispatcher,
+                        connection = object : NestedScrollConnection {}
+                    )
+            ) {
+                Box(
+                    Modifier.size(400.dp)
+                        .then(
+                            if (keepAround)
+                                Modifier.nestedScroll(
+                                    dispatcher = innerDispatcher,
+                                    connection = object : NestedScrollConnection {}
+                                )
+                            else Modifier
+                        )
+                )
+            }
+        }
+
+        rule.runOnIdle {
+            assertThat(innerDispatcher.lastKnownParentNode).isNull()
+            assertThat(innerDispatcher.nestedScrollNode?.parentNestedScrollNode)
+                .isEqualTo(outerDispatcher.nestedScrollNode)
+        }
+
+        rule.runOnIdle {
+            keepAround = false // remove inner node
+        }
+
+        rule.runOnIdle {
+            // the inner node's parent is the outer node
+            assertThat(innerDispatcher.lastKnownParentNode)
+                .isEqualTo(outerDispatcher.nestedScrollNode)
+            assertThat(innerDispatcher.nestedScrollNode?.parentNestedScrollNode).isNull()
         }
     }
 }

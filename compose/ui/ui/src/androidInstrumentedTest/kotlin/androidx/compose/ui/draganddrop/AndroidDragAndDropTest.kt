@@ -19,7 +19,6 @@ package androidx.compose.ui.draganddrop
 import android.os.Parcel
 import android.view.DragEvent
 import android.view.ViewGroup
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
@@ -76,16 +75,24 @@ class DragAndDropNodeTest {
 
     private lateinit var density: Density
 
-    /**
+    /*
      * Sets up a grid of drop targets resembling the following for testing:
+     *    accepts                 accepts
+     * ┌───────────┐           ┌───────────┐
+     * │           │           │           │
+     * │           │           │           │
+     * │           │           │           │
+     * └───────────┘           └───────────┘
      *
-     * accepts accepts ┌───────────┐ ┌───────────┐ │ │ │ │ │ │ │ │ │ │ │ │ └───────────┘
-     * └───────────┘
+     *    accepts                 rejects
+     * ┌───────────┐  accepts  ┌───────────┐
+     * │  accepts  │  ┌─────┐  │  accepts  │
+     * │─────┐     │  │     │  │     ┌─────│
+     * │     │     │  └─────┘  │     │     │
+     * └─────┘─────┘           └─────└─────┘
      *
-     * accepts rejects ┌───────────┐ accepts ┌───────────┐ │ accepts │ ┌─────┐ │ accepts │ │─────┐ │
-     * │ │ │ ┌─────│ │ │ │ └─────┘ │ │ │ └─────┘─────┘ └─────└─────┘
-     *
-     * parent <------> child offset
+     * parent <------> child
+     *         offset
      */
     @Before
     fun setup() {
@@ -1037,7 +1044,6 @@ private class DropTargetModifierHolder(
     val exitOffsets = mutableListOf<Offset>()
     val endedOffsets = mutableListOf<Offset>()
 
-    @OptIn(ExperimentalFoundationApi::class)
     val modifier =
         Modifier.dragAndDropTarget(
             target =

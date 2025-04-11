@@ -20,6 +20,7 @@ import androidx.kruth.assertThat
 import androidx.kruth.assertWithMessage
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.asClassName
+import androidx.room.compiler.codegen.asPrimitiveTypeName
 import androidx.room.compiler.processing.testcode.JavaAnnotationWithDefaults
 import androidx.room.compiler.processing.testcode.JavaAnnotationWithEnum
 import androidx.room.compiler.processing.testcode.JavaAnnotationWithEnumArray
@@ -30,6 +31,7 @@ import androidx.room.compiler.processing.testcode.MainAnnotation
 import androidx.room.compiler.processing.testcode.OtherAnnotation
 import androidx.room.compiler.processing.testcode.RepeatableJavaAnnotation
 import androidx.room.compiler.processing.testcode.TestSuppressWarnings
+import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.compileFiles
@@ -38,7 +40,6 @@ import androidx.room.compiler.processing.util.getMethodByJvmName
 import androidx.room.compiler.processing.util.getParameter
 import androidx.room.compiler.processing.util.runProcessorTest
 import androidx.room.compiler.processing.util.runProcessorTestWithoutKsp
-import androidx.room.compiler.processing.util.typeName
 import com.google.common.truth.Truth
 import com.squareup.javapoet.ClassName
 import org.junit.Test
@@ -47,7 +48,11 @@ import org.junit.runners.Parameterized
 
 @RunWith(Parameterized::class)
 class XAnnotationBoxTest(private val preCompiled: Boolean) {
-    private fun runTest(sources: List<Source>, handler: (XTestInvocation) -> Unit) {
+    private fun runTest(
+        sources: List<Source>,
+        kotlincArgs: List<String> = emptyList(),
+        handler: (XTestInvocation) -> Unit
+    ) {
         if (preCompiled) {
             val compiled = compileFiles(sources)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
@@ -60,9 +65,14 @@ class XAnnotationBoxTest(private val preCompiled: Boolean) {
             val newSources =
                 kotlinSources +
                     Source.java("PlaceholderJava", "public class " + "PlaceholderJava {}")
-            runProcessorTest(sources = newSources, handler = handler, classpath = compiled)
+            runProcessorTest(
+                sources = newSources,
+                handler = handler,
+                classpath = compiled,
+                kotlincArguments = kotlincArgs
+            )
         } else {
-            runProcessorTest(sources = sources, handler = handler)
+            runProcessorTest(sources = sources, handler = handler, kotlincArguments = kotlincArgs)
         }
     }
 
@@ -218,7 +228,9 @@ class XAnnotationBoxTest(private val preCompiled: Boolean) {
                 assertThat(annotation.getAsTypeList("typeList").map { it.asTypeName() })
                     .containsExactly(String::class.asClassName(), XTypeName.PRIMITIVE_INT)
                 assertThat(annotation.getAsType("singleType"))
-                    .isEqualTo(invocation.processingEnv.requireType(Long::class.typeName()))
+                    .isEqualTo(
+                        invocation.processingEnv.requireType(Long::class.asPrimitiveTypeName())
+                    )
 
                 assertThat(annotation.value.intMethod).isEqualTo(3)
                 assertThat(annotation.value.doubleMethodWithDefault).isEqualTo(3.0)
@@ -418,7 +430,9 @@ class XAnnotationBoxTest(private val preCompiled: Boolean) {
             """
                     .trimIndent()
             )
-        runTest(sources = listOf(kotlinSrc, javaSrc)) { invocation ->
+        // https://github.com/google/ksp/issues/2077
+        runTest(sources = listOf(kotlinSrc, javaSrc), kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS) {
+            invocation ->
             listOf("KotlinClass", "JavaClass")
                 .map { invocation.processingEnv.requireTypeElement(it) }
                 .forEach { typeElement ->
@@ -629,7 +643,9 @@ class XAnnotationBoxTest(private val preCompiled: Boolean) {
             """
                     .trimIndent()
             )
-        runTest(sources = listOf(javaSrc, kotlinSrc)) { invocation ->
+        // https://github.com/google/ksp/issues/1883
+        runTest(sources = listOf(javaSrc, kotlinSrc), kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS) {
+            invocation ->
             listOf("JavaSubject", "KotlinSubject")
                 .map(invocation.processingEnv::requireTypeElement)
                 .forEach { subject ->

@@ -35,7 +35,7 @@ public actual open class TestNavigator actual constructor(private val hasTransit
         state.pop(current, false)
     }
 
-    override fun createDestination(): Destination {
+    actual override fun createDestination(): Destination {
         return Destination(this)
     }
 

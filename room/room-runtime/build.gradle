@@ -54,9 +54,6 @@ android {
             root = 'src/androidMain'
         }
     }
-    defaultConfig {
-        multiDexEnabled true
-    }
     buildFeatures {
         aidl = true
     }
@@ -67,11 +64,11 @@ android {
         }
     }
     namespace "androidx.room"
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidXMultiplatform {
-    enableBinaryCompatibilityValidator = true
-
     android()
     ios() {
         // Link to sqlite3 available in iOS
@@ -109,7 +106,8 @@ androidXMultiplatform {
                 api(libs.kotlinStdlib)
                 api(project(":room:room-common"))
                 api(project(":sqlite:sqlite"))
-                api("androidx.annotation:annotation:1.8.0")
+                api(project(":collection:collection"))
+                api(project(":annotation:annotation"))
                 api(libs.kotlinCoroutinesCore)
                 implementation(libs.atomicFu)
             }
@@ -144,7 +142,6 @@ androidXMultiplatform {
                 api(project(":sqlite:sqlite-framework"))
                 api(libs.kotlinCoroutinesAndroid)
                 implementation("androidx.arch.core:core-runtime:2.2.0")
-                compileOnly("androidx.collection:collection:1.2.0")
                 compileOnly("androidx.lifecycle:lifecycle-livedata-core:2.0.0")
                 compileOnly("androidx.paging:paging-common:2.0.0")
                 implementation("androidx.annotation:annotation-experimental:1.4.1")

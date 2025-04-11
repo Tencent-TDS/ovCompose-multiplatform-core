@@ -40,17 +40,11 @@ import androidx.compose.ui.unit.LayoutDirection
  * result.
  *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerTopLeftSample
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerScaleAndPivotSample
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerColorFilterSample
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRenderEffectSample
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerAlphaSample
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRotationX
- *
  * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRotationYWithCameraDistance
  */
 fun DrawScope.drawLayer(graphicsLayer: GraphicsLayer) {
@@ -238,12 +232,9 @@ expect class GraphicsLayer {
      * clipped to this geometry.
      *
      * @param path Path to be used as the Outline for the [GraphicsLayer]
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerOutlineSample
      */
     fun setPathOutline(path: Path)
-
-    // TODO Fix default values on Wasm
 
     /**
      * Configures a rounded rect outline for this [GraphicsLayer]. By default, [topLeft] is set to
@@ -255,7 +246,6 @@ expect class GraphicsLayer {
      * @param topLeft The top left of the rounded rect outline
      * @param size The size of the rounded rect outline
      * @param cornerRadius The corner radius of the rounded rect outline
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRoundRectOutline
      */
     fun setRoundRectOutline(
@@ -273,7 +263,6 @@ expect class GraphicsLayer {
      *
      * @param topLeft The top left of the rounded rect outline
      * @param size The size of the rounded rect outline
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerRectOutline
      */
     fun setRectOutline(topLeft: Offset = Offset.Zero, size: Size = Size.Unspecified)
@@ -360,11 +349,8 @@ expect class GraphicsLayer {
      * @param layoutDirection [LayoutDirection] of the layout being drawn in.
      * @param size [Size] of the [GraphicsLayer]
      * @param block lambda that is called to issue drawing commands on this [DrawScope]
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerTopLeftSample
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerBlendModeSample
-     *
      * @sample androidx.compose.ui.graphics.samples.GraphicsLayerTranslateSample
      */
     fun record(

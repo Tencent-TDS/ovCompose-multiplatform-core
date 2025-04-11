@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.dataStoreFile
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -640,6 +641,25 @@ class GlanceAppWidgetReceiverTest {
         } finally {
             fileDeletionObserver.stopWatching()
         }
+    }
+
+    @Test
+    fun layoutConfigurationCanBeDeleted() {
+        TestGlanceAppWidget.uiDefinition = { Text("something") }
+
+        mHostRule.startHost()
+
+        val appWidgetManager = GlanceAppWidgetManager(context)
+        val glanceId = runBlocking {
+            appWidgetManager.getGlanceIds(TestGlanceAppWidget::class.java).first()
+        }
+
+        val appWidgetId = (glanceId as AppWidgetId).appWidgetId
+        val file = context.dataStoreFile(layoutDatastoreKey(appWidgetId))
+        assertThat(file.exists())
+
+        val isDeleted = LayoutConfiguration.delete(context, glanceId)
+        assertThat(isDeleted).isTrue()
     }
 
     @Test

@@ -16,8 +16,13 @@
 
 package androidx.compose.animation.core
 
+import androidx.collection.mutableLongListOf
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.VectorConverter
 import androidx.compose.animation.animateColor
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -25,26 +30,37 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
+import com.google.common.truth.Truth.assertThat
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class TransitionTest {
+    private val rule = createComposeRule()
 
-    @get:Rule val rule = createComposeRule()
+    // Detect leaks BEFORE and AFTER compose rule work
+    @get:Rule
+    val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess()).around(rule)
 
     private enum class AnimStates {
         From,
@@ -530,5 +546,237 @@ class TransitionTest {
             assertTrue(value2 < prevValue2)
             assertEquals(200f, value3, 0.1f)
         }
+    }
+
+    @Test
+    fun snapshotTotalDurationNanos() {
+        val durations = mutableLongListOf()
+        rule.mainClock.autoAdvance = false
+        rule.setContent {
+            var targetState by remember { mutableStateOf(false) }
+            val transition = updateTransition(targetState, label = "")
+
+            transition.AnimatedContent { _ -> }
+
+            LaunchedEffect(Unit) {
+                delay(200)
+                targetState = true
+
+                snapshotFlow { transition.totalDurationNanos }.collect { durations += it }
+            }
+        }
+
+        rule.mainClock.advanceTimeByFrame()
+
+        rule.runOnIdle { assertThat(durations.size).isEqualTo(0) }
+
+        rule.mainClock.advanceTimeBy(200)
+        rule.runOnIdle { assertThat(durations.size).isGreaterThan(0) }
+    }
+
+    @Test
+    fun animateFloatCallerRecompositionCount() {
+        @Composable
+        fun TestAnimatedContent(
+            transitionState: MutableTransitionState<Boolean>,
+            onRecomposition: () -> Unit
+        ) {
+            onRecomposition()
+            val transition = rememberTransition(transitionState)
+            transition.animateFloat { state -> if (state) 1f else 0f }
+        }
+
+        var recompositionCount = 0
+        val transitionState = MutableTransitionState(false)
+        rule.setContent {
+            if (transitionState.targetState) {
+                TestAnimatedContent(transitionState, { recompositionCount++ })
+            }
+        }
+
+        rule.runOnIdle { transitionState.targetState = true }
+
+        rule.runOnIdle {
+            // TODO(b/381537138): Once the bug is fixed, there should only be a single recomposition
+            assertEquals(2, recompositionCount)
+        }
+    }
+
+    @OptIn(ExperimentalTransitionApi::class)
+    @Test
+    fun childTransitionStartsUninterrupted_usingTransitionState() {
+
+        val transitionState = MutableTransitionState(0)
+
+        rule.setContent {
+            val transition = rememberTransition(transitionState)
+            val childTransition =
+                transition.createChildTransition(transformToChildState = { it > 1 })
+            val color by
+                childTransition.animateColor(
+                    transitionSpec = {
+                        // Use a keyframe overriding the color at the start of the animation to make
+                        // it
+                        // easy to distinguish from the interrupted AnimationSpec
+                        keyframes { Color.Yellow atFraction 0f }
+                    },
+                    targetValueByState = { if (it) Color.Red else Color.Blue }
+                )
+
+            Column {
+                Text(
+                    // Presenting the Color as text to avoid capturing into images
+                    text = color.toString(),
+                    modifier = Modifier.testTag("animatedColor")
+                )
+                // Presents the currentState of the TransitionState, used as an indicator of the
+                // Transition animation as it will be updated to the target state when the
+                // animation finishes, or immediately if there's no animation
+                Text(
+                    text = transitionState.currentState.toString(),
+                    modifier = Modifier.testTag("currentStateText")
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        // Check initial values
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Blue.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("0")
+
+        rule.mainClock.autoAdvance = false
+
+        // In this case, state changes that does NOT update the child transition shouldn't trigger
+        // an animation
+        transitionState.targetState = 1
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // If there was any animation we'd see the keyframe yellow color and/or the old currentState
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Blue.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("1")
+
+        // Move to the first animated target state change (changes to True in the child transition)
+        transitionState.targetState = 2
+
+        // Move to first animated frame
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // Box should be yellow, text should still have its "old" value as the transition hasn't
+        // finished
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Yellow.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("1")
+
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+
+        // Wait until it finishes. We should see the final Red Color and the Text representing the
+        // updated currentState
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Red.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("2")
+
+        rule.mainClock.autoAdvance = false
+
+        // We've observed that going from a non-animation change to an animated state change would
+        // also trigger interruption
+        transitionState.targetState = 3
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // No animation
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Red.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("3")
+
+        // This change should trigger an animation, no interruption expected
+        transitionState.targetState = 1
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // Animation with keyframe Yellow Color, currentState is "3" due to pending animation
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Yellow.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("3")
+    }
+
+    @OptIn(ExperimentalTransitionApi::class)
+    @Test
+    fun childTransitionStartsUninterrupted_usingSeekableTransition() {
+        val transitionState = SeekableTransitionState(0)
+        lateinit var coroutineScope: CoroutineScope
+
+        rule.setContent {
+            coroutineScope = rememberCoroutineScope()
+            val transition = rememberTransition(transitionState)
+            val childTransition =
+                transition.createChildTransition(transformToChildState = { it > 1 })
+            val color by
+                childTransition.animateColor(
+                    transitionSpec = {
+                        // Use a keyframe overriding the color at the start of the animation to make
+                        // it
+                        // easy to distinguish from the interrupted AnimationSpec
+                        keyframes { Color.Yellow atFraction 0f }
+                    },
+                    targetValueByState = { if (it) Color.Red else Color.Blue }
+                )
+
+            Column {
+                Text(
+                    // Presenting the Color as text to avoid capturing into images
+                    text = color.toString(),
+                    modifier = Modifier.testTag("animatedColor")
+                )
+                // Presents the currentState of the TransitionState, used as an indicator of the
+                // Transition animation as it will be updated to the target state when the
+                // animation finishes, or immediately if there's no animation
+                Text(
+                    text = transitionState.currentState.toString(),
+                    modifier = Modifier.testTag("currentStateText")
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        // Check initial values
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Blue.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("0")
+
+        rule.mainClock.autoAdvance = false
+
+        // In this case, state changes that does NOT update the child transition shouldn't trigger
+        // an animation
+        rule.runOnUiThread { coroutineScope.launch { transitionState.animateTo(1) } }
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // If there was any animation we'd see the keyframe yellow color and/or the old currentState
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Blue.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("1")
+
+        // Move to the first animated target state change (changes to True in the child transition)
+        rule.runOnUiThread {
+            coroutineScope.launch {
+                transitionState.seekTo(0f, 2)
+                transitionState.animateTo(2)
+            }
+        }
+
+        // Move to first animated frame
+        rule.mainClock.advanceTimeByFrame()
+        rule.mainClock.advanceTimeByFrame()
+
+        // Box should be yellow, text should still have its "old" value as the transition hasn't
+        // finished
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Yellow.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("1")
+
+        rule.mainClock.autoAdvance = true
+        rule.waitForIdle()
+
+        // Wait until it finishes. We should see the final Red Color and the Text representing the
+        // updated currentState
+        rule.onNodeWithTag("animatedColor").assertTextEquals(Color.Red.toString())
+        rule.onNodeWithTag("currentStateText").assertTextEquals("2")
     }
 }

@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.material.icons.Icons
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -72,7 +71,6 @@ import androidx.compose.ui.unit.dp
  * Alternatively, use [androidx.compose.foundation.layout.FlowRow] to wrap chips to a new line.
  *
  * @sample androidx.compose.material.samples.ChipGroupReflowSample
- *
  * @param onClick called when the chip is clicked.
  * @param modifier Modifier to be applied to the chip
  * @param enabled When disabled, chip will not respond to user input. It will also appear visually
@@ -81,6 +79,7 @@ import androidx.compose.ui.unit.dp
  *   emitting [Interaction]s for this chip. You can use this to change the chip's appearance or
  *   preview the chip in different states. Note that if `null` is provided, interactions will still
  *   happen internally.
+ * @param shape defines the chip's shape as well as its shadow
  * @param border Border to draw around the chip. Pass `null` here for no border.
  * @param colors [ChipColors] that will be used to resolve the background and content color for this
  *   chip in different states. See [ChipDefaults.chipColors].
@@ -159,7 +158,6 @@ fun Chip(
  * [ChipDefaults.outlinedFilterChipColors] and [ChipDefaults.outlinedBorder]
  *
  * @sample androidx.compose.material.samples.OutlinedFilterChipSample
- *
  * @param selected boolean state for this chip: either it is selected or not
  * @param onClick will be called when the user clicks the chip
  * @param modifier Modifier to be applied to the chip
@@ -175,8 +173,8 @@ fun Chip(
  *   color for this chip in different states. See [ChipDefaults.filterChipColors].
  * @param leadingIcon Optional icon at the start of the chip, preceding the content text.
  * @param selectedIcon Icon used to indicate a chip's selected state, it is commonly a
- *   [Icons.Filled.Done]. By default, if a leading icon is also provided, the leading icon will be
- *   obscured by a circle overlay and then the selected icon.
+ *   [androidx.compose.material.icons.Icons.Filled.Done]. By default, if a leading icon is also
+ *   provided, the leading icon will be obscured by a circle overlay and then the selected icon.
  * @param trailingIcon Optional icon at the end of the chip, following the content text. Filter
  *   chips commonly do not display any trailing icon.
  * @param content the content of this chip
@@ -407,6 +405,7 @@ object ChipDefaults {
      * @param backgroundColor the background color of this chip when enabled
      * @param contentColor the content color of this chip when enabled, there is a separate param
      *   for icon colors
+     * @param leadingIconContentColor the leading icon content color of this chip when enabled
      * @param disabledBackgroundColor the background color of this chip when not enabled
      * @param disabledContentColor the content color of this chip when not enabled
      * @param disabledLeadingIconContentColor the color of this chip's start icon when not enabled

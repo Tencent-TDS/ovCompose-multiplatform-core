@@ -516,7 +516,9 @@ public abstract class FragmentManager implements FragmentResultOwner {
 
     BackStackRecord mTransitioningOp = null;
 
-    boolean mBackStarted = false;
+    // signal to indicate whether execPendingAction is coming from handleOnBackPressed
+    // or cancelBackStackTransition that prevents the mTransitioningOp from being recommited.
+    boolean mHandlingTransitioningOp = false;
     private final OnBackPressedCallback mOnBackPressedCallback =
             new OnBackPressedCallback(false) {
 
@@ -580,7 +582,6 @@ public abstract class FragmentManager implements FragmentResultOwner {
                     }
                     if (USE_PREDICTIVE_BACK) {
                         cancelBackStackTransition();
-                        mTransitioningOp = null;
                     }
                 }
             };
@@ -859,7 +860,9 @@ public abstract class FragmentManager implements FragmentResultOwner {
         // up to date view of the world just in case anyone is queuing
         // up transactions that change the back stack then immediately
         // calling onBackPressed()
+        mHandlingTransitioningOp = true;
         execPendingActions(true);
+        mHandlingTransitioningOp = false;
         if (USE_PREDICTIVE_BACK && mTransitioningOp != null) {
             if (!mBackStackChangeListeners.isEmpty()) {
                 // Build a list of fragments based on the records
@@ -874,8 +877,9 @@ public abstract class FragmentManager implements FragmentResultOwner {
                 }
             }
             for (FragmentTransaction.Op op : mTransitioningOp.mOps) {
-                if (op.mFragment != null) {
-                    op.mFragment.mTransitioning = false;
+                Fragment fragment = op.mFragment;
+                if (fragment != null) {
+                    fragment.mTransitioning = false;
                 }
             }
             Set<SpecialEffectsController> changedControllers = collectChangedControllers(
@@ -883,6 +887,16 @@ public abstract class FragmentManager implements FragmentResultOwner {
             );
             for (SpecialEffectsController controller : changedControllers) {
                 controller.completeBack();
+            }
+            for (FragmentTransaction.Op op : mTransitioningOp.mOps) {
+                Fragment fragment = op.mFragment;
+                if (fragment != null) {
+                    if (fragment.mContainer == null) {
+                        FragmentStateManager stateManager =
+                                createOrGetFragmentStateManager(fragment);
+                        stateManager.moveToExpectedState();
+                    }
+                }
             }
             mTransitioningOp = null;
             updateOnBackPressedCallbackEnabled();
@@ -1042,6 +1056,9 @@ public abstract class FragmentManager implements FragmentResultOwner {
     }
 
     void cancelBackStackTransition() {
+        if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
+            Log.d(TAG, "cancelBackStackTransition for transition " + mTransitioningOp);
+        }
         if (mTransitioningOp != null) {
             mTransitioningOp.mCommitted = false;
             mTransitioningOp.runOnCommitInternal(true, () -> {
@@ -1050,7 +1067,10 @@ public abstract class FragmentManager implements FragmentResultOwner {
                 }
             });
             mTransitioningOp.commit();
+            mHandlingTransitioningOp = true;
             executePendingTransactions();
+            mHandlingTransitioningOp = false;
+            mTransitioningOp = null;
         }
     }
 
@@ -1332,6 +1352,7 @@ public abstract class FragmentManager implements FragmentResultOwner {
             ) {
                 fragment.mContainer = container;
                 fragmentStateManager.addViewToContainer();
+                fragmentStateManager.moveToExpectedState();
             }
         }
     }
@@ -1953,7 +1974,27 @@ public abstract class FragmentManager implements FragmentResultOwner {
             return;
         }
         ensureExecReady(allowStateLoss);
-        if (action.generateOps(mTmpRecords, mTmpIsPop)) {
+        boolean generateOpsResult = false;
+        // If we are interrupting a predictive back gesture with an incoming action,
+        // we cancel the gesture by recommitting the mTransitioningOp and adding the ops
+        // to the records about to be executed.
+        if (mTransitioningOp != null) {
+            mTransitioningOp.mCommitted = false;
+            if (isLoggingEnabled(Log.DEBUG)) {
+                Log.d(TAG, "Reversing mTransitioningOp " + mTransitioningOp
+                        + " as part of execSingleAction for action " + action);
+            }
+            mTransitioningOp.commitInternal(false, false);
+            generateOpsResult = mTransitioningOp.generateOps(mTmpRecords, mTmpIsPop);
+            for (FragmentTransaction.Op op : mTransitioningOp.mOps) {
+                if (op.mFragment != null) {
+                    op.mFragment.mTransitioning = false;
+                }
+            }
+            mTransitioningOp = null;
+        }
+        boolean actionOpsResult = action.generateOps(mTmpRecords, mTmpIsPop);
+        if (generateOpsResult || actionOpsResult) {
             mExecutingActions = true;
             try {
                 removeRedundantOperationsAndExecute(mTmpRecords, mTmpIsPop);
@@ -1984,6 +2025,24 @@ public abstract class FragmentManager implements FragmentResultOwner {
         ensureExecReady(allowStateLoss);
 
         boolean didSomething = false;
+        // If we are interrupting a predictive back gesture with an incoming action,
+        // we cancel the gesture by recommitting the mTransitioningOp and executing it
+        // as the first pending action.
+        if (!mHandlingTransitioningOp && mTransitioningOp != null) {
+            mTransitioningOp.mCommitted = false;
+            if (isLoggingEnabled(Log.DEBUG)) {
+                Log.d(TAG, "Reversing mTransitioningOp " + mTransitioningOp
+                        + " as part of execPendingActions for actions " + mPendingActions);
+            }
+            mTransitioningOp.commitInternal(false, false);
+            mPendingActions.add(0, mTransitioningOp);
+            for (FragmentTransaction.Op op : mTransitioningOp.mOps) {
+                if (op.mFragment != null) {
+                    op.mFragment.mTransitioning = false;
+                }
+            }
+            mTransitioningOp = null;
+        }
         while (generateOpsForPendingActions(mTmpRecords, mTmpIsPop)) {
             mExecutingActions = true;
             try {
@@ -2536,6 +2595,16 @@ public abstract class FragmentManager implements FragmentResultOwner {
 
     boolean prepareBackStackState(@NonNull ArrayList<BackStackRecord> records,
             @NonNull ArrayList<Boolean> isRecordPop) {
+        if (FragmentManager.isLoggingEnabled(Log.VERBOSE)) {
+            Log.v(
+                    TAG, "FragmentManager has the following pending actions inside of "
+                            + "prepareBackStackState: " + mPendingActions
+            );
+        }
+        if (mBackStack.isEmpty()) {
+            Log.i(TAG, "Ignoring call to start back stack pop because the back stack is empty.");
+            return false;
+        }
         // The transitioning record is the last one on the back stack.
         mTransitioningOp = mBackStack.get(mBackStack.size() - 1);
         // Mark all fragments in the record as transitioning
@@ -3786,7 +3855,6 @@ public abstract class FragmentManager implements FragmentResultOwner {
         public boolean generateOps(@NonNull ArrayList<BackStackRecord> records,
                 @NonNull ArrayList<Boolean> isRecordPop) {
             boolean result = prepareBackStackState(records, isRecordPop);
-            mBackStarted = true;
             // Dispatch started signal to onBackStackChangedListeners.
             if (!mBackStackChangeListeners.isEmpty()) {
                 if (records.size() > 0) {

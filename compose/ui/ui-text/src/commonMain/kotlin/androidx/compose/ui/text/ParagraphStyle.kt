@@ -18,6 +18,7 @@ package androidx.compose.ui.text
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.ui.text.internal.checkPrecondition
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.LineHeightStyle
@@ -42,9 +43,7 @@ private val DefaultLineHeight = TextUnit.Unspecified
  * was added.
  *
  * @sample androidx.compose.ui.text.samples.ParagraphStyleSample
- *
  * @sample androidx.compose.ui.text.samples.ParagraphStyleAnnotatedStringsSample
- *
  * @param textAlign The alignment of the text within the lines of the paragraph.
  * @param textDirection The algorithm to be used to resolve the final text direction: Left To Right
  *   or Right To Left.
@@ -74,7 +73,7 @@ class ParagraphStyle(
     val lineBreak: LineBreak = LineBreak.Unspecified,
     val hyphens: Hyphens = Hyphens.Unspecified,
     val textMotion: TextMotion? = null
-) {
+) : AnnotatedString.Annotation {
     @Deprecated("Kept for backwards compatibility.", level = DeprecationLevel.WARNING)
     @get:JvmName("getTextAlign-buA522U") // b/320819734
     @Suppress("unused", "RedundantNullableReturnType", "PropertyName")
@@ -206,7 +205,9 @@ class ParagraphStyle(
     init {
         if (lineHeight != TextUnit.Unspecified) {
             // Since we are checking if it's negative, no need to convert Sp into Px at this point.
-            check(lineHeight.value >= 0f) { "lineHeight can't be negative (${lineHeight.value})" }
+            checkPrecondition(lineHeight.value >= 0f) {
+                "lineHeight can't be negative (${lineHeight.value})"
+            }
         }
     }
 

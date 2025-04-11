@@ -22,7 +22,9 @@ import org.jetbrains.kotlin.library.abi.AbiClassKind
 import org.jetbrains.kotlin.library.abi.AbiCompoundName
 import org.jetbrains.kotlin.library.abi.AbiModality
 import org.jetbrains.kotlin.library.abi.AbiQualifiedName
+import org.jetbrains.kotlin.library.abi.AbiSignatureVersion
 import org.jetbrains.kotlin.library.abi.ExperimentalLibraryAbiReader
+import org.jetbrains.kotlin.library.abi.LibraryAbi
 import org.junit.Test
 
 @OptIn(ExperimentalLibraryAbiReader::class)
@@ -168,6 +170,21 @@ class KlibDumpParserTest {
     }
 
     @Test
+    fun parseAComplexFunctionWithK2Formatting() {
+        val input =
+            "final inline fun <#A: kotlin/Any, #B: kotlin/Any> androidx.collection/" +
+                "lruCache(kotlin/Int, crossinline kotlin/Function2<#A, #B, kotlin/Int> = ..., " +
+                "crossinline kotlin/Function1<#A, #B?> = ..., " +
+                "crossinline kotlin/Function4<kotlin/Boolean, #A, #B, #B?, kotlin/Unit> = ...): " +
+                "androidx.collection/LruCache<#A, #B>"
+        val parsed = KlibDumpParser(input).parseFunction()
+        assertThat(parsed.modality).isEqualTo(AbiModality.FINAL)
+        assertThat(parsed.typeParameters).hasSize(2)
+        assertThat(parsed.qualifiedName.toString()).isEqualTo("androidx.collection/lruCache")
+        assertThat(parsed.valueParameters).hasSize(4)
+    }
+
+    @Test
     fun parseANestedValProperty() {
         val input = "final val size\n        final fun <get-size>(): kotlin/Int"
         val parsed =
@@ -230,6 +247,16 @@ class KlibDumpParserTest {
     }
 
     @Test
+    fun parsesSignatureVersion() {
+        val parsed = KlibDumpParser(exampleMetadata).parse()
+        assertThat(parsed).isNotNull()
+        assertThat(parsed.keys).hasSize(1)
+        val abi: LibraryAbi = parsed.values.single()
+        assertThat(abi.signatureVersions)
+            .containsExactly(AbiSignatureVersion.resolveByVersionNumber(2))
+    }
+
+    @Test
     fun parseFullCollectionKlibDumpSucceeds() {
         val parsed = KlibDumpParser(collectionDump).parse()
         assertThat(parsed).isNotNull()
@@ -263,5 +290,19 @@ class KlibDumpParserTest {
             }
         assertThat(iosQNames).containsExactly("my.lib/myIosFun", "my.lib/commonFun")
         assertThat(linuxQNames).containsExactly("my.lib/myLinuxFun", "my.lib/commonFun")
+    }
+
+    companion object {
+        private val exampleMetadata =
+            """
+            // KLib ABI Dump
+            // Targets: [linuxX64]
+            // Rendering settings:
+            // - Signature version: 2
+            // - Show manifest properties: true
+            // - Show declarations: true
+            // Library unique name: <androidx:library>
+        """
+                .trimIndent()
     }
 }

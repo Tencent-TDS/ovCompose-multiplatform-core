@@ -18,11 +18,18 @@ package androidx.compose.ui.focus
 
 import android.os.Build.VERSION.SDK_INT
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.ReusableContent
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusStateImpl.Active
+import androidx.compose.ui.focus.FocusStateImpl.ActiveParent
+import androidx.compose.ui.focus.FocusStateImpl.Captured
+import androidx.compose.ui.focus.FocusStateImpl.Inactive
 import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.input.InputModeManager
 import androidx.compose.ui.input.key.Key
@@ -44,6 +51,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performKeyPress
 import androidx.compose.ui.test.performRotaryScrollInput
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -648,15 +656,75 @@ class FocusTargetAttachDetachTest {
     }
 
     @Test
+    fun addedFocusTarget_withinInactiveNode() {
+        // Arrange.
+        val focusTarget1 = FocusTargetNode()
+        val focusTarget2 = FocusTargetNode()
+        var addFocusTarget2 by mutableStateOf(false)
+        rule.setFocusableContent {
+            Box(
+                Modifier.then(elementFor(instance = focusTarget1)).thenIf(addFocusTarget2) {
+                    elementFor(instance = focusTarget2)
+                }
+            )
+        }
+
+        // Act.
+        rule.runOnIdle { addFocusTarget2 = true }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget1.isInitialized()).isTrue()
+            assertThat(focusTarget1.focusState).isEqualTo(Inactive)
+            assertThat(focusTarget2.isInitialized()).isTrue()
+            assertThat(focusTarget2.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun addedMultipleFocusTargets_withinInactiveHierarchy() {
+        // Arrange.
+        val focusTarget1 = FocusTargetNode()
+        val focusTarget2 = FocusTargetNode()
+        val focusTarget3 = FocusTargetNode()
+        var addFocusTarget2 by mutableStateOf(false)
+        var addFocusTarget3 by mutableStateOf(false)
+        rule.setFocusableContent {
+            Column(Modifier.then(elementFor(instance = focusTarget1))) {
+                if (addFocusTarget2) Box(Modifier.then(elementFor(instance = focusTarget2)))
+                if (addFocusTarget3) Box(Modifier.then(elementFor(instance = focusTarget3)))
+            }
+        }
+
+        // Act.
+        rule.runOnIdle {
+            addFocusTarget2 = true
+            addFocusTarget3 = true
+        }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget1.isInitialized()).isTrue()
+            assertThat(focusTarget1.focusState).isEqualTo(Inactive)
+            assertThat(focusTarget2.isInitialized()).isTrue()
+            assertThat(focusTarget2.focusState).isEqualTo(Inactive)
+            assertThat(focusTarget3.isInitialized()).isTrue()
+            assertThat(focusTarget3.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
     fun addedFocusTarget_withinActiveNode() {
         // Arrange.
+        val focusTarget = FocusTargetNode()
         lateinit var focusState: FocusState
         val focusRequester = FocusRequester()
         var addFocusTarget by mutableStateOf(false)
         rule.setFocusableContent {
             Box(
                 Modifier.thenIf(addFocusTarget) {
-                        Modifier.onFocusChanged { focusState = it }.focusTarget()
+                        Modifier.onFocusChanged { focusState = it }
+                            .then(elementFor(instance = focusTarget))
                     }
                     .focusRequester(focusRequester)
                     .focusTarget()
@@ -668,21 +736,28 @@ class FocusTargetAttachDetachTest {
         rule.runOnIdle { addFocusTarget = true }
 
         // Assert.
-        rule.runOnIdle { assertThat(focusState).isEqualTo(FocusStateImpl.ActiveParent) }
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(ActiveParent)
+            assertThat(focusState).isEqualTo(ActiveParent)
+        }
     }
 
     @Test
     fun addedFocusTarget_withinActiveHierarchy() {
         // Arrange.
+        val focusTarget = FocusTargetNode()
         lateinit var focusState: FocusState
         val focusRequester = FocusRequester()
         var addFocusTarget by mutableStateOf(false)
         rule.setFocusableContent {
-            Box(
+            Column(
                 Modifier.thenIf(addFocusTarget) {
-                    Modifier.onFocusChanged { focusState = it }.focusTarget()
+                    Modifier.onFocusChanged { focusState = it }
+                        .then(elementFor(instance = focusTarget))
                 }
             ) {
+                Box(Modifier.focusTarget())
                 Box(Modifier.focusRequester(focusRequester).focusTarget())
             }
         }
@@ -692,7 +767,11 @@ class FocusTargetAttachDetachTest {
         rule.runOnIdle { addFocusTarget = true }
 
         // Assert.
-        rule.runOnIdle { assertThat(focusState).isEqualTo(FocusStateImpl.ActiveParent) }
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(ActiveParent)
+            assertThat(focusState).isEqualTo(ActiveParent)
+        }
     }
 
     @Test
@@ -725,8 +804,8 @@ class FocusTargetAttachDetachTest {
 
         // Assert.
         rule.runOnIdle {
-            assertThat(focusState1).isEqualTo(FocusStateImpl.ActiveParent)
-            assertThat(focusState2).isEqualTo(FocusStateImpl.ActiveParent)
+            assertThat(focusState1).isEqualTo(ActiveParent)
+            assertThat(focusState2).isEqualTo(ActiveParent)
         }
     }
 
@@ -763,8 +842,8 @@ class FocusTargetAttachDetachTest {
 
         // Assert.
         rule.runOnIdle {
-            assertThat(focusState1).isEqualTo(FocusStateImpl.ActiveParent)
-            assertThat(focusState2).isEqualTo(FocusStateImpl.ActiveParent)
+            assertThat(focusState1).isEqualTo(ActiveParent)
+            assertThat(focusState2).isEqualTo(ActiveParent)
         }
     }
 
@@ -792,7 +871,7 @@ class FocusTargetAttachDetachTest {
         rule.runOnIdle { addFocusTarget = true }
 
         // Assert.
-        rule.runOnIdle { assertThat(focusState).isEqualTo(FocusStateImpl.ActiveParent) }
+        rule.runOnIdle { assertThat(focusState).isEqualTo(ActiveParent) }
     }
 
     @Test
@@ -819,7 +898,7 @@ class FocusTargetAttachDetachTest {
         rule.runOnIdle { addFocusTarget = true }
 
         // Assert.
-        rule.runOnIdle { assertThat(focusState).isEqualTo(FocusStateImpl.ActiveParent) }
+        rule.runOnIdle { assertThat(focusState).isEqualTo(ActiveParent) }
     }
 
     @Test
@@ -888,7 +967,7 @@ class FocusTargetAttachDetachTest {
         rule.runOnIdle { assertThat(focusState.isFocused).isFalse() }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun focusTarget_nodeThatIsKeyInputNodeKind_implementing_receivesKeyEventsWhenFocused() {
         class FocusTargetAndKeyInputNode : DelegatingNode(), KeyInputModifierNode {
@@ -937,7 +1016,7 @@ class FocusTargetAttachDetachTest {
         assertThat(focusTargetAndKeyInputNode.keyEvents[0].key).isEqualTo(Key.Enter)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class, ExperimentalTestApi::class)
+    @OptIn(ExperimentalTestApi::class)
     @Test
     fun focusTarget_nodeThatIsKeyInputNodeKind_delegating_receivesKeyEventsWhenFocused() {
         class FocusTargetAndKeyInputNode : DelegatingNode() {
@@ -989,7 +1068,6 @@ class FocusTargetAttachDetachTest {
         assertThat(focusTargetAndKeyInputNode.keyEvents[0].key).isEqualTo(Key.Enter)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun focusTarget_nodeThatIsSoftKeyInputNodeKind_implementing_receivesSoftKeyEventsWhenFocused() {
         class FocusTargetAndSoftKeyboardNode :
@@ -1044,7 +1122,6 @@ class FocusTargetAttachDetachTest {
         assertThat(focusTargetAndSoftKeyboardNode.keyEvents[0].key).isEqualTo(Key.Enter)
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     @Test
     fun focusTarget_nodeThatIsSoftKeyInputNodeKind_delegating_receivesSoftKeyEventsWhenFocused() {
         class FocusTargetAndSoftKeyboardNode : DelegatingNode() {
@@ -1298,6 +1375,244 @@ class FocusTargetAttachDetachTest {
         assertThat(eventNode.focusStates[0].isFocused).isFalse()
         assertThat(eventNode.focusStates[1].isFocused).isTrue()
         assertThat(eventNode.focusStates[2].isFocused).isFalse()
+    }
+
+    @Test
+    fun reuseInactiveFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        var reuseKey by mutableStateOf(0)
+        rule.setFocusableContent {
+            ReusableContent(reuseKey) { Box(Modifier.then(elementFor(instance = focusTarget))) }
+        }
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+
+        // Act.
+        rule.runOnIdle { reuseKey = 1 }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun reuseActiveFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var reuseKey by mutableStateOf(0)
+        rule.setFocusableContent {
+            ReusableContent(reuseKey) {
+                Box(
+                    Modifier.focusRequester(focusRequester).then(elementFor(instance = focusTarget))
+                )
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Active)
+        }
+
+        // Act.
+        rule.runOnIdle { reuseKey = 1 }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun reuseCapturedFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var reuseKey by mutableStateOf(0)
+        rule.setFocusableContent {
+            ReusableContent(reuseKey) {
+                Box(
+                    Modifier.focusRequester(focusRequester).then(elementFor(instance = focusTarget))
+                )
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            focusRequester.captureFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Captured)
+        }
+
+        // Act.
+        rule.runOnIdle { reuseKey = 1 }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun reuseActiveParentFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var reuseKey by mutableStateOf(0)
+        rule.setFocusableContent {
+            ReusableContent(reuseKey) {
+                Box(Modifier.then(elementFor(instance = focusTarget))) {
+                    Box(Modifier.focusRequester(focusRequester).focusTarget())
+                }
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(ActiveParent)
+        }
+
+        // Act.
+        rule.runOnIdle { reuseKey = 1 }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun moveInactiveFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        var moveContent by mutableStateOf(false)
+        val content = movableContentOf { Box(Modifier.then(elementFor(instance = focusTarget))) }
+        rule.setFocusableContent {
+            if (moveContent) {
+                Box(Modifier.size(5.dp)) { content() }
+            } else {
+                Box(Modifier.size(10.dp)) { content() }
+            }
+        }
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+
+        // Act.
+        rule.runOnIdle { moveContent = true }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun moveActiveFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var moveContent by mutableStateOf(false)
+        val content = movableContentOf {
+            Box(Modifier.focusRequester(focusRequester).then(elementFor(instance = focusTarget)))
+        }
+        rule.setFocusableContent {
+            if (moveContent) {
+                Box(Modifier.size(5.dp)) { content() }
+            } else {
+                Box(Modifier.size(10.dp)) { content() }
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Active)
+        }
+
+        // Act.
+        rule.runOnIdle { moveContent = true }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun moveCapturedFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var moveContent by mutableStateOf(false)
+        val content = movableContentOf {
+            Box(Modifier.focusRequester(focusRequester).then(elementFor(instance = focusTarget)))
+        }
+        rule.setFocusableContent {
+            if (moveContent) {
+                Box(Modifier.size(5.dp)) { content() }
+            } else {
+                Box(Modifier.size(10.dp)) { content() }
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            focusRequester.captureFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Captured)
+        }
+
+        // Act.
+        rule.runOnIdle { moveContent = true }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
+    }
+
+    @Test
+    fun moveActiveParentFocusTarget_stateInitializedToInactive() {
+        // Arrange.
+        val focusTarget = FocusTargetNode()
+        val focusRequester = FocusRequester()
+        var moveContent by mutableStateOf(false)
+        val content = movableContentOf {
+            Box(Modifier.then(elementFor(instance = focusTarget))) {
+                Box(Modifier.focusRequester(focusRequester).focusTarget())
+            }
+        }
+        rule.setFocusableContent {
+            if (moveContent) {
+                Box(Modifier.size(5.dp)) { content() }
+            } else {
+                Box(Modifier.size(10.dp)) { content() }
+            }
+        }
+        rule.runOnIdle {
+            focusRequester.requestFocus()
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(ActiveParent)
+        }
+
+        // Act.
+        rule.runOnIdle { moveContent = true }
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(focusTarget.isInitialized()).isTrue()
+            assertThat(focusTarget.focusState).isEqualTo(Inactive)
+        }
     }
 
     private inline fun Modifier.thenIf(condition: Boolean, block: () -> Modifier): Modifier {

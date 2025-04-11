@@ -22,6 +22,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.service.credentials.CredentialEntry
+import androidx.core.os.BuildCompat
 import androidx.credentials.CredentialOption
 import androidx.credentials.PublicKeyCredential
 import androidx.credentials.R
@@ -31,6 +32,7 @@ import androidx.credentials.provider.PublicKeyCredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry.Companion.fromCredentialEntry
 import androidx.credentials.provider.PublicKeyCredentialEntry.Companion.fromSlice
 import androidx.credentials.provider.PublicKeyCredentialEntry.Companion.toSlice
+import androidx.credentials.provider.ui.UiUtils.Companion.testBiometricPromptData
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
@@ -43,7 +45,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@SdkSuppress(minSdkVersion = 26)
+@SdkSuppress(minSdkVersion = 26) // Instant usage
 @RunWith(AndroidJUnit4::class)
 @SmallTest
 class PublicKeyCredentialEntryTest {
@@ -143,6 +145,7 @@ class PublicKeyCredentialEntryTest {
         assertThat(entry.beginGetCredentialOption).isEqualTo(BEGIN_OPTION)
         assertThat(entry.affiliatedDomain).isNull()
         assertThat(entry.entryGroupId).isEqualTo(USERNAME)
+        assertThat(entry.biometricPromptData).isNull()
     }
 
     @Test
@@ -247,17 +250,32 @@ class PublicKeyCredentialEntryTest {
     }
 
     private fun constructWithAllParams(): PublicKeyCredentialEntry {
-        return PublicKeyCredentialEntry(
-            mContext,
-            USERNAME,
-            mPendingIntent,
-            BEGIN_OPTION,
-            DISPLAYNAME,
-            Instant.ofEpochMilli(LAST_USED_TIME),
-            ICON,
-            IS_AUTO_SELECT_ALLOWED,
-            SINGLE_PROVIDER_ICON_BIT
-        )
+        return if (BuildCompat.isAtLeastV()) {
+            PublicKeyCredentialEntry(
+                mContext,
+                USERNAME,
+                mPendingIntent,
+                BEGIN_OPTION,
+                DISPLAYNAME,
+                Instant.ofEpochMilli(LAST_USED_TIME),
+                ICON,
+                IS_AUTO_SELECT_ALLOWED,
+                SINGLE_PROVIDER_ICON_BIT,
+                testBiometricPromptData()
+            )
+        } else {
+            PublicKeyCredentialEntry(
+                mContext,
+                USERNAME,
+                mPendingIntent,
+                BEGIN_OPTION,
+                DISPLAYNAME,
+                Instant.ofEpochMilli(LAST_USED_TIME),
+                ICON,
+                IS_AUTO_SELECT_ALLOWED,
+                SINGLE_PROVIDER_ICON_BIT,
+            )
+        }
     }
 
     private fun assertEntryWithRequiredParams(entry: PublicKeyCredentialEntry) {
@@ -267,6 +285,7 @@ class PublicKeyCredentialEntryTest {
             .isEqualTo(DEFAULT_SINGLE_PROVIDER_ICON_BIT)
         assertThat(entry.affiliatedDomain).isNull()
         assertThat(entry.entryGroupId).isEqualTo(USERNAME)
+        assertThat(entry.biometricPromptData).isNull()
     }
 
     private fun assertEntryWithAllParams(entry: PublicKeyCredentialEntry) {
@@ -280,6 +299,12 @@ class PublicKeyCredentialEntryTest {
         assertThat(entry.isDefaultIconPreferredAsSingleProvider).isEqualTo(SINGLE_PROVIDER_ICON_BIT)
         assertThat(entry.affiliatedDomain).isNull()
         assertThat(entry.entryGroupId).isEqualTo(USERNAME)
+        if (BuildCompat.isAtLeastV() && entry.biometricPromptData != null) {
+            assertThat(entry.biometricPromptData!!.allowedAuthenticators)
+                .isEqualTo(testBiometricPromptData().allowedAuthenticators)
+        } else {
+            assertThat(entry.biometricPromptData).isNull()
+        }
     }
 
     companion object {

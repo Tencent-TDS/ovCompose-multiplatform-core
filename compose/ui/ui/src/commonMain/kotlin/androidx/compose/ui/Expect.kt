@@ -38,6 +38,12 @@ internal expect fun classKeyForObject(a: Any): Any
 //  https://android-review.googlesource.com/c/platform/frameworks/support/+/2441379
 internal expect fun InspectorInfo.tryPopulateReflectively(element: ModifierNodeElement<*>)
 
+internal expect fun currentTimeMillis(): Long
+
+internal expect fun postDelayed(delayMillis: Long, block: () -> Unit): Any
+
+internal expect fun removePost(token: Any?)
+
 /**
  * Represents a platform-optimized cancellation exception.
  * This allows us to configure exceptions separately on JVM and other platforms.
@@ -45,5 +51,3 @@ internal expect fun InspectorInfo.tryPopulateReflectively(element: ModifierNodeE
 internal expect abstract class PlatformOptimizedCancellationException(
     message: String? = null
 ) : CancellationException
-
-internal expect fun getCurrentThreadId(): Long

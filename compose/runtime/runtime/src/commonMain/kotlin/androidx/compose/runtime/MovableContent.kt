@@ -29,14 +29,13 @@ package androidx.compose.runtime
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
 @OptIn(InternalComposeApi::class)
 fun movableContentOf(content: @Composable () -> Unit): @Composable () -> Unit {
-    val movableContent = MovableContent<Unit>({ content() })
-    return { currentComposer.insertMovableContent(movableContent, Unit) }
+    val movableContent = MovableContent<Nothing?>({ content() })
+    return { currentComposer.insertMovableContent(movableContent, null) }
 }
 
 /**
@@ -52,7 +51,6 @@ fun movableContentOf(content: @Composable () -> Unit): @Composable () -> Unit {
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -75,7 +73,6 @@ fun <P> movableContentOf(content: @Composable (P) -> Unit): @Composable (P) -> U
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -98,7 +95,6 @@ fun <P1, P2> movableContentOf(content: @Composable (P1, P2) -> Unit): @Composabl
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -107,10 +103,10 @@ fun <P1, P2, P3> movableContentOf(
     content: @Composable (P1, P2, P3) -> Unit
 ): @Composable (P1, P2, P3) -> Unit {
     val movableContent =
-        MovableContent<Pair<Pair<P1, P2>, P3>> {
-            content(it.first.first, it.first.second, it.second)
-        }
-    return { p1, p2, p3 -> currentComposer.insertMovableContent(movableContent, (p1 to p2) to p3) }
+        MovableContent<Triple<P1, P2, P3>> { content(it.first, it.second, it.third) }
+    return { p1, p2, p3 ->
+        currentComposer.insertMovableContent(movableContent, Triple(p1, p2, p3))
+    }
 }
 
 /**
@@ -126,7 +122,6 @@ fun <P1, P2, P3> movableContentOf(
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -135,11 +130,12 @@ fun <P1, P2, P3, P4> movableContentOf(
     content: @Composable (P1, P2, P3, P4) -> Unit
 ): @Composable (P1, P2, P3, P4) -> Unit {
     val movableContent =
-        MovableContent<Pair<Pair<P1, P2>, Pair<P3, P4>>> {
-            content(it.first.first, it.first.second, it.second.first, it.second.second)
+        MovableContent<Array<Any?>> { (p1, p2, p3, p4) ->
+            @Suppress("UNCHECKED_CAST") // Types are guaranteed below.
+            content(p1 as P1, p2 as P2, p3 as P3, p4 as P4)
         }
     return { p1, p2, p3, p4 ->
-        currentComposer.insertMovableContent(movableContent, (p1 to p2) to (p3 to p4))
+        currentComposer.insertMovableContent(movableContent, arrayOf(p1, p2, p3, p4))
     }
 }
 
@@ -156,7 +152,6 @@ fun <P1, P2, P3, P4> movableContentOf(
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -179,7 +174,6 @@ fun <R> movableContentWithReceiverOf(content: @Composable R.() -> Unit): @Compos
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -204,7 +198,6 @@ fun <R, P> movableContentWithReceiverOf(
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -212,9 +205,8 @@ fun <R, P> movableContentWithReceiverOf(
 fun <R, P1, P2> movableContentWithReceiverOf(
     content: @Composable R.(P1, P2) -> Unit
 ): @Composable R.(P1, P2) -> Unit {
-    val movableContent =
-        MovableContent<Pair<Pair<R, P1>, P2>> { it.first.first.content(it.first.second, it.second) }
-    return { p1, p2 -> currentComposer.insertMovableContent(movableContent, (this to p1) to p2) }
+    val movableContent = MovableContent<Triple<R, P1, P2>> { it.first.content(it.second, it.third) }
+    return { p1, p2 -> currentComposer.insertMovableContent(movableContent, Triple(this, p1, p2)) }
 }
 
 /**
@@ -230,7 +222,6 @@ fun <R, P1, P2> movableContentWithReceiverOf(
  * such as,
  *
  * @sample androidx.compose.runtime.samples.MovableContentMultiColumnSample
- *
  * @param content The composable lambda to convert into a state tracking lambda.
  * @return A tracking composable lambda
  */
@@ -239,11 +230,12 @@ fun <R, P1, P2, P3> movableContentWithReceiverOf(
     content: @Composable R.(P1, P2, P3) -> Unit
 ): @Composable R.(P1, P2, P3) -> Unit {
     val movableContent =
-        MovableContent<Pair<Pair<R, P1>, Pair<P2, P3>>> {
-            it.first.first.content(it.first.second, it.second.first, it.second.second)
+        MovableContent<Array<Any?>> { (r, p1, p2, p3) ->
+            @Suppress("UNCHECKED_CAST") // Types are guaranteed below.
+            (r as R).content(p1 as P1, p2 as P2, p3 as P3)
         }
     return { p1, p2, p3 ->
-        currentComposer.insertMovableContent(movableContent, (this to p1) to (p2 to p3))
+        currentComposer.insertMovableContent(movableContent, arrayOf(this, p1, p2, p3))
     }
 }
 

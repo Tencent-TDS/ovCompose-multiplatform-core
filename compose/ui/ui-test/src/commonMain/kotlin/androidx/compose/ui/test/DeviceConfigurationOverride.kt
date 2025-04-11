@@ -31,9 +31,7 @@ import androidx.compose.ui.unit.LayoutDirection
  * [layout direction][DeviceConfigurationOverride.Companion.LayoutDirection].
  *
  * @sample androidx.compose.ui.test.samples.DeviceConfigurationOverrideFontScaleSample
- *
  * @sample androidx.compose.ui.test.samples.DeviceConfigurationOverrideForcedSizeSample
- *
  * @sample androidx.compose.ui.test.samples.DeviceConfigurationOverrideLayoutDirectionSample
  */
 @Composable
@@ -76,7 +74,7 @@ fun interface DeviceConfigurationOverride {
 infix fun DeviceConfigurationOverride.then(
     other: DeviceConfigurationOverride
 ): DeviceConfigurationOverride = DeviceConfigurationOverride { contentUnderTest ->
-    this.Override { other.Override { contentUnderTest() } }
+    this.Override { other.Override(contentUnderTest) }
 }
 
 /**

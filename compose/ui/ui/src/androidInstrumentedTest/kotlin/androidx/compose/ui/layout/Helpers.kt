@@ -18,11 +18,13 @@
 
 package androidx.compose.ui.layout
 
+import androidx.collection.IntObjectMap
+import androidx.collection.intObjectMapOf
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.MutableRect
@@ -46,12 +48,16 @@ import androidx.compose.ui.node.Owner
 import androidx.compose.ui.node.OwnerSnapshotObserver
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.EmptySemanticsModifier
+import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -82,7 +88,7 @@ internal fun createDelegate(
     return delegate
 }
 
-@OptIn(ExperimentalComposeUiApi::class, InternalComposeUiApi::class)
+@OptIn(InternalComposeUiApi::class)
 private class FakeOwner(
     val delegate: MeasureAndLayoutDelegate,
     val createLayer: () -> OwnedLayer,
@@ -150,15 +156,24 @@ private class FakeOwner(
 
     override fun onLayoutChange(layoutNode: LayoutNode) {}
 
+    override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {}
+
     override fun onInteropViewLayoutChange(view: InteropView) {}
 
     @OptIn(InternalCoreApi::class) override var showLayoutBounds: Boolean = false
 
-    override fun onAttach(node: LayoutNode) {}
+    override fun onPreAttach(node: LayoutNode) {}
+
+    override fun onPostAttach(node: LayoutNode) {}
 
     override fun onDetach(node: LayoutNode) {}
 
-    override val root: LayoutNode
+    override val root: LayoutNode = LayoutNode()
+
+    override val semanticsOwner: SemanticsOwner
+        get() = SemanticsOwner(root, EmptySemanticsModifier(), intObjectMapOf())
+
+    override val layoutNodes: IntObjectMap<LayoutNode>
         get() = TODO("Not yet implemented")
 
     override val sharedDrawScope: LayoutNodeDrawScope
@@ -174,6 +189,9 @@ private class FakeOwner(
         get() = TODO("Not yet implemented")
 
     override val clipboardManager: ClipboardManager
+        get() = TODO("Not yet implemented")
+
+    override val clipboard: Clipboard
         get() = TODO("Not yet implemented")
 
     override val accessibilityManager: AccessibilityManager
@@ -208,10 +226,6 @@ private class FakeOwner(
         TODO("Not yet implemented")
     }
 
-    override fun localToScreen(localTransform: Matrix) {
-        TODO("Not yet implemented")
-    }
-
     override val pointerIconService: PointerIconService
         get() = TODO("Not yet implemented")
 
@@ -220,6 +234,8 @@ private class FakeOwner(
 
     override val windowInfo: WindowInfo
         get() = TODO("Not yet implemented")
+
+    override val rectManager: RectManager = RectManager()
 
     @Deprecated(
         "fontLoader is deprecated, use fontFamilyResolver",
@@ -244,14 +260,16 @@ private class FakeOwner(
     override val autofill: Autofill
         get() = TODO("Not yet implemented")
 
-    override val semanticAutofill: SemanticAutofill?
+    @ExperimentalComposeUiApi
+    override val autofillManager: AutofillManager?
         get() = TODO("Not yet implemented")
 
     override fun createLayer(
         drawBlock: (canvas: Canvas, parentLayer: GraphicsLayer?) -> Unit,
         invalidateParentLayer: () -> Unit,
-        explicitLayer: GraphicsLayer?
-    ) = createLayer()
+        explicitLayer: GraphicsLayer?,
+        forceUseOldLayers: Boolean
+    ): OwnedLayer = createLayer()
 
     override fun requestOnPositionedCallback(layoutNode: LayoutNode) {
         TODO("Not yet implemented")
@@ -262,6 +280,10 @@ private class FakeOwner(
     override fun calculateLocalPosition(positionInWindow: Offset) = TODO("Not yet implemented")
 
     override fun requestFocus() = TODO("Not yet implemented")
+
+    override fun requestAutofill(node: LayoutNode) {
+        TODO("Not yet implemented")
+    }
 
     override fun onSemanticsChange() {}
 
@@ -623,6 +645,9 @@ internal open class MockLayer() : OwnedLayer {
     ) {}
 
     override fun transform(matrix: Matrix) {}
+
+    override val underlyingMatrix: Matrix
+        get() = Matrix()
 
     override fun inverseTransform(matrix: Matrix) {}
 

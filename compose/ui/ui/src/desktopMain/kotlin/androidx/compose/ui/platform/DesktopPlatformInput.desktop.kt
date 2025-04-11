@@ -34,9 +34,10 @@ import java.awt.im.InputMethodRequests
 import java.text.AttributedCharacterIterator
 import java.text.AttributedString
 import java.text.CharacterIterator
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
+import org.jetbrains.skiko.OS
+import org.jetbrains.skiko.hostOs
 
 internal class DesktopTextInputService(private val component: PlatformComponent) :
     PlatformTextInputService {
@@ -89,13 +90,8 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
         currentInput?.value = newValue
     }
 
-    // TODO(https://github.com/JetBrains/compose-jb/issues/2040): probably the position of input method
-    //  popup isn't correct now
-    @Deprecated("This method should not be called, use BringIntoViewRequester instead.")
     override fun notifyFocusedRect(rect: Rect) {
-        currentInput?.let { input ->
-            input.focusedRect = rect
-        }
+        currentInput?.focusedRect = rect
     }
 
     fun onKeyEvent(keyEvent: KeyEvent) {
@@ -108,30 +104,30 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
     }
 
     fun inputMethodTextChanged(event: InputMethodEvent) {
-        if (!event.isConsumed) {
+        if ((currentInput != null) && !event.isConsumed) {
             replaceInputMethodText(event)
             event.consume()
         }
     }
 
     private fun replaceInputMethodText(event: InputMethodEvent) {
-        currentInput?.let { input ->
-            val committed = event.text?.toStringUntil(event.committedCharacterCount).orEmpty()
-            val composing = event.text?.toStringFrom(event.committedCharacterCount).orEmpty()
-            val ops = mutableListOf<EditCommand>()
+        val input = currentInput ?: return
 
-            if (needToDeletePreviousChar && isMac && input.value.selection.min > 0 && composing.isEmpty()) {
-                needToDeletePreviousChar = false
-                ops.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
-            }
+        val committed = event.text?.toStringUntil(event.committedCharacterCount).orEmpty()
+        val composing = event.text?.toStringFrom(event.committedCharacterCount).orEmpty()
+        val ops = mutableListOf<EditCommand>()
 
-            ops.add(CommitTextCommand(committed, 1))
-            if (composing.isNotEmpty()) {
-                ops.add(SetComposingTextCommand(composing, 1))
-            }
-
-            input.onEditCommand.invoke(ops)
+        if (needToDeletePreviousChar && input.value.selection.min > 0 && composing.isEmpty()) {
+            needToDeletePreviousChar = false
+            ops.add(DeleteSurroundingTextInCodePointsCommand(1, 0))
         }
+
+        ops.add(CommitTextCommand(committed, 1))
+        if (composing.isNotEmpty()) {
+            ops.add(SetComposingTextCommand(composing, 1))
+        }
+
+        input.onEditCommand.invoke(ops)
     }
 
     private fun methodRequestsForInput(input: CurrentInput) =
@@ -171,7 +167,7 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
             override fun getSelectedText(
                 attributes: Array<AttributedCharacterIterator.Attribute>?
             ): AttributedCharacterIterator {
-                if (charKeyPressed) {
+                if (charKeyPressed && (hostOs == OS.MacOS)) {
                     needToDeletePreviousChar = true
                 }
                 val str = input.value.text.substring(input.value.selection)
@@ -240,6 +236,3 @@ private fun AttributedCharacterIterator.toStringFrom(index: Int): String {
     }
     return String(strBuf)
 }
-
-private val isMac =
-    System.getProperty("os.name").lowercase(Locale.ENGLISH).startsWith("mac")

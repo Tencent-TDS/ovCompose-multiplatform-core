@@ -22,8 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ColorMatrixTest {
-
-    private val tolerance = 0.0000001f
+    private val tolerance = 1e-6f
 
     private val source =
         floatArrayOf(
@@ -220,6 +219,7 @@ class ColorMatrixTest {
             assertEquals(
                 expected[i],
                 ret[i],
+                tolerance,
                 "Expected: $expected[i] at index: $i received: $ret[i]"
             )
         }

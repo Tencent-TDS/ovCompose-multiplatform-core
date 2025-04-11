@@ -22,7 +22,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.test.AndroidInputDispatcher
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.InputDispatcher
 import androidx.compose.ui.test.MouseButton
 import androidx.compose.ui.test.RobolectricMinSdk
@@ -32,6 +31,7 @@ import androidx.compose.ui.test.util.verifyKeyEvent
 import androidx.compose.ui.test.util.verifyMouseEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth
+import kotlin.collections.removeFirst as removeFirstKt
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +43,6 @@ import org.robolectric.annotation.Config
  */
 @RunWith(AndroidJUnit4::class)
 @Config(minSdk = RobolectricMinSdk)
-@OptIn(ExperimentalTestApi::class)
 class KeyAndMouseEventsTest : InputDispatcherTest() {
 
     companion object {
@@ -449,7 +448,7 @@ class KeyAndMouseEventsTest : InputDispatcherTest() {
     }
 
     private fun <E> MutableList<E>.removeFirst(n: Int): List<E> {
-        return mutableListOf<E>().also { result -> repeat(n) { result.add(removeFirst()) } }
+        return mutableListOf<E>().also { result -> repeat(n) { result.add(removeFirstKt()) } }
     }
 
     private fun enqueueKeyPress(key: Key) {

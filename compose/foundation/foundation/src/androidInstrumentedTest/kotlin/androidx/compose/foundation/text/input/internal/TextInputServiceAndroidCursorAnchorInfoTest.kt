@@ -22,6 +22,7 @@ import android.view.inputmethod.CursorAnchorInfo
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.InputConnection
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.ComposeInputMethodManagerTestRule
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.snapshots.ObserverHandle
@@ -341,7 +342,8 @@ internal class TextInputServiceAndroidCursorAnchorInfoTest {
             textFieldState = transformedState,
             textStyle = TextStyle.Default,
             singleLine = false,
-            softWrap = false
+            softWrap = false,
+            keyboardOptions = KeyboardOptions.Default
         )
         layoutState.layoutWithNewMeasureInputs(
             density = defaultDensity,
@@ -369,6 +371,8 @@ internal class TextInputServiceAndroidCursorAnchorInfoTest {
 
         override fun localToWindow(relativeToLocal: Offset): Offset = relativeToLocal + windowOffset
 
+        override fun localToScreen(relativeToLocal: Offset): Offset = relativeToLocal + windowOffset
+
         override fun localToRoot(relativeToLocal: Offset): Offset = relativeToLocal
 
         override fun localPositionOf(
@@ -381,6 +385,8 @@ internal class TextInputServiceAndroidCursorAnchorInfoTest {
             clipBounds: Boolean
         ): Rect =
             Rect(localPositionOf(sourceCoordinates, Offset.Zero), sourceCoordinates.size.toSize())
+
+        override fun transformFrom(sourceCoordinates: LayoutCoordinates, matrix: Matrix) {}
 
         override fun transformToScreen(matrix: Matrix) {
             matrix.translate(windowOffset.x, windowOffset.y, 0f)

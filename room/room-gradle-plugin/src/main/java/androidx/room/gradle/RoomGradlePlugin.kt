@@ -28,16 +28,16 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.ProjectLayout
-import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.ProviderFactory
 
 class RoomGradlePlugin
 @Inject
 constructor(
     projectLayout: ProjectLayout,
-    objectFactory: ObjectFactory,
+    providerFactory: ProviderFactory,
 ) : Plugin<Project> {
 
-    private val commonIntegration = CommonIntegration(projectLayout, objectFactory)
+    private val commonIntegration = CommonIntegration(projectLayout, providerFactory)
     private val androidIntegration by lazy { AndroidPluginIntegration(commonIntegration) }
     private val kmpIntegration by lazy { KotlinMultiplatformPluginIntegration(commonIntegration) }
 
@@ -74,12 +74,9 @@ constructor(
             }
         }
 
-        internal fun <V> Map<RoomExtension.MatchName, V>.findPair(key: String) =
-            RoomExtension.MatchName(key).let { if (containsKey(it)) it to getValue(it) else null }
-
         private fun Project.isGradleSyncRunning() =
-            gradleSyncProps.any {
-                it in this.properties && this.properties[it].toString().toBoolean()
+            gradleSyncProps.any { property ->
+                providers.gradleProperty(property).map { it.toBoolean() }.orElse(false).get()
             }
 
         private val gradleSyncProps by lazy {

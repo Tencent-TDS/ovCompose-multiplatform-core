@@ -160,19 +160,21 @@ internal class SharedBoundsNode(
         }
     }
 
-    private fun MeasureScope.place(placeable: Placeable): MeasureResult {
-        val (w, h) =
-            state.placeHolderSize.calculateSize(
-                requireLookaheadLayoutCoordinates().size,
-                IntSize(placeable.width, placeable.height)
-            )
-        return layout(w, h) {
+    private fun MeasureScope.approachPlace(placeable: Placeable): MeasureResult {
+        if (!sharedElement.foundMatch) {
             // No match
-            if (!sharedElement.foundMatch) {
+            return layout(placeable.width, placeable.height) {
                 // Update currentBounds
                 coordinates?.updateCurrentBounds()
                 placeable.place(0, 0)
-            } else {
+            }
+        } else {
+            val (w, h) =
+                state.placeHolderSize.calculateSize(
+                    requireLookaheadLayoutCoordinates().size,
+                    IntSize(placeable.width, placeable.height)
+                )
+            return layout(w, h) {
                 // Start animation if needed
                 if (sharedElement.targetBounds != null) {
                     boundsAnimation.animate(
@@ -229,7 +231,7 @@ internal class SharedBoundsNode(
                 } ?: constraints
             }
         val placeable = measurable.measure(resolvedConstraints)
-        return place(placeable)
+        return approachPlace(placeable)
     }
 
     private fun LayoutCoordinates.updateCurrentBounds() {
@@ -241,6 +243,7 @@ internal class SharedBoundsNode(
     }
 
     override fun ContentDrawScope.draw() {
+        state.firstFrameDrawn = true
         // Update clipPath
         state.clipPathInOverlay =
             state.overlayClip.getClipPath(

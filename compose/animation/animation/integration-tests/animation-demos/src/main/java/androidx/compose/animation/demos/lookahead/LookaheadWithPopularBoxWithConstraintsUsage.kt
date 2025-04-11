@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalComposeUiApi::class)
-
 package androidx.compose.animation.demos.lookahead
 
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.animateBounds
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.demos.R
 import androidx.compose.animation.demos.gesture.pastelColors
@@ -42,7 +42,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LookaheadScope
@@ -53,6 +52,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
 fun LookaheadWithPopularBoxWithConstraintsUsage() {
@@ -70,7 +70,7 @@ fun LookaheadWithPopularBoxWithConstraintsUsage() {
     LookaheadScope {
         Box(
             Modifier.fillMaxSize()
-                .animateBounds(Modifier.padding(padding))
+                .animateBounds(this, Modifier.padding(padding))
                 .background(pastelColors[3])
         ) {
             DetailsContent()

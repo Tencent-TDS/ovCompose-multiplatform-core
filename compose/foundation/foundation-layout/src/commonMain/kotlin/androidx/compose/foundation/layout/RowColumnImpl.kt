@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
-import kotlin.jvm.JvmInline
 import androidx.compose.ui.util.fastRoundToInt
+import kotlin.jvm.JvmInline
 import kotlin.math.max
 import kotlin.math.min
 
@@ -377,7 +377,7 @@ internal object IntrinsicMeasureBlocks {
     ): Int {
         return intrinsicCrossAxisSize(
             measurables,
-            { w -> minIntrinsicHeight(w) },
+            { w -> maxIntrinsicHeight(w) },
             { h -> maxIntrinsicWidth(h) },
             availableHeight,
             mainAxisSpacing,
@@ -391,7 +391,7 @@ internal object IntrinsicMeasureBlocks {
     ): Int {
         return intrinsicCrossAxisSize(
             measurables,
-            { h -> minIntrinsicWidth(h) },
+            { h -> maxIntrinsicWidth(h) },
             { w -> maxIntrinsicHeight(w) },
             availableWidth,
             mainAxisSpacing,

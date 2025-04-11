@@ -34,7 +34,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.res.ImageVectorCache
 import androidx.compose.ui.res.ResourceIdCache
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
 
@@ -54,11 +53,10 @@ internal val LocalImageVectorCache =
 internal val LocalResourceIdCache =
     staticCompositionLocalOf<ResourceIdCache> { noLocalProvidedFor("LocalResourceIdCache") }
 
-/** The CompositionLocal containing the current [LifecycleOwner]. */
 @Deprecated(
     "Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.",
     ReplaceWith("androidx.lifecycle.compose.LocalLifecycleOwner"),
- )
+)
 actual val LocalLifecycleOwner
     get() = LocalLifecycleOwner
 
@@ -97,6 +95,14 @@ internal fun ProvideAndroidCompositionLocals(
     }
     DisposableEffect(Unit) { onDispose { saveableStateRegistry.dispose() } }
 
+    val hapticFeedback = remember {
+        if (HapticDefaults.isPremiumVibratorEnabled(context)) {
+            DefaultHapticFeedback(owner.view)
+        } else {
+            NoHapticFeedback()
+        }
+    }
+
     val imageVectorCache = obtainImageVectorCache(context, configuration)
     val resourceIdCache = obtainResourceIdCache(context)
     val scrollCaptureInProgress =
@@ -111,6 +117,7 @@ internal fun ProvideAndroidCompositionLocals(
         LocalImageVectorCache provides imageVectorCache,
         LocalResourceIdCache provides resourceIdCache,
         LocalProvidableScrollCaptureInProgress provides scrollCaptureInProgress,
+        LocalHapticFeedback provides hapticFeedback,
     ) {
         ProvideCommonCompositionLocals(owner = owner, uriHandler = uriHandler, content = content)
     }
@@ -126,6 +133,7 @@ private fun obtainResourceIdCache(context: Context): ResourceIdCache {
                 resourceIdCache.clear()
             }
 
+            @Deprecated("This callback is superseded by onTrimMemory")
             override fun onLowMemory() {
                 resourceIdCache.clear()
             }
@@ -160,6 +168,7 @@ private fun obtainImageVectorCache(
                 currentConfiguration.setTo(configuration)
             }
 
+            @Deprecated("This callback is superseded by onTrimMemory")
             override fun onLowMemory() {
                 imageVectorCache.clear()
             }

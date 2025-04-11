@@ -127,7 +127,8 @@ internal class InflightCommandBuffers(
 internal class MetalRedrawer(
     private val metalLayer: CAMetalLayer,
     private var retrieveInteropTransaction: () -> UIKitInteropTransaction,
-    private var render: (Canvas, targetTimestamp: NSTimeInterval) -> Unit
+    private val useSeparateRenderThreadWhenPossible: Boolean,
+    private var render: (Canvas, targetTimestamp: NSTimeInterval) -> Unit,
 ) {
     /**
      * A wrapper around CAMetalLayer that allows to perform operations on its drawables without
@@ -165,11 +166,15 @@ internal class MetalRedrawer(
     }
 
     /**
-     * Set to `true` if need always running invalidation-independent displayLink for forcing UITouch
-     * events to come at the fastest possible cadence.
-     * Otherwise, touch events can come at rate lower than actual display refresh rate.
+     * Runs invalidation-independent displayLink for forcing UITouch events to come at the fastest
+     * possible cadence. Otherwise, touch events can come at rate lower than actual display refresh
+     * rate.
      */
-    var needsProactiveDisplayLink by displayLinkConditions::needsToBeProactive
+    var ongoingInteractionEventsCount: Int = 0
+        set(value) {
+            field = value
+            displayLinkConditions.needsToBeProactive = value > 0
+        }
 
     /**
      * True if Metal layer can be opaque. In this case if no interop views are present, Metal
@@ -273,17 +278,19 @@ internal class MetalRedrawer(
      * Marks current state as dirty and unpauses display link if needed and enables draw dispatch operation on
      * next vsync
      */
-    fun setNeedsRedraw() = displayLinkConditions.setNeedsRedraw()
+    fun setNeedsRedraw() {
+        displayLinkConditions.setNeedsRedraw()
+    }
 
     /**
      * Immediately dispatch draw and block the thread until it's finished and presented on the screen.
      */
-    fun drawSynchronously() {
+    fun draw(waitUntilCompletion: Boolean) {
         if (caDisplayLink == null) {
             return
         }
 
-        draw(waitUntilCompletion = true, CACurrentMediaTime())
+        draw(waitUntilCompletion, CACurrentMediaTime())
     }
 
     /**
@@ -381,8 +388,7 @@ internal class MetalRedrawer(
             // TODO: encoding on separate thread requires investigation for reported crashes
             //  https://github.com/JetBrains/compose-multiplatform/issues/3862
             //  https://youtrack.jetbrains.com/issue/COMPOSE-608/iOS-reproduce-and-investigate-parallel-rendering-encoding-crash
-            // val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion
-            val mustEncodeAndPresentOnMainThread = true
+            val mustEncodeAndPresentOnMainThread = presentsWithTransaction || waitUntilCompletion || !useSeparateRenderThreadWhenPossible
 
             val encodeAndPresentBlock = {
                 trace("MetalRedrawer:draw:encodeAndPresent") {

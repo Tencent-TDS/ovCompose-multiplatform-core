@@ -19,9 +19,10 @@ package androidx.compose.ui.node
 import androidx.collection.MutableObjectFloatMap
 import androidx.collection.MutableScatterMap
 import androidx.collection.MutableScatterSet
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.collection.mutableObjectIntMapOf
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.internal.checkPrecondition
+import androidx.compose.ui.internal.throwIllegalStateExceptionForNullCheck
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.LookaheadLayoutCoordinates
@@ -59,6 +60,24 @@ internal abstract class LookaheadCapablePlaceable :
      * `includeMotionFrameOfReference = false` in [LookaheadLayoutCoordinates.localPositionOf].
      */
     override var isPlacedUnderMotionFrameOfReference: Boolean = false
+
+    override fun updatePlacedUnderMotionFrameOfReference(newMFR: Boolean) {
+        val parentNode = parent?.layoutNode
+        if (parentNode == layoutNode) {
+            isPlacedUnderMotionFrameOfReference = newMFR
+        } else {
+            // This node is the beginning of the chain (i.e. outerCoordinator), check if this
+            // placement call comes from the parent
+            if (
+                parentNode?.layoutState == LayoutNode.LayoutState.LayingOut ||
+                    parentNode?.layoutState == LayoutNode.LayoutState.LookaheadLayingOut
+            ) {
+                isPlacedUnderMotionFrameOfReference = newMFR
+            }
+            // If the node is simply being replaced without parent, we need to maintain the flag
+            // from last time when `placeChildren` lambda was run. Therefore no op.
+        }
+    }
 
     val rulerScope: RulerScope
         get() {
@@ -131,7 +150,6 @@ internal abstract class LookaheadCapablePlaceable :
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     override val isLookingAhead: Boolean
         get() = false
 
@@ -360,7 +378,7 @@ internal abstract class LookaheadDelegate(
     override val measureResult: MeasureResult
         get() =
             _measureResult
-                ?: error(
+                ?: throwIllegalStateExceptionForNullCheck(
                     "LookaheadDelegate has not been measured yet when measureResult is requested."
                 )
 
@@ -419,10 +437,10 @@ internal abstract class LookaheadDelegate(
             field = result
         }
 
-    protected val cachedAlignmentLinesMap = mutableMapOf<AlignmentLine, Int>()
+    protected val cachedAlignmentLinesMap = mutableObjectIntMapOf<AlignmentLine>()
 
     internal fun getCachedAlignmentLine(alignmentLine: AlignmentLine): Int =
-        cachedAlignmentLinesMap[alignmentLine] ?: AlignmentLine.Unspecified
+        cachedAlignmentLinesMap.getOrDefault(alignmentLine, AlignmentLine.Unspecified)
 
     override fun replace() {
         placeAt(position, 0f, null)

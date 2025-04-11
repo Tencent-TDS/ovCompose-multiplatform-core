@@ -35,6 +35,7 @@ import androidx.room.ext.RxJava2TypeNames
 import androidx.room.ext.RxJava3TypeNames
 import androidx.room.ext.SupportDbTypeNames
 import androidx.room.processor.ProcessorErrors.RAW_QUERY_STRING_PARAMETER_REMOVED
+import androidx.room.runProcessorTestWithK1
 import androidx.room.testing.context
 import androidx.room.vo.RawQueryMethod
 import androidx.sqlite.db.SupportSQLiteQuery
@@ -543,7 +544,7 @@ class RawQueryMethodProcessorTest {
         singleQueryMethod(
             """
                 @SuppressWarnings(
-                    {RoomWarnings.CURSOR_MISMATCH, RoomWarnings.AMBIGUOUS_COLUMN_IN_RESULT}
+                    {RoomWarnings.QUERY_MISMATCH, RoomWarnings.AMBIGUOUS_COLUMN_IN_RESULT}
                 )
                 @RawQuery
                 abstract Map<@MapColumn(columnName = "uid") Integer, Book> getMultimap(
@@ -560,7 +561,7 @@ class RawQueryMethodProcessorTest {
         singleQueryMethod(
             """
                 @SuppressWarnings(
-                    {RoomWarnings.CURSOR_MISMATCH, RoomWarnings.AMBIGUOUS_COLUMN_IN_RESULT}
+                    {RoomWarnings.QUERY_MISMATCH, RoomWarnings.AMBIGUOUS_COLUMN_IN_RESULT}
                 )
                 @MapInfo(keyColumn = "uid", keyTable = "u")
                 @RawQuery
@@ -644,7 +645,7 @@ class RawQueryMethodProcessorTest {
                 COMMON.IMAGE_FORMAT,
                 COMMON.CONVERTER
             )
-        runProcessorTest(
+        runProcessorTestWithK1(
             sources = commonSources + inputSource,
             options = mapOf(Context.BooleanProcessorOptions.GENERATE_KOTLIN.argName to "false"),
         ) { invocation ->
@@ -698,7 +699,7 @@ class RawQueryMethodProcessorTest {
                 COMMON.FLOW,
                 COMMON.GUAVA_ROOM
             )
-        runProcessorTest(sources = commonSources + inputSource) { invocation ->
+        runProcessorTestWithK1(sources = commonSources + inputSource) { invocation ->
             val (owner, methods) =
                 invocation.roundEnv
                     .getElementsAnnotatedWith(Dao::class.qualifiedName!!)
