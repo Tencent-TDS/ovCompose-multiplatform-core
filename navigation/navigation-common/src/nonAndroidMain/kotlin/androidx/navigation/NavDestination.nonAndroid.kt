@@ -36,7 +36,7 @@ actual constructor(public actual val navigatorName: String) {
 
     private val impl = NavDestinationImpl(this)
 
-    public actual constructor(navigator: Navigator<out NavDestination>) : this("")
+    public actual constructor(navigator: Navigator<out NavDestination>) : this(navigator.name)
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual class DeepLinkMatch
