@@ -329,12 +329,8 @@ private sealed interface AccessibilityNode {
 
         override val isAccessibilityElement = false
 
-        override val accessibilityContainerType: UIAccessibilityContainerType
-            get() = if (semanticsNode.isTraversalGroup) {
-                UIAccessibilityContainerTypeSemanticGroup
-            } else {
-                UIAccessibilityContainerTypeNone
-            }
+        override val accessibilityContainerType: UIAccessibilityContainerType =
+            UIAccessibilityContainerTypeSemanticGroup
     }
 }
 
@@ -386,9 +382,7 @@ private class AccessibilityRoot(
 
     // UIFocusItemContainerProtocol
 
-    override fun coordinateSpace(): UICoordinateSpaceProtocol {
-        return mediator.view.window ?: mediator.view
-    }
+    override fun coordinateSpace(): UICoordinateSpaceProtocol = mediator.view
 
     override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
         return if (mediator.isEnabled) {
@@ -599,6 +593,9 @@ private class AccessibilityElement(
         }
     }
 
+    override fun accessibilityContainerType(): UIAccessibilityContainerType =
+        node.accessibilityContainerType
+
     private fun debugContainmentChain() = debugContainmentChain(this)
 
     fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
@@ -665,7 +662,7 @@ private class AccessibilityElement(
         var component: Any? = accessibilityContainer
         while (component != null) {
             when (component) {
-                is UIView -> return component.window ?: component
+                is UIView -> return component
                 is CMPAccessibilityElement -> component = component.accessibilityContainer
                 else -> error("Unexpected coordinate space.")
             }
@@ -742,20 +739,7 @@ internal class AccessibilityMediator(
             field = value
             accessibilityDebugLogger?.log("Focus mode: $focusMode")
 
-            val ids = (focusMode as? AccessibilityElementFocusMode.KeepFocus)?.key?.let {
-                accessibilityElementsMap[it]?.node?.semanticsNode?.allScrollableParentNodeIds
-            } ?: emptySet()
-
-            if (focusedNodesScrollableParentsIds != ids) {
-                focusedNodesScrollableParentsIds = ids
-                invalidationChannel.trySend(Unit)
-
-                if (ids.isNotEmpty()) {
-                    // Hack to fix an issue where iOS accessibility only reads the items visible
-                    // at the moment of the beginning of the "Speak Screen" command.
-                    UIAccessibilityPostNotification(UIAccessibilityPageScrolledNotification, null)
-                }
-            }
+            scheduleFocusedScrollableParentsIdsUpdate()
         }
 
     var focusedNodesScrollableParentsIds = setOf<Int>()
@@ -951,6 +935,30 @@ internal class AccessibilityMediator(
 
         root.element = null
         accessibilityElementsMap.clear()
+    }
+
+    private var focusedScrollableParentsIdsUpdateJob: Job? = null
+    private fun scheduleFocusedScrollableParentsIdsUpdate() {
+        focusedScrollableParentsIdsUpdateJob?.cancel()
+        focusedScrollableParentsIdsUpdateJob = coroutineScope.launch {
+            // Throttle the recalculation of scrollable parent node IDs to avoid unnecessary
+            // reloading of the accessibility tree when the focusMode changes quickly.
+            delay(10)
+            val ids = (focusMode as? AccessibilityElementFocusMode.KeepFocus)?.key?.let {
+                accessibilityElementsMap[it]?.node?.semanticsNode?.allScrollableParentNodeIds
+            } ?: emptySet()
+
+            if (focusedNodesScrollableParentsIds != ids) {
+                focusedNodesScrollableParentsIds = ids
+                invalidationChannel.trySend(Unit)
+
+                if (ids.isNotEmpty()) {
+                    // Hack to fix an issue where iOS accessibility only reads the items visible
+                    // at the moment of the beginning of the "Speak Screen" command.
+                    UIAccessibilityPostNotification(UIAccessibilityPageScrolledNotification, null)
+                }
+            }
+        }
     }
 
     private fun createOrUpdateAccessibilityElement(

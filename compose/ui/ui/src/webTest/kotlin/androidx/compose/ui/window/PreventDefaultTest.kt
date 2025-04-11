@@ -22,9 +22,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.OnCanvasTests
 import androidx.compose.ui.events.keyEvent
-import androidx.compose.ui.events.keyDownEventUnprevented
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -58,7 +58,11 @@ class PreventDefaultTest : OnCanvasTests {
         assertEquals(1, stack.size)
         assertTrue(stack.last())
 
-        dispatchEvents(keyDownEventUnprevented())
+        dispatchEvents(keyEvent(
+            ctrlKey = true,
+            key = "Control",
+            keyCode = Key.CtrlLeft.keyCode.toInt()
+        ))
         assertEquals(2, stack.size)
         assertFalse(stack.last())
 

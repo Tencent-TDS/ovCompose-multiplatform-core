@@ -84,14 +84,14 @@ object ComposeUiFlags {
      * This enables fixes for View focus. The changes are large enough to require a flag to allow
      * disabling them.
      */
-    @Suppress("MutableBareField") @JvmField var isViewFocusFixEnabled: Boolean = true
+    @Suppress("MutableBareField") @JvmField var isViewFocusFixEnabled: Boolean = false
 
     /**
      * When an embedded view that is focused is removed from the hierarchy, it triggers a
      * requestFocus() which tries to re-assign focus before the previous composition is complete.
      * This flag enables a fix for this issue.
      */
-    @Suppress("MutableBareField") @JvmField var isRemoveFocusedViewFixEnabled: Boolean = true
+    @Suppress("MutableBareField") @JvmField var isRemoveFocusedViewFixEnabled: Boolean = false
 
     /**
      * With this flag on, the new focus state management implementation is enabled. The new

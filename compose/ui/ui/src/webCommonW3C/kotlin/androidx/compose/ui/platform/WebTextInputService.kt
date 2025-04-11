@@ -18,21 +18,21 @@ package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.text.input.EditCommand
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService
 import androidx.compose.ui.text.input.TextFieldValue
-import org.w3c.dom.events.KeyboardEvent
 
 internal interface InputAwareInputService {
     fun getOffset(rect: Rect): Offset
-    fun processKeyboardEvent(keyboardEvent: KeyboardEvent)
+    fun processKeyboardEvent(keyboardEvent: KeyEvent): Boolean
 }
 
 internal abstract class WebTextInputService : PlatformTextInputService, InputAwareInputService {
 
-    private var backingTextArea: BackingTextArea? = null
+    private var backingDomInput: BackingDomInput? = null
         set(value) {
             field?.dispose()
             field = value
@@ -44,37 +44,43 @@ internal abstract class WebTextInputService : PlatformTextInputService, InputAwa
         onEditCommand: (List<EditCommand>) -> Unit,
         onImeActionPerformed: (ImeAction) -> Unit
     ) {
-        backingTextArea =
-            BackingTextArea(
+        backingDomInput =
+            BackingDomInput(
                 imeOptions = imeOptions,
-                onEditCommand = onEditCommand,
-                onImeActionPerformed = onImeActionPerformed,
-                processKeyboardEvent = this::processKeyboardEvent
+                composeCommunicator = object : ComposeCommandCommunicator {
+                    override fun sendKeyboardEvent(keyboardEvent: KeyEvent): Boolean {
+                        return this@WebTextInputService.processKeyboardEvent(keyboardEvent)
+                    }
+
+                    override fun sendEditCommand(commands: List<EditCommand>) {
+                        onEditCommand(commands)
+                    }
+                }
             )
-        backingTextArea?.register()
+        backingDomInput?.register()
 
         showSoftwareKeyboard()
     }
 
     override fun stopInput() {
-        backingTextArea?.dispose()
+        backingDomInput?.dispose()
     }
 
     override fun showSoftwareKeyboard() {
-        backingTextArea?.focus()
+        backingDomInput?.focus()
     }
 
     override fun hideSoftwareKeyboard() {
-        backingTextArea?.blur()
+        backingDomInput?.blur()
     }
 
     override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) {
-        backingTextArea?.updateState(newValue)
+        backingDomInput?.updateState(newValue)
     }
 
     override fun notifyFocusedRect(rect: Rect) {
         super.notifyFocusedRect(rect)
-        backingTextArea?.updateHtmlInputPosition(getOffset(rect))
+        backingDomInput?.updateHtmlInputPosition(getOffset(rect))
     }
 
 }
