@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,27 +23,44 @@
  */
 
 
-import androidx.build.KotlinTarget
-import androidx.build.SoftwareType
-import androidx.build.PlatformIdentifier
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import androidx.build.AndroidXComposePlugin
+import androidx.build.JetbrainsAndroidXPlugin
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
+    id("AndroidXComposePlugin")
+    id("com.android.library")
+    id("JetbrainsAndroidXPlugin")
 }
 
-androidXMultiplatform {
-    androidLibrary {
-        namespace = "androidx.compose.runtime.annotation"
-    }
-    jvm()
-    mac()
-    linux()
-    ios()
-    watchos()
-    tvos()
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
-    defaultPlatform(PlatformIdentifier.JVM)
+androidXComposeMultiplatform {
+    android()
+    desktop()
+    js()
+    wasm()
+    darwin()
+
+    linuxX64()
+    linuxArm64()
+}
+
+kotlin {
+    // Not all modules can have these targets, so declare them here instead of androidXComposeMultiplatform.
+    // We can support the kotlin-native targets supported by kotlin coroutines:
+    // https://github.com/Kotlin/kotlinx.coroutines/blob/master/buildSrc/src/main/kotlin/kotlin-multiplatform-conventions.gradle.kts
+    // NOTE: Keep this list in sync with runtime-saveable's targets.
+    watchosArm64()
+    watchosArm32()
+    watchosX64()
+    watchosSimulatorArm64()
+    tvosArm64()
+    tvosX64()
+    tvosSimulatorArm64()
+    mingwX64()
 
     sourceSets {
         commonMain {
@@ -56,11 +73,20 @@ androidXMultiplatform {
 
 androidx {
     name = "Compose Runtime Annotation"
-    type = SoftwareType.PUBLISHED_LIBRARY
+    type = LibraryType.PUBLISHED_LIBRARY
     inceptionYear = "2025"
     description = "Provides Compose-specific annotations used by the compiler and tooling"
-    samples(project(":compose:runtime:runtime-annotation:runtime-annotation-samples"))
-    //TODO(b/407640605): Target Kotlin 2 when :compose:runtime:runtime does. The two tasks below fail:
-    // :compose:runtime:runtime:jvmStubsTest and :compose:runtime:runtime:testReleaseUnitTest
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
+}
+
+android {
+    namespace "androidx.compose.runtime.annotation"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+androidxCompose {
+    composeCompilerPluginEnabled = false
 }

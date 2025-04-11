@@ -1,3 +1,19 @@
+/*
+ * Copyright 2025 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 /**
  * This file was created using the `create_project.py` script located in the
  * `<AndroidX root>/development/project-creator` directory.
@@ -6,27 +22,36 @@
  * modifying its settings.
  */
 
-import androidx.build.SoftwareType
-import androidx.build.PlatformIdentifier
+import androidx.build.JetbrainsAndroidXPlugin
+import androidx.build.AndroidXComposePlugin
+import androidx.build.Publish
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
+    id("AndroidXComposePlugin")
     alias(libs.plugins.kotlinSerialization)
+    id("JetbrainsAndroidXPlugin")
 }
 
-androidXMultiplatform {
-    androidTarget()
-    jvmStubs()
-    linuxX64Stubs()
+AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+JetbrainsAndroidXPlugin.applyAndConfigure(project)
 
-    defaultPlatform(PlatformIdentifier.ANDROID)
+androidXComposeMultiplatform {
+    android()
+    desktop()
+    darwin()
+    js()
+    wasm()
+}
 
+kotlin {
     sourceSets {
         commonMain {
             dependencies {
                 api(project(":savedstate:savedstate"))
-                api("androidx.compose.runtime:runtime:1.7.5")
+                api(project(":compose:runtime:runtime"))
             }
         }
 
@@ -69,12 +94,15 @@ androidXMultiplatform {
             dependsOn(commonMain)
         }
 
-        jvmStubsMain {
-            dependsOn(nonAndroidMain)
+        nonAndroidTest {
+            dependsOn(commonTest)
         }
 
-        linuxx64StubsMain {
-            dependsOn(nonAndroidMain)
+        targets.all { target ->
+            if (target.platformType !in [KotlinPlatformType.androidJvm, KotlinPlatformType.common]) {
+                target.compilations["main"].defaultSourceSet.dependsOn(nonAndroidMain)
+                target.compilations["test"].defaultSourceSet.dependsOn(nonAndroidTest)
+            }
         }
     }
 }
@@ -89,8 +117,7 @@ android {
 
 androidx {
     name = "Saved State Compose"
-    type = SoftwareType.PUBLISHED_LIBRARY
-    samples(project(":savedstate:savedstate-compose"))
+    publish = Publish.SNAPSHOT_AND_RELEASE
     inceptionYear = "2018"
     description = "Compose integration with Saved State"
     metalavaK2UastEnabled = false
