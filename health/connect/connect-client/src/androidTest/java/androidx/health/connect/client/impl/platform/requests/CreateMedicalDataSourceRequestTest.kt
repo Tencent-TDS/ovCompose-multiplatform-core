@@ -24,8 +24,6 @@ import androidx.health.connect.client.impl.platform.request.PlatformCreateMedica
 import androidx.health.connect.client.records.FhirVersion
 import androidx.health.connect.client.request.CreateMedicalDataSourceRequest
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -34,7 +32,6 @@ import org.junit.runner.RunWith
 
 @ExperimentalPersonalHealthRecordApi
 @RunWith(AndroidJUnit4::class)
-@SmallTest
 class CreateMedicalDataSourceRequestTest {
 
     @Before
@@ -47,41 +44,43 @@ class CreateMedicalDataSourceRequestTest {
 
     @Test
     fun validCreateMedicalDataSourceRequest_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                CreateMedicalDataSourceRequest(
-                    fhirBaseUri = FHIR_BASE_URI,
-                    displayName = DISPLAY_NAME,
-                    fhirVersion = FHIR_VERSION,
-                ),
-                CreateMedicalDataSourceRequest(
-                    fhirBaseUri = FHIR_BASE_URI,
-                    displayName = DISPLAY_NAME,
-                    fhirVersion = FHIR_VERSION,
-                )
+        val request1 =
+            CreateMedicalDataSourceRequest(
+                fhirBaseUri = FHIR_BASE_URI,
+                displayName = DISPLAY_NAME,
+                fhirVersion = FHIR_VERSION,
             )
-            .addEqualityGroup(
-                CreateMedicalDataSourceRequest(
-                    fhirBaseUri = FHIR_BASE_URI.buildUpon().appendPath("2/").build(),
-                    displayName = DISPLAY_NAME,
-                    fhirVersion = FHIR_VERSION,
-                )
+        val request2 =
+            CreateMedicalDataSourceRequest(
+                fhirBaseUri = FHIR_BASE_URI,
+                displayName = DISPLAY_NAME,
+                fhirVersion = FHIR_VERSION,
             )
-            .addEqualityGroup(
-                CreateMedicalDataSourceRequest(
-                    fhirBaseUri = FHIR_BASE_URI,
-                    displayName = "$DISPLAY_NAME Two",
-                    fhirVersion = FHIR_VERSION,
-                )
+        val request3 =
+            CreateMedicalDataSourceRequest(
+                fhirBaseUri = FHIR_BASE_URI.buildUpon().appendPath("2/").build(),
+                displayName = DISPLAY_NAME,
+                fhirVersion = FHIR_VERSION,
             )
-            .addEqualityGroup(
-                CreateMedicalDataSourceRequest(
-                    fhirBaseUri = FHIR_BASE_URI,
-                    displayName = DISPLAY_NAME,
-                    fhirVersion = FhirVersion(4, 3, 0),
-                )
+        val request4 =
+            CreateMedicalDataSourceRequest(
+                fhirBaseUri = FHIR_BASE_URI,
+                displayName = "$DISPLAY_NAME Two",
+                fhirVersion = FHIR_VERSION,
             )
-            .testEquals()
+        val request5 =
+            CreateMedicalDataSourceRequest(
+                fhirBaseUri = FHIR_BASE_URI,
+                displayName = DISPLAY_NAME,
+                fhirVersion = FhirVersion(4, 3, 0),
+            )
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1).isNotEqualTo(request3)
+        assertThat(request1).isNotEqualTo(request4)
+        assertThat(request1).isNotEqualTo(request5)
+        assertThat(request3).isNotEqualTo(request4)
+        assertThat(request3).isNotEqualTo(request5)
     }
 
     @Test

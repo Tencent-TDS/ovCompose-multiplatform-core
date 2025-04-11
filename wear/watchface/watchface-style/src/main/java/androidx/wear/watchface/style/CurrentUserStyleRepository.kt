@@ -16,6 +16,7 @@
 
 package androidx.wear.watchface.style
 
+import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
 import android.graphics.drawable.Icon
@@ -474,6 +475,7 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
     companion object {
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Throws(IOException::class, XmlPullParserException::class)
+        @SuppressLint("NewApi") // ColorUserStyleSetting
         fun inflate(
             resources: Resources,
             parser: XmlResourceParser,
@@ -491,6 +493,14 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
                     "BooleanUserStyleSetting" ->
                         userStyleSettings.add(
                             UserStyleSetting.BooleanUserStyleSetting.inflate(resources, parser)
+                        )
+                    "ColorUserStyleSetting" ->
+                        userStyleSettings.add(
+                            UserStyleSetting.ColorUserStyleSetting.inflate(
+                                resources,
+                                parser,
+                                idToSetting
+                            )
                         )
                     "ComplicationSlotsUserStyleSetting" ->
                         userStyleSettings.add(

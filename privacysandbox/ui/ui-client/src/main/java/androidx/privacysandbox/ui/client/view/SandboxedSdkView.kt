@@ -92,8 +92,8 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     private var poolingContainerListener = PoolingContainerListener {}
     private var eventListener: SandboxedSdkViewEventListener? = null
     private val frameCommitCallback = Runnable { sendUiDisplayedEvents() }
+    private var closeSessionOnWindowDetachment = true
     internal var signalMeasurer: SandboxedSdkViewSignalMeasurer? = null
-    internal var isInComposeNode = false
 
     /**
      * Sets an event listener to the [SandboxedSdkView] and starts reporting the new events. To
@@ -106,7 +106,14 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
         this.eventListener = eventListener
     }
 
-    fun setAdapter(sandboxedUiAdapter: SandboxedUiAdapter) {
+    /**
+     * Sets [SandboxedUiAdapter] to the SandboxedSdkView and tries to establish the session.
+     *
+     * @param sandboxedUiAdapter instance of [SandboxedUiAdapter]. If same instance of
+     *   [SandboxedUiAdapter] is passed then it's no-op. If null value is passed then it closes any
+     *   existing sessions.
+     */
+    fun setAdapter(sandboxedUiAdapter: SandboxedUiAdapter?) {
         if (this.adapter === sandboxedUiAdapter) return
         client?.close()
         client = null
@@ -136,6 +143,19 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
 
     internal fun isProviderUiAboveClientUi(): Boolean {
         return isZOrderOnTop
+    }
+
+    /**
+     * Modifies the behaviour of closing the session on window detachment. This method has no effect
+     * when the SandboxedSdkView is parented by a PoolingContainer where session is closed only on
+     * onRelease of PoolingContainerListener.
+     *
+     * @param preserveSessionOnWindowDetachment when true, session is not closed by SandboxedSdkView
+     *   on window detachment. When false, it will follow the default behaviour that the session
+     *   will be closed by SandboxedSdkView on window detachment.
+     */
+    fun preserveSessionOnWindowDetachment(preserveSessionOnWindowDetachment: Boolean = true) {
+        this.closeSessionOnWindowDetachment = !preserveSessionOnWindowDetachment
     }
 
     private fun checkClientOpenSession(
@@ -319,6 +339,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     override fun setAlpha(alpha: Float) {
         super.setAlpha(alpha)
         signalMeasurer?.requestUpdatedSignals()
+        contentView?.alpha = alpha
     }
 
     internal fun closeClient() {
@@ -369,7 +390,7 @@ class SandboxedSdkView @JvmOverloads constructor(context: Context, attrs: Attrib
     }
 
     override fun onDetachedFromWindow() {
-        if (!this.isInComposeNode && !this.isWithinPoolingContainer) {
+        if (!this.isWithinPoolingContainer && closeSessionOnWindowDetachment) {
             closeClient()
         }
         signalMeasurer?.stopMeasuring()

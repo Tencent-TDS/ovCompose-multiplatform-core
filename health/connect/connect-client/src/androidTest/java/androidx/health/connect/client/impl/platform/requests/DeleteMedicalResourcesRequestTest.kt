@@ -23,8 +23,6 @@ import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_
 import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_RESOURCE_TYPE_CONDITIONS
 import androidx.health.connect.client.request.DeleteMedicalResourcesRequest
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertThrows
 import org.junit.Assume
@@ -34,7 +32,6 @@ import org.junit.runner.RunWith
 
 @OptIn(ExperimentalPersonalHealthRecordApi::class)
 @RunWith(AndroidJUnit4::class)
-@SmallTest
 class DeleteMedicalResourcesRequestTest {
 
     @Before
@@ -47,30 +44,37 @@ class DeleteMedicalResourcesRequestTest {
 
     @Test
     fun validDeleteMedicalResourcesRequest_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                DeleteMedicalResourcesRequest(
-                    dataSourceIds = TEST_DATA_SOURCE_IDS,
-                    medicalResourceTypes = TEST_MEDICAL_RESOURCE_TYPES
-                ),
-                DeleteMedicalResourcesRequest(
-                    dataSourceIds = TEST_DATA_SOURCE_IDS,
-                    medicalResourceTypes = TEST_MEDICAL_RESOURCE_TYPES
-                )
+        val request1 =
+            DeleteMedicalResourcesRequest(
+                dataSourceIds = TEST_DATA_SOURCE_IDS,
+                medicalResourceTypes = TEST_MEDICAL_RESOURCE_TYPES
             )
-            .addEqualityGroup(DeleteMedicalResourcesRequest(dataSourceIds = TEST_DATA_SOURCE_IDS_2))
-            .addEqualityGroup(
-                DeleteMedicalResourcesRequest(
-                    medicalResourceTypes =
-                        TEST_MEDICAL_RESOURCE_TYPES + MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES
-                )
+        val request2 =
+            DeleteMedicalResourcesRequest(
+                dataSourceIds = TEST_DATA_SOURCE_IDS,
+                medicalResourceTypes = TEST_MEDICAL_RESOURCE_TYPES
             )
-            .addEqualityGroup(
-                DeleteMedicalResourcesRequest(
-                    medicalResourceTypes = setOf(MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES)
-                )
+        val request3 = DeleteMedicalResourcesRequest(dataSourceIds = TEST_DATA_SOURCE_IDS_2)
+        val request4 =
+            DeleteMedicalResourcesRequest(
+                medicalResourceTypes =
+                    TEST_MEDICAL_RESOURCE_TYPES + MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES
             )
-            .testEquals()
+        val request5 =
+            DeleteMedicalResourcesRequest(
+                medicalResourceTypes = setOf(MEDICAL_RESOURCE_TYPE_ALLERGIES_INTOLERANCES)
+            )
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1).isNotEqualTo(request3)
+        assertThat(request1).isNotEqualTo(request4)
+        assertThat(request1).isNotEqualTo(request5)
+        assertThat(request3).isNotEqualTo(request4)
+        assertThat(request3).isNotEqualTo(request5)
+        assertThat(request4).isNotEqualTo(request5)
+        assertThat(request2).isNotEqualTo(request3)
+        assertThat(request2).isNotEqualTo(request4)
+        assertThat(request2).isNotEqualTo(request5)
     }
 
     @Test

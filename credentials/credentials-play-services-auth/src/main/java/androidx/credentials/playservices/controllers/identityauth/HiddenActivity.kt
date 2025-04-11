@@ -213,60 +213,41 @@ open class HiddenActivity : Activity() {
 
     @Suppress("deprecation")
     private fun handleBeginSignIn() {
-        val params: com.google.android.gms.auth.api.identity.BeginSignInRequest? =
-            intent.getParcelableExtra(CredentialProviderBaseController.REQUEST_TAG)
+        val pendingIntent: PendingIntent? =
+            intent.getParcelableExtra(CredentialProviderBaseController.EXTRA_GET_CREDENTIAL_INTENT)
+
         val requestCode: Int =
             intent.getIntExtra(
                 CredentialProviderBaseController.ACTIVITY_REQUEST_CODE_TAG,
                 DEFAULT_VALUE
             )
-        params?.let {
-            com.google.android.gms.auth.api.identity.Identity.getSignInClient(this)
-                .beginSignIn(params)
-                .addOnSuccessListener {
-                    try {
-                        mWaitingForActivityResult = true
-                        startIntentSenderForResult(
-                            it.pendingIntent.intentSender,
-                            requestCode,
-                            null,
-                            0,
-                            0,
-                            0,
-                            null
-                        )
-                    } catch (e: IntentSender.SendIntentException) {
-                        setupFailure(
-                            resultReceiver!!,
-                            CredentialProviderBaseController.Companion.GET_UNKNOWN,
-                            "During begin sign in, one tap ui intent sender " +
-                                "failure: ${e.message}"
-                        )
-                    }
-                }
-                .addOnFailureListener { e: Exception ->
-                    var errName: String =
-                        CredentialProviderBaseController.Companion.GET_NO_CREDENTIALS
-                    if (
-                        e is ApiException &&
-                            e.statusCode in CredentialProviderBaseController.retryables
-                    ) {
-                        errName = CredentialProviderBaseController.Companion.GET_INTERRUPTED
-                    }
-                    setupFailure(
-                        resultReceiver!!,
-                        errName,
-                        "During begin sign in, failure response from one tap: ${e.message}"
-                    )
-                }
-        }
-            ?: run {
-                Log.i(
-                    TAG,
-                    "During begin sign in, params is null, nothing to launch for " + "begin sign in"
+
+        if (pendingIntent != null) {
+            try {
+                mWaitingForActivityResult = true
+                startIntentSenderForResult(
+                    pendingIntent.intentSender,
+                    requestCode,
+                    null,
+                    0,
+                    0,
+                    0,
+                    null
                 )
-                finish()
+            } catch (e: IntentSender.SendIntentException) {
+                setupFailure(
+                    resultReceiver!!,
+                    CredentialProviderBaseController.Companion.GET_UNKNOWN,
+                    "During begin sign in, one tap ui intent sender " + "failure: ${e.message}"
+                )
             }
+        } else {
+            setupFailure(
+                resultReceiver!!,
+                CredentialProviderBaseController.Companion.GET_UNKNOWN,
+                "internal error"
+            )
+        }
     }
 
     @Suppress("deprecation")

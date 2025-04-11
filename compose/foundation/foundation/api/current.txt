@@ -953,23 +953,23 @@ package androidx.compose.foundation.lazy {
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyListState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.LazyListPrefetchStrategy prefetchStrategy);
     method public suspend Object? animateScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public float dispatchRawDelta(float delta);
-    method public int getFirstVisibleItemIndex();
-    method public int getFirstVisibleItemScrollOffset();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public int getFirstVisibleItemIndex();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public int getFirstVisibleItemScrollOffset();
     method public androidx.compose.foundation.interaction.InteractionSource getInteractionSource();
-    method public androidx.compose.foundation.lazy.LazyListLayoutInfo getLayoutInfo();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public androidx.compose.foundation.lazy.LazyListLayoutInfo getLayoutInfo();
     method public boolean isScrollInProgress();
     method public void requestScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset);
     method public suspend Object? scroll(androidx.compose.foundation.MutatePriority scrollPriority, kotlin.jvm.functions.Function2<? super androidx.compose.foundation.gestures.ScrollScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? scrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     property public boolean canScrollBackward;
     property public boolean canScrollForward;
-    property public int firstVisibleItemIndex;
-    property public int firstVisibleItemScrollOffset;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public int firstVisibleItemIndex;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public int firstVisibleItemScrollOffset;
     property public androidx.compose.foundation.interaction.InteractionSource interactionSource;
     property public boolean isScrollInProgress;
     property public boolean lastScrolledBackward;
     property public boolean lastScrolledForward;
-    property public androidx.compose.foundation.lazy.LazyListLayoutInfo layoutInfo;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public androidx.compose.foundation.lazy.LazyListLayoutInfo layoutInfo;
     field public static final androidx.compose.foundation.lazy.LazyListState.Companion Companion;
   }
 
@@ -1139,23 +1139,23 @@ package androidx.compose.foundation.lazy.grid {
     ctor @SuppressCompatibility @androidx.compose.foundation.ExperimentalFoundationApi public LazyGridState(optional int firstVisibleItemIndex, optional int firstVisibleItemScrollOffset, optional androidx.compose.foundation.lazy.grid.LazyGridPrefetchStrategy prefetchStrategy);
     method public suspend Object? animateScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public float dispatchRawDelta(float delta);
-    method public int getFirstVisibleItemIndex();
-    method public int getFirstVisibleItemScrollOffset();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public int getFirstVisibleItemIndex();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public int getFirstVisibleItemScrollOffset();
     method public androidx.compose.foundation.interaction.InteractionSource getInteractionSource();
-    method public androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo getLayoutInfo();
+    method @androidx.compose.runtime.annotation.FrequentlyChangingValue public androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo getLayoutInfo();
     method public boolean isScrollInProgress();
     method public void requestScrollToItem(@IntRange(from=0L) int index, optional int scrollOffset);
     method public suspend Object? scroll(androidx.compose.foundation.MutatePriority scrollPriority, kotlin.jvm.functions.Function2<? super androidx.compose.foundation.gestures.ScrollScope,? super kotlin.coroutines.Continuation<? super kotlin.Unit>,? extends java.lang.Object?> block, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     method public suspend Object? scrollToItem(@IntRange(from=0L) int index, optional int scrollOffset, kotlin.coroutines.Continuation<? super kotlin.Unit>);
     property public boolean canScrollBackward;
     property public boolean canScrollForward;
-    property public int firstVisibleItemIndex;
-    property public int firstVisibleItemScrollOffset;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public int firstVisibleItemIndex;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public int firstVisibleItemScrollOffset;
     property public androidx.compose.foundation.interaction.InteractionSource interactionSource;
     property public boolean isScrollInProgress;
     property public boolean lastScrolledBackward;
     property public boolean lastScrolledForward;
-    property public androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo layoutInfo;
+    property @androidx.compose.runtime.annotation.FrequentlyChangingValue public androidx.compose.foundation.lazy.grid.LazyGridLayoutInfo layoutInfo;
     field public static final androidx.compose.foundation.lazy.grid.LazyGridState.Companion Companion;
   }
 

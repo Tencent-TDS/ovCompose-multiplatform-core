@@ -99,6 +99,38 @@ class SandboxedSdkViewTest {
     }
 
     @Test
+    fun nullAdapterClosesEstablishedSessionTest() {
+        addViewToLayout()
+        testSandboxedUiAdapter.assertSessionOpened()
+
+        activityScenarioRule.withActivity { view.setAdapter(null) }
+        testSandboxedUiAdapter.assertSessionClosed()
+    }
+
+    @Test
+    fun preserveSessionOnWindowDetachmentSessionRemainsOpenOnWindowDetachment() {
+        addViewToLayout()
+        testSandboxedUiAdapter.assertSessionOpened()
+
+        activityScenarioRule.withActivity { view.preserveSessionOnWindowDetachment() }
+        removeAllViewsFromLayout()
+        testSandboxedUiAdapter.assertSessionNotClosed()
+    }
+
+    @Test
+    fun doNotPreserveSessionOnWindowDetachmentSessionClosesOnWindowDetachment() {
+        addViewToLayout()
+        testSandboxedUiAdapter.assertSessionOpened()
+
+        activityScenarioRule.withActivity {
+            view.preserveSessionOnWindowDetachment()
+            view.preserveSessionOnWindowDetachment(false)
+        }
+        removeAllViewsFromLayout()
+        testSandboxedUiAdapter.assertSessionClosed()
+    }
+
+    @Test
     fun eventListenerErrorTest() {
         activityScenarioRule.withActivity { view.setAdapter(FailingTestSandboxedUiAdapter()) }
         addViewToLayout()
@@ -620,6 +652,17 @@ class SandboxedSdkViewTest {
         val containerWidth = sandboxedSdkViewUiInfo.uiContainerWidth
         val onScreenWidth = sandboxedSdkViewUiInfo.onScreenGeometry.width().toFloat()
         assertThat(containerWidth - newXPosition).isEqualTo(onScreenWidth)
+    }
+
+    @Test
+    fun setAlphaUpdatesContentViewAlpha() {
+        addViewToLayoutAndWaitToBeActive()
+        val session = testSandboxedUiAdapter.testSession!!
+        val newAlpha = 0.5f
+        session.runAndRetrieveNextUiChange {
+            activityScenarioRule.withActivity { view.alpha = newAlpha }
+        }
+        assertThat(view.getChildAt(0).alpha).isEqualTo(newAlpha)
     }
 
     @Test

@@ -23,7 +23,6 @@ import androidx.health.connect.client.impl.platform.request.PlatformGetMedicalDa
 import androidx.health.connect.client.request.GetMedicalDataSourcesRequest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -44,22 +43,25 @@ class GetMedicalDataSourcesRequestTest {
     }
 
     @Test
-    fun validGetMedicalDataSourcesRequest_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                GetMedicalDataSourcesRequest(
-                    packageNames = TEST_PACKAGE_NAMES,
-                ),
-                GetMedicalDataSourcesRequest(
-                    packageNames = TEST_PACKAGE_NAMES,
-                )
+    fun validGetMedicalDataSourcesRequest_equalsAndHashCode() {
+        val request1 =
+            GetMedicalDataSourcesRequest(
+                packageNames = TEST_PACKAGE_NAMES,
             )
-            .addEqualityGroup(
-                GetMedicalDataSourcesRequest(
-                    packageNames = TEST_PACKAGE_NAMES + (TEST_PACKAGE_NAMES.first() + "two"),
-                )
+        val request2 =
+            GetMedicalDataSourcesRequest(
+                packageNames = TEST_PACKAGE_NAMES,
             )
-            .testEquals()
+        val request3 =
+            GetMedicalDataSourcesRequest(
+                packageNames = TEST_PACKAGE_NAMES + (TEST_PACKAGE_NAMES.first() + "two"),
+            )
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1.hashCode()).isEqualTo(request2.hashCode())
+        assertThat(request1).isNotEqualTo(request3)
+        assertThat(request1.hashCode()).isNotEqualTo(request3.hashCode())
+        assertThat(request2).isNotEqualTo(request3)
     }
 
     @Test

@@ -16,8 +16,6 @@
 
 package androidx.privacysandbox.ui.client.view
 
-import androidx.compose.ui.platform.compositionContext
-import androidx.compose.ui.platform.findViewTreeCompositionContext
 import androidx.privacysandbox.ui.client.GeometryMeasurer
 import androidx.privacysandbox.ui.core.SandboxedSdkViewUiInfo
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
@@ -33,13 +31,11 @@ internal class SandboxedSdkViewSignalMeasurer(
     private val session: SandboxedUiAdapter.Session
 ) {
     private var geometryMeasurer = GeometryMeasurer.getInstance()
-    private var compositionContext =
-        view.rootView.compositionContext ?: view.findViewTreeCompositionContext()
-    // TODO(b/395075188): Handle Compose nodes and mixed nodes better.
+
+    // TODO(b/340466873): Delegate obstruction measurement to SandboxedSdkUi when SandboxedSdkView
+    // is part of SSU
     private var isMeasuringObstructions =
-        session.signalOptions.contains(SandboxedUiAdapterSignalOptions.OBSTRUCTIONS) &&
-            view.rootView.compositionContext == null &&
-            compositionContext == null
+        session.signalOptions.contains(SandboxedUiAdapterSignalOptions.OBSTRUCTIONS)
     private var scope = CoroutineScope(Dispatchers.Default)
     private var childView = view.getChildAt(0)
     private var isMeasuring = true

@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.layout.AlignmentLine
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.Remeasurement
@@ -396,6 +397,69 @@ class LazyLayoutTest {
 
         // Default PrefetchScheduler behavior should be overridden
         rule.onNodeWithTag("0").assertDoesNotExist()
+    }
+
+    @Test
+    @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+    fun changingKeyForPrefetchingItemInTheMiddleOfRequest() {
+        var composed = false
+        var measured = false
+        var keys by mutableStateOf(listOf("A", "B"))
+        val itemProvider =
+            object : LazyLayoutItemProvider {
+
+                @Composable
+                override fun Item(index: Int, key: Any) {
+                    DisposableEffect(Unit) {
+                        composed = true
+                        onDispose { composed = false }
+                    }
+                    Layout { _, constraints ->
+                        measured = true
+                        layout(constraints.maxWidth, constraints.maxHeight) {}
+                    }
+                }
+
+                override val itemCount: Int
+                    get() = keys.size
+
+                override fun getKey(index: Int) = keys[index]
+
+                override fun getIndex(key: Any) = keys.indexOf(key)
+            }
+
+        val executor = TestPrefetchScheduler()
+        val prefetchState = LazyLayoutPrefetchState(executor)
+        rule.setContent {
+            LazyLayout({ itemProvider }, prefetchState = prefetchState) { layout(100, 100) {} }
+        }
+
+        rule.runOnIdle {
+            prefetchState.prefetchHandleProvider.shouldPauseBetweenPrecompositionAndPremeasure =
+                true
+
+            prefetchState.schedulePrecompositionAndPremeasure(0, Constraints.fixed(50, 50))
+
+            // pausing after composition but before measure
+            executor.executeOneRequest()
+            assertThat(composed).isTrue()
+            assertThat(measured).isFalse()
+
+            // changing the key for the prefetched by index item
+            keys = listOf("B", "A")
+        }
+
+        rule.runOnIdle {
+            // the request shouldn't be valid anymore as the key changed
+            executor.executeActiveRequests()
+            // so the measurement should be skipped
+            assertThat(measured).isFalse()
+        }
+
+        rule.runOnIdle {
+            // and the existing precomposition should be disposed
+            assertThat(composed).isFalse()
+        }
     }
 
     @Test

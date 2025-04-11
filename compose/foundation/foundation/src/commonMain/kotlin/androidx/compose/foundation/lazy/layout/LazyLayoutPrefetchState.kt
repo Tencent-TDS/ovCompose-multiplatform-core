@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import androidx.annotation.VisibleForTesting
 import androidx.collection.mutableScatterMapOf
 import androidx.compose.foundation.ComposeFoundationFlags
 import androidx.compose.foundation.ComposeFoundationFlags.isAutomaticNestedPrefetchEnabled
@@ -442,6 +443,10 @@ internal class PrefetchHandleProvider(
     // cleared during onDisposed.
     private var isStateActive: Boolean = true
 
+    // when true we will pause the request with "has more work to do" before doing premeasure
+    // if we performed precomposed within the same execution.
+    @VisibleForTesting internal var shouldPauseBetweenPrecompositionAndPremeasure = false
+
     fun schedulePrecomposition(
         index: Int,
         isHighPriority: Boolean,
@@ -531,6 +536,7 @@ internal class PrefetchHandleProvider(
         private var isMeasured = false
         private var isCanceled = false
         private var isComposed = false
+        private var keyUsedForComposition: Any? = null
 
         private var hasResolvedNestedPrefetches = false
         private var nestedPrefetchController: NestedPrefetchController? = null
@@ -539,8 +545,7 @@ internal class PrefetchHandleProvider(
         override fun cancel() {
             if (!isCanceled) {
                 isCanceled = true
-                precomposeHandle?.dispose()
-                precomposeHandle = null
+                cleanUp()
             }
         }
 
@@ -599,16 +604,33 @@ internal class PrefetchHandleProvider(
                 }
         }
 
+        private fun cleanUp() {
+            pausedPrecomposition?.cancel()
+            pausedPrecomposition = null
+            precomposeHandle?.dispose()
+            precomposeHandle = null
+            nestedPrefetchController = null
+        }
+
         private fun PrefetchRequestScope.executeRequest(): Boolean {
             traceValue("compose:lazy:prefetch:execute:item", index.toLong())
             val itemProvider = itemContentFactory.itemProvider()
             val isValid = !isCanceled && index in 0 until itemProvider.itemCount
             if (!isValid) {
+                cleanUp()
+                return false
+            }
+
+            val key = itemProvider.getKey(index)
+            if (keyUsedForComposition != null && key != keyUsedForComposition) {
+                // key for the requested index changed, the request is now invalid
+                cleanUp()
                 return false
             }
 
             val contentType = itemProvider.getContentType(index)
             val average = prefetchMetrics.getAverage(contentType)
+            val wasComposedAtStart = isComposed
 
             // we save the value we get from availableTimeNanos() into a local variable once
             // and manually update it later by calling updateElapsedAndAvailableTime()
@@ -622,13 +644,13 @@ internal class PrefetchHandleProvider(
                         )
                     ) {
                         trace("compose:lazy:prefetch:compose") {
-                            performPausableComposition(itemProvider, contentType, average)
+                            performPausableComposition(key, contentType, average)
                         }
                     }
                 } else {
                     if (shouldExecute(availableTimeNanos, average.compositionTimeNanos)) {
                         trace("compose:lazy:prefetch:compose") {
-                            performFullComposition(itemProvider, contentType)
+                            performFullComposition(key, contentType)
                         }
                         updateElapsedAndAvailableTime()
                         average.saveCompositionTimeNanos(elapsedTimeNanos)
@@ -681,6 +703,9 @@ internal class PrefetchHandleProvider(
 
             val constraints = premeasureConstraints
             if (!isMeasured && constraints != null) {
+                if (shouldPauseBetweenPrecompositionAndPremeasure && !wasComposedAtStart) {
+                    return true
+                }
                 if (shouldExecute(availableTimeNanos, average.measureTimeNanos)) {
                     trace("compose:lazy:prefetch:measure") { performMeasure(constraints) }
                     updateElapsedAndAvailableTime()
@@ -719,17 +744,17 @@ internal class PrefetchHandleProvider(
         private var pauseRequested = false
 
         private fun PrefetchRequestScope.performPausableComposition(
-            itemProvider: LazyLayoutItemProvider,
+            key: Any,
             contentType: Any?,
             averages: Averages
         ) {
             val composition =
                 pausedPrecomposition
                     ?: run {
-                        val key = itemProvider.getKey(index)
                         val content = itemContentFactory.getContent(index, key, contentType)
                         subcomposeLayoutState.createPausedPrecomposition(key, content).also {
                             pausedPrecomposition = it
+                            keyUsedForComposition = key
                         }
                     }
 
@@ -758,13 +783,10 @@ internal class PrefetchHandleProvider(
             isComposed = composition.isComplete
         }
 
-        private fun performFullComposition(
-            itemProvider: LazyLayoutItemProvider,
-            contentType: Any?
-        ) {
+        private fun performFullComposition(key: Any, contentType: Any?) {
             requirePrecondition(precomposeHandle == null) { "Request was already composed!" }
-            val key = itemProvider.getKey(index)
             val content = itemContentFactory.getContent(index, key, contentType)
+            keyUsedForComposition = key
             precomposeHandle = subcomposeLayoutState.precompose(key, content)
             isComposed = true
         }

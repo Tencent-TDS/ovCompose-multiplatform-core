@@ -19,6 +19,8 @@ import androidx.annotation.RestrictTo
 import androidx.annotation.RestrictTo.Scope
 import androidx.annotation.UiThread
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicBool
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInt32
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicType
 import androidx.wear.protolayout.expression.DynamicDataBuilders.DynamicDataValue
 import androidx.wear.protolayout.expression.PlatformDataKey
 import androidx.wear.protolayout.expression.PlatformDataValues
@@ -26,25 +28,28 @@ import androidx.wear.protolayout.expression.pipeline.PlatformDataProvider
 import androidx.wear.protolayout.expression.pipeline.PlatformDataReceiver
 import java.util.concurrent.Executor
 
-/** A [PlatformDataProvider] that provides a boolean value. */
+/** A [PlatformDataProvider] that provides a dynamic type. */
 @RestrictTo(Scope.LIBRARY_GROUP)
-public class DynamicBoolPlatformDataProvider(
-    private val key: PlatformDataKey<DynamicBool>,
-    initialValue: Boolean,
+public class DynamicTypePlatformDataProvider<RawT, T : DynamicType>
+private constructor(
+    private val key: PlatformDataKey<T>,
+    initialValue: RawT,
+    private val transform: (RawT) -> DynamicDataValue<T>,
 ) : PlatformDataProvider {
 
     private var receiver: PlatformDataReceiver? = null
     private var executor: Executor? = null
 
-    private var value: Boolean = initialValue
     private var updatesEnabled: Boolean = true
 
-    /** Sets and notifies a new value */
-    @UiThread
-    public fun setValue(value: Boolean) {
-        this.value = value
-        notifyReceiver()
-    }
+    @set:UiThread
+    @get:UiThread
+    public var value: RawT = initialValue
+        /** Sets and notifies a new value */
+        set(value) {
+            field = value
+            notifyReceiver()
+        }
 
     /** Sets whether this consumer can send updates on the registered receiver. */
     @UiThread
@@ -79,7 +84,26 @@ public class DynamicBoolPlatformDataProvider(
             return
         }
 
-        val data = PlatformDataValues.of(key, DynamicDataValue.fromBool(value))
+        val data = PlatformDataValues.of(key, transform(value))
         receiver?.let { executor?.execute { it.onData(data) } }
+    }
+
+    public companion object {
+
+        /** Creates a new [PlatformDataProvider] for a [DynamicBool]. */
+        @JvmStatic
+        public fun forDynamicBool(
+            key: PlatformDataKey<DynamicBool>,
+            initialValue: Boolean
+        ): DynamicTypePlatformDataProvider<Boolean, DynamicBool> =
+            DynamicTypePlatformDataProvider(key, initialValue) { DynamicDataValue.fromBool(it) }
+
+        /** Creates a new [PlatformDataProvider] for a [DynamicInt32]. */
+        @JvmStatic
+        public fun forDynamicInt32(
+            key: PlatformDataKey<DynamicInt32>,
+            initialValue: Int,
+        ): DynamicTypePlatformDataProvider<Int, DynamicInt32> =
+            DynamicTypePlatformDataProvider(key, initialValue) { DynamicDataValue.fromInt(it) }
     }
 }

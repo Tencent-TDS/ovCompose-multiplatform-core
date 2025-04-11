@@ -24,7 +24,6 @@ import androidx.health.connect.client.records.FhirResource.Companion.FHIR_RESOUR
 import androidx.health.connect.client.records.MedicalResourceId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -45,27 +44,28 @@ class MedicalResourceIdTest {
 
     @Test
     fun validMedicalResourceId_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                MedicalResourceId(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_RESOURCE_TYPE_PATIENT,
-                    "fhir_rs_id_1"
-                ),
-                MedicalResourceId(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_RESOURCE_TYPE_PATIENT,
-                    "fhir_rs_id_1"
-                )
+        val medicalResourceId1 =
+            MedicalResourceId(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_RESOURCE_TYPE_PATIENT,
+                "fhir_rs_id_1"
             )
-            .addEqualityGroup(
-                MedicalResourceId(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_RESOURCE_TYPE_PATIENT,
-                    "fhir_rs_id_2"
-                )
+        val medicalResourceId2 =
+            MedicalResourceId(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_RESOURCE_TYPE_PATIENT,
+                "fhir_rs_id_1"
             )
-            .testEquals()
+        val medicalResourceId3 =
+            MedicalResourceId(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_RESOURCE_TYPE_PATIENT,
+                "fhir_rs_id_2"
+            )
+
+        assertThat(medicalResourceId1).isEqualTo(medicalResourceId2)
+        assertThat(medicalResourceId1).isNotEqualTo(medicalResourceId3)
+        assertThat(medicalResourceId2).isNotEqualTo(medicalResourceId3)
     }
 
     @Test

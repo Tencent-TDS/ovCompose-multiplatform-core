@@ -289,6 +289,7 @@ dependencies {
     docs(project(":privacysandbox:sdkruntime:sdkruntime-provider"))
     docs(project(":privacysandbox:tools:tools"))
     docs(project(":privacysandbox:ui:ui-client"))
+    docs(project(":privacysandbox:ui:ui-client-compose"))
     docs(project(":privacysandbox:ui:ui-core"))
     docs(project(":privacysandbox:ui:ui-provider"))
     docs(project(":profileinstaller:profileinstaller"))

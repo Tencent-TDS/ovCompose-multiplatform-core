@@ -31,10 +31,13 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
 @RunWith(AndroidJUnit4::class)
-class DynamicBoolPlatformDataProviderTest {
+class DynamicTypePlatformDataProviderTest {
 
     private val provider =
-        DynamicBoolPlatformDataProvider(PlatformDataKey<DynamicBuilders.DynamicBool>("key"), false)
+        DynamicTypePlatformDataProvider.forDynamicBool(
+            PlatformDataKey<DynamicBuilders.DynamicBool>("key"),
+            false
+        )
     private val mockReceiver = mock<PlatformDataReceiver>()
     private val executor = directExecutor()
 
@@ -43,7 +46,7 @@ class DynamicBoolPlatformDataProviderTest {
         provider.clearReceiver()
 
         provider.setUpdatesEnabled(true)
-        provider.setValue(false)
+        provider.value = false
 
         reset(mockReceiver)
     }
@@ -55,7 +58,7 @@ class DynamicBoolPlatformDataProviderTest {
 
         reset(mockReceiver)
 
-        provider.setValue(true)
+        provider.value = true
         verify(mockReceiver, times(1)).onData(any())
     }
 
@@ -66,7 +69,7 @@ class DynamicBoolPlatformDataProviderTest {
         provider.setReceiver(executor, mockReceiver)
         verify(mockReceiver, never()).onData(any())
 
-        provider.setValue(true)
+        provider.value = true
         verify(mockReceiver, never()).onData(any())
     }
 
@@ -94,7 +97,7 @@ class DynamicBoolPlatformDataProviderTest {
         provider.setUpdatesEnabled(true)
         verify(mockReceiver, never()).onData(any())
 
-        provider.setValue(true)
+        provider.value = true
         verify(mockReceiver, never()).onData(any())
     }
 }

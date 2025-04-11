@@ -39,6 +39,7 @@ import androidx.compose.foundation.lazy.layout.ObservableScopeInvalidator
 import androidx.compose.foundation.lazy.layout.animateScrollToItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.annotation.FrequentlyChangingValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
@@ -217,14 +218,14 @@ constructor(
      * @sample androidx.compose.foundation.samples.UsingGridScrollPositionInCompositionSample
      */
     val firstVisibleItemIndex: Int
-        get() = scrollPosition.index
+        @FrequentlyChangingValue get() = scrollPosition.index
 
     /**
      * The scroll offset of the first visible item. Scrolling forward is positive - i.e., the amount
      * that the item is offset backwards
      */
     val firstVisibleItemScrollOffset: Int
-        get() = scrollPosition.scrollOffset
+        @FrequentlyChangingValue get() = scrollPosition.scrollOffset
 
     /** Backing state for [layoutInfo] */
     private val layoutInfoState = mutableStateOf(EmptyLazyGridLayoutInfo, neverEqualPolicy())
@@ -244,7 +245,7 @@ constructor(
      * @sample androidx.compose.foundation.samples.UsingGridLayoutInfoForSideEffectSample
      */
     val layoutInfo: LazyGridLayoutInfo
-        get() = layoutInfoState.value
+        @FrequentlyChangingValue get() = layoutInfoState.value
 
     /**
      * [InteractionSource] that will be used to dispatch drag events when this grid is being

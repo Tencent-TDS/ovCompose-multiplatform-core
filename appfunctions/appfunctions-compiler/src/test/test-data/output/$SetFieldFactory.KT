@@ -30,7 +30,7 @@ public class `$SetFieldFactory`<T>(
     val value = setField_appFunctionSerializable.value
     when (tTypeParameter) {
       is AppFunctionSerializableFactory.TypeParameter.ListTypeParameter<*, *> -> {
-        builder.setGenericListField("value", value as List<*>, tTypeParameter.itemClazz)
+        builder.setGenericListField("value", value as List<*>?, tTypeParameter.itemClazz)
       }
       is AppFunctionSerializableFactory.TypeParameter.PrimitiveTypeParameter -> {
         builder.setGenericField("value", value, tTypeParameter.clazz)
