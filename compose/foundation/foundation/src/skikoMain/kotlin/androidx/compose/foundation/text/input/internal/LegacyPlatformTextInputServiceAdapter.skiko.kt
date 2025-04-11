@@ -99,8 +99,7 @@ internal actual fun legacyTextInputServiceAdapterAndService():
                 this.textFieldValue = textFieldValue
                 this.textLayoutResult = textLayoutResult
 
-                val matrix = Matrix()
-                textFieldToRootTransform(matrix)
+                val matrix = Matrix().also { textFieldToRootTransform(it) }
                 textFieldRectInRoot = matrix.map(decorationBoxBounds)
                 textClippingRectInRoot = matrix.map(innerTextFieldBounds)
                 focusedRectInRoot = focusedRectInRoot(
