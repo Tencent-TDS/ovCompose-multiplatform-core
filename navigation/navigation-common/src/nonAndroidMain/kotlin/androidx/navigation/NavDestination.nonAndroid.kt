@@ -39,7 +39,7 @@ public actual open class NavDestination actual constructor(
         public actual val matchingArgs: SavedState?,
         private val isExactDeepLink: Boolean,
     ) : Comparable<DeepLinkMatch> {
-        override fun compareTo(other: DeepLinkMatch): Int {
+        public actual override fun compareTo(other: DeepLinkMatch): Int {
             // Prefer exact deep links
             if (isExactDeepLink && !other.isExactDeepLink) {
                 return 1

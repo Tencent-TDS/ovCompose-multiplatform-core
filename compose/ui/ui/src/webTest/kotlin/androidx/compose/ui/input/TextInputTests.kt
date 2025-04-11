@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.sendFromScope
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
+import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -147,6 +148,7 @@ class TextInputTests : OnCanvasTests  {
         assertEquals("啊X", textInputChannel.receive())
     }
 
+    @Ignore // TODO: https://youtrack.jetbrains.com/issue/CMP-7978
     @Test
     fun compositeInputWebkit() = runTest {
         val textInputChannel = createTextFieldWithChannel()

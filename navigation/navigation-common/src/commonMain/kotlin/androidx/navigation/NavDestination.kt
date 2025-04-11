@@ -46,6 +46,8 @@ public expect open class NavDestination(navigatorName: String) {
         public val destination: NavDestination
         public val matchingArgs: SavedState?
 
+        public override fun compareTo(other: DeepLinkMatch): Int
+
         /**
          * Returns true if all args from [DeepLinkMatch.matchingArgs] can be found within the
          * [arguments].
