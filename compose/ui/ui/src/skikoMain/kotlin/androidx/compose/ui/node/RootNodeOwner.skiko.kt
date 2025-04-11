@@ -371,6 +371,10 @@ internal class RootNodeOwner(
             session: suspend PlatformTextInputSessionScope.() -> Nothing
         ) : Nothing {
             coroutineScope {
+                // Currently TextInputService is used for keyboard show/hide actions and for
+                // backward compatibility by the LocalTextInputService.
+                // startInput and stopInput calls are required to properly configure the service
+                // and allow it to pass keyboard show/hide calls to the PlatformTextInputService.
                 textInputService.startInput()
                 launch {
                     suspendCancellableCoroutine<Nothing> {

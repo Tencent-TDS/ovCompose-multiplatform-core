@@ -434,7 +434,7 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
         override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
     }
 
-    private inner class TextInputSession(
+    private inner class TestTextInputSession(
         coroutineScope: CoroutineScope
     ) : PlatformTextInputSessionScope, CoroutineScope by coroutineScope {
         private val innerSessionMutex = SessionMutex<Nothing?>()
@@ -487,12 +487,12 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
 
         override val dragAndDropManager: PlatformDragAndDropManager = TestDragAndDropManager()
 
-        private val textInputSessionMutex = SessionMutex<TextInputSession>()
+        private val textInputSessionMutex = SessionMutex<TestTextInputSession>()
 
         override suspend fun textInputSession(
             session: suspend PlatformTextInputSessionScope.() -> Nothing
         ): Nothing = textInputSessionMutex.withSessionCancellingPrevious(
-            sessionInitializer = { TextInputSession(it) }, session = session
+            sessionInitializer = { TestTextInputSession(it) }, session = session
         )
     }
 }
