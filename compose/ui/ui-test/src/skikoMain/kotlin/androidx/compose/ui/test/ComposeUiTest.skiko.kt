@@ -39,11 +39,6 @@ import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.scene.CanvasLayersComposeScene
 import androidx.compose.ui.scene.ComposeScene
 import androidx.compose.ui.semantics.SemanticsNode
-import androidx.compose.ui.text.input.EditCommand
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.ImeOptions
-import androidx.compose.ui.text.input.PlatformTextInputService
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import kotlin.coroutines.CoroutineContext
@@ -155,12 +150,6 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
         effectContext = effectContext,
         density = density,
         semanticsOwnerListener = null,
-    )
-
-    private class Session(
-        var imeOptions: ImeOptions,
-        var onEditCommand: (List<EditCommand>) -> Unit,
-        var onImeActionPerformed: (ImeAction) -> Unit,
     )
 
     private val composeRootRegistry = ComposeRootRegistry()
@@ -409,42 +398,11 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
             get() = size
     }
 
-    private inner class TestTextInputService : PlatformTextInputService {
-        var session: Session? = null
-
-        override fun startInput(
-            value: TextFieldValue,
-            imeOptions: ImeOptions,
-            onEditCommand: (List<EditCommand>) -> Unit,
-            onImeActionPerformed: (ImeAction) -> Unit
-        ) {
-            session = Session(
-                imeOptions = imeOptions,
-                onEditCommand = onEditCommand,
-                onImeActionPerformed = onImeActionPerformed
-            )
-        }
-
-        override fun stopInput() {
-            session = null
-        }
-
-        override fun showSoftwareKeyboard() = Unit
-        override fun hideSoftwareKeyboard() = Unit
-        override fun updateState(oldValue: TextFieldValue?, newValue: TextFieldValue) = Unit
-    }
-
     private inner class TestTextInputSession(
         coroutineScope: CoroutineScope
     ) : PlatformTextInputSessionScope, CoroutineScope by coroutineScope {
-        private val innerSessionMutex = SessionMutex<Nothing?>()
-
         override suspend fun startInputMethod(request: PlatformTextInputMethodRequest): Nothing =
-            innerSessionMutex.withSessionCancellingPrevious(
-                sessionInitializer = { null }
-            ) {
-                awaitCancellation()
-            }
+            awaitCancellation()
     }
 
     private inner class TestDragAndDropManager : PlatformDragAndDropManager {
@@ -476,8 +434,6 @@ open class SkikoComposeUiTest @InternalTestApi constructor(
 
     private inner class TestContext : PlatformContext by PlatformContext.Empty {
         override val windowInfo: WindowInfo = TestWindowInfo()
-
-        override val textInputService = TestTextInputService()
 
         override val rootForTestListener: PlatformContext.RootForTestListener
             get() = composeRootRegistry
