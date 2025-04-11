@@ -224,7 +224,6 @@ includeProject(":compose:ui:ui-viewbinding:ui-viewbinding-samples", "compose/ui/
 includeProject(":compose:ui:ui:integration-tests:ui-demos")
 includeProject(":compose:ui:ui:ui-samples", "compose/ui/ui/samples")
 includeProject(":compose:ui:ui-uikit")
-includeProject(":compose:ui:ui-xctest")
 includeProject(":compose:ui:ui-backhandler")
 
 includeProject(":kruth:kruth")
@@ -259,6 +258,7 @@ includeProject(":internal-testutils-navigation", "testutils/testutils-navigation
 //includeProject(":internal-testutils-paging", "testutils/testutils-paging")
 includeProject(":internal-testutils-gradle-plugin", "testutils/testutils-gradle-plugin")
 includeProject(":internal-testutils-mockito", "testutils/testutils-mockito")
+includeProject(":internal-testutils-xctest", "testutils/testutils-xctest")
 
 // Workaround for b/203825166
 includeBuild("placeholder")
