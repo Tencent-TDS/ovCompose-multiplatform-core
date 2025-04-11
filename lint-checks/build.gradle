@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 import androidx.build.ExportAtomicLibraryGroupsToTextTask
-import androidx.build.SoftwareType
+import androidx.build.LibraryType
 
 plugins {
     id("AndroidXPlugin")
@@ -56,7 +56,7 @@ dependencies {
 
 androidx {
     name = "Lint checks"
-    type = SoftwareType.LINT
+    type = LibraryType.LINT
     inceptionYear = "2018"
     description = "Internal lint checks"
 }
