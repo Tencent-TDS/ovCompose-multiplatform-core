@@ -40,7 +40,7 @@ actual constructor(public actual val navigatorName: String) {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public actual class DeepLinkMatch
-    actual constructor(
+    public actual constructor(
         public actual val destination: NavDestination,
         @get:Suppress("NullableCollection") // Needed for nullable savedState
         public actual val matchingArgs: SavedState?,
@@ -49,26 +49,7 @@ actual constructor(public actual val navigatorName: String) {
         private val hasMatchingAction: Boolean,
         private val mimeTypeMatchLevel: Int
     ) : Comparable<DeepLinkMatch> {
-        public actual fun hasMatchingArgs(arguments: SavedState?): Boolean {
-            if (arguments == null || matchingArgs == null) return false
-
-            matchingArgs
-                .read { toMap().keys }
-                .forEach { key ->
-                    // the arguments must at least contain every argument stored in this deep link
-                    if (!arguments.read { contains(key) }) return false
-
-                    val type = destination.arguments[key]?.type
-                    val matchingArgValue = type?.get(matchingArgs, key)
-                    val entryArgValue = type?.get(arguments, key)
-                    if (type?.valueEquals(matchingArgValue, entryArgValue) == false) {
-                        return false
-                    }
-                }
-            return true
-        }
-
-        override fun compareTo(other: DeepLinkMatch): Int {
+        public actual override fun compareTo(other: DeepLinkMatch): Int {
             // Prefer exact deep links
             if (isExactDeepLink && !other.isExactDeepLink) {
                 return 1
@@ -90,6 +71,25 @@ actual constructor(public actual val navigatorName: String) {
                 }
             }
             return 0
+        }
+
+        public actual fun hasMatchingArgs(arguments: SavedState?): Boolean {
+            if (arguments == null || matchingArgs == null) return false
+
+            matchingArgs
+                .read { toMap().keys }
+                .forEach { key ->
+                    // the arguments must at least contain every argument stored in this deep link
+                    if (!arguments.read { contains(key) }) return false
+
+                    val type = destination.arguments[key]?.type
+                    val matchingArgValue = type?.get(matchingArgs, key)
+                    val entryArgValue = type?.get(arguments, key)
+                    if (type?.valueEquals(matchingArgValue, entryArgValue) == false) {
+                        return false
+                    }
+                }
+            return true
         }
     }
 

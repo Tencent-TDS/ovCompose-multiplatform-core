@@ -329,12 +329,8 @@ private sealed interface AccessibilityNode {
 
         override val isAccessibilityElement = false
 
-        override val accessibilityContainerType: UIAccessibilityContainerType
-            get() = if (semanticsNode.isTraversalGroup) {
-                UIAccessibilityContainerTypeSemanticGroup
-            } else {
-                UIAccessibilityContainerTypeNone
-            }
+        override val accessibilityContainerType: UIAccessibilityContainerType =
+            UIAccessibilityContainerTypeSemanticGroup
     }
 }
 
@@ -386,9 +382,7 @@ private class AccessibilityRoot(
 
     // UIFocusItemContainerProtocol
 
-    override fun coordinateSpace(): UICoordinateSpaceProtocol {
-        return mediator.view.window ?: mediator.view
-    }
+    override fun coordinateSpace(): UICoordinateSpaceProtocol = mediator.view
 
     override fun focusItemsInRect(rect: CValue<CGRect>): List<*> {
         return if (mediator.isEnabled) {
@@ -599,6 +593,9 @@ private class AccessibilityElement(
         }
     }
 
+    override fun accessibilityContainerType(): UIAccessibilityContainerType =
+        node.accessibilityContainerType
+
     private fun debugContainmentChain() = debugContainmentChain(this)
 
     fun debugLog(logger: AccessibilityDebugLogger, depth: Int) {
@@ -665,7 +662,7 @@ private class AccessibilityElement(
         var component: Any? = accessibilityContainer
         while (component != null) {
             when (component) {
-                is UIView -> return component.window ?: component
+                is UIView -> return component
                 is CMPAccessibilityElement -> component = component.accessibilityContainer
                 else -> error("Unexpected coordinate space.")
             }
