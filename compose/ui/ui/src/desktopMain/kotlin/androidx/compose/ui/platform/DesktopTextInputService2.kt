@@ -17,6 +17,7 @@
 package androidx.compose.ui.platform
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.scene.ComposeSceneMediator
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeOptions
 import androidx.compose.ui.text.input.PlatformTextInputService2
@@ -42,11 +43,14 @@ internal class DesktopTextInputService2(
 
     private var inputMethodSession: InputMethodSession? = null
 
+    private var receivedInputMethodEventsSinceStartInput = false
+
     override fun startInput(
         state: TextEditorState,
         imeOptions: ImeOptions,
         editText: (block: TextEditingScope.() -> Unit) -> Unit
     ) {
+        receivedInputMethodEventsSinceStartInput = false
         component.enableInput(
             InputMethodSession(component, state, editText).also {
                 inputMethodSession = it
@@ -74,11 +78,39 @@ internal class DesktopTextInputService2(
     }
 
     fun inputMethodTextChanged(event: InputMethodEvent) {
-        val inputMethodRequests = inputMethodSession ?: return
-        if (!event.isConsumed) {
-            inputMethodRequests.replaceInputMethodText(event)
-            event.consume()
-        }
+        if (event.isConsumed) return
+        val inputMethodSession = inputMethodSession ?: return
+
+        if (commitEventWorkaroundShouldIgnoreEvent(event)) return
+
+        inputMethodSession.replaceInputMethodText(event)
+        event.consume()
+    }
+
+    /**
+     * Implements a workaround for https://youtrack.jetbrains.com/issue/CMP-7976; returns whether
+     * the given event should be ignored.
+     *
+     * JBR sends an extra [InputMethodEvent] when focus moves away from a text field. This event
+     * means to commit the current composition. Unfortunately, because we use a single actual Swing
+     * component (see [ComposeSceneMediator]) as a source of [InputMethodEvent]s, this event gets
+     * delivered to a new text session if the focus switches away to another text field.
+     *
+     * Regardless, Compose text fields commit their composition on focus loss (but not window focus
+     * loss) themselves, so we don't need this event.
+     */
+    private fun commitEventWorkaroundShouldIgnoreEvent(event: InputMethodEvent): Boolean {
+        val isFirstEventAfterStartInput = !receivedInputMethodEventsSinceStartInput
+        receivedInputMethodEventsSinceStartInput = true
+
+        // Note that we need to handle two cases:
+        // - Focus moves between Compose text fields.
+        // - Focus moves from a Swing text component into a Compose text field
+        // The 2nd case is why we can't have a more surgical check here, i.e. check that the
+        // previous composition matches the committed text.
+        // But this check is hopefully good enough; the IME should not be asking to immediately
+        // commit something without putting it into a composition first.
+        return isFirstEventAfterStartInput && event.committedText.isNotEmpty()
     }
 }
 
