@@ -20,7 +20,6 @@ import android.os.Binder
 import android.os.ext.SdkExtensions
 import androidx.annotation.RequiresExtension
 import androidx.core.os.BuildCompat
-import androidx.privacysandbox.sdkruntime.core.AdServicesInfo
 import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
@@ -34,9 +33,7 @@ import org.mockito.Mockito.`when`
 @SdkSuppress(minSdkVersion = 34)
 class SdkSandboxControllerAppOwnedInterfacesTest {
 
-    @Rule
-    @JvmField
-    val sdkSandboxControllerMockRule = SdkSandboxControllerMockRule()
+    @Rule @JvmField val sdkSandboxControllerMockRule = SdkSandboxControllerMockRule()
 
     @Test
     fun getAppOwnedSdkSandboxInterfaces_whenApiNotAvailable_returnsEmptyList() {
@@ -55,20 +52,13 @@ class SdkSandboxControllerAppOwnedInterfacesTest {
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 8)
     @SdkSuppress(minSdkVersion = 34)
     fun getAppOwnedSdkSandboxInterfaces_whenApiAvailable_delegateToPlatform() {
-        assumeTrue(
-            "Requires AppOwnedInterfaces API available",
-            isAppOwnedInterfacesApiAvailable()
-        )
+        assumeTrue("Requires AppOwnedInterfaces API available", isAppOwnedInterfacesApiAvailable())
 
-        val expectedObj = AppOwnedSdkSandboxInterfaceCompat(
-            name = "test",
-            version = 1,
-            binder = Binder()
-        )
+        val expectedObj =
+            AppOwnedSdkSandboxInterfaceCompat(name = "test", version = 1, binder = Binder())
         val platformObj = expectedObj.toAppOwnedSdkSandboxInterface()
         val controllerMock = sdkSandboxControllerMockRule.sdkSandboxControllerMock
-        `when`(controllerMock.getAppOwnedSdkSandboxInterfaces())
-            .thenReturn(listOf(platformObj))
+        `when`(controllerMock.getAppOwnedSdkSandboxInterfaces()).thenReturn(listOf(platformObj))
 
         val controllerCompat = sdkSandboxControllerMockRule.controllerCompat
         val appOwnedInterfaces = controllerCompat.getAppOwnedSdkSandboxInterfaces()
@@ -80,6 +70,5 @@ class SdkSandboxControllerAppOwnedInterfacesTest {
         assertThat(resultObj.getInterface()).isEqualTo(expectedObj.getInterface())
     }
 
-    private fun isAppOwnedInterfacesApiAvailable() =
-        BuildCompat.AD_SERVICES_EXTENSION_INT >= 8 || AdServicesInfo.isDeveloperPreview()
+    private fun isAppOwnedInterfacesApiAvailable() = BuildCompat.AD_SERVICES_EXTENSION_INT >= 8
 }

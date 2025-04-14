@@ -46,13 +46,13 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 
 import androidx.annotation.Discouraged;
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.Px;
 import androidx.annotation.RequiresApi;
 import androidx.test.uiautomator.util.Traces;
 import androidx.test.uiautomator.util.Traces.Section;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -63,11 +63,10 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -131,8 +130,7 @@ public class UiDevice implements Searchable {
      * @param selector
      * @return UiObject object
      */
-    @NonNull
-    public UiObject findObject(@NonNull UiSelector selector) {
+    public @NonNull UiObject findObject(@NonNull UiSelector selector) {
         return new UiObject(this, selector);
     }
 
@@ -140,7 +138,11 @@ public class UiDevice implements Searchable {
     @Override
     public boolean hasObject(@NonNull BySelector selector) {
         Log.d(TAG, String.format("Searching for node with selector: %s.", selector));
-        AccessibilityNodeInfo node = ByMatcher.findMatch(this, selector, getWindowRoots());
+        AccessibilityNodeInfo node = ByMatcher.findMatch(
+                this,
+                selector,
+                getWindowRoots().toArray(new AccessibilityNodeInfo[0])
+        );
         if (node != null) {
             node.recycle();
             return true;
@@ -156,7 +158,11 @@ public class UiDevice implements Searchable {
     @SuppressLint("UnknownNullness") // Avoid unnecessary null checks from nullable testing APIs.
     public UiObject2 findObject(@NonNull BySelector selector) {
         Log.d(TAG, String.format("Retrieving node with selector: %s.", selector));
-        AccessibilityNodeInfo node = ByMatcher.findMatch(this, selector, getWindowRoots());
+        AccessibilityNodeInfo node = ByMatcher.findMatch(
+                this,
+                selector,
+                getWindowRoots().toArray(new AccessibilityNodeInfo[0])
+        );
         if (node == null) {
             Log.d(TAG, String.format("Node not found with selector: %s.", selector));
             return null;
@@ -166,11 +172,14 @@ public class UiDevice implements Searchable {
 
     /** Returns all objects that match the {@code selector} criteria. */
     @Override
-    @NonNull
-    public List<UiObject2> findObjects(@NonNull BySelector selector) {
+    public @NonNull List<UiObject2> findObjects(@NonNull BySelector selector) {
         Log.d(TAG, String.format("Retrieving nodes with selector: %s.", selector));
         List<UiObject2> ret = new ArrayList<>();
-        for (AccessibilityNodeInfo node : ByMatcher.findMatches(this, selector, getWindowRoots())) {
+        for (AccessibilityNodeInfo node : ByMatcher.findMatches(
+                this,
+                selector,
+                getWindowRoots().toArray(new AccessibilityNodeInfo[0]))
+        ) {
             UiObject2 object = UiObject2.create(this, selector, node);
             if (object != null) {
                 ret.add(object);
@@ -277,8 +286,7 @@ public class UiDevice implements Searchable {
      * @return UiDevice instance
      */
     @Deprecated
-    @NonNull
-    public static UiDevice getInstance() {
+    public static @NonNull UiDevice getInstance() {
         if (sInstance == null) {
             throw new IllegalStateException("UiDevice singleton not initialized");
         }
@@ -291,8 +299,7 @@ public class UiDevice implements Searchable {
      *
      * @return UiDevice instance
      */
-    @NonNull
-    public static UiDevice getInstance(@NonNull Instrumentation instrumentation) {
+    public static @NonNull UiDevice getInstance(@NonNull Instrumentation instrumentation) {
         if (sInstance == null || !instrumentation.equals(sInstance.mInstrumentation)) {
             Log.i(TAG, String.format("Creating a new instance, old instance exists: %b",
                     (sInstance != null)));
@@ -309,8 +316,7 @@ public class UiDevice implements Searchable {
      * @see DisplayMetrics#density
      * @return a Point containing the display size in dp
      */
-    @NonNull
-    public Point getDisplaySizeDp() {
+    public @NonNull Point getDisplaySizeDp() {
         Point p = getDisplaySize(Display.DEFAULT_DISPLAY);
         Context context = getUiContext(Display.DEFAULT_DISPLAY);
         int densityDpi = context.getResources().getConfiguration().densityDpi;
@@ -326,8 +332,7 @@ public class UiDevice implements Searchable {
      *
      * @return product name of the device
      */
-    @NonNull
-    public String getProductName() {
+    public @NonNull String getProductName() {
         return Build.PRODUCT;
     }
 
@@ -482,7 +487,8 @@ public class UiDevice implements Searchable {
     }
 
     /**
-     * Presses one or more keys.
+     * Presses one or more keys. Keys that change meta state are supported, and will apply their
+     * meta state to following keys.
      * <br/>
      * For example, you can simulate taking a screenshot on the device by pressing both the
      * power and volume down keys.
@@ -493,12 +499,13 @@ public class UiDevice implements Searchable {
      * @param keyCodes array of key codes.
      * @return true if successful, else return false
      */
-    public boolean pressKeyCodes(@NonNull int[] keyCodes) {
+    public boolean pressKeyCodes(int @NonNull [] keyCodes) {
         return pressKeyCodes(keyCodes, 0);
     }
 
     /**
-     * Presses one or more keys.
+     * Presses one or more keys. Keys that change meta state are supported, and will apply their
+     * meta state to following keys.
      * <br/>
      * For example, you can simulate taking a screenshot on the device by pressing both the
      * power and volume down keys.
@@ -510,7 +517,7 @@ public class UiDevice implements Searchable {
      * @param metaState an integer in which each bit set to 1 represents a pressed meta key
      * @return true if successful, else return false
      */
-    public boolean pressKeyCodes(@NonNull int[] keyCodes, int metaState) {
+    public boolean pressKeyCodes(int @NonNull [] keyCodes, int metaState) {
         waitForIdle();
         Log.d(TAG, String.format("Pressing keycodes %s with modifier %d.",
                 Arrays.toString(keyCodes),
@@ -664,7 +671,7 @@ public class UiDevice implements Searchable {
      * @param segmentSteps steps to inject between two Points
      * @return true on success
      */
-    public boolean swipe(@NonNull Point[] segments, int segmentSteps) {
+    public boolean swipe(Point @NonNull [] segments, int segmentSteps) {
         Log.d(TAG, String.format("Swiping between %s in %d steps.", Arrays.toString(segments),
                 segmentSteps * (segments.length - 1)));
         return getInteractionController().swipe(segments, segmentSteps);
@@ -1126,9 +1133,8 @@ public class UiDevice implements Searchable {
                 return device.getDisplayRotation(displayId) == rotation;
             }
 
-            @NonNull
             @Override
-            public String toString() {
+            public @NonNull String toString() {
                 return String.format("Condition[displayRotation=%d, displayId=%d]", rotation,
                         displayId);
             }
@@ -1177,10 +1183,10 @@ public class UiDevice implements Searchable {
     }
 
     /**
-     * Helper method used for debugging to dump the current window's layout hierarchy.
-     * Relative file paths are stored the application's internal private storage location.
+     * Dumps every window's layout hierarchy to a file in XML format.
      *
-     * @param fileName
+     * @param fileName The file path in which to store the window hierarchy information. Relative
+     *                file paths are stored the application's internal private storage location.
      * @deprecated Use {@link UiDevice#dumpWindowHierarchy(File)} or
      *     {@link UiDevice#dumpWindowHierarchy(OutputStream)} instead.
      */
@@ -1198,10 +1204,10 @@ public class UiDevice implements Searchable {
     }
 
     /**
-     * Dump the current window hierarchy to a {@link java.io.File}.
+     * Dumps every window's layout hierarchy to a {@link java.io.File} in XML format.
      *
      * @param dest The file in which to store the window hierarchy information.
-     * @throws IOException
+     * @throws IOException if an I/O error occurs
      */
     public void dumpWindowHierarchy(@NonNull File dest) throws IOException {
         Log.d(TAG, String.format("Dumping window hierarchy to %s.", dest));
@@ -1211,10 +1217,10 @@ public class UiDevice implements Searchable {
     }
 
     /**
-     * Dump the current window hierarchy to an {@link java.io.OutputStream}.
+     * Dumps every window's layout hierarchy to an {@link java.io.OutputStream} in XML format.
      *
      * @param out The output stream that the window hierarchy information is written to.
-     * @throws IOException
+     * @throws IOException if an I/O error occurs
      */
     public void dumpWindowHierarchy(@NonNull OutputStream out) throws IOException {
         Log.d(TAG, String.format("Dumping window hierarchy to %s.", out));
@@ -1351,11 +1357,9 @@ public class UiDevice implements Searchable {
     @Discouraged(message = "Can be useful for simple commands, but lacks support for proper error"
             + " handling, input data, or complex commands (quotes, pipes) that can be obtained "
             + "from UiAutomation#executeShellCommandRwe or similar utilities.")
-    @RequiresApi(21)
-    @NonNull
-    public String executeShellCommand(@NonNull String cmd) throws IOException {
+    public @NonNull String executeShellCommand(@NonNull String cmd) throws IOException {
         Log.d(TAG, String.format("Executing shell command: %s", cmd));
-        try (ParcelFileDescriptor pfd = Api21Impl.executeShellCommand(getUiAutomation(), cmd);
+        try (ParcelFileDescriptor pfd = getUiAutomation().executeShellCommand(cmd);
              FileInputStream fis = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) {
             byte[] buf = new byte[512];
             int bytesRead;
@@ -1371,8 +1375,7 @@ public class UiDevice implements Searchable {
      * Gets the display with {@code displayId}. The display may be null because it may be a private
      * virtual display, for example.
      */
-    @Nullable
-    Display getDisplayById(int displayId) {
+    @Nullable Display getDisplayById(int displayId) {
         return mDisplayManager.getDisplay(displayId);
     }
 
@@ -1394,7 +1397,6 @@ public class UiDevice implements Searchable {
         return p;
     }
 
-    @RequiresApi(21)
     private List<AccessibilityWindowInfo> getWindows(UiAutomation uiAutomation) {
         // Support multi-display searches for API level 30 and up.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -1406,14 +1408,19 @@ public class UiDevice implements Searchable {
             }
             return windowList;
         }
-        return Api21Impl.getWindows(uiAutomation);
+        return uiAutomation.getWindows();
     }
 
-    /** Returns a list containing the root {@link AccessibilityNodeInfo}s for each active window */
-    AccessibilityNodeInfo[] getWindowRoots() {
+    /**
+     * Returns a list containing the root {@link AccessibilityNodeInfo}s for each active window.
+     * For convenience the returned list is sorted in descending window order, ensuring the root of
+     * the topmost visible window is reported first.
+     */
+    @NonNull
+    public List<AccessibilityNodeInfo> getWindowRoots() {
         waitForIdle();
 
-        Set<AccessibilityNodeInfo> roots = new HashSet<>();
+        LinkedHashSet<AccessibilityNodeInfo> roots = new LinkedHashSet<>();
         UiAutomation uiAutomation = getUiAutomation();
 
         // Ensure the active window root is included.
@@ -1423,18 +1430,16 @@ public class UiDevice implements Searchable {
         } else {
             Log.w(TAG, "Active window root not found.");
         }
-        // Support multi-window searches for API level 21 and up.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            for (final AccessibilityWindowInfo window : getWindows(uiAutomation)) {
-                final AccessibilityNodeInfo root = Api21Impl.getRoot(window);
-                if (root == null) {
-                    Log.w(TAG, "Skipping null root node for window: " + window);
-                    continue;
-                }
-                roots.add(root);
+        // Add all windows to support multi-window/display searches.
+        for (final AccessibilityWindowInfo window : getWindows(uiAutomation)) {
+            final AccessibilityNodeInfo root = window.getRoot();
+            if (root == null) {
+                Log.w(TAG, "Skipping null root node for window: " + window);
+                continue;
             }
+            roots.add(root);
         }
-        return roots.toArray(new AccessibilityNodeInfo[0]);
+        return new ArrayList<AccessibilityNodeInfo>(roots);
     }
 
     Instrumentation getInstrumentation() {
@@ -1489,10 +1494,8 @@ public class UiDevice implements Searchable {
         boolean serviceFlagsChanged = serviceInfo.flags != mCachedServiceFlags;
         if (serviceFlagsChanged
                 || SystemClock.uptimeMillis() - mLastServiceFlagsTime > SERVICE_FLAGS_TIMEOUT) {
-            // Enable multi-window support for API 21+.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                serviceInfo.flags |= AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
-            }
+            // Enable multi-window support.
+            serviceInfo.flags |= AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
             // Enable or disable hierarchy compression.
             if (mCompressed) {
                 serviceInfo.flags &= ~AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;
@@ -1520,33 +1523,11 @@ public class UiDevice implements Searchable {
         return mInteractionController;
     }
 
-    @RequiresApi(21)
-    static class Api21Impl {
-        private Api21Impl() {
-        }
-
-        @DoNotInline
-        static ParcelFileDescriptor executeShellCommand(UiAutomation uiAutomation, String command) {
-            return uiAutomation.executeShellCommand(command);
-        }
-
-        @DoNotInline
-        static List<AccessibilityWindowInfo> getWindows(UiAutomation uiAutomation) {
-            return uiAutomation.getWindows();
-        }
-
-        @DoNotInline
-        static AccessibilityNodeInfo getRoot(AccessibilityWindowInfo accessibilityWindowInfo) {
-            return accessibilityWindowInfo.getRoot();
-        }
-    }
-
     @RequiresApi(24)
     static class Api24Impl {
         private Api24Impl() {
         }
 
-        @DoNotInline
         static UiAutomation getUiAutomationWithRetry(Instrumentation instrumentation, int flags) {
             UiAutomation uiAutomation = null;
             for (int i = 0; i < MAX_UIAUTOMATION_RETRY; i++) {
@@ -1568,7 +1549,6 @@ public class UiDevice implements Searchable {
         private Api30Impl() {
         }
 
-        @DoNotInline
         static SparseArray<List<AccessibilityWindowInfo>> getWindowsOnAllDisplays(
                 UiAutomation uiAutomation) {
             return uiAutomation.getWindowsOnAllDisplays();
@@ -1580,7 +1560,6 @@ public class UiDevice implements Searchable {
         private Api31Impl() {
         }
 
-        @DoNotInline
         static Context createWindowContext(Context context, Display display) {
             return context.createWindowContext(display,
                     WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, null);

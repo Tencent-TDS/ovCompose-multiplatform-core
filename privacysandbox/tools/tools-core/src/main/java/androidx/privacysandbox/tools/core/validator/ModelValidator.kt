@@ -60,11 +60,11 @@ class ModelValidator private constructor(val api: ParsedApi) {
     private fun validateServiceSupertypes() {
         val superTypes = api.services.first().superTypes
         if (superTypes.isNotEmpty()) {
-            if (superTypes.contains(Types.sandboxedUiAdapter)) {
+            if (superTypes.intersect(Types.uiAdapters).isNotEmpty()) {
                 errors.add(
                     "Interfaces annotated with @PrivacySandboxService may not extend any other " +
-                        "interface. To define a SandboxedUiAdapter, use @PrivacySandboxInterface " +
-                        "and return it from this service."
+                        "interface. To define a SandboxedUiAdapter or a SharedUiAdapter, use " +
+                        "@PrivacySandboxInterface and return it from this service."
                 )
             } else {
                 errors.add(
@@ -184,25 +184,42 @@ class ModelValidator private constructor(val api: ParsedApi) {
     }
 
     private fun isValidInterfaceParameterType(type: Type) =
-        isValue(type) || isInterface(type) || isPrimitive(type) || isList(type) ||
-            isCallback(type) || isBundledType(type)
+        isValue(type) ||
+            isInterface(type) ||
+            isPrimitive(type) ||
+            isList(type) ||
+            isCallback(type) ||
+            isBundledType(type)
 
     private fun isValidInterfaceReturnType(type: Type) =
-        isValue(type) || isInterface(type) || isPrimitive(type) || isList(type) ||
+        isValue(type) ||
+            isInterface(type) ||
+            isPrimitive(type) ||
+            isList(type) ||
             isBundledType(type)
 
     private fun isValidValuePropertyType(type: Type) =
-        isValue(type) || isInterface(type) || isPrimitive(type) || isList(type) ||
+        isValue(type) ||
+            isInterface(type) ||
+            isPrimitive(type) ||
+            isList(type) ||
             isBundledType(type)
 
     private fun isValidCallbackParameterType(type: Type) =
-        isValue(type) || isInterface(type) || isPrimitive(type) || isList(type) ||
+        isValue(type) ||
+            isInterface(type) ||
+            isPrimitive(type) ||
+            isList(type) ||
             isBundledType(type)
 
     private fun isValue(type: Type) = values.contains(type.asNonNull())
+
     private fun isInterface(type: Type) = interfaces.contains(type.asNonNull())
+
     private fun isCallback(type: Type) = callbacks.contains(type.asNonNull())
+
     private fun isPrimitive(type: Type) = Types.primitiveTypes.contains(type.asNonNull())
+
     private fun isList(type: Type): Boolean {
         if (type.qualifiedName == "kotlin.collections.List") {
             require(type.typeParameters.size == 1) {

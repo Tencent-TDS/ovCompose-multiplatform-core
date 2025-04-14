@@ -38,9 +38,6 @@ import android.view.Surface;
 
 import androidx.annotation.GuardedBy;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.Logger;
 import androidx.camera.core.impl.CameraCaptureFailure;
 import androidx.camera.core.impl.CameraCaptureResult;
@@ -49,6 +46,7 @@ import androidx.camera.core.impl.OutputSurface;
 import androidx.camera.core.impl.OutputSurfaceConfiguration;
 import androidx.camera.core.impl.RequestProcessor;
 import androidx.camera.core.impl.SessionProcessor;
+import androidx.camera.core.impl.TagBundle;
 import androidx.camera.extensions.ExtensionMode;
 import androidx.camera.extensions.impl.advanced.Camera2OutputConfigImpl;
 import androidx.camera.extensions.impl.advanced.Camera2SessionConfigImpl;
@@ -67,7 +65,11 @@ import androidx.core.util.Preconditions;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,19 +78,14 @@ import java.util.Objects;
 /**
  * A {@link SessionProcessor} based on OEMs' {@link SessionProcessorImpl}.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class AdvancedSessionProcessor extends SessionProcessorBase {
     private static final String TAG = "AdvancedSessionProcessor";
-    @NonNull
-    private final SessionProcessorImpl mImpl;
-    @NonNull
-    private final VendorExtender mVendorExtender;
-    @NonNull
-    private final Context mContext;
+    private final @NonNull SessionProcessorImpl mImpl;
+    private final @NonNull VendorExtender mVendorExtender;
+    private final @NonNull Context mContext;
     @ExtensionMode.Mode
     private final int mMode;
-    @Nullable
-    private final MutableLiveData<Integer> mCurrentExtensionTypeLiveData;
+    private final @Nullable MutableLiveData<Integer> mCurrentExtensionTypeLiveData;
     private boolean mIsPostviewConfigured = false;
     // Caches the working capture config so that the new extension strength can be applied on top
     // of the existing config.
@@ -98,27 +95,27 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
     // new extension strength setting.
     @GuardedBy("mLock")
     private SessionProcessorImplCaptureCallbackAdapter mRepeatingCaptureCallbackAdapter = null;
-    @Nullable
-    private final MutableLiveData<Integer> mExtensionStrengthLiveData;
-    @Nullable
-    private final ExtensionMetadataMonitor mExtensionMetadataMonitor;
+    private final @Nullable MutableLiveData<Integer> mExtensionStrengthLiveData;
+    private final @Nullable ExtensionMetadataMonitor mExtensionMetadataMonitor;
+    private final boolean mWillReceiveOnCaptureCompleted;
 
     public AdvancedSessionProcessor(@NonNull SessionProcessorImpl impl,
-            @NonNull List<CaptureRequest.Key> supportedKeys,
+            @NonNull List<CaptureRequest.Key<?>> supportedKeys,
             @NonNull VendorExtender vendorExtender,
             @NonNull Context context) {
         this(impl, supportedKeys, vendorExtender, context, ExtensionMode.NONE);
     }
 
     public AdvancedSessionProcessor(@NonNull SessionProcessorImpl impl,
-            @NonNull List<CaptureRequest.Key> supportedKeys,
+            @NonNull List<CaptureRequest.Key<?>> supportedKeys,
             @NonNull VendorExtender vendorExtender,
             @NonNull Context context,
             @ExtensionMode.Mode int mode) {
-        super(supportedKeys);
+        super(supportedKeys, mode);
         mImpl = impl;
         mVendorExtender = vendorExtender;
         mContext = context;
+        mWillReceiveOnCaptureCompleted = vendorExtender.willReceiveOnCaptureCompleted();
         mMode = mode;
         mCurrentExtensionTypeLiveData = isCurrentExtensionModeAvailable() ? new MutableLiveData<>(
                 mMode) : null;
@@ -132,9 +129,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         }
     }
 
-    @NonNull
     @Override
-    protected Camera2SessionConfig initSessionInternal(
+    protected @NonNull Camera2SessionConfig initSessionInternal(
             @NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> cameraCharacteristicsMap,
             @NonNull OutputSurfaceConfiguration outputSurfaceConfig) {
@@ -226,9 +222,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         return mVendorExtender.isCurrentExtensionModeAvailable();
     }
 
-    @NonNull
     @Override
-    public LiveData<Integer> getCurrentExtensionMode() {
+    public @NonNull LiveData<Integer> getCurrentExtensionMode() {
         return mCurrentExtensionTypeLiveData;
     }
 
@@ -267,9 +262,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
     }
 
     @SuppressLint("KotlinPropertyAccess")
-    @NonNull
     @Override
-    public LiveData<Integer> getExtensionStrength() {
+    public @NonNull LiveData<Integer> getExtensionStrength() {
         return mExtensionStrengthLiveData;
     }
 
@@ -292,8 +286,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         mImpl.setParameters(captureConfigMap);
     }
 
-    @NonNull
-    private static HashMap<CaptureRequest.Key<?>, Object> convertConfigToMap(
+    private static @NonNull HashMap<CaptureRequest.Key<?>, Object> convertConfigToMap(
             @NonNull Config parameters) {
         HashMap<CaptureRequest.Key<?>, Object> map = new HashMap<>();
 
@@ -322,40 +315,45 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
     @Override
     public int startCapture(
             boolean postviewEnabled,
-            @NonNull SessionProcessor.CaptureCallback callback) {
+            @NonNull TagBundle tagBundle,
+            SessionProcessor.@NonNull CaptureCallback callback) {
+        Logger.d(TAG, "startCapture postviewEnabled = " + postviewEnabled
+                + " mWillReceiveOnCaptureCompleted = " + mWillReceiveOnCaptureCompleted);
         SessionProcessorImplCaptureCallbackAdapter stillCaptureCallback =
-                new SessionProcessorImplCaptureCallbackAdapter(callback);
+                new SessionProcessorImplCaptureCallbackAdapter(
+                        callback, tagBundle, mWillReceiveOnCaptureCompleted);
 
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && mIsPostviewConfigured && postviewEnabled
                 && mVendorExtender.isPostviewAvailable()) {
-            Logger.d(TAG, "startCaptureWithPostview");
             return mImpl.startCaptureWithPostview(stillCaptureCallback);
         } else {
-            Logger.d(TAG, "startCapture");
             return mImpl.startCapture(stillCaptureCallback);
         }
     }
 
     @Override
-    public int startRepeating(@NonNull SessionProcessor.CaptureCallback callback) {
+    public int startRepeating(@NonNull TagBundle tagBundle,
+            SessionProcessor.@NonNull CaptureCallback callback) {
         SessionProcessorImplCaptureCallbackAdapter captureCallbackAdapter;
         synchronized (mLock) {
             captureCallbackAdapter = new SessionProcessorImplCaptureCallbackAdapter(callback,
-                    mExtensionMetadataMonitor);
+                    tagBundle, mExtensionMetadataMonitor, mWillReceiveOnCaptureCompleted);
             mRepeatingCaptureCallbackAdapter = captureCallbackAdapter;
         }
         return mImpl.startRepeating(captureCallbackAdapter);
     }
 
     @Override
-    public int startTrigger(@NonNull Config config, @NonNull CaptureCallback callback) {
+    public int startTrigger(@NonNull Config config, @NonNull TagBundle tagBundle,
+            @NonNull CaptureCallback callback) {
         HashMap<CaptureRequest.Key<?>, Object> map = convertConfigToMap(config);
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)) {
             return mImpl.startTrigger(map,
-                    new SessionProcessorImplCaptureCallbackAdapter(callback));
+                    new SessionProcessorImplCaptureCallbackAdapter(
+                            callback, tagBundle, mWillReceiveOnCaptureCompleted));
         }
         return -1;
     }
@@ -373,9 +371,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         mImpl.abortCapture(captureSequenceId);
     }
 
-    @Nullable
     @Override
-    public Pair<Long, Long> getRealtimeCaptureLatency() {
+    public @Nullable Pair<Long, Long> getRealtimeCaptureLatency() {
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
             return mImpl.getRealtimeCaptureLatency();
@@ -383,10 +380,15 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         return null;
     }
 
-    @NonNull
     @Override
-    public Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
+    public @NonNull Map<Integer, List<Size>> getSupportedPostviewSize(@NonNull Size captureSize) {
         return mVendorExtender.getSupportedPostviewResolutions(captureSize);
+    }
+
+    @Override
+    public @NonNull List<Pair<CameraCharacteristics.Key, Object>>
+        getAvailableCharacteristicsKeyValues() {
+        return mVendorExtender.getAvailableCharacteristicsKeyValues();
     }
 
     /**
@@ -400,15 +402,13 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
             mOutputSurface = outputSurface;
         }
 
-        @NonNull
         @Override
-        public Surface getSurface() {
+        public @NonNull Surface getSurface() {
             return mOutputSurface.getSurface();
         }
 
-        @NonNull
         @Override
-        public Size getSize() {
+        public @NonNull Size getSize() {
             return mOutputSurface.getSize();
         }
 
@@ -441,27 +441,23 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
                             outputSurfaceConfig.getPostviewOutputSurface()) : null;
         }
 
-        @NonNull
         @Override
-        public OutputSurfaceImpl getPreviewOutputSurface() {
+        public @NonNull OutputSurfaceImpl getPreviewOutputSurface() {
             return mPreviewOutputSurface;
         }
 
-        @NonNull
         @Override
-        public OutputSurfaceImpl getImageCaptureOutputSurface() {
+        public @NonNull OutputSurfaceImpl getImageCaptureOutputSurface() {
             return mCaptureOutputSurface;
         }
 
-        @Nullable
         @Override
-        public OutputSurfaceImpl getImageAnalysisOutputSurface() {
+        public @Nullable OutputSurfaceImpl getImageAnalysisOutputSurface() {
             return mAnalysisOutputSurface;
         }
 
-        @Nullable
         @Override
-        public OutputSurfaceImpl getPostviewOutputSurface() {
+        public @Nullable OutputSurfaceImpl getPostviewOutputSurface() {
             return mPostviewOutputSurface;
         }
     }
@@ -486,7 +482,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public int submit(
-                @NonNull RequestProcessorImpl.Request request, @NonNull Callback callback) {
+                RequestProcessorImpl.@NonNull Request request, @NonNull Callback callback) {
             return mRequestProcessor.submit(new RequestAdapter(request),
                     new CallbackAdapter(callback));
         }
@@ -503,7 +499,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public int setRepeating(
-                @NonNull RequestProcessorImpl.Request request, @NonNull Callback callback) {
+                RequestProcessorImpl.@NonNull Request request, @NonNull Callback callback) {
             return mRequestProcessor.setRepeating(new RequestAdapter(request),
                     new CallbackAdapter(callback));
         }
@@ -530,7 +526,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         private final int mTemplateId;
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-        RequestAdapter(@NonNull RequestProcessorImpl.Request implRequest) {
+        RequestAdapter(RequestProcessorImpl.@NonNull Request implRequest) {
             mImplRequest = implRequest;
 
             List<Integer> targetOutputConfigIds = new ArrayList<>();
@@ -550,15 +546,13 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
             mTemplateId = implRequest.getTemplateId();
         }
 
-        @NonNull
         @Override
-        public List<Integer> getTargetOutputConfigIds() {
+        public @NonNull List<Integer> getTargetOutputConfigIds() {
             return mTargetOutputConfigIds;
         }
 
-        @NonNull
         @Override
-        public Config getParameters() {
+        public @NonNull Config getParameters() {
             return mParameters;
         }
 
@@ -567,8 +561,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
             return mTemplateId;
         }
 
-        @Nullable
-        public RequestProcessorImpl.Request getImplRequest() {
+        public RequestProcessorImpl.@Nullable Request getImplRequest() {
             return mImplRequest;
         }
     }
@@ -613,9 +606,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
             return mImageReference.decrement();
         }
 
-        @Nullable
         @Override
-        public Image get() {
+        public @Nullable Image get() {
             return mImageReference.get();
         }
     }
@@ -628,13 +620,13 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
         private final RequestProcessorImpl.Callback mCallback;
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
-        CallbackAdapter(@NonNull RequestProcessorImpl.Callback callback) {
+        CallbackAdapter(RequestProcessorImpl.@NonNull Callback callback) {
             mCallback = callback;
         }
 
         @Override
         public void onCaptureStarted(
-                @NonNull RequestProcessor.Request request,
+                RequestProcessor.@NonNull Request request,
                 long frameNumber, long timestamp) {
             mCallback.onCaptureStarted(getImplRequest(request), frameNumber,
                     timestamp);
@@ -642,7 +634,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public void onCaptureProgressed(
-                @NonNull RequestProcessor.Request request,
+                RequestProcessor.@NonNull Request request,
                 @NonNull CameraCaptureResult cameraCaptureResult) {
             CaptureResult captureResult = cameraCaptureResult.getCaptureResult();
             Preconditions.checkArgument(captureResult != null,
@@ -652,7 +644,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public void onCaptureCompleted(
-                @NonNull RequestProcessor.Request request,
+                RequestProcessor.@NonNull Request request,
                 @Nullable CameraCaptureResult cameraCaptureResult) {
             CaptureResult captureResult = cameraCaptureResult.getCaptureResult();
             Preconditions.checkArgument(captureResult instanceof TotalCaptureResult,
@@ -663,7 +655,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public void onCaptureFailed(
-                @NonNull RequestProcessor.Request request,
+                RequestProcessor.@NonNull Request request,
                 @Nullable CameraCaptureFailure cameraCaptureFailure) {
             Object captureFailure = cameraCaptureFailure.getCaptureFailure();
             Preconditions.checkArgument(captureFailure instanceof CaptureFailure,
@@ -673,7 +665,7 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public void onCaptureBufferLost(
-                @NonNull RequestProcessor.Request request,
+                RequestProcessor.@NonNull Request request,
                 long frameNumber, int outputStreamId) {
             mCallback.onCaptureBufferLost(getImplRequest(request), frameNumber, outputStreamId);
         }
@@ -705,26 +697,35 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
     private static class SessionProcessorImplCaptureCallbackAdapter implements
             SessionProcessorImpl.CaptureCallback {
         private final SessionProcessor.CaptureCallback mCaptureCallback;
-        @Nullable
-        private final ExtensionMetadataMonitor mExtensionMetadataMonitor;
+        private final @Nullable ExtensionMetadataMonitor mExtensionMetadataMonitor;
+        private final @NonNull TagBundle mTagBundle;
+        private long mOnCaptureStartedTimestamp = -1;
+        private boolean mWillReceiveOnCaptureCompleted;
 
         SessionProcessorImplCaptureCallbackAdapter(
-                @NonNull SessionProcessor.CaptureCallback callback) {
-            this(callback, null);
+                SessionProcessor.@NonNull CaptureCallback callback,
+                @NonNull TagBundle tagBundle,
+                boolean willReceiveOnCaptureCompleted) {
+            this(callback, tagBundle, null, willReceiveOnCaptureCompleted);
         }
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
         SessionProcessorImplCaptureCallbackAdapter(
-                @NonNull SessionProcessor.CaptureCallback callback,
-                @Nullable ExtensionMetadataMonitor extensionMetadataMonitor) {
+                SessionProcessor.@NonNull CaptureCallback callback,
+                @NonNull TagBundle tagBundle,
+                @Nullable ExtensionMetadataMonitor extensionMetadataMonitor,
+                boolean willReceiveOnCaptureCompleted) {
             mCaptureCallback = callback;
+            mTagBundle = tagBundle;
             mExtensionMetadataMonitor = extensionMetadataMonitor;
+            mWillReceiveOnCaptureCompleted = willReceiveOnCaptureCompleted;
         }
 
         @Override
         public void onCaptureStarted(
                 int captureSequenceId,
                 long timestamp) {
+            mOnCaptureStartedTimestamp = timestamp;
             mCaptureCallback.onCaptureStarted(captureSequenceId, timestamp);
         }
 
@@ -741,7 +742,16 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
 
         @Override
         public void onCaptureSequenceCompleted(int captureSequenceId) {
-            mCaptureCallback.onCaptureSequenceCompleted(captureSequenceId);
+            if (!mWillReceiveOnCaptureCompleted) {
+                // If SessionProcessorImpl.CaptureCallback.onCaptureCompleted won't be invoked,
+                // We finish the capture sequence using the timestamp retrieved at onCaptureStarted
+                // when onCaptureSequenceCompleted is invoked.
+                mCaptureCallback.onCaptureCompleted(mOnCaptureStartedTimestamp,
+                        captureSequenceId,
+                        new KeyValueMapCameraCaptureResult(
+                                mOnCaptureStartedTimestamp, mTagBundle, Collections.emptyMap()));
+                mCaptureCallback.onCaptureSequenceCompleted(captureSequenceId);
+            }
         }
 
         @Override
@@ -755,7 +765,11 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
             if (mExtensionMetadataMonitor != null) {
                 mExtensionMetadataMonitor.checkExtensionMetadata(result);
             }
-            mCaptureCallback.onCaptureCompleted(timestamp, captureSequenceId, result);
+            if (mWillReceiveOnCaptureCompleted) {
+                mCaptureCallback.onCaptureCompleted(timestamp, captureSequenceId,
+                        new KeyValueMapCameraCaptureResult(timestamp, mTagBundle, result));
+                mCaptureCallback.onCaptureSequenceCompleted(captureSequenceId);
+            }
         }
 
         @Override
@@ -768,10 +782,8 @@ public class AdvancedSessionProcessor extends SessionProcessorBase {
      * Monitors the extension metadata (extension strength, type) changes from the capture results.
      */
     private static class ExtensionMetadataMonitor {
-        @Nullable
-        private final MutableLiveData<Integer> mCurrentExtensionTypeLiveData;
-        @Nullable
-        private final MutableLiveData<Integer> mExtensionStrengthLiveData;
+        private final @Nullable MutableLiveData<Integer> mCurrentExtensionTypeLiveData;
+        private final @Nullable MutableLiveData<Integer> mExtensionStrengthLiveData;
 
         ExtensionMetadataMonitor(
                 @Nullable MutableLiveData<Integer> currentExtensionTypeLiveData,

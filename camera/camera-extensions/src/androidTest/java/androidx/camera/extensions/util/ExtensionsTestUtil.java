@@ -28,10 +28,9 @@ import static androidx.camera.extensions.impl.ExtensionsTestlibControl.Implement
 import android.content.Context;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig;
 import androidx.camera.core.CameraSelector;
@@ -40,15 +39,34 @@ import androidx.camera.core.ExtendableBuilder;
 import androidx.camera.core.impl.Config;
 import androidx.camera.extensions.ExtensionMode;
 import androidx.camera.extensions.ExtensionsManager;
+import androidx.camera.extensions.impl.AutoImageCaptureExtenderImpl;
+import androidx.camera.extensions.impl.AutoPreviewExtenderImpl;
+import androidx.camera.extensions.impl.BeautyImageCaptureExtenderImpl;
+import androidx.camera.extensions.impl.BeautyPreviewExtenderImpl;
+import androidx.camera.extensions.impl.BokehImageCaptureExtenderImpl;
+import androidx.camera.extensions.impl.BokehPreviewExtenderImpl;
+import androidx.camera.extensions.impl.ExtensionVersionImpl;
 import androidx.camera.extensions.impl.ExtensionsTestlibControl;
+import androidx.camera.extensions.impl.HdrImageCaptureExtenderImpl;
+import androidx.camera.extensions.impl.HdrPreviewExtenderImpl;
+import androidx.camera.extensions.impl.NightImageCaptureExtenderImpl;
+import androidx.camera.extensions.impl.NightPreviewExtenderImpl;
+import androidx.camera.extensions.impl.advanced.AutoAdvancedExtenderImpl;
+import androidx.camera.extensions.impl.advanced.BeautyAdvancedExtenderImpl;
+import androidx.camera.extensions.impl.advanced.BokehAdvancedExtenderImpl;
+import androidx.camera.extensions.impl.advanced.HdrAdvancedExtenderImpl;
+import androidx.camera.extensions.impl.advanced.NightAdvancedExtenderImpl;
 import androidx.camera.extensions.internal.AdvancedVendorExtender;
 import androidx.camera.extensions.internal.BasicVendorExtender;
+import androidx.camera.extensions.internal.Camera2ExtensionsVendorExtender;
 import androidx.camera.extensions.internal.ExtensionVersion;
 import androidx.camera.extensions.internal.VendorExtender;
 import androidx.camera.extensions.internal.Version;
 import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledValidator;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.testing.impl.CameraUtil;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +77,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * Extension test util functions.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class ExtensionsTestUtil {
     public static final Config.Option<CameraCaptureSession.CaptureCallback>
             SESSION_CAPTURE_CALLBACK_OPTION =
@@ -68,12 +85,116 @@ public class ExtensionsTestUtil {
     public static final String CAMERA2_IMPLEMENTATION_OPTION = "camera2";
     public static final String CAMERA_PIPE_IMPLEMENTATION_OPTION = "camera_pipe";
 
+    private static boolean isAdvancedExtender() {
+        ExtensionVersionImpl extensionVersion = new ExtensionVersionImpl();
+        try {
+            if (ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_2)
+                    && extensionVersion.isAdvancedExtenderImplemented()) {
+                return true;
+            }
+        } catch (NoSuchMethodError e) {
+            // in case some devices remove the isAdvancedExtenderImplemented method in
+            // ExtensionVersionImpl.
+            return false;
+        }
+        return false;
+    }
+
+    private static boolean hasNoSuchMethod(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (NoSuchMethodError e) {
+            return true;
+        }
+        return false;
+    }
+
+    // Check if the OEM implementation class for the given mode exists or not.
+    private static boolean doesOEMImplementationExistForMode(int extensionMode) {
+        if (isAdvancedExtender()) {
+            switch (extensionMode) {
+                case HDR:
+                    return hasNoSuchMethod(
+                            () -> HdrAdvancedExtenderImpl.checkTestlibRunning());
+                case BOKEH:
+                    return hasNoSuchMethod(
+                            () -> BokehAdvancedExtenderImpl.checkTestlibRunning());
+                case AUTO:
+                    return hasNoSuchMethod(
+                            () -> AutoAdvancedExtenderImpl.checkTestlibRunning());
+                case FACE_RETOUCH:
+                    return hasNoSuchMethod(
+                            () -> BeautyAdvancedExtenderImpl.checkTestlibRunning());
+                case NIGHT:
+                    return hasNoSuchMethod(
+                            () -> NightAdvancedExtenderImpl.checkTestlibRunning());
+            }
+        } else {
+            switch (extensionMode) {
+                case HDR:
+                    return hasNoSuchMethod(
+                            () -> HdrImageCaptureExtenderImpl.checkTestlibRunning())
+                            && hasNoSuchMethod(
+                                    () -> HdrPreviewExtenderImpl.checkTestlibRunning());
+                case BOKEH:
+                    return hasNoSuchMethod(
+                            () -> BokehImageCaptureExtenderImpl.checkTestlibRunning())
+                            && hasNoSuchMethod(
+                                    () -> BokehPreviewExtenderImpl.checkTestlibRunning());
+                case AUTO:
+                    return hasNoSuchMethod(
+                            () -> AutoImageCaptureExtenderImpl.checkTestlibRunning())
+                            && hasNoSuchMethod(
+                                    () -> AutoPreviewExtenderImpl.checkTestlibRunning());
+                case FACE_RETOUCH:
+                    return hasNoSuchMethod(
+                            () -> BeautyImageCaptureExtenderImpl.checkTestlibRunning())
+                            && hasNoSuchMethod(
+                                    () -> BeautyPreviewExtenderImpl.checkTestlibRunning());
+                case NIGHT:
+                    return hasNoSuchMethod(
+                            () -> NightImageCaptureExtenderImpl.checkTestlibRunning())
+                            && hasNoSuchMethod(
+                                    () -> NightPreviewExtenderImpl.checkTestlibRunning());
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns if extension is supported with the given mode and lens facing. Please note that
+     * if some classes are removed by OEMs, the classes in the test lib could still be used so we
+     * need to return false in this case.
+     */
+    public static boolean isExtensionAvailable(
+            ExtensionsManager extensionsManager, int lensFacing, int extensionMode) {
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(lensFacing)
+                .build();
+        return isExtensionAvailable(extensionsManager, cameraSelector, extensionMode);
+    }
+
+    /**
+     * Returns if extension is supported with the given mode and camera selector. Please note that
+     * if some classes are removed by OEMs, the classes in the test lib could still be used so we
+     * need to return false in this case.
+     */
+    public static boolean isExtensionAvailable(@NonNull ExtensionsManager extensionsManager,
+            @NonNull CameraSelector cameraSelector, int extensionMode) {
+        // Return false if classes are removed by OEMs
+        if (ExtensionsTestlibControl.getInstance().getImplementationType() == OEM_IMPL
+                && !doesOEMImplementationExistForMode(extensionMode)) {
+            return false;
+        }
+
+        return extensionsManager.isExtensionAvailable(cameraSelector, extensionMode);
+    }
+
     /**
      * Returns the parameters which contains the combination of CameraXConfig
      * name, CameraXConfig, implementationType, extensions mode and lens facing.
      */
-    @NonNull
-    public static Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
+    public static @NonNull Collection<Object[]> getAllImplExtensionsLensFacingCombinations(
             @NonNull Context context,
             boolean excludeUnavailableModes
     ) {
@@ -144,10 +265,7 @@ public class ExtensionsTestUtil {
             for (Object[] item : list) {
                 int mode = (int) item[1];
                 int lensFacing = (int) item[2];
-                CameraSelector cameraSelector = new CameraSelector.Builder()
-                        .requireLensFacing(lensFacing)
-                        .build();
-                if (extensionsManager.isExtensionAvailable(cameraSelector, mode)) {
+                if (isExtensionAvailable(extensionsManager, lensFacing, mode)) {
                     result.add(item);
                 }
             }
@@ -201,7 +319,28 @@ public class ExtensionsTestUtil {
         return ExtensionVersion.isAdvancedExtenderSupported();
     }
 
-    public static VendorExtender createVendorExtender(@ExtensionMode.Mode int mode) {
+    /**
+     * Creates the {@link VendorExtender} instance for testing.
+     *
+     * @param applicationContext the application context which will be used to retrieve the
+     *                           camera characteristics info.
+     * @param mode               the target extension mode.
+     * @param configImplType     the config impl type to run the test
+     * @return the corresponding {@link VendorExtender} instance.
+     */
+    public static @NonNull VendorExtender createVendorExtender(@NonNull Context applicationContext,
+            @ExtensionMode.Mode int mode,
+            @CameraXConfig.ImplType int configImplType) {
+        if (configImplType == CameraXConfig.CAMERAX_CONFIG_IMPL_TYPE_PIPE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                CameraManager cameraManager = applicationContext.getSystemService(
+                        CameraManager.class);
+                return new Camera2ExtensionsVendorExtender(mode, cameraManager);
+            } else {
+                return new VendorExtender() {
+                };
+            }
+        }
         if (isAdvancedExtenderSupported()) {
             return new AdvancedVendorExtender(mode);
         }
@@ -268,8 +407,8 @@ public class ExtensionsTestUtil {
     /**
      * Returns whether extensions is disabled by quirk.
      */
-    public static boolean extensionsDisabledByQuirk() {
-        return new ExtensionDisabledValidator().shouldDisableExtension();
+    public static boolean extensionsDisabledByQuirk(@NonNull String cameraId) {
+        return new ExtensionDisabledValidator().shouldDisableExtension(cameraId);
     }
 
     /**
@@ -277,7 +416,7 @@ public class ExtensionsTestUtil {
      */
     public static <T> void setCamera2SessionCaptureCallback(
             ExtendableBuilder<T> usecaseBuilder,
-            @NonNull CameraCaptureSession.CaptureCallback captureCallback) {
+            CameraCaptureSession.@NonNull CaptureCallback captureCallback) {
         usecaseBuilder.getMutableConfig().insertOption(
                 SESSION_CAPTURE_CALLBACK_OPTION,
                 captureCallback

@@ -16,9 +16,12 @@
 
 package androidx.benchmark.json
 
+import androidx.benchmark.Arguments
 import androidx.benchmark.CpuInfo
+import androidx.benchmark.DeviceInfo
 import androidx.benchmark.IsolationActivity
 import androidx.benchmark.MemInfo
+import androidx.benchmark.PackageInfo
 import androidx.benchmark.Profiler
 import androidx.benchmark.ResultWriter
 import com.squareup.moshi.JsonClass
@@ -28,18 +31,13 @@ import com.squareup.moshi.JsonClass
  *
  * Corresponds to <packagename>BenchmarkData.json file output.
  *
- * Must be public, restrict to for usage from macrobench.
- * We avoid @RestrictTo on these objects, and rely on package-info instead, as that works for
- * adapters as well, which fail to be detected by metalava: b/331978183.
+ * Must be public, restrict to for usage from macrobench. We avoid @RestrictTo on these objects, and
+ * rely on package-info instead, as that works for adapters as well, which fail to be detected by
+ * metalava: b/331978183.
  */
 @JsonClass(generateAdapter = true)
-data class BenchmarkData(
-    val context: Context,
-    val benchmarks: List<TestResult>
-) {
-    /**
-     * Device & OS information
-     */
+data class BenchmarkData(val context: Context, val benchmarks: List<TestResult>) {
+    /** Device & OS information */
     @JsonClass(generateAdapter = true)
     data class Context(
         val build: Build,
@@ -52,44 +50,81 @@ data class BenchmarkData(
         @Suppress("GetterSetterNames") // 1.0 JSON compat
         @get:Suppress("GetterSetterNames") // 1.0 JSON compat
         val sustainedPerformanceModeEnabled: Boolean,
+        val artMainlineVersion: Long, // -1 if not found
+        val osCodenameAbbreviated: String,
+        val compilationMode: String,
+        // additional data that can be passed from instrumentation arguments and copied into
+        // the json output.
+        val payload: Map<String, String> = emptyMap() // need default value for backwards compat
+        // Note: Convention is to add new entries at bottom
     ) {
-        /**
-         * Default constructor populates with current run state
-         */
-        constructor() : this(
-            build = Build(),
-            cpuCoreCount = CpuInfo.coreDirs.size,
-            cpuLocked = CpuInfo.locked,
-            cpuMaxFreqHz = CpuInfo.maxFreqHz,
-            memTotalBytes = MemInfo.memTotalBytes,
-            sustainedPerformanceModeEnabled = IsolationActivity.sustainedPerformanceModeInUse
-        )
+        /** Default constructor populates with current run state */
+        constructor() :
+            this(
+                build = Build(),
+                cpuCoreCount = CpuInfo.coreDirs.size,
+                cpuLocked = CpuInfo.locked,
+                cpuMaxFreqHz = CpuInfo.maxFreqHz,
+                memTotalBytes = MemInfo.memTotalBytes,
+                sustainedPerformanceModeEnabled = IsolationActivity.sustainedPerformanceModeInUse,
+                artMainlineVersion = DeviceInfo.artMainlineVersion,
+                osCodenameAbbreviated =
+                    if (
+                        android.os.Build.VERSION.SDK_INT >= 35 &&
+                            android.os.Build.VERSION.CODENAME == "REL"
+                    ) {
+                        "REL" // OS doesn't support codename letters anymore
+                    } else {
+                        if (android.os.Build.VERSION.CODENAME != "REL") {
+                                // non-release build, use codename
+                                android.os.Build.VERSION.CODENAME
+                            } else {
+                                // release build, use start of build ID
+                                android.os.Build.ID
+                            }
+                            .substring(0, 1)
+                    },
+                compilationMode = PackageInfo.compilationMode,
+                payload = Arguments.payload
+            )
 
         /**
          * Device & OS information, corresponds to `android.os.Build`
+         *
+         * Anything that doesn't correspond exactly to `android.os.Build` should be in context
+         * instead
          */
         @JsonClass(generateAdapter = true)
         data class Build(
             val brand: String,
             val device: String,
             val fingerprint: String,
+            val id: String,
             val model: String,
+            val type: String,
             val version: Version
+            // Note: Convention is alphabetical
         ) {
-            /**
-             * Default constructor which populates values from `android.os.BUILD`
-             */
-            constructor() : this(
-                brand = android.os.Build.BRAND,
-                device = android.os.Build.DEVICE,
-                fingerprint = android.os.Build.FINGERPRINT,
-                model = android.os.Build.MODEL,
-                version = Version(android.os.Build.VERSION.SDK_INT)
-            )
+            /** Default constructor which populates values from `android.os.BUILD` */
+            constructor() :
+                this(
+                    brand = android.os.Build.BRAND,
+                    device = android.os.Build.DEVICE,
+                    fingerprint = android.os.Build.FINGERPRINT,
+                    id = android.os.Build.ID,
+                    model = android.os.Build.MODEL,
+                    type = android.os.Build.TYPE,
+                    version =
+                        Version(
+                            codename = android.os.Build.VERSION.CODENAME,
+                            sdk = android.os.Build.VERSION.SDK_INT,
+                        ),
+                )
 
             @JsonClass(generateAdapter = true)
             data class Version(
-                val sdk: Int
+                val codename: String,
+                val sdk: Int,
             )
         }
     }
@@ -104,9 +139,7 @@ data class BenchmarkData(
         val name: String,
         val params: Map<String, String>,
         val className: String,
-        @Suppress("MethodNameUnits")
-        @get:Suppress("MethodNameUnits")
-        val totalRunTimeNs: Long,
+        @Suppress("MethodNameUnits") @get:Suppress("MethodNameUnits") val totalRunTimeNs: Long,
         val metrics: Map<String, SingleMetricResult>,
         val sampledMetrics: Map<String, SampledMetricResult>,
         val warmupIterations: Int?,
@@ -138,16 +171,18 @@ data class BenchmarkData(
             params = ResultWriter.getParams(name),
             className = className,
             totalRunTimeNs = totalRunTimeNs,
-            metrics = metrics.filter {
-                it.iterationData == null // single metrics only
-            }.associate {
-                it.name to SingleMetricResult(it)
-            },
-            sampledMetrics = metrics.filter {
-                it.iterationData != null // single metrics only
-            }.associate {
-                it.name to SampledMetricResult(it)
-            },
+            metrics =
+                metrics
+                    .filter {
+                        it.iterationData == null // single metrics only
+                    }
+                    .associate { it.name to SingleMetricResult(it) },
+            sampledMetrics =
+                metrics
+                    .filter {
+                        it.iterationData != null // single metrics only
+                    }
+                    .associate { it.name to SampledMetricResult(it) },
             warmupIterations = warmupIterations,
             repeatIterations = repeatIterations,
             thermalThrottleSleepSeconds = thermalThrottleSleepSeconds,
@@ -175,7 +210,9 @@ data class BenchmarkData(
             /** Filename of trace file. */
             val filename: String
         ) {
-            constructor(profilerResult: Profiler.ResultFile) : this(
+            constructor(
+                profilerResult: Profiler.ResultFile
+            ) : this(
                 type = profilerResult.type,
                 label = profilerResult.label,
                 filename = profilerResult.outputRelativePath,
@@ -195,12 +232,16 @@ data class BenchmarkData(
             val minimum: Double,
             val maximum: Double,
             val median: Double,
+            val coefficientOfVariation: Double,
             val runs: List<Double>
         ) : MetricResult() {
-            constructor(metricResult: androidx.benchmark.MetricResult) : this(
+            constructor(
+                metricResult: androidx.benchmark.MetricResult
+            ) : this(
                 minimum = metricResult.min,
                 maximum = metricResult.max,
                 median = metricResult.median,
+                coefficientOfVariation = metricResult.coefficientOfVariation,
                 runs = metricResult.data
             )
         }
@@ -213,7 +254,9 @@ data class BenchmarkData(
             @Suppress("PropertyName") val P99: Double,
             val runs: List<List<Double>>
         ) : MetricResult() {
-            constructor(metricResult: androidx.benchmark.MetricResult) : this(
+            constructor(
+                metricResult: androidx.benchmark.MetricResult
+            ) : this(
                 P50 = metricResult.p50,
                 P90 = metricResult.p90,
                 P95 = metricResult.p95,

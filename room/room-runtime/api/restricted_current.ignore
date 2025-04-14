@@ -1,9 +1,13 @@
 // Baseline format: 1.0
-DefaultValueChange: androidx.room.util.TableInfo#TableInfo(String, java.util.Map<java.lang.String,androidx.room.util.TableInfo.Column>, java.util.Set<androidx.room.util.TableInfo.ForeignKey>, java.util.Set<androidx.room.util.TableInfo.Index>) parameter #3:
-    Attempted to remove default value from parameter indices in androidx.room.util.TableInfo
+AddedFinal: androidx.room.RoomDatabase#getMCallbacks():
+    Method androidx.room.RoomDatabase.getMCallbacks has added 'final' qualifier
+AddedFinal: androidx.room.RoomDatabase#getMDatabase():
+    Method androidx.room.RoomDatabase.getMDatabase has added 'final' qualifier
+AddedFinal: androidx.room.RoomDatabase#setMCallbacks(java.util.List<androidx.room.RoomDatabase.Callback>):
+    Method androidx.room.RoomDatabase.setMCallbacks has added 'final' qualifier
+AddedFinal: androidx.room.RoomDatabase#setMDatabase(androidx.sqlite.db.SupportSQLiteDatabase):
+    Method androidx.room.RoomDatabase.setMDatabase has added 'final' qualifier
 
 
-RemovedMethod: androidx.room.util.FtsTableInfo#parseOptions(String):
-    Removed method androidx.room.util.FtsTableInfo.parseOptions(String)
-RemovedMethod: androidx.room.util.FtsTableInfo.Companion#parseOptions(String):
-    Removed method androidx.room.util.FtsTableInfo.Companion.parseOptions(String)
+ChangedStatic: androidx.room.util.StringUtil#getEMPTY_STRING_ARRAY():
+    Method androidx.room.util.StringUtil.getEMPTY_STRING_ARRAY has changed 'static' qualifier

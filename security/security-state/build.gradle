@@ -21,26 +21,46 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.kotlinSerialization)
 }
 
 dependencies {
-    api(libs.kotlinStdlib)
-    // Add dependencies here
+    api("androidx.annotation:annotation:1.8.1")
+    api(libs.kotlinCoroutinesCore)
+    implementation(libs.kotlinSerializationJson)
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.webkit:webkit:1.11.0")
+
+    testImplementation(libs.junit)
+    testImplementation(libs.testExtJunit)
+    testImplementation(libs.testCore)
+    testImplementation(libs.testRunner)
+    testImplementation(libs.testRules)
+    testImplementation(libs.mockitoCore4)
+    testImplementation(libs.mockitoKotlin4)
+    testImplementation(libs.robolectric)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.testExtJunit)
+    androidTestImplementation(libs.testCore)
+    androidTestImplementation(libs.testRunner)
+    androidTestImplementation(libs.testRules)
 }
 
 android {
-    namespace "androidx.security.state"
+    compileSdk = 35
+    namespace = "androidx.security.state"
 }
 
 androidx {
     name = "androidx.security:security-state"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.SECURITY_STATE
     inceptionYear = "2024"
     description = "obtain security state of updateable components."

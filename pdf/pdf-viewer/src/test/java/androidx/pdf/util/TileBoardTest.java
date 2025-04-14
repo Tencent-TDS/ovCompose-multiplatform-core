@@ -27,11 +27,10 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.Rect;
 
-import androidx.pdf.aidl.Dimensions;
+import androidx.pdf.models.Dimensions;
 import androidx.pdf.util.TileBoard.CancelTilesCallback;
 import androidx.pdf.util.TileBoard.TileInfo;
 import androidx.pdf.util.TileBoard.ViewAreaUpdateCallback;
-import androidx.test.filters.SmallTest;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -51,7 +50,6 @@ import java.util.List;
 import java.util.Set;
 
 /** Unit tests for {@link TileBoard}. */
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
 public class TileBoardTest {
 

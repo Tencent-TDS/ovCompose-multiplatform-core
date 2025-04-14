@@ -6,9 +6,8 @@
  * modifying its settings.
  */
 
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -17,15 +16,11 @@ plugins {
     id("androidx.baselineprofile")
 }
 androidXMultiplatform {
-    android()
+    androidTarget()
     desktop()
     mac()
     linux()
     ios()
-
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -34,15 +29,17 @@ androidXMultiplatform {
             dependencies {
                 api(libs.kotlinStdlib)
                 api(project(":lifecycle:lifecycle-common"))
-                api("androidx.annotation:annotation:1.8.0")
+                api("androidx.annotation:annotation:1.8.1")
             }
         }
 
         commonTest {
             dependencies {
+                implementation(project(":internal-testutils-lifecycle"))
                 implementation(libs.kotlinCoroutinesTest)
                 implementation(libs.kotlinTest)
                 implementation(project(":kruth:kruth"))
+                implementation(libs.atomicFu)
             }
         }
 
@@ -58,6 +55,7 @@ androidXMultiplatform {
         }
 
         desktopTest {
+            dependsOn(commonTest)
             dependencies {
                 implementation(libs.kotlinCoroutinesSwing)
             }
@@ -67,8 +65,9 @@ androidXMultiplatform {
             dependsOn(jvmMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
+                implementation("androidx.core:core-viewtree:1.0.0")
                 implementation("androidx.arch.core:core-runtime:2.2.0")
-                implementation("androidx.profileinstaller:profileinstaller:1.3.1")
+                implementation("androidx.profileinstaller:profileinstaller:1.4.0")
             }
         }
 
@@ -83,6 +82,7 @@ androidXMultiplatform {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
+                implementation("androidx.core:core-viewtree:1.0.0")
                 implementation(libs.junit)
                 implementation(libs.truth)
                 implementation(libs.testExtJunit)
@@ -107,7 +107,7 @@ androidXMultiplatform {
             dependsOn(commonTest)
         }
 
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
@@ -124,23 +124,26 @@ androidXMultiplatform {
 }
 
 dependencies {
+    api(libs.jspecify)
     lintPublish(project(":lifecycle:lifecycle-runtime-lint"))
 }
 
 android {
-    buildTypes.all {
+    buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
 
     // Include `*.java` files into the build
     sourceSets["main"].java.srcDir("src/androidMain/java")
     sourceSets["test"].java.srcDir("src/androidUnitTest/kotlin")
-    namespace "androidx.lifecycle.runtime"
+    namespace = "androidx.lifecycle.runtime"
+    // TODO(b/345531033)
+    experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidx {
     name = "Lifecycle Runtime"
-    publish = Publish.SNAPSHOT_AND_RELEASE
-    inceptionYear "2017"
-    description "Android Lifecycle Runtime"
+    type = SoftwareType.PUBLISHED_LIBRARY
+    inceptionYear = "2017"
+    description = "Android Lifecycle Runtime"
 }

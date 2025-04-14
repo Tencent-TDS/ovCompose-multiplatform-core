@@ -24,7 +24,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateObserver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -35,30 +34,25 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachReversed
 
-internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
+internal class SharedElement(val key: Any, val scope: SharedTransitionScopeImpl) {
     fun isAnimating(): Boolean = states.fastAny { it.boundsAnimation.isRunning } && foundMatch
-
-    // observation is stopped when no states are in the list, started when new state is added
-    private val observer = SnapshotStateObserver { it() }
 
     private var _targetBounds: Rect? by mutableStateOf(null)
 
     /**
      * This should be only read only in the post-lookahead placement pass. It returns null when
-     * there's no shared element/bounds becoming visible (i.e. when only exiting shared elements
-     * are defined, which is an incorrect state).
+     * there's no shared element/bounds becoming visible (i.e. when only exiting shared elements are
+     * defined, which is an incorrect state).
      */
     val targetBounds: Rect?
         get() {
-            _targetBounds = targetBoundsProvider?.run {
-                Rect(calculateLookaheadOffset(), requireNotNull(lookaheadSize) {
-                    "Error: target has not been lookahead measured."
-                })
-            }
+            _targetBounds =
+                targetBoundsProvider?.run { Rect(calculateLookaheadOffset(), nonNullLookaheadSize) }
             return _targetBounds
         }
 
@@ -77,7 +71,7 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
             foundMatch = false
         }
         if (states.isNotEmpty()) {
-            observer.observeReads(this, updateMatch, observingVisibilityChange)
+            scope.observeReads(this, updateMatch, observingVisibilityChange)
         }
     }
 
@@ -99,9 +93,7 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
             if (_targetBounds?.topLeft != topLeft || _targetBounds?.size != lookaheadSize) {
                 val target = Rect(topLeft, lookaheadSize)
                 _targetBounds = target
-                states.fastForEach {
-                    it.boundsAnimation.animate(currentBounds!!, target)
-                }
+                states.fastForEach { it.boundsAnimation.animate(currentBounds!!, target) }
             }
         }
     }
@@ -109,10 +101,10 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
     /**
      * Each state comes from a call site of sharedElement/sharedBounds of the same key. In most
      * cases there will be 1 (i.e. no match) or 2 (i.e. match found) states. In the interrupted
-     * cases, there may be multiple scenes showing simultaneously, resulting in more than 2
-     * shared element states for the same key to be present. In those cases, we expect there to be
-     * only 1 state that is becoming visible, which we will use to derive target bounds. If none
-     * is becoming visible, then we consider this an error case for the lack of target, and
+     * cases, there may be multiple scenes showing simultaneously, resulting in more than 2 shared
+     * element states for the same key to be present. In those cases, we expect there to be only 1
+     * state that is becoming visible, which we will use to derive target bounds. If none is
+     * becoming visible, then we consider this an error case for the lack of target, and
      * consequently animate none of them.
      */
     val states = mutableStateListOf<SharedElementInternalState>()
@@ -121,8 +113,8 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
 
     /**
      * This gets called to update the target bounds. The 3 scenarios where
-     * [updateTargetBoundsProvider] is needed
-     * are: when a shared element is 1) added,  2) removed, or 3) getting a target state change.
+     * [updateTargetBoundsProvider] is needed are: when a shared element is 1) added, 2) removed,
+     * or 3) getting a target state change.
      *
      * This is always called from an effect. Assume all compositional changes have been made in this
      * call.
@@ -147,30 +139,22 @@ internal class SharedElement(val key: Any, val scope: SharedTransitionScope) {
         _targetBounds = null
     }
 
-    private val updateMatch: (SharedElement) -> Unit = {
-        updateMatch()
-    }
+    private val updateMatch: (SharedElement) -> Unit = { updateMatch() }
 
-    private val observingVisibilityChange: () -> Unit = {
-        hasVisibleContent()
-    }
+    private val observingVisibilityChange: () -> Unit = { hasVisibleContent() }
 
     fun addState(sharedElementState: SharedElementInternalState) {
-        val wasEmpty = states.isEmpty()
         states.add(sharedElementState)
-        if (wasEmpty) {
-            observer.start()
-        }
-        observer.observeReads(this, updateMatch, observingVisibilityChange)
+        scope.observeReads(this, updateMatch, observingVisibilityChange)
     }
 
     fun removeState(sharedElementState: SharedElementInternalState) {
         states.remove(sharedElementState)
         if (states.isEmpty()) {
             updateMatch()
-            observer.stop()
+            scope.clearObservation(scope = this)
         } else {
-            observer.observeReads(this, updateMatch, observingVisibilityChange)
+            scope.observeReads(scope = this, updateMatch, observingVisibilityChange)
         }
     }
 }
@@ -186,6 +170,7 @@ internal class SharedElementInternalState(
     zIndex: Float
 ) : LayerRenderer, RememberObserver {
 
+    internal var firstFrameDrawn: Boolean = false
     override var zIndex: Float by mutableFloatStateOf(zIndex)
 
     var renderInOverlayDuringTransition: Boolean by mutableStateOf(renderInOverlayDuringTransition)
@@ -196,56 +181,65 @@ internal class SharedElementInternalState(
     var overlayClip: SharedTransitionScope.OverlayClip by mutableStateOf(overlayClip)
     var userState: SharedTransitionScope.SharedContentState by mutableStateOf(userState)
 
-    init {
-        sharedElement.scope.onStateAdded(this)
-        sharedElement.updateTargetBoundsProvider()
-    }
-
     internal var clipPathInOverlay: Path? = null
 
     override fun drawInOverlay(drawScope: DrawScope) {
         val layer = layer ?: return
-        if (shouldRenderInOverlay) {
+        // It is important to check that the first frame is drawn. In some cases shared content may
+        // be composed, but never measured, placed or drawn. In those cases, we will not have
+        // valid content to draw, therefore we need to skip drawing in overlay.
+        if (firstFrameDrawn && shouldRenderInOverlay) {
             with(drawScope) {
+                requireNotNull(sharedElement.currentBounds) { "Error: current bounds not set yet." }
                 val (x, y) = sharedElement.currentBounds?.topLeft!!
-                clipPathInOverlay?.let {
-                    clipPath(it) {
-                        translate(x, y) {
-                            drawLayer(layer)
-                        }
-                    }
-                } ?: translate(x, y) { drawLayer(layer) }
+                clipPathInOverlay?.let { clipPath(it) { translate(x, y) { drawLayer(layer) } } }
+                    ?: translate(x, y) { drawLayer(layer) }
             }
         }
     }
 
-    var lookaheadSize: Size? = null
-    var lookaheadCoords: LayoutCoordinates? = null
+    val nonNullLookaheadSize: Size
+        get() =
+            requireNotNull(lookaheadCoords()) {
+                    "Error: lookahead coordinates is null for ${sharedElement.key}."
+                }
+                .size
+                .toSize()
+
+    var lookaheadCoords: () -> LayoutCoordinates? = { null }
     override var parentState: SharedElementInternalState? = null
 
     // This can only be accessed during placement
     fun calculateLookaheadOffset(): Offset {
-        val c = requireNotNull(lookaheadCoords) {
-            "Error: target has not been placed in lookahead pass yet."
-        }
+        val c = requireNotNull(lookaheadCoords()) { "Error: lookahead coordinates is null." }
         return sharedElement.scope.lookaheadRoot.localPositionOf(c, Offset.Zero)
     }
 
-    val target: Boolean get() = boundsAnimation.target
+    val target: Boolean
+        get() = boundsAnimation.target
 
-    var layer: GraphicsLayer? = null
+    // Delegate the property to a mutable state, so that when layer is updated, the rendering
+    // gets invalidated.
+    var layer: GraphicsLayer? by mutableStateOf(null)
 
     private val shouldRenderBasedOnTarget: Boolean
         get() = sharedElement.targetBoundsProvider == this || !renderOnlyWhenVisible
 
     internal val shouldRenderInOverlay: Boolean
-        get() = shouldRenderBasedOnTarget && sharedElement.foundMatch &&
-            renderInOverlayDuringTransition
+        get() =
+            shouldRenderBasedOnTarget &&
+                sharedElement.foundMatch &&
+                // Render in overlay during transition only takes effect during transition (i.e.
+                // when transition is active)
+                renderInOverlayDuringTransition &&
+                sharedElement.scope.isTransitionActive
 
     val shouldRenderInPlace: Boolean
         get() = !sharedElement.foundMatch || (!shouldRenderInOverlay && shouldRenderBasedOnTarget)
 
     override fun onRemembered() {
+        sharedElement.scope.onStateAdded(this)
+        sharedElement.updateTargetBoundsProvider()
     }
 
     override fun onForgotten() {

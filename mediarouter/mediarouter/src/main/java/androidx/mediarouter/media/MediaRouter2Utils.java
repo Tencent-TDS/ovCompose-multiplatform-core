@@ -51,9 +51,9 @@ import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_HDMI;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_HDMI_ARC;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_HDMI_EARC;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_HEARING_AID;
+import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_REMOTE_SPEAKER;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_SMARTPHONE;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_SMARTWATCH;
-import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_REMOTE_SPEAKER;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_TABLET;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_TABLET_DOCKED;
 import static androidx.mediarouter.media.MediaRouter.RouteInfo.DEVICE_TYPE_TV;
@@ -73,10 +73,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.ArraySet;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.mediarouter.media.MediaRouter.RouteInfo;
 
@@ -118,7 +116,6 @@ class MediaRouter2Utils {
 
     private MediaRouter2Utils() {}
 
-    @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
     @Nullable
     public static MediaRoute2Info toFwkMediaRoute2Info(@Nullable MediaRouteDescriptor descriptor) {
         if (descriptor == null) {
@@ -179,7 +176,6 @@ class MediaRouter2Utils {
         return builder.build();
     }
 
-    @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
     @Nullable
     public static MediaRouteDescriptor toMediaRouteDescriptor(
             @Nullable MediaRoute2Info fwkMediaRoute2Info) {
@@ -332,6 +328,10 @@ class MediaRouter2Utils {
                 return FEATURE_LIVE_VIDEO;
             case MediaControlIntent.CATEGORY_REMOTE_PLAYBACK:
                 return FEATURE_REMOTE_PLAYBACK;
+            case MediaControlIntent.CATEGORY_REMOTE_AUDIO_PLAYBACK:
+                return FEATURE_REMOTE_AUDIO_PLAYBACK;
+            case MediaControlIntent.CATEGORY_REMOTE_VIDEO_PLAYBACK:
+                return FEATURE_REMOTE_VIDEO_PLAYBACK;
         }
         return controlCategory;
     }
@@ -344,6 +344,10 @@ class MediaRouter2Utils {
                 return MediaControlIntent.CATEGORY_LIVE_VIDEO;
             case FEATURE_REMOTE_PLAYBACK:
                 return MediaControlIntent.CATEGORY_REMOTE_PLAYBACK;
+            case FEATURE_REMOTE_AUDIO_PLAYBACK:
+                return MediaControlIntent.CATEGORY_REMOTE_AUDIO_PLAYBACK;
+            case FEATURE_REMOTE_VIDEO_PLAYBACK:
+                return MediaControlIntent.CATEGORY_REMOTE_VIDEO_PLAYBACK;
         }
         return routeFeature;
     }
@@ -463,18 +467,15 @@ class MediaRouter2Utils {
     @RequiresApi(api = 34)
     private static final class Api34Impl {
 
-        @DoNotInline
         public static void setDeduplicationIds(
                 MediaRoute2Info.Builder builder, Set<String> deduplicationIds) {
             builder.setDeduplicationIds(deduplicationIds);
         }
 
-        @DoNotInline
         public static Set<String> getDeduplicationIds(MediaRoute2Info fwkMediaRoute2Info) {
             return fwkMediaRoute2Info.getDeduplicationIds();
         }
 
-        @DoNotInline
         public static void copyDescriptorVisibilityToBuilder(MediaRoute2Info.Builder builder,
                 MediaRouteDescriptor descriptor) {
             if (descriptor.isVisibilityPublic()) {
@@ -484,12 +485,10 @@ class MediaRouter2Utils {
             }
         }
 
-        @DoNotInline
         public static void setDeviceType(MediaRoute2Info.Builder builder, int deviceType) {
             builder.setType(deviceType);
         }
 
-        @DoNotInline
         public static int getType(MediaRoute2Info fwkMediaRoute2Info) {
             return fwkMediaRoute2Info.getType();
         }

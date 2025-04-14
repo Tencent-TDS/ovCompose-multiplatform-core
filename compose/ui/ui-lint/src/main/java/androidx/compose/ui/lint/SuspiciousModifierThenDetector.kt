@@ -33,15 +33,15 @@ import com.android.tools.lint.detector.api.isBelow
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import java.util.EnumSet
-import org.jetbrains.kotlin.analysis.api.KtAnalysisSession
+import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.calls.KtCall
-import org.jetbrains.kotlin.analysis.api.calls.KtCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.calls.KtCompoundAccessCall
-import org.jetbrains.kotlin.analysis.api.calls.KtImplicitReceiverValue
-import org.jetbrains.kotlin.analysis.api.calls.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.symbols.KtClassOrObjectSymbol
-import org.jetbrains.kotlin.analysis.api.symbols.KtReceiverParameterSymbol
+import org.jetbrains.kotlin.analysis.api.resolution.KaCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaCompoundAccessCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaImplicitReceiverValue
+import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaReceiverParameterSymbol
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.uast.UCallExpression
@@ -62,69 +62,74 @@ class SuspiciousModifierThenDetector : Detector(), SourceCodeScanner {
         val otherModifierArgument = node.valueArguments.firstOrNull() ?: return
         val otherModifierArgumentSource = otherModifierArgument.sourcePsi ?: return
 
-        otherModifierArgument.accept(object : AbstractUastVisitor() {
-            /**
-             * Visit all calls to look for calls to a Modifier factory with implicit receiver
-             */
-            override fun visitCallExpression(node: UCallExpression): Boolean {
-                val hasModifierReceiverType =
-                    node.receiverType?.inheritsFrom(Names.Ui.Modifier) == true
-                val usesImplicitThis = node.receiver == null
+        otherModifierArgument.accept(
+            object : AbstractUastVisitor() {
+                /**
+                 * Visit all calls to look for calls to a Modifier factory with implicit receiver
+                 */
+                override fun visitCallExpression(node: UCallExpression): Boolean {
+                    val hasModifierReceiverType =
+                        node.receiverType?.inheritsFrom(Names.Ui.Modifier) == true
+                    val usesImplicitThis = node.receiver == null
 
-                if (!hasModifierReceiverType || !usesImplicitThis) {
+                    if (!hasModifierReceiverType || !usesImplicitThis) {
+                        return false
+                    }
+
+                    val ktCallExpression = node.sourcePsi as? KtCallExpression ?: return false
+                    // Resolve the implicit `this` to its source, if possible.
+                    val implicitReceiver =
+                        analyze(ktCallExpression) {
+                            getImplicitReceiverValue(ktCallExpression)?.getImplicitReceiverPsi()
+                        }
+
+                    // The receiver used by the modifier function is defined within the then() call,
+                    // such as then(Modifier.composed { otherModifierFactory() }). We don't know
+                    // what
+                    // the value of this receiver will be, so we ignore this case.
+                    if (implicitReceiver.isBelow(otherModifierArgumentSource)) {
+                        return false
+                    }
+
+                    context.report(
+                        SuspiciousModifierThen,
+                        node,
+                        context.getNameLocation(node),
+                        "Using Modifier.then with a Modifier factory function with an implicit receiver"
+                    )
+
+                    // Keep on searching for more errors
                     return false
                 }
-
-                val ktCallExpression = node.sourcePsi as? KtCallExpression ?: return false
-                // Resolve the implicit `this` to its source, if possible.
-                val implicitReceiver = analyze(ktCallExpression) {
-                    getImplicitReceiverValue(ktCallExpression)?.getImplicitReceiverPsi()
-                }
-
-                // The receiver used by the modifier function is defined within the then() call,
-                // such as then(Modifier.composed { otherModifierFactory() }). We don't know what
-                // the value of this receiver will be, so we ignore this case.
-                if (implicitReceiver.isBelow(otherModifierArgumentSource)) {
-                    return false
-                }
-
-                context.report(
-                    SuspiciousModifierThen,
-                    node,
-                    context.getNameLocation(node),
-                    "Using Modifier.then with a Modifier factory function with an implicit receiver"
-                )
-
-                // Keep on searching for more errors
-                return false
             }
-        })
+        )
     }
 
     companion object {
-        val SuspiciousModifierThen = Issue.create(
-            "SuspiciousModifierThen",
-            "Using Modifier.then with a Modifier factory function with an implicit receiver",
-            "Calling a Modifier factory function with an implicit receiver inside " +
-                "Modifier.then will result in the receiver (`this`) being added twice to the " +
-                "chain. For example, fun Modifier.myModifier() = this.then(otherModifier()) - " +
-                "the implementation of factory functions such as Modifier.otherModifier() will " +
-                "internally call this.then(...) to chain the provided modifier with their " +
-                "implementation. When you expand this.then(otherModifier()), it becomes: " +
-                "this.then(this.then(OtherModifierImplementation)) - so you can see that `this` " +
-                "is included twice in the chain, which results in modifiers such as padding " +
-                "being applied twice, for example. Instead, you should either remove the then() " +
-                "and directly chain the factory function on the receiver, this.otherModifier(), " +
-                "or add the empty Modifier as the receiver for the factory, such as " +
-                "this.then(Modifier.otherModifier())",
-            Category.CORRECTNESS,
-            3,
-            Severity.ERROR,
-            Implementation(
-                SuspiciousModifierThenDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+        val SuspiciousModifierThen =
+            Issue.create(
+                "SuspiciousModifierThen",
+                "Using Modifier.then with a Modifier factory function with an implicit receiver",
+                "Calling a Modifier factory function with an implicit receiver inside " +
+                    "Modifier.then will result in the receiver (`this`) being added twice to the " +
+                    "chain. For example, fun Modifier.myModifier() = this.then(otherModifier()) - " +
+                    "the implementation of factory functions such as Modifier.otherModifier() will " +
+                    "internally call this.then(...) to chain the provided modifier with their " +
+                    "implementation. When you expand this.then(otherModifier()), it becomes: " +
+                    "this.then(this.then(OtherModifierImplementation)) - so you can see that `this` " +
+                    "is included twice in the chain, which results in modifiers such as padding " +
+                    "being applied twice, for example. Instead, you should either remove the then() " +
+                    "and directly chain the factory function on the receiver, this.otherModifier(), " +
+                    "or add the empty Modifier as the receiver for the factory, such as " +
+                    "this.then(Modifier.otherModifier())",
+                Category.CORRECTNESS,
+                3,
+                Severity.ERROR,
+                Implementation(
+                    SuspiciousModifierThenDetector::class.java,
+                    EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+                )
             )
-        )
     }
 }
 
@@ -135,12 +140,12 @@ private const val ThenName = "then"
 /**
  * Returns the PSI for [this], which will be the owning lambda expression or the surrounding class.
  */
-private fun KtImplicitReceiverValue.getImplicitReceiverPsi(): PsiElement? {
+private fun KaImplicitReceiverValue.getImplicitReceiverPsi(): PsiElement? {
     return when (val receiverParameterSymbol = this.symbol) {
         // the owning lambda expression
-        is KtReceiverParameterSymbol -> receiverParameterSymbol.owningCallableSymbol.psi
+        is KaReceiverParameterSymbol -> receiverParameterSymbol.owningCallableSymbol.psi
         // the class that we are in, calling a method
-        is KtClassOrObjectSymbol -> receiverParameterSymbol.psi
+        is KaClassSymbol -> receiverParameterSymbol.psi
         else -> null
     }
 }
@@ -149,16 +154,16 @@ private fun KtImplicitReceiverValue.getImplicitReceiverPsi(): PsiElement? {
  * Returns the implicit receiver value of the call-like expression [ktExpression] (can include
  * property accesses, for example).
  */
-private fun KtAnalysisSession.getImplicitReceiverValue(
+private fun KaSession.getImplicitReceiverValue(
     ktExpression: KtExpression
-): KtImplicitReceiverValue? {
+): KaImplicitReceiverValue? {
     val partiallyAppliedSymbol =
-        when (val call = ktExpression.resolveCall()?.singleCallOrNull<KtCall>()) {
-            is KtCompoundAccessCall -> call.compoundAccess.operationPartiallyAppliedSymbol
-            is KtCallableMemberCall<*, *> -> call.partiallyAppliedSymbol
+        when (val call = ktExpression.resolveToCall()?.singleCallOrNull<KaCall>()) {
+            is KaCompoundAccessCall -> call.compoundOperation.operationPartiallyAppliedSymbol
+            is KaCallableMemberCall<*, *> -> call.partiallyAppliedSymbol
             else -> null
         } ?: return null
 
-    return partiallyAppliedSymbol.extensionReceiver as? KtImplicitReceiverValue
-        ?: partiallyAppliedSymbol.dispatchReceiver as? KtImplicitReceiverValue
+    return partiallyAppliedSymbol.extensionReceiver as? KaImplicitReceiverValue
+        ?: partiallyAppliedSymbol.dispatchReceiver as? KaImplicitReceiverValue
 }

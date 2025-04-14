@@ -24,12 +24,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import android.os.Build;
 import android.webkit.WebSettings;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
+import androidx.webkit.test.common.WebViewOnUiThread;
+import androidx.webkit.test.common.WebkitUtils;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -48,14 +48,13 @@ import okhttp3.mockwebserver.RecordedRequest;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.LOLLIPOP)
 public class WebSettingsCompatTest {
     public static final String TEST_APK_NAME = "androidx.webkit.instrumentation.test";
     WebViewOnUiThread mWebViewOnUiThread;
 
     @Before
     public void setUp() {
-        mWebViewOnUiThread = new androidx.webkit.WebViewOnUiThread();
+        mWebViewOnUiThread = new WebViewOnUiThread();
     }
 
     @After
@@ -294,21 +293,88 @@ public class WebSettingsCompatTest {
         WebkitUtils.checkFeature(WebViewFeature.WEB_AUTHENTICATION);
         WebSettings settings = mWebViewOnUiThread.getSettings();
         mWebViewOnUiThread.setCleanupTask(
-                () -> WebSettingsCompat.setWebAuthenticationSupport(settings,
-                        WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE));
+                () ->
+                        WebkitUtils.onMainThreadSync(() ->
+                                WebSettingsCompat.setWebAuthenticationSupport(settings,
+                                        WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE)
+                        )
+        );
 
-        Assert.assertEquals("NONE is the expected default",
-                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE,
-                WebSettingsCompat.getWebAuthenticationSupport(settings));
+        WebkitUtils.onMainThreadSync(() -> {
+            Assert.assertEquals("NONE is the expected default",
+                    WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_NONE,
+                    WebSettingsCompat.getWebAuthenticationSupport(settings));
 
-        WebSettingsCompat.setWebAuthenticationSupport(settings,
-                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
-        Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP,
-                WebSettingsCompat.getWebAuthenticationSupport(settings));
+            WebSettingsCompat.setWebAuthenticationSupport(settings,
+                    WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP);
+            Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_APP,
+                    WebSettingsCompat.getWebAuthenticationSupport(settings));
 
-        WebSettingsCompat.setWebAuthenticationSupport(settings,
-                WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER);
-        Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER,
-                WebSettingsCompat.getWebAuthenticationSupport(settings));
+            WebSettingsCompat.setWebAuthenticationSupport(settings,
+                    WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER);
+            Assert.assertEquals(WebSettingsCompat.WEB_AUTHENTICATION_SUPPORT_FOR_BROWSER,
+                    WebSettingsCompat.getWebAuthenticationSupport(settings));
+        });
+    }
+
+    @Test
+    public void testSpeculativeLoading() {
+        WebkitUtils.checkFeature(WebViewFeature.SPECULATIVE_LOADING);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+        mWebViewOnUiThread.setCleanupTask(
+                () -> WebSettingsCompat.setSpeculativeLoadingStatus(settings,
+                        WebSettingsCompat.SPECULATIVE_LOADING_DISABLED));
+
+        Assert.assertEquals("DISABLED should be the default",
+                WebSettingsCompat.SPECULATIVE_LOADING_DISABLED,
+                WebSettingsCompat.getSpeculativeLoadingStatus(settings));
+
+        WebSettingsCompat.setSpeculativeLoadingStatus(settings,
+                WebSettingsCompat.SPECULATIVE_LOADING_PRERENDER_ENABLED);
+        Assert.assertEquals(WebSettingsCompat.SPECULATIVE_LOADING_PRERENDER_ENABLED,
+                WebSettingsCompat.getSpeculativeLoadingStatus(settings));
+
+    }
+
+    @Test
+    public void testBFCache() {
+        WebkitUtils.checkFeature(WebViewFeature.BACK_FORWARD_CACHE);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertFalse("disabled should be the default",
+                WebSettingsCompat.getBackForwardCacheEnabled(settings));
+
+        WebSettingsCompat.setBackForwardCacheEnabled(settings, true);
+        Assert.assertTrue(WebSettingsCompat.getBackForwardCacheEnabled(settings));
+    }
+
+    @Test
+    public void testPaymentRequestSupport() {
+        WebkitUtils.checkFeature(WebViewFeature.PAYMENT_REQUEST);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertFalse("PaymentRequest API should be disabled by default.",
+                WebSettingsCompat.getPaymentRequestEnabled(settings));
+
+        WebSettingsCompat.setPaymentRequestEnabled(settings, true);
+        assertTrue(WebSettingsCompat.getPaymentRequestEnabled(settings));
+
+        // Reset to the default state to avoid leaking state to the other test cases.
+        WebSettingsCompat.setPaymentRequestEnabled(settings, false);
+    }
+
+    @Test
+    public void testPaymentRequestHasEnrolledInstrumentSupport() {
+        WebkitUtils.checkFeature(WebViewFeature.PAYMENT_REQUEST);
+        WebSettings settings = mWebViewOnUiThread.getSettings();
+
+        assertTrue("PaymentRequest.hasEnrolledInstrument() should be enabled by default.",
+                WebSettingsCompat.getHasEnrolledInstrumentEnabled(settings));
+
+        WebSettingsCompat.setHasEnrolledInstrumentEnabled(settings, false);
+        assertFalse(WebSettingsCompat.getHasEnrolledInstrumentEnabled(settings));
+
+        // Reset to the default state to avoid leaking state to the other test cases.
+        WebSettingsCompat.setHasEnrolledInstrumentEnabled(settings, true);
     }
 }

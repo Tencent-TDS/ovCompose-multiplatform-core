@@ -18,6 +18,7 @@ package androidx.compose.foundation.text.input.internal
 
 import android.os.Build
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.os.Handler
 import android.text.TextUtils
 import android.util.Log
@@ -30,10 +31,11 @@ import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.HandwritingGesture
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputContentInfo
-import androidx.annotation.DoNotInline
+import android.view.inputmethod.PreviewableHandwritingGesture
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.text.LegacyTextFieldState
 import androidx.compose.foundation.text.input.internal.HandwritingGestureApi34.performHandwritingGesture
+import androidx.compose.foundation.text.input.internal.HandwritingGestureApi34.previewHandwritingGesture
 import androidx.compose.foundation.text.selection.TextFieldSelectionManager
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.text.input.CommitTextCommand
@@ -78,7 +80,9 @@ internal class RecordingInputConnection(
     /** The input state. */
     internal var textFieldValue: TextFieldValue = initState
         set(value) {
-            if (DEBUG) { logDebug("mTextFieldValue : $field -> $value") }
+            if (DEBUG) {
+                logDebug("mTextFieldValue : $field -> $value")
+            }
             field = value
         }
 
@@ -122,7 +126,9 @@ internal class RecordingInputConnection(
     ) {
         if (!isActive) return
 
-        if (DEBUG) { logDebug("RecordingInputConnection.updateInputState: $state") }
+        if (DEBUG) {
+            logDebug("RecordingInputConnection.updateInputState: $state")
+        }
 
         textFieldValue = state
 
@@ -144,7 +150,10 @@ internal class RecordingInputConnection(
             )
         }
         inputMethodManager.updateSelection(
-            state.selection.min, state.selection.max, compositionStart, compositionEnd
+            state.selection.min,
+            state.selection.max,
+            compositionStart,
+            compositionEnd
         )
     }
 
@@ -161,7 +170,9 @@ internal class RecordingInputConnection(
     // region Callbacks for text editing session
 
     override fun beginBatchEdit(): Boolean = ensureActive {
-        if (DEBUG) { logDebug("beginBatchEdit()") }
+        if (DEBUG) {
+            logDebug("beginBatchEdit()")
+        }
         return beginBatchEditInternal()
     }
 
@@ -171,7 +182,9 @@ internal class RecordingInputConnection(
     }
 
     override fun endBatchEdit(): Boolean {
-        if (DEBUG) { logDebug("endBatchEdit()") }
+        if (DEBUG) {
+            logDebug("endBatchEdit()")
+        }
         return endBatchEditInternal()
     }
 
@@ -185,7 +198,9 @@ internal class RecordingInputConnection(
     }
 
     override fun closeConnection() {
-        if (DEBUG) { logDebug("closeConnection()") }
+        if (DEBUG) {
+            logDebug("closeConnection()")
+        }
         editCommands.clear()
         batchDepth = 0
         isActive = false
@@ -196,12 +211,16 @@ internal class RecordingInputConnection(
     // region Callbacks for text editing
 
     override fun commitText(text: CharSequence?, newCursorPosition: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("commitText(\"$text\", $newCursorPosition)") }
+        if (DEBUG) {
+            logDebug("commitText(\"$text\", $newCursorPosition)")
+        }
         addEditCommandWithBatch(CommitTextCommand(text.toString(), newCursorPosition))
     }
 
     override fun setComposingRegion(start: Int, end: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("setComposingRegion($start, $end)") }
+        if (DEBUG) {
+            logDebug("setComposingRegion($start, $end)")
+        }
         addEditCommandWithBatch(SetComposingRegionCommand(start, end))
     }
 
@@ -226,25 +245,33 @@ internal class RecordingInputConnection(
 
     override fun deleteSurroundingText(beforeLength: Int, afterLength: Int): Boolean =
         ensureActive {
-            if (DEBUG) { logDebug("deleteSurroundingText($beforeLength, $afterLength)") }
+            if (DEBUG) {
+                logDebug("deleteSurroundingText($beforeLength, $afterLength)")
+            }
             addEditCommandWithBatch(DeleteSurroundingTextCommand(beforeLength, afterLength))
             return true
         }
 
     override fun setSelection(start: Int, end: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("setSelection($start, $end)") }
+        if (DEBUG) {
+            logDebug("setSelection($start, $end)")
+        }
         addEditCommandWithBatch(SetSelectionCommand(start, end))
         return true
     }
 
     override fun finishComposingText(): Boolean = ensureActive {
-        if (DEBUG) { logDebug("finishComposingText()") }
+        if (DEBUG) {
+            logDebug("finishComposingText()")
+        }
         addEditCommandWithBatch(FinishComposingTextCommand())
         return true
     }
 
     override fun sendKeyEvent(event: KeyEvent): Boolean = ensureActive {
-        if (DEBUG) { logDebug("sendKeyEvent($event)") }
+        if (DEBUG) {
+            logDebug("sendKeyEvent($event)")
+        }
         eventCallback.onKeyEvent(event)
         return true
     }
@@ -255,26 +282,33 @@ internal class RecordingInputConnection(
     override fun getTextBeforeCursor(maxChars: Int, flags: Int): CharSequence {
         // TODO(b/135556699) should return styled text
         val result = textFieldValue.getTextBeforeSelection(maxChars).toString()
-        if (DEBUG) { logDebug("getTextBeforeCursor($maxChars, $flags): $result") }
+        if (DEBUG) {
+            logDebug("getTextBeforeCursor($maxChars, $flags): $result")
+        }
         return result
     }
 
     override fun getTextAfterCursor(maxChars: Int, flags: Int): CharSequence {
         // TODO(b/135556699) should return styled text
         val result = textFieldValue.getTextAfterSelection(maxChars).toString()
-        if (DEBUG) { logDebug("getTextAfterCursor($maxChars, $flags): $result") }
+        if (DEBUG) {
+            logDebug("getTextAfterCursor($maxChars, $flags): $result")
+        }
         return result
     }
 
     override fun getSelectedText(flags: Int): CharSequence? {
         // https://source.chromium.org/chromium/chromium/src/+/master:content/public/android/java/src/org/chromium/content/browser/input/TextInputState.java;l=56;drc=0e20d1eb38227949805a4c0e9d5cdeddc8d23637
-        val result: CharSequence? = if (textFieldValue.selection.collapsed) {
-            null
-        } else {
-            // TODO(b/135556699) should return styled text
-            textFieldValue.getSelectedText().toString()
+        val result: CharSequence? =
+            if (textFieldValue.selection.collapsed) {
+                null
+            } else {
+                // TODO(b/135556699) should return styled text
+                textFieldValue.getSelectedText().toString()
+            }
+        if (DEBUG) {
+            logDebug("getSelectedText($flags): $result")
         }
-        if (DEBUG) { logDebug("getSelectedText($flags): $result") }
         return result
     }
 
@@ -333,7 +367,9 @@ internal class RecordingInputConnection(
     }
 
     override fun getExtractedText(request: ExtractedTextRequest?, flags: Int): ExtractedText {
-        if (DEBUG) { logDebug("getExtractedText($request, $flags)") }
+        if (DEBUG) {
+            logDebug("getExtractedText($request, $flags)")
+        }
         extractedTextMonitorMode = (flags and InputConnection.GET_EXTRACTED_TEXT_MONITOR) != 0
         if (extractedTextMonitorMode) {
             currentExtractedTextRequestToken = request?.token ?: 0
@@ -344,7 +380,6 @@ internal class RecordingInputConnection(
         if (DEBUG) {
             with(extractedText) {
                 logDebug(
-
                     "getExtractedText() return: text: \"$text\"" +
                         ",partialStartOffset $partialStartOffset" +
                         ",partialEndOffset $partialEndOffset" +
@@ -362,7 +397,9 @@ internal class RecordingInputConnection(
     // region Editor action and Key events.
 
     override fun performContextMenuAction(id: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("performContextMenuAction($id)") }
+        if (DEBUG) {
+            logDebug("performContextMenuAction($id)")
+        }
         when (id) {
             android.R.id.selectAll -> {
                 addEditCommandWithBatch(SetSelectionCommand(0, textFieldValue.text.length))
@@ -388,20 +425,23 @@ internal class RecordingInputConnection(
     }
 
     override fun performEditorAction(editorAction: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("performEditorAction($editorAction)") }
-        val imeAction = when (editorAction) {
-            EditorInfo.IME_ACTION_UNSPECIFIED -> ImeAction.Default
-            EditorInfo.IME_ACTION_DONE -> ImeAction.Done
-            EditorInfo.IME_ACTION_SEND -> ImeAction.Send
-            EditorInfo.IME_ACTION_SEARCH -> ImeAction.Search
-            EditorInfo.IME_ACTION_PREVIOUS -> ImeAction.Previous
-            EditorInfo.IME_ACTION_NEXT -> ImeAction.Next
-            EditorInfo.IME_ACTION_GO -> ImeAction.Go
-            else -> {
-                Log.w(TAG, "IME sends unsupported Editor Action: $editorAction")
-                ImeAction.Default
-            }
+        if (DEBUG) {
+            logDebug("performEditorAction($editorAction)")
         }
+        val imeAction =
+            when (editorAction) {
+                EditorInfo.IME_ACTION_UNSPECIFIED -> ImeAction.Default
+                EditorInfo.IME_ACTION_DONE -> ImeAction.Done
+                EditorInfo.IME_ACTION_SEND -> ImeAction.Send
+                EditorInfo.IME_ACTION_SEARCH -> ImeAction.Search
+                EditorInfo.IME_ACTION_PREVIOUS -> ImeAction.Previous
+                EditorInfo.IME_ACTION_NEXT -> ImeAction.Next
+                EditorInfo.IME_ACTION_GO -> ImeAction.Go
+                else -> {
+                    Log.w(TAG, "IME sends unsupported Editor Action: $editorAction")
+                    ImeAction.Default
+                }
+            }
         eventCallback.onImeAction(imeAction)
         return true
     }
@@ -411,7 +451,9 @@ internal class RecordingInputConnection(
         executor: Executor?,
         consumer: IntConsumer?
     ) {
-        if (DEBUG) { logDebug("performHandwritingGestures($gesture, $executor, $consumer)") }
+        if (DEBUG) {
+            logDebug("performHandwritingGestures($gesture, $executor, $consumer)")
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             Api34LegacyPerformHandwritingGestureImpl.performHandwritingGesture(
                 legacyTextFieldState,
@@ -426,53 +468,87 @@ internal class RecordingInputConnection(
         }
     }
 
+    override fun previewHandwritingGesture(
+        gesture: PreviewableHandwritingGesture,
+        cancellationSignal: CancellationSignal?
+    ): Boolean {
+        if (DEBUG) {
+            logDebug("previewHandwritingGesture($gesture, $cancellationSignal)")
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            return Api34LegacyPerformHandwritingGestureImpl.previewHandwritingGesture(
+                legacyTextFieldState,
+                textFieldSelectionManager,
+                gesture,
+                cancellationSignal
+            )
+        }
+        return false
+    }
+
     // endregion
     // region Unsupported callbacks
 
     override fun commitCompletion(text: CompletionInfo?): Boolean = ensureActive {
-        if (DEBUG) { logDebug("commitCompletion(${text?.text})") }
+        if (DEBUG) {
+            logDebug("commitCompletion(${text?.text})")
+        }
         // We don't support this callback.
         // The API documents says this should return if the input connection is no longer valid, but
         // The Chromium implementation already returning false, so assuming it is safe to return
         // false if not supported.
-        // see https://cs.chromium.org/chromium/src/content/public/android/java/src/org/chromium/content/browser/input/ThreadedInputConnection.java
+        // see
+        // https://cs.chromium.org/chromium/src/content/public/android/java/src/org/chromium/content/browser/input/ThreadedInputConnection.java
         return false
     }
 
     override fun commitCorrection(correctionInfo: CorrectionInfo?): Boolean = ensureActive {
-        if (DEBUG) { logDebug("commitCorrection($correctionInfo),autoCorrect:$autoCorrect") }
+        if (DEBUG) {
+            logDebug("commitCorrection($correctionInfo),autoCorrect:$autoCorrect")
+        }
         // Should add an event here so that we can implement the autocorrect highlight
         // Bug: 170647219
         return autoCorrect
     }
 
     override fun getHandler(): Handler? {
-        if (DEBUG) { logDebug("getHandler()") }
+        if (DEBUG) {
+            logDebug("getHandler()")
+        }
         return null // Returns null means using default Handler
     }
 
     override fun clearMetaKeyStates(states: Int): Boolean = ensureActive {
-        if (DEBUG) { logDebug("clearMetaKeyStates($states)") }
+        if (DEBUG) {
+            logDebug("clearMetaKeyStates($states)")
+        }
         // We don't support this callback.
         // The API documents says this should return if the input connection is no longer valid, but
         // The Chromium implementation already returning false, so assuming it is safe to return
         // false if not supported.
-        // see https://cs.chromium.org/chromium/src/content/public/android/java/src/org/chromium/content/browser/input/ThreadedInputConnection.java
+        // see
+        // https://cs.chromium.org/chromium/src/content/public/android/java/src/org/chromium/content/browser/input/ThreadedInputConnection.java
         return false
     }
 
     override fun reportFullscreenMode(enabled: Boolean): Boolean {
-        if (DEBUG) { logDebug("reportFullscreenMode($enabled)") }
+        if (DEBUG) {
+            logDebug("reportFullscreenMode($enabled)")
+        }
         return false // This value is ignored according to the API docs.
     }
 
     override fun getCursorCapsMode(reqModes: Int): Int {
-        if (DEBUG) { logDebug("getCursorCapsMode($reqModes)") }
+        if (DEBUG) {
+            logDebug("getCursorCapsMode($reqModes)")
+        }
         return TextUtils.getCapsMode(textFieldValue.text, textFieldValue.selection.min, reqModes)
     }
 
     override fun performPrivateCommand(action: String?, data: Bundle?): Boolean = ensureActive {
-        if (DEBUG) { logDebug("performPrivateCommand($action, $data)") }
+        if (DEBUG) {
+            logDebug("performPrivateCommand($action, $data)")
+        }
         return true // API doc says we should return true even if we didn't understand the command.
     }
 
@@ -481,12 +557,16 @@ internal class RecordingInputConnection(
         flags: Int,
         opts: Bundle?
     ): Boolean = ensureActive {
-        if (DEBUG) { logDebug("commitContent($inputContentInfo, $flags, $opts)") }
+        if (DEBUG) {
+            logDebug("commitContent($inputContentInfo, $flags, $opts)")
+        }
         return false // We don't accept any contents.
     }
 
     private fun logDebug(message: String) {
-        if (DEBUG) { Log.d(TAG, "$DEBUG_CLASS.$message, $isActive") }
+        if (DEBUG) {
+            Log.d(TAG, "$DEBUG_CLASS.$message, $isActive")
+        }
     }
 
     // endregion
@@ -507,7 +587,6 @@ private fun TextFieldValue.toExtractedText(): ExtractedText {
 @RequiresApi(34)
 private object Api34LegacyPerformHandwritingGestureImpl {
 
-    @DoNotInline
     fun performHandwritingGesture(
         legacyTextFieldState: LegacyTextFieldState?,
         textFieldSelectionManager: TextFieldSelectionManager?,
@@ -517,20 +596,32 @@ private object Api34LegacyPerformHandwritingGestureImpl {
         consumer: IntConsumer?,
         editCommandConsumer: (EditCommand) -> Unit
     ) {
-        val result = legacyTextFieldState?.performHandwritingGesture(
-            gesture,
-            textFieldSelectionManager,
-            viewConfiguration,
-            editCommandConsumer
-        ) ?: InputConnection.HANDWRITING_GESTURE_RESULT_FAILED
+        val result =
+            legacyTextFieldState?.performHandwritingGesture(
+                gesture,
+                textFieldSelectionManager,
+                viewConfiguration,
+                editCommandConsumer
+            ) ?: InputConnection.HANDWRITING_GESTURE_RESULT_FAILED
 
         if (consumer == null) return
         if (executor != null) {
-            executor.execute {
-                consumer.accept(result)
-            }
+            executor.execute { consumer.accept(result) }
         } else {
             consumer.accept(result)
         }
+    }
+
+    fun previewHandwritingGesture(
+        legacyTextFieldState: LegacyTextFieldState?,
+        textFieldSelectionManager: TextFieldSelectionManager?,
+        gesture: PreviewableHandwritingGesture,
+        cancellationSignal: CancellationSignal?
+    ): Boolean {
+        return legacyTextFieldState?.previewHandwritingGesture(
+            gesture,
+            textFieldSelectionManager,
+            cancellationSignal
+        ) ?: false
     }
 }

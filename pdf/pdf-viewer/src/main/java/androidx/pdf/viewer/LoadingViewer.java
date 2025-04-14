@@ -22,15 +22,15 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.data.DisplayData;
 import androidx.pdf.fetcher.Fetcher;
-import androidx.pdf.util.ErrorLog;
 import androidx.pdf.util.Preconditions;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * This base class offers logic to save the {@link DisplayData} it receives (without any heavy
@@ -65,7 +65,7 @@ public abstract class LoadingViewer extends Viewer {
 
     private boolean mHasContents;
 
-    protected Fetcher mFetcher;
+    protected @NonNull Fetcher mFetcher;
 
     protected LoadingViewer() {
         this(false);
@@ -84,21 +84,21 @@ public abstract class LoadingViewer extends Viewer {
 
     /** Feed this Viewer with contents to be displayed. */
     @CanIgnoreReturnValue
-    public Viewer feed(DisplayData contents) {
+    public @NonNull Viewer feed(@NonNull DisplayData contents) {
         saveToArguments(contents);
         postContentsAvailable(contents, null);
         return this;
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedState) {
+    public @NonNull View onCreateView(@NonNull LayoutInflater inflater,
+            @Nullable ViewGroup container, @Nullable Bundle savedState) {
         View result = super.onCreateView(inflater, container, savedState);
         if (mFetcher == null) {
             // When changing device languages the system creates a new ImageViewer and the old
             // instance with a null fetcher stays around, even though it has been detached from the
             // view hierarchy, which is when this case happens. Logging it is sufficient as the
             // second instance will have the fetcher injected as expected.
-            ErrorLog.log(getLogTag(), "onCreateView", "Missing fetcher " + getEventlog());
             mViewState.set(ViewState.ERROR);
             return result;
         }
@@ -120,9 +120,6 @@ public abstract class LoadingViewer extends Viewer {
     @Override
     public void onStop() {
         super.onStop();
-        if (mDelayedContentsAvailable != null) {
-            ErrorLog.log(getLogTag(), "mDelayedContentsAvailable not null");
-        }
     }
 
     @Override
@@ -149,15 +146,11 @@ public abstract class LoadingViewer extends Viewer {
      * has its view hierarchy built up and {@link #onCreateView} has finished). It might run right
      * now if the Viewer is currently started.
      */
-    protected void postContentsAvailable(final DisplayData contents,
-            @Nullable final Bundle savedState) {
-        if (mHasContents) {
-            log('L', "Replacing contents ");
-        }
+    protected void postContentsAvailable(final @NonNull DisplayData contents,
+            final @Nullable Bundle savedState) {
         Preconditions.checkState(mDelayedContentsAvailable == null, "Already waits for contents");
 
         if (isStarted()) {
-            log('C', "Got contents (direct) " + contents);
             onContentsAvailable(contents, savedState);
             mHasContents = true;
         } else {
@@ -166,7 +159,6 @@ public abstract class LoadingViewer extends Viewer {
                         Preconditions.checkState(
                                 !mHasContents, "Received contents while restoring another copy");
                         onContentsAvailable(contents, savedState);
-                        log('D', "Got contents (delayed)");
                         mDelayedContentsAvailable = null;
                         mHasContents = true;
                     };
@@ -174,7 +166,7 @@ public abstract class LoadingViewer extends Viewer {
     }
 
     /** Sets the fetcher to be used by the viewer and returns the viewer. */
-    public LoadingViewer setFetcher(@NonNull Fetcher fetcher) {
+    public @NonNull LoadingViewer setFetcher(@NonNull Fetcher fetcher) {
         this.mFetcher = Preconditions.checkNotNull(fetcher);
         return this;
     }
@@ -188,13 +180,11 @@ public abstract class LoadingViewer extends Viewer {
         if (dataBundle != null) {
             try {
                 DisplayData restoredData = DisplayData.fromBundle(dataBundle);
-                log('R', String.format("Restore contents %s", restoredData));
                 postContentsAvailable(restoredData, savedState);
             } catch (Exception e) {
                 // This can happen if the data is an instance of StreamOpenable, and the client
                 // app that owns it has been killed by the system. We will still recover,
                 // but log this.
-                ErrorLog.log(getLogTag(), "restoreContents", e);
                 mViewState.set(ViewState.ERROR);
             }
         }

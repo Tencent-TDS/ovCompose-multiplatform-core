@@ -17,13 +17,14 @@
 package androidx.compose.foundation.text.input
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.internal.readText
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.FocusedWindowTest
 import androidx.compose.foundation.text.Handle
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.internal.selection.FakeClipboardManager
+import androidx.compose.foundation.text.input.internal.selection.FakeClipboard
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.text.selection.isSelectionHandle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,16 +33,18 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.testutils.expectError
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.autofill.ContentDataType
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsMatcher.Companion.expectValue
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
@@ -63,9 +66,11 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.intl.Locale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,8 +79,7 @@ import org.junit.runner.RunWith
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class BasicTextFieldSemanticsTest : FocusedWindowTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private val Tag = "TextField"
 
@@ -94,7 +98,9 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(Tag)
+        rule
+            .onNodeWithTag(Tag)
+            .assertInputTextEquals("")
             .assertEditableTextEquals("")
             .assertTextEquals("label", includeEditableText = false)
             .assert(isEditable())
@@ -102,21 +108,21 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
             .assert(hasSetTextAction())
             .assert(hasImeAction(ImeAction.Default))
             .assert(isNotFocused())
-            .assert(
-                SemanticsMatcher.expectValue(
-                    SemanticsProperties.TextSelectionRange,
-                    TextRange.Zero
-                )
-            )
+            .assert(expectValue(SemanticsProperties.TextSelectionRange, TextRange.Zero))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.SetText))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.PasteText))
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.SetSelection))
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.GetTextLayoutResult))
+            // All text elements should be automatically be autofillable and of "Text" data type
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDataType))
+            .assert(expectValue(SemanticsProperties.ContentDataType, ContentDataType.Text))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.OnAutofillText))
 
         val textLayoutResults = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithTag(Tag)
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayoutResults) }
+        rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.GetTextLayoutResult) {
+            it(textLayoutResults)
+        }
         assert(textLayoutResults.size == 1) { "TextLayoutResult is null" }
     }
 
@@ -125,56 +131,104 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         var enabled by mutableStateOf(true)
         rule.setContent {
             val state = remember { TextFieldState() }
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag),
-                enabled = enabled
-            )
+            BasicTextField(state = state, modifier = Modifier.testTag(Tag), enabled = enabled)
         }
 
-        rule.onNodeWithTag(Tag)
-            .assert(isEnabled())
+        rule.onNodeWithTag(Tag).assert(isEnabled())
 
         enabled = false
         rule.waitForIdle()
 
-        rule.onNodeWithTag(Tag)
-            .assert(isNotEnabled())
+        rule.onNodeWithTag(Tag).assert(isNotEnabled())
     }
 
     @Test
     fun semantics_setTextAction() {
         val state = TextFieldState()
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
+
+        rule.onNodeWithTag(Tag).assert(isNotFocused()).performTextReplacement("Hello")
+        rule
+            .onNodeWithTag(Tag)
+            .assert(isFocused())
+            .assertTextEquals("Hello")
+            .assertEditableTextEquals("Hello")
+            .assertInputTextEquals("Hello")
+
+        assertThat(state.text.toString()).isEqualTo("Hello")
+    }
+
+    @Test
+    fun semantics_setTextAction_inputTransformation() {
+        val state = TextFieldState()
         rule.setContent {
             BasicTextField(
                 state = state,
-                modifier = Modifier.testTag(Tag)
+                modifier = Modifier.testTag(Tag),
+                inputTransformation = InputTransformation.allCaps(Locale.current)
             )
         }
 
-        rule.onNodeWithTag(Tag)
-            .assert(isNotFocused())
-            .performTextReplacement("Hello")
-        rule.onNodeWithTag(Tag)
-            .assert(isFocused())
-            .assertTextEquals("Hello")
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
 
-        assertThat(state.text.toString()).isEqualTo("Hello")
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("ABC")
+            .assertInputTextEquals("ABC")
+            .assertEditableTextEquals("ABC")
+    }
+
+    @Test
+    fun semantics_setTextAction_outputTransformation() {
+        val state = TextFieldState()
+        rule.setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag(Tag),
+                outputTransformation = { append(" xyz") }
+            )
+        }
+
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
+
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("abc xyz")
+            .assertInputTextEquals("abc")
+            .assertEditableTextEquals("abc xyz")
+    }
+
+    @Test
+    fun semantics_setTextAction_inputAndOutputTransformation() {
+        val state = TextFieldState()
+        rule.setContent {
+            BasicTextField(
+                state = state,
+                modifier = Modifier.testTag(Tag),
+                inputTransformation = InputTransformation.allCaps(Locale.current),
+                outputTransformation = { append(" XYZ") }
+            )
+        }
+
+        rule.onNodeWithTag(Tag).performTextReplacement("abc")
+
+        rule
+            .onNodeWithTag(Tag)
+            .assertTextEquals("ABC XYZ")
+            .assertInputTextEquals("ABC")
+            .assertEditableTextEquals("ABC XYZ")
     }
 
     @Test
     fun semantics_performSetTextAction_whenReadOnly() {
         val state = TextFieldState("", initialSelection = TextRange(1))
         rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag),
-                readOnly = true
-            )
+            BasicTextField(state = state, modifier = Modifier.testTag(Tag), readOnly = true)
         }
 
-        rule.onNodeWithTag(Tag)
-            .performTextReplacement("hello")
+        expectError<AssertionError>(expectedMessage = "Failed to perform text input.*") {
+            rule.onNodeWithTag(Tag).performTextReplacement("hello")
+        }
 
         assertThat(state.text.toString()).isEqualTo("")
     }
@@ -195,12 +249,8 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(Tag)
-            .assert(isNotFocused())
-            .performTextReplacement("Hello")
-        rule.onNodeWithTag(Tag)
-            .assert(isFocused())
-            .assertTextEquals("H-e-l-l-o")
+        rule.onNodeWithTag(Tag).assert(isNotFocused()).performTextReplacement("Hello")
+        rule.onNodeWithTag(Tag).assert(isFocused()).assertTextEquals("H-e-l-l-o")
 
         assertThat(state.text.toString()).isEqualTo("H-e-l-l-o")
     }
@@ -208,19 +258,10 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun semantics_performTextInputAction() {
         val state = TextFieldState("Hello", initialSelection = TextRange(1))
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
-        rule.onNodeWithTag(Tag)
-            .assert(isNotFocused())
-            .performTextInput("a")
-        rule.onNodeWithTag(Tag)
-            .assert(isFocused())
-            .assertTextEquals("Haello")
+        rule.onNodeWithTag(Tag).assert(isNotFocused()).performTextInput("a")
+        rule.onNodeWithTag(Tag).assert(isFocused()).assertTextEquals("Haello")
 
         assertThat(state.text.toString()).isEqualTo("Haello")
     }
@@ -229,15 +270,12 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     fun semantics_performTextInputAction_whenReadOnly() {
         val state = TextFieldState("", initialSelection = TextRange(1))
         rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag),
-                readOnly = true
-            )
+            BasicTextField(state = state, modifier = Modifier.testTag(Tag), readOnly = true)
         }
 
-        rule.onNodeWithTag(Tag)
-            .performTextInput("hello")
+        expectError<AssertionError>(expectedMessage = "Failed to perform text input.*") {
+            rule.onNodeWithTag(Tag).performTextInput("hello")
+        }
 
         assertThat(state.text.toString()).isEqualTo("")
     }
@@ -256,12 +294,8 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
             )
         }
 
-        rule.onNodeWithTag(Tag)
-            .assert(isNotFocused())
-            .performTextInput("abc")
-        rule.onNodeWithTag(Tag)
-            .assert(isFocused())
-            .assertTextEquals("Hbcello")
+        rule.onNodeWithTag(Tag).assert(isNotFocused()).performTextInput("abc")
+        rule.onNodeWithTag(Tag).assert(isFocused()).assertTextEquals("Hbcello")
 
         assertThat(state.text.toString()).isEqualTo("Hbcello")
     }
@@ -270,17 +304,14 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     fun semantics_clickAction() {
         rule.setContent {
             val state = remember { TextFieldState() }
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
+            BasicTextField(state = state, modifier = Modifier.testTag(Tag))
         }
 
-        rule.onNodeWithTag(Tag)
+        rule
+            .onNodeWithTag(Tag)
             .assert(isNotFocused())
             .performSemanticsAction(SemanticsActions.OnClick)
-        rule.onNodeWithTag(Tag)
-            .assert(isFocused())
+        rule.onNodeWithTag(Tag).assert(isFocused())
     }
 
     @Test
@@ -300,12 +331,7 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun contentSemanticsAreSet_inTheFirstComposition() {
         val state = TextFieldState("hello")
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assertTextEquals("hello")
     }
@@ -313,12 +339,7 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun contentSemanticsAreSet_afterRecomposition() {
         val state = TextFieldState("hello")
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assertTextEquals("hello")
 
@@ -330,12 +351,7 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun selectionSemanticsAreSet_inTheFirstComposition() {
         val state = TextFieldState("hello", initialSelection = TextRange(2))
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         with(rule.onNodeWithTag(Tag)) {
             assertTextEquals("hello")
@@ -346,21 +362,14 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun selectionSemanticsAreSet_afterRecomposition() {
         val state = TextFieldState("hello", initialSelection = TextRange.Zero)
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         with(rule.onNodeWithTag(Tag)) {
             assertTextEquals("hello")
             assertSelection(TextRange.Zero)
         }
 
-        state.edit {
-            selection = TextRange(2)
-        }
+        state.edit { selection = TextRange(2) }
 
         with(rule.onNodeWithTag(Tag)) {
             assertTextEquals("hello")
@@ -368,15 +377,11 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun inputSelection_changesSelectionState() {
         val state = TextFieldState("hello")
         rule.setTextFieldTestContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
+            BasicTextField(state = state, modifier = Modifier.testTag(Tag))
         }
 
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(2, 3))
@@ -384,12 +389,9 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.onNode(isSelectionHandle(Handle.SelectionStart)).assertIsDisplayed()
         rule.onNode(isSelectionHandle(Handle.SelectionEnd)).assertIsDisplayed()
 
-        rule.runOnIdle {
-            assertThat(state.selection).isEqualTo(TextRange(2, 3))
-        }
+        rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(2, 3)) }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun inputSelection_changesSelectionState_appliesFilter() {
         val state = TextFieldState("hello", initialSelection = TextRange(5))
@@ -397,29 +399,19 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
             BasicTextField(
                 state = state,
                 modifier = Modifier.testTag(Tag),
-                inputTransformation = {
-                    revertAllChanges()
-                }
+                inputTransformation = { revertAllChanges() }
             )
         }
 
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(2))
 
-        rule.runOnIdle {
-            assertThat(state.selection).isEqualTo(TextRange(5))
-        }
+        rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(5)) }
     }
 
     @Test
     fun textLayoutResultSemanticsAreSet_inTheFirstComposition() {
         val state = TextFieldState("hello")
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier
-                    .testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assertTextEquals("hello")
         assertThat(rule.onNodeWithTag(Tag).fetchTextLayoutResult().layoutInput.text.text)
@@ -429,13 +421,7 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun textLayoutResultSemanticsAreUpdated_afterRecomposition() {
         val state = TextFieldState()
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier
-                    .testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assertTextEquals("")
         rule.onNodeWithTag(Tag).performTextInput("hello")
@@ -499,17 +485,13 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.PasteText))
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun semantics_paste() {
         val state = TextFieldState("Here World!")
-        val clipboardManager = FakeClipboardManager("Hello")
+        val clipboard = FakeClipboard("Hello")
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
-                BasicTextField(
-                    state = state,
-                    modifier = Modifier.testTag(Tag)
-                )
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
+                BasicTextField(state = state, modifier = Modifier.testTag(Tag))
             }
         }
 
@@ -522,13 +504,12 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun semantics_paste_appliesFilter() {
         val state = TextFieldState("Here World!")
-        val clipboardManager = FakeClipboardManager("Hello")
+        val clipboard = FakeClipboard("Hello")
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     state = state,
                     modifier = Modifier.testTag(Tag),
@@ -553,37 +534,27 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun semantics_copy() {
+    fun semantics_copy() = runTest {
         val state = TextFieldState("Hello World!")
-        val clipboardManager = FakeClipboardManager()
+        val clipboard = FakeClipboard()
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
-                BasicTextField(
-                    state = state,
-                    modifier = Modifier.testTag(Tag)
-                )
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
+                BasicTextField(state = state, modifier = Modifier.testTag(Tag))
             }
         }
 
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(0, 5))
         rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.CopyText)
 
-        rule.runOnIdle {
-            assertThat(clipboardManager.getText()?.toString()).isEqualTo("Hello")
-        }
+        rule.waitForIdle()
+        assertThat(clipboard.getClipEntry()?.readText()).isEqualTo("Hello")
     }
 
     @Test
     fun semantics_copy_disabled_whenSelectionCollapsed() {
         val state = TextFieldState("Hello World!")
-        rule.setContent {
-            BasicTextField(
-                state = state,
-                modifier = Modifier.testTag(Tag)
-            )
-        }
+        rule.setContent { BasicTextField(state = state, modifier = Modifier.testTag(Tag)) }
 
         rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CopyText))
     }
@@ -591,9 +562,9 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     @Test
     fun semantics_copy_appliesFilter() {
         val state = TextFieldState("Hello World!", initialSelection = TextRange(0, 5))
-        val clipboardManager = FakeClipboardManager()
+        val clipboard = FakeClipboard()
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     state = state,
                     modifier = Modifier.testTag(Tag),
@@ -609,56 +580,47 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
 
         rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.CopyText)
 
-        rule.runOnIdle {
-            assertThat(state.selection).isEqualTo(TextRange(0, 5))
-        }
+        rule.runOnIdle { assertThat(state.selection).isEqualTo(TextRange(0, 5)) }
     }
 
     @Test
-    fun semantics_cut() {
+    fun semantics_cut() = runTest {
         val state = TextFieldState("Hello World!", initialSelection = TextRange(0, 5))
-        val clipboardManager = FakeClipboardManager()
+        val clipboard = FakeClipboard()
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
-                BasicTextField(
-                    state = state,
-                    modifier = Modifier.testTag(Tag)
-                )
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
+                BasicTextField(state = state, modifier = Modifier.testTag(Tag))
             }
         }
 
         rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.CutText)
 
-        rule.runOnIdle {
-            assertThat(state.text.toString()).isEqualTo(" World!")
-            assertThat(state.selection).isEqualTo(TextRange(0))
-            assertThat(clipboardManager.getText()?.toString()).isEqualTo("Hello")
-        }
+        rule.waitForIdle()
+        assertThat(state.text.toString()).isEqualTo(" World!")
+        assertThat(state.selection).isEqualTo(TextRange(0))
+        assertThat(clipboard.getClipEntry()?.readText()).isEqualTo("Hello")
     }
 
     @Test
-    fun semantics_cut_appliesFilter() {
+    fun semantics_cut_appliesFilter() = runTest {
         val state = TextFieldState("Hello World!", initialSelection = TextRange(0, 5))
-        val clipboardManager = FakeClipboardManager()
+        val clipboard = FakeClipboard()
         rule.setContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     state = state,
                     modifier = Modifier.testTag(Tag),
-                    inputTransformation = {
-                        revertAllChanges()
-                    }
+                    inputTransformation = { revertAllChanges() }
                 )
             }
         }
 
         rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.CutText)
 
-        rule.runOnIdle {
-            assertThat(state.text.toString()).isEqualTo("Hello World!")
-            assertThat(state.selection).isEqualTo(TextRange(0, 5))
-            assertThat(clipboardManager.getText()?.toString()).isEqualTo("Hello")
-        }
+        rule.waitForIdle()
+        assertThat(state.text.toString()).isEqualTo("Hello World!")
+        assertThat(state.selection).isEqualTo(TextRange(0, 5))
+        assertThat(clipboard.getClipEntry()?.readText()).isEqualTo("Hello")
     }
 
     @Test
@@ -709,15 +671,15 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
 
         enabled = true
         readOnly = true
-        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Editable))
+        rule.onNodeWithTag(Tag).assert(expectValue(SemanticsProperties.IsEditable, false))
 
         enabled = false
         readOnly = false
-        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Editable))
+        rule.onNodeWithTag(Tag).assert(expectValue(SemanticsProperties.IsEditable, false))
 
         enabled = false
         readOnly = true
-        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Editable))
+        rule.onNodeWithTag(Tag).assert(expectValue(SemanticsProperties.IsEditable, false))
 
         // Make editable again.
         enabled = true
@@ -729,13 +691,14 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
     fun inputTransformationSemantics_areApplied() {
         val state = TextFieldState()
         val semanticsPropertyKey = SemanticsPropertyKey<Int>("InputTransformation")
-        val transformation = object : InputTransformation {
-            override fun SemanticsPropertyReceiver.applySemantics() {
-                this[semanticsPropertyKey] = 2
-            }
+        val transformation =
+            object : InputTransformation {
+                override fun SemanticsPropertyReceiver.applySemantics() {
+                    this[semanticsPropertyKey] = 2
+                }
 
-            override fun TextFieldBuffer.transformInput() = Unit
-        }
+                override fun TextFieldBuffer.transformInput() = Unit
+            }
         rule.setContent {
             BasicTextField(
                 state = state,
@@ -751,13 +714,14 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         val state = TextFieldState()
         var number by mutableIntStateOf(1)
         val semanticsPropertyKey = SemanticsPropertyKey<Int>("InputTransformation")
-        val transformation = object : InputTransformation {
-            override fun SemanticsPropertyReceiver.applySemantics() {
-                this[semanticsPropertyKey] = number
-            }
+        val transformation =
+            object : InputTransformation {
+                override fun SemanticsPropertyReceiver.applySemantics() {
+                    this[semanticsPropertyKey] = number
+                }
 
-            override fun TextFieldBuffer.transformInput() = Unit
-        }
+                override fun TextFieldBuffer.transformInput() = Unit
+            }
         rule.setContent {
             BasicTextField(
                 state = state,
@@ -784,10 +748,36 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).assertKey(10, SemanticsProperties.MaxTextLength)
     }
 
-    private fun SemanticsNodeInteraction.assertSelection(expected: TextRange) {
-        val selection = fetchSemanticsNode().config
-            .getOrNull(SemanticsProperties.TextSelectionRange)
-        assertThat(selection).isEqualTo(expected)
+    @Test
+    fun passwordSemantics_whenIsPassword_isToggled() {
+        var isPassword by mutableStateOf(false)
+        rule.setContent {
+            BasicTextField(
+                state =
+                    rememberTextFieldState(
+                        initialText = "Hello",
+                        initialSelection = TextRange(0, 2)
+                    ),
+                modifier = Modifier.testTag(Tag),
+                isPassword = isPassword
+            )
+        }
+
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CopyText))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CutText))
+
+        isPassword = true
+
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CopyText))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CutText))
+
+        isPassword = false
+
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Password))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CopyText))
+        rule.onNodeWithTag(Tag).assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CutText))
     }
 
     private fun SemanticsNodeInteraction.assertKey(expected: Int, key: SemanticsPropertyKey<Int>) {
@@ -802,4 +792,18 @@ class BasicTextFieldSemanticsTest : FocusedWindowTest {
                 it.config.getOrNull(SemanticsProperties.EditableText)?.text.equals(value)
             }
         )
+
+    private fun SemanticsNodeInteraction.assertInputTextEquals(
+        value: String
+    ): SemanticsNodeInteraction =
+        assert(
+            SemanticsMatcher("${SemanticsProperties.InputText.name} = '$value'") {
+                it.config.getOrNull(SemanticsProperties.InputText)?.text.equals(value)
+            }
+        )
+}
+
+internal fun SemanticsNodeInteraction.assertSelection(expected: TextRange) {
+    val selection = fetchSemanticsNode().config.getOrNull(SemanticsProperties.TextSelectionRange)
+    assertThat(selection).isEqualTo(expected)
 }

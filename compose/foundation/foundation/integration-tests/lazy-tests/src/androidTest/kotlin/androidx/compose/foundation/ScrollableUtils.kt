@@ -22,6 +22,7 @@ import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.VelocityTrackerAddPointsFix
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.util.fastForEach
 import androidx.test.espresso.Espresso
@@ -41,10 +42,13 @@ internal suspend fun savePointerInputEvents(
     tracker: VelocityTracker,
     pointerInputScope: PointerInputScope
 ) {
-    savePointerInputEventsWithFix(tracker, pointerInputScope)
+    if (VelocityTrackerAddPointsFix) {
+        savePointerInputEventsWithFix(tracker, pointerInputScope)
+    } else {
+        savePointerInputEventsLegacy(tracker, pointerInputScope)
+    }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 internal suspend fun savePointerInputEventsWithFix(
     tracker: VelocityTracker,
     pointerInputScope: PointerInputScope
@@ -55,17 +59,13 @@ internal suspend fun savePointerInputEventsWithFix(
                 while (true) {
                     var event: PointerInputChange? = awaitFirstDown()
                     while (event != null && !event.changedToUpIgnoreConsumed()) {
-                        val currentEvent = awaitPointerEvent().changes
-                            .firstOrNull()
+                        val currentEvent = awaitPointerEvent().changes.firstOrNull()
 
                         if (currentEvent != null && !currentEvent.changedToUpIgnoreConsumed()) {
                             currentEvent.historical.fastForEach {
                                 tracker.addPosition(it.uptimeMillis, it.position)
                             }
-                            tracker.addPosition(
-                                currentEvent.uptimeMillis,
-                                currentEvent.position
-                            )
+                            tracker.addPosition(currentEvent.uptimeMillis, currentEvent.position)
                         }
 
                         event = currentEvent
@@ -76,7 +76,6 @@ internal suspend fun savePointerInputEventsWithFix(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 internal suspend fun savePointerInputEventsLegacy(
     tracker: VelocityTracker,
     pointerInputScope: PointerInputScope
@@ -88,17 +87,13 @@ internal suspend fun savePointerInputEventsLegacy(
                     var event = awaitFirstDown()
                     tracker.addPosition(event.uptimeMillis, event.position)
                     while (!event.changedToUpIgnoreConsumed()) {
-                        val currentEvent = awaitPointerEvent().changes
-                            .firstOrNull()
+                        val currentEvent = awaitPointerEvent().changes.firstOrNull()
 
                         if (currentEvent != null) {
                             currentEvent.historical.fastForEach {
                                 tracker.addPosition(it.uptimeMillis, it.position)
                             }
-                            tracker.addPosition(
-                                currentEvent.uptimeMillis,
-                                currentEvent.position
-                            )
+                            tracker.addPosition(currentEvent.uptimeMillis, currentEvent.position)
                             event = currentEvent
                         }
                     }
@@ -110,50 +105,27 @@ internal suspend fun savePointerInputEventsLegacy(
 
 internal fun composeViewSwipeUp() {
     Espresso.onView(CoreMatchers.allOf(CoreMatchers.instanceOf(AbstractComposeView::class.java)))
-        .perform(
-            espressoSwipe(
-                GeneralLocation.CENTER,
-                GeneralLocation.TOP_CENTER
-            )
-        )
+        .perform(espressoSwipe(GeneralLocation.CENTER, GeneralLocation.TOP_CENTER))
 }
 
 internal fun composeViewSwipeDown() {
     Espresso.onView(CoreMatchers.allOf(CoreMatchers.instanceOf(AbstractComposeView::class.java)))
-        .perform(
-            espressoSwipe(
-                GeneralLocation.CENTER,
-                GeneralLocation.BOTTOM_CENTER
-            )
-        )
+        .perform(espressoSwipe(GeneralLocation.CENTER, GeneralLocation.BOTTOM_CENTER))
 }
 
 internal fun composeViewSwipeLeft() {
     Espresso.onView(CoreMatchers.allOf(CoreMatchers.instanceOf(AbstractComposeView::class.java)))
-        .perform(
-            espressoSwipe(
-                GeneralLocation.CENTER,
-                GeneralLocation.CENTER_LEFT
-            )
-        )
+        .perform(espressoSwipe(GeneralLocation.CENTER, GeneralLocation.CENTER_LEFT))
 }
 
 internal fun composeViewSwipeRight() {
     Espresso.onView(CoreMatchers.allOf(CoreMatchers.instanceOf(AbstractComposeView::class.java)))
-        .perform(
-            espressoSwipe(
-                GeneralLocation.CENTER,
-                GeneralLocation.CENTER_RIGHT
-            )
-        )
+        .perform(espressoSwipe(GeneralLocation.CENTER, GeneralLocation.CENTER_RIGHT))
 }
 
 private fun espressoSwipe(
     start: CoordinatesProvider,
     end: CoordinatesProvider
 ): GeneralSwipeAction {
-    return GeneralSwipeAction(
-        Swipe.FAST, start, end,
-        Press.FINGER
-    )
+    return GeneralSwipeAction(Swipe.FAST, start, end, Press.FINGER)
 }

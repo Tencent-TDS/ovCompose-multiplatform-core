@@ -40,7 +40,6 @@ import androidx.compose.testutils.ToggleableTestCase
 import androidx.compose.testutils.assertNoPendingChanges
 import androidx.compose.testutils.benchmark.ComposeBenchmarkRule
 import androidx.compose.testutils.benchmark.toggleStateBenchmarkComposeMeasureLayout
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.platform.LocalView
@@ -49,6 +48,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.LargeTest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -83,13 +83,14 @@ class TextFieldAccessibilityBenchmark(
                 )
             },
             benchmark = {
-                val semanticsId = runWithTimingDisabled { findIdByTag("tag") }
+                val semanticsId = runWithMeasurementDisabled { findIdByTag("tag") }
                 nodeProvider.createAccessibilityNodeInfo(semanticsId)
             }
         )
     }
 
-    @Test fun createAccessibilityNodeInfoFromId_singleOfMultipleTextField() {
+    @Test
+    fun createAccessibilityNodeInfoFromId_singleOfMultipleTextField() {
         if (!accessibilityEnabled) return
 
         measureRepeatedOnUiThread(
@@ -100,13 +101,11 @@ class TextFieldAccessibilityBenchmark(
                         value = "abc",
                         onValueChange = {},
                     )
-                    repeat(9) {
-                        TextField(value = "abc", onValueChange = {})
-                    }
+                    repeat(9) { TextField(value = "abc", onValueChange = {}) }
                 }
             },
             benchmark = {
-                val semanticsId = runWithTimingDisabled { findIdByTag("tag") }
+                val semanticsId = runWithMeasurementDisabled { findIdByTag("tag") }
                 nodeProvider.createAccessibilityNodeInfo(semanticsId)
             }
         )
@@ -122,15 +121,9 @@ class TextFieldAccessibilityBenchmark(
 
         measureRepeatedOnUiThread(
             content = {
-                TextField(
-                    modifier = Modifier.testTag("tag"),
-                    value = "abc",
-                    onValueChange = {}
-                )
+                TextField(modifier = Modifier.testTag("tag"), value = "abc", onValueChange = {})
             },
-            benchmark = {
-                nodeProvider.createAccessibilityNodeInfo(HOST_VIEW_ID)
-            }
+            benchmark = { nodeProvider.createAccessibilityNodeInfo(HOST_VIEW_ID) }
         )
     }
 
@@ -150,14 +143,10 @@ class TextFieldAccessibilityBenchmark(
                         value = "abc",
                         onValueChange = {},
                     )
-                    repeat(9) {
-                        TextField(value = "abc", onValueChange = {})
-                    }
+                    repeat(9) { TextField(value = "abc", onValueChange = {}) }
                 }
             },
-            benchmark = {
-                nodeProvider.createAccessibilityNodeInfo(HOST_VIEW_ID)
-            }
+            benchmark = { nodeProvider.createAccessibilityNodeInfo(HOST_VIEW_ID) }
         )
     }
 
@@ -171,9 +160,7 @@ class TextFieldAccessibilityBenchmark(
                     @Composable
                     override fun Content() {
                         setupAccessibility()
-                        Column {
-                            if (include) TextField(value = "abc", onValueChange = {})
-                        }
+                        Column { if (include) TextField(value = "abc", onValueChange = {}) }
                     }
 
                     override fun toggleState() {
@@ -197,9 +184,7 @@ class TextFieldAccessibilityBenchmark(
                         setupAccessibility()
                         Column {
                             if (include) {
-                                repeat(10) {
-                                    TextField(value = "abc", onValueChange = {})
-                                }
+                                repeat(10) { TextField(value = "abc", onValueChange = {}) }
                             }
                         }
                     }
@@ -213,6 +198,7 @@ class TextFieldAccessibilityBenchmark(
         )
     }
 
+    @FlakyTest(bugId = 338433949)
     @Test
     fun sendEvents_changeNumberOfTextFields() {
         benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(
@@ -223,11 +209,7 @@ class TextFieldAccessibilityBenchmark(
                     @Composable
                     override fun Content() {
                         setupAccessibility()
-                        Column {
-                            repeat(count) {
-                                TextField(value = "abc", onValueChange = {})
-                            }
-                        }
+                        Column { repeat(count) { TextField(value = "abc", onValueChange = {}) } }
                     }
 
                     override fun toggleState() {
@@ -239,6 +221,7 @@ class TextFieldAccessibilityBenchmark(
         )
     }
 
+    @FlakyTest(bugId = 338433949)
     @Test
     fun sendEvents_changeTextInSingleTextField() {
         benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(
@@ -261,6 +244,7 @@ class TextFieldAccessibilityBenchmark(
         )
     }
 
+    @FlakyTest(bugId = 338433949)
     @Test
     fun sendEvents_changeTextInMultipleTextFields() {
         benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(
@@ -293,6 +277,7 @@ class TextFieldAccessibilityBenchmark(
         )
     }
 
+    @FlakyTest(bugId = 338433949)
     @Test
     fun sendEvents_changeTextInOneOfMultipleTextFields() {
         benchmarkRule.toggleStateBenchmarkComposeMeasureLayout(
@@ -365,17 +350,16 @@ class TextFieldAccessibilityBenchmark(
         @Parameterized.Parameters(
             name = "accessibilityEnabled = {0}, invalidateSemanticsOnEachRun = {1}"
         )
-        fun initParameters() = listOf(
-            arrayOf(false, false),
-            arrayOf(true, false),
-            arrayOf(true, true)
-        )
+        fun initParameters() =
+            listOf(arrayOf(false, false), arrayOf(true, false), arrayOf(true, true))
     }
 
     private fun findIdByTag(@Suppress("SameParameterValue") tag: String): Int {
-        return (view as RootForTest).semanticsOwner
+        return (view as RootForTest)
+            .semanticsOwner
             .getAllSemanticsNodes(mergingEnabled = false)
-            .find { it.config.getOrNull(SemanticsProperties.TestTag) == tag }!!.id
+            .find { it.config.getOrNull(SemanticsProperties.TestTag) == tag }!!
+            .id
     }
 
     private fun measureRepeatedOnUiThread(
@@ -396,19 +380,18 @@ class TextFieldAccessibilityBenchmark(
             }
         ) {
             benchmarkRule.measureRepeatedOnUiThread {
-                runWithTimingDisabled {
+                runWithMeasurementDisabled {
                     doFrame()
                     assertNoPendingChanges()
                     if (invalidateSemanticsOnEachRun) invalidateSemantics()
                 }
                 benchmark()
-                runWithTimingDisabled { disposeContent() }
+                runWithMeasurementDisabled { disposeContent() }
             }
         }
     }
 
     @Composable
-    @OptIn(ExperimentalComposeUiApi::class)
     private fun setupAccessibility() {
         view = LocalView.current
         // TODO(b/308007375): Eventually we will be able to remove `accessibilityForTesting()`;
@@ -421,7 +404,6 @@ class TextFieldAccessibilityBenchmark(
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     private fun invalidateSemantics() {
         // Setting forceAccessibilityForTesting invalidates semantics.
         (view as RootForTest).forceAccessibilityForTesting(accessibilityEnabled)

@@ -37,13 +37,12 @@ import org.junit.runner.RunWith;
 
 import java.util.Set;
 
-
 @RunWith(AndroidJUnit4.class)
 @SmallTest
 public class GetPublicKeyCredentialOptionJavaTest {
     private static final String TEST_REQUEST_JSON = "{\"hi\":{\"there\":{\"lol\":\"Value\"}}}";
-    private static final @PriorityHints int EXPECTED_PASSKEY_PRIORITY =
-            PriorityHints.PRIORITY_PASSKEY_OR_SIMILAR;
+    private static final int EXPECTED_PASSKEY_PRIORITY =
+            CredentialOption.PRIORITY_PASSKEY_OR_SIMILAR;
 
 
     @Test

@@ -19,8 +19,8 @@ package androidx.compose.ui.owners
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.compose.LocalSavedStateRegistryOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import java.util.concurrent.CountDownLatch
@@ -37,9 +37,7 @@ import org.junit.runner.RunWith
 class SavedStateRegistryOwnerInAppCompatActivityTest {
     @Suppress("DEPRECATION")
     @get:Rule
-    val activityTestRule = androidx.test.rule.ActivityTestRule(
-        AppCompatActivity::class.java
-    )
+    val activityTestRule = androidx.test.rule.ActivityTestRule(AppCompatActivity::class.java)
     private lateinit var activity: AppCompatActivity
 
     @Before

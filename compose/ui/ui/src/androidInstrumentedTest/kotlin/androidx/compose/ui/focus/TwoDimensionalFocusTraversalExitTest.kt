@@ -37,8 +37,7 @@ import org.junit.runner.RunWith
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class TwoDimensionalFocusTraversalExitTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     private lateinit var focusManager: FocusManager
     private val initialFocus: FocusRequester = FocusRequester()
@@ -52,9 +51,7 @@ class TwoDimensionalFocusTraversalExitTest {
     @Test
     fun moveFocusExit_noParent_focusStateUnchanged() {
         // Arrange.
-        rule.setContentForTest {
-            FocusableBox(focusedItem, 0, 0, 10, 10, initialFocus)
-        }
+        rule.setContentForTest { FocusableBox(focusedItem, 0, 0, 10, 10, initialFocus) }
 
         // Act.
         val movedFocusSuccessfully = rule.runOnIdle { focusManager.moveFocus(Exit) }
@@ -211,7 +208,7 @@ class TwoDimensionalFocusTraversalExitTest {
         val (parent, grandparent) = List(2) { mutableStateOf(false) }
         rule.setContentForTest {
             FocusableBox(grandparent, 0, 0, 50, 50) {
-                val customExit = Modifier.focusProperties { exit = { FocusRequester.Cancel } }
+                val customExit = Modifier.focusProperties { onExit = { cancelFocusChange() } }
                 FocusableBox(parent, 10, 10, 30, 30, deactivated = true) {
                     FocusableBox(focusedItem, 10, 10, 10, 10, initialFocus, modifier = customExit)
                 }
@@ -248,9 +245,10 @@ class TwoDimensionalFocusTraversalExitTest {
         val otherItem = FocusRequester()
         rule.setContentForTest {
             FocusableBox(grandparent, 0, 0, 50, 50) {
-                val customExit = Modifier.focusProperties { exit = { otherItem } }
+                val customExit = Modifier.focusProperties { onExit = { otherItem.requestFocus() } }
                 FocusableBox(parent, 10, 10, 30, 30, deactivated = true) {
-                    FocusableBox(focusedItem, 10, 10, 10, 10, initialFocus, modifier = customExit) }
+                    FocusableBox(focusedItem, 10, 10, 10, 10, initialFocus, modifier = customExit)
+                }
             }
             FocusableBox(other, x = 0, y = 60, width = 10, height = 10, otherItem)
         }
@@ -286,11 +284,12 @@ class TwoDimensionalFocusTraversalExitTest {
         val otherItem = FocusRequester()
         rule.setContentForTest {
             FocusableBox(grandparent, 0, 0, 50, 50) {
-                val customExit = Modifier.focusProperties { exit = { otherItem } }
+                val customExit = Modifier.focusProperties { onExit = { otherItem.requestFocus() } }
                 FocusableBox(parent, 10, 10, 30, 30, deactivated = true) {
-                    FocusableBox(focusedItem, 10, 10, 10, 10, initialFocus, modifier = customExit) }
+                    FocusableBox(focusedItem, 10, 10, 10, 10, initialFocus, modifier = customExit)
                 }
-                FocusableBox(other, x = 0, y = 60, width = 10, height = 10, otherItem)
+            }
+            FocusableBox(other, x = 0, y = 60, width = 10, height = 10, otherItem)
         }
 
         // Act.
@@ -439,15 +438,15 @@ class TwoDimensionalFocusTraversalExitTest {
     }
 
     /**
-     *    ___________________________
-     *   |  grandparent             |
-     *   |   _____________________  |
-     *   |  |  parent            |  |
-     *   |  |   _______________  |  |   ____________
-     *   |  |  | focusedItem  |  |  |  | nextItem  |
-     *   |  |  |______________|  |  |  |___________|
-     *   |  |____________________|  |
-     *   |__________________________|
+     *     ___________________________
+     *    |  grandparent             |
+     *    |   _____________________  |
+     *    |  |  parent            |  |
+     *    |  |   _______________  |  |   ____________
+     *    |  |  | focusedItem  |  |  |  | nextItem  |
+     *    |  |  |______________|  |  |  |___________|
+     *    |  |____________________|  |
+     *    |__________________________|
      */
     @Test
     fun moveFocusRight_focusesOnSiblingOfGrandparent() {
@@ -746,15 +745,15 @@ class TwoDimensionalFocusTraversalExitTest {
     }
 
     /**
-     *    _________________________________________________________
-     *   |   parent                                               |
-     *   |   _______________   _______________   _______________  |
-     *   |  | focusedItem  |  |    item1     |  |    item2     |  |
-     *   |  |______________|  |______________|  |______________|  |
-     *   |________________________________________________________|
-     *       _______________   _______________   _______________
-     *      |    item3     |  |    item4     |  |    item5     |
-     *      |______________|  |______________|  |______________|
+     *     _________________________________________________________
+     *    |   parent                                               |
+     *    |   _______________   _______________   _______________  |
+     *    |  | focusedItem  |  |    item1     |  |    item2     |  |
+     *    |  |______________|  |______________|  |______________|  |
+     *    |________________________________________________________|
+     *        _______________   _______________   _______________
+     *       |    item3     |  |    item4     |  |    item5     |
+     *       |______________|  |______________|  |______________|
      */
     @Test
     fun moveFocusDown_fromBottommostItem_movesFocusOutsideParent() {
@@ -789,15 +788,15 @@ class TwoDimensionalFocusTraversalExitTest {
     }
 
     /**
-     *    _________________________________________________________
-     *   |   parent                                               |
-     *   |   _______________   _______________   _______________  |
-     *   |  | focusedItem  |  |    item1     |  |    item2     |  |
-     *   |  |______________|  |______________|  |______________|  |
-     *   |________________________________________________________|
-     *       _______________   _______________   _______________
-     *      |    item3     |  |    item4     |  |    item5     |
-     *      |______________|  |______________|  |______________|
+     *     _________________________________________________________
+     *    |   parent                                               |
+     *    |   _______________   _______________   _______________  |
+     *    |  | focusedItem  |  |    item1     |  |    item2     |  |
+     *    |  |______________|  |______________|  |______________|  |
+     *    |________________________________________________________|
+     *        _______________   _______________   _______________
+     *       |    item3     |  |    item4     |  |    item5     |
+     *       |______________|  |______________|  |______________|
      */
     @Test
     fun moveFocusDown_fromBottommostItem_movesFocusOutsideDeactivatedParent() {

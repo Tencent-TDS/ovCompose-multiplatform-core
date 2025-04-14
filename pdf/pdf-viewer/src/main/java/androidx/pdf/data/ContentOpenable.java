@@ -21,12 +21,13 @@ import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
-import androidx.pdf.aidl.Dimensions;
+import androidx.pdf.models.Dimensions;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.util.Uris;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -41,20 +42,19 @@ public class ContentOpenable implements Openable, Parcelable {
     /** The content Uri this {@link Openable} opens. */
     private final Uri mContentUri;
 
-    /** The content-type that this content should be opened as (e.g. when more than one
-     * available). */
-    @Nullable
-    private final String mContentType;
+    /**
+     * The content-type that this content should be opened as (e.g. when more than one
+     * available).
+     */
+    private final @Nullable String mContentType;
 
     /**
      * If not null, this {@link Openable} will open an image preview of the actual contents.
      * The preview will be requested with these specified dimensions.
      */
-    @Nullable
-    private final Dimensions mSize;
+    private final @Nullable Dimensions mSize;
 
-    @Nullable
-    private Open mOpen;
+    private @Nullable Open mOpen;
 
     /** Creates an {@link Openable} for the contents @ uri with its default content-type. */
     public ContentOpenable(@NonNull Uri uri) {
@@ -62,17 +62,20 @@ public class ContentOpenable implements Openable, Parcelable {
     }
 
     /** Creates an {@link Openable} for the contents @ uri with the given content-type. */
-    public ContentOpenable(@NonNull Uri uri, String contentType) {
+    public ContentOpenable(@NonNull Uri uri, @NonNull String contentType) {
         this(uri, contentType, null);
     }
 
-    /** Creates an {@link Openable} for an image preview (of the given size) of the contents @
-     * uri. */
-    public ContentOpenable(@NonNull Uri uri, Dimensions size) {
+    /**
+     * Creates an {@link Openable} for an image preview (of the given size) of the contents @
+     * uri.
+     */
+    public ContentOpenable(@NonNull Uri uri, @NonNull Dimensions size) {
         this(uri, null, size);
     }
 
-    private ContentOpenable(@NonNull Uri uri, String contentType, Dimensions size) {
+    private ContentOpenable(@NonNull Uri uri, @Nullable String contentType,
+            @Nullable Dimensions size) {
         Preconditions.checkNotNull(uri);
         Preconditions.checkArgument(Uris.isContentUri(uri),
                 "Does not accept Uri " + uri.getScheme());
@@ -81,12 +84,11 @@ public class ContentOpenable implements Openable, Parcelable {
         this.mSize = size;
     }
 
-    public Uri getContentUri() {
+    public @NonNull Uri getContentUri() {
         return mContentUri;
     }
 
-    @Nullable
-    public Dimensions getSize() {
+    public @Nullable Dimensions getSize() {
         return mSize;
     }
 
@@ -98,7 +100,7 @@ public class ContentOpenable implements Openable, Parcelable {
      * @return The {@link androidx.pdf.data.Openable.Open} for this Openable.
      */
     @Override
-    public Open openWith(Opener opener) throws IOException {
+    public @NonNull Open openWith(@NonNull Opener opener) throws IOException {
         /*
          * We want to explicitly return {@link Opener#open(ContentOpenable)} every time instead
          * of just
@@ -113,8 +115,7 @@ public class ContentOpenable implements Openable, Parcelable {
     }
 
     @Override
-    @Nullable
-    public String getContentType() {
+    public @Nullable String getContentType() {
         return mContentType;
     }
 
@@ -124,12 +125,12 @@ public class ContentOpenable implements Openable, Parcelable {
     }
 
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return String.format("%s [%s]: %s / @%s", TAG, mContentType, mContentUri, mSize);
     }
 
     @Override
-    public void writeToParcel(Parcel dest, int flags) {
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeParcelable(mContentUri, flags);
         if (mContentType != null) {
             dest.writeString(mContentType);

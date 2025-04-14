@@ -16,6 +16,7 @@
 
 package androidx.build
 
+import androidx.build.gradle.extraPropertyOrNull
 import java.util.Locale
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.create
@@ -45,12 +46,10 @@ enum class PlatformGroup {
         val native = listOf(MAC, LINUX, WINDOWS, ANDROID_NATIVE)
 
         /**
-         * Target platform groups which are enabled by default.
-         *
-         * Do *not* enable [JS] unless you have read and understand this:
-         * https://blog.jetbrains.com/kotlin/2021/10/important-ua-parser-js-exploit-and-kotlin-js/
+         * Target platform groups which are enabled by default. We currently enable all platforms by
+         * default.
          */
-        val enabledByDefault = listOf(JVM, DESKTOP, MAC, LINUX, WINDOWS, ANDROID_NATIVE, WASM)
+        val enabledByDefault = listOf(ANDROID_NATIVE, DESKTOP, JS, JVM, LINUX, MAC, WASM, WINDOWS)
     }
 }
 
@@ -76,7 +75,7 @@ enum class PlatformIdentifier(val id: String, val group: PlatformGroup) {
     IOS_ARM_64("iosarm64", PlatformGroup.MAC),
     WATCHOS_SIMULATOR_ARM_64("watchossimulatorarm64", PlatformGroup.MAC),
     WATCHOS_X_64("watchosx64", PlatformGroup.MAC),
-    WATCHOS_ARM_32("watchosarm64", PlatformGroup.MAC),
+    WATCHOS_ARM_32("watchosarm32", PlatformGroup.MAC),
     WATCHOS_ARM_64("watchosarm64", PlatformGroup.MAC),
     WATCHOS_DEVICE_ARM_64("watchosdevicearm64", PlatformGroup.MAC),
     TVOS_SIMULATOR_ARM_64("tvossimulatorarm64", PlatformGroup.MAC),
@@ -127,7 +126,9 @@ private val Project.enabledKmpPlatforms: Set<PlatformGroup>
 /** Extension used to store parsed KMP configuration information. */
 private open class KmpPlatformsExtension(project: Project) {
     val enabledKmpPlatforms =
-        parseTargetPlatformsFlag(project.findProperty(ENABLED_KMP_TARGET_PLATFORMS) as? String)
+        parseTargetPlatformsFlag(
+            project.extraPropertyOrNull(ENABLED_KMP_TARGET_PLATFORMS) as? String
+        )
 }
 
 fun Project.enableJs(): Boolean = enabledKmpPlatforms.contains(PlatformGroup.JS)

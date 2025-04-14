@@ -17,170 +17,67 @@ package androidx.room.solver.query.result
 
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
-import androidx.room.compiler.codegen.XMemberName.Companion.packageMember
+import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.applyTo
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.box
-import androidx.room.ext.AndroidTypeNames
-import androidx.room.ext.Function1TypeSpec
-import androidx.room.ext.RoomTypeNames
+import androidx.room.ext.InvokeWithLambdaParameter
+import androidx.room.ext.LambdaSpec
+import androidx.room.ext.RoomMemberNames.DB_UTIL_PERFORM_BLOCKING
 import androidx.room.ext.SQLiteDriverTypeNames
 import androidx.room.solver.CodeGenScope
 
-/**
- * Instantly runs and returns the query.
- */
+/** Instantly runs and returns the query. */
 class InstantQueryResultBinder(adapter: QueryResultAdapter?) : QueryResultBinder(adapter) {
-    override fun convertAndReturn(
-        roomSQLiteQueryVar: String,
-        canReleaseQuery: Boolean,
-        dbProperty: XPropertySpec,
-        inTransaction: Boolean,
-        scope: CodeGenScope
-    ) {
-        scope.builder.apply {
-            addStatement("%N.assertNotSuspendingTransaction()", dbProperty)
-        }
-        val transactionWrapper = if (inTransaction) {
-            scope.builder.transactionWrapper(dbProperty.name)
-        } else {
-            null
-        }
-        transactionWrapper?.beginTransactionWithControlFlow()
-        scope.builder.apply {
-            val shouldCopyCursor = adapter?.shouldCopyCursor() == true
-            val outVar = scope.getTmpVar("_result")
-            val cursorVar = scope.getTmpVar("_cursor")
-            addLocalVariable(
-                name = cursorVar,
-                typeName = AndroidTypeNames.CURSOR,
-                assignExpr = XCodeBlock.of(
-                    language,
-                    "%M(%N, %L, %L, %L)",
-                    RoomTypeNames.DB_UTIL.packageMember("query"),
-                    dbProperty,
-                    roomSQLiteQueryVar,
-                    if (shouldCopyCursor) "true" else "false",
-                    "null"
-                )
-            )
-            beginControlFlow("try").apply {
-                adapter?.convert(outVar, cursorVar, scope)
-                transactionWrapper?.commitTransaction()
-                addStatement("return %L", outVar)
-            }
-            nextControlFlow("finally").apply {
-                addStatement("%L.close()", cursorVar)
-                if (canReleaseQuery) {
-                    addStatement("%L.release()", roomSQLiteQueryVar)
-                }
-            }
-            endControlFlow()
-        }
-        transactionWrapper?.endTransactionWithControlFlow()
-    }
-
-    override fun isMigratedToDriver() = adapter?.isMigratedToDriver() == true
 
     override fun convertAndReturn(
         sqlQueryVar: String,
         dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
-        returnTypeName: XTypeName,
-        inTransaction: Boolean,
-        scope: CodeGenScope
-    ) {
-        when (scope.language) {
-            CodeLanguage.JAVA -> convertAndReturnJava(
-                sqlQueryVar, dbProperty, bindStatement, returnTypeName, inTransaction, scope
-            )
-            CodeLanguage.KOTLIN -> convertAndReturnKotlin(
-                sqlQueryVar, dbProperty, bindStatement, inTransaction, scope
-            )
-        }
-    }
-
-    private fun convertAndReturnJava(
-        sqlQueryVar: String,
-        dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
+        bindStatement: (CodeGenScope.(String) -> Unit)?,
         returnTypeName: XTypeName,
         inTransaction: Boolean,
         scope: CodeGenScope
     ) {
         val connectionVar = scope.getTmpVar("_connection")
-        val statementVar = scope.getTmpVar("_stmt")
-        scope.builder.addStatement(
-            "return %M(%N, %L, %L, %L)",
-            RoomTypeNames.DB_UTIL.packageMember("performBlocking"),
-            dbProperty,
-            true, // isReadOnly
-            inTransaction,
-            // TODO(b/322387497): Generate lambda syntax if possible
-            Function1TypeSpec(
-                language = scope.language,
-                parameterTypeName = SQLiteDriverTypeNames.CONNECTION,
-                parameterName = connectionVar,
-                returnTypeName = returnTypeName.box()
-            ) {
-                val functionScope = scope.fork()
-                val outVar = functionScope.getTmpVar("_result")
-                val functionCode = functionScope.builder.apply {
-                    addLocalVal(
-                        statementVar,
-                        SQLiteDriverTypeNames.STATEMENT,
-                        "%L.prepare(%L)",
-                        connectionVar,
-                        sqlQueryVar
-                    )
-                    beginControlFlow("try")
-                    bindStatement(functionScope, statementVar)
-                    adapter?.convert(outVar, statementVar, functionScope)
-                    addStatement("return %L", outVar)
-                    nextControlFlow("finally")
-                    addStatement("%L.close()", statementVar)
-                    endControlFlow()
-                }.build()
-                this.addCode(functionCode)
-            }
-        )
-    }
-
-    private fun convertAndReturnKotlin(
-        sqlQueryVar: String,
-        dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
-        inTransaction: Boolean,
-        scope: CodeGenScope
-    ) {
-        val connectionVar = scope.getTmpVar("_connection")
-        val statementVar = scope.getTmpVar("_stmt")
-        scope.builder.apply {
-            beginControlFlow(
-                "return %M(%N, %L, %L) { %L ->",
-                RoomTypeNames.DB_UTIL.packageMember("performBlocking"),
-                dbProperty,
-                true, // isReadOnly
-                inTransaction,
-                connectionVar
+        val performBlock =
+            InvokeWithLambdaParameter(
+                scope = scope,
+                functionName = DB_UTIL_PERFORM_BLOCKING,
+                argFormat = listOf("%N", "%L", "%L"),
+                args = listOf(dbProperty, /* isReadOnly= */ true, inTransaction),
+                lambdaSpec =
+                    object :
+                        LambdaSpec(
+                            parameterTypeName = SQLiteDriverTypeNames.CONNECTION,
+                            parameterName = connectionVar,
+                            returnTypeName = returnTypeName.box(),
+                            javaLambdaSyntaxAvailable = scope.javaLambdaSyntaxAvailable
+                        ) {
+                        override fun XCodeBlock.Builder.body(scope: CodeGenScope) {
+                            val statementVar = scope.getTmpVar("_stmt")
+                            addLocalVal(
+                                statementVar,
+                                SQLiteDriverTypeNames.STATEMENT,
+                                "%L.prepare(%L)",
+                                connectionVar,
+                                sqlQueryVar
+                            )
+                            beginControlFlow("try")
+                            bindStatement?.invoke(scope, statementVar)
+                            val outVar = scope.getTmpVar("_result")
+                            adapter?.convert(outVar, statementVar, scope)
+                            applyTo { language ->
+                                when (language) {
+                                    CodeLanguage.JAVA -> addStatement("return %L", outVar)
+                                    CodeLanguage.KOTLIN -> addStatement("%L", outVar)
+                                }
+                            }
+                            nextControlFlow("finally")
+                            addStatement("%L.close()", statementVar)
+                            endControlFlow()
+                        }
+                    }
             )
-            addLocalVal(
-                statementVar,
-                SQLiteDriverTypeNames.STATEMENT,
-                "%L.prepare(%L)",
-                connectionVar,
-                sqlQueryVar
-            )
-            beginControlFlow("try")
-            bindStatement(scope, statementVar)
-            val outVar = scope.getTmpVar("_result")
-            adapter?.convert(outVar, statementVar, scope)
-            addStatement("%L", outVar)
-            nextControlFlow("finally")
-            addStatement("%L.close()", statementVar)
-            endControlFlow()
-            endControlFlow()
-        }
+        scope.builder.add("return %L", performBlock)
     }
 }
