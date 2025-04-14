@@ -621,7 +621,7 @@ internal class ComposeSceneMediator(
         skiaLayerComponent.onRenderApiChanged(action)
     }
 
-    fun onChangeWindowFocus() {
+    fun onWindowFocusChanged() {
         keyboardModifiersRequireUpdate = true
     }
 
@@ -751,6 +751,12 @@ internal class ComposeSceneMediator(
     }
 
     private inner class DesktopPlatformComponent : PlatformComponent {
+        override val locationOnScreen: Point
+            get() = contentComponent.locationOnScreen
+
+        override val density: Density
+            get() = contentComponent.density
+
         override fun enableInput(inputMethodRequests: InputMethodRequests) {
             currentInputMethodRequests = inputMethodRequests
             contentComponent.enableInputMethods(true)
@@ -768,12 +774,6 @@ internal class ComposeSceneMediator(
             // not dynamically
             resetFocus()
         }
-
-        override val locationOnScreen: Point
-            get() = contentComponent.locationOnScreen
-
-        override val density: Density
-            get() = contentComponent.density
     }
 
     @OptIn(InternalComposeUiApi::class)

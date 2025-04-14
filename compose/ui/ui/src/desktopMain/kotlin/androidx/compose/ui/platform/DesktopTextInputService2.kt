@@ -40,7 +40,7 @@ internal class DesktopTextInputService2(
     private val component: PlatformComponent
 ) : PlatformTextInputService2 {
 
-    private var currentInputMethodRequests: InputMethodRequestsImpl? = null
+    private var inputMethodSession: InputMethodSession? = null
 
     override fun startInput(
         state: TextEditorState,
@@ -48,8 +48,8 @@ internal class DesktopTextInputService2(
         editText: (block: TextEditingScope.() -> Unit) -> Unit
     ) {
         component.enableInput(
-            InputMethodRequestsImpl(component, state, editText).also {
-                currentInputMethodRequests = it
+            InputMethodSession(component, state, editText).also {
+                inputMethodSession = it
             }
         )
     }
@@ -57,33 +57,32 @@ internal class DesktopTextInputService2(
     override fun stopInput() {
         component.disableInput()
 
-        this.currentInputMethodRequests = null
+        this.inputMethodSession = null
     }
 
     override fun focusedRectChanged(rect: Rect) {
-        currentInputMethodRequests?.focusedRect = rect
+        inputMethodSession?.focusedRect = rect
     }
 
     fun onKeyEvent(keyEvent: KeyEvent) {
         when (keyEvent.id) {
             KeyEvent.KEY_TYPED ->
-                currentInputMethodRequests?.charKeyPressed = true
+                inputMethodSession?.charKeyPressed = true
             KeyEvent.KEY_RELEASED ->
-                currentInputMethodRequests?.charKeyPressed = false
+                inputMethodSession?.charKeyPressed = false
         }
     }
 
     fun inputMethodTextChanged(event: InputMethodEvent) {
-        val inputMethodRequests = currentInputMethodRequests ?: return
+        val inputMethodRequests = inputMethodSession ?: return
         if (!event.isConsumed) {
             inputMethodRequests.replaceInputMethodText(event)
             event.consume()
         }
     }
-
 }
 
-private class InputMethodRequestsImpl(
+private class InputMethodSession(
     private val component: PlatformComponent,
     private val state: TextEditorState,
     private val editText: (block: TextEditingScope.() -> Unit) -> Unit
@@ -183,8 +182,8 @@ private class InputMethodRequestsImpl(
     }
 
     fun replaceInputMethodText(event: InputMethodEvent) {
-        val committed = event.text?.toStringUntil(event.committedCharacterCount) ?: ""
-        val composing = event.text?.toStringFrom(event.committedCharacterCount) ?: ""
+        val committed = event.committedText
+        val composing = event.composingText
 
         editText {
             if (needToDeletePreviousChar && selection.min > 0 && composing.isEmpty()) {
@@ -197,25 +196,38 @@ private class InputMethodRequestsImpl(
             }
         }
     }
-
 }
 
-private fun AttributedCharacterIterator.toStringUntil(index: Int) = StringBuilder().apply {
-    var i = index
-    if (i > 0) {
-        var c: Char = setIndex(0)
-        while (i > 0) {
+/**
+ * The committed text specified by the event, or an empty string if none.
+ */
+internal val InputMethodEvent.committedText: String
+    get() = text.substringOrEmpty(0, committedCharacterCount)
+
+
+/**
+ * The composing text specified by the event, or an empty string if none.
+ */
+internal val InputMethodEvent.composingText: String
+    get() = text.substringOrEmpty(committedCharacterCount, null)
+
+
+/**
+ * Returns the substring between [start] (inclusive) and [end] (exclusive, or the end of the
+ * iterator, if `null`) of the given [AttributedCharacterIterator].
+ */
+private fun AttributedCharacterIterator?.substringOrEmpty(
+    start: Int,
+    end: Int? = null
+) : String {
+    if (this == null) return ""
+
+    return buildString {
+        index = start
+        var c: Char = current()
+        while ((c != CharacterIterator.DONE) && ((end == null) || (index < end))) {
             append(c)
             c = next()
-            i--
         }
-    }
-}
-
-private fun AttributedCharacterIterator.toStringFrom(index: Int) = StringBuilder().apply {
-    var c: Char = setIndex(index)
-    while (c != CharacterIterator.DONE) {
-        append(c)
-        c = next()
     }
 }
