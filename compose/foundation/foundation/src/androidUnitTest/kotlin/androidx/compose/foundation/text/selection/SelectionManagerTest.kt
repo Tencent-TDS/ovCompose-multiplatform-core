@@ -944,9 +944,12 @@ class SelectionManagerTest {
                     )
             )
         var selection: Selection? = fakeSelection
-        val lambda: (Selection?) -> Unit = { selection = it }
-        val spyLambda = spy(lambda)
-        selectionManager.onSelectionChange = spyLambda
+        var onSelectionChangeInvocationCount = 0
+        val onSelectionChangeLambda: (Selection?) -> Unit = { newSelection ->
+            selection = newSelection
+            onSelectionChangeInvocationCount++
+        }
+        selectionManager.onSelectionChange = onSelectionChangeLambda
         selectionManager.selection = fakeSelection
 
         selectionManager.onRelease()
@@ -954,7 +957,7 @@ class SelectionManagerTest {
         verify(selectionRegistrar).subselections = emptyLongObjectMap()
 
         assertThat(selection).isNull()
-        verify(spyLambda, times(1)).invoke(null)
+        assertThat(onSelectionChangeInvocationCount).isEqualTo(1)
         verify(hapticFeedback, times(1)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -976,9 +979,12 @@ class SelectionManagerTest {
                     )
             )
         var selection: Selection? = fakeSelection
-        val lambda: (Selection?) -> Unit = { selection = it }
-        val spyLambda = spy(lambda)
-        selectionManager.onSelectionChange = spyLambda
+        var onSelectionChangeInvocationCount = 0
+        val onSelectionChangeLambda: (Selection?) -> Unit = { newSelection ->
+            selection = newSelection
+            onSelectionChangeInvocationCount++
+        }
+        selectionManager.onSelectionChange = onSelectionChangeLambda
         selectionManager.selection = fakeSelection
 
         selectionRegistrar.subselections = longObjectMapOf(startSelectableId, fakeSelection)
@@ -986,7 +992,7 @@ class SelectionManagerTest {
 
         verify(selectionRegistrar).subselections = emptyLongObjectMap()
         assertThat(selection).isNull()
-        verify(spyLambda, times(1)).invoke(null)
+        assertThat(onSelectionChangeInvocationCount).isEqualTo(1)
         verify(hapticFeedback, times(1)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 

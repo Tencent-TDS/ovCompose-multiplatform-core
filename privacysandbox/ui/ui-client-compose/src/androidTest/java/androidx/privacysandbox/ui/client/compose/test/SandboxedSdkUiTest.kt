@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.privacysandbox.ui.client.test
+
+package androidx.privacysandbox.ui.client.compose.test
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -39,10 +40,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import androidx.privacysandbox.ui.client.test.SandboxedSdkViewTest.Companion.SHORTEST_TIME_BETWEEN_SIGNALS_MS
-import androidx.privacysandbox.ui.client.test.SandboxedSdkViewTest.Companion.TIMEOUT
-import androidx.privacysandbox.ui.client.test.SandboxedSdkViewTest.Companion.UI_INTENSIVE_TIMEOUT
-import androidx.privacysandbox.ui.client.view.SandboxedSdkUi
+import androidx.privacysandbox.ui.client.compose.SandboxedSdkUi
 import androidx.privacysandbox.ui.client.view.SandboxedSdkView
 import androidx.privacysandbox.ui.core.SandboxedUiAdapterSignalOptions
 import androidx.privacysandbox.ui.integration.testingutils.TestEventListener
@@ -96,17 +94,18 @@ class SandboxedSdkUiTest {
                 sandboxedSdkViewEventListener = eventListener
             )
         }
-        assertThat(eventListener.errorLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.errorLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(eventListener.error?.message).isEqualTo("Error in openSession()")
     }
 
     @Test
     fun addEventListenerTest() {
         // Initially no events are received when the session is not open.
-        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS))
+            .isFalse()
         // When session is open, the events are received
         addNodeToLayout()
-        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
     }
 
     @Test
@@ -154,16 +153,16 @@ class SandboxedSdkUiTest {
         // When session is opened, the provider should not receive a Z-order notification.
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession
-        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isFalse()
         providerUiOnTop = true
         composeTestRule.waitForIdle()
-        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isTrue()
         session?.zOrderChangedLatch = CountDownLatch(1)
         providerUiOnTop = false
         composeTestRule.waitForIdle()
-        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isFalse()
     }
 
@@ -174,7 +173,7 @@ class SandboxedSdkUiTest {
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession
         // The initial Z-order state is passed to the session, but notifyZOrderChanged is not called
-        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        assertThat(session?.zOrderChangedLatch?.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isFalse()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isFalse()
     }
 
@@ -186,11 +185,11 @@ class SandboxedSdkUiTest {
         providerUiOnTop = true
         composeTestRule.waitForIdle()
         val session = testSandboxedUiAdapter.testSession!!
-        assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        assertThat(session.zOrderChangedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isFalse()
         composeTestRule.activityRule.withActivity { testSandboxedUiAdapter.sendOnSessionOpened() }
         // After session has opened, the pending Z order changed made while loading is notified
         // to the session.
-        assertThat(session.zOrderChangedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(session.zOrderChangedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(testSandboxedUiAdapter.isZOrderOnTop).isTrue()
     }
 
@@ -203,13 +202,13 @@ class SandboxedSdkUiTest {
         uiDevice.performActionAndWait(
             { uiDevice.setOrientationLeft() },
             Until.newWindow(),
-            UI_INTENSIVE_TIMEOUT
+            UI_INTENSIVE_TIMEOUT_MS
         )
         testSandboxedUiAdapter.assertSessionNotClosed()
         uiDevice.performActionAndWait(
             { uiDevice.setOrientationNatural() },
             Until.newWindow(),
-            UI_INTENSIVE_TIMEOUT
+            UI_INTENSIVE_TIMEOUT_MS
         )
         testSandboxedUiAdapter.assertSessionNotClosed()
     }
@@ -267,7 +266,7 @@ class SandboxedSdkUiTest {
         addNodeToLayout()
         testSandboxedUiAdapter.assertSessionOpened()
         val session = testSandboxedUiAdapter.testSession!!
-        assertThat(session.sessionOpenedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(session.sessionOpenedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
         assertThat(session.supportedSignalOptions)
             .containsExactly(SandboxedUiAdapterSignalOptions.GEOMETRY)
     }
@@ -506,6 +505,9 @@ class SandboxedSdkUiTest {
         val sandboxedSdkViewUiInfo =
             session?.runAndRetrieveNextUiChange {
                 offset = 10.dp
+                Espresso.onView(instanceOf(SandboxedSdkView::class.java)).check { view, _ ->
+                    view.requestLayout()
+                }
                 composeTestRule.waitForIdle()
             }
         val containerWidth = sandboxedSdkViewUiInfo?.uiContainerWidth ?: 0
@@ -621,7 +623,7 @@ class SandboxedSdkUiTest {
         }
 
         // When session is open, the events are received
-        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
 
         attached = false
         composeTestRule.waitForIdle()
@@ -630,7 +632,7 @@ class SandboxedSdkUiTest {
         composeTestRule.waitForIdle()
 
         // When SandboxedSdkUi is re-attached event listener is added back
-        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
     }
 
     @Test
@@ -652,21 +654,23 @@ class SandboxedSdkUiTest {
         }
 
         // verify onUiDisplayed() is called
-        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.uiDisplayedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
 
         // detach SandboxedSdkUi from composition hierarchy of ReusableContentHost
         attached = false
         composeTestRule.waitForIdle()
 
         // verify onUiClosed() is not called
-        assertThat(eventListener.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isFalse()
+        assertThat(eventListener.sessionClosedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS))
+            .isFalse()
 
         // remove SandboxedSdkUi from composition hierarchy
         showContent = false
         composeTestRule.waitForIdle()
 
         // verify onUiClosed() is called
-        assertThat(eventListener.sessionClosedLatch.await(TIMEOUT, TimeUnit.MILLISECONDS)).isTrue()
+        assertThat(eventListener.sessionClosedLatch.await(TIMEOUT_MS, TimeUnit.MILLISECONDS))
+            .isTrue()
     }
 
     private fun addNodeToLayout() {
@@ -682,4 +686,11 @@ class SandboxedSdkUiTest {
 
     private fun Dp.toPx(displayMetrics: DisplayMetrics) =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, displayMetrics).roundToInt()
+
+    companion object {
+        const val TIMEOUT_MS = 1000.toLong()
+        // Longer timeout used for expensive operations like device rotation.
+        const val UI_INTENSIVE_TIMEOUT_MS = 2000.toLong()
+        const val SHORTEST_TIME_BETWEEN_SIGNALS_MS = 200
+    }
 }

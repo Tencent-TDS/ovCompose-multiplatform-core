@@ -59,6 +59,7 @@ object Names {
 
         object Annotation {
             val PackageName = Package(Runtime.PackageName, "annotation")
+            val FrequentlyChangingValue = Name(PackageName, "FrequentlyChangingValue")
             val RememberInComposition = Name(PackageName, "RememberInComposition")
         }
     }

@@ -63,41 +63,16 @@ class AppFunctionSymbolResolver(private val resolver: Resolver) {
     fun resolveAnnotatedAppFunctionSerializables(): List<AnnotatedAppFunctionSerializable> {
         return resolver
             .getSymbolsWithAnnotation(AppFunctionSerializableAnnotation.CLASS_NAME.canonicalName)
-            .mapNotNull { declaration ->
+            .map { declaration ->
                 if (declaration !is KSClassDeclaration) {
                     throw ProcessingException(
                         "Only classes can be annotated with @AppFunctionSerializable",
                         declaration
                     )
                 }
-                // TODO(b/405063847): Generate factory for generic serializable.
-                // Temporarily bypass the serializable that use type parameters until the
-                // factory is ready for generic type.
-                if (declaration.hasTypeParameter()) {
-                    return@mapNotNull null
-                }
                 AnnotatedAppFunctionSerializable(declaration).validate()
             }
             .toList()
-    }
-
-    // TODO(b/405063847): Remove this once the generic serializable factory is ready
-    private fun KSClassDeclaration.hasTypeParameter(): Boolean {
-        // Or if any of the parameter has type parameter.
-        return primaryConstructor?.parameters?.firstOrNull { valueParameter ->
-            val type = valueParameter.type.resolve()
-            val typeDeclaration =
-                type.declaration as? KSClassDeclaration ?: return@firstOrNull false
-            if (
-                typeDeclaration.annotations.findAnnotation(
-                    AppFunctionSerializableAnnotation.CLASS_NAME
-                ) != null && type.arguments.isNotEmpty()
-            ) {
-                return@firstOrNull true
-            } else {
-                return@firstOrNull false
-            }
-        } != null
     }
 
     /**

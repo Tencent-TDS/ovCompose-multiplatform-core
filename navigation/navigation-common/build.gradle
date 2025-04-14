@@ -90,8 +90,8 @@ androidXMultiplatform {
         androidMain {
             dependsOn(jvmCommonMain)
             dependencies {
-                api("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0-alpha07")
-                api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0-alpha07")
+                api(project(":lifecycle:lifecycle-runtime"))
+                api(project(":lifecycle:lifecycle-viewmodel"))
                 api(project(":savedstate:savedstate-ktx"))
                 implementation("androidx.core:core-ktx:1.1.0")
                 implementation("androidx.profileinstaller:profileinstaller:1.4.0")

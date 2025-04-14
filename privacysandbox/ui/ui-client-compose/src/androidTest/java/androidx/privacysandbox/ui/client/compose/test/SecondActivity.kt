@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,8 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.privacysandbox.ui.client.test
 
-import androidx.activity.ComponentActivity
+package androidx.privacysandbox.ui.client.compose.test
 
-class UiLibComposeActivity : ComponentActivity() {}
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+
+class SecondActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_second)
+    }
+}

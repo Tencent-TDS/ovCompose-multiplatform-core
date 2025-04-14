@@ -22,6 +22,7 @@ import android.content.Context
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.RectF
 import android.graphics.drawable.Icon
 import android.icu.text.MessageFormat
@@ -1169,6 +1170,54 @@ private constructor(
 
         internal constructor(wireFormat: ColorUserStyleSettingWireFormat) : super(wireFormat)
 
+        internal companion object {
+            private fun <T> bindIdToSetting(
+                function:
+                    (
+                        resources: Resources,
+                        parser: XmlResourceParser,
+                        idToSetting: Map<String, UserStyleSetting>
+                    ) -> T,
+                idToSetting: Map<String, UserStyleSetting>
+            ): (resources: Resources, parser: XmlResourceParser) -> T {
+                return { resources: Resources, parser: XmlResourceParser ->
+                    function(resources, parser, idToSetting)
+                }
+            }
+
+            @SuppressLint("ResourceType")
+            @Suppress("UNCHECKED_CAST")
+            fun inflate(
+                resources: Resources,
+                parser: XmlResourceParser,
+                idToSetting: Map<String, UserStyleSetting>
+            ): ColorUserStyleSetting {
+                val params =
+                    createBaseWithParent(
+                        resources,
+                        parser,
+                        createParent(
+                            resources,
+                            parser,
+                            "ColorUserStyleSetting",
+                            bindIdToSetting(::inflate, idToSetting)
+                        ),
+                        inflateDefault = true,
+                        "ColorOption" to bindIdToSetting(ColorOption::inflate, idToSetting)
+                    )
+                return ColorUserStyleSetting(
+                    params.id,
+                    params.displayName,
+                    params.description,
+                    params.iconProvider,
+                    params.watchFaceEditorData,
+                    params.options as List<ColorOption>,
+                    params.affectedWatchFaceLayers,
+                    params.defaultOptionIndex!!
+                )
+            }
+        }
+
         /**
          * Represents choice within a [ColorUserStyleSetting], these must be enumerated up front.
          */
@@ -1348,6 +1397,44 @@ private constructor(
                     dos.write(color)
                 }
                 watchFaceEditorData?.write(dos)
+            }
+
+            internal companion object {
+                @SuppressLint("ResourceType")
+                fun inflate(
+                    resources: Resources,
+                    parser: XmlResourceParser,
+                    idToSetting: Map<String, UserStyleSetting>
+                ): ColorOption {
+                    val id = getStringRefAttribute(resources, parser, "id")
+                    require(id != null) { "ColorOption must have an id" }
+                    val displayName =
+                        createDisplayText(
+                            resources,
+                            parser,
+                            "displayName",
+                            indexedResourceNamesSupported = true
+                        )
+                    val screenReaderName =
+                        createDisplayText(
+                            resources,
+                            parser,
+                            "nameForScreenReaders",
+                            defaultValue = displayName,
+                            indexedResourceNamesSupported = true
+                        )
+
+                    val colors = getStringRefAttribute(resources, parser, "colors")
+                    require(colors != null) { "ColorOption must have colors" }
+
+                    return ColorOption(
+                        Id(id),
+                        displayName,
+                        screenReaderName,
+                        colors.split(",").map { Color.parseColor(it) },
+                        null
+                    )
+                }
             }
         }
     }

@@ -26,7 +26,6 @@ import androidx.health.connect.client.request.ReadMedicalResourcesInitialRequest
 import androidx.health.connect.client.request.ReadMedicalResourcesRequest.Companion.DEFAULT_PAGE_SIZE
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertThrows
 import org.junit.Assume
@@ -48,57 +47,65 @@ class ReadMedicalResourcesInitialRequestTest {
 
     @Test
     fun equalsTests() {
-        EqualsTester()
-            .addEqualityGroup(
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_CONDITIONS,
-                    MEDICAL_DATA_SOURCE_IDS_1,
-                    DEFAULT_PAGE_SIZE
-                ),
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_CONDITIONS,
-                    MEDICAL_DATA_SOURCE_IDS_1,
-                    DEFAULT_PAGE_SIZE
-                ),
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_CONDITIONS,
-                    MEDICAL_DATA_SOURCE_IDS_1
-                    // page size is not specified, DEFAULT_PAGE_SIZE should be used, hence it should
-                    // be equal to others in this group
-                )
+        val request1 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_CONDITIONS,
+                MEDICAL_DATA_SOURCE_IDS_1,
+                DEFAULT_PAGE_SIZE
             )
-            .addEqualityGroup(
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_VITAL_SIGNS, // different type
-                    MEDICAL_DATA_SOURCE_IDS_1,
-                    DEFAULT_PAGE_SIZE
-                )
+        val request2 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_CONDITIONS,
+                MEDICAL_DATA_SOURCE_IDS_1,
+                DEFAULT_PAGE_SIZE
             )
-            .addEqualityGroup(
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_CONDITIONS,
-                    MEDICAL_DATA_SOURCE_IDS_2, // different data source
-                    DEFAULT_PAGE_SIZE
-                )
+        val request3 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_CONDITIONS,
+                MEDICAL_DATA_SOURCE_IDS_1
+                // page size is not specified, DEFAULT_PAGE_SIZE should be used, hence it should
+                // be equal to others in this group
             )
-            .addEqualityGroup(
-                ReadMedicalResourcesInitialRequest(
-                    MEDICAL_RESOURCE_TYPE_CONDITIONS,
-                    MEDICAL_DATA_SOURCE_IDS_1,
-                    DEFAULT_PAGE_SIZE + 1 // different page size
-                )
+        val request4 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_VITAL_SIGNS, // different type
+                MEDICAL_DATA_SOURCE_IDS_1,
+                DEFAULT_PAGE_SIZE
             )
-            .testEquals()
+        val request5 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_CONDITIONS,
+                MEDICAL_DATA_SOURCE_IDS_2, // different data source
+                DEFAULT_PAGE_SIZE
+            )
+        val request6 =
+            ReadMedicalResourcesInitialRequest(
+                MEDICAL_RESOURCE_TYPE_CONDITIONS,
+                MEDICAL_DATA_SOURCE_IDS_1,
+                DEFAULT_PAGE_SIZE + 1 // different page size
+            )
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1).isEqualTo(request3)
+        assertThat(request2).isEqualTo(request3)
+
+        assertThat(request1).isNotEqualTo(request4)
+        assertThat(request2).isNotEqualTo(request4)
+        assertThat(request3).isNotEqualTo(request4)
+
+        assertThat(request1).isNotEqualTo(request5)
+        assertThat(request2).isNotEqualTo(request5)
+        assertThat(request3).isNotEqualTo(request5)
+
+        assertThat(request1).isNotEqualTo(request6)
+        assertThat(request2).isNotEqualTo(request6)
+        assertThat(request3).isNotEqualTo(request6)
     }
 
     @Test
     fun invalidMedicalResourceType_throwsException() {
         assertThrows(IllegalArgumentException::class.java) {
-            ReadMedicalResourcesInitialRequest(
-                -1, // Invalid medical resource type
-                MEDICAL_DATA_SOURCE_IDS_1,
-                DEFAULT_PAGE_SIZE
-            )
+            ReadMedicalResourcesInitialRequest(-1, MEDICAL_DATA_SOURCE_IDS_1, DEFAULT_PAGE_SIZE)
         }
     }
 

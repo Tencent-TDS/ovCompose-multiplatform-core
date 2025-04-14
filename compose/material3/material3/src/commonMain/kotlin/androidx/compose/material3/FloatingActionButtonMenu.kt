@@ -19,8 +19,10 @@ package androidx.compose.material3
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -172,7 +174,17 @@ private fun FloatingActionButtonMenuItemColumn(
     var staggerAnim by remember { mutableStateOf<Animatable<Int, AnimationVector1D>?>(null) }
     val coroutineScope = rememberCoroutineScope()
     // TODO Load the motionScheme tokens from the component tokens file
-    val staggerAnimSpec: FiniteAnimationSpec<Int> = MotionSchemeKeyTokens.FastEffects.value()
+    var staggerAnimSpec: FiniteAnimationSpec<Int> = MotionSchemeKeyTokens.SlowEffects.value()
+    if (staggerAnimSpec is SpringSpec<Int>) {
+        // Apply a small visibilityThreshold to the provided SpringSpec to avoid a delay in the
+        // appearance of the last item when the list is populated.
+        staggerAnimSpec =
+            spring(
+                stiffness = staggerAnimSpec.stiffness,
+                dampingRatio = staggerAnimSpec.dampingRatio,
+                visibilityThreshold = 1
+            )
+    }
     Layout(
         modifier =
             Modifier.clipToBounds()

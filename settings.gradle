@@ -949,6 +949,7 @@ includeProject(":privacysandbox:ui:integration-tests:testingutils", [BuildType.M
 includeProject(":privacysandbox:ui:integration-tests:testsdkprovider", [BuildType.MAIN])
 includeProject(":privacysandbox:ui:integration-tests:testsdkproviderwrapper", [BuildType.MAIN])
 includeProject(":privacysandbox:ui:ui-client", [BuildType.MAIN])
+includeProject(":privacysandbox:ui:ui-client-compose", [BuildType.COMPOSE])
 includeProject(":privacysandbox:ui:ui-core", [BuildType.MAIN])
 includeProject(":privacysandbox:ui:ui-provider", [BuildType.MAIN])
 includeProject(":privacysandbox:ui:ui-tests", [BuildType.MAIN])

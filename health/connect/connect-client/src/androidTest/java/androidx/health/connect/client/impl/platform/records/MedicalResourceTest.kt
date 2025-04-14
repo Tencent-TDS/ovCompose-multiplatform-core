@@ -27,7 +27,6 @@ import androidx.health.connect.client.records.MedicalResource.Companion.MEDICAL_
 import androidx.health.connect.client.records.MedicalResourceId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -48,33 +47,33 @@ class MedicalResourceTest {
 
     @Test
     fun validMedicalResource_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                MedicalResource(
-                    MEDICAL_RESOURCE_TYPE_MEDICATIONS,
-                    MEDICAL_RESOURCE_ID,
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_VERSION_4_0_1,
-                    FHIR_RESOURCE_EMPTY
-                ),
-                MedicalResource(
-                    MEDICAL_RESOURCE_TYPE_MEDICATIONS,
-                    MEDICAL_RESOURCE_ID,
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_VERSION_4_0_1,
-                    FHIR_RESOURCE_EMPTY
-                )
+        val medicalResource1 =
+            MedicalResource(
+                MEDICAL_RESOURCE_TYPE_MEDICATIONS,
+                MEDICAL_RESOURCE_ID,
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_VERSION_4_0_1,
+                FHIR_RESOURCE_EMPTY
             )
-            .addEqualityGroup(
-                MedicalResource(
-                    MEDICAL_RESOURCE_TYPE_MEDICATIONS,
-                    MEDICAL_RESOURCE_ID,
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FhirVersion.parseFhirVersion("4.3.0"),
-                    FHIR_RESOURCE_EMPTY
-                )
+        val medicalResource2 =
+            MedicalResource(
+                MEDICAL_RESOURCE_TYPE_MEDICATIONS,
+                MEDICAL_RESOURCE_ID,
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_VERSION_4_0_1,
+                FHIR_RESOURCE_EMPTY
             )
-            .testEquals()
+        val medicalResource3 =
+            MedicalResource(
+                MEDICAL_RESOURCE_TYPE_MEDICATIONS,
+                MEDICAL_RESOURCE_ID,
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FhirVersion.parseFhirVersion("4.3.0"),
+                FHIR_RESOURCE_EMPTY
+            )
+
+        assertThat(medicalResource1).isEqualTo(medicalResource2)
+        assertThat(medicalResource1).isNotEqualTo(medicalResource3)
     }
 
     @Test

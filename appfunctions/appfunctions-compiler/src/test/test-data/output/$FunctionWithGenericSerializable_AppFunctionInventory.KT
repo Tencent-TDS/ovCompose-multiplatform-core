@@ -94,6 +94,30 @@ public class `$FunctionWithGenericSerializable_AppFunctionInventory` : AppFuncti
             isNullable = true
         )
 
+    private val COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE:
+        AppFunctionPrimitiveTypeMetadata = AppFunctionPrimitiveTypeMetadata(
+            type = 8,
+            isNullable = true
+        )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP:
+        Map<String, AppFunctionDataTypeMetadata> = mapOf(
+      "value" to COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE,
+    )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST:
+        List<String> = listOf(
+      "value",
+    )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE:
+        AppFunctionObjectTypeMetadata = AppFunctionObjectTypeMetadata(
+            properties = COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP,
+            required = COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST,
+            qualifiedName = "com.testdata.SetField<kotlin.String?>",
+            isNullable = true
+        )
+
     private val COM_TESTDATA_ATTACHMENT_OBJECT_DATA_TYPE_PROPERTIES_MAP_URI:
         AppFunctionPrimitiveTypeMetadata = AppFunctionPrimitiveTypeMetadata(
             type = 8,
@@ -148,9 +172,45 @@ public class `$FunctionWithGenericSerializable_AppFunctionInventory` : AppFuncti
             isNullable = true
         )
 
+    private val COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE_REFERENCE_ITEM_TYPE:
+        AppFunctionReferenceTypeMetadata = AppFunctionReferenceTypeMetadata(
+            referenceDataType = "com.testdata.Attachment",
+            isNullable = false
+        )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE:
+        AppFunctionArrayTypeMetadata = AppFunctionArrayTypeMetadata(
+            itemType = COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE_REFERENCE_ITEM_TYPE,
+            isNullable = true
+        )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP:
+        Map<String, AppFunctionDataTypeMetadata> = mapOf(
+      "value" to COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP_VALUE,
+    )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST:
+        List<String> = listOf(
+      "value",
+    )
+
+    private val COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE:
+        AppFunctionObjectTypeMetadata = AppFunctionObjectTypeMetadata(
+            properties = COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_PROPERTIES_MAP,
+            required = COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST,
+            qualifiedName = "com.testdata.SetField<kotlin.collections.List<com.testdata.Attachment>?>",
+            isNullable = true
+        )
+
     private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_TITLE:
         AppFunctionReferenceTypeMetadata = AppFunctionReferenceTypeMetadata(
             referenceDataType = "com.testdata.SetField<kotlin.String>",
+            isNullable = true
+        )
+
+    private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_NULLABLETITLE:
+        AppFunctionReferenceTypeMetadata = AppFunctionReferenceTypeMetadata(
+            referenceDataType = "com.testdata.SetField<kotlin.String?>",
             isNullable = true
         )
 
@@ -160,16 +220,26 @@ public class `$FunctionWithGenericSerializable_AppFunctionInventory` : AppFuncti
             isNullable = true
         )
 
+    private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_NULLABLEATTACHMENTS:
+        AppFunctionReferenceTypeMetadata = AppFunctionReferenceTypeMetadata(
+            referenceDataType = "com.testdata.SetField<kotlin.collections.List<com.testdata.Attachment>?>",
+            isNullable = true
+        )
+
     private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP:
         Map<String, AppFunctionDataTypeMetadata> = mapOf(
       "title" to COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_TITLE,
+      "nullableTitle" to COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_NULLABLETITLE,
       "attachments" to COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_ATTACHMENTS,
+      "nullableAttachments" to COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_PROPERTIES_MAP_NULLABLEATTACHMENTS,
     )
 
     private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE_REQUIRED_PROPERTIES_LIST:
         List<String> = listOf(
       "title",
+      "nullableTitle",
       "attachments",
+      "nullableAttachments",
     )
 
     private val COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE: AppFunctionObjectTypeMetadata =
@@ -207,8 +277,10 @@ public class `$FunctionWithGenericSerializable_AppFunctionInventory` : AppFuncti
     private val COMPONENTS_METADATA_DATA_TYPES_MAP: Map<String, AppFunctionDataTypeMetadata> =
         mapOf(
       "com.testdata.SetField<kotlin.String>" to COM_TESTDATA_SETFIELD_KOTLIN_STRING__OBJECT_DATA_TYPE,
+      "com.testdata.SetField<kotlin.String?>" to COM_TESTDATA_SETFIELD_KOTLIN_STRING_NULLABLE__OBJECT_DATA_TYPE,
       "com.testdata.Attachment" to COM_TESTDATA_ATTACHMENT_OBJECT_DATA_TYPE,
       "com.testdata.SetField<kotlin.collections.List<com.testdata.Attachment>>" to COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT___OBJECT_DATA_TYPE,
+      "com.testdata.SetField<kotlin.collections.List<com.testdata.Attachment>?>" to COM_TESTDATA_SETFIELD_KOTLIN_COLLECTIONS_LIST_COM_TESTDATA_ATTACHMENT__NULLABLE__OBJECT_DATA_TYPE,
       "com.testdata.UpdateNoteParams" to COM_TESTDATA_UPDATENOTEPARAMS_OBJECT_DATA_TYPE,
       "com.testdata.SetField<kotlin.Int>" to COM_TESTDATA_SETFIELD_KOTLIN_INT__OBJECT_DATA_TYPE,
       )

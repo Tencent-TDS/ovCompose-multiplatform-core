@@ -1174,6 +1174,9 @@ internal constructor(
             value: T,
             valueClass: Class<T>
         ): Builder {
+            if (value == null) {
+                return this
+            }
             return when (valueClass) {
                 Int::class.java -> setInt(key, value as Int)
                 Long::class.java -> setLong(key, value as Long)
@@ -1210,6 +1213,9 @@ internal constructor(
             value: T,
             itemValueClass: Class<I>
         ): Builder {
+            if (value == null) {
+                return this
+            }
             @Suppress("UNCHECKED_CAST")
             return when (itemValueClass) {
                 String::class.java -> setStringList(key, value as List<String>)

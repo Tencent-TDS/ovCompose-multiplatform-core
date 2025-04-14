@@ -40,6 +40,7 @@ import androidx.annotation.VisibleForTesting;
 import androidx.collection.ArrayMap;
 import androidx.collection.ArraySet;
 import androidx.vectordrawable.graphics.drawable.SeekableAnimatedVectorDrawable;
+import androidx.wear.protolayout.expression.DynamicBuilders;
 import androidx.wear.protolayout.expression.PlatformDataKey;
 import androidx.wear.protolayout.expression.PlatformEventSources;
 import androidx.wear.protolayout.expression.ProtoLayoutExperimental;
@@ -108,8 +109,10 @@ public class ProtoLayoutDynamicDataPipeline {
     final @NonNull QuotaManager mAnimationQuotaManager;
     private final @NonNull DynamicTypeEvaluator mEvaluator;
     private final @NonNull PlatformTimeUpdateNotifierImpl mTimeNotifier;
-    private final @NonNull DynamicBoolPlatformDataProvider mVisibilityStatusDataProvider;
-    private final @NonNull DynamicBoolPlatformDataProvider mLayoutUpdatePendingDataProvider;
+    private final @NonNull DynamicTypePlatformDataProvider<Boolean, DynamicBuilders.DynamicBool>
+            mVisibilityStatusDataProvider;
+    private final @NonNull DynamicTypePlatformDataProvider<Boolean, DynamicBuilders.DynamicBool>
+            mLayoutUpdatePendingDataProvider;
 
     /** Creates a {@link ProtoLayoutDynamicDataPipeline} without animation support. */
     @RestrictTo(Scope.LIBRARY_GROUP)
@@ -168,15 +171,15 @@ public class ProtoLayoutDynamicDataPipeline {
         // Add additional provider for visibility status. It's not needed to come from external
         // callers, as this pipeline knows visibility status
         mVisibilityStatusDataProvider =
-                new DynamicBoolPlatformDataProvider(
+                DynamicTypePlatformDataProvider.forDynamicBool(
                         PlatformEventSources.Keys.LAYOUT_VISIBILITY, mFullyVisible);
         evaluatorConfigBuilder.addPlatformDataProvider(
                 mVisibilityStatusDataProvider,
                 ImmutableSet.of(PlatformEventSources.Keys.LAYOUT_VISIBILITY));
 
-        // Add an additional provider for Platform loading status.
+        // Add an additional provider for platform layout update state.
         mLayoutUpdatePendingDataProvider =
-                new DynamicBoolPlatformDataProvider(
+                DynamicTypePlatformDataProvider.forDynamicBool(
                         PlatformEventSources.Keys.LAYOUT_UPDATE_PENDING, /* initialValue= */ false);
         evaluatorConfigBuilder.addPlatformDataProvider(
                 mLayoutUpdatePendingDataProvider,

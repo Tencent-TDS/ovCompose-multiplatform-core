@@ -64,7 +64,6 @@ import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.spy
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -78,8 +77,13 @@ class TextFieldSelectionManagerTest {
     private val offsetMapping = OffsetMapping.Identity
     private val maxLines = 2
     private var value = TextFieldValue(text)
-    private val lambda: (TextFieldValue) -> Unit = { value = it }
-    private val spyLambda = spy(lambda)
+
+    private var onValueChangeInvocationCount = 0
+    private val onValueChangeLambda: (TextFieldValue) -> Unit = { newValue ->
+        onValueChangeInvocationCount++
+        value = newValue
+    }
+
     private lateinit var state: LegacyTextFieldState
 
     private val dragBeginPosition = Offset.Zero
@@ -102,13 +106,14 @@ class TextFieldSelectionManagerTest {
     fun setup() {
         manager = TextFieldSelectionManager()
         manager.offsetMapping = offsetMapping
-        manager.onValueChange = lambda
+        manager.onValueChange = onValueChangeLambda
         manager.value = value
         manager.clipboard = clipboard
         manager.textToolbar = textToolbar
         manager.hapticFeedBack = hapticFeedback
         manager.focusRequester = focusRequester
         manager.coroutineScope = null
+        onValueChangeInvocationCount = 0
 
         whenever(layoutResult.layoutInput)
             .thenReturn(
@@ -171,7 +176,7 @@ class TextFieldSelectionManagerTest {
     @Test
     fun TextFieldSelectionManager_init() {
         assertThat(manager.offsetMapping).isEqualTo(offsetMapping)
-        assertThat(manager.onValueChange).isEqualTo(lambda)
+        assertThat(manager.onValueChange).isEqualTo(onValueChangeLambda)
         assertThat(manager.state).isEqualTo(state)
         assertThat(manager.value).isEqualTo(value)
     }
@@ -243,7 +248,7 @@ class TextFieldSelectionManagerTest {
 
         assertThat(manager.draggingHandle).isNotNull()
         assertThat(state.showFloatingToolbar).isFalse()
-        verify(spyLambda, times(0)).invoke(any())
+        assertThat(onValueChangeInvocationCount).isEqualTo(0)
         verify(hapticFeedback, times(0)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -253,7 +258,7 @@ class TextFieldSelectionManagerTest {
 
         assertThat(manager.draggingHandle).isNotNull()
         assertThat(state.showFloatingToolbar).isFalse()
-        verify(spyLambda, times(0)).invoke(any())
+        assertThat(onValueChangeInvocationCount).isEqualTo(0)
         verify(hapticFeedback, times(0)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -299,7 +304,7 @@ class TextFieldSelectionManagerTest {
 
         assertThat(manager.draggingHandle).isNotNull()
         assertThat(state.showFloatingToolbar).isFalse()
-        verify(spyLambda, times(0)).invoke(any())
+        assertThat(onValueChangeInvocationCount).isEqualTo(0)
         verify(hapticFeedback, times(0)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -430,7 +435,7 @@ class TextFieldSelectionManagerTest {
 
         manager.paste()
 
-        verify(spyLambda, times(0)).invoke(any())
+        assertThat(onValueChangeInvocationCount).isEqualTo(0)
     }
 
     @Test
@@ -439,7 +444,7 @@ class TextFieldSelectionManagerTest {
 
         manager.paste()
 
-        verify(spyLambda, times(0)).invoke(any())
+        assertThat(onValueChangeInvocationCount).isEqualTo(0)
     }
 
     @Test

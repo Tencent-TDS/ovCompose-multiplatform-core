@@ -275,4 +275,18 @@ class AppFunctionSerializableProcessorTest {
             goldenFileName = "${'$'}SetFieldFactory.KT"
         )
     }
+
+    @Test
+    fun testProcessor_genericSerializableFieldFactory_success() {
+        val report =
+            compilationTestHelper.compileAll(
+                sourceFileNames = listOf("FunctionWithGenericSerializable.KT")
+            )
+
+        compilationTestHelper.assertSuccessWithSourceContent(
+            report = report,
+            expectGeneratedSourceFileName = "${'$'}UpdateNoteParamsFactory.kt",
+            goldenFileName = "${'$'}UpdateNoteParamsFactory.KT"
+        )
+    }
 }

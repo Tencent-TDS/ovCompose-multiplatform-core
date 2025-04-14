@@ -41,19 +41,20 @@
             android:layout_marginStart="16dp"
             android:text="resize"
             android:textAllCaps="false" />
-        <Button
-            android:id="@+id/resize_sdk_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:text="resize from sdk"
-            android:textAllCaps="false" />
+
         <Button
             android:id="@+id/set_padding_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:text="padding"
+            android:textAllCaps="false" />
+        <Button
+            android:id="@+id/set_alpha_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="alpha"
             android:textAllCaps="false" />
     </LinearLayout>
 </androidx.appcompat.widget.LinearLayoutCompat>

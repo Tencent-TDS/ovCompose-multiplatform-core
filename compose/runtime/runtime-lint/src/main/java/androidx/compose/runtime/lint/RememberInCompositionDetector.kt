@@ -18,6 +18,7 @@
 
 package androidx.compose.runtime.lint
 
+import androidx.compose.lint.Name
 import androidx.compose.lint.Names
 import androidx.compose.lint.isNotRemembered
 import com.android.tools.lint.client.api.UElementHandler
@@ -56,22 +57,12 @@ class RememberInCompositionDetector : Detector(), SourceCodeScanner {
         return object : UElementHandler() {
             /** Visit function calls / constructor invocations */
             override fun visitCallExpression(node: UCallExpression) {
-                val resolved = node.resolve() ?: return
-                // If this is an overridden method, check if any of the super methods are annotated
-                val methodsToCheck =
-                    if (context.evaluator.isOverride(resolved, true)) {
-                        resolved.findSuperMethods() + resolved
-                    } else {
-                        arrayOf(resolved)
-                    }
                 val rememberInComposition =
-                    methodsToCheck.any { method ->
-                        method.annotations.any {
-                            it.hasQualifiedName(
-                                Names.Runtime.Annotation.RememberInComposition.javaFqn
-                            )
-                        }
-                    }
+                    methodOrSuperMethodsHaveAnnotation(
+                        context,
+                        node,
+                        Names.Runtime.Annotation.RememberInComposition
+                    )
                 if (rememberInComposition && node.isNotRemembered()) {
                     report(node, context)
                 }
@@ -79,43 +70,11 @@ class RememberInCompositionDetector : Detector(), SourceCodeScanner {
 
             /** Visit variable name references to see if we have a getter */
             override fun visitSimpleNameReferenceExpression(node: USimpleNameReferenceExpression) {
-                val source = node.sourcePsi as? KtElement ?: return
-                var rememberInComposition = false
-                // Need to use analysis APIs because of b/381898394
-                analyze(source) {
-                    (source.resolveCall()?.singleVariableAccessCall()
-                            as? KtSimpleVariableAccessCall)
-                        ?.let { variableAccessCall ->
-                            val propertySymbol =
-                                variableAccessCall.symbol as? KtPropertySymbol ?: return
-                            val getter =
-                                when (variableAccessCall.simpleAccess) {
-                                    is KtSimpleVariableAccess.Read -> propertySymbol.getter
-                                    // We don't track property setters
-                                    is KtSimpleVariableAccess.Write -> return
-                                }
-
-                            if (getter != null) {
-                                // TODO: b/381406389 this should use
-                                //  getter.getAllOverriddenSymbols()
-                                //  to check intermediate super classes as well, but this isn't
-                                //  currently handled by Lint's bytecode remapping.
-                                // Check if any super symbol is annotated as well
-                                val symbolsToCheck = listOf(getter.unwrapFakeOverrides, getter)
-                                symbolsToCheck.forEach { symbol ->
-                                    if (
-                                        symbol.annotationsList.annotationInfos.any {
-                                            it.classId?.asFqNameString() ==
-                                                Names.Runtime.Annotation.RememberInComposition
-                                                    .javaFqn
-                                        }
-                                    ) {
-                                        rememberInComposition = true
-                                    }
-                                }
-                            }
-                        }
-                }
+                val rememberInComposition =
+                    getterOrSuperDeclarationsHaveAnnotation(
+                        node,
+                        Names.Runtime.Annotation.RememberInComposition
+                    )
                 if (rememberInComposition && node.isNotRemembered()) {
                     report(node, context)
                 }
@@ -189,4 +148,70 @@ class RememberInCompositionDetector : Detector(), SourceCodeScanner {
                     Implementation(RememberInCompositionDetector::class.java, Scope.EMPTY),
             )
     }
+}
+
+/**
+ * @return true if [node] references a constructor or a method, and that constructor or method or
+ *   any of its super declarations (if a method) are annotated with [annotationName]
+ */
+internal fun methodOrSuperMethodsHaveAnnotation(
+    context: JavaContext,
+    node: UCallExpression,
+    annotationName: Name
+): Boolean {
+    val resolved = node.resolve() ?: return false
+    // If this is an overridden method, check if any of the super methods are annotated
+    val methodsToCheck =
+        if (context.evaluator.isOverride(resolved, true)) {
+            resolved.findSuperMethods() + resolved
+        } else {
+            arrayOf(resolved)
+        }
+    return methodsToCheck.any { method ->
+        method.annotations.any { it.hasQualifiedName(annotationName.javaFqn) }
+    }
+}
+
+/**
+ * @return true if [node] references a getter, and that getter or any of its super declarations are
+ *   annotated with [annotationName]
+ */
+internal fun getterOrSuperDeclarationsHaveAnnotation(
+    node: USimpleNameReferenceExpression,
+    annotationName: Name
+): Boolean {
+    val source = node.sourcePsi as? KtElement ?: return false
+    var annotated = false
+    // Need to use analysis APIs because of b/381898394
+    analyze(source) {
+        (source.resolveCall()?.singleVariableAccessCall() as? KtSimpleVariableAccessCall)?.let {
+            variableAccessCall ->
+            val propertySymbol = variableAccessCall.symbol as? KtPropertySymbol ?: return false
+            val getter =
+                when (variableAccessCall.simpleAccess) {
+                    is KtSimpleVariableAccess.Read -> propertySymbol.getter
+                    // We don't track property setters
+                    is KtSimpleVariableAccess.Write -> return false
+                }
+
+            if (getter != null) {
+                // TODO: b/381406389 this should use
+                //  getter.getAllOverriddenSymbols()
+                //  to check intermediate super classes as well, but this isn't
+                //  currently handled by Lint's bytecode remapping.
+                // Check if any super symbol is annotated as well
+                val symbolsToCheck = listOf(getter.unwrapFakeOverrides, getter)
+                symbolsToCheck.forEach { symbol ->
+                    if (
+                        symbol.annotationsList.annotationInfos.any {
+                            it.classId?.asFqNameString() == annotationName.javaFqn
+                        }
+                    ) {
+                        annotated = true
+                    }
+                }
+            }
+        }
+    }
+    return annotated
 }

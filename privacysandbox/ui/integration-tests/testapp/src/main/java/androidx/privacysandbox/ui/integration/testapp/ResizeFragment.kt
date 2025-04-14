@@ -32,13 +32,14 @@ import androidx.privacysandbox.ui.integration.sdkproviderutils.SdkApiConstants.C
 import androidx.privacysandbox.ui.integration.testapp.util.AdHolder
 import kotlin.math.max
 
+// TODO(b/328046827): Add Resize from SDK CUJ
 class ResizeFragment : BaseFragment() {
 
     private lateinit var resizableAdHolder: AdHolder
 
     private lateinit var resizeButton: Button
-    private lateinit var resizeFromSdkButton: Button
     private lateinit var setPaddingButton: Button
+    private lateinit var alphaButton: Button
     private lateinit var inflatedView: View
 
     override fun getSandboxedSdkViews(): List<SandboxedSdkView> {
@@ -80,10 +81,11 @@ class ResizeFragment : BaseFragment() {
                 adViewBackgroundColor = Color.parseColor(AD_VIEW_BACKGROUND_COLOR)
             }
         resizeButton = inflatedView.findViewById(R.id.resize_button)
-        resizeFromSdkButton = inflatedView.findViewById(R.id.resize_sdk_button)
         setPaddingButton = inflatedView.findViewById(R.id.set_padding_button)
+        alphaButton = inflatedView.findViewById(R.id.set_alpha_button)
         initResizeButton()
         initSetPaddingButton()
+        initAlphaButton()
 
         loadAd(
             resizableAdHolder,
@@ -94,6 +96,13 @@ class ResizeFragment : BaseFragment() {
             true
         )
         return inflatedView
+    }
+
+    private fun initAlphaButton() {
+        alphaButton.setOnClickListener {
+            val alpha = 1f / (1..10).random().toFloat()
+            resizableAdHolder.currentAdView.alpha = alpha
+        }
     }
 
     private fun initResizeButton() {

@@ -24,7 +24,6 @@ import androidx.health.connect.client.records.FhirVersion
 import androidx.health.connect.client.request.UpsertMedicalResourceRequest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -45,27 +44,28 @@ class UpsertMedicalResourceRequestTest {
 
     @Test
     fun equalsTests() {
-        EqualsTester()
-            .addEqualityGroup(
-                UpsertMedicalResourceRequest(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_VERSION_4_0_1,
-                    DATA_JSON
-                ),
-                UpsertMedicalResourceRequest(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_VERSION_4_0_1,
-                    DATA_JSON
-                ),
+        val request1 =
+            UpsertMedicalResourceRequest(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_VERSION_4_0_1,
+                DATA_JSON
             )
-            .addEqualityGroup(
-                UpsertMedicalResourceRequest(
-                    MEDICAL_DATA_SOURCE_ID_STRING,
-                    FHIR_VERSION_4_3_0,
-                    DATA_JSON
-                ),
+        val request2 =
+            UpsertMedicalResourceRequest(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_VERSION_4_0_1,
+                DATA_JSON
             )
-            .testEquals()
+        val request3 =
+            UpsertMedicalResourceRequest(
+                MEDICAL_DATA_SOURCE_ID_STRING,
+                FHIR_VERSION_4_3_0,
+                DATA_JSON
+            )
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1).isNotEqualTo(request3)
+        assertThat(request2).isNotEqualTo(request3)
     }
 
     @Test

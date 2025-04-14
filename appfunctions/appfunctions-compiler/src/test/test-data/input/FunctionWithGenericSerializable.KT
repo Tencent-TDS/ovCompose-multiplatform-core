@@ -13,7 +13,9 @@ data class Attachment(val uri: String)
 @AppFunctionSerializable
 data class UpdateNoteParams(
     val title: SetField<String>? = null,
+    val nullableTitle: SetField<String?>? = null,
     val attachments: SetField<List<Attachment>>? = null,
+    val nullableAttachments: SetField<List<Attachment>?>? = null,
 )
 
 class FunctionWithGenericSerializable {

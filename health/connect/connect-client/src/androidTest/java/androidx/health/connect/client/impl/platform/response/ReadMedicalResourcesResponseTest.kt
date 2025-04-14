@@ -26,7 +26,6 @@ import androidx.health.connect.client.records.MedicalResourceId
 import androidx.health.connect.client.response.ReadMedicalResourcesResponse
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -47,40 +46,32 @@ class ReadMedicalResourcesResponseTest {
     @Test
     fun equalsTests() {
         val medicalResources = listOf(MEDICAL_RESOURCE)
-        EqualsTester()
-            .addEqualityGroup(
-                ReadMedicalResourcesResponse(
-                    listOf(MEDICAL_RESOURCE),
-                    NEXT_PAGE_TOKEN,
-                    REMAINING_COUNT
-                ),
-                ReadMedicalResourcesResponse(
-                    listOf(MEDICAL_RESOURCE),
-                    NEXT_PAGE_TOKEN,
-                    REMAINING_COUNT
-                ),
+        val response1 =
+            ReadMedicalResourcesResponse(listOf(MEDICAL_RESOURCE), NEXT_PAGE_TOKEN, REMAINING_COUNT)
+        val response2 =
+            ReadMedicalResourcesResponse(listOf(MEDICAL_RESOURCE), NEXT_PAGE_TOKEN, REMAINING_COUNT)
+        val response3 =
+            ReadMedicalResourcesResponse(
+                listOf(MEDICAL_RESOURCE, MEDICAL_RESOURCE),
+                NEXT_PAGE_TOKEN,
+                REMAINING_COUNT
             )
-            .addEqualityGroup(
-                // different MedicalResource list
-                ReadMedicalResourcesResponse(
-                    listOf(MEDICAL_RESOURCE, MEDICAL_RESOURCE),
-                    NEXT_PAGE_TOKEN,
-                    REMAINING_COUNT
-                ),
+        val response4 =
+            ReadMedicalResourcesResponse(
+                listOf(MEDICAL_RESOURCE),
+                NEXT_PAGE_TOKEN + "diff",
+                REMAINING_COUNT
             )
-            .addEqualityGroup(
-                // different next page token
-                ReadMedicalResourcesResponse(
-                    listOf(MEDICAL_RESOURCE),
-                    NEXT_PAGE_TOKEN + "diff",
-                    REMAINING_COUNT
-                )
-            )
-            .addEqualityGroup(
-                // different remainingCount
-                ReadMedicalResourcesResponse(medicalResources, NEXT_PAGE_TOKEN, REMAINING_COUNT + 1)
-            )
-            .testEquals()
+        val response5 =
+            ReadMedicalResourcesResponse(medicalResources, NEXT_PAGE_TOKEN, REMAINING_COUNT + 1)
+
+        assertThat(response1).isEqualTo(response2)
+        assertThat(response1).isNotEqualTo(response3)
+        assertThat(response1).isNotEqualTo(response4)
+        assertThat(response1).isNotEqualTo(response5)
+        assertThat(response3).isNotEqualTo(response4)
+        assertThat(response3).isNotEqualTo(response5)
+        assertThat(response4).isNotEqualTo(response5)
     }
 
     @Test

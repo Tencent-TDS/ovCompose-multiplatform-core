@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright 2025 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package androidx.privacysandbox.ui.client.view
 
+package androidx.privacysandbox.ui.client.compose
+
+import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.privacysandbox.ui.client.view.SandboxedSdkView
+import androidx.privacysandbox.ui.client.view.SandboxedSdkViewEventListener
 import androidx.privacysandbox.ui.core.SandboxedUiAdapter
 
 /**
@@ -32,8 +34,11 @@ import androidx.privacysandbox.ui.core.SandboxedUiAdapter
  * @param sandboxedSdkViewEventListener an event listener to the UI presentation.
  */
 @Composable
+// No need for @JvmOverloads as this is Kotlin only API
 @Suppress("MissingJvmstatic")
-fun SandboxedSdkUi(
+// The listener relates to UI event and is expected to be triggered on the main thread.
+@SuppressLint("ExecutorRegistration")
+public fun SandboxedSdkUi(
     sandboxedUiAdapter: SandboxedUiAdapter,
     modifier: Modifier = Modifier,
     providerUiOnTop: Boolean = false,
@@ -41,7 +46,9 @@ fun SandboxedSdkUi(
 ) {
     AndroidView(
         modifier = modifier,
-        factory = { context -> SandboxedSdkView(context).apply { isInComposeNode = true } },
+        factory = { context ->
+            SandboxedSdkView(context).apply { preserveSessionOnWindowDetachment() }
+        },
         update = { view ->
             view.apply {
                 setEventListener(sandboxedSdkViewEventListener)
@@ -50,6 +57,6 @@ fun SandboxedSdkUi(
             }
         },
         onReset = { view -> view.setEventListener(null) },
-        onRelease = { view -> view.closeClient() }
+        onRelease = { view -> view.setAdapter(null) }
     )
 }

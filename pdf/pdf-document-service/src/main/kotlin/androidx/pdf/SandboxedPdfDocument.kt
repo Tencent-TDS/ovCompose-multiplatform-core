@@ -39,6 +39,7 @@ import androidx.pdf.service.connect.PdfServiceConnection
 import androidx.pdf.utils.toAndroidClass
 import androidx.pdf.utils.toContentClass
 import java.util.concurrent.TimeoutException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -83,6 +84,14 @@ public class SandboxedPdfDocument(
 
     /** The [CoroutineScope] we use to close [BitmapSource]s asynchronously */
     private val closeScope = CoroutineScope(dispatcher + SupervisorJob())
+
+    /**
+     * Indicates whether this [androidx.pdf.SandboxedPdfDocument] is closed explicitly by calling
+     * [close].
+     *
+     * Once closed, any further operations on the document are invalid.
+     */
+    private var isDocumentClosedExplicitly = false
 
     override suspend fun getPageInfo(pageNumber: Int): PdfDocument.PageInfo {
         return withDocument { document ->
@@ -169,6 +178,8 @@ public class SandboxedPdfDocument(
 
     @WorkerThread
     override fun close() {
+        isDocumentClosedExplicitly = true
+
         connection.disconnect()
 
         // TODO(b/377920470): Remove this when PdfRenderer closes the file descriptor
@@ -252,6 +263,9 @@ public class SandboxedPdfDocument(
     }
 
     private suspend fun <T> withDocumentWithoutRetry(block: (PdfDocumentRemote) -> T): T {
+        // If document is already closed, cancel all the pending operations on this document
+        if (isDocumentClosedExplicitly) throw CancellationException("Document is already closed.")
+
         // Create a new job in parent's context. Since with document can be called from any scope,
         // we need a handle to check coroutines actively working with document. Linking to parent's
         // job helps in cancellation.

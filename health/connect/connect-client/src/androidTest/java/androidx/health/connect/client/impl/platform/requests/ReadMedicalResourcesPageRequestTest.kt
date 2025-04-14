@@ -23,8 +23,6 @@ import androidx.health.connect.client.impl.platform.request.PlatformReadMedicalR
 import androidx.health.connect.client.request.ReadMedicalResourcesPageRequest
 import androidx.health.connect.client.request.ReadMedicalResourcesRequest.Companion.DEFAULT_PAGE_SIZE
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -33,7 +31,6 @@ import org.junit.runner.RunWith
 
 @OptIn(ExperimentalPersonalHealthRecordApi::class)
 @RunWith(AndroidJUnit4::class)
-@SmallTest
 class ReadMedicalResourcesPageRequestTest {
 
     @Before
@@ -46,18 +43,20 @@ class ReadMedicalResourcesPageRequestTest {
 
     @Test
     fun equalsTests() {
-        EqualsTester()
-            .addEqualityGroup(
-                ReadMedicalResourcesPageRequest(PAGE_TOKEN, DEFAULT_PAGE_SIZE),
-                ReadMedicalResourcesPageRequest(PAGE_TOKEN, DEFAULT_PAGE_SIZE),
-                // page size is not specified, DEFAULT_PAGE_SIZE should be used, hence it should
-                // be equal to others in this group
-                ReadMedicalResourcesPageRequest(PAGE_TOKEN)
-            )
-            .addEqualityGroup(
-                ReadMedicalResourcesPageRequest("$PAGE_TOKEN-diff", DEFAULT_PAGE_SIZE)
-            )
-            .testEquals()
+        val request1 = ReadMedicalResourcesPageRequest(PAGE_TOKEN, DEFAULT_PAGE_SIZE)
+        val request2 = ReadMedicalResourcesPageRequest(PAGE_TOKEN, DEFAULT_PAGE_SIZE)
+        // page size is not specified, DEFAULT_PAGE_SIZE should be used, hence it should
+        // be equal to others in this group
+        val request3 = ReadMedicalResourcesPageRequest(PAGE_TOKEN)
+        val request4 = ReadMedicalResourcesPageRequest("$PAGE_TOKEN-diff", DEFAULT_PAGE_SIZE)
+
+        assertThat(request1).isEqualTo(request2)
+        assertThat(request1).isEqualTo(request3)
+        assertThat(request2).isEqualTo(request3)
+
+        assertThat(request1).isNotEqualTo(request4)
+        assertThat(request2).isNotEqualTo(request4)
+        assertThat(request3).isNotEqualTo(request4)
     }
 
     @Test

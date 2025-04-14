@@ -110,20 +110,43 @@ internal class CredentialProviderBeginSignInController(private val context: Cont
         }
 
         val convertedRequest: BeginSignInRequest = this.convertRequestToPlayServices(request)
-        val hiddenIntent = Intent(context, HiddenActivity::class.java)
-        hiddenIntent.putExtra(REQUEST_TAG, convertedRequest)
-        generateHiddenActivityIntent(resultReceiver, hiddenIntent, BEGIN_SIGN_IN_TAG)
-        try {
-            context.startActivity(hiddenIntent)
-        } catch (e: Exception) {
-            cancelOrCallbackExceptionOrResult(cancellationSignal) {
-                this.executor.execute {
-                    this.callback.onError(
-                        GetCredentialUnknownException(ERROR_MESSAGE_START_ACTIVITY_FAILED)
-                    )
+        Identity.getSignInClient(context)
+            .beginSignIn(convertedRequest)
+            .addOnSuccessListener { result ->
+                if (CredentialProviderPlayServicesImpl.cancellationReviewer(cancellationSignal)) {
+                    return@addOnSuccessListener
+                }
+                val hiddenIntent = Intent(context, HiddenActivity::class.java)
+                generateHiddenActivityIntent(resultReceiver, hiddenIntent, BEGIN_SIGN_IN_TAG)
+                hiddenIntent.putExtra(EXTRA_GET_CREDENTIAL_INTENT, result.pendingIntent)
+                try {
+                    context.startActivity(hiddenIntent)
+                } catch (_: Exception) {
+                    cancelOrCallbackExceptionOrResult(cancellationSignal) {
+                        this.executor.execute {
+                            this.callback.onError(
+                                GetCredentialUnknownException(ERROR_MESSAGE_START_ACTIVITY_FAILED)
+                            )
+                        }
+                    }
                 }
             }
+            .addOnFailureListener { e ->
+                val getException = fromGmsException(e)
+                cancelOrCallbackExceptionOrResult(cancellationSignal) {
+                    this.executor.execute { this.callback.onError(getException) }
+                }
+            }
+    }
+
+    private fun fromGmsException(e: Throwable): GetCredentialException {
+        var errName = GET_NO_CREDENTIALS
+        if (e is ApiException && e.statusCode in retryables) {
+            errName = GET_INTERRUPTED
+        } else {
+            errName = GET_UNKNOWN
         }
+        return getCredentialExceptionTypeToException(errName, e.message)
     }
 
     internal fun handleResponse(uniqueRequestCode: Int, resultCode: Int, data: Intent?) {

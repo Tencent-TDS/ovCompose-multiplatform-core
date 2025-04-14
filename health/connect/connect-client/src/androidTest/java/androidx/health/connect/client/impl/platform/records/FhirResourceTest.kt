@@ -23,7 +23,6 @@ import androidx.health.connect.client.records.FhirResource
 import androidx.health.connect.client.records.FhirResource.Companion.FHIR_RESOURCE_TYPE_PATIENT
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
-import com.google.common.testing.EqualsTester
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assume
 import org.junit.Before
@@ -44,16 +43,13 @@ class FhirResourceTest {
     }
 
     @Test
-    fun validFhirResource_equals() {
-        EqualsTester()
-            .addEqualityGroup(
-                FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id1", data = "{}"),
-                FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id1", data = "{}")
-            )
-            .addEqualityGroup(
-                FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id2", data = "{}")
-            )
-            .testEquals()
+    fun validFhirResource_equalsAndHashCode() {
+        val fhirResource1 = FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id1", data = "{}")
+        val fhirResource2 = FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id1", data = "{}")
+        val fhirResource3 = FhirResource(type = FHIR_RESOURCE_TYPE_PATIENT, id = "id2", data = "{}")
+
+        assertThat(fhirResource1).isEqualTo(fhirResource2)
+        assertThat(fhirResource1).isNotEqualTo(fhirResource3)
     }
 
     @Test

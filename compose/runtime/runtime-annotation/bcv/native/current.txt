@@ -6,6 +6,10 @@
 // - Show declarations: true
 
 // Library unique name: <androidx.compose.runtime:runtime-annotation>
+open annotation class androidx.compose.runtime.annotation/FrequentlyChangingValue : kotlin/Annotation { // androidx.compose.runtime.annotation/FrequentlyChangingValue|null[0]
+    constructor <init>() // androidx.compose.runtime.annotation/FrequentlyChangingValue.<init>|<init>(){}[0]
+}
+
 open annotation class androidx.compose.runtime.annotation/RememberInComposition : kotlin/Annotation { // androidx.compose.runtime.annotation/RememberInComposition|null[0]
     constructor <init>() // androidx.compose.runtime.annotation/RememberInComposition.<init>|<init>(){}[0]
 }
