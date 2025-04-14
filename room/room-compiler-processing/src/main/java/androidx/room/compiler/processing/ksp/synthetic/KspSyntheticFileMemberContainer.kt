@@ -18,11 +18,11 @@ package androidx.room.compiler.processing.ksp.synthetic
 
 import androidx.room.compiler.codegen.XClassName
 import androidx.room.compiler.processing.XAnnotation
-import androidx.room.compiler.processing.XAnnotationBox
 import androidx.room.compiler.processing.XElement
 import androidx.room.compiler.processing.XEquality
 import androidx.room.compiler.processing.XNullability
 import androidx.room.compiler.processing.ksp.KspMemberContainer
+import androidx.room.compiler.processing.ksp.KspProcessingEnv
 import androidx.room.compiler.processing.ksp.KspType
 import com.google.devtools.ksp.symbol.KSDeclaration
 import com.squareup.javapoet.ClassName
@@ -37,11 +37,10 @@ import kotlin.reflect.KClass
  * https://docs.oracle.com/javase/specs/jls/se7/html/jls-13.html#jls-13.1
  */
 internal class KspSyntheticFileMemberContainer(
+    internal val env: KspProcessingEnv,
     private val binaryName: String
 ) : KspMemberContainer, XEquality {
-    override val equalityItems: Array<out Any?> by lazy {
-        arrayOf(binaryName)
-    }
+    override val equalityItems: Array<out Any?> by lazy { arrayOf(binaryName) }
 
     override val type: KspType?
         get() = null
@@ -51,30 +50,23 @@ internal class KspSyntheticFileMemberContainer(
 
     @Deprecated(
         "Use asClassName().toJavaPoet() to be clear the name is for JavaPoet.",
-        replaceWith = ReplaceWith(
-            "asClassName().toJavaPoet()",
-            "androidx.room.compiler.codegen.toJavaPoet"
-        )
+        replaceWith =
+            ReplaceWith("asClassName().toJavaPoet()", "androidx.room.compiler.codegen.toJavaPoet")
     )
-    override val className: ClassName by lazy {
-        xClassName.java
-    }
+    override val className: ClassName by lazy { xClassName.java }
 
     private val xClassName: XClassName by lazy {
-        val packageName = binaryName.substringBeforeLast(
-            delimiter = '.',
-            missingDelimiterValue = ""
-        )
-        val shortNames = if (packageName == "") {
-            binaryName
-        } else {
-            binaryName.substring(packageName.length + 1)
-        }.split('$')
-        val java = ClassName.get(
-            packageName,
-            shortNames.first(),
-            *shortNames.drop(1).toTypedArray()
-        )
+        val packageName =
+            binaryName.substringBeforeLast(delimiter = '.', missingDelimiterValue = "")
+        val shortNames =
+            if (packageName == "") {
+                    binaryName
+                } else {
+                    binaryName.substring(packageName.length + 1)
+                }
+                .split('$')
+        val java =
+            ClassName.get(packageName, shortNames.first(), *shortNames.drop(1).toTypedArray())
         // Even though the generated Java class is not referencable from Kotlin code, instead of
         // using 'Unavailable', for parity we use the same JavaPoet name for KotlinPoet,
         val kotlin = java.toKClassName()
@@ -103,7 +95,7 @@ internal class KspSyntheticFileMemberContainer(
         return true
     }
 
-    override fun <T : Annotation> getAnnotations(annotation: KClass<T>): List<XAnnotationBox<T>> {
+    override fun <T : Annotation> getAnnotations(annotation: KClass<T>): List<XAnnotation> {
         return emptyList()
     }
 
@@ -118,4 +110,8 @@ internal class KspSyntheticFileMemberContainer(
     override fun hasAnnotationWithPackage(pkg: String): Boolean {
         return false
     }
+
+    override fun isFromJava(): Boolean = false
+
+    override fun isFromKotlin(): Boolean = true
 }

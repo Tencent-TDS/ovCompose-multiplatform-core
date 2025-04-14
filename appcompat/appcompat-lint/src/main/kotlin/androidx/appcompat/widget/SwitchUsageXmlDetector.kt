@@ -28,15 +28,16 @@ import org.w3c.dom.Element
 @Suppress("UnstableApiUsage")
 class SwitchUsageXmlDetector : LayoutDetector() {
     companion object {
-        internal val USING_CORE_SWITCH_XML: Issue = Issue.create(
-            "UseSwitchCompatOrMaterialXml",
-            "Replace usage of `Switch` widget",
-            "Use `SwitchCompat` from AppCompat or `SwitchMaterial` from Material library",
-            Category.CORRECTNESS,
-            5,
-            Severity.WARNING,
-            Implementation(SwitchUsageXmlDetector::class.java, Scope.RESOURCE_FILE_SCOPE)
-        )
+        internal val USING_CORE_SWITCH_XML: Issue =
+            Issue.create(
+                "UseSwitchCompatOrMaterialXml",
+                "Replace usage of `Switch` widget",
+                "Use `SwitchCompat` from AppCompat or `MaterialSwitch` from Material library",
+                Category.CORRECTNESS,
+                5,
+                Severity.WARNING,
+                Implementation(SwitchUsageXmlDetector::class.java, Scope.RESOURCE_FILE_SCOPE)
+            )
     }
 
     override fun getApplicableElements(): Collection<String>? = listOf("Switch")
@@ -46,7 +47,7 @@ class SwitchUsageXmlDetector : LayoutDetector() {
             USING_CORE_SWITCH_XML,
             element,
             context.getLocation(element),
-            "Use `SwitchCompat` from AppCompat or `SwitchMaterial` from Material library"
+            "Use `SwitchCompat` from AppCompat or `MaterialSwitch` from Material library"
         )
     }
 }

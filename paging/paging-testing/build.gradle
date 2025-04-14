@@ -14,35 +14,125 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
+import androidx.build.PlatformIdentifier
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import org.jetbrains.kotlin.konan.target.Family
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
-dependencies {
-    api(libs.kotlinStdlib)
-    implementation(project(":paging:paging-common"))
+androidXMultiplatform {
+    jvm()
+    mac()
+    linux()
+    ios()
+    watchos()
+    tvos()
+    androidLibrary {
+        namespace = "androidx.paging.testing"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+    }
 
-    testImplementation(libs.junit)
-    testImplementation(libs.kotlinCoroutinesTest)
-    testImplementation((libs.kotlinCoroutinesAndroid))
-    testImplementation(project(":internal-testutils-paging"))
-    testImplementation(libs.kotlinTest)
-    testImplementation(libs.truth)
+    defaultPlatform(PlatformIdentifier.ANDROID)
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                api(libs.kotlinStdlib)
+                implementation(project(":paging:paging-common"))
+            }
+        }
+
+        commonJvmMain {
+            dependsOn(commonMain)
+        }
+
+        jvmMain {
+            dependsOn(commonJvmMain)
+        }
+
+        androidMain {
+            dependsOn(commonJvmMain)
+        }
+
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinTest)
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":internal-testutils-paging"))
+                implementation(project(":kruth:kruth"))
+            }
+        }
+
+        commonJvmTest {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(libs.junit)
+            }
+        }
+
+        jvmTest {
+            dependsOn(commonJvmTest)
+        }
+
+        androidInstrumentedTest {
+            dependsOn(commonJvmTest)
+            dependencies {
+                implementation(libs.testRunner)
+            }
+        }
+
+        nativeMain {
+            dependsOn(commonMain)
+            dependencies {
+                implementation(libs.atomicFu)
+            }
+        }
+        darwinMain {
+            dependsOn(nativeMain)
+        }
+        linuxMain {
+            dependsOn(nativeMain)
+        }
+
+        targets.configureEach { target ->
+            if (target.platformType == KotlinPlatformType.native) {
+                target.compilations["main"].defaultSourceSet {
+                    def konanTargetFamily = target.konanTarget.family
+                    if (konanTargetFamily == Family.OSX ||
+                            konanTargetFamily == Family.IOS ||
+                            konanTargetFamily == Family.WATCHOS ||
+                            konanTargetFamily == Family.TVOS) {
+                        dependsOn(darwinMain)
+                    } else if (konanTargetFamily == Family.LINUX) {
+                        dependsOn(linuxMain)
+                    } else {
+                        throw new GradleException("unknown native target ${target}")
+                    }
+                }
+            }
+        }
+    }
 }
 
 androidx {
-    name = "androidx.paging:paging-testing"
-    type = LibraryType.PUBLISHED_LIBRARY
+    name = "Paging Testing Extensions"
+    type = SoftwareType.PUBLISHED_TEST_LIBRARY
     inceptionYear = "2022"
     description = "Test artifact for Paging implementation"
-    publish = Publish.SNAPSHOT_AND_RELEASE
 }
 
-android {
-    namespace "androidx.paging.testing"
-}

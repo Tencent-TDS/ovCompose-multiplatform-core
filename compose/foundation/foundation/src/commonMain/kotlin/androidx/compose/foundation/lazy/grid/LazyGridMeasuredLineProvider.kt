@@ -16,30 +16,28 @@
 
 package androidx.compose.foundation.lazy.grid
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
 import androidx.compose.ui.unit.Constraints
 
-/**
- * Abstracts away subcomposition and span calculation from the measuring logic of entire lines.
- */
-@OptIn(ExperimentalFoundationApi::class)
-internal class LazyGridMeasuredLineProvider(
+/** Abstracts away subcomposition and span calculation from the measuring logic of entire lines. */
+internal abstract class LazyGridMeasuredLineProvider(
     private val isVertical: Boolean,
-    private val slotSizesSums: List<Int>,
-    private val crossAxisSpacing: Int,
+    private val slots: LazyGridSlots,
     private val gridItemsCount: Int,
     private val spaceBetweenLines: Int,
     private val measuredItemProvider: LazyGridMeasuredItemProvider,
-    private val spanLayoutProvider: LazyGridSpanLayoutProvider,
-    private val measuredLineFactory: MeasuredLineFactory
+    private val spanLayoutProvider: LazyGridSpanLayoutProvider
 ) {
     // The constraints for cross axis size. The main axis is not restricted.
     internal fun childConstraints(startSlot: Int, span: Int): Constraints {
-        val lastSlotSum = slotSizesSums[startSlot + span - 1]
-        val prevSlotSum = if (startSlot == 0) 0 else slotSizesSums[startSlot - 1]
-        val slotsSize = lastSlotSum - prevSlotSum
-        val crossAxisSize = (slotsSize + crossAxisSpacing * (span - 1)).coerceAtLeast(0)
+        val crossAxisSize =
+            if (span == 1) {
+                    slots.sizes[startSlot]
+                } else {
+                    val endSlot = startSlot + span - 1
+                    slots.positions[endSlot] + slots.sizes[endSlot] - slots.positions[startSlot]
+                }
+                .coerceAtLeast(0)
         return if (isVertical) {
             Constraints.fixedWidth(crossAxisSize)
         } else {
@@ -47,61 +45,62 @@ internal class LazyGridMeasuredLineProvider(
         }
     }
 
-    fun itemConstraints(itemIndex: ItemIndex): Constraints {
-        val span = spanLayoutProvider.spanOf(
-            itemIndex.value,
-            spanLayoutProvider.slotsPerLine
-        )
-        return childConstraints(0, span)
-    }
+    fun spanOf(index: Int): Int = spanLayoutProvider.spanOf(index, spanLayoutProvider.slotsPerLine)
 
     /**
-     * Used to subcompose items on lines of lazy grids. Composed placeables will be measured
-     * with the correct constraints and wrapped into [LazyGridMeasuredLine].
+     * Used to subcompose items on lines of lazy grids. Composed placeables will be measured with
+     * the correct constraints and wrapped into [LazyGridMeasuredLine].
      */
-    fun getAndMeasure(lineIndex: LineIndex): LazyGridMeasuredLine {
-        val lineConfiguration = spanLayoutProvider.getLineConfiguration(lineIndex.value)
+    fun getAndMeasure(lineIndex: Int): LazyGridMeasuredLine {
+        val lineConfiguration = spanLayoutProvider.getLineConfiguration(lineIndex)
         val lineItemsCount = lineConfiguration.spans.size
 
         // we add space between lines as an extra spacing for all lines apart from the last one
         // so the lazy grid measuring logic will take it into account.
-        val mainAxisSpacing = if (lineItemsCount == 0 ||
-            lineConfiguration.firstItemIndex + lineItemsCount == gridItemsCount) {
-            0
-        } else {
-            spaceBetweenLines
-        }
+        val mainAxisSpacing =
+            if (
+                lineItemsCount == 0 ||
+                    lineConfiguration.firstItemIndex + lineItemsCount == gridItemsCount
+            ) {
+                0
+            } else {
+                spaceBetweenLines
+            }
 
         var startSlot = 0
-        val items = Array(lineItemsCount) {
-            val span = lineConfiguration.spans[it].currentLineSpan
-            val constraints = childConstraints(startSlot, span)
-            measuredItemProvider.getAndMeasure(
-                ItemIndex(lineConfiguration.firstItemIndex + it),
-                mainAxisSpacing,
-                constraints
-            ).also { startSlot += span }
-        }
-        return measuredLineFactory.createLine(
-            lineIndex,
-            items,
-            lineConfiguration.spans,
-            mainAxisSpacing
-        )
+        val items =
+            Array(lineItemsCount) {
+                val span = lineConfiguration.spans[it].currentLineSpan
+                val constraints = childConstraints(startSlot, span)
+                measuredItemProvider
+                    .getAndMeasure(
+                        index = lineConfiguration.firstItemIndex + it,
+                        constraints = constraints,
+                        lane = startSlot,
+                        span = span,
+                        mainAxisSpacing = mainAxisSpacing
+                    )
+                    .also { startSlot += span }
+            }
+        return createLine(lineIndex, items, lineConfiguration.spans, mainAxisSpacing)
     }
 
     /**
-     * Contains the mapping between the key and the index. It could contain not all the items of
-     * the list as an optimization.
-     **/
-    val keyToIndexMap: LazyLayoutKeyIndexMap get() = measuredItemProvider.keyToIndexMap
-}
+     * Utility method to be used during the keep around pass. This may change implementations in the
+     * future so we created a new method to show the separation between keep around and
+     * getAndMeasure.
+     */
+    fun keepAround(lineIndex: Int) = getAndMeasure(lineIndex)
 
-// This interface allows to avoid autoboxing on index param
-@OptIn(ExperimentalFoundationApi::class)
-internal fun interface MeasuredLineFactory {
-    fun createLine(
-        index: LineIndex,
+    /**
+     * Contains the mapping between the key and the index. It could contain not all the items of the
+     * list as an optimization.
+     */
+    val keyIndexMap: LazyLayoutKeyIndexMap
+        get() = measuredItemProvider.keyIndexMap
+
+    abstract fun createLine(
+        index: Int,
         items: Array<LazyGridMeasuredItem>,
         spans: List<GridItemSpan>,
         mainAxisSpacing: Int

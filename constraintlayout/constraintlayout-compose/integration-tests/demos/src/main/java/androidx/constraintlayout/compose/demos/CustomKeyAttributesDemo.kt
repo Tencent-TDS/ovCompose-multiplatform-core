@@ -37,71 +37,76 @@ import androidx.constraintlayout.compose.OnSwipe
 import androidx.constraintlayout.compose.SwipeDirection
 import androidx.constraintlayout.compose.SwipeSide
 
+/**
+ * Shows how to use MotionLayout to interpolate custom values such as colors during animation.
+ *
+ * This example animates the background color of a box from [Color.Red] to [Color.Blue] while using
+ * KeyFrames to add intermediate colors [Color.Yellow] and [Color.Green] at 33% and 66% points of
+ * the animation, respectively.
+ *
+ * The animation is driven with an swipe gesture defined by [OnSwipe].
+ */
 @Preview
 @Composable
 fun CustomColorInKeyAttributesDemo() {
     val boxId = "box"
     val textId = "text"
     MotionLayout(
-        motionScene = MotionScene {
-            val box = createRefFor(boxId)
-            val text = createRefFor(textId)
-            defaultTransition(
-                from = constraintSet {
-                    constrain(text) {
-                        top.linkTo(box.bottom, 10.dp)
-                        start.linkTo(box.start)
-                    }
-                    constrain(box) {
-                        width = Dimension.value(50.dp)
-                        height = Dimension.value(50.dp)
+        motionScene =
+            MotionScene {
+                val box = createRefFor(boxId)
+                val text = createRefFor(textId)
+                defaultTransition(
+                    from =
+                        constraintSet {
+                            constrain(text) {
+                                top.linkTo(box.bottom, 10.dp)
+                                start.linkTo(box.start)
+                            }
+                            constrain(box) {
+                                width = Dimension.value(50.dp)
+                                height = Dimension.value(50.dp)
 
-                        centerVerticallyTo(parent)
-                        start.linkTo(parent.start)
+                                centerVerticallyTo(parent)
+                                start.linkTo(parent.start)
 
-                        customColor("background", Color.Red)
-                    }
-                },
-                to = constraintSet {
-                    constrain(text) {
-                        top.linkTo(box.bottom, 10.dp)
-                        end.linkTo(box.end)
-                    }
-                    constrain(box) {
-                        width = Dimension.value(50.dp)
-                        height = Dimension.value(50.dp)
+                                customColor("background", Color.Red)
+                            }
+                        },
+                    to =
+                        constraintSet {
+                            constrain(text) {
+                                top.linkTo(box.bottom, 10.dp)
+                                end.linkTo(box.end)
+                            }
+                            constrain(box) {
+                                width = Dimension.value(50.dp)
+                                height = Dimension.value(50.dp)
 
-                        centerVerticallyTo(parent)
-                        end.linkTo(parent.end)
+                                centerVerticallyTo(parent)
+                                end.linkTo(parent.end)
 
-                        customColor("background", Color.Blue)
+                                customColor("background", Color.Blue)
+                            }
+                        }
+                ) {
+                    onSwipe =
+                        OnSwipe(
+                            anchor = box,
+                            side = SwipeSide.Middle,
+                            direction = SwipeDirection.End
+                        )
+                    keyAttributes(box) {
+                        frame(33) { customColor("background", Color.Yellow) }
+                        frame(66) { customColor("background", Color.Green) }
                     }
                 }
-            ) {
-                onSwipe = OnSwipe(
-                    anchor = box,
-                    side = SwipeSide.Middle,
-                    direction = SwipeDirection.End
-                )
-                keyAttributes(box) {
-                    frame(33) {
-                        customColor("background", Color.Yellow)
-                    }
-                    frame(66) {
-                        customColor("background", Color.Green)
-                    }
-                }
-            }
-        },
+            },
         progress = 0f,
         modifier = Modifier.fillMaxSize()
     ) {
         val background = customColor(boxId, "background")
-        Box(
-            modifier = Modifier
-                .layoutId(boxId)
-                .background(background)
-        )
+        Box(modifier = Modifier.layoutId(boxId).background(background))
         Text(
             modifier = Modifier.layoutId(textId),
             text = "Color: ${background.toArgb().toUInt().toString(16)}"

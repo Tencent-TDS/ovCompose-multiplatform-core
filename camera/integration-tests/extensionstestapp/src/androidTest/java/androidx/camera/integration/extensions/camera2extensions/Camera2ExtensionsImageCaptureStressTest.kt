@@ -32,8 +32,8 @@ import androidx.camera.integration.extensions.util.Camera2ExtensionsTestUtil.ope
 import androidx.camera.integration.extensions.util.Camera2ExtensionsTestUtil.takePicture
 import androidx.camera.integration.extensions.util.assertImageIsValid
 import androidx.camera.integration.extensions.utils.CameraIdExtensionModePair
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.StressTestRule
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.StressTestRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
@@ -49,8 +49,8 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
 /**
- * Stress test to verify that the camera can successfully capture images for all supported
- * extension modes for each cameras ID.
+ * Stress test to verify that the camera can successfully capture images for all supported extension
+ * modes for each cameras ID.
  */
 @LargeTest
 @RunWith(Parameterized::class)
@@ -58,20 +58,20 @@ import org.junit.runners.Parameterized
 class Camera2ExtensionsImageCaptureStressTest(private val config: CameraIdExtensionModePair) {
     @get:Rule
     val useCamera =
-        CameraUtil.grantCameraPermissionAndPreTest(
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
             CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
         )
 
     companion object {
-        @ClassRule
-        @JvmField val stressTest = StressTestRule()
+        @ClassRule @JvmField val stressTest = StressTestRule()
+
+        val context = ApplicationProvider.getApplicationContext<Context>()
 
         @Parameterized.Parameters(name = "config = {0}")
         @JvmStatic
         fun parameters() = Camera2ExtensionsTestUtil.getAllCameraIdExtensionModeCombinations()
     }
 
-    private val context = ApplicationProvider.getApplicationContext<Context>()
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
     private lateinit var cameraDevice: CameraDevice
@@ -92,11 +92,8 @@ class Camera2ExtensionsImageCaptureStressTest(private val config: CameraIdExtens
         imageReader = createCaptureImageReader(extensionsCharacteristics, extensionMode)
         captureSurface = imageReader.surface
         val outputConfigurationCapture = OutputConfiguration(captureSurface)
-        extensionSession = openExtensionSession(
-            cameraDevice,
-            extensionMode,
-            listOf(outputConfigurationCapture)
-        )
+        extensionSession =
+            openExtensionSession(cameraDevice, extensionMode, listOf(outputConfigurationCapture))
         assertThat(extensionSession).isNotNull()
     }
 

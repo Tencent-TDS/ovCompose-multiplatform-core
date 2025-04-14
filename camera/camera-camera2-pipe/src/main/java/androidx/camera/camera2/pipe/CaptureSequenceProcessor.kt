@@ -16,9 +16,14 @@
 
 package androidx.camera.camera2.pipe
 
+import androidx.annotation.RestrictTo
+
 /** Create and submit [CaptureSequence]s to an active camera instance. */
-interface CaptureSequenceProcessor<
-    out TCaptureRequest, TCaptureSequence : CaptureSequence<TCaptureRequest>> {
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public interface CaptureSequenceProcessor<
+    out TCaptureRequest,
+    TCaptureSequence : CaptureSequence<TCaptureRequest>
+> {
 
     /**
      * Build a [CaptureSequence] instance.
@@ -41,30 +46,31 @@ interface CaptureSequenceProcessor<
      *   been closed or disconnected, and will throw unchecked exceptions if invalid values are
      *   passed to the [build] call.
      */
-    fun build(
+    public fun build(
         isRepeating: Boolean,
         requests: List<Request>,
         defaultParameters: Map<*, Any?>,
+        graphParameters: Map<*, Any?>,
         requiredParameters: Map<*, Any?>,
-        listeners: List<Request.Listener>,
         sequenceListener: CaptureSequence.CaptureSequenceListener,
+        listeners: List<Request.Listener>
     ): TCaptureSequence?
 
     /** Issue a previously created [CaptureSequence] to the active camera instance. */
-    fun submit(captureSequence: TCaptureSequence): Int
+    public fun submit(captureSequence: TCaptureSequence): Int?
 
     /**
      * Opportunistically abort any ongoing captures by the camera. This may or may not complete
      * quickly depending on the underlying camera.
      */
-    fun abortCaptures()
+    public fun abortCaptures()
 
     /** Opportunistically cancel any currently active repeating [TCaptureSequence]. */
-    fun stopRepeating()
+    public fun stopRepeating()
 
     /**
      * Signal that this [CaptureSequenceProcessor] is no longer in use. Active requests may continue
      * to be processed, and [abortCaptures] and [stopRepeating] may still be invoked.
      */
-    fun close()
+    public suspend fun shutdown()
 }

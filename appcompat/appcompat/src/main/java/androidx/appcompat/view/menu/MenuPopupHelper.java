@@ -22,7 +22,6 @@ import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 import android.content.Context;
 import android.graphics.Point;
 import android.graphics.Rect;
-import android.os.Build;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
@@ -32,15 +31,13 @@ import android.widget.PopupWindow;
 import android.widget.PopupWindow.OnDismissListener;
 
 import androidx.annotation.AttrRes;
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.StyleRes;
 import androidx.appcompat.R;
 import androidx.core.view.GravityCompat;
-import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Presents a menu as a small, simple popup anchored to another view.
@@ -157,8 +154,7 @@ public class MenuPopupHelper implements MenuHelper {
     /**
      */
     @RestrictTo(LIBRARY)
-    @NonNull
-    public MenuPopup getPopup() {
+    public @NonNull MenuPopup getPopup() {
         if (mPopup == null) {
             mPopup = createPopup();
         }
@@ -225,19 +221,14 @@ public class MenuPopupHelper implements MenuHelper {
      *
      * @return an initialized popup
      */
-    @NonNull
     @SuppressWarnings("deprecation") /* getDefaultDisplay */
-    private MenuPopup createPopup() {
+    private @NonNull MenuPopup createPopup() {
         final WindowManager windowManager = (WindowManager) mContext.getSystemService(
                 Context.WINDOW_SERVICE);
         final Display display = windowManager.getDefaultDisplay();
         final Point displaySize = new Point();
 
-        if (Build.VERSION.SDK_INT >= 17) {
-            Api17Impl.getRealSize(display, displaySize);
-        } else {
-            display.getSize(displaySize);
-        }
+        display.getRealSize(displaySize);
 
         final int smallestWidth = Math.min(displaySize.x, displaySize.y);
         final int minSmallestWidthCascading = mContext.getResources().getDimensionPixelSize(
@@ -275,7 +266,7 @@ public class MenuPopupHelper implements MenuHelper {
             // edge will be aligned with the anchor view. Adjust by the anchor
             // width such that the top-right corner is at the X offset.
             final int hgrav = GravityCompat.getAbsoluteGravity(mDropDownGravity,
-                    ViewCompat.getLayoutDirection(mAnchorView)) & Gravity.HORIZONTAL_GRAVITY_MASK;
+                    mAnchorView.getLayoutDirection()) & Gravity.HORIZONTAL_GRAVITY_MASK;
             if (hgrav == Gravity.RIGHT) {
                 xOffset -= mAnchorView.getWidth();
             }
@@ -328,7 +319,7 @@ public class MenuPopupHelper implements MenuHelper {
     }
 
     @Override
-    public void setPresenterCallback(@Nullable MenuPresenter.Callback cb) {
+    public void setPresenterCallback(MenuPresenter.@Nullable Callback cb) {
         mPresenterCallback = cb;
         if (mPopup != null) {
             mPopup.setCallback(cb);
@@ -350,17 +341,5 @@ public class MenuPopupHelper implements MenuHelper {
      */
     public ListView getListView() {
         return getPopup().getListView();
-    }
-
-    @RequiresApi(17)
-    static class Api17Impl {
-        private Api17Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void getRealSize(Display display, Point outSize) {
-            display.getRealSize(outSize);
-        }
     }
 }

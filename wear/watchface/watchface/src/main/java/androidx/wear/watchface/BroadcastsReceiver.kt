@@ -21,6 +21,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.annotation.UiThread
 import androidx.wear.watchface.BroadcastsReceiver.BroadcastEventObserver
@@ -28,7 +29,6 @@ import androidx.wear.watchface.BroadcastsReceiver.BroadcastEventObserver
 /**
  * This class decouples [BroadcastEventObserver]s from the actual broadcast event receivers to make
  * testing easier.
- *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class BroadcastsReceiver
@@ -73,6 +73,8 @@ constructor(private val context: Context, private val observer: BroadcastEventOb
     }
 
     companion object {
+        internal const val TAG = "BroadcastsReceiver"
+
         // The threshold used to judge whether the battery is low during initialization.  Ideally
         // we would use the threshold for Intent.ACTION_BATTERY_LOW but it's not documented or
         // available programmatically. The value below is the default but it could be overridden
@@ -88,13 +90,9 @@ constructor(private val context: Context, private val observer: BroadcastEventOb
 
     internal val receiver: BroadcastReceiver =
         object : BroadcastReceiver() {
-            @SuppressWarnings("SyntheticAccessor")
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
-                    Intent.ACTION_BATTERY_LOW -> observer.onActionBatteryLow()
-                    Intent.ACTION_BATTERY_OKAY -> observer.onActionBatteryOkay()
-                    Intent.ACTION_POWER_CONNECTED -> observer.onActionPowerConnected()
-                    Intent.ACTION_POWER_DISCONNECTED -> observer.onActionPowerDisconnected()
+                    Intent.ACTION_BATTERY_CHANGED -> processBatteryStatus(intent)
                     Intent.ACTION_TIME_CHANGED -> observer.onActionTimeChanged()
                     Intent.ACTION_TIME_TICK -> observer.onActionTimeTick()
                     Intent.ACTION_TIMEZONE_CHANGED -> observer.onActionTimeZoneChanged()
@@ -111,24 +109,27 @@ constructor(private val context: Context, private val observer: BroadcastEventOb
     init {
         context.registerReceiver(
             receiver,
-            IntentFilter(Intent.ACTION_SCREEN_OFF).apply {
-                addAction(Intent.ACTION_SCREEN_ON)
+            IntentFilter(Intent.ACTION_BATTERY_CHANGED).apply {
+                addAction(Intent.ACTION_TIME_CHANGED)
                 addAction(Intent.ACTION_TIME_TICK)
                 addAction(Intent.ACTION_TIMEZONE_CHANGED)
-                addAction(Intent.ACTION_TIME_CHANGED)
-                addAction(Intent.ACTION_BATTERY_LOW)
-                addAction(Intent.ACTION_BATTERY_OKAY)
-                addAction(Intent.ACTION_POWER_CONNECTED)
-                addAction(Intent.ACTION_POWER_DISCONNECTED)
+                addAction(Intent.ACTION_SCREEN_OFF)
                 addAction(Intent.ACTION_USER_PRESENT)
                 addAction(WatchFaceImpl.MOCK_TIME_INTENT)
                 addAction(ACTION_AMBIENT_STARTED)
                 addAction(ACTION_AMBIENT_STOPPED)
-            }
+            },
+            // Listen to broadcasts from the system or the app itself,
+            // so it does not have to be exported
+            Context.RECEIVER_NOT_EXPORTED
+        )
+
+        // Fetch the initial battery state. NB Intent.ACTION_BATTERY_CHANGED is sticky.
+        processBatteryStatus(
+            context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         )
     }
 
-    /** Called to send observers initial battery state in advance of receiving any broadcasts. */
     internal fun processBatteryStatus(batteryStatus: Intent?) {
         val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         if (
@@ -145,8 +146,7 @@ constructor(private val context: Context, private val observer: BroadcastEventOb
                 val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
                 val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 level * 100 / scale.toFloat()
-            }
-                ?: 100.0f
+            } ?: 100.0f
         if (batteryPercent < INITIAL_LOW_BATTERY_THRESHOLD) {
             observer.onActionBatteryLow()
         } else {
@@ -155,6 +155,10 @@ constructor(private val context: Context, private val observer: BroadcastEventOb
     }
 
     public fun onDestroy() {
-        context.unregisterReceiver(receiver)
+        try {
+            context.unregisterReceiver(receiver)
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception occurred in BroadcastsReceiver.onDestroy", e)
+        }
     }
 }

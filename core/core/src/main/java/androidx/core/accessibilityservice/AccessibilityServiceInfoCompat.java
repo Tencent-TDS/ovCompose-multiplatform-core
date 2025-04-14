@@ -22,8 +22,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Helper for accessing features in {@link AccessibilityServiceInfo}.
@@ -190,16 +190,14 @@ public final class AccessibilityServiceInfoCompat {
      * @param info The service info of interest
      * @param packageManager The current package manager
      * @return The localized description.
+     * @deprecated Call {@link AccessibilityServiceInfo#loadDescription()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "info.loadDescription(packageManager)")
     @SuppressWarnings("deprecation")
-    @Nullable
-    public static String loadDescription(
+    public static @Nullable String loadDescription(
             @NonNull AccessibilityServiceInfo info, @NonNull PackageManager packageManager) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            return info.loadDescription(packageManager);
-        } else {
-            return info.getDescription();
-        }
+        return info.loadDescription(packageManager);
     }
 
     /**
@@ -210,8 +208,7 @@ public final class AccessibilityServiceInfoCompat {
      * @param feedbackType The feedback type.
      * @return The string representation.
      */
-    @NonNull
-    public static String feedbackTypeToString(int feedbackType) {
+    public static @NonNull String feedbackTypeToString(int feedbackType) {
         StringBuilder builder = new StringBuilder();
         builder.append("[");
         while (feedbackType > 0) {
@@ -250,8 +247,7 @@ public final class AccessibilityServiceInfoCompat {
      * @param flag The flag.
      * @return The string representation.
      */
-    @Nullable
-    public static String flagToString(int flag) {
+    public static @Nullable String flagToString(int flag) {
         switch (flag) {
             case AccessibilityServiceInfo.DEFAULT:
                 return "DEFAULT";
@@ -281,17 +277,13 @@ public final class AccessibilityServiceInfoCompat {
      * @see #CAPABILITY_CAN_REQUEST_TOUCH_EXPLORATION
      * @see #CAPABILITY_CAN_REQUEST_ENHANCED_WEB_ACCESSIBILITY
      * @see #CAPABILITY_CAN_FILTER_KEY_EVENTS
+     * @deprecated Call {@link AccessibilityServiceInfo#getCapabilities()} directly.
      */
+    @Deprecated
+    @androidx.annotation.ReplaceWith(expression = "info.getCapabilities()")
     @SuppressWarnings("deprecation")
     public static int getCapabilities(@NonNull AccessibilityServiceInfo info) {
-        if (Build.VERSION.SDK_INT >= 18) {
-            return info.getCapabilities();
-        } else {
-            if (info.getCanRetrieveWindowContent()) {
-                return CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT;
-            }
-            return 0;
-        }
+        return info.getCapabilities();
     }
 
     /**
@@ -302,8 +294,7 @@ public final class AccessibilityServiceInfoCompat {
      * @param capability The capability.
      * @return The string representation.
      */
-    @NonNull
-    public static String capabilityToString(int capability) {
+    public static @NonNull String capabilityToString(int capability) {
         switch (capability) {
             case CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT:
                 return "CAPABILITY_CAN_RETRIEVE_WINDOW_CONTENT";

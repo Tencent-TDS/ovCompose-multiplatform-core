@@ -22,7 +22,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -35,7 +35,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -47,29 +47,25 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AnimatedContentWithInterruptions() {
-    var count by remember { mutableStateOf(0) }
-    AnimatedContent(targetState = count, transitionSpec = {
-        if (targetState == 0) {
-            (slideInVertically { it } with fadeOut(targetAlpha = 0.88f))
-                .apply { targetContentZIndex = 1f }
-        } else {
-            (fadeIn(initialAlpha = 0.88f) with slideOutVertically { it } +
-                fadeOut(targetAlpha = 0.88f))
-                .apply { targetContentZIndex = -1f }
+    var count by remember { mutableIntStateOf(0) }
+    AnimatedContent(
+        targetState = count,
+        transitionSpec = {
+            if (targetState == 0) {
+                (slideInVertically { it } togetherWith fadeOut(targetAlpha = 0.88f)).apply {
+                    targetContentZIndex = 1f
+                }
+            } else {
+                (fadeIn(initialAlpha = 0.88f) togetherWith
+                        slideOutVertically { it } + fadeOut(targetAlpha = 0.88f))
+                    .apply { targetContentZIndex = -1f }
+            }
         }
-    }) { state ->
+    ) { state ->
         if (state == 0) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Green)
-            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.Green))
         } else if (state == 1) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Red)
-            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.Red))
         }
     }
     LaunchedEffect(Unit) {
@@ -80,14 +76,8 @@ fun AnimatedContentWithInterruptions() {
     }
 
     Row {
-        Text("Red",
-            Modifier
-                .clickable { if (count < 1) count++ }
-                .padding(50.dp))
+        Text("Red", Modifier.clickable { if (count < 1) count++ }.padding(50.dp))
         Spacer(Modifier.width(60.dp))
-        Text("Green",
-            Modifier
-                .clickable { if (count > 0) count-- }
-                .padding(50.dp))
+        Text("Green", Modifier.clickable { if (count > 0) count-- }.padding(50.dp))
     }
 }

@@ -29,10 +29,8 @@ import androidx.testutils.recreate
 import androidx.testutils.waitForExecution
 import com.google.common.truth.Truth.assertThat
 import java.lang.ref.WeakReference
-import leakcanary.DetectLeaksAfterTestSuccess
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
@@ -40,16 +38,18 @@ import org.junit.runner.RunWith
 class LoaderTest {
 
     @Suppress("DEPRECATION")
+    @get:Rule
     var activityRule = androidx.test.rule.ActivityTestRule(LoaderActivity::class.java)
 
+    // TODO(b/272519998): Add back in leak detection rule chain once leak addressed by platform
     // Detect leaks BEFORE and AFTER activity is destroyed
+    /*
     @get:Rule
     val ruleChain: RuleChain = RuleChain.outerRule(DetectLeaksAfterTestSuccess())
         .around(activityRule)
+    */
 
-    /**
-     * Test to ensure that there is no Activity leak due to Loader
-     */
+    /** Test to ensure that there is no Activity leak due to Loader */
     @Test
     fun testLeak() {
         // Restart the activity because activityRule keeps a strong reference to the
@@ -59,16 +59,11 @@ class LoaderTest {
         val fragment = LoaderFragment()
         val fm: FragmentManager = activity.supportFragmentManager
 
-        fm.beginTransaction()
-            .add(fragment, "1")
-            .commit()
+        fm.beginTransaction().add(fragment, "1").commit()
 
         activityRule.executePendingTransactions(fm)
 
-        fm.beginTransaction()
-            .remove(fragment)
-            .addToBackStack(null)
-            .commit()
+        fm.beginTransaction().remove(fragment).addToBackStack(null).commit()
 
         activityRule.executePendingTransactions(fm)
 
@@ -84,9 +79,7 @@ class LoaderTest {
         assertThat(weakActivity.get()).isNull()
     }
 
-    /**
-     * When a LoaderManager is reused, it should notify in onResume
-     */
+    /** When a LoaderManager is reused, it should notify in onResume */
     @Test
     fun startWhenReused() {
         var activity = activityRule.activity
@@ -113,15 +106,11 @@ class LoaderTest {
         assertThat(fragment).isNotNull()
         assertThat(fragment.textView.text).isEqualTo("Loaded!")
 
-        fm.beginTransaction()
-            .detach(fragment)
-            .commit()
+        fm.beginTransaction().detach(fragment).commit()
 
         activityRule.executePendingTransactions(fm)
 
-        fm.beginTransaction()
-            .attach(fragment)
-            .commit()
+        fm.beginTransaction().attach(fragment).commit()
 
         activityRule.executePendingTransactions(fm)
 
@@ -136,8 +125,8 @@ class LoaderTest {
             LoaderManager.getInstance(this).initLoader(LOADER_ID, null, this)
         }
 
-        override fun onCreateLoader(id: Int, args: Bundle?):
-            Loader<Boolean> = SimpleLoader(requireContext())
+        override fun onCreateLoader(id: Int, args: Bundle?): Loader<Boolean> =
+            SimpleLoader(requireContext())
 
         override fun onLoadFinished(loader: Loader<Boolean>, data: Boolean?) {}
 

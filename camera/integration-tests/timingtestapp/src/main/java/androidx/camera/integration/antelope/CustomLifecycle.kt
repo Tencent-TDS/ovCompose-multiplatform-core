@@ -18,14 +18,14 @@ package androidx.camera.integration.antelope
 
 import android.os.Handler
 import android.os.Looper
+import androidx.camera.integration.antelope.MainActivity.Companion.logd
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.camera.integration.antelope.MainActivity.Companion.logd
 
 /**
- * Camera X normally handles lifecycle events itself. Optimizations in the API make it difficult
- * to perform a series of clean tests like Antelope does, so it requires its own custom lifecycle.
+ * Camera X normally handles lifecycle events itself. Optimizations in the API make it difficult to
+ * perform a series of clean tests like Antelope does, so it requires its own custom lifecycle.
  */
 class CustomLifecycle : LifecycleOwner {
     private var lifecycleRegistry = LifecycleRegistry(this)
@@ -36,9 +36,7 @@ class CustomLifecycle : LifecycleOwner {
         lifecycleRegistry.currentState = Lifecycle.State.CREATED
     }
 
-    override fun getLifecycle(): Lifecycle {
-        return lifecycleRegistry
-    }
+    override val lifecycle: Lifecycle = lifecycleRegistry
 
     fun start() {
         if (Looper.myLooper() != mainHandler.looper) {

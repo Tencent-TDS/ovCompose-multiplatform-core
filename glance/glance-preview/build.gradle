@@ -1,32 +1,34 @@
-import androidx.build.AndroidXComposePlugin
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXComposePlugin")
     id("AndroidXPlugin")
+    id("org.jetbrains.kotlin.android")
     id("com.android.library")
 }
 
-// Disable multi-platform; this will only be used on Android.
-AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project, /* isMultiplatformEnabled= */false)
-
 dependencies {
     implementation(libs.kotlinStdlib)
-    api("androidx.annotation:annotation:1.4.0")
+    api("androidx.annotation:annotation:1.8.1")
     api("androidx.compose.runtime:runtime:1.1.1")
 }
 
 android {
-    defaultConfig {
-        minSdkVersion 21
-    }
-    namespace "androidx.glance.preview"
+    namespace = "androidx.glance.preview"
 }
 
 androidx {
-    name = "Android Glance Preview"
-    type = LibraryType.PUBLISHED_LIBRARY
+    name = "Glance Preview"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "Glance preview library. This library provides the API required for marking the" +
             "glance @Composable components that should have preview in the Android Studio."
+    legacyDisableKotlinStrictApiMode = true
 }

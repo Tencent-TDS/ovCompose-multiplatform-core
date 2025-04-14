@@ -16,42 +16,41 @@
 
 package androidx.compose.foundation.lazy.layout
 
+import androidx.collection.mutableScatterMapOf
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.SaveableStateHolder
-import androidx.compose.runtime.setValue
+import kotlin.jvm.JvmInline
 
 /**
  * This class:
  * 1) Caches the lambdas being produced by [itemProvider]. This allows us to perform less
- * recompositions as the compose runtime can skip the whole composition if we subcompose with the
- * same instance of the content lambda.
+ *    recompositions as the compose runtime can skip the whole composition if we subcompose with the
+ *    same instance of the content lambda.
  * 2) Updates the mapping between keys and indexes when we have a new factory
  * 3) Adds state restoration on top of the composable returned by [itemProvider] with help of
- * [saveableStateHolder].
+ *    [saveableStateHolder].
  */
-@ExperimentalFoundationApi
+@OptIn(ExperimentalFoundationApi::class)
 internal class LazyLayoutItemContentFactory(
     private val saveableStateHolder: SaveableStateHolder,
     val itemProvider: () -> LazyLayoutItemProvider,
 ) {
     /** Contains the cached lambdas produced by the [itemProvider]. */
-    private val lambdasCache = mutableMapOf<Any, CachedItemContent>()
+    private val lambdasCache = mutableScatterMapOf<Any, CachedItemContent>()
 
     /**
      * Returns the content type for the item with the given key. It is used to improve the item
      * compositions reusing efficiency.
-     **/
+     */
     fun getContentType(key: Any?): Any? {
         if (key == null) return null
 
         val cachedContent = lambdasCache[key]
         return if (cachedContent != null) {
-            cachedContent.type
+            cachedContent.contentType
         } else {
             val itemProvider = itemProvider()
             val index = itemProvider.getIndex(key)
@@ -63,70 +62,71 @@ internal class LazyLayoutItemContentFactory(
         }
     }
 
-    /**
-     * Return cached item content lambda or creates a new lambda and puts it in the cache.
-     */
-    fun getContent(index: Int, key: Any): @Composable () -> Unit {
+    /** Return cached item content lambda or creates a new lambda and puts it in the cache. */
+    fun getContent(index: Int, key: Any, contentType: Any?): @Composable () -> Unit {
         val cached = lambdasCache[key]
-        val type = itemProvider().getContentType(index)
-        return if (cached != null && cached.lastKnownIndex == index && cached.type == type) {
+        return if (cached != null && cached.index == index && cached.contentType == contentType) {
             cached.content
         } else {
-            val newContent = CachedItemContent(index, key, type)
+            val newContent = CachedItemContent(index, key, contentType)
             lambdasCache[key] = newContent
             newContent.content
         }
     }
 
-    private inner class CachedItemContent(
-        initialIndex: Int,
-        val key: Any,
-        val type: Any?
-    ) {
-        var lastKnownIndex by mutableStateOf(initialIndex)
+    private inner class CachedItemContent(index: Int, val key: Any, val contentType: Any?) {
+        // the index resolved during the latest composition
+        var index = index
             private set
 
         private var _content: (@Composable () -> Unit)? = null
         val content: (@Composable () -> Unit)
             get() = _content ?: createContentLambda().also { _content = it }
 
-        private fun createContentLambda() = @Composable {
-            val itemProvider = itemProvider()
-            val index = itemProvider.findIndexByKey(key, lastKnownIndex).also {
-                lastKnownIndex = it
-            }
+        private fun createContentLambda() =
+            @Composable {
+                val itemProvider = itemProvider()
 
-            if (index < itemProvider.itemCount) {
-                val key = itemProvider.getKey(index)
-                if (key == this.key) {
-                    StableSaveProvider(StableValue(saveableStateHolder), StableValue(key)) {
-                        itemProvider.Item(index)
+                var index = index
+                if (index >= itemProvider.itemCount || itemProvider.getKey(index) != key) {
+                    index = itemProvider.getIndex(key)
+                    if (index != -1) this.index = index
+                }
+
+                if (index != -1) {
+                    SkippableItem(
+                        itemProvider,
+                        StableValue(saveableStateHolder),
+                        index,
+                        StableValue(key)
+                    )
+                }
+                DisposableEffect(key) {
+                    onDispose {
+                        // we clear the cached content lambda when disposed to not leak
+                        // RecomposeScopes
+                        _content = null
                     }
                 }
             }
-            DisposableEffect(key) {
-                onDispose {
-                    // we clear the cached content lambda when disposed to not leak RecomposeScopes
-                    _content = null
-                }
-            }
-        }
     }
 }
 
-@Stable
-@JvmInline
-private value class StableValue<T>(val value: T)
+@Stable @JvmInline private value class StableValue<T>(val value: T)
 
 /**
- * Hack around skippable functions to force restart for unstable saveable state holder that uses
- * [Any] as key.
+ * Hack around skippable functions to force skip SaveableStateProvider and Item block when nothing
+ * changed. It allows us to skip heavy-weight composition local providers.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun StableSaveProvider(
+private fun SkippableItem(
+    itemProvider: LazyLayoutItemProvider,
     saveableStateHolder: StableValue<SaveableStateHolder>,
-    key: StableValue<Any>,
-    content: @Composable () -> Unit
+    index: Int,
+    key: StableValue<Any>
 ) {
-    saveableStateHolder.value.SaveableStateProvider(key.value, content)
+    saveableStateHolder.value.SaveableStateProvider(key.value) {
+        itemProvider.Item(index, key.value)
+    }
 }

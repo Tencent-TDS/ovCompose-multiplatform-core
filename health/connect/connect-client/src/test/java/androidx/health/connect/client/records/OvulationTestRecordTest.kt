@@ -16,8 +16,10 @@
 
 package androidx.health.connect.client.records
 
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import java.time.Instant
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -26,11 +28,27 @@ class OvulationTestRecordTest {
 
     @Test
     fun resultEnums_existInMapping() {
-        val allEnums = OvulationTestRecord.Companion::class.allIntDefEnumsWithPrefix("RESULT")
+        val allEnums = getAllIntDefEnums<OvulationTestRecord>("""RESULT.*(?<!UNKNOWN)$""")
 
         assertThat(OvulationTestRecord.RESULT_STRING_TO_INT_MAP.values)
             .containsExactlyElementsIn(allEnums)
         assertThat(OvulationTestRecord.RESULT_INT_TO_STRING_MAP.keys)
             .containsExactlyElementsIn(allEnums)
+    }
+
+    @Test
+    fun toString_containsMembers() {
+        assertThat(
+                OvulationTestRecord(
+                        time = Instant.ofEpochMilli(1234L),
+                        zoneOffset = null,
+                        result = OvulationTestRecord.RESULT_INCONCLUSIVE,
+                        metadata = Metadata.unknownRecordingMethod(),
+                    )
+                    .toString()
+            )
+            .isEqualTo(
+                "OvulationTestRecord(time=1970-01-01T00:00:01.234Z, zoneOffset=null, result=0, metadata=Metadata(id='', dataOrigin=DataOrigin(packageName=''), lastModifiedTime=1970-01-01T00:00:00Z, clientRecordId=null, clientRecordVersion=0, device=null, recordingMethod=0))"
+            )
     }
 }

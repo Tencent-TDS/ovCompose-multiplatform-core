@@ -23,14 +23,14 @@ import android.widget.Button
 import android.widget.LinearLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import androidx.fragment.testapp.doubleTransitionBug.DoubleTransitionBugActivity
-import androidx.fragment.testapp.kittenfragmenttransitions.KittenTransitionMainActivity
+import androidx.fragment.testapp.doubleTransitionBug.DoubleTransitionBugFragment
+import androidx.fragment.testapp.kittenfragmenttransitions.KittenTransitionMainFragment
 
 class TransitionTestsFragment : Fragment(R.layout.transition_fragment) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 
-        addButton("Double Transition Bug", DoubleTransitionBugActivity::class.java)
-        addButton("Kitten Transition", KittenTransitionMainActivity::class.java)
+        addButton("Double Transition Bug", DoubleTransitionBugFragment())
+        addButton("Kitten Transition", KittenTransitionMainFragment())
     }
 }
 
@@ -39,12 +39,8 @@ fun <T : FragmentActivity> Fragment.addButton(text: String, clazz: Class<T>) {
         Button(context).apply {
             this.text = text
 
-            setOnClickListener {
-                startActivity(Intent(activity, clazz))
-            }
-            layoutParams = LinearLayout.LayoutParams(-1, 0).apply {
-                weight = 1f
-            }
+            setOnClickListener { startActivity(Intent(activity, clazz)) }
+            layoutParams = LinearLayout.LayoutParams(-1, 0).apply { weight = 1f }
         }
     )
 }

@@ -22,8 +22,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.SurfaceHolder
-import androidx.annotation.RequiresApi
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import androidx.wear.watchface.control.IInteractiveWatchFace
 import androidx.wear.watchface.control.IPendingInteractiveWatchFace
 import androidx.wear.watchface.control.InteractiveInstanceManager
@@ -115,7 +115,7 @@ internal class TestAsyncWatchFaceService(
 
 @Config(manifest = Config.NONE, sdk = [Build.VERSION_CODES.R])
 @RunWith(WatchFaceTestRunner::class)
-@RequiresApi(Build.VERSION_CODES.R)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
 public class AsyncWatchFaceInitTest {
     private val handler = mock<Handler>()
     private val surfaceHolder = mock<SurfaceHolder>()
@@ -183,6 +183,7 @@ public class AsyncWatchFaceInitTest {
 
     @After
     fun tearDown() {
+        assertThat(InteractiveInstanceManager.getParameterlessEngine()).isNull()
         InteractiveInstanceManager.releaseInstance(initParams.instanceId)
         assertThat(InteractiveInstanceManager.getInstances()).isEmpty()
     }
@@ -228,6 +229,9 @@ public class AsyncWatchFaceInitTest {
         runPostedTasksFor(0)
 
         assertThat(pendingException.message).startsWith("WatchFace already exists!")
+
+        // Tidy up.
+        InteractiveInstanceManager.setParameterlessEngine(null)
     }
 
     @Test

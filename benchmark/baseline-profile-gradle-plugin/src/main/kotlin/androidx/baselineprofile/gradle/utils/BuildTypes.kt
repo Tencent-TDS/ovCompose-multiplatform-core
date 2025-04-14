@@ -15,65 +15,126 @@
  */
 package androidx.baselineprofile.gradle.utils
 
+import com.android.build.api.dsl.AndroidSourceDirectorySet
+import com.android.build.api.dsl.AndroidSourceSet
+import com.android.build.api.dsl.ApkSigningConfig
+import com.android.build.api.dsl.ApplicationBuildType
 import com.android.build.api.dsl.BuildType
-import com.android.build.api.dsl.CommonExtension
+import com.android.build.gradle.internal.api.DefaultAndroidSourceDirectorySet
+import com.android.build.gradle.internal.api.DefaultAndroidSourceFile
 import org.gradle.api.GradleException
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 
 internal inline fun <reified T : BuildType> createExtendedBuildTypes(
     project: Project,
-    extension: CommonExtension<*, T, *, *>,
+    extensionBuildTypes: NamedDomainObjectContainer<out T>,
     newBuildTypePrefix: String,
     crossinline filterBlock: (T) -> (Boolean),
-    crossinline configureBlock: T.() -> (Unit),
+    crossinline newConfigureBlock: (base: T, ext: T) -> (Unit),
+    crossinline overrideConfigureBlock: (base: T, ext: T) -> (Unit),
     extendedBuildTypeToOriginalBuildTypeMapping: MutableMap<String, String> = mutableMapOf()
 ) {
-    extension.buildTypes.filter { buildType ->
+    extensionBuildTypes
+        .filter { buildType ->
             if (buildType !is T) {
-                throw GradleException(
-                    "Build type `${buildType.name}` is not of type ${T::class}"
-                )
+                throw GradleException("Build type `${buildType.name}` is not of type ${T::class}")
             }
             filterBlock(buildType)
-        }.forEach { buildType ->
-
+        }
+        .forEach { buildType ->
             val newBuildTypeName = camelCase(newBuildTypePrefix, buildType.name)
 
             // Check in case the build type was created manually (to allow full customization)
-            if (extension.buildTypes.findByName(newBuildTypeName) != null) {
+            val newBuildType = extensionBuildTypes.findByName(newBuildTypeName)
+            if (newBuildType != null) {
                 project.logger.info(
                     "Build type $newBuildTypeName won't be created because already exists."
                 )
+                // If the build type exists, we apply the `overrideConfigurationBlock`
+                newBuildType.apply {
+                    matchingFallbacks += listOf(buildType.name)
+                    overrideConfigureBlock(buildType, this)
+                }
             } else {
-                // If the new build type doesn't exist, create it simply extending the configured
-                // one (by default release).
-                extension.buildTypes.create(newBuildTypeName).apply {
+                // If the new build type doesn't exist, create it and apply the
+                // `newConfigurationBlock`
+                extensionBuildTypes.create(newBuildTypeName).apply {
                     initWith(buildType)
                     matchingFallbacks += listOf(buildType.name)
-                    configureBlock(this as T)
+                    newConfigureBlock(buildType, this)
                 }
             }
+
             // Mapping the build type to the newly created
             extendedBuildTypeToOriginalBuildTypeMapping[newBuildTypeName] = buildType.name
         }
 }
 
+internal inline fun <reified T : BuildType> copySigningConfigIfNotSpecified(
+    baseBuildType: T,
+    extBuildType: T,
+    debugSigningConfig: ApkSigningConfig?
+) {
+    // If the build type is for applications, the signing config has not been defined yet,
+    // we copy the signing config of the original build type, or the debug one if the original
+    // doesn't have one.
+    if (
+        baseBuildType is ApplicationBuildType &&
+            extBuildType is ApplicationBuildType &&
+            extBuildType.signingConfig == null
+    ) {
+        extBuildType.signingConfig = baseBuildType.signingConfig ?: debugSigningConfig
+    }
+}
+
 internal inline fun <reified T : BuildType> createBuildTypeIfNotExists(
     project: Project,
-    extension: CommonExtension<*, T, *, *>,
+    extensionBuildTypes: NamedDomainObjectContainer<out T>,
     buildTypeName: String,
     crossinline configureBlock: T.() -> (Unit),
 ) {
     // Check in case the build type was created manually (to allow full customization)
-    if (extension.buildTypes.findByName(buildTypeName) != null) {
-        project.logger.info(
-            "Build type $buildTypeName won't be created because already exists."
-        )
+    if (extensionBuildTypes.findByName(buildTypeName) != null) {
+        project.logger.info("Build type $buildTypeName won't be created because already exists.")
         return
     }
     // If the new build type doesn't exist, create it simply extending the configured
     // one (by default release).
-    extension.buildTypes.create(buildTypeName).apply {
-        configureBlock(this)
-    }
+    extensionBuildTypes.create(buildTypeName).apply { configureBlock(this) }
+}
+
+internal fun copyBuildTypeSources(
+    extensionSourceSets: NamedDomainObjectContainer<out AndroidSourceSet>,
+    fromToMapping: Map<String, String>
+) {
+    extensionSourceSets
+        .filter { it.name in fromToMapping.keys }
+        .forEach { toSourceSets ->
+            val fromBuildType = fromToMapping[toSourceSets.name]!!
+            val fromSourceSets = extensionSourceSets.getByName(fromBuildType)
+
+            // Copies each specified source set
+            for (dirSet in
+                listOf<(AndroidSourceSet) -> (AndroidSourceDirectorySet)>(
+                    { it.aidl },
+                    { it.assets },
+                    { it.java },
+                    { it.jniLibs },
+                    { it.kotlin },
+                    { it.mlModels },
+                    { it.renderscript },
+                    { it.res },
+                    { it.resources },
+                    { it.shaders },
+                )) {
+                val fromSet = dirSet(fromSourceSets) as DefaultAndroidSourceDirectorySet
+                val toSet = dirSet(toSourceSets) as DefaultAndroidSourceDirectorySet
+                toSet.srcDirs(*fromSet.srcDirs.toTypedArray())
+            }
+
+            // Copies the manifest file
+            val manifestFile = (fromSourceSets.manifest as DefaultAndroidSourceFile).srcFile
+            toSourceSets.manifest.srcFile(manifestFile)
+        }
 }

@@ -16,20 +16,20 @@
 
 package androidx.compose.ui.graphics
 
+import androidx.annotation.IntRange
+
 /**
  * Result of a pixel read operation. This contains the [ImageBitmap] pixel information represented
  * as a 1 dimensional array of values that supports queries of pixel values based on the 2
  * dimensional coordinates of the corresponding [ImageBitmap] this was obtained from
  *
  * @sample androidx.compose.ui.graphics.samples.ImageBitmapReadPixelsSample
- *
  * @param buffer IntArray where pixel information is stored as an ARGB value packed into an Int
  * @param bufferOffset first index in the buffer where pixel information for the [ImageBitmap] is
- * stored
+ *   stored
  * @param width Width of the subsection of the [ImageBitmap] this buffer represents
  * @param height Height of the subsection of the [ImageBitmap] this buffer represents
  * @param stride Number of entries to skip between rows
- *
  * @see ImageBitmap.readPixels
  * @See ImageBitmap.toPixelMap
  */
@@ -42,13 +42,10 @@ class PixelMap(
 ) {
     /**
      * Obtain the color of the pixel at the given coordinate.
+     *
      * @param x the horizontal pixel coordinate, minimum 1
      * @param y the vertical pixel coordinate, minimum 1
      */
-    operator fun get(
-        /*@IntRange(from = 0)*/
-        x: Int,
-        /*@IntRange(from = 0)*/
-        y: Int
-    ): Color = Color(buffer[bufferOffset + y * stride + x])
+    operator fun get(@IntRange(from = 0) x: Int, @IntRange(from = 0) y: Int): Color =
+        Color(buffer[bufferOffset + y * stride + x])
 }

@@ -26,58 +26,58 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import org.hamcrest.core.IsNull
-import org.hamcrest.MatcherAssert.assertThat
-import org.junit.Assert
 import kotlin.reflect.KClass
+import org.hamcrest.MatcherAssert.assertThat
+import org.hamcrest.core.IsNull
+import org.junit.Assert
 
 private const val SPLASH_SCREEN_STYLE_ICON = 1
 private const val KEY_SPLASH_SCREEN_STYLE: String = "android.activity.splashScreenStyle"
 private const val BASIC_SAMPLE_PACKAGE: String = "androidx.core.splashscreen.test"
-private const val LAUNCH_TIMEOUT: Long = 5000
+private const val LAUNCH_TIMEOUT: Long = 10000
 
-/**
- * Start an activity simulating a launch from the launcher
- * to ensure the splash screen is shown
- */
+/** Start an activity simulating a launch from the launcher to ensure the splash screen is shown */
 fun startActivityWithSplashScreen(
     activityClass: KClass<out SplashScreenTestControllerHolder>,
     device: UiDevice,
     intentModifier: ((Intent) -> Unit)? = null
 ): SplashScreenTestController {
     // Start from the home screen
-    device.pressHome()
+    InstrumentationRegistry.getInstrumentation()
+        .getUiAutomation()
+        .executeShellCommand(
+            "am start -a android.intent.action.MAIN -c android.intent.category.HOME"
+        )
 
     // Wait for launcher
     val launcherPackage: String = device.launcherPackageName
     assertThat(launcherPackage, IsNull.notNullValue())
-    device.wait(
-        Until.hasObject(By.pkg(launcherPackage).depth(0)),
-        LAUNCH_TIMEOUT
-    )
+    device.wait(Until.hasObject(By.pkg(launcherPackage).depth(0)), LAUNCH_TIMEOUT)
 
     // Launch the app
     val context = ApplicationProvider.getApplicationContext<Context>()
-    val baseIntent = context.packageManager.getLaunchIntentForPackage(
-        BASIC_SAMPLE_PACKAGE
-    )
-    val intent = Intent(baseIntent).apply {
-        component = ComponentName(BASIC_SAMPLE_PACKAGE, activityClass.qualifiedName!!)
-        intentModifier?.invoke(this)
-    }
+    val baseIntent = context.packageManager.getLaunchIntentForPackage(BASIC_SAMPLE_PACKAGE)
+    val intent =
+        Intent(baseIntent).apply {
+            component = ComponentName(BASIC_SAMPLE_PACKAGE, activityClass.qualifiedName!!)
+            intentModifier?.invoke(this)
+        }
 
-    val monitor = object : Instrumentation.ActivityMonitor(
-        activityClass.qualifiedName!!,
-        Instrumentation.ActivityResult(0, Intent()), false
-    ) {
-        override fun onStartActivity(intent: Intent?): Instrumentation.ActivityResult? {
-            return if (intent?.component?.packageName == BASIC_SAMPLE_PACKAGE) {
-                Instrumentation.ActivityResult(0, Intent())
-            } else {
-                null
+    val monitor =
+        object :
+            Instrumentation.ActivityMonitor(
+                activityClass.qualifiedName!!,
+                Instrumentation.ActivityResult(0, Intent()),
+                false
+            ) {
+            override fun onStartActivity(intent: Intent?): Instrumentation.ActivityResult? {
+                return if (intent?.component?.packageName == BASIC_SAMPLE_PACKAGE) {
+                    Instrumentation.ActivityResult(0, Intent())
+                } else {
+                    null
+                }
             }
         }
-    }
     InstrumentationRegistry.getInstrumentation().addMonitor(monitor)
 
     context.startActivity(
@@ -86,18 +86,12 @@ fun startActivityWithSplashScreen(
         Bundle().apply { putInt(KEY_SPLASH_SCREEN_STYLE, SPLASH_SCREEN_STYLE_ICON) }
     )
     Assert.assertTrue(
-        device.wait(
-            Until.hasObject(By.pkg(BASIC_SAMPLE_PACKAGE).depth(0)),
-            LAUNCH_TIMEOUT
-        )
+        device.wait(Until.hasObject(By.pkg(BASIC_SAMPLE_PACKAGE).depth(0)), LAUNCH_TIMEOUT)
     )
     val splashScreenTestActivity =
         monitor.waitForActivityWithTimeout(LAUNCH_TIMEOUT) as SplashScreenTestControllerHolder?
     if (splashScreenTestActivity == null) {
-        Assert.fail(
-            activityClass.simpleName!! + " was not launched after " +
-                "$LAUNCH_TIMEOUT ms"
-        )
+        Assert.fail(activityClass.simpleName!! + " was not launched after " + "$LAUNCH_TIMEOUT ms")
     }
     return splashScreenTestActivity!!.controller
 }

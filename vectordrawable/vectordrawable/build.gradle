@@ -1,4 +1,11 @@
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -6,9 +13,10 @@ plugins {
 }
 
 dependencies {
-    api("androidx.annotation:annotation:1.1.0")
-    api("androidx.core:core:1.6.0")
-    implementation("androidx.collection:collection:1.1.0")
+    api(libs.jspecify)
+    api("androidx.annotation:annotation:1.8.1")
+    api("androidx.core:core:1.13.0")
+    implementation("androidx.collection:collection:1.4.2")
 
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -24,12 +32,12 @@ android {
     aaptOptions {
         additionalParameters "--no-version-vectors"
     }
-    namespace "androidx.vectordrawable"
+    namespace = "androidx.vectordrawable"
 }
 
 androidx {
-    name = "Android Support VectorDrawable"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "VectorDrawable"
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.VECTORDRAWABLE
     inceptionYear = "2015"
     description = "Android Support VectorDrawable"

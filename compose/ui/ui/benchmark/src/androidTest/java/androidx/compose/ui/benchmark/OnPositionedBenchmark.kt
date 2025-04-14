@@ -29,29 +29,25 @@ import androidx.compose.testutils.benchmark.toggleStateBenchmarkLayout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import androidx.test.ext.junit.runners.AndroidJUnit4
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class OnPositionedBenchmark {
 
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     @Test
     fun deepHierarchyOnPositioned_layout() {
-        benchmarkRule.toggleStateBenchmarkLayout({
-            DeepHierarchyOnPositionedTestCase()
-        })
+        benchmarkRule.toggleStateBenchmarkLayout({ DeepHierarchyOnPositionedTestCase() })
     }
 }
 
-private class DeepHierarchyOnPositionedTestCase :
-    ComposeTestCase, ToggleableTestCase {
+private class DeepHierarchyOnPositionedTestCase : ComposeTestCase, ToggleableTestCase {
 
     private lateinit var state: MutableState<Dp>
 
@@ -69,15 +65,13 @@ private class DeepHierarchyOnPositionedTestCase :
     @Composable
     private fun StaticChildren(count: Int) {
         if (count > 0) {
-            val modifier = if (count == 1) {
-                Modifier.onGloballyPositioned { it.size }
-            } else {
-                Modifier
-            }
-            Box(
-                Modifier.size(100.dp).then(modifier),
-                contentAlignment = Alignment.Center
-            ) {
+            val modifier =
+                if (count == 1) {
+                    Modifier.onGloballyPositioned { it.size }
+                } else {
+                    Modifier
+                }
+            Box(Modifier.size(100.dp).then(modifier), contentAlignment = Alignment.Center) {
                 StaticChildren(count - 1)
             }
         }

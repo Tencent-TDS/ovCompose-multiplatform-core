@@ -18,7 +18,6 @@ package androidx.window.embedding
 
 import android.app.Activity
 import androidx.core.util.Consumer
-import androidx.window.core.ExperimentalWindowApi
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
@@ -26,7 +25,6 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
@@ -35,7 +33,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalWindowApi::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 internal class SplitControllerTest {
 
     private val mockBackend = mock<EmbeddingBackend>()
@@ -43,25 +41,31 @@ internal class SplitControllerTest {
     private val testScope = TestScope(UnconfinedTestDispatcher())
 
     @Test
-    fun test_splitInfoListComesFromBackend() = testScope.runTest {
-        val expected = listOf(SplitInfo(
-            ActivityStack(emptyList(), true),
-            ActivityStack(emptyList(), true),
-            SplitAttributes()
-        ))
-        doAnswer { invocationOnMock ->
-            @Suppress("UNCHECKED_CAST")
-            val listener = invocationOnMock.arguments.last() as Consumer<List<SplitInfo>>
-            listener.accept(expected)
-        }.whenever(mockBackend).addSplitListenerForActivity(any(), any(), any())
+    fun test_splitInfoListComesFromBackend() =
+        testScope.runTest {
+            val expected =
+                listOf(
+                    SplitInfo(
+                        ActivityStack(emptyList(), true),
+                        ActivityStack(emptyList(), true),
+                        SplitAttributes.Builder().build(),
+                    )
+                )
+            doAnswer { invocationOnMock ->
+                    @Suppress("UNCHECKED_CAST")
+                    val listener = invocationOnMock.arguments.last() as Consumer<List<SplitInfo>>
+                    listener.accept(expected)
+                }
+                .whenever(mockBackend)
+                .addSplitListenerForActivity(any(), any(), any())
 
-        val mockActivity = mock<Activity>()
-        val actual = splitController.splitInfoList(mockActivity).take(1).toList().first()
+            val mockActivity = mock<Activity>()
+            val actual = splitController.splitInfoList(mockActivity).take(1).toList().first()
 
-        assertEquals(expected, actual)
-        verify(mockBackend).addSplitListenerForActivity(eq(mockActivity), any(), any())
-        verify(mockBackend).removeSplitListenerForActivity(any())
-    }
+            assertEquals(expected, actual)
+            verify(mockBackend).addSplitListenerForActivity(eq(mockActivity), any(), any())
+            verify(mockBackend).removeSplitListenerForActivity(any())
+        }
 
     @Test
     fun test_splitSupportStatus_delegates() {
@@ -77,13 +81,23 @@ internal class SplitControllerTest {
     fun test_splitAttributesCalculator_delegates() {
         val mockCalculator = mock<(SplitAttributesCalculatorParams) -> SplitAttributes>()
 
-        whenever(mockBackend.isSplitAttributesCalculatorSupported()).thenReturn(true)
-        assertTrue(splitController.isSplitAttributesCalculatorSupported())
-
         splitController.setSplitAttributesCalculator(mockCalculator)
         verify(mockBackend).setSplitAttributesCalculator(mockCalculator)
 
         splitController.clearSplitAttributesCalculator()
         verify(mockBackend).clearSplitAttributesCalculator()
+    }
+
+    @Test
+    fun test_updateSplitAttribute_delegates() {
+        val mockSplitAttributes = SplitAttributes.Builder().build()
+        val mockSplitInfo =
+            SplitInfo(
+                ActivityStack(emptyList(), true),
+                ActivityStack(emptyList(), true),
+                mockSplitAttributes,
+            )
+        splitController.updateSplitAttributes(mockSplitInfo, mockSplitAttributes)
+        verify(mockBackend).updateSplitAttributes(eq(mockSplitInfo), eq(mockSplitAttributes))
     }
 }

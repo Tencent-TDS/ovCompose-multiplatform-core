@@ -25,8 +25,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -68,15 +68,12 @@ private fun MyText() {
     val longText = "Very long text\nthat spans across\nmultiple lines"
     var short by remember { mutableStateOf(true) }
     Box(
-        modifier = Modifier
-            .background(
-                Color.Blue,
-                RoundedCornerShape(15.dp)
-            )
-            .clickable { short = !short }
-            .padding(20.dp)
-            .wrapContentSize()
-            .animateContentSize { startSize, endSize -> println("$startSize -> $endSize") }
+        modifier =
+            Modifier.background(Color.Blue, RoundedCornerShape(15.dp))
+                .clickable { short = !short }
+                .padding(20.dp)
+                .wrapContentSize()
+                .animateContentSize { startSize, endSize -> println("$startSize -> $endSize") }
     ) {
         Text(
             if (short) {
@@ -94,9 +91,7 @@ private fun MyButton() {
     val shortText = "Short"
     val longText = "Very loooooong text"
     var short by remember { mutableStateOf(true) }
-    Button(
-        { short = !short }
-    ) {
+    Button({ short = !short }) {
         Text(
             if (short) {
                 shortText

@@ -18,27 +18,23 @@ package androidx.benchmark.gradle
 
 import java.io.File
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.StopExecutionException
 import org.gradle.api.tasks.TaskAction
-import org.gradle.kotlin.dsl.property
 import org.gradle.work.DisableCachingByDefault
 
 @Suppress("UnstableApiUsage")
 @DisableCachingByDefault(because = "Benchmark measurements are performed each task execution.")
-open class BenchmarkReportTask : DefaultTask() {
-    private val benchmarkReportDir: File
+abstract class BenchmarkReportTask : DefaultTask() {
 
     init {
         group = "Android"
-        description = "Run benchmarks found in the current project and output reports to the " +
-            "benchmark_reports folder under the project's build directory."
-
-        benchmarkReportDir = File(
-            "${project.buildDir}/outputs", "connected_android_test_additional_output"
-        )
-        outputs.dir(benchmarkReportDir)
+        description =
+            "Run benchmarks found in the current project and output reports to the " +
+                "benchmark_reports folder under the project's build directory."
 
         // This task should mirror the upToDate behavior of connectedAndroidTest as we always want
         // this task to run after connectedAndroidTest is run to pull the most recent benchmark
@@ -47,8 +43,9 @@ open class BenchmarkReportTask : DefaultTask() {
         outputs.upToDateWhen { false }
     }
 
-    @Input
-    val adbPath: Property<String> = project.objects.property()
+    @get:OutputDirectory abstract val benchmarkReportDir: DirectoryProperty
+
+    @get:Input abstract val adbPath: Property<String>
 
     @TaskAction
     fun exec() {
@@ -58,17 +55,20 @@ open class BenchmarkReportTask : DefaultTask() {
     }
 
     private fun getReportsForDevices(adb: Adb) {
-        if (benchmarkReportDir.exists()) {
-            benchmarkReportDir.deleteRecursively()
+        val reportDir = benchmarkReportDir.asFile.get()
+        if (reportDir.exists()) {
+            reportDir.deleteRecursively()
         }
-        benchmarkReportDir.mkdirs()
+        reportDir.mkdirs()
 
-        val deviceIds = adb.execSync("devices -l").stdout
-            .split("\n")
-            .drop(1)
-            .filter { !it.contains("unauthorized") }
-            .map { it.split(Regex("\\s+")).first().trim() }
-            .filter { !it.isBlank() }
+        val deviceIds =
+            adb.execSync("devices -l")
+                .stdout
+                .split("\n")
+                .drop(1)
+                .filter { !it.contains("unauthorized") }
+                .map { it.split(Regex("\\s+")).first().trim() }
+                .filter { !it.isBlank() }
 
         for (deviceId in deviceIds) {
             val dataDir = getReportDirForDevice(adb, deviceId)
@@ -76,12 +76,12 @@ open class BenchmarkReportTask : DefaultTask() {
                 throw StopExecutionException("Failed to find benchmark report on device: $deviceId")
             }
 
-            val outDir = File(benchmarkReportDir, deviceId)
+            val outDir = File(reportDir, deviceId)
             outDir.mkdirs()
             getReportsForDevice(adb, outDir, dataDir, deviceId)
             logger.info(
                 "Benchmark",
-                "Benchmark report files generated at ${benchmarkReportDir.absolutePath}"
+                "Benchmark report files generated at ${reportDir.absolutePath}"
             )
         }
     }
@@ -129,7 +129,8 @@ open class BenchmarkReportTask : DefaultTask() {
 
         // There are 2 filters: the first filters all the rows ending with `Download`, while
         // the second excludes app-scoped shared external storage.
-        return adb.execSync(cmd, deviceId).stdout
+        return adb.execSync(cmd, deviceId)
+            .stdout
             .split("\n")
             .filter { it.matches(regex = Regex(".*/Download")) }
             .first { !it.matches(regex = Regex(".*files/Download")) }

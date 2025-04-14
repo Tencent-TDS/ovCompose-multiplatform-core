@@ -22,16 +22,16 @@ import static java.util.Objects.requireNonNull;
 
 import android.os.RemoteException;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.IOnDoneCallback;
 import androidx.car.app.OnDoneCallback;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.KeepFields;
 import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.utils.RemoteUtils;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Handles binder transactions related to {@link ConversationCallback}
@@ -39,17 +39,14 @@ import androidx.car.app.utils.RemoteUtils;
  * <p> This class exists because we don't want to expose {@link IConversationCallback} to the A4C
  * client.
  *
- * @hide
  */
-@ExperimentalCarApi
 @RestrictTo(LIBRARY)
 @CarProtocol
-@RequiresCarApi(6)
+@RequiresCarApi(7)
 @KeepFields
 class ConversationCallbackDelegateImpl implements ConversationCallbackDelegate {
 
-    @Nullable
-    private final IConversationCallback mConversationCallbackBinder;
+    private final @Nullable IConversationCallback mConversationCallbackBinder;
 
     ConversationCallbackDelegateImpl(@NonNull ConversationCallback conversationCallback) {
         mConversationCallbackBinder = new ConversationCallbackStub(conversationCallback);
@@ -82,11 +79,11 @@ class ConversationCallbackDelegateImpl implements ConversationCallbackDelegate {
         }
     }
 
+    @CarProtocol
     @KeepFields
     private static class ConversationCallbackStub extends IConversationCallback.Stub {
 
-        @NonNull
-        private final ConversationCallback mConversationCallback;
+        private final @NonNull ConversationCallback mConversationCallback;
 
         ConversationCallbackStub(@NonNull ConversationCallback conversationCallback) {
             mConversationCallback = conversationCallback;

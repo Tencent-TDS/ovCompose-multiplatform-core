@@ -30,10 +30,11 @@ import android.os.Build;
 import android.text.format.DateUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.WorkerThread;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,6 +82,7 @@ public class PreviewChannelHelper {
     }
 
     /**
+     * @param context                    the Context object that holds the channels
      * @param urlConnectionTimeoutMillis see {@link URLConnection#setConnectTimeout(int)}
      * @param urlReadTimeoutMillis       see {@link URLConnection#setReadTimeout(int)}
      */
@@ -195,19 +197,22 @@ public class PreviewChannelHelper {
             return Collections.emptyList();
         }
 
-        Cursor cursor = mContext.getContentResolver()
+        List<PreviewChannel> channels = new ArrayList<>();
+        try (Cursor cursor = mContext.getContentResolver()
                 .query(
                         TvContractCompat.Channels.CONTENT_URI,
                         PreviewChannel.Columns.PROJECTION,
                         null,
                         null,
-                        null);
-
-        List<PreviewChannel> channels = new ArrayList<>();
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                channels.add(PreviewChannel.fromCursor(cursor));
-            } while (cursor.moveToNext());
+                        null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                do {
+                    PreviewChannel previewChannel = PreviewChannel.fromCursor(cursor);
+                    if (previewChannel != null) {
+                        channels.add(previewChannel);
+                    }
+                } while (cursor.moveToNext());
+            }
         }
         return channels;
     }
@@ -219,8 +224,7 @@ public class PreviewChannelHelper {
      * @param channelId ID of preview channel in TvProvider
      * @return PreviewChannel or null if not found
      */
-    @Nullable
-    public PreviewChannel getPreviewChannel(long channelId) {
+    public @Nullable PreviewChannel getPreviewChannel(long channelId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;
@@ -228,10 +232,15 @@ public class PreviewChannelHelper {
 
         PreviewChannel channel = null;
         Uri channelUri = TvContractCompat.buildChannelUri(channelId);
-        Cursor cursor = mContext.getContentResolver()
-                .query(channelUri, PreviewChannel.Columns.PROJECTION, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
-            channel = PreviewChannel.fromCursor(cursor);
+        try (Cursor cursor = mContext.getContentResolver()
+                .query(channelUri,
+                        PreviewChannel.Columns.PROJECTION,
+                        null,
+                        null,
+                        null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                channel = PreviewChannel.fromCursor(cursor);
+            }
         }
         return channel;
     }
@@ -407,8 +416,7 @@ public class PreviewChannelHelper {
     /**
      * Retrieves a single preview program from the system content provider (aka TvProvider).
      */
-    @Nullable
-    public PreviewProgram getPreviewProgram(long programId) {
+    public @Nullable PreviewProgram getPreviewProgram(long programId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;
@@ -416,9 +424,12 @@ public class PreviewChannelHelper {
 
         PreviewProgram program = null;
         Uri programUri = TvContractCompat.buildPreviewProgramUri(programId);
-        Cursor cursor = mContext.getContentResolver().query(programUri, null, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
-            program = PreviewProgram.fromCursor(cursor);
+        try (Cursor cursor = mContext.getContentResolver()
+                .query(programUri, null, null, null, null);
+        ) {
+            if (cursor != null && cursor.moveToFirst()) {
+                program = PreviewProgram.fromCursor(cursor);
+            }
         }
         return program;
     }
@@ -483,8 +494,7 @@ public class PreviewChannelHelper {
     /**
      * Retrieves a single WatchNext program from the system content provider (aka TvProvider).
      */
-    @Nullable
-    public WatchNextProgram getWatchNextProgram(long programId) {
+    public @Nullable WatchNextProgram getWatchNextProgram(long programId) {
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return null;
@@ -492,9 +502,12 @@ public class PreviewChannelHelper {
 
         WatchNextProgram program = null;
         Uri programUri = TvContractCompat.buildWatchNextProgramUri(programId);
-        Cursor cursor = mContext.getContentResolver().query(programUri, null, null, null, null);
-        if (cursor != null && cursor.moveToFirst()) {
-            program = WatchNextProgram.fromCursor(cursor);
+        try (Cursor cursor = mContext.getContentResolver()
+                .query(programUri, null, null, null, null)
+        ) {
+            if (cursor != null && cursor.moveToFirst()) {
+                program = WatchNextProgram.fromCursor(cursor);
+            }
         }
         return program;
     }

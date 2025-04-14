@@ -2,9 +2,9 @@
 package androidx.customview.view {
 
   public abstract class AbsSavedState implements android.os.Parcelable {
-    ctor protected AbsSavedState(android.os.Parcelable);
     ctor protected AbsSavedState(android.os.Parcel);
     ctor protected AbsSavedState(android.os.Parcel, ClassLoader?);
+    ctor protected AbsSavedState(android.os.Parcelable);
     method public int describeContents();
     method public final android.os.Parcelable? getSuperState();
     method public void writeToParcel(android.os.Parcel!, int);
@@ -80,6 +80,7 @@ package androidx.customview.widget {
     method public boolean settleCapturedViewAt(int, int);
     method public boolean shouldInterceptTouchEvent(android.view.MotionEvent);
     method public boolean smoothSlideViewTo(android.view.View, int, int);
+    method public boolean smoothSlideViewTo(android.view.View, int, int, int, android.view.animation.Interpolator?);
     field public static final int DIRECTION_ALL = 3; // 0x3
     field public static final int DIRECTION_HORIZONTAL = 1; // 0x1
     field public static final int DIRECTION_VERTICAL = 2; // 0x2

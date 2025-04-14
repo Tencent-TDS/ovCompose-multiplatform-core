@@ -32,30 +32,32 @@ import org.jetbrains.uast.UClass
 
 class BadConfigurationProviderIssueDetector : Detector(), SourceCodeScanner {
     companion object {
-        val ISSUE = Issue.create(
-            id = "BadConfigurationProvider",
-            briefDescription = "Invalid WorkManager Configuration Provider",
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "BadConfigurationProvider",
+                briefDescription = "Invalid WorkManager Configuration Provider",
+                explanation =
+                    """
                 An `android.app.Application` must implement `androidx.work.Configuration.Provider`
                 for on-demand initialization.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.FATAL,
-            implementation = Implementation(
-                BadConfigurationProviderIssueDetector::class.java, Scope.JAVA_FILE_SCOPE
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.FATAL,
+                implementation =
+                    Implementation(
+                        BadConfigurationProviderIssueDetector::class.java,
+                        Scope.JAVA_FILE_SCOPE
+                    )
             )
-        )
     }
 
     private var hasApplicableTypes = false
     private var correct = false
     private var location: Location? = null
 
-    override fun applicableSuperClasses() = listOf(
-        "android.app.Application",
-        "androidx.work.Configuration.Provider"
-    )
+    override fun applicableSuperClasses() =
+        listOf("android.app.Application", "androidx.work.Configuration.Provider")
 
     override fun visitClass(context: JavaContext, declaration: UClass) {
         if (correct) {
@@ -69,13 +71,20 @@ class BadConfigurationProviderIssueDetector : Detector(), SourceCodeScanner {
             return
         }
 
-        val isApplication = context.evaluator.inheritsFrom(
-            declaration.javaPsi, "android.app.Application", true
-        )
+        // Ignore abstract classes.
+        if (context.evaluator.isAbstract(declaration)) {
+            return
+        }
 
-        val isProvider = context.evaluator.inheritsFrom(
-            declaration.javaPsi, "androidx.work.Configuration.Provider", true
-        )
+        val isApplication =
+            context.evaluator.inheritsFrom(declaration.javaPsi, "android.app.Application", true)
+
+        val isProvider =
+            context.evaluator.inheritsFrom(
+                declaration.javaPsi,
+                "androidx.work.Configuration.Provider",
+                true
+            )
 
         if (isApplication) {
             location = Location.create(context.file)
@@ -91,10 +100,11 @@ class BadConfigurationProviderIssueDetector : Detector(), SourceCodeScanner {
     }
 
     override fun afterCheckRootProject(context: Context) {
+        val location = location ?: return
         if (hasApplicableTypes && !correct) {
             context.report(
                 issue = ISSUE,
-                location = location ?: Location.create(context.file),
+                location = location,
                 message = "Expected Application subtype to implement Configuration.Provider"
             )
         }

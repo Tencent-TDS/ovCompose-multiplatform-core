@@ -16,15 +16,17 @@
 
 package androidx.wear.watchface.complications.data
 
+import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.icu.util.TimeZone
+import android.os.Build
 import android.support.wearable.complications.ComplicationData as WireComplicationData
 import android.support.wearable.complications.ComplicationText as WireComplicationText
 import android.support.wearable.complications.ComplicationText.TimeDifferenceBuilder as WireComplicationTextTimeDifferenceBuilder
 import android.support.wearable.complications.ComplicationText.TimeFormatBuilder as WireComplicationTextTimeFormatBuilder
 import android.support.wearable.complications.TimeDependentText as WireTimeDependentText
-import android.support.wearable.complications.TimeDependentText
 import android.support.wearable.complications.TimeDifferenceText
+import android.support.wearable.complications.TimeFormatText
 import android.text.style.ForegroundColorSpan
 import android.text.style.LocaleSpan
 import android.text.style.StrikethroughSpan
@@ -33,8 +35,15 @@ import android.text.style.SubscriptSpan
 import android.text.style.SuperscriptSpan
 import android.text.style.TypefaceSpan
 import android.text.style.UnderlineSpan
+import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
+import com.google.wear.expression.ProtoLayoutDynamicString as WearSdkDynamicString
+import com.google.wear.services.complications.ComplicationText as WearSdkComplicationText
+import com.google.wear.services.complications.DynamicComplicationText as WearSdkDynamicComplicationText
+import com.google.wear.services.complications.PlainComplicationText as WearSdkPlainComplicationText
+import com.google.wear.services.complications.TimeDifferenceComplicationText as WearSdkTimeDifferenceComplicationText
+import com.google.wear.services.complications.TimeFormatComplicationText as WearSdkTimeFormatComplicationText
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -68,13 +77,10 @@ public interface ComplicationText {
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) public fun isPlaceholder(): Boolean = false
 
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.SUBCLASSES) public fun getTimeDependentText(): TimeDependentText
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun getTimeDependentText(): WireTimeDependentText
 
-    /**
-     * Converts this value to [WireComplicationText] object used for serialization.
-     *
-     */
+    /** Converts this value to [WireComplicationText] object used for serialization. */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun toWireComplicationText(): WireComplicationText
 
@@ -114,8 +120,7 @@ public class PlainComplicationText internal constructor(delegate: WireComplicati
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun isPlaceholder(): Boolean = delegate.isPlaceholder()
 
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.SUBCLASSES)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun getTimeDependentText() = delegate.getTimeDependentText()
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -268,8 +273,7 @@ public class TimeDifferenceComplicationText internal constructor(delegate: WireC
 
     override fun isAlwaysEmpty() = delegate.isAlwaysEmpty()
 
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.SUBCLASSES)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun getTimeDependentText() = delegate.getTimeDependentText()
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -418,8 +422,7 @@ public class TimeFormatComplicationText internal constructor(delegate: WireCompl
 
     override fun isAlwaysEmpty() = delegate.isAlwaysEmpty()
 
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.SUBCLASSES)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun getTimeDependentText() = delegate.getTimeDependentText()
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -519,7 +522,8 @@ private class DelegatingComplicationText(private val delegate: WireComplicationT
     override fun isPlaceholder(): Boolean = delegate.isPlaceholder()
 
     override fun isAlwaysEmpty() = delegate.isAlwaysEmpty
-    override fun getTimeDependentText(): TimeDependentText = delegate.timeDependentText
+
+    override fun getTimeDependentText(): WireTimeDependentText = delegate.timeDependentText
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) override fun toWireComplicationText() = delegate
 
@@ -548,19 +552,20 @@ private class DelegatingComplicationText(private val delegate: WireComplicationT
 }
 
 /** Converts a [WireComplicationText] into an equivalent [ComplicationText] instead. */
-internal fun WireComplicationText.toApiComplicationText(): ComplicationText =
-    DelegatingComplicationText(this)
-
-/** Converts a [WireComplicationText] into an equivalent [ComplicationText] instead. */
-internal fun WireComplicationText.toApiComplicationTextPlaceholderAware(): ComplicationText =
-    if (isPlaceholder) {
-        ComplicationText.PLACEHOLDER
-    } else {
-        DelegatingComplicationText(this)
+@SuppressLint("NewApi") // This is what's in the wire format, regardless of whether it's supported.
+internal fun WireComplicationText.toApiComplicationText(
+    placeholderAware: Boolean = false
+): ComplicationText =
+    when {
+        placeholderAware && isPlaceholder -> ComplicationText.PLACEHOLDER
+        dynamicValue != null -> DynamicComplicationText(dynamicValue!!, surroundingText ?: "")
+        else -> DelegatingComplicationText(this)
     }
 
 /** Converts a [TimeZone] into an equivalent [java.util.TimeZone]. */
 internal fun TimeZone.asJavaTimeZone(): java.util.TimeZone = java.util.TimeZone.getTimeZone(this.id)
+
+internal fun java.util.TimeZone.asIcuTimeZone(): TimeZone = TimeZone.getTimeZone(this.id)
 
 /** [ComplicationText] implementation that delegates to a [WireTimeDependentText] instance. */
 private class DelegatingTimeDependentText(private val delegate: WireTimeDependentText) :
@@ -582,7 +587,7 @@ private class DelegatingTimeDependentText(private val delegate: WireTimeDependen
 
     override fun isAlwaysEmpty() = false
 
-    override fun getTimeDependentText(): TimeDependentText = delegate
+    override fun getTimeDependentText(): WireTimeDependentText = delegate
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun toWireComplicationText(): WireComplicationText {
@@ -607,19 +612,81 @@ private class DelegatingTimeDependentText(private val delegate: WireTimeDependen
     override fun toString() = delegate.toString()
 }
 
+internal fun ComplicationText.asWearSdkComplicationText(): WearSdkComplicationText {
+    val wireFormat = this.toWireComplicationText()
+    val input = this
+    return when (input) {
+        is PlainComplicationText -> WearSdkPlainComplicationText(wireFormat.surroundingText ?: "")
+        is DynamicComplicationText ->
+            WearSdkDynamicComplicationText(
+                WearSdkDynamicString.fromBytes(
+                    wireFormat.dynamicValue?.toDynamicStringByteArray() ?: ByteArray(0)
+                )
+            )
+        is TimeDifferenceComplicationText ->
+            WearSdkTimeDifferenceComplicationText.Builder()
+                .apply {
+                    setSurroundingText(wireFormat.surroundingText)
+                    setStyle((wireFormat.timeDependentText as TimeDifferenceText).style)
+                    setReferencePeriodStartMillis(
+                        (wireFormat.timeDependentText as TimeDifferenceText).referencePeriodStart
+                    )
+                    setReferencePeriodEndMillis(
+                        (wireFormat.timeDependentText as TimeDifferenceText).referencePeriodEnd
+                    )
+                    setMinimumUnit((wireFormat.timeDependentText as TimeDifferenceText).minimumUnit)
+                    setShowNowText(
+                        (wireFormat.timeDependentText as TimeDifferenceText).shouldShowNowText()
+                    )
+                }
+                .build()
+        is TimeFormatComplicationText ->
+            WearSdkTimeFormatComplicationText.Builder()
+                .apply {
+                    setSurroundingText(wireFormat.surroundingText)
+                    setStyle((wireFormat.timeDependentText as TimeFormatText).style)
+                    setFormat((wireFormat.timeDependentText as TimeFormatText).formatString)
+                    setTimeZone(
+                        (wireFormat.timeDependentText as TimeFormatText).timeZone?.asIcuTimeZone()
+                    )
+                }
+                .build()
+        else -> WearSdkPlainComplicationText("")
+    }
+}
+
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public fun WireTimeDependentText.toApiComplicationText(): ComplicationText =
     DelegatingTimeDependentText(this)
 
 /**
- * A [ComplicationText] where the system evaluates a [DynamicString] on behalf of the watch face. By
- * the time this reaches the watch face's Renderer, it'll have been converted to a plain
- * ComplicationText.
+ * A [ComplicationText] where the system evaluates a [DynamicString]. By the time this reaches the
+ * watch face's Renderer, it'll have been converted to a plain ComplicationText.
  *
+ * @param dynamicValue The [DynamicString] which will be evaluated into a value dynamically.
+ * @param fallbackValue Used when the system does not support [dynamicValue].
+ *
+ *   This is only relevant before [Build.VERSION_CODES.UPSIDE_DOWN_CAKE], use the no-fallback
+ *   constructor if you target an equal or higher API level.
+ *
+ *   IMPORTANT: This is only used when the system does not support [dynamicValue] _at all_. See
+ *   [ComplicationData.dynamicValueInvalidationFallback] for the situation where the [dynamicValue]
+ *   cannot be evaluated, e.g. when a data source is not available.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public class ComplicationTextExpression(public val expression: DynamicString) : ComplicationText {
-    private val delegate = DelegatingComplicationText(WireComplicationText(expression))
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+public class DynamicComplicationText(
+    public val dynamicValue: DynamicString,
+    public val fallbackValue: CharSequence,
+) : ComplicationText {
+    /**
+     * Creates a [DynamicComplicationText] with no [fallbackValue] for API levels that are known to
+     * support dynamic values.
+     */
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public constructor(dynamicValue: DynamicString) : this(dynamicValue, "")
+
+    private val delegate =
+        DelegatingComplicationText(WireComplicationText(fallbackValue, dynamicValue))
 
     override fun getTextAt(resources: Resources, instant: Instant) =
         delegate.getTextAt(resources, instant)
@@ -635,7 +702,7 @@ public class ComplicationTextExpression(public val expression: DynamicString) : 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     override fun isPlaceholder(): Boolean = delegate.isPlaceholder()
 
-    @RestrictTo(RestrictTo.Scope.SUBCLASSES)
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     override fun getTimeDependentText() = delegate.getTimeDependentText()
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -645,7 +712,7 @@ public class ComplicationTextExpression(public val expression: DynamicString) : 
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as ComplicationTextExpression
+        other as DynamicComplicationText
 
         if (delegate != other.delegate) return false
 

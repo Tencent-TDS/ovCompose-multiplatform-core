@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -25,11 +31,11 @@ plugins {
 
 dependencies {
     api(libs.kotlinStdlib)
-    api("androidx.arch.core:core-common:2.1.0")
+    api("androidx.arch.core:core-common:2.2.0")
     api(project(":lifecycle:lifecycle-common"))
     api(project(":lifecycle:lifecycle-livedata"))
     api(project(":lifecycle:lifecycle-runtime"))
-    api("androidx.annotation:annotation:1.1.0")
+    api("androidx.annotation:annotation:1.9.1")
     api(libs.reactiveStreams)
 
     annotationProcessor(libs.nullaway)
@@ -39,16 +45,16 @@ dependencies {
     testImplementation(libs.truth)
     testImplementation(libs.kotlinCoroutinesTest)
     testImplementation(project(":lifecycle:lifecycle-runtime-testing"))
-    testImplementation("androidx.arch.core:core-testing:2.1.0")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
 }
 
 androidx {
-    name = "Android Lifecycle Reactivestreams"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Lifecycle Reactivestreams"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Lifecycle Reactivestreams"
 }
 
 android {
-    namespace "androidx.lifecycle.reactivestreams"
+    namespace = "androidx.lifecycle.reactivestreams"
 }

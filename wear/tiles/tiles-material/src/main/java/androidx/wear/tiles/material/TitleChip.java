@@ -17,28 +17,17 @@
 package androidx.wear.tiles.material;
 
 import static androidx.annotation.Dimension.DP;
-import static androidx.wear.tiles.DimensionBuilders.dp;
-import static androidx.wear.tiles.LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER;
-import static androidx.wear.tiles.material.ChipDefaults.TITLE_HEIGHT;
-import static androidx.wear.tiles.material.ChipDefaults.TITLE_HORIZONTAL_PADDING;
-import static androidx.wear.tiles.material.ChipDefaults.TITLE_PRIMARY_COLORS;
-import static androidx.wear.tiles.material.Helper.checkNotNull;
-import static androidx.wear.tiles.material.Helper.checkTag;
 
 import android.content.Context;
 
 import androidx.annotation.Dimension;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
-import androidx.wear.tiles.DeviceParametersBuilders.DeviceParameters;
-import androidx.wear.tiles.DimensionBuilders.ContainerDimension;
-import androidx.wear.tiles.LayoutElementBuilders.Box;
-import androidx.wear.tiles.LayoutElementBuilders.HorizontalAlignment;
-import androidx.wear.tiles.LayoutElementBuilders.LayoutElement;
-import androidx.wear.tiles.ModifiersBuilders.Clickable;
+import androidx.wear.protolayout.expression.Fingerprint;
 import androidx.wear.protolayout.proto.LayoutElementProto;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tiles component {@link TitleChip} that represents clickable object with the text.
@@ -69,31 +58,45 @@ import androidx.wear.protolayout.proto.LayoutElementProto;
  * TitleChip myChip = TitleChip.fromLayoutElement(box.getContents().get(0));
  * }</pre>
  *
- * @see  androidx.wear.tiles.material.layouts.PrimaryLayout.Builder#setContent if this TitleChip is
- * used inside of {@link androidx.wear.tiles.material.layouts.PrimaryLayout}.
+ * @see androidx.wear.tiles.material.layouts.PrimaryLayout.Builder#setContent if this TitleChip is
+ *     used inside of {@link androidx.wear.tiles.material.layouts.PrimaryLayout}.
+ * @deprecated Use the new class {@link androidx.wear.protolayout.material.TitleChip} which provides
+ *     the same API and functionality.
  */
-public class TitleChip implements LayoutElement {
-    /** Tool tag for Metadata in Modifiers, so we know that Box is actually a TitleChip. */
+@Deprecated
+@SuppressWarnings("deprecation")
+public class TitleChip implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement {
+    /**
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that
+     * androidx.wear.tiles.LayoutElementBuilders.Box is actually a TitleChip.
+     */
     static final String METADATA_TAG = "TTLCHP";
 
-    @NonNull private final Chip mElement;
+    private final @NonNull Chip mElement;
 
     TitleChip(@NonNull Chip element) {
         this.mElement = element;
     }
 
     /** Builder class for {@link TitleChip}. */
-    public static final class Builder implements LayoutElement.Builder {
-        @NonNull private final Context mContext;
-        @NonNull private final String mText;
-        @NonNull private final Clickable mClickable;
-        @NonNull private final DeviceParameters mDeviceParameters;
-        @NonNull private ChipColors mChipColors = TITLE_PRIMARY_COLORS;
-        @HorizontalAlignment private int mHorizontalAlign = HORIZONTAL_ALIGN_CENTER;
+    public static final class Builder
+            implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement.Builder {
+        private final @NonNull Context mContext;
+        private final @NonNull String mText;
+        private final androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable mClickable;
+
+        private final androidx.wear.tiles.DeviceParametersBuilders.@NonNull DeviceParameters
+                mDeviceParameters;
+
+        private @NonNull ChipColors mChipColors = ChipDefaults.TITLE_PRIMARY_COLORS;
+
+        @androidx.wear.tiles.LayoutElementBuilders.HorizontalAlignment
+        private int mHorizontalAlign =
+                androidx.wear.tiles.LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER;
 
         // Indicates that the width isn't set, so it will be automatically set by Chip.Builder
         // constructor.
-        @Nullable private ContainerDimension mWidth = null;
+        private androidx.wear.tiles.DimensionBuilders.@Nullable ContainerDimension mWidth = null;
 
         /**
          * Creates a builder for the {@link TitleChip} with associated action and the given text
@@ -108,8 +111,9 @@ public class TitleChip implements LayoutElement {
         public Builder(
                 @NonNull Context context,
                 @NonNull String text,
-                @NonNull Clickable clickable,
-                @NonNull DeviceParameters deviceParameters) {
+                androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable clickable,
+                androidx.wear.tiles.DeviceParametersBuilders.@NonNull DeviceParameters
+                                deviceParameters) {
             this.mContext = context;
             this.mText = text;
             this.mClickable = clickable;
@@ -122,15 +126,15 @@ public class TitleChip implements LayoutElement {
          * ChipColors#getContentColor()} for the text. If not set, {@link
          * ChipDefaults#TITLE_PRIMARY_COLORS} will be used.
          */
-        @NonNull
-        public Builder setChipColors(@NonNull ChipColors chipColors) {
+        public @NonNull Builder setChipColors(@NonNull ChipColors chipColors) {
             mChipColors = chipColors;
             return this;
         }
 
         /** Sets the horizontal alignment in the chip. If not set, content will be centered. */
-        @NonNull
-        public Builder setHorizontalAlignment(@HorizontalAlignment int horizontalAlignment) {
+        public @NonNull Builder setHorizontalAlignment(
+                @androidx.wear.tiles.LayoutElementBuilders.HorizontalAlignment
+                        int horizontalAlignment) {
             mHorizontalAlign = horizontalAlignment;
             return this;
         }
@@ -139,8 +143,8 @@ public class TitleChip implements LayoutElement {
          * Sets the width of {@link TitleChip}. If not set, default value will be set to fill the
          * screen.
          */
-        @NonNull
-        public Builder setWidth(@NonNull ContainerDimension width) {
+        public @NonNull Builder setWidth(
+                androidx.wear.tiles.DimensionBuilders.@NonNull ContainerDimension width) {
             mWidth = width;
             return this;
         }
@@ -149,25 +153,23 @@ public class TitleChip implements LayoutElement {
          * Sets the width of {@link TitleChip}. If not set, default value will be set to fill the
          * screen.
          */
-        @NonNull
-        public Builder setWidth(@Dimension(unit = DP) float width) {
-            mWidth = dp(width);
+        public @NonNull Builder setWidth(@Dimension(unit = DP) float width) {
+            mWidth = androidx.wear.tiles.DimensionBuilders.dp(width);
             return this;
         }
 
         /** Constructs and returns {@link TitleChip} with the provided content and look. */
-        @NonNull
         @Override
-        public TitleChip build() {
+        public @NonNull TitleChip build() {
             Chip.Builder chipBuilder =
                     new Chip.Builder(mContext, mClickable, mDeviceParameters)
                             .setMetadataTag(METADATA_TAG)
                             .setChipColors(mChipColors)
                             .setContentDescription(mText)
                             .setHorizontalAlignment(mHorizontalAlign)
-                            .setHeight(TITLE_HEIGHT)
+                            .setHeight(ChipDefaults.TITLE_HEIGHT)
                             .setMaxLines(1)
-                            .setHorizontalPadding(TITLE_HORIZONTAL_PADDING)
+                            .setHorizontalPadding(ChipDefaults.TITLE_HORIZONTAL_PADDING)
                             .setPrimaryLabelContent(mText)
                             .setPrimaryLabelTypography(Typography.TYPOGRAPHY_TITLE2)
                             .setIsPrimaryLabelScalable(false);
@@ -181,56 +183,54 @@ public class TitleChip implements LayoutElement {
     }
 
     /** Returns width of this Chip. */
-    @NonNull
-    public ContainerDimension getWidth() {
+    public androidx.wear.tiles.DimensionBuilders.@NonNull ContainerDimension getWidth() {
         return mElement.getWidth();
     }
 
     /** Returns click event action associated with this Chip. */
-    @NonNull
-    public Clickable getClickable() {
+    public androidx.wear.tiles.ModifiersBuilders.@NonNull Clickable getClickable() {
         return mElement.getClickable();
     }
 
     /** Returns chip color of this Chip. */
-    @NonNull
-    public ChipColors getChipColors() {
+    public @NonNull ChipColors getChipColors() {
         return mElement.getChipColors();
     }
 
     /** Returns text content of this Chip. */
-    @NonNull
-    public String getText() {
-        return checkNotNull(mElement.getPrimaryLabelContent());
+    public @NonNull String getText() {
+        return androidx.wear.tiles.material.Helper.checkNotNull(mElement.getPrimaryLabelContent());
     }
 
     /** Returns the horizontal alignment of the content in this Chip. */
-    @HorizontalAlignment
+    @androidx.wear.tiles.LayoutElementBuilders.HorizontalAlignment
     public int getHorizontalAlignment() {
         return mElement.getHorizontalAlignment();
     }
 
     /** Returns metadata tag set to this TitleChip, which should be {@link #METADATA_TAG}. */
-    @NonNull
-    String getMetadataTag() {
+    @NonNull String getMetadataTag() {
         return mElement.getMetadataTag();
     }
 
     /**
-     * Returns TitleChip object from the given LayoutElement (e.g. one retrieved from a container's
-     * content with {@code container.getContents().get(index)}) if that element can be converted to
-     * TitleChip. Otherwise, it will return null.
+     * Returns TitleChip object from the given
+     * androidx.wear.tiles.LayoutElementBuilders.LayoutElement (e.g. one retrieved from a
+     * container's content with {@code container.getContents().get(index)}) if that element can be
+     * converted to TitleChip. Otherwise, it will return null.
      */
-    @Nullable
-    public static TitleChip fromLayoutElement(@NonNull LayoutElement element) {
+    public static @Nullable TitleChip fromLayoutElement(
+            androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement element) {
         if (element instanceof TitleChip) {
             return (TitleChip) element;
         }
-        if (!(element instanceof Box)) {
+        if (!(element instanceof androidx.wear.tiles.LayoutElementBuilders.Box)) {
             return null;
         }
-        Box boxElement = (Box) element;
-        if (!checkTag(boxElement.getModifiers(), METADATA_TAG)) {
+        androidx.wear.tiles.LayoutElementBuilders.Box boxElement =
+                (androidx.wear.tiles.LayoutElementBuilders.Box) element;
+        if (!androidx.wear.tiles.material.Helper.checkTag(
+                boxElement.getModifiers(), METADATA_TAG)) {
             return null;
         }
         // Now we are sure that this element is a TitleChip.
@@ -238,9 +238,14 @@ public class TitleChip implements LayoutElement {
     }
 
     @RestrictTo(Scope.LIBRARY_GROUP)
-    @NonNull
     @Override
-    public LayoutElementProto.LayoutElement toLayoutElementProto() {
+    public LayoutElementProto.@NonNull LayoutElement toLayoutElementProto() {
         return mElement.toLayoutElementProto();
+    }
+
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Override
+    public @Nullable Fingerprint getFingerprint() {
+        return mElement.getFingerprint();
     }
 }

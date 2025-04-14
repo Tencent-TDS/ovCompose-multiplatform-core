@@ -109,10 +109,10 @@
 
   <!-- ColorDemoScreen -->
   <string name="example_title">Example %d</string>
-  <string name="example_1_text">This text has a red color</string>
-  <string name="example_2_text">This text has a green color</string>
-  <string name="example_3_text">This text has a blue color</string>
-  <string name="example_4_text">This text has a yellow color</string>
+  <string name="example_1_text">This text has a <annotation color="red">red</annotation> color</string>
+  <string name="example_2_text">This text has a <annotation color="green">green</annotation> color</string>
+  <string name="example_3_text">This text has a <annotation color="blue">blue</annotation> color</string>
+  <string name="example_4_text">This text has a <annotation color="yellow">yellow</annotation> color</string>
   <string name="example_5_text">This text uses the primary color</string>
   <string name="example_6_text">This text uses the secondary color</string>
   <string name="color_demo">Color Demo</string>
@@ -293,6 +293,12 @@
   <string name="msg_template_demo_text">Message goes here.\nMore text on second line.</string>
   <string name="short_msg_template_demo_title">Short Message Template Demo</string>
 
+  <!-- SectionedItemTemplateDemo -->
+  <string name="sectioned_item_template_demo_title">Sectioned Item Template Demo</string>
+  <string name="sectioned_item_template_radio_button_section_title">Radio Button Section</string>
+  <string name="sectioned_item_template_toggle_section_title">Toggle Section</string>
+  <string name="sectioned_item_template_lots_of_rows_section_title">Lots of Rows Section</string>
+
   <!-- PaneTemplateDemoScreen -->
   <string name="pane_template_demo_title">Pane Template Demo</string>
 
@@ -305,7 +311,7 @@
   <string name="search_hint">Search here</string>
 
   <!-- SignInTemplateDemoScreen -->
-  <string name="additional_text">Please review our terms of service</string>
+  <string name="additional_text">Please review our <annotation link="terms_of_service">terms of service</annotation></string>
   <string name="google_sign_in">Google sign-in</string>
   <string name="use_pin">Use PIN</string>
   <string name="qr_code">QR Code</string>
@@ -335,6 +341,7 @@
   <string name="tab_title_list">List Tab</string>
   <string name="tab_title_grid">Grid Tab with Long Tab Title</string>
   <string name="tab_title_search">Search Tab</string>
+  <string name="tab_title_loading">Loading Tab</string>
   <string name="tab_template_loading_demo_title">Tab Template Loading Demo</string>
   <string name="tab_template_no_tabs_demo_title">Tab Template No Tabs Demo</string>
 
@@ -381,7 +388,7 @@
 
   <!-- TaskRestrictionDemoScreen -->
   <string name="task_restriction_demo_title">Task Restriction Demo</string>
-  <string name="task_limit_reached_msg">Task limit reached\nGoing forward will force stop the app</string>
+  <string name="task_limit_reached_msg">This will overflow the step count, and lead you to a new screen. </string>
   <string name="task_step_of_title">Task step %1$d of %2$d</string>
   <string name="task_step_of_text">Click to go forward</string>
   <string name="task_content_allowed">Please visit the different templates and ensure the car is in driving mode</string>
@@ -407,6 +414,7 @@
   <string name="secondary_actions_test_subtitle">Only the secondary action can be selected</string>
   <string name="decoration_test_title">Decoration Test</string>
   <string name="secondary_actions_decoration_test_title">Secondary Actions and Decoration</string>
+  <string name="secondary_actions_decoration_test_title_long">Row with Secondary Actions and Decoration with a really long title</string>
   <string name="secondary_actions_decoration_test_subtitle">The row can also be selected</string>
   <string name="secondary_action_toast">Secondary Action is selected</string>
   <string name="row_primary_action_toast">Row primary action is selected</string>
@@ -417,6 +425,10 @@
   <string name="sectioned_item_list_one_title">List 1</string>
   <string name="sectioned_item_list_two_title">List 2</string>
   <string name="sectioned_item_list_subtext">Subtext under each list</string>
+
+  <!-- EmptyListDemoScreen -->
+  <string name="empty_list_demo_title">Empty List Demo</string>
+  <string name="empty_list_message">The list is empty</string>
 
   <!-- StartScreen -->
   <string name="misc_templates_demos_title">Misc Templates Demos</string>
@@ -487,4 +499,8 @@
     <string name="route_options_demo_title">Route options</string>
   <string name="avoid_highways_row_title">Avoid highways</string>
   <string name="avoid_ferries_row_title">Avoid ferry</string>
+  <string name="map_demos_title">Map Demos</string>
+  <string name="map_with_content_demo_title">Map With Content Demos</string>
+  <string name="map_with_message_demo_title">Map With Message Template Demo</string>
+  <string name="map_with_grid_demo_title">Map With Grid Template Demo</string>
 </resources>

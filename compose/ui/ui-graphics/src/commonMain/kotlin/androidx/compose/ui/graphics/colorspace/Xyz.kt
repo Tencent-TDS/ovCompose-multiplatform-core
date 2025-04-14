@@ -17,18 +17,11 @@
 package androidx.compose.ui.graphics.colorspace
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.packFloats
 
-/**
- * Implementation of the CIE XYZ color space. Assumes the white point is D50.
- */
-internal class Xyz(
-    name: String,
-    id: Int
-) : ColorSpace(
-    name,
-    ColorModel.Xyz, id
-) {
+/** Implementation of the CIE XYZ color space. Assumes the white point is D50. */
+internal class Xyz(name: String, id: Int) : ColorSpace(name, ColorModel.Xyz, id) {
 
     override val isWideGamut: Boolean
         get() = true
@@ -73,7 +66,8 @@ internal class Xyz(
         return v
     }
 
-    private fun clamp(x: Float): Float {
-        return x.coerceIn(-2f, 2f)
+    @Suppress("NOTHING_TO_INLINE")
+    private inline fun clamp(x: Float): Float {
+        return x.fastCoerceIn(-2f, 2f)
     }
 }

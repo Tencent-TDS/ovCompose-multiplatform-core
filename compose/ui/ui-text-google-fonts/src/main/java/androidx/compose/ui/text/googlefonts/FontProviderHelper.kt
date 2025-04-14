@@ -22,12 +22,10 @@ import android.content.pm.PackageManager
 import android.content.pm.Signature
 import android.content.res.Resources
 import androidx.annotation.WorkerThread
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.core.content.res.FontResourcesParserCompat
 import java.util.Arrays
 
 @SuppressLint("ListIterator") // this is not a hot code path, nor is it optimized
-@OptIn(ExperimentalTextApi::class)
 @WorkerThread
 internal fun GoogleFont.Provider.checkAvailable(
     packageManager: PackageManager,
@@ -42,14 +40,15 @@ internal fun GoogleFont.Provider.checkAvailable(
     val signatures = packageManager.getSignatures(providerInfo.packageName)
     val sortedSignatures = signatures.sortedWith(ByteArrayComparator)
     val allExpectedCerts = loadCertsIfNeeded(resources)
-    val certsMatched = allExpectedCerts.any { certList ->
-        val expected = certList?.sortedWith(ByteArrayComparator)
-        if (expected?.size != sortedSignatures.size) return@any false
-        for (i in expected.indices) {
-            if (!Arrays.equals(expected[i], sortedSignatures[i])) return@any false
+    val certsMatched =
+        allExpectedCerts.any { certList ->
+            val expected = certList?.sortedWith(ByteArrayComparator)
+            if (expected?.size != sortedSignatures.size) return@any false
+            for (i in expected.indices) {
+                if (!Arrays.equals(expected[i], sortedSignatures[i])) return@any false
+            }
+            true
         }
-        true
-    }
     return if (certsMatched) {
         true
     } else {
@@ -59,11 +58,8 @@ internal fun GoogleFont.Provider.checkAvailable(
 
 @SuppressLint("ListIterator") // not a hot code path, not optimized
 private fun throwFormattedCertsMissError(signatures: List<ByteArray>): Nothing {
-    val fullDescription = signatures.joinToString(
-        ",",
-        prefix = "listOf(listOf(",
-        postfix = "))"
-    ) { repr(it) }
+    val fullDescription =
+        signatures.joinToString(",", prefix = "listOf(listOf(", postfix = "))") { repr(it) }
     throw IllegalStateException(
         "Provided signatures did not match. Actual signatures of package are:\n\n$fullDescription"
     )
@@ -73,7 +69,6 @@ private fun repr(b: ByteArray): String {
     return b.joinToString(",", prefix = "byteArrayOf(", postfix = ")")
 }
 
-@OptIn(ExperimentalTextApi::class)
 private fun GoogleFont.Provider.loadCertsIfNeeded(resources: Resources): List<List<ByteArray?>?> {
     if (certificates != null) {
         return certificates
@@ -86,8 +81,7 @@ private fun PackageManager.getSignatures(packageName: String): List<ByteArray> {
     @Suppress("DEPRECATION")
     @SuppressLint("PackageManagerGetSignatures")
     val packageInfo: PackageInfo = getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
-    @Suppress("DEPRECATION")
-    return convertToByteArrayList(packageInfo.signatures)
+    @Suppress("DEPRECATION") return convertToByteArrayList(packageInfo.signatures!!)
 }
 
 private val ByteArrayComparator = Comparator { l: ByteArray, r: ByteArray ->

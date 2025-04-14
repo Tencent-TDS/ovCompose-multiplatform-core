@@ -16,9 +16,8 @@
 
 package androidx.compose.foundation.samples
 
+import android.os.Build
 import androidx.annotation.Sampled
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.MagnifierStyle
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.magnifier
@@ -35,7 +34,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 
-@OptIn(ExperimentalFoundationApi::class)
 @Sampled
 @Composable
 fun MagnifierSample() {
@@ -43,15 +41,11 @@ fun MagnifierSample() {
     // Hide the magnifier until a drag starts.
     var magnifierCenter by remember { mutableStateOf(Offset.Unspecified) }
 
-    if (!MagnifierStyle.Default.isSupported) {
+    if (Build.VERSION.SDK_INT < 28) {
         Text("Magnifier is not supported on this platform.")
     } else {
         Box(
-            Modifier
-                .magnifier(
-                    sourceCenter = { magnifierCenter },
-                    zoom = 2f
-                )
+            Modifier.magnifier(sourceCenter = { magnifierCenter }, zoom = 2f)
                 .pointerInput(Unit) {
                     detectDragGestures(
                         // Show the magnifier at the original pointer position.
@@ -66,11 +60,7 @@ fun MagnifierSample() {
                 .drawBehind {
                     // Some concentric circles to zoom in on.
                     for (diameter in 2 until size.maxDimension.toInt() step 10) {
-                        drawCircle(
-                            color = Color.Black,
-                            radius = diameter / 2f,
-                            style = Stroke()
-                        )
+                        drawCircle(color = Color.Black, radius = diameter / 2f, style = Stroke())
                     }
                 }
         )

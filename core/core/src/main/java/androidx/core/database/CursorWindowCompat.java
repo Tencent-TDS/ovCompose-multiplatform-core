@@ -19,10 +19,10 @@ package androidx.core.database;
 import android.database.CursorWindow;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Helper for accessing features in {@link CursorWindow}
@@ -39,14 +39,11 @@ public final class CursorWindowCompat {
      * Prior to Android P, this method will return a CursorWindow of size defined by the platform.
      */
     @SuppressWarnings("deprecation")
-    @NonNull
-    public static CursorWindow create(@Nullable String name, long windowSizeBytes) {
+    public static @NonNull CursorWindow create(@Nullable String name, long windowSizeBytes) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.createCursorWindow(name, windowSizeBytes);
-        } else if (Build.VERSION.SDK_INT >= 15) {
-            return Api15Impl.createCursorWindow(name);
         } else {
-            return new CursorWindow(false);
+            return new CursorWindow(name);
         }
     }
 
@@ -56,21 +53,8 @@ public final class CursorWindowCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static CursorWindow createCursorWindow(String name, long windowSizeBytes) {
             return new CursorWindow(name, windowSizeBytes);
-        }
-    }
-
-    @RequiresApi(15)
-    static class Api15Impl {
-        private Api15Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static CursorWindow createCursorWindow(String name) {
-            return new CursorWindow(name);
         }
     }
 }

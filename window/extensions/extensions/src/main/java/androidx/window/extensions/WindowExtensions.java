@@ -16,13 +16,11 @@
 
 package androidx.window.extensions;
 
-import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
-
-import androidx.annotation.Nullable;
-import androidx.annotation.RestrictTo;
 import androidx.window.extensions.area.WindowAreaComponent;
 import androidx.window.extensions.embedding.ActivityEmbeddingComponent;
 import androidx.window.extensions.layout.WindowLayoutComponent;
+
+import org.jspecify.annotations.Nullable;
 
 /**
  * A class to provide instances of different WindowManager Jetpack extension components. An OEM must
@@ -33,51 +31,6 @@ import androidx.window.extensions.layout.WindowLayoutComponent;
  * {@link WindowExtensions#getVendorApiLevel()}.
  */
 public interface WindowExtensions {
-    // TODO(b/241323716) Removed after we have annotation to check API level
-    /**
-     * An invalid {@link #getVendorApiLevel vendor API level}
-     * @hide
-     */
-    @RestrictTo(LIBRARY_GROUP)
-    int INVALID_VENDOR_API_LEVEL = -1;
-
-    // TODO(b/241323716) Removed after we have annotation to check API level
-    /**
-     * A vendor API level constant. It helps to unify the format of documenting {@code @since}
-     * block.
-     * <p>
-     * The added APIs for Vendor API level 1 are:
-     * <ul>
-     *     <li>{@link androidx.window.extensions.embedding.ActivityRule} APIs</li>
-     *     <li>{@link androidx.window.extensions.embedding.SplitPairRule} APIs</li>
-     *     <li>{@link androidx.window.extensions.embedding.SplitPlaceholderRule} APIs</li>
-     *     <li>{@link androidx.window.extensions.embedding.SplitInfo} APIs</li>
-     *     <li>{@link androidx.window.extensions.layout.DisplayFeature} APIs</li>
-     *     <li>{@link androidx.window.extensions.layout.FoldingFeature} APIs</li>
-     *     <li>{@link androidx.window.extensions.layout.WindowLayoutInfo} APIs</li>
-     *     <li>{@link androidx.window.extensions.layout.WindowLayoutComponent} APIs</li>
-     * </ul>
-     * </p>
-     * @hide
-     */
-    @RestrictTo(LIBRARY_GROUP)
-    int VENDOR_API_LEVEL_1 = 1;
-
-    // TODO(b/241323716) Removed after we have annotation to check API level
-    /**
-     * A vendor API level constant. It helps to unify the format of documenting {@code @since}
-     * block.
-     * The added APIs for Vendor API level 2 are:
-     * <ul>
-     *     <li>{@link androidx.window.extensions.embedding.SplitPlaceholderRule.Builder#setFinishPrimaryWithPlaceholder(int)}</li>
-     *     <li>{@link androidx.window.extensions.embedding.SplitAttributes}</li>
-     *     <li>{@link ActivityEmbeddingComponent#setSplitAttributesCalculator(
-     *      androidx.window.extensions.core.util.function.Function)}</li>
-     * </ul>
-     * @hide
-     */
-    @RestrictTo(LIBRARY_GROUP)
-    int VENDOR_API_LEVEL_2 = 2;
 
     /**
      * Returns the API level of the vendor library on the device. If the returned version is not
@@ -98,8 +51,7 @@ public interface WindowExtensions {
      * {@link WindowExtensions}.
      * @return the OEM implementation of {@link WindowLayoutComponent}
      */
-    @Nullable
-    WindowLayoutComponent getWindowLayoutComponent();
+    @Nullable WindowLayoutComponent getWindowLayoutComponent();
 
     /**
      * Returns the OEM implementation of {@link ActivityEmbeddingComponent} if it is supported on
@@ -107,8 +59,7 @@ public interface WindowExtensions {
      * {@link WindowExtensions}.
      * @return the OEM implementation of {@link ActivityEmbeddingComponent}
      */
-    @Nullable
-    default ActivityEmbeddingComponent getActivityEmbeddingComponent() {
+    default @Nullable ActivityEmbeddingComponent getActivityEmbeddingComponent() {
         return null;
     }
 
@@ -118,8 +69,7 @@ public interface WindowExtensions {
      * {@link WindowExtensions}.
      * @return the OEM implementation of {@link WindowAreaComponent}
      */
-    @Nullable
-    default WindowAreaComponent getWindowAreaComponent() {
+    default @Nullable WindowAreaComponent getWindowAreaComponent() {
         return null;
     }
 }

@@ -20,7 +20,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.testutils.assertThrows
 import androidx.testutils.fail
@@ -36,7 +35,8 @@ class ViewGroupTest {
     private val context = ApplicationProvider.getApplicationContext() as android.content.Context
     private val viewGroup = LinearLayout(context)
 
-    @Test fun get() {
+    @Test
+    fun get() {
         val view1 = View(context)
         viewGroup.addView(view1)
         val view2 = View(context)
@@ -45,16 +45,17 @@ class ViewGroupTest {
         assertSame(view1, viewGroup[0])
         assertSame(view2, viewGroup[1])
 
-        assertThrows<IndexOutOfBoundsException> {
-            viewGroup[-1]
-        }.hasMessageThat().isEqualTo("Index: -1, Size: 2")
+        assertThrows<IndexOutOfBoundsException> { viewGroup[-1] }
+            .hasMessageThat()
+            .isEqualTo("Index: -1, Size: 2")
 
-        assertThrows<IndexOutOfBoundsException> {
-            viewGroup[2]
-        }.hasMessageThat().isEqualTo("Index: 2, Size: 2")
+        assertThrows<IndexOutOfBoundsException> { viewGroup[2] }
+            .hasMessageThat()
+            .isEqualTo("Index: 2, Size: 2")
     }
 
-    @Test fun contains() {
+    @Test
+    fun contains() {
         val view1 = View(context)
         viewGroup.addView(view1)
         assertTrue(view1 in viewGroup)
@@ -65,7 +66,8 @@ class ViewGroupTest {
         assertTrue(view2 !in viewGroup)
     }
 
-    @Test fun plusAssign() {
+    @Test
+    fun plusAssign() {
         assertEquals(0, viewGroup.childCount)
 
         val view1 = View(context)
@@ -79,7 +81,8 @@ class ViewGroupTest {
         assertSame(view2, viewGroup.getChildAt(1))
     }
 
-    @Test fun minusAssign() {
+    @Test
+    fun minusAssign() {
         val view1 = View(context)
         viewGroup.addView(view1)
         val view2 = View(context)
@@ -95,7 +98,8 @@ class ViewGroupTest {
         assertEquals(0, viewGroup.childCount)
     }
 
-    @Test fun size() {
+    @Test
+    fun size() {
         assertEquals(0, viewGroup.size)
 
         viewGroup.addView(View(context))
@@ -108,22 +112,23 @@ class ViewGroupTest {
         assertEquals(1, viewGroup.size)
     }
 
-    @Test fun isEmpty() {
+    @Test
+    fun isEmpty() {
         assertTrue(viewGroup.isEmpty())
         viewGroup.addView(View(context))
         assertFalse(viewGroup.isEmpty())
     }
 
-    @Test fun isNotEmpty() {
+    @Test
+    fun isNotEmpty() {
         assertFalse(viewGroup.isNotEmpty())
         viewGroup.addView(View(context))
         assertTrue(viewGroup.isNotEmpty())
     }
 
-    @Test fun forEach() {
-        viewGroup.forEach {
-            fail("Empty view group should not invoke lambda")
-        }
+    @Test
+    fun forEach() {
+        viewGroup.forEach { fail("Empty view group should not invoke lambda") }
 
         val view1 = View(context)
         viewGroup.addView(view1)
@@ -131,16 +136,13 @@ class ViewGroupTest {
         viewGroup.addView(view2)
 
         val views = mutableListOf<View>()
-        viewGroup.forEach {
-            views += it
-        }
+        viewGroup.forEach { views += it }
         assertThat(views).containsExactly(view1, view2)
     }
 
-    @Test fun forEachIndexed() {
-        viewGroup.forEachIndexed { _, _ ->
-            fail("Empty view group should not invoke lambda")
-        }
+    @Test
+    fun forEachIndexed() {
+        viewGroup.forEachIndexed { _, _ -> fail("Empty view group should not invoke lambda") }
 
         val view1 = View(context)
         viewGroup.addView(view1)
@@ -155,7 +157,8 @@ class ViewGroupTest {
         assertThat(views).containsExactly(view1, view2)
     }
 
-    @Test fun indices() {
+    @Test
+    fun indices() {
         assertEquals(0 until 0, viewGroup.indices)
 
         viewGroup.addView(View(context))
@@ -165,7 +168,8 @@ class ViewGroupTest {
         assertEquals(0 until 2, viewGroup.indices)
     }
 
-    @Test fun iterator() {
+    @Test
+    fun iterator() {
         val view1 = View(context)
         viewGroup.addView(view1)
         val view2 = View(context)
@@ -177,12 +181,11 @@ class ViewGroupTest {
         assertTrue(iterator.hasNext())
         assertSame(view2, iterator.next())
         assertFalse(iterator.hasNext())
-        assertThrows<IndexOutOfBoundsException> {
-            iterator.next()
-        }
+        assertThrows<IndexOutOfBoundsException> { iterator.next() }
     }
 
-    @Test fun iteratorRemoving() {
+    @Test
+    fun iteratorRemoving() {
         val view1 = View(context)
         viewGroup.addView(view1)
         val view2 = View(context)
@@ -201,7 +204,8 @@ class ViewGroupTest {
         assertEquals(0, viewGroup.childCount)
     }
 
-    @Test fun iteratorForEach() {
+    @Test
+    fun iteratorForEach() {
         val views = listOf(View(context), View(context))
         views.forEach(viewGroup::addView)
 
@@ -211,13 +215,13 @@ class ViewGroupTest {
         }
     }
 
-    @Test fun childrenEmpty() {
-        viewGroup.children.forEach {
-            fail()
-        }
+    @Test
+    fun childrenEmpty() {
+        viewGroup.children.forEach { fail() }
     }
 
-    @Test fun children() {
+    @Test
+    fun children() {
         val views = listOf(View(context), View(context), View(context))
         views.forEach { viewGroup.addView(it) }
 
@@ -234,13 +238,13 @@ class ViewGroupTest {
         assertEquals(3, children.count())
     }
 
-    @Test fun descendantsEmpty() {
-        viewGroup.descendants.forEach {
-            fail()
-        }
+    @Test
+    fun descendantsEmpty() {
+        viewGroup.descendants.forEach { fail() }
     }
 
-    @Test fun descendants() {
+    @Test
+    fun descendants() {
         val view1 = LinearLayout(context)
         val view2 = View(context)
         val view3 = LinearLayout(context)
@@ -272,7 +276,8 @@ class ViewGroupTest {
         assertEquals(5, descendants.count())
     }
 
-    @Test fun allViewsEmpty() {
+    @Test
+    fun allViewsEmpty() {
         val allViews = viewGroup.allViews
 
         var count = 0
@@ -286,7 +291,8 @@ class ViewGroupTest {
         assertEquals(1, allViews.count())
     }
 
-    @Test fun allViews() {
+    @Test
+    fun allViews() {
         val view1 = LinearLayout(context)
         val view2 = View(context)
         val view3 = LinearLayout(context)
@@ -318,7 +324,8 @@ class ViewGroupTest {
         assertEquals(6, allViews.count())
     }
 
-    @Test fun setMargins() {
+    @Test
+    fun setMargins() {
         val layoutParams = ViewGroup.MarginLayoutParams(100, 200)
         layoutParams.setMargins(42)
         assertEquals(42, layoutParams.leftMargin)
@@ -327,7 +334,8 @@ class ViewGroupTest {
         assertEquals(42, layoutParams.bottomMargin)
     }
 
-    @Test fun updateMargins() {
+    @Test
+    fun updateMargins() {
         val layoutParams = ViewGroup.MarginLayoutParams(100, 200)
         layoutParams.updateMargins(top = 10, right = 20)
         assertEquals(0, layoutParams.leftMargin)
@@ -336,7 +344,8 @@ class ViewGroupTest {
         assertEquals(0, layoutParams.bottomMargin)
     }
 
-    @Test fun updateMarginsNoOp() {
+    @Test
+    fun updateMarginsNoOp() {
         val layoutParams = ViewGroup.MarginLayoutParams(100, 200)
         layoutParams.setMargins(10, 20, 30, 40)
         layoutParams.updateMargins()
@@ -346,8 +355,8 @@ class ViewGroupTest {
         assertEquals(40, layoutParams.bottomMargin)
     }
 
-    @SdkSuppress(minSdkVersion = 17)
-    @Test fun updateMarginsRelative() {
+    @Test
+    fun updateMarginsRelative() {
         val layoutParams = ViewGroup.MarginLayoutParams(100, 200)
         layoutParams.updateMarginsRelative(start = 10, end = 20)
         assertEquals(0, layoutParams.leftMargin)
@@ -359,8 +368,8 @@ class ViewGroupTest {
         assertTrue(layoutParams.isMarginRelative)
     }
 
-    @SdkSuppress(minSdkVersion = 17)
-    @Test fun updateMarginsRelativeNoOp() {
+    @Test
+    fun updateMarginsRelativeNoOp() {
         val layoutParams = ViewGroup.MarginLayoutParams(100, 200)
         layoutParams.setMargins(10, 20, 30, 40)
         layoutParams.updateMarginsRelative()

@@ -21,7 +21,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.CarAppMetadataHolderService;
 import androidx.car.app.CarContext;
@@ -34,6 +33,8 @@ import androidx.car.app.hardware.info.CarInfo;
 import androidx.car.app.hardware.info.CarSensors;
 import androidx.car.app.managers.Manager;
 import androidx.car.app.versioning.CarAppApiLevels;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.reflect.Constructor;
 
@@ -77,11 +78,9 @@ public interface CarHardwareManager extends Manager {
      *                               class was found but the constructor was mismatched
      * @throws HostException         if the negotiated api level is less than
      *                               {@link CarAppApiLevels#LEVEL_3}
-     * @hide
      */
     @RestrictTo(LIBRARY_GROUP)
-    @NonNull
-    static CarHardwareManager create(@NonNull CarContext context,
+    static @NonNull CarHardwareManager create(@NonNull CarContext context,
             @NonNull HostDispatcher hostDispatcher) {
         if (context.getCarAppApiLevel() < CarAppApiLevels.LEVEL_3) {
             throw new HostException("Create CarHardwareManager failed",

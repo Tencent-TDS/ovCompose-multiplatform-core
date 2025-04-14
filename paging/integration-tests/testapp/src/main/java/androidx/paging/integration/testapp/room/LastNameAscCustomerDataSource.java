@@ -15,12 +15,11 @@
  */
 package androidx.paging.integration.testapp.room;
 
-import android.annotation.SuppressLint;
-
-import androidx.annotation.NonNull;
 import androidx.paging.DataSource;
 import androidx.paging.ItemKeyedDataSource;
 import androidx.room.InvalidationTracker;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +46,6 @@ public class LastNameAscCustomerDataSource extends ItemKeyedDataSource<String, C
     /**
      * Create a DataSource from the customer table of the given database
      */
-    @SuppressLint("RestrictedApi")
     private LastNameAscCustomerDataSource(SampleDatabase db) {
         mDb = db;
         mCustomerDao = db.getCustomerDao();
@@ -61,20 +59,17 @@ public class LastNameAscCustomerDataSource extends ItemKeyedDataSource<String, C
     }
 
     @Override
-    @SuppressLint("RestrictedApi")
     public boolean isInvalid() {
         mDb.getInvalidationTracker().refreshVersionsSync();
         return super.isInvalid();
     }
 
-    @NonNull
-    static String getKeyStatic(@NonNull Customer customer) {
+    static @NonNull String getKeyStatic(@NonNull Customer customer) {
         return customer.getLastName();
     }
 
-    @NonNull
     @Override
-    public String getKey(@NonNull Customer customer) {
+    public @NonNull String getKey(@NonNull Customer customer) {
         return getKeyStatic(customer);
     }
 

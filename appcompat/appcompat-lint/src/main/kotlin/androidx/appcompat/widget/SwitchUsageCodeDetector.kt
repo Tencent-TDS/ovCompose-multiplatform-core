@@ -33,29 +33,28 @@ import org.jetbrains.uast.UVariable
 class SwitchUsageCodeDetector : Detector(), Detector.UastScanner {
     companion object {
         private const val USING_CORE_SWITCH_DESCRIPTION =
-            "Use `SwitchCompat` from AppCompat or `SwitchMaterial` from Material library"
+            "Use `SwitchCompat` from AppCompat or `MaterialSwitch` from Material library"
 
-        internal val USING_CORE_SWITCH_CODE: Issue = Issue.create(
-            "UseSwitchCompatOrMaterialCode",
-            "Replace usage of `Switch` widget",
-            USING_CORE_SWITCH_DESCRIPTION,
-            Category.CORRECTNESS,
-            5,
-            Severity.WARNING,
-            Implementation(SwitchUsageCodeDetector::class.java, Scope.JAVA_FILE_SCOPE)
-        )
+        internal val USING_CORE_SWITCH_CODE: Issue =
+            Issue.create(
+                "UseSwitchCompatOrMaterialCode",
+                "Replace usage of `Switch` widget",
+                USING_CORE_SWITCH_DESCRIPTION,
+                Category.CORRECTNESS,
+                5,
+                Severity.WARNING,
+                Implementation(SwitchUsageCodeDetector::class.java, Scope.JAVA_FILE_SCOPE)
+            )
     }
 
-    override fun getApplicableUastTypes() = listOf<Class<out UElement>>(
-        UVariable::class.java, UClass::class.java
-    )
+    override fun getApplicableUastTypes() =
+        listOf<Class<out UElement>>(UVariable::class.java, UClass::class.java)
 
     override fun createUastHandler(context: JavaContext) = SwitchUsageUastHandler(context)
 
     class SwitchUsageUastHandler(private val context: JavaContext) : UElementHandler() {
-        override fun visitClass(node: UClass) = node.uastSuperTypes.forEach {
-            checkAndReport(it.type, it)
-        }
+        override fun visitClass(node: UClass) =
+            node.uastSuperTypes.forEach { checkAndReport(it.type, it) }
 
         override fun visitVariable(node: UVariable) = checkAndReport(node.type, node)
 

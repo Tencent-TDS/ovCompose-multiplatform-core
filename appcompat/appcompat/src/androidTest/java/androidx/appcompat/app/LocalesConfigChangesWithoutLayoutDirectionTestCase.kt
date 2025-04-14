@@ -28,10 +28,10 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
-@SdkSuppress(minSdkVersion = 17, maxSdkVersion = 32)
+@SdkSuppress(maxSdkVersion = 32)
 class LocalesConfigChangesWithoutLayoutDirectionTestCase {
-    private lateinit var scenario: ActivityScenario<
-        LocalesConfigChangesActivityWithoutLayoutDirection>
+    private lateinit var scenario:
+        ActivityScenario<LocalesConfigChangesActivityWithoutLayoutDirection>
     private var systemLocales = LocaleListCompat.getEmptyLocaleList()
     private var expectedLocales = LocaleListCompat.getEmptyLocaleList()
 
@@ -48,9 +48,11 @@ class LocalesConfigChangesWithoutLayoutDirectionTestCase {
             // locales.
             systemLocales = LocalesUpdateActivity.getConfigLocales(it.resources.configuration)
             // expected locales is an overlay of custom and system locales.
-            expectedLocales = LocalesUpdateActivity.overlayCustomAndSystemLocales(
-                LocalesUtils.CUSTOM_LOCALE_LIST, systemLocales
-            )
+            expectedLocales =
+                LocalesUpdateActivity.overlayCustomAndSystemLocales(
+                    LocalesUtils.CUSTOM_LOCALE_LIST,
+                    systemLocales
+                )
         }
     }
 

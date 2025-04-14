@@ -17,41 +17,42 @@
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
-    id("kotlin-kapt")
+    id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
         testInstrumentationRunner "androidx.hilt.integration.workerapp.TestRunner"
     }
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
         }
     }
-    namespace "androidx.hilt.integration.workerapp"
+    namespace = "androidx.hilt.integration.workerapp"
 }
 
 dependencies {
-    implementation(project(":activity:activity"))
+    implementation("androidx.activity:activity:1.10.1")
     implementation(project(":work:work-runtime-ktx"))
     implementation(project(":hilt:hilt-work"))
-    kapt(project(":hilt:hilt-compiler"))
+    ksp(project(":hilt:hilt-compiler"))
     implementation(libs.kotlinStdlib)
     implementation(libs.hiltAndroid)
-    kapt(libs.hiltCompiler)
+    ksp(libs.hiltCompiler)
 
-    androidTestImplementation(project(":activity:activity"))
+    androidTestImplementation("androidx.activity:activity:1.10.1")
     androidTestImplementation(libs.truth)
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(project(":work:work-testing"))
     androidTestImplementation(libs.hiltAndroidTesting)
-    kaptAndroidTest(libs.hiltCompiler)
+    kspAndroidTest(libs.hiltCompiler)
 }
 
 hilt {

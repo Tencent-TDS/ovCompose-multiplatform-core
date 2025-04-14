@@ -28,15 +28,15 @@ import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.lifecycle.lifecycleScope
 import com.google.protobuf.InvalidProtocolBufferException
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ProtoDataStoreActivity : AppCompatActivity() {
@@ -45,9 +45,9 @@ class ProtoDataStoreActivity : AppCompatActivity() {
     private val PROTO_STORE_FILE_NAME = "datastore_test_app.pb"
 
     private val settingsStore: DataStore<Settings> by lazy {
-        DataStoreFactory.create(
-            serializer = SettingsSerializer
-        ) { File(applicationContext.filesDir, PROTO_STORE_FILE_NAME) }
+        DataStoreFactory.create(serializer = SettingsSerializer) {
+            File(applicationContext.filesDir, PROTO_STORE_FILE_NAME)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,8 +96,7 @@ class ProtoDataStoreActivity : AppCompatActivity() {
                 .map { it.counter }
                 .distinctUntilChanged()
                 .collect { counterValue ->
-                    findViewById<TextView>(R.id.counter_text_view).text =
-                        counterValue.toString()
+                    findViewById<TextView>(R.id.counter_text_view).text = counterValue.toString()
                 }
         }
     }

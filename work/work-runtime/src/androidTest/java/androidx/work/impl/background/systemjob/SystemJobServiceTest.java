@@ -16,6 +16,8 @@
 
 package androidx.work.impl.background.systemjob;
 
+import static android.app.job.JobParameters.STOP_REASON_CONSTRAINT_CONNECTIVITY;
+
 import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
 import static androidx.work.impl.WorkManagerImplExtKt.createWorkManager;
 import static androidx.work.impl.WorkManagerImplExtKt.schedulers;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import android.app.Instrumentation;
 import android.app.job.JobParameters;
 import android.content.Context;
 import android.net.Network;
@@ -37,7 +40,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PersistableBundle;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.arch.core.executor.ArchTaskExecutor;
 import androidx.arch.core.executor.TaskExecutor;
@@ -45,6 +47,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.work.Configuration;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
@@ -60,7 +63,9 @@ import androidx.work.impl.constraints.trackers.Trackers;
 import androidx.work.impl.model.WorkSpecDao;
 import androidx.work.impl.utils.taskexecutor.InstantWorkTaskExecutor;
 import androidx.work.worker.InfiniteTestWorker;
+import androidx.work.worker.NeverResolvedWorker;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,6 +78,7 @@ import java.util.concurrent.Executors;
 @SdkSuppress(minSdkVersion = WorkManagerImpl.MIN_JOB_SCHEDULER_API_LEVEL)
 public class SystemJobServiceTest extends WorkManagerTest {
 
+    private Instrumentation mInstrumentation = InstrumentationRegistry.getInstrumentation();
     private WorkManagerImpl mWorkManagerImpl;
     private Processor mProcessor;
     private WorkDatabase mDatabase;
@@ -104,11 +110,12 @@ public class SystemJobServiceTest extends WorkManagerTest {
         });
 
         Context context = ApplicationProvider.getApplicationContext();
-        mDatabase = WorkDatabase.create(context, Executors.newCachedThreadPool(), true);
-        InstantWorkTaskExecutor taskExecutor = new InstantWorkTaskExecutor();
         Configuration configuration = new Configuration.Builder()
                 .setExecutor(Executors.newSingleThreadExecutor())
                 .build();
+        mDatabase = WorkDatabase.create(
+                context, Executors.newCachedThreadPool(), configuration.getClock(), true);
+        InstantWorkTaskExecutor taskExecutor = new InstantWorkTaskExecutor();
         mScheduler = mock(Scheduler.class);
         mProcessor = new Processor(
                 context,
@@ -133,7 +140,7 @@ public class SystemJobServiceTest extends WorkManagerTest {
         }
 
         mSystemJobServiceSpy.onDestroy();
-        mDatabase.close();
+        mWorkManagerImpl.closeDatabase();
         WorkManagerImpl.setDelegate(null);
         ArchTaskExecutor.getInstance().setDelegate(null);
     }
@@ -146,11 +153,12 @@ public class SystemJobServiceTest extends WorkManagerTest {
             return;
         }
 
-        OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(InfiniteTestWorker.class).build();
+        OneTimeWorkRequest work = new OneTimeWorkRequest
+                .Builder(StopReasonLoggingWorker.class).build();
         insertWork(work);
 
         JobParameters mockParams = createMockJobParameters(work.getStringId());
-        mSystemJobServiceSpy.onStartJob(mockParams);
+        mInstrumentation.runOnMainSync(() -> mSystemJobServiceSpy.onStartJob(mockParams));
 
         // TODO(sumir): Remove later.  Put here because WorkerWrapper sets state to RUNNING.
         Thread.sleep(5000L);
@@ -158,10 +166,13 @@ public class SystemJobServiceTest extends WorkManagerTest {
         WorkSpecDao workSpecDao = mDatabase.workSpecDao();
         assertThat(workSpecDao.getState(work.getStringId()), is(WorkInfo.State.RUNNING));
 
-        mSystemJobServiceSpy.onStopJob(mockParams);
+        mInstrumentation.runOnMainSync(() -> mSystemJobServiceSpy.onStopJob(mockParams));
         // TODO(rahulrav): Figure out why this test is flaky.
         Thread.sleep(5000L);
         assertThat(workSpecDao.getState(work.getStringId()), is(WorkInfo.State.ENQUEUED));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            assertThat(StopReasonLoggingWorker.sReason, is(STOP_REASON_CONSTRAINT_CONNECTIVITY));
+        }
     }
 
     @Test
@@ -175,9 +186,11 @@ public class SystemJobServiceTest extends WorkManagerTest {
         OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(InfiniteTestWorker.class).build();
         insertWork(work);
 
-        JobParameters mockParams = createMockJobParameters(work.getStringId());
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
-        assertThat(mSystemJobServiceSpy.onStopJob(mockParams), is(true));
+        mInstrumentation.runOnMainSync(() -> {
+            JobParameters mockParams = createMockJobParameters(work.getStringId());
+            assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
+            assertThat(mSystemJobServiceSpy.onStopJob(mockParams), is(true));
+        });
     }
 
     @Test
@@ -191,10 +204,12 @@ public class SystemJobServiceTest extends WorkManagerTest {
         OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(InfiniteTestWorker.class).build();
         insertWork(work);
 
-        JobParameters mockParams = createMockJobParameters(work.getStringId());
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
-        mWorkManagerImpl.cancelWorkById(work.getId());
-        assertThat(mSystemJobServiceSpy.onStopJob(mockParams), is(false));
+        mInstrumentation.runOnMainSync(() -> {
+            JobParameters mockParams = createMockJobParameters(work.getStringId());
+            assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
+            mWorkManagerImpl.cancelWorkById(work.getId());
+            assertThat(mSystemJobServiceSpy.onStopJob(mockParams), is(false));
+        });
     }
 
     @Test
@@ -208,9 +223,11 @@ public class SystemJobServiceTest extends WorkManagerTest {
         OneTimeWorkRequest work = new OneTimeWorkRequest.Builder(InfiniteTestWorker.class).build();
         insertWork(work);
 
-        JobParameters mockParams = createMockJobParameters(work.getStringId());
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(false));
+        mInstrumentation.runOnMainSync(() -> {
+            JobParameters mockParams = createMockJobParameters(work.getStringId());
+            assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
+            assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(false));
+        });
     }
 
     @Test
@@ -241,7 +258,8 @@ public class SystemJobServiceTest extends WorkManagerTest {
         when(mockParams.getTriggeredContentUris()).thenReturn(testContentUris);
 
         assertThat(ContentUriTriggerLoggingWorker.sTimesUpdated, is(0));
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
+        mInstrumentation.runOnMainSync(() ->
+                assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true)));
 
         Thread.sleep(1000L);
 
@@ -265,7 +283,8 @@ public class SystemJobServiceTest extends WorkManagerTest {
         when(mockParams.getNetwork()).thenReturn(mockNetwork);
 
         assertThat(NetworkLoggingWorker.sTimesUpdated, is(0));
-        assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true));
+        mInstrumentation.runOnMainSync(() ->
+                assertThat(mSystemJobServiceSpy.onStartJob(mockParams), is(true)));
 
         Thread.sleep(1000L);
 
@@ -275,11 +294,13 @@ public class SystemJobServiceTest extends WorkManagerTest {
 
     private JobParameters createMockJobParameters(String id) {
         JobParameters jobParameters = mock(JobParameters.class);
-
         PersistableBundle persistableBundle = new PersistableBundle();
         persistableBundle.putString(SystemJobInfoConverter.EXTRA_WORK_SPEC_ID, id);
         when(jobParameters.getExtras()).thenReturn(persistableBundle);
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            when(jobParameters.getStopReason())
+                    .thenReturn(STOP_REASON_CONSTRAINT_CONNECTIVITY);
+        }
         return jobParameters;
     }
 
@@ -328,6 +349,24 @@ public class SystemJobServiceTest extends WorkManagerTest {
                 sNetwork = getNetwork();
             }
             return Result.success();
+        }
+    }
+
+    public static class StopReasonLoggingWorker extends NeverResolvedWorker {
+
+        static int sReason = 0;
+
+        public StopReasonLoggingWorker(@NonNull Context appContext,
+                @NonNull WorkerParameters workerParams) {
+            super(appContext, workerParams);
+        }
+
+        @Override
+        public void onStopped() {
+            super.onStopped();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                sReason = getStopReason();
+            }
         }
     }
 }

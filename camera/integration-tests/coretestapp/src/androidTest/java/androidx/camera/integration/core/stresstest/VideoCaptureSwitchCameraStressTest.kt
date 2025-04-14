@@ -23,7 +23,7 @@ import androidx.camera.integration.core.CameraXActivity.BIND_PREVIEW
 import androidx.camera.integration.core.CameraXActivity.BIND_VIDEO_CAPTURE
 import androidx.camera.integration.core.util.StressTestUtil.LARGE_STRESS_TEST_REPEAT_COUNT
 import androidx.camera.integration.core.util.StressTestUtil.VERIFICATION_TARGET_VIDEO_CAPTURE
-import androidx.camera.testing.LabTestRule
+import androidx.camera.testing.impl.LabTestRule
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.testutils.RepeatRule
@@ -34,11 +34,9 @@ import org.junit.runners.Parameterized
 @LargeTest
 @RunWith(Parameterized::class)
 @SdkSuppress(minSdkVersion = 21)
-class VideoCaptureSwitchCameraStressTest constructor(
-    implName: String,
-    cameraConfig: CameraXConfig,
-    cameraId: String
-) : SwitchCameraStressTestBase(implName, cameraConfig, cameraId) {
+class VideoCaptureSwitchCameraStressTest
+constructor(implName: String, cameraConfig: CameraXConfig, cameraId: String) :
+    SwitchCameraStressTestBase(implName, cameraConfig, cameraId) {
 
     @LabTestRule.LabTestOnly
     @Test

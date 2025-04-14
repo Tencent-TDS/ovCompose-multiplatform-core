@@ -18,7 +18,6 @@ package androidx.health.services.client.impl
 
 import android.content.Context
 import androidx.annotation.RestrictTo
-import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.health.services.client.MeasureCallback
 import androidx.health.services.client.MeasureClient
@@ -41,12 +40,8 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
 import java.util.concurrent.Executor
 
-/**
- * [MeasureClient] implementation that is backed by Health Services.
- *
- */
+/** [MeasureClient] implementation that is backed by Health Services. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
-@VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
 public class ServiceBackedMeasureClient(
     private val context: Context,
     connectionManager: ConnectionManager = HsConnectionManager.getInstance(context)
@@ -72,11 +67,7 @@ public class ServiceBackedMeasureClient(
         val callbackStub = MeasureCallbackCache.INSTANCE.getOrCreate(dataType, executor, callback)
         val future =
             registerListener(callbackStub.listenerKey) { service, result: SettableFuture<Void?> ->
-                service.registerCallback(
-                    request,
-                    callbackStub,
-                    StatusCallback(result)
-                )
+                service.registerCallback(request, callbackStub, StatusCallback(result))
             }
         Futures.addCallback(
             future,
@@ -89,18 +80,19 @@ public class ServiceBackedMeasureClient(
                     callback.onRegistrationFailed(t)
                 }
             },
-            executor)
+            executor
+        )
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun unregisterMeasureCallbackAsync(
         dataType: DeltaDataType<*, *>,
         callback: MeasureCallback
     ): ListenableFuture<Void> {
+        // Cast is unfortunately required as there is no non-null Void in Kotlin.
         val callbackStub =
             MeasureCallbackCache.INSTANCE.remove(dataType, callback)
-                ?: return Futures.immediateFailedFuture(
-                    IllegalArgumentException("Given callback was not registered.")
-                )
+                ?: return Futures.immediateFuture(null) as ListenableFuture<Void>
         val request = MeasureUnregistrationRequest(context.packageName, dataType)
         return unregisterListener(callbackStub.listenerKey) { service, resultFuture ->
             service.unregisterCallback(request, callbackStub, StatusCallback(resultFuture))

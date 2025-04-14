@@ -16,14 +16,10 @@
 
 package androidx.security.crypto;
 
-import static androidx.security.crypto.MasterKey.KEYSTORE_PATH_URI;
-
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-
-import androidx.annotation.NonNull;
 
 import com.google.crypto.tink.KeyTemplate;
 import com.google.crypto.tink.KeyTemplates;
@@ -31,6 +27,8 @@ import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.StreamingAead;
 import com.google.crypto.tink.integration.android.AndroidKeysetManager;
 import com.google.crypto.tink.streamingaead.StreamingAeadConfig;
+
+import org.jspecify.annotations.NonNull;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -85,7 +83,10 @@ import java.security.GeneralSecurityException;
  *  // read the encrypted file
  *  FileInputStream encryptedInputStream = encryptedFile.openFileInput();
  * </pre>
+ * @deprecated Use {@link java.io.File} instead.
  */
+@Deprecated
+@SuppressWarnings("deprecation")
 public final class EncryptedFile {
 
     private static final String KEYSET_PREF_NAME =
@@ -111,7 +112,9 @@ public final class EncryptedFile {
 
     /**
      * The encryption scheme to encrypt files.
+     * @deprecated Use {@link java.io.File} instead.
      */
+    @Deprecated
     public enum FileEncryptionScheme {
         /**
          * The file content is encrypted using StreamingAead with AES-GCM, with the file name as
@@ -136,7 +139,9 @@ public final class EncryptedFile {
 
     /**
      * Builder class to configure EncryptedFile
+     * @deprecated Use {@link java.io.File} instead.
      */
+    @Deprecated
     public static final class Builder {
         private static final Object sLock = new Object();
 
@@ -197,8 +202,7 @@ public final class EncryptedFile {
          * @param keysetPrefName The SharedPreferences file to store the keyset.
          * @return This Builder
          */
-        @NonNull
-        public Builder setKeysetPrefName(@NonNull String keysetPrefName) {
+        public @NonNull Builder setKeysetPrefName(@NonNull String keysetPrefName) {
             mKeysetPrefName = keysetPrefName;
             return this;
         }
@@ -207,8 +211,7 @@ public final class EncryptedFile {
          * @param keysetAlias The alias in the SharedPreferences file to store the keyset.
          * @return This Builder
          */
-        @NonNull
-        public Builder setKeysetAlias(@NonNull String keysetAlias) {
+        public @NonNull Builder setKeysetAlias(@NonNull String keysetAlias) {
             mKeysetAlias = keysetAlias;
             return this;
         }
@@ -216,14 +219,13 @@ public final class EncryptedFile {
         /**
          * @return An EncryptedFile with the specified parameters.
          */
-        @NonNull
-        public EncryptedFile build() throws GeneralSecurityException, IOException {
+        public @NonNull EncryptedFile build() throws GeneralSecurityException, IOException {
             StreamingAeadConfig.register();
 
             AndroidKeysetManager.Builder keysetManagerBuilder = new AndroidKeysetManager.Builder()
                     .withKeyTemplate(mFileEncryptionScheme.getKeyTemplate())
                     .withSharedPref(mContext, mKeysetAlias, mKeysetPrefName)
-                    .withMasterKeyUri(KEYSTORE_PATH_URI + mMasterKeyAlias);
+                    .withMasterKeyUri(MasterKey.KEYSTORE_PATH_URI + mMasterKeyAlias);
 
             // Building the keyset manager involves shared pref filesystem operations. To control
             // access to this global state in multi-threaded contexts we need to ensure mutual
@@ -252,8 +254,7 @@ public final class EncryptedFile {
      * @throws GeneralSecurityException when a bad master key or keyset has been used
      * @throws IOException              when the file already exists or is not available for writing
      */
-    @NonNull
-    public FileOutputStream openFileOutput()
+    public @NonNull FileOutputStream openFileOutput()
             throws GeneralSecurityException, IOException {
         if (mFile.exists()) {
             throw new IOException("output file already exists, please use a new file: "
@@ -276,8 +277,7 @@ public final class EncryptedFile {
      * @throws FileNotFoundException    when the file was not found
      * @throws IOException              when other I/O errors occur
      */
-    @NonNull
-    public FileInputStream openFileInput()
+    public @NonNull FileInputStream openFileInput()
             throws GeneralSecurityException, IOException, FileNotFoundException {
         if (!mFile.exists()) {
             throw new FileNotFoundException("file doesn't exist: " + mFile.getName());
@@ -301,7 +301,7 @@ public final class EncryptedFile {
         }
 
         @Override
-        public void write(@NonNull byte[] b) throws IOException {
+        public void write(byte @NonNull [] b) throws IOException {
             mEncryptedOutputStream.write(b);
         }
 
@@ -311,7 +311,7 @@ public final class EncryptedFile {
         }
 
         @Override
-        public void write(@NonNull byte[] b, int off, int len) throws IOException {
+        public void write(byte @NonNull [] b, int off, int len) throws IOException {
             mEncryptedOutputStream.write(b, off, len);
         }
 
@@ -320,9 +320,8 @@ public final class EncryptedFile {
             mEncryptedOutputStream.close();
         }
 
-        @NonNull
         @Override
-        public FileChannel getChannel() {
+        public @NonNull FileChannel getChannel() {
             throw new UnsupportedOperationException("For encrypted files, please open the "
                     + "relevant FileInput/FileOutputStream.");
         }
@@ -355,12 +354,12 @@ public final class EncryptedFile {
         }
 
         @Override
-        public int read(@NonNull byte[] b) throws IOException {
+        public int read(byte @NonNull [] b) throws IOException {
             return mEncryptedInputStream.read(b);
         }
 
         @Override
-        public int read(@NonNull byte[] b, int off, int len) throws IOException {
+        public int read(byte @NonNull [] b, int off, int len) throws IOException {
             return mEncryptedInputStream.read(b, off, len);
         }
 

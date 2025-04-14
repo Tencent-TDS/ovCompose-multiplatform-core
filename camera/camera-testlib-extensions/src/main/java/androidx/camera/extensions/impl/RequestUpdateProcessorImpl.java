@@ -18,15 +18,13 @@ package androidx.camera.extensions.impl;
 
 import android.hardware.camera2.TotalCaptureResult;
 
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Processes a {@link TotalCaptureResult} to update a CaptureStage.
  *
  * @since 1.0
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface RequestUpdateProcessorImpl extends ProcessorImpl {
     /**
      * Process the {@link TotalCaptureResult} to update the {@link CaptureStageImpl}
@@ -36,6 +34,5 @@ public interface RequestUpdateProcessorImpl extends ProcessorImpl {
      * @return The updated parameters used for the repeating requests. If this is {@code null} then
      * the previous parameters will be used.
      */
-    @Nullable
-    CaptureStageImpl process(@Nullable TotalCaptureResult result);
+    @Nullable CaptureStageImpl process(@Nullable TotalCaptureResult result);
 }

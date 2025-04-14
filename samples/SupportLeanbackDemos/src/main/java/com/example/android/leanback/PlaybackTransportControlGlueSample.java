@@ -28,12 +28,13 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.leanback.media.PlaybackBaseControlGlue;
 import androidx.leanback.media.PlayerAdapter;
 import androidx.leanback.widget.Action;
 import androidx.leanback.widget.ArrayObjectAdapter;
 import androidx.leanback.widget.PlaybackControlsRow;
+
+import org.jspecify.annotations.NonNull;
 
 class PlaybackTransportControlGlueSample<T extends PlayerAdapter> extends
         androidx.leanback.media.PlaybackTransportControlGlue<T> {
@@ -232,7 +233,7 @@ class PlaybackTransportControlGlueSample<T extends PlayerAdapter> extends
      */
     private void onMediaSessionMetaDataChanged() {
 
-        /**
+        /*
          * Only update the media session's meta data when the media session is connected
          */
         if (mMediaSessionCompat == null) {

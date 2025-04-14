@@ -23,12 +23,12 @@ package androidx.credentials.exceptions
  *
  * @see GetCredentialException
  */
-class GetCredentialInterruptedException @JvmOverloads constructor(
-    errorMessage: CharSequence? = null
-) : GetCredentialException(TYPE_GET_CREDENTIAL_INTERRUPTED_EXCEPTION, errorMessage) {
+class GetCredentialInterruptedException
+@JvmOverloads
+constructor(errorMessage: CharSequence? = null) :
+    GetCredentialException(TYPE_GET_CREDENTIAL_INTERRUPTED_EXCEPTION, errorMessage) {
 
-    /** @hide */
-    companion object {
+    internal companion object {
         internal const val TYPE_GET_CREDENTIAL_INTERRUPTED_EXCEPTION =
             "android.credentials.GetCredentialException.TYPE_INTERRUPTED"
     }

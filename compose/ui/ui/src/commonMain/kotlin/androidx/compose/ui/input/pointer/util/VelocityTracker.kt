@@ -20,7 +20,11 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
+import androidx.compose.ui.internal.checkPrecondition
+import androidx.compose.ui.internal.throwIllegalArgumentException
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastForEach
 import kotlin.math.abs
 import kotlin.math.sign
@@ -37,18 +41,25 @@ private const val HorizonMilliseconds: Int = 100
  *
  * The input data is provided by calling [addPosition]. Adding data is cheap.
  *
- * To obtain a velocity, call [calculateVelocity]. This will compute the velocity
- * based on the data added so far. Only call this when you need to use the velocity,
- * as it is comparatively expensive.
+ * To obtain a velocity, call [calculateVelocity]. This will compute the velocity based on the data
+ * added so far. Only call this when you need to use the velocity, as it is comparatively expensive.
  *
- * The quality of the velocity estimation will be better if more data points
- * have been received.
+ * The quality of the velocity estimation will be better if more data points have been received.
  */
+@OptIn(ExperimentalVelocityTrackerApi::class)
 class VelocityTracker {
-    private val xVelocityTracker = VelocityTracker1D() // non-differential, Lsq2 1D velocity tracker
-    private val yVelocityTracker = VelocityTracker1D() // non-differential, Lsq2 1D velocity tracker
+
+    private val strategy =
+        if (VelocityTrackerStrategyUseImpulse) {
+            VelocityTracker1D.Strategy.Impulse
+        } else {
+            VelocityTracker1D.Strategy.Lsq2 // non-differential, Lsq2 1D velocity tracker
+        }
+    private val xVelocityTracker = VelocityTracker1D(strategy = strategy)
+    private val yVelocityTracker = VelocityTracker1D(strategy = strategy)
 
     internal var currentPointerPositionAccumulator = Offset.Zero
+    internal var lastMoveEventTimeStamp = 0L
 
     /**
      * Adds a position at the given time to the tracker.
@@ -68,18 +79,40 @@ class VelocityTracker {
     /**
      * Computes the estimated velocity of the pointer at the time of the last provided data point.
      *
+     * The velocity calculated will not be limited. Unlike [calculateVelocity(maximumVelocity)] the
+     * resulting velocity won't be limited.
+     *
      * This can be expensive. Only call this when you need the velocity.
      */
-    fun calculateVelocity(): Velocity {
-        return Velocity(xVelocityTracker.calculateVelocity(), yVelocityTracker.calculateVelocity())
-    }
+    fun calculateVelocity(): Velocity =
+        calculateVelocity(Velocity(Float.MAX_VALUE, Float.MAX_VALUE))
 
     /**
-     * Clears the tracked positions added by [addPosition].
+     * Computes the estimated velocity of the pointer at the time of the last provided data point.
+     *
+     * The method allows specifying the maximum absolute value for the calculated velocity. If the
+     * absolute value of the calculated velocity exceeds the specified maximum, the return value
+     * will be clamped down to the maximum. For example, if the absolute maximum velocity is
+     * specified as "20", a calculated velocity of "25" will be returned as "20", and a velocity of
+     * "-30" will be returned as "-20".
+     *
+     * @param maximumVelocity the absolute values of the X and Y maximum velocities to be returned
+     *   in units/second. `units` is the units of the positions provided to this VelocityTracker.
      */
+    fun calculateVelocity(maximumVelocity: Velocity): Velocity {
+        checkPrecondition(maximumVelocity.x > 0f && maximumVelocity.y > 0) {
+            "maximumVelocity should be a positive value. You specified=$maximumVelocity"
+        }
+        val velocityX = xVelocityTracker.calculateVelocity(maximumVelocity.x)
+        val velocityY = yVelocityTracker.calculateVelocity(maximumVelocity.y)
+        return Velocity(velocityX, velocityY)
+    }
+
+    /** Clears the tracked positions added by [addPosition]. */
     fun resetTracking() {
         xVelocityTracker.resetTracking()
         yVelocityTracker.resetTracking()
+        lastMoveEventTimeStamp = 0L
     }
 }
 
@@ -91,7 +124,8 @@ class VelocityTracker {
  * Note: for calculating touch-related or other 2 dimensional/planar velocities, please use
  * [VelocityTracker], which handles velocity tracking across both X and Y dimensions at once.
  */
-class VelocityTracker1D internal constructor(
+class VelocityTracker1D
+internal constructor(
     // whether the data points added to the tracker represent differential values
     // (i.e. change in the  tracked object's displacement since the previous data point).
     // If false, it means that the data points added to the tracker will be considered as absolute
@@ -123,15 +157,16 @@ class VelocityTracker1D internal constructor(
      * data points is when tracking velocity for an object whose positions on a geometrical axis
      * over different instances of time are known.
      *
-     * @param isDataDifferential [true] if the data ponits provided to the constructed tracker
-     * are differential. [false] otherwise.
+     * @param isDataDifferential [true] if the data ponits provided to the constructed tracker are
+     *   differential. [false] otherwise.
      */
     constructor(isDataDifferential: Boolean) : this(isDataDifferential, Strategy.Impulse)
 
-    private val minSampleSize: Int = when (strategy) {
-        Strategy.Impulse -> 2
-        Strategy.Lsq2 -> 3
-    }
+    private val minSampleSize: Int =
+        when (strategy) {
+            Strategy.Impulse -> 2
+            Strategy.Lsq2 -> 3
+        }
 
     /**
      * A strategy used for velocity calculation. Each strategy has a different philosophy that could
@@ -140,9 +175,8 @@ class VelocityTracker1D internal constructor(
      */
     internal enum class Strategy {
         /**
-         * Least squares strategy. Polynomial fit at degree 2.
-         * Note that the implementation of this strategy currently supports only non-differential
-         * data points.
+         * Least squares strategy. Polynomial fit at degree 2. Note that the implementation of this
+         * strategy currently supports only non-differential data points.
          */
         Lsq2,
 
@@ -152,6 +186,7 @@ class VelocityTracker1D internal constructor(
          */
         Impulse,
     }
+
     // Circular buffer; current sample at index.
     private val samples: Array<DataPointAtTime?> = arrayOfNulls(HistorySize)
     private var index: Int = 0
@@ -160,12 +195,15 @@ class VelocityTracker1D internal constructor(
     private val reusableDataPointsArray = FloatArray(HistorySize)
     private val reusableTimeArray = FloatArray(HistorySize)
 
+    // Reusable array to minimize allocations inside calculateLeastSquaresVelocity.
+    private val reusableVelocityCoefficients = FloatArray(3)
+
     /**
      * Adds a data point for velocity calculation at a given time, [timeMillis]. The data ponit
      * represents an amount of a change in position (for differential data points), or an absolute
      * position (for non-differential data points). Whether or not the tracker handles differential
-     * data points is decided by [isDataDifferential], which is set once and finally during
-     * the construction of the tracker.
+     * data points is decided by [isDataDifferential], which is set once and finally during the
+     * construction of the tracker.
      *
      * Use the same units for the data points provided. For example, having some data points in `cm`
      * and some in `m` will result in incorrect velocity calculations, as this method (and the
@@ -177,9 +215,10 @@ class VelocityTracker1D internal constructor(
     }
 
     /**
-     * Computes the estimated velocity at the time of the last provided data point. The units of
-     * velocity will be `units/second`, where `units` is the units of the data points provided via
-     * [addDataPoint].
+     * Computes the estimated velocity at the time of the last provided data point.
+     *
+     * The units of velocity will be `units/second`, where `units` is the units of the data points
+     * provided via [addDataPoint].
      *
      * This can be expensive. Only call this when you need the velocity.
      */
@@ -200,9 +239,13 @@ class VelocityTracker1D internal constructor(
             val sample: DataPointAtTime = samples[index] ?: break
 
             val age: Float = (newestSample.time - sample.time).toFloat()
-            val delta: Float =
-                abs(sample.time - previousSample.time).toFloat()
-            previousSample = sample
+            val delta: Float = abs(sample.time - previousSample.time).toFloat()
+            previousSample =
+                if (strategy == Strategy.Lsq2 || isDataDifferential) {
+                    sample
+                } else {
+                    newestSample
+                }
             if (age > HorizonMilliseconds || delta > AssumePointerMoveStoppedMilliseconds) {
                 break
             }
@@ -232,8 +275,33 @@ class VelocityTracker1D internal constructor(
     }
 
     /**
-     * Clears data points added by [addDataPoint].
+     * Computes the estimated velocity at the time of the last provided data point.
+     *
+     * The method allows specifying the maximum absolute value for the calculated velocity. If the
+     * absolute value of the calculated velocity exceeds the specified maximum, the return value
+     * will be clamped down to the maximum. For example, if the absolute maximum velocity is
+     * specified as "20", a calculated velocity of "25" will be returned as "20", and a velocity of
+     * "-30" will be returned as "-20".
+     *
+     * @param maximumVelocity the absolute value of the maximum velocity to be returned in
+     *   units/second, where `units` is the units of the positions provided to this VelocityTracker.
      */
+    fun calculateVelocity(maximumVelocity: Float): Float {
+        checkPrecondition(maximumVelocity > 0f) {
+            "maximumVelocity should be a positive value. You specified=$maximumVelocity"
+        }
+        val velocity = calculateVelocity()
+
+        return if (velocity == 0.0f || velocity.isNaN()) {
+            0.0f
+        } else if (velocity > 0) {
+            velocity.coerceAtMost(maximumVelocity)
+        } else {
+            velocity.coerceAtLeast(-maximumVelocity)
+        }
+    }
+
+    /** Clears data points added by [addDataPoint]. */
     fun resetTracking() {
         samples.fill(element = null)
         index = 0
@@ -252,17 +320,17 @@ class VelocityTracker1D internal constructor(
         // The 2nd coefficient is the derivative of the quadratic polynomial at
         // x = 0, and that happens to be the last timestamp that we end up
         // passing to polyFitLeastSquares.
-        try {
-            return polyFitLeastSquares(time, dataPoints, sampleCount, 2)[1]
+        return try {
+            polyFitLeastSquares(time, dataPoints, sampleCount, 2, reusableVelocityCoefficients)[1]
         } catch (exception: IllegalArgumentException) {
-            return 0f
+            0f
         }
     }
 }
 
 /**
- * Extension to simplify either creating a new [DataPointAtTime] at an array index (if the index
- * was never populated), or to update an existing [DataPointAtTime] (if the index had an existing
+ * Extension to simplify either creating a new [DataPointAtTime] at an array index (if the index was
+ * never populated), or to update an existing [DataPointAtTime] (if the index had an existing
  * element). This helps to have zero allocations on average, and avoid performance hit that can be
  * caused by creating lots of objects.
  */
@@ -279,19 +347,28 @@ private fun Array<DataPointAtTime?>.set(index: Int, time: Long, dataPoint: Float
 /**
  * Track the positions and timestamps inside this event change.
  *
- * For optimal tracking, this should be called for the DOWN event and all MOVE
- * events, including any touch-slop-captured MOVE event.
+ * For optimal tracking, this should be called for the DOWN event and all MOVE events, including any
+ * touch-slop-captured MOVE event.
  *
- * Since Compose uses relative positions inside PointerInputChange, this should be
- * taken into consideration when using this method. Right now, we use the first down
- * to initialize an accumulator and use subsequent deltas to simulate an actual movement
- * from relative positions in PointerInputChange. This is required because VelocityTracker
- * requires data that can be fit into a curve, which might not happen with relative positions
- * inside a moving target for instance.
+ * Since Compose uses relative positions inside PointerInputChange, this should be taken into
+ * consideration when using this method. Right now, we use the first down to initialize an
+ * accumulator and use subsequent deltas to simulate an actual movement from relative positions in
+ * PointerInputChange. This is required because VelocityTracker requires data that can be fit into a
+ * curve, which might not happen with relative positions inside a moving target for instance.
  *
  * @param event Pointer change to track.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 fun VelocityTracker.addPointerInputChange(event: PointerInputChange) {
+    if (VelocityTrackerAddPointsFix) {
+        addPointerInputChangeWithFix(event)
+    } else {
+        addPointerInputChangeLegacy(event)
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+private fun VelocityTracker.addPointerInputChangeLegacy(event: PointerInputChange) {
 
     // Register down event as the starting point for the accumulator
     if (event.changedToDownIgnoreConsumed()) {
@@ -326,11 +403,35 @@ fun VelocityTracker.addPointerInputChange(event: PointerInputChange) {
     addPosition(event.uptimeMillis, currentPointerPositionAccumulator)
 }
 
+private fun VelocityTracker.addPointerInputChangeWithFix(event: PointerInputChange) {
+    // If this is ACTION_DOWN: Reset the tracking.
+    if (event.changedToDownIgnoreConsumed()) {
+        resetTracking()
+    }
+
+    // If this is not ACTION_UP event: Add events to the tracker as per the platform implementation.
+    // In the platform implementation the historical events array is used, they store the current
+    // event data in the position HistoricalArray.Size. Our historical array doesn't have access
+    // to the final position, but we can get that information from the original event data X and Y
+    // coordinates.
+    if (!event.changedToUpIgnoreConsumed()) {
+        event.historical.fastForEach { addPosition(it.uptimeMillis, it.originalEventPosition) }
+        addPosition(event.uptimeMillis, event.originalEventPosition)
+    }
+
+    // If this is ACTION_UP. Fix for b/238654963. If there's been enough time after the last MOVE
+    // event, reset the tracker.
+    if (event.changedToUpIgnoreConsumed() && (event.uptimeMillis - lastMoveEventTimeStamp) > 40L) {
+        resetTracking()
+    }
+    lastMoveEventTimeStamp = event.uptimeMillis
+}
+
 internal data class DataPointAtTime(var time: Long, var dataPoint: Float)
 
 /**
- *  TODO (shepshapard): If we want to support varying weights for each position, we could accept a
- *  3rd FloatArray of weights for each point and use them instead of the [DefaultWeight].
+ * TODO (shepshapard): If we want to support varying weights for each position, we could accept a
+ * 3rd FloatArray of weights for each point and use them instead of the [DefaultWeight].
  */
 private const val DefaultWeight = 1f
 
@@ -344,10 +445,9 @@ private const val DefaultWeight = 1f
  *
  * Throws an IllegalArgumentException if:
  * <ul>
- *   <li>[degree] is not a positive integer.
- *   <li>[sampleCount] is zero.
+ * <li>[degree] is not a positive integer.
+ * <li>[sampleCount] is zero.
  * </ul>
- *
  */
 internal fun polyFitLeastSquares(
     /** The x-coordinates of each data point. */
@@ -356,13 +456,14 @@ internal fun polyFitLeastSquares(
     y: FloatArray,
     /** number of items in each array */
     sampleCount: Int,
-    degree: Int
+    degree: Int,
+    coefficients: FloatArray = FloatArray((degree + 1).coerceAtLeast(0))
 ): FloatArray {
     if (degree < 1) {
-        throw IllegalArgumentException("The degree must be at positive integer")
+        throwIllegalArgumentException("The degree must be at positive integer")
     }
     if (sampleCount == 0) {
-        throw IllegalArgumentException("At least one point must be provided")
+        throwIllegalArgumentException("At least one point must be provided")
     }
 
     val truncatedDegree =
@@ -372,70 +473,72 @@ internal fun polyFitLeastSquares(
             degree
         }
 
-    val coefficients = FloatArray(degree + 1)
     // Shorthands for the purpose of notation equivalence to original C++ code.
-    val m: Int = sampleCount
-    val n: Int = truncatedDegree + 1
+    val m = sampleCount
+    val n = truncatedDegree + 1
 
     // Expand the X vector to a matrix A, pre-multiplied by the weights.
     val a = Matrix(n, m)
     for (h in 0 until m) {
-        a.set(0, h, DefaultWeight)
+        a[0, h] = DefaultWeight
         for (i in 1 until n) {
-            a.set(i, h, a.get(i - 1, h) * x[h])
+            a[i, h] = a[i - 1, h] * x[h]
         }
     }
 
     // Apply the Gram-Schmidt process to A to obtain its QR decomposition.
 
-    // Orthonormal basis, column-major ordVectorer.
+    // Orthonormal basis, column-major order.
     val q = Matrix(n, m)
     // Upper triangular matrix, row-major order.
     val r = Matrix(n, n)
     for (j in 0 until n) {
-        for (h in 0 until m) {
-            q.set(j, h, a.get(j, h))
-        }
+        val w = q[j]
+        a[j].copyInto(w, 0, 0, m)
+
         for (i in 0 until j) {
-            val dot: Float = q.getRow(j) * q.getRow(i)
+            val z = q[i]
+            val dot = w.dot(z)
             for (h in 0 until m) {
-                q.set(j, h, q.get(j, h) - dot * q.get(i, h))
+                w[h] -= dot * z[h]
             }
         }
 
-        val norm: Float = q.getRow(j).norm()
-        if (norm < 0.000001) {
-            // TODO(b/129494471): Determine what this actually means and see if there are
-            // alternatives to throwing an Exception here.
-
-            // Vectors are linearly dependent or zero so no solution.
-            throw IllegalArgumentException(
-                "Vectors are linearly dependent or zero so no " +
-                    "solution. TODO(shepshapard), actually determine what this means"
-            )
-        }
-
-        val inverseNorm: Float = 1.0f / norm
+        val inverseNorm = 1.0f / w.norm().fastCoerceAtLeast(1e-6f)
         for (h in 0 until m) {
-            q.set(j, h, q.get(j, h) * inverseNorm)
+            w[h] *= inverseNorm
         }
+
+        val v = r[j]
         for (i in 0 until n) {
-            r.set(j, i, if (i < j) 0.0f else q.getRow(j) * a.getRow(i))
+            v[i] = if (i < j) 0.0f else w.dot(a[i])
         }
     }
 
     // Solve R B = Qt W Y to find B. This is easy because R is upper triangular.
     // We just work from bottom-right to top-left calculating B's coefficients.
-    val wy = Vector(m)
-    for (h in 0 until m) {
-        wy[h] = y[h] * DefaultWeight
-    }
-    for (i in n - 1 downTo 0) {
-        coefficients[i] = q.getRow(i) * wy
-        for (j in n - 1 downTo i + 1) {
-            coefficients[i] -= r.get(i, j) * coefficients[j]
+    var wy = y
+
+    // NOTE: DefaultWeight is currently always set to 1.0f, there's no need to allocate a new
+    // array and to perform several multiplications for no reason
+    @Suppress("KotlinConstantConditions")
+    if (DefaultWeight != 1.0f) {
+        // TODO: Even when we pass the test above, this allocation is likely unnecessary.
+        // We could just modify wy (y) in place instead. This would need to be documented
+        // to avoid surprises for the caller though.
+        wy = FloatArray(m)
+        for (h in 0 until m) {
+            wy[h] = y[h] * DefaultWeight
         }
-        coefficients[i] /= r.get(i, i)
+    }
+
+    for (i in n - 1 downTo 0) {
+        var c = q[i].dot(wy)
+        val ri = r[i]
+        for (j in n - 1 downTo i + 1) {
+            c -= ri[j] * coefficients[j]
+        }
+        coefficients[i] = c / ri[i]
     }
 
     return coefficients
@@ -443,79 +546,67 @@ internal fun polyFitLeastSquares(
 
 /**
  * Calculates velocity based on the Impulse strategy. The provided [time] entries are in "ms", and
- * should be provided in reverse chronological order. The returned velocity is in "units/ms",
- * where "units" is unit of the [dataPoints].
+ * should be provided in reverse chronological order. The returned velocity is in "units/ms", where
+ * "units" is unit of the [dataPoints].
  *
  * Calculates the resulting velocity based on the total immpulse provided by the data ponits.
  *
  * The moving object in these calculations is the touchscreen (if we are calculating touch
- * velocity), or any input device from which the data points are generated. We refer to this
- * object as the "subject" below.
+ * velocity), or any input device from which the data points are generated. We refer to this object
+ * as the "subject" below.
  *
  * Initial condition is discussed below, but for now suppose that v(t=0) = 0
  *
- * The kinetic energy of the object at the release is E=0.5*m*v^2
- * Then vfinal = sqrt(2E/m). The goal is to calculate E.
+ * The kinetic energy of the object at the release is E=0.5*m*v^2 Then vfinal = sqrt(2E/m). The goal
+ * is to calculate E.
  *
  * The kinetic energy at the release is equal to the total work done on the object by the finger.
  * The total work W is the sum of all dW along the path.
  *
- * dW = F*dx, where dx is the piece of path traveled.
- * Force is change of momentum over time, F = dp/dt = m dv/dt.
- * Then substituting:
- * dW = m (dv/dt) * dx = m * v * dv
+ * dW = F*dx, where dx is the piece of path traveled. Force is change of momentum over time, F =
+ * dp/dt = m dv/dt. Then substituting: dW = m (dv/dt) * dx = m * v * dv
  *
- * Summing along the path, we get:
- * W = sum(dW) = sum(m * v * dv) = m * sum(v * dv)
- * Since the mass stays constant, the equation for final velocity is:
- * vfinal = sqrt(2*sum(v * dv))
+ * Summing along the path, we get: W = sum(dW) = sum(m * v * dv) = m * sum(v * dv) Since the mass
+ * stays constant, the equation for final velocity is: vfinal = sqrt(2*sum(v * dv))
  *
- * Here,
- * dv : change of velocity = (v[i+1]-v[i])
- * dx : change of distance = (x[i+1]-x[i])
- * dt : change of time = (t[i+1]-t[i])
- * v : instantaneous velocity = dx/dt
+ * Here, dv : change of velocity = (v[i+1]-v[i]) dx : change of distance = (x[i+1]-x[i]) dt : change
+ * of time = (t[i+1]-t[i]) v : instantaneous velocity = dx/dt
  *
- * The final formula is:
- * vfinal = sqrt(2) * sqrt(sum((v[i]-v[i-1])*|v[i]|)) for all i
- * The absolute value is needed to properly account for the sign. If the velocity over a
- * particular segment descreases, then this indicates braking, which means that negative
- * work was done. So for two positive, but decreasing, velocities, this contribution would be
- * negative and will cause a smaller final velocity.
+ * The final formula is: vfinal = sqrt(2) * sqrt(sum((v[i]-v[i-1])*|v[i]|)) for all i The absolute
+ * value is needed to properly account for the sign. If the velocity over a particular segment
+ * descreases, then this indicates braking, which means that negative work was done. So for two
+ * positive, but decreasing, velocities, this contribution would be negative and will cause a
+ * smaller final velocity.
  *
- * Initial condition
- * There are two ways to deal with initial condition:
- * 1) Assume that v(0) = 0, which would mean that the subject is initially at rest.
- * This is not entirely accurate. We are only taking the past X ms of touch data, where X is
- * currently equal to 100. However, a touch event that created a fling probably lasted for longer
- * than that, which would mean that the user has already been interacting with the subject, and
- * it has probably already been moving.
- * 2) Assume that the subject has already been moving at a certain velocity, calculate this
- * initial velocity and the equivalent energy, and start with this initial energy.
- * Consider an example where we have the following data, consisting of 3 points:
- *                 time: t0, t1, t2
- *                 x   : x0, x1, x2
- *                 v   :  0, v1, v2
- * Here is what will happen in each of these scenarios:
+ * Initial condition There are two ways to deal with initial condition:
+ * 1) Assume that v(0) = 0, which would mean that the subject is initially at rest. This is not
+ *    entirely accurate. We are only taking the past X ms of touch data, where X is currently equal
+ *    to 100. However, a touch event that created a fling probably lasted for longer than that,
+ *    which would mean that the user has already been interacting with the subject, and it has
+ *    probably already been moving.
+ * 2) Assume that the subject has already been moving at a certain velocity, calculate this initial
+ *    velocity and the equivalent energy, and start with this initial energy. Consider an example
+ *    where we have the following data, consisting of 3 points: time: t0, t1, t2 x : x0, x1, x2 v :
+ *    0, v1, v2 Here is what will happen in each of these scenarios:
  * 1) By directly applying the formula above with the v(0) = 0 boundary condition, we will get
- * vfinal = sqrt(2*(|v1|*(v1-v0) + |v2|*(v2-v1))). This can be simplified since v0=0
- * vfinal = sqrt(2*(|v1|*v1 + |v2|*(v2-v1))) = sqrt(2*(v1^2 + |v2|*(v2 - v1)))
- * since velocity is a real number
+ *    vfinal = sqrt(2*(|v1|*(v1-v0) + |v2|*(v2-v1))). This can be simplified since v0=0 vfinal =
+ *    sqrt(2*(|v1|*v1 + |v2|*(v2-v1))) = sqrt(2*(v1^2 + |v2|*(v2 - v1))) since velocity is a real
+ *    number
  * 2) If we treat the subject as already moving, then it must already have an energy (per mass)
- * equal to 1/2*v1^2. Then the initial energy should be 1/2*v1*2, and only the second segment
- * will contribute to the total kinetic energy (since we can effectively consider that v0=v1).
- * This will give the following expression for the final velocity:
- * vfinal = sqrt(2*(1/2*v1^2 + |v2|*(v2-v1)))
- * This analysis can be generalized to an arbitrary number of samples.
+ *    equal to 1/2*v1^2. Then the initial energy should be 1/2*v1*2, and only the second segment
+ *    will contribute to the total kinetic energy (since we can effectively consider that v0=v1).
+ *    This will give the following expression for the final velocity: vfinal = sqrt(2*(1/2*v1^2 +
+ *    |v2|*(v2-v1))) This analysis can be generalized to an arbitrary number of samples.
  *
+ * Comparing the two equations above, we see that the only mathematical difference is the factor of
+ * 1/2 in front of the first velocity term. This boundary condition would allow for the "proper"
+ * calculation of the case when all of the samples are equally spaced in time and distance, which
+ * should suggest a constant velocity.
  *
- * Comparing the two equations above, we see that the only mathematical difference
- * is the factor of 1/2 in front of the first velocity term.
- * This boundary condition would allow for the "proper" calculation of the case when all of the
- * samples are equally spaced in time and distance, which should suggest a constant velocity.
+ * Note that approach 2) is sensitive to the proper ordering of the data in time, since the boundary
+ * condition must be applied to the oldest sample to be accurate.
  *
- * Note that approach 2) is sensitive to the proper ordering of the data in time, since
- * the boundary condition must be applied to the oldest sample to be accurate.
+ * NOTE: [sampleCount] MUST be >= 2
  */
 private fun calculateImpulseVelocity(
     dataPoints: FloatArray,
@@ -523,33 +614,21 @@ private fun calculateImpulseVelocity(
     sampleCount: Int,
     isDataDifferential: Boolean
 ): Float {
-    if (sampleCount < 2) {
-        return 0f
-    }
-    if (sampleCount == 2) {
-        if (time[0] == time[1]) {
-            return 0f
-        }
-        val dataPointsDelta =
-            // For differential data ponits, each measurement reflects the amount of change in the
-            // subject's position. However, the first sample is discarded in computation because we
-            // don't know the time duration over which this change has occurred.
-            if (isDataDifferential) dataPoints[0]
-            else dataPoints[0] - dataPoints[1]
-        return dataPointsDelta / (time[0] - time[1])
-    }
     var work = 0f
-    for (i in (sampleCount - 1) downTo 1) {
-        if (time[i] == time[i - 1]) {
+    val start = sampleCount - 1
+    var nextTime = time[start]
+    for (i in start downTo 1) {
+        val currentTime = nextTime
+        nextTime = time[i - 1]
+        if (currentTime == nextTime) {
             continue
         }
-        val vPrev = kineticEnergyToVelocity(work)
         val dataPointsDelta =
-            if (isDataDifferential) -dataPoints[i - 1]
-            else dataPoints[i] - dataPoints[i - 1]
-        val vCurr = dataPointsDelta / (time[i] - time[i - 1])
+            if (isDataDifferential) -dataPoints[i - 1] else dataPoints[i] - dataPoints[i - 1]
+        val vCurr = dataPointsDelta / (currentTime - nextTime)
+        val vPrev = kineticEnergyToVelocity(work)
         work += (vCurr - vPrev) * abs(vCurr)
-        if (i == (sampleCount - 1)) {
+        if (i == start) {
             work = (work * 0.5f)
         }
     }
@@ -557,48 +636,70 @@ private fun calculateImpulseVelocity(
 }
 
 /**
- * Calculates the velocity for a given [kineticEnergy], using the formula:
- *          Kinetic Energy = 0.5 * mass * (velocity)^2
- * where a mass of "1" is used.
+ * Calculates the velocity for a given [kineticEnergy], using the formula: Kinetic Energy = 0.5 *
+ * mass * (velocity)^2 where a mass of "1" is used.
  */
-private fun kineticEnergyToVelocity(kineticEnergy: Float): Float {
+@Suppress("NOTHING_TO_INLINE")
+private inline fun kineticEnergyToVelocity(kineticEnergy: Float): Float {
     return sign(kineticEnergy) * sqrt(2 * abs(kineticEnergy))
 }
 
-private class Vector(
-    val length: Int
-) {
-    val elements: FloatArray = FloatArray(length)
+private typealias Vector = FloatArray
 
-    operator fun get(i: Int) = elements[i]
-
-    operator fun set(i: Int, value: Float) {
-        elements[i] = value
+private fun FloatArray.dot(a: FloatArray): Float {
+    var result = 0.0f
+    for (i in indices) {
+        result += this[i] * a[i]
     }
-
-    operator fun times(a: Vector): Float {
-        var result = 0.0f
-        for (i in 0 until length) {
-            result += this[i] * a[i]
-        }
-        return result
-    }
-
-    fun norm(): Float = sqrt(this * this)
+    return result
 }
 
-private class Matrix(rows: Int, cols: Int) {
-    private val elements: Array<Vector> = Array(rows) { Vector(cols) }
+@Suppress("NOTHING_TO_INLINE") private inline fun FloatArray.norm(): Float = sqrt(this.dot(this))
 
-    fun get(row: Int, col: Int): Float {
-        return elements[row][col]
-    }
+private typealias Matrix = Array<FloatArray>
 
-    fun set(row: Int, col: Int, value: Float) {
-        elements[row][col] = value
-    }
+@Suppress("NOTHING_TO_INLINE")
+private inline fun Matrix(rows: Int, cols: Int) = Array(rows) { Vector(cols) }
 
-    fun getRow(row: Int): Vector {
-        return elements[row]
-    }
+@Suppress("NOTHING_TO_INLINE")
+private inline operator fun Matrix.get(row: Int, col: Int): Float = this[row][col]
+
+@Suppress("NOTHING_TO_INLINE")
+private inline operator fun Matrix.set(row: Int, col: Int, value: Float) {
+    this[row][col] = value
 }
+
+/**
+ * A flag to indicate that we'll use the fix of how we add points to the velocity tracker.
+ *
+ * This is an experiment flag and will be removed once the experiments with the fix a finished. The
+ * final goal is that we will use the true path once the flag is removed. If you find any issues
+ * with the new fix, flip this flag to false to confirm they are newly introduced then file a bug.
+ * Tracking bug: (b/318621681)
+ */
+@Suppress("GetterSetterNames", "OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:Suppress("GetterSetterNames")
+@get:ExperimentalComposeUiApi
+@set:ExperimentalComposeUiApi
+@ExperimentalComposeUiApi
+var VelocityTrackerAddPointsFix: Boolean = true
+
+/**
+ * Selecting flag to enable impulse strategy for the velocity trackers. This is an experiment flag
+ * and will be removed once the experiments with the fix a finished. The final goal is that we will
+ * use the true path once the flag is removed. If you find any issues with the new fix, flip this
+ * flag to false to confirm they are newly introduced then file a bug. Tracking bug: (b/318621681)
+ */
+@Suppress("GetterSetterNames", "OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:Suppress("GetterSetterNames")
+@get:ExperimentalVelocityTrackerApi
+@set:ExperimentalVelocityTrackerApi
+@ExperimentalVelocityTrackerApi
+var VelocityTrackerStrategyUseImpulse = false
+
+@RequiresOptIn(
+    "This an opt-in flag to test the Velocity Tracker strategy algorithm used " +
+        "for calculating gesture velocities in Compose."
+)
+@Retention(AnnotationRetention.BINARY)
+annotation class ExperimentalVelocityTrackerApi

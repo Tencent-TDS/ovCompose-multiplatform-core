@@ -16,17 +16,17 @@
 
 package androidx.health.services.client.data
 
-import androidx.health.services.client.proto.DataProto
-import androidx.health.services.client.proto.DataProto.DataPointAccuracy.LocationAccuracy as LocationAccuracyProto
 import android.util.Log
 import androidx.annotation.FloatRange
+import androidx.health.services.client.proto.DataProto
+import androidx.health.services.client.proto.DataProto.DataPointAccuracy.LocationAccuracy as LocationAccuracyProto
 
 /** Accuracy for a [DataType.LOCATION] data point. */
 @Suppress("ParcelCreator")
 public class LocationAccuracy(
     /**
-     * Represents the estimated horizontal accuracy of the location, radial, in meters.
-     * Range starting from 0.0.
+     * Represents the estimated horizontal accuracy of the location, radial, in meters. Range
+     * starting from 0.0.
      *
      * @throws IllegalArgumentException if [horizontalPositionErrorMeters] is negative
      */
@@ -43,12 +43,18 @@ public class LocationAccuracy(
 ) : DataPointAccuracy() {
     init {
         if (horizontalPositionErrorMeters < 0.0) {
-            Log.w(TAG, "horizontalPositionErrorMeters value " +
-                "$horizontalPositionErrorMeters is out of range")
+            Log.w(
+                TAG,
+                "horizontalPositionErrorMeters value " +
+                    "$horizontalPositionErrorMeters is out of range"
+            )
         }
         if (verticalPositionErrorMeters < 0.0) {
-            Log.w(TAG, "verticalPositionErrorMeters value " +
-                "$verticalPositionErrorMeters is out of range")
+            Log.w(
+                TAG,
+                "verticalPositionErrorMeters value " +
+                    "$verticalPositionErrorMeters is out of range"
+            )
         }
     }
 

@@ -21,13 +21,14 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import com.google.android.wearable.compat.WearableActivityController;
+
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -78,9 +79,8 @@ import java.io.PrintWriter;
  *     }
  * }</pre>
  *
- * @deprecated Use {@link AmbientLifecycleObserverInterface} and {@link AmbientLifecycleObserver}
- *     instead. These classes use lifecycle components instead, preventing the need to hook these
- *     events using fragments.
+ * @deprecated Use {@link AmbientLifecycleObserver} instead. These classes use lifecycle
+ * components instead, preventing the need to hook these events using fragments.
  */
 @Deprecated
 public final class AmbientModeSupport extends Fragment {
@@ -199,9 +199,8 @@ public final class AmbientModeSupport extends Fragment {
             };
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     AmbientDelegate mDelegate;
-    @Nullable
     @SuppressWarnings("WeakerAccess") /* synthetic access */
-    AmbientCallback mSuppliedCallback;
+    @Nullable AmbientCallback mSuppliedCallback;
     private AmbientController mController;
 
     /**

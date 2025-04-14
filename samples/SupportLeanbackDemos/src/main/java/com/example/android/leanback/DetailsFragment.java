@@ -40,6 +40,8 @@ import androidx.leanback.widget.Row;
 import androidx.leanback.widget.RowPresenter;
 import androidx.leanback.widget.SparseArrayObjectAdapter;
 
+import org.jspecify.annotations.NonNull;
+
 public class DetailsFragment extends androidx.leanback.app.DetailsFragment {
     private static final String TAG = "leanback.DetailsFragment";
     private static final String ITEM = "item";
@@ -173,7 +175,7 @@ public class DetailsFragment extends androidx.leanback.app.DetailsFragment {
         outState.putParcelable(ITEM, mPhotoItem);
     }
 
-    public void setItem(PhotoItem photoItem) {
+    public void setItem(@NonNull PhotoItem photoItem) {
         mPhotoItem = photoItem;
         updateAdapter();
     }

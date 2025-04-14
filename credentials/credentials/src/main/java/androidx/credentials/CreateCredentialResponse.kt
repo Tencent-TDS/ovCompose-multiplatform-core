@@ -23,19 +23,21 @@ import androidx.credentials.internal.FrameworkClassParsingException
 /**
  * Base response class for the credential creation operation made with the
  * [CreateCredentialRequest].
+ *
+ * @sample androidx.credentials.samples.processCreateCredentialResponse
+ * @property type the credential type determined by the credential-type-specific subclass (e.g. the
+ *   type for [CreatePasswordResponse] is [PasswordCredential.TYPE_PASSWORD_CREDENTIAL] and for
+ *   [CreatePublicKeyCredentialResponse] is [PublicKeyCredential.TYPE_PUBLIC_KEY_CREDENTIAL])
+ * @property data the response data in the [Bundle] format
  */
-abstract class CreateCredentialResponse internal constructor(
-    /** @hide */
-    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    open val type: String,
-    /** @hide */
-    @get:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    open val data: Bundle,
+abstract class CreateCredentialResponse
+internal constructor(
+    val type: String,
+    val data: Bundle,
 ) {
-    /** @hide */
-    companion object {
-        /** @hide */
+    internal companion object {
         @JvmStatic
+        @RestrictTo(RestrictTo.Scope.LIBRARY) // used from java tests
         fun createFrom(type: String, data: Bundle): CreateCredentialResponse {
             return try {
                 when (type) {
@@ -51,5 +53,26 @@ abstract class CreateCredentialResponse internal constructor(
                 CreateCustomCredentialResponse(type, data)
             }
         }
+
+        private const val EXTRA_CREATE_CREDENTIAL_RESPONSE_TYPE =
+            "androidx.credentials.provider.extra.CREATE_CREDENTIAL_RESPONSE_TYPE"
+        private const val EXTRA_CREATE_CREDENTIAL_RESPONSE_DATA =
+            "androidx.credentials.provider.extra.CREATE_CREDENTIAL_REQUEST_DATA"
+
+        @JvmStatic
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        fun fromBundle(bundle: Bundle): CreateCredentialResponse? {
+            val type = bundle.getString(EXTRA_CREATE_CREDENTIAL_RESPONSE_TYPE) ?: return null
+            val data = bundle.getBundle(EXTRA_CREATE_CREDENTIAL_RESPONSE_DATA) ?: return null
+            return createFrom(type, data)
+        }
+
+        @JvmStatic
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        fun asBundle(response: CreateCredentialResponse): Bundle =
+            Bundle().apply {
+                this.putString(EXTRA_CREATE_CREDENTIAL_RESPONSE_TYPE, response.type)
+                this.putBundle(EXTRA_CREATE_CREDENTIAL_RESPONSE_DATA, response.data)
+            }
     }
 }

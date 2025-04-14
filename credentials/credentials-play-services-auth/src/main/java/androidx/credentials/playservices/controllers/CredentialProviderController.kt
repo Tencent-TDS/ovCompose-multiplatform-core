@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package androidx.credentials.playservices.controllers
 
 import android.app.Activity
+import android.content.Context
 import android.os.Bundle
 import android.os.CancellationSignal
 import androidx.credentials.CredentialManagerCallback
@@ -31,23 +32,30 @@ import java.util.concurrent.Executor
 
 /**
  * Extensible abstract class for credential controllers. Please implement this class per every
- * request/response credential type. Unique logic is left to the use case of the implementation.
- * If you are building your own version as an OEM, the below can be mimicked to your own
- * credential provider equivalent and whatever internal service you invoke.
+ * request/response credential type. Unique logic is left to the use case of the implementation. If
+ * you are building your own version as an OEM, the below can be mimicked to your own credential
+ * provider equivalent and whatever internal service you invoke.
  *
  * @param T1 the credential request type from credential manager
  * @param T2 the credential request type converted to play services
  * @param R2 the credential response type from play services
  * @param R1 the credential response type converted back to that used by credential manager
  * @param E1 the credential error type to throw
- *
- * @hide
  */
 @Suppress("deprecation")
-abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : Any,
-    E1 : Any>(private val activity: Activity) : CredentialProviderBaseController(activity) {
+internal abstract class CredentialProviderController<
+    T1 : Any,
+    T2 : Any,
+    R2 : Any,
+    R1 : Any,
+    E1 : Any
+>(private val context: Context) : CredentialProviderBaseController(context) {
 
     companion object {
+
+        internal const val ERROR_MESSAGE_START_ACTIVITY_FAILED =
+            "Failed to launch the selector UI. Hint: ensure the `context` parameter is an" +
+                " Activity-based context."
 
         /**
          * This handles result code exception reporting across all create flows.
@@ -57,22 +65,15 @@ abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : A
         @JvmStatic
         protected fun maybeReportErrorResultCodeCreate(
             resultCode: Int,
-            type: String,
-            cancelOnError: (
-                CancellationSignal?,
-                    () -> Unit
-            ) -> Unit,
+            cancelOnError: (CancellationSignal?, () -> Unit) -> Unit,
             onError: (CreateCredentialException) -> Unit,
             cancellationSignal: CancellationSignal?
         ): Boolean {
             if (resultCode != Activity.RESULT_OK) {
-                var exception: CreateCredentialException = CreateCredentialUnknownException(
-                    generateErrorStringUnknown(type, resultCode)
-                )
+                var exception: CreateCredentialException =
+                    CreateCredentialUnknownException(generateErrorStringUnknown(resultCode))
                 if (resultCode == Activity.RESULT_CANCELED) {
-                    exception = CreateCredentialCancellationException(
-                        generateErrorStringCanceled(type)
-                    )
+                    exception = CreateCredentialCancellationException(generateErrorStringCanceled())
                 }
                 cancelOnError(cancellationSignal) { onError(exception) }
                 return true
@@ -80,12 +81,12 @@ abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : A
             return false
         }
 
-        internal fun generateErrorStringUnknown(type: String, resultCode: Int): String {
-            return "$type activity with result code: $resultCode indicating not RESULT_OK"
+        internal fun generateErrorStringUnknown(resultCode: Int): String {
+            return "activity with result code: $resultCode indicating not RESULT_OK"
         }
 
-        internal fun generateErrorStringCanceled(type: String): String {
-            return "$type activity is cancelled by the user."
+        internal fun generateErrorStringCanceled(): String {
+            return "activity is cancelled by the user."
         }
 
         /**
@@ -96,22 +97,15 @@ abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : A
         @JvmStatic
         protected fun maybeReportErrorResultCodeGet(
             resultCode: Int,
-            type: String,
-            cancelOnError: (
-                CancellationSignal?,
-                    () -> Unit
-            ) -> Unit,
+            cancelOnError: (CancellationSignal?, () -> Unit) -> Unit,
             onError: (GetCredentialException) -> Unit,
             cancellationSignal: CancellationSignal?
         ): Boolean {
             if (resultCode != Activity.RESULT_OK) {
-                var exception: GetCredentialException = GetCredentialUnknownException(
-                    generateErrorStringUnknown(type, resultCode)
-                )
+                var exception: GetCredentialException =
+                    GetCredentialUnknownException(generateErrorStringUnknown(resultCode))
                 if (resultCode == Activity.RESULT_CANCELED) {
-                    exception = GetCredentialCancellationException(
-                        generateErrorStringCanceled(type)
-                    )
+                    exception = GetCredentialCancellationException(generateErrorStringCanceled())
                 }
                 cancelOnError(cancellationSignal) { onError(exception) }
                 return true
@@ -136,8 +130,8 @@ abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : A
     }
 
     /**
-     * To avoid redundant logic across all controllers for exceptions parceled back from the
-     * hidden activity, this can be generally implemented.
+     * To avoid redundant logic across all controllers for exceptions parceled back from the hidden
+     * activity, this can be generally implemented.
      *
      * @return a boolean indicating if an error was reported or not by the result receiver
      */
@@ -155,15 +149,16 @@ abstract class CredentialProviderController<T1 : Any, T2 : Any, R2 : Any, R1 : A
         val errType = resultData.getString(EXCEPTION_TYPE_TAG)
         val errMsg = resultData.getString(EXCEPTION_MESSAGE_TAG)
         val exception = conversionFn(errType, errMsg)
-        cancelOrCallbackExceptionOrResult(cancellationSignal) {
-            executor.execute { callback.onError(exception) }
-        }
+        cancelOrCallbackExceptionOrResult(
+            cancellationSignal = cancellationSignal,
+            onResultOrException = { executor.execute { callback.onError(exception) } }
+        )
         return true
     }
 
     /**
-     * Invokes the flow that starts retrieving credential data. In this use case, we invoke
-     * play service modules.
+     * Invokes the flow that starts retrieving credential data. In this use case, we invoke play
+     * service modules.
      *
      * @param request a credential provider request
      * @param callback a credential manager callback with a credential provider response

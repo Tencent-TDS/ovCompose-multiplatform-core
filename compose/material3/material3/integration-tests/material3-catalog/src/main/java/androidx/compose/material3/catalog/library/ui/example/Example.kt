@@ -38,7 +38,9 @@ fun Example(
     example: Example,
     theme: Theme,
     onThemeChange: (theme: Theme) -> Unit,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    favorite: Boolean = false,
+    onFavoriteClick: () -> Unit = {},
 ) {
     CatalogScaffold(
         topBarTitle = example.name,
@@ -48,13 +50,15 @@ fun Example(
         docsUrl = component.docsUrl,
         sourceUrl = example.sourceUrl,
         onThemeChange = onThemeChange,
-        onBackClick = onBackClick
+        onBackClick = onBackClick,
+        favorite = favorite,
+        onFavoriteClick = onFavoriteClick
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .consumeWindowInsets(WindowInsets.safeDrawing)
-                .padding(paddingValues),
+            modifier =
+                Modifier.fillMaxSize()
+                    .consumeWindowInsets(WindowInsets.safeDrawing)
+                    .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
             example.content()

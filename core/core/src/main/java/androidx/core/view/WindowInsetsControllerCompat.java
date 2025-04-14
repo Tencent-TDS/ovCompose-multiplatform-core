@@ -19,7 +19,6 @@ package androidx.core.view;
 import static android.os.Build.VERSION.SDK_INT;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.inputmethodservice.InputMethodService;
 import android.os.CancellationSignal;
 import android.view.View;
@@ -30,16 +29,16 @@ import android.view.WindowInsetsAnimationController;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.animation.Interpolator;
-import android.view.inputmethod.InputMethodManager;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.collection.SimpleArrayMap;
 import androidx.core.graphics.Insets;
 import androidx.core.view.WindowInsetsCompat.Type.InsetsType;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -115,18 +114,30 @@ public final class WindowInsetsControllerCompat {
     @RequiresApi(30)
     @Deprecated
     private WindowInsetsControllerCompat(@NonNull WindowInsetsController insetsController) {
-        mImpl = new Impl30(insetsController, this);
+        if (SDK_INT >= 35) {
+            mImpl = new Impl35(insetsController,
+                    this,
+                    new SoftwareKeyboardControllerCompat(insetsController));
+        } else {
+            mImpl = new Impl30(insetsController,
+                    this,
+                    new SoftwareKeyboardControllerCompat(insetsController));
+        }
     }
 
     public WindowInsetsControllerCompat(@NonNull Window window, @NonNull View view) {
-        if (SDK_INT >= 30) {
-            mImpl = new Impl30(window, this);
+        SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat =
+                new SoftwareKeyboardControllerCompat(view);
+        if (SDK_INT >= 35) {
+            mImpl = new Impl35(window, this, softwareKeyboardControllerCompat);
+        } else if (SDK_INT >= 30) {
+            mImpl = new Impl30(window, this, softwareKeyboardControllerCompat);
         } else if (SDK_INT >= 26) {
-            mImpl = new Impl26(window, view);
+            mImpl = new Impl26(window, softwareKeyboardControllerCompat);
         } else if (SDK_INT >= 23) {
-            mImpl = new Impl23(window, view);
+            mImpl = new Impl23(window, softwareKeyboardControllerCompat);
         } else if (SDK_INT >= 20) {
-            mImpl = new Impl20(window, view);
+            mImpl = new Impl20(window, softwareKeyboardControllerCompat);
         } else {
             mImpl = new Impl();
         }
@@ -141,10 +152,9 @@ public final class WindowInsetsControllerCompat {
      * {@link WindowInsetsControllerCompat}
      * @deprecated Use {@link WindowCompat#getInsetsController(Window, View)} instead
      */
-    @NonNull
     @RequiresApi(30)
     @Deprecated
-    public static WindowInsetsControllerCompat toWindowInsetsControllerCompat(
+    public static @NonNull WindowInsetsControllerCompat toWindowInsetsControllerCompat(
             @NonNull WindowInsetsController insetsController) {
         return new WindowInsetsControllerCompat(insetsController);
     }
@@ -192,6 +202,12 @@ public final class WindowInsetsControllerCompat {
      * Checks if the foreground of the status bar is set to light.
      * <p>
      * This method always returns false on API < 23.
+     * <p>
+     * If this value is being set in the theme (via {@link android.R.attr#windowLightStatusBar}),
+     * then the correct value will only be returned once attached to the window.
+     * <p>
+     * Once this method is called, modifying `systemUiVisibility` directly to change the
+     * appearance is undefined behavior.
      *
      * @return true if the foreground is light
      * @see #setAppearanceLightStatusBars(boolean)
@@ -205,6 +221,9 @@ public final class WindowInsetsControllerCompat {
      * bar can be read clearly. If false, reverts to the default appearance.
      * <p>
      * This method has no effect on API < 23.
+     * <p>
+     * Once this method is called, modifying `systemUiVisibility` directly to change the
+     * appearance is undefined behavior.
      *
      * @see #isAppearanceLightStatusBars()
      */
@@ -216,6 +235,13 @@ public final class WindowInsetsControllerCompat {
      * Checks if the foreground of the navigation bar is set to light.
      * <p>
      * This method always returns false on API < 26.
+     * <p>
+     * If this value is being set in the theme (via
+     * {@link android.R.attr#windowLightNavigationBar}),
+     * then the correct value will only be returned once attached to the window.
+     * <p>
+     * Once this method is called, modifying `systemUiVisibility` directly to change the
+     * appearance is undefined behavior.
      *
      * @return true if the foreground is light
      * @see #setAppearanceLightNavigationBars(boolean)
@@ -229,6 +255,9 @@ public final class WindowInsetsControllerCompat {
      * the bar can be read clearly. If false, reverts to the default appearance.
      * <p>
      * This method has no effect on API < 26.
+     * <p>
+     * Once this method is called, modifying `systemUiVisibility` directly to change the
+     * appearance is undefined behavior.
      *
      * @see #isAppearanceLightNavigationBars()
      */
@@ -311,7 +340,7 @@ public final class WindowInsetsControllerCompat {
      *WindowInsetsControllerCompat.OnControllableInsetsChangedListener)
      */
     public void addOnControllableInsetsChangedListener(
-            @NonNull WindowInsetsControllerCompat.OnControllableInsetsChangedListener listener) {
+            WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener listener) {
         mImpl.addOnControllableInsetsChangedListener(listener);
     }
 
@@ -325,7 +354,7 @@ public final class WindowInsetsControllerCompat {
      *WindowInsetsControllerCompat.OnControllableInsetsChangedListener)
      */
     public void removeOnControllableInsetsChangedListener(
-            @NonNull WindowInsetsControllerCompat.OnControllableInsetsChangedListener
+            WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener
                     listener) {
         mImpl.removeOnControllableInsetsChangedListener(listener);
     }
@@ -364,6 +393,8 @@ public final class WindowInsetsControllerCompat {
     }
 
     private static class Impl {
+        static final int KEY_BEHAVIOR = 356039078;
+
         Impl() {
             //private
         }
@@ -383,7 +414,7 @@ public final class WindowInsetsControllerCompat {
         }
 
         int getSystemBarsBehavior() {
-            return 0;
+            return BEHAVIOR_DEFAULT;
         }
 
         public boolean isAppearanceLightStatusBars() {
@@ -405,7 +436,7 @@ public final class WindowInsetsControllerCompat {
         }
 
         void removeOnControllableInsetsChangedListener(
-                @NonNull WindowInsetsControllerCompat.OnControllableInsetsChangedListener
+                WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener
                         listener) {
         }
     }
@@ -413,15 +444,14 @@ public final class WindowInsetsControllerCompat {
     @RequiresApi(20)
     private static class Impl20 extends Impl {
 
-        @NonNull
-        protected final Window mWindow;
+        protected final @NonNull Window mWindow;
 
-        @NonNull
-        private final View mView;
+        private final @NonNull SoftwareKeyboardControllerCompat mSoftwareKeyboardControllerCompat;
 
-        Impl20(@NonNull Window window, @NonNull View view) {
+        Impl20(@NonNull Window window,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
             mWindow = window;
-            mView = view;
+            mSoftwareKeyboardControllerCompat = softwareKeyboardControllerCompat;
         }
 
         @Override
@@ -445,34 +475,7 @@ public final class WindowInsetsControllerCompat {
                     unsetSystemUiFlag(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
                     return;
                 case WindowInsetsCompat.Type.IME:
-                    // We'll try to find an available textView to focus to show the IME
-                    View view = mView;
-
-
-                    if (view.isInEditMode() || view.onCheckIsTextEditor()) {
-                        // The IME needs a text view to be focused to be shown
-                        // The view given to retrieve this controller is a textView so we can assume
-                        // that we can focus it in order to show the IME
-                        view.requestFocus();
-                    } else {
-                        view = mWindow.getCurrentFocus();
-                    }
-
-                    // Fallback on the container view
-                    if (view == null) {
-                        view = mWindow.findViewById(android.R.id.content);
-                    }
-
-                    if (view != null && view.hasWindowFocus()) {
-                        final View finalView = view;
-                        finalView.post(() -> {
-                            InputMethodManager imm =
-                                    (InputMethodManager) finalView.getContext()
-                                            .getSystemService(Context.INPUT_METHOD_SERVICE);
-                            imm.showSoftInput(finalView, 0);
-
-                        });
-                    }
+                    mSoftwareKeyboardControllerCompat.show();
             }
         }
 
@@ -496,10 +499,7 @@ public final class WindowInsetsControllerCompat {
                     setSystemUiFlag(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
                     return;
                 case WindowInsetsCompat.Type.IME:
-                    ((InputMethodManager) mWindow.getContext()
-                            .getSystemService(Context.INPUT_METHOD_SERVICE))
-                            .hideSoftInputFromWindow(mWindow.getDecorView().getWindowToken(),
-                                    0);
+                    mSoftwareKeyboardControllerCompat.hide();
             }
         }
 
@@ -533,6 +533,7 @@ public final class WindowInsetsControllerCompat {
 
         @Override
         void setSystemBarsBehavior(int behavior) {
+            mWindow.getDecorView().setTag(KEY_BEHAVIOR, behavior);
             switch (behavior) {
                 case BEHAVIOR_DEFAULT:
                     unsetSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
@@ -551,7 +552,8 @@ public final class WindowInsetsControllerCompat {
 
         @Override
         int getSystemBarsBehavior() {
-            return 0;
+            final Object behaviorTag = mWindow.getDecorView().getTag(KEY_BEHAVIOR);
+            return behaviorTag != null ? (int) behaviorTag : BEHAVIOR_DEFAULT;
         }
 
         @Override
@@ -561,7 +563,7 @@ public final class WindowInsetsControllerCompat {
 
         @Override
         void removeOnControllableInsetsChangedListener(
-                @NonNull WindowInsetsControllerCompat.OnControllableInsetsChangedListener
+                WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener
                         listener) {
         }
     }
@@ -569,8 +571,9 @@ public final class WindowInsetsControllerCompat {
     @RequiresApi(23)
     private static class Impl23 extends Impl20 {
 
-        Impl23(@NonNull Window window, @Nullable View view) {
-            super(window, view);
+        Impl23(@NonNull Window window,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(window, softwareKeyboardControllerCompat);
         }
 
         @Override
@@ -594,8 +597,9 @@ public final class WindowInsetsControllerCompat {
     @RequiresApi(26)
     private static class Impl26 extends Impl23 {
 
-        Impl26(@NonNull Window window, @Nullable View view) {
-            super(window, view);
+        Impl26(@NonNull Window window,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(window, softwareKeyboardControllerCompat);
         }
 
         @Override
@@ -621,6 +625,7 @@ public final class WindowInsetsControllerCompat {
 
         final WindowInsetsControllerCompat mCompatController;
         final WindowInsetsController mInsetsController;
+        final SoftwareKeyboardControllerCompat mSoftwareKeyboardControllerCompat;
         private final SimpleArrayMap<
                 WindowInsetsControllerCompat.OnControllableInsetsChangedListener,
                 WindowInsetsController.OnControllableInsetsChangedListener>
@@ -628,43 +633,46 @@ public final class WindowInsetsControllerCompat {
 
         protected Window mWindow;
 
-        Impl30(@NonNull Window window, @NonNull WindowInsetsControllerCompat compatController) {
-            this(window.getInsetsController(), compatController);
+        Impl30(@NonNull Window window,
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            this(window.getInsetsController(), compatController, softwareKeyboardControllerCompat);
             mWindow = window;
         }
 
         Impl30(@NonNull WindowInsetsController insetsController,
-                @NonNull WindowInsetsControllerCompat compatController) {
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
             mInsetsController = insetsController;
             mCompatController = compatController;
+            mSoftwareKeyboardControllerCompat = softwareKeyboardControllerCompat;
         }
 
         @Override
         void show(@InsetsType int types) {
-            if (mWindow != null && (types & WindowInsetsCompat.Type.IME) != 0 && SDK_INT < 33) {
-                InputMethodManager imm =
-                        (InputMethodManager) mWindow.getContext()
-                                .getSystemService(Context.INPUT_METHOD_SERVICE);
-
-                // This is a strange-looking workaround by making a call and ignoring the result.
-                // We don't use the return value here, but isActive() has the side-effect of
-                // calling a hidden method checkFocus(), which ensures that the IME state has the
-                // correct view in some situations (especially when the focused view changes).
-                // This is essentially a backport, since an equivalent checkFocus() call was
-                // added in API 32 to improve behavior and an additional change in API 33:
-                // https://issuetracker.google.com/issues/189858204
-                imm.isActive();
+            if ((types & WindowInsetsCompat.Type.IME) != 0) {
+                mSoftwareKeyboardControllerCompat.show();
             }
-            mInsetsController.show(types);
+            mInsetsController.show(types & ~WindowInsetsCompat.Type.IME);
         }
 
         @Override
         void hide(@InsetsType int types) {
-            mInsetsController.hide(types);
+            if ((types & WindowInsetsCompat.Type.IME) != 0) {
+                mSoftwareKeyboardControllerCompat.hide();
+            }
+            mInsetsController.hide(types & ~WindowInsetsCompat.Type.IME);
         }
 
         @Override
         public boolean isAppearanceLightStatusBars() {
+            // This is a side-effectful workaround
+            // Because the mask is zero, this won't change the system bar appearance
+            // However, it "unlocks" reading the effective system bar appearance in the following
+            // call. Without this being "unlocked," the system bar appearance will always return
+            // nothing, even if it has been set in the theme or by the system ui flags before
+            // querying for it.
+            mInsetsController.setSystemBarsAppearance(0, 0);
             return (mInsetsController.getSystemBarsAppearance()
                     & WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS) != 0;
         }
@@ -692,6 +700,13 @@ public final class WindowInsetsControllerCompat {
 
         @Override
         public boolean isAppearanceLightNavigationBars() {
+            // This is a side-effectful workaround
+            // Because the mask is zero, this won't change the system bar appearance
+            // However, it "unlocks" reading the effective system bar appearance in the following
+            // call. Without this being "unlocked," the system bar appearance will always return
+            // nothing, even if it has been set in the theme or by the system ui flags before
+            // querying for it.
+            mInsetsController.setSystemBarsAppearance(0, 0);
             return (mInsetsController.getSystemBarsAppearance()
                     & WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS) != 0;
         }
@@ -721,7 +736,7 @@ public final class WindowInsetsControllerCompat {
         void controlWindowInsetsAnimation(@InsetsType int types, long durationMillis,
                 @Nullable Interpolator interpolator,
                 @Nullable CancellationSignal cancellationSignal,
-                @NonNull final WindowInsetsAnimationControlListenerCompat listener) {
+                final @NonNull WindowInsetsAnimationControlListenerCompat listener) {
 
             WindowInsetsAnimationControlListener fwListener =
                     new WindowInsetsAnimationControlListener() {
@@ -764,7 +779,28 @@ public final class WindowInsetsControllerCompat {
          */
         @Override
         void setSystemBarsBehavior(@Behavior int behavior) {
-            mInsetsController.setSystemBarsBehavior(behavior);
+            if (mWindow != null) {
+                // Use the legacy way to control the behavior as a workaround because API 30 has a
+                // bug that the behavior might be cleared unexpectedly after setting a LayoutParam
+                // to a window.
+                mWindow.getDecorView().setTag(KEY_BEHAVIOR, behavior);
+                switch (behavior) {
+                    case BEHAVIOR_DEFAULT:
+                        unsetSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                        setSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE);
+                        break;
+                    case BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE:
+                        unsetSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE);
+                        setSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                        break;
+                    case BEHAVIOR_SHOW_BARS_BY_TOUCH:
+                        unsetSystemUiFlag(View.SYSTEM_UI_FLAG_IMMERSIVE
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+                        break;
+                }
+            } else {
+                mInsetsController.setSystemBarsBehavior(behavior);
+            }
         }
 
         /**
@@ -777,12 +813,17 @@ public final class WindowInsetsControllerCompat {
         @Override
         @Behavior
         int getSystemBarsBehavior() {
-            return mInsetsController.getSystemBarsBehavior();
+            if (mWindow != null) {
+                final Object behaviorTag = mWindow.getDecorView().getTag(KEY_BEHAVIOR);
+                return behaviorTag != null ? (int) behaviorTag : BEHAVIOR_DEFAULT;
+            } else {
+                return mInsetsController.getSystemBarsBehavior();
+            }
         }
 
         @Override
         void addOnControllableInsetsChangedListener(
-                @NonNull final WindowInsetsControllerCompat.OnControllableInsetsChangedListener
+                final WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener
                         listener) {
 
             if (mListeners.containsKey(listener)) {
@@ -802,7 +843,7 @@ public final class WindowInsetsControllerCompat {
 
         @Override
         void removeOnControllableInsetsChangedListener(
-                @NonNull WindowInsetsControllerCompat.OnControllableInsetsChangedListener
+                WindowInsetsControllerCompat.@NonNull OnControllableInsetsChangedListener
                         listener) {
             WindowInsetsController.OnControllableInsetsChangedListener
                     fwListener = mListeners.remove(listener);
@@ -824,5 +865,74 @@ public final class WindowInsetsControllerCompat {
                     decorView.getSystemUiVisibility()
                             | systemUiFlag);
         }
+    }
+
+    @RequiresApi(31)
+    private static class Impl31 extends Impl30 {
+
+        Impl31(@NonNull Window window,
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(window, compatController, softwareKeyboardControllerCompat);
+        }
+
+        Impl31(@NonNull WindowInsetsController insetsController,
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(insetsController, compatController, softwareKeyboardControllerCompat);
+        }
+
+        /**
+         * Controls the behavior of system bars.
+         *
+         * @param behavior Determines how the bars behave when being hidden by the application.
+         * @see #getSystemBarsBehavior
+         */
+        @Override
+        void setSystemBarsBehavior(@Behavior int behavior) {
+            mInsetsController.setSystemBarsBehavior(behavior);
+        }
+
+        /**
+         * Retrieves the requested behavior of system bars.
+         *
+         * @return the system bar behavior controlled by this window.
+         * @see #setSystemBarsBehavior(int)
+         */
+        @SuppressLint("WrongConstant")
+        @Override
+        @Behavior
+        int getSystemBarsBehavior() {
+            return mInsetsController.getSystemBarsBehavior();
+        }
+    }
+
+    @RequiresApi(35)
+    private static class Impl35 extends Impl31 {
+
+        Impl35(@NonNull Window window,
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(window, compatController, softwareKeyboardControllerCompat);
+        }
+
+        Impl35(@NonNull WindowInsetsController insetsController,
+                @NonNull WindowInsetsControllerCompat compatController,
+                @NonNull SoftwareKeyboardControllerCompat softwareKeyboardControllerCompat) {
+            super(insetsController, compatController, softwareKeyboardControllerCompat);
+        }
+
+        @Override
+        public boolean isAppearanceLightStatusBars() {
+            return (mInsetsController.getSystemBarsAppearance()
+                    & WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS) != 0;
+        }
+
+        @Override
+        public boolean isAppearanceLightNavigationBars() {
+            return (mInsetsController.getSystemBarsAppearance()
+                    & WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS) != 0;
+        }
+
     }
 }

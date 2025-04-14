@@ -20,6 +20,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.RectF
 import android.graphics.drawable.Icon
+import android.opengl.EGL14
 import android.opengl.GLES20
 import android.opengl.Matrix
 import android.view.Gravity
@@ -32,12 +33,12 @@ import androidx.wear.watchface.Renderer
 import androidx.wear.watchface.WatchFace
 import androidx.wear.watchface.WatchFaceColors
 import androidx.wear.watchface.WatchFaceExperimental
-import androidx.wear.watchface.WatchFaceService
 import androidx.wear.watchface.WatchFaceType
 import androidx.wear.watchface.WatchState
 import androidx.wear.watchface.complications.ComplicationSlotBounds
 import androidx.wear.watchface.complications.DefaultComplicationDataSourcePolicy
 import androidx.wear.watchface.complications.SystemDataSources
+import androidx.wear.watchface.complications.data.ComplicationExperimental
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.permission.dialogs.sample.ComplicationDeniedActivity
 import androidx.wear.watchface.complications.permission.dialogs.sample.ComplicationRationalActivity
@@ -62,38 +63,41 @@ import kotlinx.coroutines.launch
  *
  * NB this is open for testing.
  */
-open class ExampleOpenGLWatchFaceService : WatchFaceService() {
+open class ExampleOpenGLWatchFaceService : SampleWatchFaceService() {
     // Lazy because the context isn't initialized till later.
     private val watchFaceStyle by lazy { WatchFaceColorStyle.create(this, "white_style") }
 
     private val colorStyleSetting by lazy {
-        ListUserStyleSetting(
-            UserStyleSetting.Id("color_style_setting"),
-            resources,
-            R.string.colors_style_setting,
-            R.string.colors_style_setting_description,
-            icon = null,
-            options =
-                listOf(
-                    ListUserStyleSetting.ListOption(
-                        Option.Id("red_style"),
-                        resources,
-                        R.string.colors_style_red,
-                        R.string.colors_style_red_screen_reader,
-                        Icon.createWithResource(this, R.drawable.red_style)
+        ListUserStyleSetting.Builder(
+                UserStyleSetting.Id("color_style_setting"),
+                options =
+                    listOf(
+                        ListUserStyleSetting.ListOption.Builder(
+                                Option.Id("red_style"),
+                                resources,
+                                R.string.colors_style_red,
+                                R.string.colors_style_red_screen_reader
+                            )
+                            .setIcon { Icon.createWithResource(this, R.drawable.red_style) }
+                            .build(),
+                        ListUserStyleSetting.ListOption.Builder(
+                                Option.Id("green_style"),
+                                resources,
+                                R.string.colors_style_green,
+                                R.string.colors_style_green_screen_reader
+                            )
+                            .setIcon { Icon.createWithResource(this, R.drawable.green_style) }
+                            .build()
                     ),
-                    ListUserStyleSetting.ListOption(
-                        Option.Id("green_style"),
-                        resources,
-                        R.string.colors_style_green,
-                        R.string.colors_style_green_screen_reader,
-                        Icon.createWithResource(this, R.drawable.green_style)
-                    )
-                ),
-            listOf(WatchFaceLayer.BASE, WatchFaceLayer.COMPLICATIONS_OVERLAY)
-        )
+                listOf(WatchFaceLayer.BASE, WatchFaceLayer.COMPLICATIONS_OVERLAY),
+                resources,
+                R.string.colors_style_setting,
+                R.string.colors_style_setting_description
+            )
+            .build()
     }
 
+    @OptIn(ComplicationExperimental::class)
     private val complication =
         ComplicationSlot.createRoundRectComplicationSlotBuilder(
                 EXAMPLE_OPENGL_COMPLICATION_ID,
@@ -151,8 +155,11 @@ open class ExampleOpenGLWatchFaceService : WatchFaceService() {
                 Intent(this, ComplicationRationalActivity::class.java)
             )
 
+    class ExampleSharedAssets : Renderer.SharedAssets {
+        override fun onDestroy() {}
+    }
+
     @OptIn(WatchFaceExperimental::class)
-    @Suppress("Deprecation")
     @RequiresApi(27)
     private class ExampleOpenGLRenderer(
         surfaceHolder: SurfaceHolder,
@@ -161,11 +168,45 @@ open class ExampleOpenGLWatchFaceService : WatchFaceService() {
         private val colorStyleSetting: ListUserStyleSetting,
         private val complicationSlot: ComplicationSlot
     ) :
-        Renderer.GlesRenderer(
+        Renderer.GlesRenderer2<ExampleSharedAssets>(
             surfaceHolder,
             currentUserStyleRepository,
             watchState,
-            FRAME_PERIOD_MS
+            FRAME_PERIOD_MS,
+            // Try a config with 4x MSAA if supported and if necessary fall back to one without.
+            eglConfigAttribListList =
+                listOf(
+                    intArrayOf(
+                        EGL14.EGL_RENDERABLE_TYPE,
+                        EGL14.EGL_OPENGL_ES2_BIT,
+                        EGL14.EGL_RED_SIZE,
+                        8,
+                        EGL14.EGL_GREEN_SIZE,
+                        8,
+                        EGL14.EGL_BLUE_SIZE,
+                        8,
+                        EGL14.EGL_ALPHA_SIZE,
+                        8,
+                        EGL14.EGL_SAMPLES, // 4x MSAA (anti-aliasing)
+                        4,
+                        EGL14.EGL_NONE
+                    ),
+                    intArrayOf(
+                        EGL14.EGL_RENDERABLE_TYPE,
+                        EGL14.EGL_OPENGL_ES2_BIT,
+                        EGL14.EGL_RED_SIZE,
+                        8,
+                        EGL14.EGL_GREEN_SIZE,
+                        8,
+                        EGL14.EGL_BLUE_SIZE,
+                        8,
+                        EGL14.EGL_ALPHA_SIZE,
+                        8,
+                        EGL14.EGL_NONE
+                    )
+                ),
+            eglSurfaceAttribList = intArrayOf(EGL14.EGL_NONE),
+            eglContextAttribList = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE)
         ) {
 
         /** Projection transformation matrix. Converts from 3D to 2D. */
@@ -559,7 +600,9 @@ open class ExampleOpenGLWatchFaceService : WatchFaceService() {
             }
         }
 
-        override fun render(zonedDateTime: ZonedDateTime) {
+        override suspend fun createSharedAssets() = ExampleSharedAssets()
+
+        override fun render(zonedDateTime: ZonedDateTime, sharedAssets: ExampleSharedAssets) {
             // Draw background color and select the appropriate view projection matrix. The
             // background
             // should always be black in ambient mode. The view projection matrix used is overhead
@@ -633,7 +676,10 @@ open class ExampleOpenGLWatchFaceService : WatchFaceService() {
             }
         }
 
-        override fun renderHighlightLayer(zonedDateTime: ZonedDateTime) {
+        override fun renderHighlightLayer(
+            zonedDateTime: ZonedDateTime,
+            sharedAssets: ExampleSharedAssets
+        ) {
             val cameraIndex =
                 (zonedDateTime.toInstant().toEpochMilli() / FRAME_PERIOD_MS % numCameraAngles)
                     .toInt()

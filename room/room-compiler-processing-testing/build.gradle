@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -24,15 +31,16 @@ plugins {
 
 dependencies {
     api(project(":room:room-compiler-processing"))
-    implementation(libs.kotlinStdlib)
-    implementation(libs.kspApi)
-    implementation(libs.kotlinStdlibJdk8) // KSP defines older version as dependency, force update.
-    implementation(libs.ksp)
+    implementation(libs.kotlinStdlibJdk8)
+    // For Java source compilation
     implementation(libs.googleCompileTesting)
-    // specify these to match the kotlin compiler version in AndroidX rather than what KSP or KCT
-    // uses
+    // For KSP processing
+    implementation(libs.ksp)
+    implementation(libs.kspApi)
+    implementation(libs.kspCommon)
+    implementation(libs.kspEmbeddable)
+    // For Kotlin source compilation and KAPT
     implementation(libs.kotlinCompilerEmbeddable)
-    implementation(libs.kotlinDaemonEmbeddable)
     implementation(libs.kotlinAnnotationProcessingEmbeddable)
 }
 
@@ -42,7 +50,7 @@ dependencies {
  */
 def writeTestPropsTask = tasks.register("prepareTestConfiguration", WriteProperties.class) {
     description = "Generates a properties file with the current environment for compilation tests"
-    setOutputFile(project.layout.buildDirectory.dir("test-config").map {
+    destinationFile.set(project.layout.buildDirectory.dir("test-config").map {
         it.file("androidx.room.compiler.processing.util.CompilationTestCapabilities.Config" +
                 ".properties")
     })
@@ -50,13 +58,14 @@ def writeTestPropsTask = tasks.register("prepareTestConfiguration", WritePropert
     property("kspVersion", libs.versions.ksp.get())
 }
 
-// Remove upon updating to version 8.0 of lint plugin, b/253219347
-tasks.named("compileKotlin").configure { it.dependsOn(writeTestPropsTask) }
-
 java {
     sourceSets {
         main {
-            resources.srcDir(writeTestPropsTask.map { it.outputFile.parentFile })
+            resources.srcDir(
+                    writeTestPropsTask.map {
+                        it.destinationFile.asFile.get().parentFile
+                    }
+            )
         }
     }
 }
@@ -71,9 +80,19 @@ tasks.named("compileTestKotlin", KotlinCompile.class).configure {
     }
 }
 
+afterEvaluate {
+    lint {
+        lintOptions {
+            // Until fully switch to K2, existing FE1.0 usages are legitimate
+            // TODO(b/314151707)
+            disable("KotlincFE10")
+        }
+    }
+}
+
 androidx {
-    name = "AndroidX Room XProcessor Testing"
-    type = LibraryType.ANNOTATION_PROCESSOR_UTILS
+    name = "Room XProcessor Testing"
+    type = SoftwareType.ANNOTATION_PROCESSOR_UTILS
     inceptionYear = "2020"
     description = "Testing helpers for Room XProcessing APIs"
 }

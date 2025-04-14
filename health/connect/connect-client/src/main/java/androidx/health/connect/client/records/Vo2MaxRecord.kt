@@ -15,8 +15,10 @@
  */
 package androidx.health.connect.client.records
 
+import android.os.Build
 import androidx.annotation.IntDef
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.impl.platform.records.toPlatformRecord
 import androidx.health.connect.client.records.metadata.Metadata
 import java.time.Instant
 import java.time.ZoneOffset
@@ -25,6 +27,7 @@ import java.time.ZoneOffset
 public class Vo2MaxRecord(
     override val time: Instant,
     override val zoneOffset: ZoneOffset?,
+    override val metadata: Metadata,
     /** Maximal aerobic capacity (VO2 max) in milliliters. Required field. Valid range: 0-100. */
     public val vo2MillilitersPerMinuteKilogram: Double,
     /**
@@ -33,18 +36,26 @@ public class Vo2MaxRecord(
      * @see MeasurementMethod
      */
     @property:MeasurementMethods public val measurementMethod: Int = MEASUREMENT_METHOD_OTHER,
-    override val metadata: Metadata = Metadata.EMPTY,
 ) : InstantaneousRecord {
+    /*
+     * Android U devices and later use the platform's validation instead of Jetpack validation.
+     * See b/400965398 for more context.
+     */
     init {
-        requireNonNegative(
-            value = vo2MillilitersPerMinuteKilogram,
-            name = "vo2MillilitersPerMinuteKilogram"
-        )
-        vo2MillilitersPerMinuteKilogram.requireNotMore(
-            100.0,
-            name = "vo2MillilitersPerMinuteKilogram"
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            this.toPlatformRecord()
+        } else {
+            requireNonNegative(
+                value = vo2MillilitersPerMinuteKilogram,
+                name = "vo2MillilitersPerMinuteKilogram"
+            )
+            vo2MillilitersPerMinuteKilogram.requireNotMore(
+                100.0,
+                name = "vo2MillilitersPerMinuteKilogram"
+            )
+        }
     }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Vo2MaxRecord) return false
@@ -68,6 +79,10 @@ public class Vo2MaxRecord(
         return result
     }
 
+    override fun toString(): String {
+        return "Vo2MaxRecord(time=$time, zoneOffset=$zoneOffset, vo2MillilitersPerMinuteKilogram=$vo2MillilitersPerMinuteKilogram, measurementMethod=$measurementMethod, metadata=$metadata)"
+    }
+
     companion object {
         const val MEASUREMENT_METHOD_OTHER = 0
         const val MEASUREMENT_METHOD_METABOLIC_CART = 1
@@ -81,6 +96,7 @@ public class Vo2MaxRecord(
         @JvmField
         val MEASUREMENT_METHOD_STRING_TO_INT_MAP: Map<String, Int> =
             mapOf(
+                MeasurementMethod.OTHER to MEASUREMENT_METHOD_OTHER,
                 MeasurementMethod.METABOLIC_CART to MEASUREMENT_METHOD_METABOLIC_CART,
                 MeasurementMethod.HEART_RATE_RATIO to MEASUREMENT_METHOD_HEART_RATE_RATIO,
                 MeasurementMethod.COOPER_TEST to MEASUREMENT_METHOD_COOPER_TEST,
@@ -104,10 +120,7 @@ public class Vo2MaxRecord(
         const val OTHER = "other"
     }
 
-    /**
-     * VO2 max (maximal aerobic capacity) measurement method.
-     * @suppress
-     */
+    /** VO2 max (maximal aerobic capacity) measurement method. */
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(
         value =

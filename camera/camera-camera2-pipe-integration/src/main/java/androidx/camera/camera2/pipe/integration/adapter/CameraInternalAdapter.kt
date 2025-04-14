@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.integration.adapter
 
-import androidx.annotation.RequiresApi
+import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.core.Log.debug
 import androidx.camera.camera2.pipe.integration.config.CameraConfig
@@ -31,18 +29,22 @@ import androidx.camera.core.impl.CameraControlInternal
 import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.CameraInternal
 import androidx.camera.core.impl.Observable
+import androidx.camera.core.impl.SessionProcessor
 import com.google.common.util.concurrent.ListenableFuture
 import javax.inject.Inject
 import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 internal val cameraAdapterIds = atomic(0)
 
-/**
- * Adapt the [CameraInternal] class to one or more [CameraPipe] based Camera instances.
- */
+/** Adapt the [CameraInternal] class to one or more [CameraPipe] based Camera instances. */
 @CameraScope
-class CameraInternalAdapter @Inject constructor(
+public class CameraInternalAdapter
+@Inject
+constructor(
     config: CameraConfig,
     private val useCaseManager: UseCaseManager,
     private val cameraInfo: CameraInfoInternal,
@@ -52,12 +54,24 @@ class CameraInternalAdapter @Inject constructor(
 ) : CameraInternal {
     private val cameraId = config.cameraId
     private var coreCameraConfig: androidx.camera.core.impl.CameraConfig =
-        CameraConfigs.emptyConfig()
+        CameraConfigs.defaultConfig()
     private val debugId = cameraAdapterIds.incrementAndGet()
+    private var sessionProcessor: SessionProcessor? = null
 
     init {
         debug { "Created $this for $cameraId" }
         // TODO: Consider preloading the list of camera ids and metadata.
+    }
+
+    internal fun setCameraGraphCreationMode(createImmediately: Boolean) {
+        useCaseManager.setCameraGraphCreationMode(createImmediately)
+    }
+
+    internal fun getDeferredCameraGraphConfig(): CameraGraph.Config? =
+        useCaseManager.getDeferredCameraGraphConfig()
+
+    internal fun resumeDeferredCameraGraphCreation(cameraGraph: CameraGraph) {
+        useCaseManager.resumeDeferredComponentCreation(cameraGraph)
     }
 
     // Load / unload methods
@@ -69,12 +83,23 @@ class CameraInternalAdapter @Inject constructor(
         debug { "$this#close" }
     }
 
+    override fun setPrimary(isPrimary: Boolean) {
+        useCaseManager.setPrimary(isPrimary)
+    }
+
+    override fun setActiveResumingMode(enabled: Boolean) {
+        useCaseManager.setActiveResumeMode(enabled)
+    }
+
     override fun release(): ListenableFuture<Void> {
-        // TODO(b/185207100): Implement when CameraState is ready.
-        return threads.scope.launch { useCaseManager.close() }.asListenableFuture()
+        return threads.scope
+            .launch { useCaseManager.close() }
+            .asListenableFuture()
+            .apply { addListener({ threads.scope.cancel() }, Dispatchers.Default.asExecutor()) }
     }
 
     override fun getCameraInfoInternal(): CameraInfoInternal = cameraInfo
+
     override fun getCameraState(): Observable<CameraInternal.State> =
         cameraStateAdapter.cameraInternalState
 
@@ -111,8 +136,10 @@ class CameraInternalAdapter @Inject constructor(
     }
 
     override fun setExtendedConfig(cameraConfig: androidx.camera.core.impl.CameraConfig?) {
-        coreCameraConfig = cameraConfig ?: CameraConfigs.emptyConfig()
+        coreCameraConfig = cameraConfig ?: CameraConfigs.defaultConfig()
+        sessionProcessor = cameraConfig?.getSessionProcessor(null)
+        useCaseManager.sessionProcessor = sessionProcessor
     }
 
-    override fun toString(): String = "CameraInternalAdapter<$cameraId>"
+    override fun toString(): String = "CameraInternalAdapter<$cameraId($debugId)>"
 }

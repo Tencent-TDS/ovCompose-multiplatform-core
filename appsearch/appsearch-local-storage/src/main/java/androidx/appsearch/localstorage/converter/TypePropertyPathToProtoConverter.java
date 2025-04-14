@@ -16,11 +16,12 @@
 
 package androidx.appsearch.localstorage.converter;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.core.util.Preconditions;
 
 import com.google.android.icing.proto.TypePropertyMask;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,15 +30,14 @@ import java.util.Map;
 /**
  * Translates a <code>Map<String, List<String>></code> into <code>List<TypePropertyMask></code>.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class TypePropertyPathToProtoConverter {
     private TypePropertyPathToProtoConverter() {}
 
     /** Extracts {@link TypePropertyMask} information from a {@link Map}. */
-    @NonNull
-    public static List<TypePropertyMask.Builder> toTypePropertyMaskBuilderList(
+    public static @NonNull List<TypePropertyMask.Builder> toTypePropertyMaskBuilderList(
             @NonNull Map<String, List<String>> typePropertyPaths) {
         Preconditions.checkNotNull(typePropertyPaths);
         List<TypePropertyMask.Builder> typePropertyMaskBuilders =

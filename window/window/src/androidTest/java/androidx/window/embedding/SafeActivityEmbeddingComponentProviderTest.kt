@@ -17,45 +17,43 @@
 package androidx.window.embedding
 
 import android.util.Log
+import androidx.window.WindowSdkExtensions
 import androidx.window.core.ConsumerAdapter
 import androidx.window.extensions.WindowExtensions
 import androidx.window.extensions.WindowExtensionsProvider
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * An integration test to verify that if [WindowExtensionsProvider] is present then
- * [SafeActivityEmbeddingComponentProvider.activityEmbeddingComponent] will return a value.
- * This can fail if the implementation of window:extensions:extensions
- * does not have the expected API.
+ * [SafeActivityEmbeddingComponentProvider.activityEmbeddingComponent] will return a value. This can
+ * fail if the implementation of window:extensions:extensions does not have the expected API.
  */
 class SafeActivityEmbeddingComponentProviderTest {
 
+    // TODO(b/267708462) : add a more reliable test
     /**
-     * Test that if [WindowExtensionsProvider] is available then
-     * use [SafeActivityEmbeddingComponentProvider.activityEmbeddingComponent] to validate.
-     * If [WindowExtensions.getActivityEmbeddingComponent] matches contract,
-     * return a non-null value.
+     * Test that if [WindowExtensionsProvider] is available then use
+     * [SafeActivityEmbeddingComponentProvider.activityEmbeddingComponent] to validate. If
+     * [WindowExtensions.getActivityEmbeddingComponent] matches contract, return a non-null value.
      * If it doesn't match, it will return a null.
-     *
-     *  TODO(b/267708462) : add a more reliable test
      */
     @Test
     fun activityEmbeddingComponentIsAvailable_ifProviderIsAvailable() {
         val loader = SafeActivityEmbeddingComponentProviderTest::class.java.classLoader!!
         val consumerAdapter = ConsumerAdapter(loader)
-        val windowExtensions: WindowExtensions = try {
-            WindowExtensionsProvider.getWindowExtensions()
-        } catch (e: UnsupportedOperationException) {
-            Log.d(TAG, "Device doesn't have WindowExtensions available")
-            return
-        }
-        val safeComponent = SafeActivityEmbeddingComponentProvider(
-            loader,
-            consumerAdapter,
-            windowExtensions
-        )
-            .activityEmbeddingComponent
+        val windowExtensions: WindowExtensions =
+            try {
+                WindowExtensionsProvider.getWindowExtensions()
+            } catch (e: UnsupportedOperationException) {
+                Log.d(TAG, "Device doesn't have WindowExtensions available")
+                return
+            }
+        val safeProvider =
+            SafeActivityEmbeddingComponentProvider(loader, consumerAdapter, windowExtensions)
+        val safeComponent = safeProvider.activityEmbeddingComponent
         try {
             val actualComponent = windowExtensions.activityEmbeddingComponent
             if (actualComponent == null) {
@@ -63,8 +61,16 @@ class SafeActivityEmbeddingComponentProviderTest {
             } else {
                 // TODO(b/267573854) : verify upon each api level
                 // TODO(b/267708462) : more reliable test for testing actual method matching
-                if (safeComponent == null) {
-                    Log.d(TAG, "ActivityEmbeddingComponent on device doesn't match our constraints")
+                assertNotNull(safeComponent)
+                assertTrue(safeProvider.isActivityEmbeddingComponentAccessible())
+                when (WindowSdkExtensions.getInstance().extensionVersion) {
+                    1 -> assertTrue(safeProvider.hasValidVendorApiLevel1())
+                    2 -> assertTrue(safeProvider.hasValidVendorApiLevel2())
+                    in 3..4 -> assertTrue(safeProvider.hasValidVendorApiLevel3())
+                    5 -> assertTrue(safeProvider.hasValidVendorApiLevel5())
+                    6 -> assertTrue(safeProvider.hasValidVendorApiLevel6())
+                    7 -> assertTrue(safeProvider.hasValidVendorApiLevel7())
+                    8 -> assertTrue(safeProvider.hasValidVendorApiLevel8())
                 }
             }
         } catch (e: UnsupportedOperationException) {

@@ -18,8 +18,8 @@ package androidx.compose.foundation.layout.samples
 
 import androidx.annotation.Sampled
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,8 +45,7 @@ fun PaddingModifier() {
 fun SymmetricPaddingModifier() {
     Box(Modifier.background(color = Color.Gray)) {
         Box(
-            Modifier
-                .padding(horizontal = 20.dp, vertical = 30.dp)
+            Modifier.padding(horizontal = 20.dp, vertical = 30.dp)
                 .size(50.dp)
                 .background(Color.Blue)
         )

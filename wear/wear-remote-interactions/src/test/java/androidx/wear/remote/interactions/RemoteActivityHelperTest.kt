@@ -23,6 +23,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.res.Resources.NotFoundException
 import android.net.Uri
+import android.os.Build.VERSION_CODES
 import android.os.Looper
 import android.os.ResultReceiver
 import androidx.test.core.app.ApplicationProvider
@@ -30,13 +31,17 @@ import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.ACTION_R
 import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.DEFAULT_PACKAGE
 import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.RESULT_FAILED
 import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.RESULT_OK
+import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.getRemoteIntentResultReceiver
 import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.getTargetIntent
 import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.getTargetNodeId
-import androidx.wear.remote.interactions.RemoteActivityHelper.Companion.getRemoteIntentResultReceiver
 import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.Node
 import com.google.android.gms.wearable.NodeClient
-import org.mockito.kotlin.mock
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executor
+import java.util.function.Consumer
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -44,14 +49,19 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.any
 import org.mockito.Mock
 import org.mockito.Mockito
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.reset
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
+import org.mockito.kotlin.whenever
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implements
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executor
 
 @RunWith(WearRemoteInteractionsTestRunner::class)
 @Config(shadows = [RemoteActivityHelperTest.ActualResultReceiver::class])
@@ -77,9 +87,7 @@ class RemoteActivityHelperTest {
         private var altResult = RESULT_OK
 
         override fun onReceive(context: Context?, intent: Intent?) {
-            val resultReceiver = intent?.let {
-                getRemoteIntentResultReceiver(it)
-            }
+            val resultReceiver = intent?.let { getRemoteIntentResultReceiver(it) }
             if (result == DIFFERENT_RESULT) {
                 altResult = (altResult + 1) % 2
                 resultReceiver?.send(result, null)
@@ -95,25 +103,27 @@ class RemoteActivityHelperTest {
     private val testNodeId2 = "Test Node ID2"
     private val testUri = Uri.parse("market://details?id=com.google.android.wearable.app")
     private val context: Context = ApplicationProvider.getApplicationContext()
-    private val testExtraIntent = Intent(Intent.ACTION_VIEW)
-        .addCategory(Intent.CATEGORY_BROWSABLE)
-        .setData(testUri)
+    private val testExtraIntent =
+        Intent(Intent.ACTION_VIEW).addCategory(Intent.CATEGORY_BROWSABLE).setData(testUri)
     private lateinit var mRemoteActivityHelper: RemoteActivityHelper
 
     @Mock private var mockNodeClient: NodeClient = mock()
     @Mock private val mockTestNode: Node = mock()
     @Mock private val mockTestNode2: Node = mock()
+    private val remoteInteractionsManager: IRemoteInteractionsManager = mock()
 
     @Before
     fun setUp() {
         mRemoteActivityHelper = RemoteActivityHelper(context, SyncExecutor())
         mRemoteActivityHelper.nodeClient = mockNodeClient
+        mRemoteActivityHelper.remoteInteractionsManager = remoteInteractionsManager
     }
 
     private fun setSystemFeatureWatch(isWatch: Boolean) {
         val shadowPackageManager = shadowOf(context.packageManager)
         shadowPackageManager!!.setSystemFeature(
-            RemoteInteractionsUtil.SYSTEM_FEATURE_WATCH, isWatch
+            RemoteInteractionsUtil.SYSTEM_FEATURE_WATCH,
+            isWatch
         )
     }
 
@@ -130,40 +140,42 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_notActionViewIntent() {
-        assertThrows(
-            ExecutionException::class.java
-        ) { mRemoteActivityHelper.startRemoteActivity(Intent(), testNodeId).get() }
-    }
-
-    @Test
-    fun testStartRemoteActivity_dataNull() {
-        assertThrows(
-            ExecutionException::class.java
-        ) {
-            mRemoteActivityHelper.startRemoteActivity(Intent(Intent.ACTION_VIEW), testNodeId).get()
+    fun testStartRemoteActivityLegacy_notActionViewIntent() {
+        assertThrows(ExecutionException::class.java) {
+            mRemoteActivityHelper.startRemoteActivityLegacy(Intent(), testNodeId).get()
         }
     }
 
     @Test
-    fun testStartRemoteActivity_notCategoryBrowsable() {
-        assertThrows(
-            ExecutionException::class.java
-        ) {
-            mRemoteActivityHelper.startRemoteActivity(
-                Intent(Intent.ACTION_VIEW).setData(Uri.EMPTY), testNodeId
-            ).get()
+    fun testStartRemoteActivityLegacy_dataNull() {
+        assertThrows(ExecutionException::class.java) {
+            mRemoteActivityHelper
+                .startRemoteActivityLegacy(Intent(Intent.ACTION_VIEW), testNodeId)
+                .get()
         }
     }
 
     @Test
-    fun testStartRemoteActivity_watch() {
+    fun testStartRemoteActivityLegacy_notCategoryBrowsable() {
+        assertThrows(ExecutionException::class.java) {
+            mRemoteActivityHelper
+                .startRemoteActivityLegacy(
+                    Intent(Intent.ACTION_VIEW).setData(Uri.EMPTY),
+                    testNodeId
+                )
+                .get()
+        }
+    }
+
+    @Test
+    fun testStartRemoteActivityLegacy_watch() {
         setSystemFeatureWatch(true)
         val receiver = TestBroadcastReceiver(RESULT_OK)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         try {
-            val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -174,8 +186,7 @@ class RemoteActivityHelperTest {
         }
 
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(1, broadcastIntents.size)
         val intent = broadcastIntents[0]
         assertEquals(testExtraIntent, getTargetIntent(intent))
@@ -184,13 +195,14 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_watchFailed() {
+    fun testStartRemoteActivityLegacy_watchFailed() {
         setSystemFeatureWatch(true)
         val receiver = TestBroadcastReceiver(RESULT_FAILED)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         try {
-            val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             assertThrows(ExecutionException::class.java) { future.get() }
@@ -200,14 +212,15 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_phoneWithPackageName() {
+    fun testStartRemoteActivityLegacy_phoneWithPackageName() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakePackageName(testNodeId, testPackageName)
         val receiver = TestBroadcastReceiver(RESULT_OK)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         try {
-            val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -218,21 +231,21 @@ class RemoteActivityHelperTest {
         }
 
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(1, broadcastIntents.size)
         assertRemoteIntentEqual(testExtraIntent, testNodeId, testPackageName, broadcastIntents[0])
     }
 
     @Test
-    fun testStartRemoteActivity_phoneWithoutPackageName() {
+    fun testStartRemoteActivityLegacy_phoneWithoutPackageName() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakePackageName(testNodeId, null)
         val receiver = TestBroadcastReceiver(RESULT_OK)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         try {
-            val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -243,8 +256,7 @@ class RemoteActivityHelperTest {
         }
 
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(1, broadcastIntents.size)
         val intent = broadcastIntents[0]
         assertEquals(testExtraIntent, getTargetIntent(intent))
@@ -253,7 +265,7 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_phoneWithoutNodeId_allOk() {
+    fun testStartRemoteActivityLegacy_phoneWithoutNodeId_allOk() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakeConnectedNodes()
         nodeClientReturnFakePackageName(testNodeId, testPackageName)
@@ -262,9 +274,11 @@ class RemoteActivityHelperTest {
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         try {
-            val future = mRemoteActivityHelper.startRemoteActivity(
-                testExtraIntent, targetNodeId = null
-            )
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(
+                    testExtraIntent,
+                    targetNodeId = null
+                )
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -276,8 +290,7 @@ class RemoteActivityHelperTest {
 
         shadowOf(Looper.getMainLooper()).idle()
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(2, broadcastIntents.size)
 
         assertRemoteIntentEqual(testExtraIntent, testNodeId, testPackageName, broadcastIntents[0])
@@ -285,7 +298,7 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_phoneWithoutNodeId_oneOkOneFail() {
+    fun testStartRemoteActivityLegacy_phoneWithoutNodeId_oneOkOneFail() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakeConnectedNodes()
         nodeClientReturnFakePackageName(testNodeId, testPackageName)
@@ -294,9 +307,11 @@ class RemoteActivityHelperTest {
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         assertThrows(ExecutionException::class.java) {
-            val future = mRemoteActivityHelper.startRemoteActivity(
-                testExtraIntent, targetNodeId = null
-            )
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(
+                    testExtraIntent,
+                    targetNodeId = null
+                )
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -305,15 +320,14 @@ class RemoteActivityHelperTest {
 
         shadowOf(Looper.getMainLooper()).idle()
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(2, broadcastIntents.size)
         assertRemoteIntentEqual(testExtraIntent, testNodeId, testPackageName, broadcastIntents[0])
         assertRemoteIntentEqual(testExtraIntent, testNodeId2, testPackageName2, broadcastIntents[1])
     }
 
     @Test
-    fun testStartRemoteActivity_phoneWithoutNodeId_allFail() {
+    fun testStartRemoteActivityLegacy_phoneWithoutNodeId_allFail() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakeConnectedNodes()
         nodeClientReturnFakePackageName(testNodeId, testPackageName)
@@ -322,9 +336,11 @@ class RemoteActivityHelperTest {
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
 
         assertThrows(ExecutionException::class.java) {
-            val future = mRemoteActivityHelper.startRemoteActivity(
-                testExtraIntent, targetNodeId = null
-            )
+            val future =
+                mRemoteActivityHelper.startRemoteActivityLegacy(
+                    testExtraIntent,
+                    targetNodeId = null
+                )
             shadowOf(Looper.getMainLooper()).idle()
             assertTrue(future.isDone)
             future.get()
@@ -333,8 +349,7 @@ class RemoteActivityHelperTest {
 
         shadowOf(Looper.getMainLooper()).idle()
         val broadcastIntents =
-            shadowOf(ApplicationProvider.getApplicationContext() as Application)
-                .broadcastIntents
+            shadowOf(ApplicationProvider.getApplicationContext() as Application).broadcastIntents
         assertEquals(2, broadcastIntents.size)
         assertRemoteIntentEqual(testExtraIntent, testNodeId, testPackageName, broadcastIntents[0])
         assertRemoteIntentEqual(testExtraIntent, testNodeId2, testPackageName2, broadcastIntents[1])
@@ -361,7 +376,7 @@ class RemoteActivityHelperTest {
     }
 
     @Test
-    fun testStartRemoteActivity_getCompanionPackageErrorPropagates() {
+    fun testStartRemoteActivityLegacy_getCompanionPackageErrorPropagates() {
         setSystemFeatureWatch(false)
         val receiver = TestBroadcastReceiver(RESULT_OK)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
@@ -369,19 +384,17 @@ class RemoteActivityHelperTest {
         Mockito.`when`(mockNodeClient.getCompanionPackageForNode(any()))
             .thenReturn(Tasks.forException(IllegalStateException("Error")))
 
-        val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+        val future = mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(future.isDone)
 
-        val actualException = assertThrows(ExecutionException::class.java) {
-            future.get()
-        }
+        val actualException = assertThrows(ExecutionException::class.java) { future.get() }
 
         assertTrue(actualException.cause is IllegalStateException)
     }
 
     @Test
-    fun testStartRemoteActivity_getConnectedNodesErrorPropagates() {
+    fun testStartRemoteActivityLegacy_getConnectedNodesErrorPropagates() {
         setSystemFeatureWatch(false)
         val receiver = TestBroadcastReceiver(RESULT_OK)
         context.registerReceiver(receiver, IntentFilter(ACTION_REMOTE_INTENT))
@@ -389,19 +402,17 @@ class RemoteActivityHelperTest {
         Mockito.`when`(mockNodeClient.connectedNodes)
             .thenReturn(Tasks.forException(IllegalStateException("Error")))
 
-        val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        val future = mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(future.isDone)
 
-        val actualException = assertThrows(ExecutionException::class.java) {
-            future.get()
-        }
+        val actualException = assertThrows(ExecutionException::class.java) { future.get() }
 
         assertTrue(actualException.cause is IllegalStateException)
     }
 
     @Test
-    fun testStartRemoteActivity_noNodeId_getCompanionPackageErrorPropagates() {
+    fun testStartRemoteActivityLegacy_noNodeId_getCompanionPackageErrorPropagates() {
         setSystemFeatureWatch(false)
         nodeClientReturnFakeConnectedNodes()
         val receiver = TestBroadcastReceiver(RESULT_OK)
@@ -410,49 +421,132 @@ class RemoteActivityHelperTest {
         Mockito.`when`(mockNodeClient.getCompanionPackageForNode(any()))
             .thenReturn(Tasks.forException(IllegalStateException("Error")))
 
-        val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        val future = mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(future.isDone)
 
-        val actualException = assertThrows(ExecutionException::class.java) {
-            future.get()
-        }
+        val actualException = assertThrows(ExecutionException::class.java) { future.get() }
 
         assertTrue(actualException.cause is IllegalStateException)
     }
 
     @Test
-    fun testStartRemoteActivity_nodeNotFound() {
+    fun testStartRemoteActivityLegacy_nodeNotFound() {
         setSystemFeatureWatch(false)
         Mockito.`when`(mockNodeClient.getCompanionPackageForNode(any()))
             .thenReturn(Tasks.forResult(""))
 
-        val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent, testNodeId)
+        val future = mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent, testNodeId)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(future.isDone)
 
-        val actualException = assertThrows(ExecutionException::class.java) {
-            future.get()
-        }
+        val actualException = assertThrows(ExecutionException::class.java) { future.get() }
 
         assertTrue(actualException.cause is NotFoundException)
     }
 
     @Test
-    fun testStartRemoveActivity_noNodes() {
+    fun testStartRemoteActivityLegacy_noNodes() {
         setSystemFeatureWatch(false)
-        Mockito.`when`(mockNodeClient.connectedNodes)
-            .thenReturn(Tasks.forResult(listOf()))
+        Mockito.`when`(mockNodeClient.connectedNodes).thenReturn(Tasks.forResult(listOf()))
 
-        val future = mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        val future = mRemoteActivityHelper.startRemoteActivityLegacy(testExtraIntent)
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(future.isDone)
 
-        val actualException = assertThrows(ExecutionException::class.java) {
-            future.get()
-        }
+        val actualException = assertThrows(ExecutionException::class.java) { future.get() }
 
         assertTrue(actualException.cause is NotFoundException)
+    }
+
+    @Test
+    fun testStartRemoteActivity_isNotWatch_startRemoteActivityNotExecuted() {
+        setSystemFeatureWatch(false)
+
+        mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify(remoteInteractionsManager).isStartRemoteActivityApiSupported
+        verifyNoMoreInteractions(remoteInteractionsManager)
+    }
+
+    @Test
+    fun testStartRemoteActivity_isWatchAndUseWearSdkImplTrue_startRemoteActivityExecuted() {
+        whenever(remoteInteractionsManager.isStartRemoteActivityApiSupported).thenReturn(true)
+
+        mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify(remoteInteractionsManager).startRemoteActivity(any(), any(), any(), any())
+    }
+
+    @Test
+    fun testStartRemoteActivity_isWatchAndUseWearSdkImplFalse_startRemoteActivityNotExecuted() {
+        whenever(remoteInteractionsManager.isStartRemoteActivityApiSupported).thenReturn(false)
+
+        mRemoteActivityHelper.startRemoteActivity(testExtraIntent)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        verify(remoteInteractionsManager).isStartRemoteActivityApiSupported
+        verifyNoMoreInteractions(remoteInteractionsManager)
+    }
+
+    @Test
+    fun remoteActivityHelperStatus_notWatch_unknown() {
+        setSystemFeatureWatch(false)
+        val remoteActivityHelperStatus = runBlocking {
+            mRemoteActivityHelper.availabilityStatus.first()
+        }
+
+        assertEquals(remoteActivityHelperStatus, RemoteActivityHelper.STATUS_UNKNOWN)
+        verify(remoteInteractionsManager, never())
+            .registerRemoteActivityHelperStatusListener(any(), any())
+    }
+
+    @Test
+    @Config(minSdk = VERSION_CODES.TIRAMISU)
+    fun remoteActivityHelperStatus_notSupported_unknown() {
+        setSystemFeatureWatch(true)
+        whenever(remoteInteractionsManager.isAvailabilityStatusApiSupported).thenReturn(false)
+        val remoteActivityHelperStatus = runBlocking {
+            mRemoteActivityHelper.availabilityStatus.first()
+        }
+
+        assertEquals(remoteActivityHelperStatus, RemoteActivityHelper.STATUS_UNKNOWN)
+        verify(remoteInteractionsManager, never())
+            .registerRemoteActivityHelperStatusListener(any(), any())
+    }
+
+    @Test
+    @Config(minSdk = VERSION_CODES.TIRAMISU)
+    fun remoteActivityHelperStatus_supported_propagateStatus() {
+        setSystemFeatureWatch(true)
+
+        for (remoteStatus in
+            listOf(
+                RemoteActivityHelper.STATUS_AVAILABLE,
+                RemoteActivityHelper.STATUS_UNAVAILABLE,
+                RemoteActivityHelper.STATUS_TEMPORARILY_UNAVAILABLE
+            )) {
+            whenever(remoteInteractionsManager.isAvailabilityStatusApiSupported).thenReturn(true)
+            doAnswer {
+                    @Suppress("UNCHECKED_CAST")
+                    val consumer: Consumer<Int> = it.arguments[1] as (Consumer<Int>)
+                    consumer.accept(remoteStatus)
+                }
+                .whenever(remoteInteractionsManager)
+                .registerRemoteActivityHelperStatusListener(any(), any())
+
+            val remoteActivityHelperStatus = runBlocking {
+                mRemoteActivityHelper.availabilityStatus.first()
+            }
+
+            assertEquals(remoteActivityHelperStatus, remoteStatus)
+            verify(remoteInteractionsManager)
+                .registerRemoteActivityHelperStatusListener(any(), any())
+            verify(remoteInteractionsManager).unregisterRemoteActivityHelperStatusListener(any())
+            reset(remoteInteractionsManager)
+        }
     }
 }
 

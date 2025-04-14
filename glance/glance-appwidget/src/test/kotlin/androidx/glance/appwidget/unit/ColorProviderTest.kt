@@ -18,19 +18,19 @@ package androidx.glance.appwidget.unit
 
 import android.content.Context
 import androidx.compose.ui.graphics.Color
+import androidx.glance.appwidget.ColorSubject.Companion.assertThat
 import androidx.glance.appwidget.test.R
 import androidx.glance.appwidget.unit.CheckedUncheckedColorProvider.Companion.createCheckableColorProvider
+import androidx.glance.color.ColorProvider
 import androidx.glance.unit.ColorProvider
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
-import androidx.glance.appwidget.ColorSubject.Companion.assertThat
-import androidx.glance.color.ColorProvider
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.annotation.Config
-import org.robolectric.RobolectricTestRunner
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class ColorProviderTest {
@@ -39,11 +39,12 @@ class ColorProviderTest {
 
     @Test
     fun createCheckableColorProvider_checkedNotNull_uncheckedNotNull_shouldNotUseFallback() {
-        val provider = createCheckableColorProvider(
-            source = "ColorProviderTest",
-            checked = ColorProvider(day = Color.Blue, night = Color.Green),
-            unchecked = ColorProvider(day = Color.Red, night = Color.Yellow),
-        )
+        val provider =
+            createCheckableColorProvider(
+                source = "ColorProviderTest",
+                checked = ColorProvider(day = Color.Blue, night = Color.Green),
+                unchecked = ColorProvider(day = Color.Red, night = Color.Yellow),
+            )
 
         assertIs<CheckedUncheckedColorProvider>(provider)
         assertThat(provider.getColor(context, isNightMode = false, isChecked = true))
@@ -58,11 +59,12 @@ class ColorProviderTest {
 
     @Test
     fun createCheckableColorProvider_fixedColors_shouldUseSameColorInDayAndNight() {
-        val provider = createCheckableColorProvider(
-            source = "ColorProviderTest",
-            checked = ColorProvider(Color.Blue),
-            unchecked = ColorProvider(Color.Red),
-        )
+        val provider =
+            createCheckableColorProvider(
+                source = "ColorProviderTest",
+                checked = ColorProvider(Color.Blue),
+                unchecked = ColorProvider(Color.Red),
+            )
 
         assertIs<CheckedUncheckedColorProvider>(provider)
         assertThat(provider.getColor(context, isNightMode = false, isChecked = true))
@@ -111,7 +113,6 @@ class ColorProviderTest {
     @Test
     @Config(qualifiers = "+night")
     fun resolveColorProvider_DayNightColorProvider() {
-        assertThat(ColorProvider(Color.Blue, Color.Red).getColor(context))
-            .isSameColorAs(Color.Red)
+        assertThat(ColorProvider(Color.Blue, Color.Red).getColor(context)).isSameColorAs(Color.Red)
     }
 }

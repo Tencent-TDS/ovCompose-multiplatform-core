@@ -1,5 +1,7 @@
 package com.mysdk
 
+import android.os.Bundle
+
 public interface TestSandboxSdk {
     public suspend fun doSomethingAsync(
         first: Int,
@@ -7,21 +9,25 @@ public interface TestSandboxSdk {
         third: Long,
     ): Boolean
 
-    public fun echoBoolean(input: Boolean): Unit
+    public suspend fun doSomethingWithBundlesAsync(first: Int, second: Bundle): Bundle
 
-    public fun echoChar(input: Char): Unit
+    public fun echoBoolean(input: Boolean)
 
-    public fun echoDouble(input: Double): Unit
+    public fun echoChar(input: Char)
 
-    public fun echoFloat(input: Float): Unit
+    public fun echoDouble(input: Double)
 
-    public fun echoInt(input: Int): Unit
+    public fun echoFloat(input: Float)
 
-    public fun echoLong(input: Long): Unit
+    public fun echoInt(input: Int)
 
-    public fun echoString(input: String): Unit
+    public fun echoLong(input: Long)
+
+    public fun echoString(input: String)
 
     public suspend fun processBooleanList(x: List<Boolean>): List<Boolean>
+
+    public suspend fun processBundleList(x: List<Bundle>): List<Bundle>
 
     public suspend fun processCharList(x: List<Char>): List<Char>
 
@@ -39,13 +45,13 @@ public interface TestSandboxSdk {
 
     public suspend fun processStringList(x: List<String>): List<String>
 
-    public fun receiveAndReturnNothing(): Unit
+    public fun receiveAndReturnNothing()
 
-    public suspend fun receiveAndReturnNothingAsync(): Unit
+    public suspend fun receiveAndReturnNothingAsync()
 
     public fun receiveMultipleArguments(
         first: Int,
         second: String,
         third: Long,
-    ): Unit
+    )
 }

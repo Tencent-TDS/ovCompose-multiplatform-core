@@ -37,13 +37,14 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.core.content.ContextCompat;
 import androidx.core.internal.view.SupportMenu;
 import androidx.core.internal.view.SupportMenuItem;
 import androidx.core.view.ActionProvider;
 import androidx.core.view.ViewConfigurationCompat;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -1068,6 +1069,10 @@ public class MenuBuilder implements SupportMenu {
         }
     }
 
+    public boolean isDispatchingItemsChanged() {
+        return !mPreventDispatchingItemsChanged;
+    }
+
     /**
      * Stop dispatching item changed events to presenters until
      * {@link #startDispatchingItemsChanged()} is called. Useful when
@@ -1112,8 +1117,7 @@ public class MenuBuilder implements SupportMenu {
         onItemsChanged(true);
     }
 
-    @NonNull
-    public ArrayList<MenuItemImpl> getVisibleItems() {
+    public @NonNull ArrayList<MenuItemImpl> getVisibleItems() {
         if (!mIsVisibleItemsStale) return mVisibleItems;
 
         // Refresh the visible items

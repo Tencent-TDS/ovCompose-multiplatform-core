@@ -23,36 +23,34 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Test
-
 import org.junit.Before
 import org.junit.Rule
+import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
 class PrivacySandboxLibraryPluginTest {
 
-    @get:Rule
-    val projectSetup = ProjectSetupRule()
+    @get:Rule val projectSetup = ProjectSetupRule()
 
     lateinit var gradleRunner: GradleRunner
 
     @Before
     fun setUp() {
-        File("src/test/test-data", "app-project")
-            .also { it.mkdirs() }
-            .copyRecursively(projectSetup.rootDir)
         File(projectSetup.rootDir, "settings.gradle")
             .writeText("rootProject.name = \"test-privacysandbox-library\"")
         projectSetup.writeDefaultBuildGradle(
-            prefix = """
+            prefix =
+                """
                 plugins {
                     id("kotlin-android")
                     id("androidx.privacysandbox.library")
                 }
-            """.trimIndent(),
-            suffix = """
+            """
+                    .trimIndent(),
+            suffix =
+                """
                     android {
                          namespace "test.privacysandboxlibrary"
                          compileOptions {
@@ -66,10 +64,10 @@ class PrivacySandboxLibraryPluginTest {
             """
         )
 
-        val myServiceSource = File(
-            projectSetup.rootDir,
-            "src/main/java/test/privacysandboxlibraryplugintest"
-        ).also { it.mkdirs() }
+        val myServiceSource =
+            File(projectSetup.rootDir, "src/main/java/test/privacysandboxlibraryplugintest").also {
+                it.mkdirs()
+            }
 
         myServiceSource.resolve("MyService.kt").also {
             Files.createFile(it.toPath())
@@ -86,14 +84,13 @@ class PrivacySandboxLibraryPluginTest {
             )
         }
 
-        gradleRunner = GradleRunner.create()
-            .withProjectDir(projectSetup.rootDir)
-            .withPluginClasspath()
+        gradleRunner =
+            GradleRunner.create().withProjectDir(projectSetup.rootDir).withPluginClasspath()
     }
 
     /* Test plugin applies successfully and produces KSP generated directory. The output of KSP
-    * is unit tested in :tools:apicompiler and integration tested in Android Gradle Plugin tests.
-    */
+     * is unit tested in :tools:apicompiler and integration tested in Android Gradle Plugin tests.
+     */
     @Test
     fun applyPlugin() {
         val output = gradleRunner.withArguments("build", "--stacktrace").build()

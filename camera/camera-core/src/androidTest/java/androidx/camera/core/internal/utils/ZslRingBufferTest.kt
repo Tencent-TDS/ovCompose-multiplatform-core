@@ -15,8 +15,6 @@
  */
 package androidx.camera.core.internal.utils
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.camera.core.ImageInfo
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.impl.CameraCaptureMetaData.AeState
@@ -25,20 +23,19 @@ import androidx.camera.core.impl.CameraCaptureMetaData.AwbState
 import androidx.camera.core.impl.CameraCaptureResult
 import androidx.camera.core.internal.CameraCaptureResultImageInfo
 import androidx.camera.core.internal.utils.RingBuffer.OnRemoveCallback
-import androidx.camera.testing.fakes.FakeImageProxy
+import androidx.camera.testing.impl.fakes.FakeImageProxy
 import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 
 @RunWith(JUnit4::class)
-@RequiresApi(Build.VERSION_CODES.LOLLIPOP)
 class ZslRingBufferTest {
 
     lateinit var mMockedCameraCaptureResult: CameraCaptureResult
@@ -55,10 +52,7 @@ class ZslRingBufferTest {
     fun enqueue_ensureOldFramesAreRemoved() {
         @Suppress("UNCHECKED_CAST")
         val onRemoveCallback = mock(OnRemoveCallback::class.java) as OnRemoveCallback<ImageProxy>
-        val ringBuffer = ZslRingBuffer(
-            2,
-            onRemoveCallback
-        )
+        val ringBuffer = ZslRingBuffer(2, onRemoveCallback)
 
         val imageInfo: ImageInfo = CameraCaptureResultImageInfo(mMockedCameraCaptureResult)
 
@@ -75,10 +69,7 @@ class ZslRingBufferTest {
     fun enqueue_framesWithBad3AStatesNotQueued() {
         @Suppress("UNCHECKED_CAST")
         val onRemoveCallback = mock(OnRemoveCallback::class.java) as OnRemoveCallback<ImageProxy>
-        val ringBuffer = ZslRingBuffer(
-            2,
-            onRemoveCallback
-        )
+        val ringBuffer = ZslRingBuffer(2, onRemoveCallback)
 
         val imageInfo: ImageInfo = CameraCaptureResultImageInfo(mMockedCameraCaptureResult)
 

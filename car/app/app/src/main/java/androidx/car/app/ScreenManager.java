@@ -26,7 +26,6 @@ import android.annotation.SuppressLint;
 import android.util.Log;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.managers.Manager;
 import androidx.car.app.model.TemplateInfo;
@@ -37,11 +36,15 @@ import androidx.lifecycle.Lifecycle.Event;
 import androidx.lifecycle.Lifecycle.State;
 import androidx.lifecycle.LifecycleOwner;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Manages the stack of {@link Screen}s and their respective {@link Lifecycle}s.
@@ -61,8 +64,7 @@ public class ScreenManager implements Manager {
      *                               {@link Session#onCreateScreen}
      * @throws IllegalStateException if the current thread is not the main thread
      */
-    @NonNull
-    public Screen getTop() {
+    public @NonNull Screen getTop() {
         checkMainThread();
         return requireNonNull(mScreenStack.peek());
     }
@@ -86,6 +88,13 @@ public class ScreenManager implements Manager {
                 Log.d(TAG, "Pushing screens after the DESTROYED state is a no-op");
             }
             return;
+        }
+        if (screen.getLifecycle().getCurrentState().equals(State.DESTROYED)) {
+            throw new IllegalStateException(String.format(Locale.US,
+                    "Failed to push screen (%s), because it has already been destroyed. Please "
+                            + "note that screens are single-use, so a fresh instance is required "
+                            + "every time you call screenManager.push().",
+                    screen));
         }
         pushInternal(requireNonNull(screen));
 
@@ -267,8 +276,7 @@ public class ScreenManager implements Manager {
     }
 
     /** Returns the {@link TemplateWrapper} for the {@link Screen} that is on top of the stack. */
-    @NonNull
-    TemplateWrapper getTopTemplate() {
+    @NonNull TemplateWrapper getTopTemplate() {
         checkMainThread();
 
         Screen screen = getTop();
@@ -295,11 +303,14 @@ public class ScreenManager implements Manager {
         mScreenStack.clear();
     }
 
-    /** @hide */
-    @NonNull
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
-    protected Deque<Screen> getScreenStack() {
+    protected @NonNull Deque<Screen> getScreenStackInternal() {
         return mScreenStack;
+    }
+
+    /** Returns the copy of the current screen stack as a type {@link Collection} */
+    public @NonNull Collection<Screen> getScreenStack() {
+        return new ArrayList<>(mScreenStack);
     }
 
     private boolean foundMarker(String marker) {
@@ -421,7 +432,6 @@ public class ScreenManager implements Manager {
         }
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
     protected ScreenManager(@NonNull CarContext carContext, @NonNull Lifecycle lifecycle) {
         mCarContext = carContext;
@@ -437,7 +447,7 @@ public class ScreenManager implements Manager {
 
         @Override
         public void onStart(@NonNull LifecycleOwner lifecycleOwner) {
-            Screen top = getScreenStack().peek();
+            Screen top = getScreenStackInternal().peek();
             if (top == null) {
                 Log.e(TAG, "Screen stack was empty during lifecycle onStart");
                 return;
@@ -447,7 +457,7 @@ public class ScreenManager implements Manager {
 
         @Override
         public void onResume(@NonNull LifecycleOwner lifecycleOwner) {
-            Screen top = getScreenStack().peek();
+            Screen top = getScreenStackInternal().peek();
             if (top == null) {
                 Log.e(TAG, "Screen stack was empty during lifecycle onResume");
                 return;
@@ -457,7 +467,7 @@ public class ScreenManager implements Manager {
 
         @Override
         public void onPause(@NonNull LifecycleOwner lifecycleOwner) {
-            Screen top = getScreenStack().peek();
+            Screen top = getScreenStackInternal().peek();
             if (top == null) {
                 Log.e(TAG, "Screen stack was empty during lifecycle onPause");
                 return;
@@ -467,7 +477,7 @@ public class ScreenManager implements Manager {
 
         @Override
         public void onStop(@NonNull LifecycleOwner lifecycleOwner) {
-            Screen top = getScreenStack().peek();
+            Screen top = getScreenStackInternal().peek();
             if (top == null) {
                 Log.e(TAG, "Screen stack was empty during lifecycle onStop");
                 return;

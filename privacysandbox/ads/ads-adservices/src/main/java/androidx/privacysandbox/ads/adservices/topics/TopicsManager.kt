@@ -20,13 +20,9 @@ import android.adservices.common.AdServicesPermissions
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.LimitExceededException
-import android.os.ext.SdkExtensions
-import androidx.annotation.DoNotInline
-import androidx.annotation.RequiresExtension
 import androidx.annotation.RequiresPermission
-import androidx.core.os.asOutcomeReceiver
 import androidx.privacysandbox.ads.adservices.internal.AdServicesInfo
-import kotlinx.coroutines.suspendCancellableCoroutine
+import androidx.privacysandbox.ads.adservices.internal.BackCompatManager
 
 /**
  * TopicsManager provides APIs for App and Ad-Sdks to get the user interest topics in a privacy
@@ -37,77 +33,38 @@ abstract class TopicsManager internal constructor() {
      * Return the topics.
      *
      * @param request The GetTopicsRequest for obtaining Topics.
+     * @return GetTopicsResponse
      * @throws SecurityException if caller is not authorized to call this API.
      * @throws IllegalStateException if this API is not available.
      * @throws LimitExceededException if rate limit was reached.
-     * @return GetTopicsResponse
      */
     @RequiresPermission(AdServicesPermissions.ACCESS_ADSERVICES_TOPICS)
     abstract suspend fun getTopics(request: GetTopicsRequest): GetTopicsResponse
 
-    @SuppressLint("NewApi", "ClassVerificationFailure")
-    @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 4)
-    private class Api33Ext4Impl(
-        private val mTopicsManager: android.adservices.topics.TopicsManager
-        ) : TopicsManager() {
-        constructor(context: Context) : this(
-            context.getSystemService<android.adservices.topics.TopicsManager>(
-                android.adservices.topics.TopicsManager::class.java
-            )
-        )
-
-        @DoNotInline
-        @RequiresPermission(AdServicesPermissions.ACCESS_ADSERVICES_TOPICS)
-        override suspend fun getTopics(request: GetTopicsRequest): GetTopicsResponse {
-            return convertResponse(getTopicsAsyncInternal(convertRequest(request)))
-        }
-
-        @RequiresPermission(AdServicesPermissions.ACCESS_ADSERVICES_TOPICS)
-        private suspend fun getTopicsAsyncInternal(
-            getTopicsRequest: android.adservices.topics.GetTopicsRequest
-        ): android.adservices.topics.GetTopicsResponse = suspendCancellableCoroutine { continuation
-            ->
-            mTopicsManager.getTopics(
-                getTopicsRequest,
-                Runnable::run,
-                continuation.asOutcomeReceiver()
-            )
-        }
-
-        private fun convertRequest(
-            request: GetTopicsRequest
-        ): android.adservices.topics.GetTopicsRequest {
-            if (!request.shouldRecordObservation) {
-                throw IllegalArgumentException("shouldRecordObservation not supported yet.")
-            }
-            return android.adservices.topics.GetTopicsRequest.Builder()
-                .setAdsSdkName(request.adsSdkName)
-                .build()
-        }
-
-        internal fun convertResponse(
-            response: android.adservices.topics.GetTopicsResponse
-        ): GetTopicsResponse {
-            var topics = mutableListOf<Topic>()
-            for (topic in response.topics) {
-                topics.add(Topic(topic.taxonomyVersion, topic.modelVersion, topic.topicId))
-            }
-            return GetTopicsResponse(topics)
-        }
-    }
-
     companion object {
         /**
-         *  Creates [TopicsManager].
+         * Creates [TopicsManager].
          *
-         *  @return TopicsManagerCompat object. If the device is running an incompatible
-         *  build, the value returned is null.
+         * @return TopicsManagerCompat object. If the device is running an incompatible build, the
+         *   value returned is null.
          */
         @JvmStatic
-        @SuppressLint("NewApi", "ClassVerificationFailure")
+        @SuppressLint("NewApi")
         fun obtain(context: Context): TopicsManager? {
-            return if (AdServicesInfo.version() >= 4) {
-                Api33Ext4Impl(context)
+            return if (AdServicesInfo.adServicesVersion() >= 11) {
+                TopicsManagerApi33Ext11Impl(context)
+            } else if (AdServicesInfo.adServicesVersion() >= 5) {
+                TopicsManagerApi33Ext5Impl(context)
+            } else if (AdServicesInfo.adServicesVersion() == 4) {
+                TopicsManagerApi33Ext4Impl(context)
+            } else if (AdServicesInfo.extServicesVersionS() >= 11) {
+                BackCompatManager.getManager(context, "TopicsManager") {
+                    TopicsManagerApi31Ext11Impl(context)
+                }
+            } else if (AdServicesInfo.extServicesVersionS() >= 9) {
+                BackCompatManager.getManager(context, "TopicsManager") {
+                    TopicsManagerApi31Ext9Impl(context)
+                }
             } else {
                 null
             }

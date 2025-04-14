@@ -17,17 +17,16 @@
 package androidx.recyclerview.selection;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
-import static androidx.annotation.VisibleForTesting.PACKAGE_PRIVATE;
 import static androidx.core.util.Preconditions.checkArgument;
 import static androidx.recyclerview.selection.Shared.VERBOSE;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
-import androidx.annotation.VisibleForTesting;
 import androidx.core.util.Consumer;
 import androidx.recyclerview.widget.RecyclerView;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Provides the necessary glue to notify RecyclerView when selection data changes,
@@ -39,7 +38,6 @@ import androidx.recyclerview.widget.RecyclerView;
  *
  */
 @RestrictTo(LIBRARY)
-@VisibleForTesting(otherwise = PACKAGE_PRIVATE)
 public class EventBridge {
 
     private static final String TAG = "EventsRelays";
@@ -56,7 +54,7 @@ public class EventBridge {
      * @param <K> Selection key type. @see {@link StorageStrategy} for supported types.
      */
     public static <K> void install(
-            @NonNull RecyclerView.Adapter<?> adapter,
+            RecyclerView.@NonNull Adapter<?> adapter,
             @NonNull SelectionTracker<K> selectionTracker,
             @NonNull ItemKeyProvider<K> keyProvider,
             @NonNull Consumer<Runnable> runner) {
@@ -77,7 +75,7 @@ public class EventBridge {
         TrackerToAdapterBridge(
                 @NonNull SelectionTracker<K> selectionTracker,
                 @NonNull ItemKeyProvider<K> keyProvider,
-                @NonNull RecyclerView.Adapter<?> adapter,
+                RecyclerView.@NonNull Adapter<?> adapter,
                 Consumer<Runnable> runner) {
 
             selectionTracker.addObserver(this);

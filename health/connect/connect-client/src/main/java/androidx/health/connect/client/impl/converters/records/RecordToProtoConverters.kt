@@ -18,6 +18,7 @@
 package androidx.health.connect.client.impl.converters.records
 
 import androidx.annotation.RestrictTo
+import androidx.health.connect.client.feature.ExperimentalMindfulnessSessionApi
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.BasalBodyTemperatureRecord
 import androidx.health.connect.client.records.BasalMetabolicRateRecord
@@ -34,6 +35,7 @@ import androidx.health.connect.client.records.CervicalMucusRecord.Companion.SENS
 import androidx.health.connect.client.records.CyclingPedalingCadenceRecord
 import androidx.health.connect.client.records.DistanceRecord
 import androidx.health.connect.client.records.ElevationGainedRecord
+import androidx.health.connect.client.records.ExerciseRouteResult
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.FloorsClimbedRecord
 import androidx.health.connect.client.records.HeartRateRecord
@@ -45,6 +47,7 @@ import androidx.health.connect.client.records.LeanBodyMassRecord
 import androidx.health.connect.client.records.MealType
 import androidx.health.connect.client.records.MenstruationFlowRecord
 import androidx.health.connect.client.records.MenstruationPeriodRecord
+import androidx.health.connect.client.records.MindfulnessSessionRecord
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.OvulationTestRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
@@ -54,9 +57,8 @@ import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SeriesRecord
 import androidx.health.connect.client.records.SexualActivityRecord
+import androidx.health.connect.client.records.SkinTemperatureRecord
 import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.SleepStageRecord
-import androidx.health.connect.client.records.SleepStageRecord.Companion.STAGE_TYPE_INT_TO_STRING_MAP
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsCadenceRecord
 import androidx.health.connect.client.records.StepsRecord
@@ -67,6 +69,7 @@ import androidx.health.connect.client.records.WheelchairPushesRecord
 import androidx.health.platform.client.proto.DataProto
 
 /** Converts public API object into internal proto for ipc. */
+@OptIn(ExperimentalMindfulnessSessionApi::class)
 fun Record.toProto(): DataProto.DataPoint =
     when (this) {
         is BasalBodyTemperatureRecord ->
@@ -207,6 +210,20 @@ fun Record.toProto(): DataProto.DataPoint =
                 .build()
         is MenstruationPeriodRecord ->
             intervalProto().setDataType(protoDataType("MenstruationPeriod")).build()
+        is MindfulnessSessionRecord ->
+            intervalProto()
+                .setDataType(protoDataType("MindfulnessSession"))
+                .apply {
+                    val sessionType =
+                        enumValFromInt(
+                            mindfulnessSessionType,
+                            MindfulnessSessionRecord.MINDFULNESS_SESSION_TYPE_INT_TO_STRING_MAP
+                        ) ?: enumVal("unknown")
+                    putValues("sessionType", sessionType)
+                    title?.let { putValues("title", stringVal(it)) }
+                    notes?.let { putValues("notes", stringVal(it)) }
+                }
+                .build()
         is OvulationTestRecord ->
             instantaneousProto()
                 .setDataType(protoDataType("OvulationTest"))
@@ -288,16 +305,42 @@ fun Record.toProto(): DataProto.DataPoint =
         is ExerciseSessionRecord ->
             intervalProto()
                 .setDataType(protoDataType("ActivitySession"))
+                .putValues("hasRoute", boolVal(exerciseRouteResult !is ExerciseRouteResult.NoData))
                 .apply {
                     val exerciseType =
                         enumValFromInt(
                             exerciseType,
                             ExerciseSessionRecord.EXERCISE_TYPE_INT_TO_STRING_MAP
-                        )
-                            ?: enumVal("workout")
+                        ) ?: enumVal("workout")
                     putValues("activityType", exerciseType)
                     title?.let { putValues("title", stringVal(it)) }
                     notes?.let { putValues("notes", stringVal(it)) }
+                    if (segments.isNotEmpty()) {
+                        putSubTypeDataLists(
+                            "segments",
+                            DataProto.DataPoint.SubTypeDataList.newBuilder()
+                                .addAllValues(segments.map { it.toProto() })
+                                .build()
+                        )
+                    }
+                    if (laps.isNotEmpty()) {
+                        putSubTypeDataLists(
+                            "laps",
+                            DataProto.DataPoint.SubTypeDataList.newBuilder()
+                                .addAllValues(laps.map { it.toProto() })
+                                .build()
+                        )
+                    }
+                    if (exerciseRouteResult is ExerciseRouteResult.Data) {
+                        putSubTypeDataLists(
+                            "route",
+                            DataProto.DataPoint.SubTypeDataList.newBuilder()
+                                .addAllValues(
+                                    exerciseRouteResult.exerciseRoute.route.map { it.toProto() }
+                                )
+                                .build()
+                        )
+                    }
                 }
                 .build()
         is DistanceRecord ->
@@ -456,21 +499,42 @@ fun Record.toProto(): DataProto.DataPoint =
                     name?.let { putValues("name", stringVal(it)) }
                 }
                 .build()
+        is SkinTemperatureRecord ->
+            intervalProto()
+                .setDataType(protoDataType("SkinTemperature"))
+                .apply {
+                    if (baseline != null) {
+                        putValues("baseline", doubleVal(baseline.inCelsius))
+                    }
+                    if (deltas.isNotEmpty()) {
+                        putSubTypeDataLists(
+                            "deltas",
+                            DataProto.DataPoint.SubTypeDataList.newBuilder()
+                                .addAllValues(deltas.map { it.toProto() })
+                                .build(),
+                        )
+                    }
+                    enumValFromInt(
+                            measurementLocation,
+                            SkinTemperatureRecord.MEASUREMENT_LOCATION_INT_TO_STRING_MAP,
+                        )
+                        ?.let { putValues("measurementLocation", it) }
+                }
+                .build()
         is SleepSessionRecord ->
             intervalProto()
                 .setDataType(protoDataType("SleepSession"))
                 .apply {
+                    if (stages.isNotEmpty()) {
+                        putSubTypeDataLists(
+                            "stages",
+                            DataProto.DataPoint.SubTypeDataList.newBuilder()
+                                .addAllValues(stages.map { it.toProto() })
+                                .build()
+                        )
+                    }
                     title?.let { putValues("title", stringVal(it)) }
                     notes?.let { putValues("notes", stringVal(it)) }
-                }
-                .build()
-        is SleepStageRecord ->
-            intervalProto()
-                .setDataType(protoDataType("SleepStage"))
-                .apply {
-                    enumValFromInt(stage, STAGE_TYPE_INT_TO_STRING_MAP)?.let {
-                        putValues("stage", it)
-                    }
                 }
                 .build()
         is StepsRecord ->

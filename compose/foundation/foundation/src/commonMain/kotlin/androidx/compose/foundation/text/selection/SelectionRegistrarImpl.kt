@@ -16,79 +16,80 @@
 
 package androidx.compose.foundation.text.selection
 
+import androidx.collection.LongObjectMap
+import androidx.collection.emptyLongObjectMap
+import androidx.collection.mutableLongObjectMapOf
 import androidx.compose.foundation.AtomicLong
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.LayoutCoordinates
 
-internal class SelectionRegistrarImpl : SelectionRegistrar {
-    /**
-     * A flag to check if the [Selectable]s have already been sorted.
-     */
+internal class SelectionRegistrarImpl private constructor(initialIncrementId: Long) :
+    SelectionRegistrar {
+    companion object {
+        val Saver =
+            Saver<SelectionRegistrarImpl, Long>(
+                save = { it.incrementId.get() },
+                restore = { SelectionRegistrarImpl(it) }
+            )
+    }
+
+    constructor() : this(initialIncrementId = 1L)
+
+    /** A flag to check if the [Selectable]s have already been sorted. */
     internal var sorted: Boolean = false
 
     /**
-     * This is essentially the list of registered components that want
-     * to handle text selection that are below the SelectionContainer.
+     * This is essentially the list of registered components that want to handle text selection that
+     * are below the SelectionContainer.
      */
     private val _selectables = mutableListOf<Selectable>()
 
-    /**
-     * Getter for handlers that returns a List.
-     */
+    /** Getter for handlers that returns a List. */
     internal val selectables: List<Selectable>
         get() = _selectables
 
-    private val _selectableMap = mutableMapOf<Long, Selectable>()
+    private val _selectableMap = mutableLongObjectMapOf<Selectable>()
 
-    /**
-     * A map from selectable keys to subscribed selectables.
-     */
-    internal val selectableMap: Map<Long, Selectable>
+    /** A map from selectable keys to subscribed selectables. */
+    internal val selectableMap: LongObjectMap<Selectable>
         get() = _selectableMap
 
     /**
      * The incremental id to be assigned to each selectable. It starts from 1 and 0 is used to
      * denote an invalid id.
+     *
      * @see SelectionRegistrar.InvalidSelectableId
      */
-    private var incrementId = AtomicLong(1)
+    private var incrementId = AtomicLong(initialIncrementId)
 
-    /**
-     * The callback to be invoked when the position change was triggered.
-     */
+    /** The callback to be invoked when the position change was triggered. */
     internal var onPositionChangeCallback: ((Long) -> Unit)? = null
 
-    /**
-     * The callback to be invoked when the selection is initiated.
-     */
+    /** The callback to be invoked when the selection is initiated. */
     internal var onSelectionUpdateStartCallback:
-        ((LayoutCoordinates, Offset, SelectionAdjustment) -> Unit)? = null
+        ((Boolean, LayoutCoordinates, Offset, SelectionAdjustment) -> Unit)? =
+        null
+
+    /** The callback to be invoked when the selection is initiated with selectAll [Selection]. */
+    internal var onSelectionUpdateSelectAll: ((Boolean, Long) -> Unit)? = null
 
     /**
-     * The callback to be invoked when the selection is initiated with selectAll [Selection].
-     */
-    internal var onSelectionUpdateSelectAll: (
-        (Long) -> Unit
-    )? = null
-
-    /**
-     * The callback to be invoked when the selection is updated.
-     * If the first offset is null it means that the start of selection is unknown for the caller.
+     * The callback to be invoked when the selection is updated. If the first offset is null it
+     * means that the start of selection is unknown for the caller.
      */
     internal var onSelectionUpdateCallback:
-        ((LayoutCoordinates, Offset, Offset, Boolean, SelectionAdjustment) -> Boolean)? = null
+        ((Boolean, LayoutCoordinates, Offset, Offset, Boolean, SelectionAdjustment) -> Boolean)? =
+        null
 
-    /**
-     * The callback to be invoked when selection update finished.
-     */
+    /** The callback to be invoked when selection update finished. */
     internal var onSelectionUpdateEndCallback: (() -> Unit)? = null
 
-    /**
-     * The callback to be invoked when one of the selectable has changed.
-     */
+    /** The callback to be invoked when one of the selectable has changed. */
     internal var onSelectableChangeCallback: ((Long) -> Unit)? = null
 
     /**
@@ -96,13 +97,13 @@ internal class SelectionRegistrarImpl : SelectionRegistrar {
      */
     internal var afterSelectableUnsubscribe: ((Long) -> Unit)? = null
 
-    override var subselections: Map<Long, Selection> by mutableStateOf(emptyMap())
+    override var subselections: LongObjectMap<Selection> by mutableStateOf(emptyLongObjectMap())
 
     override fun subscribe(selectable: Selectable): Selectable {
-        require(selectable.selectableId != SelectionRegistrar.InvalidSelectableId) {
+        requirePrecondition(selectable.selectableId != SelectionRegistrar.InvalidSelectableId) {
             "The selectable contains an invalid id: ${selectable.selectableId}"
         }
-        require(!_selectableMap.containsKey(selectable.selectableId)) {
+        requirePrecondition(!_selectableMap.containsKey(selectable.selectableId)) {
             "Another selectable with the id: $selectable.selectableId has already subscribed."
         }
         _selectableMap[selectable.selectableId] = selectable
@@ -138,16 +139,18 @@ internal class SelectionRegistrarImpl : SelectionRegistrar {
                 val layoutCoordinatesA = a.getLayoutCoordinates()
                 val layoutCoordinatesB = b.getLayoutCoordinates()
 
-                val positionA = if (layoutCoordinatesA != null) {
-                    containerLayoutCoordinates.localPositionOf(layoutCoordinatesA, Offset.Zero)
-                } else {
-                    Offset.Zero
-                }
-                val positionB = if (layoutCoordinatesB != null) {
-                    containerLayoutCoordinates.localPositionOf(layoutCoordinatesB, Offset.Zero)
-                } else {
-                    Offset.Zero
-                }
+                val positionA =
+                    if (layoutCoordinatesA != null) {
+                        containerLayoutCoordinates.localPositionOf(layoutCoordinatesA, Offset.Zero)
+                    } else {
+                        Offset.Zero
+                    }
+                val positionB =
+                    if (layoutCoordinatesB != null) {
+                        containerLayoutCoordinates.localPositionOf(layoutCoordinatesB, Offset.Zero)
+                    } else {
+                        Offset.Zero
+                    }
 
                 if (positionA.y == positionB.y) {
                     compareValues(positionA.x, positionB.x)
@@ -170,13 +173,19 @@ internal class SelectionRegistrarImpl : SelectionRegistrar {
     override fun notifySelectionUpdateStart(
         layoutCoordinates: LayoutCoordinates,
         startPosition: Offset,
-        adjustment: SelectionAdjustment
+        adjustment: SelectionAdjustment,
+        isInTouchMode: Boolean
     ) {
-        onSelectionUpdateStartCallback?.invoke(layoutCoordinates, startPosition, adjustment)
+        onSelectionUpdateStartCallback?.invoke(
+            isInTouchMode,
+            layoutCoordinates,
+            startPosition,
+            adjustment
+        )
     }
 
-    override fun notifySelectionUpdateSelectAll(selectableId: Long) {
-        onSelectionUpdateSelectAll?.invoke(selectableId)
+    override fun notifySelectionUpdateSelectAll(selectableId: Long, isInTouchMode: Boolean) {
+        onSelectionUpdateSelectAll?.invoke(isInTouchMode, selectableId)
     }
 
     override fun notifySelectionUpdate(
@@ -184,9 +193,11 @@ internal class SelectionRegistrarImpl : SelectionRegistrar {
         newPosition: Offset,
         previousPosition: Offset,
         isStartHandle: Boolean,
-        adjustment: SelectionAdjustment
+        adjustment: SelectionAdjustment,
+        isInTouchMode: Boolean
     ): Boolean {
         return onSelectionUpdateCallback?.invoke(
+            isInTouchMode,
             layoutCoordinates,
             newPosition,
             previousPosition,

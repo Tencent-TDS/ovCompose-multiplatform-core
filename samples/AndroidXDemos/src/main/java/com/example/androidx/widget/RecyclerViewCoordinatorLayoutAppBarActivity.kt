@@ -21,11 +21,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-
 import com.example.androidx.R
 
 class RecyclerViewCoordinatorLayoutAppBarActivity : AppCompatActivity() {
@@ -43,9 +41,7 @@ class ItemsAdapter(private val numItems: Int = 100) :
     RecyclerView.Adapter<ItemsAdapter.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val layoutInflater = LayoutInflater.from(parent.context)
-        val itemView = layoutInflater.inflate(
-            R.layout.rv_cl_appbar_item, parent, false
-        )
+        val itemView = layoutInflater.inflate(R.layout.rv_cl_appbar_item, parent, false)
         return ViewHolder(itemView)
     }
 

@@ -16,14 +16,17 @@
 
 package androidx.wear.protolayout.expression.pipeline;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
-public class AddToListCallback<T> implements DynamicTypeValueReceiver<T> {
+public class AddToListCallback<T> implements DynamicTypeValueReceiverWithPreUpdate<T> {
     private final List<T> mListToUpdate;
-    @Nullable private final List<Boolean> mInvalidListToUpdate;
+    private final @Nullable List<Boolean> mInvalidListToUpdate;
+
+    private int mPreUpdateCallCounts = 0;
+    private int mUpdateCallCount = 0;
 
     public AddToListCallback(List<T> list) {
         this.mListToUpdate = list;
@@ -36,17 +39,23 @@ public class AddToListCallback<T> implements DynamicTypeValueReceiver<T> {
     }
 
     @Override
-    public void onPreUpdate() {}
+    public void onPreUpdate() { mPreUpdateCallCounts++; }
 
     @Override
     public void onData(@NonNull T newData) {
+        mUpdateCallCount++;
         mListToUpdate.add(newData);
     }
 
     @Override
     public void onInvalidated() {
+        mUpdateCallCount++;
         if (mInvalidListToUpdate != null) {
             mInvalidListToUpdate.add(true);
         }
+    }
+
+    public boolean isPreUpdateAndUpdateInSync() {
+        return mPreUpdateCallCounts == mUpdateCallCount;
     }
 }

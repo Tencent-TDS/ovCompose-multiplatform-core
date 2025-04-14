@@ -38,10 +38,15 @@ public class GridTemplateTest {
     public void createInstance_emptyList_notLoading_throws() {
         assertThrows(
                 IllegalStateException.class,
-                () -> new GridTemplate.Builder().setTitle("Title").build());
+                () -> new GridTemplate.Builder()
+                        .setHeader(new Header.Builder().setTitle("Title").build())
+                        .build());
 
         // Positive case
-        new GridTemplate.Builder().setTitle("Title").setLoading(true).build();
+        new GridTemplate.Builder()
+                .setHeader(new Header.Builder().setTitle("Title").build())
+                .setLoading(true)
+                .build();
     }
 
     @Test
@@ -50,7 +55,7 @@ public class GridTemplateTest {
                 IllegalStateException.class,
                 () ->
                         new GridTemplate.Builder()
-                                .setTitle("Title")
+                                .setHeader(new Header.Builder().setTitle("Title").build())
                                 .setLoading(true)
                                 .setSingleList(TestUtils.getGridItemList(2))
                                 .build());
@@ -61,9 +66,7 @@ public class GridTemplateTest {
         GridTemplate template = new GridTemplate.Builder().setSingleList(
                         TestUtils.getGridItemList(2)).build();
 
-        assertThat(template.getTitle()).isNull();
-        assertThat(template.getActionStrip()).isNull();
-        assertThat(template.getHeaderAction()).isNull();
+        assertThat(template.getHeader()).isNull();
     }
 
     @Test
@@ -71,19 +74,21 @@ public class GridTemplateTest {
         CharSequence title = TestUtils.getCharSequenceWithColorSpan("Title");
         assertThrows(
                 IllegalArgumentException.class,
-                () -> new GridTemplate.Builder().setTitle(title));
+                () -> new GridTemplate.Builder()
+                        .setHeader(new Header.Builder().setTitle(title).build()));
 
         // DurationSpan and DistanceSpan do not throw
         CharSequence title2 = TestUtils.getCharSequenceWithDistanceAndDurationSpans("Title");
-        new GridTemplate.Builder().setTitle(title2).setSingleList(
-                TestUtils.getGridItemList(2)).build();
+        new GridTemplate.Builder().setHeader(new Header.Builder().setTitle(title2).build())
+                .setSingleList(TestUtils.getGridItemList(2)).build();
     }
 
     @Test
     public void createInstance_setSingleList() {
         ItemList list = TestUtils.getGridItemList(2);
-        GridTemplate template = new GridTemplate.Builder().setTitle("Title").setSingleList(
-                list).build();
+        GridTemplate template = new GridTemplate.Builder()
+                        .setHeader(new Header.Builder().setTitle("Title").build())
+                        .setSingleList(list).build();
         assertThat(template.getSingleList()).isEqualTo(list);
     }
 
@@ -91,12 +96,12 @@ public class GridTemplateTest {
     public void createInstance_setHeaderAction_invalidActionThrows() {
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        new GridTemplate.Builder()
-                                .setHeaderAction(
-                                        new Action.Builder().setTitle("Action").setOnClickListener(
-                                                () -> {
-                                                }).build()));
+                () -> new GridTemplate.Builder()
+                            .setHeader(new Header.Builder()
+                                    .setStartHeaderAction(new Action.Builder()
+                                            .setTitle("Action").setOnClickListener(() -> {})
+                                            .build())
+                                    .build()));
     }
 
     @Test
@@ -104,21 +109,24 @@ public class GridTemplateTest {
         GridTemplate template =
                 new GridTemplate.Builder()
                         .setSingleList(TestUtils.getGridItemList(2))
-                        .setHeaderAction(Action.BACK)
+                        .setHeader(new Header.Builder()
+                                .setStartHeaderAction(Action.BACK)
+                                .build())
                         .build();
-        assertThat(template.getHeaderAction()).isEqualTo(Action.BACK);
+        assertThat(template.getHeader().getStartHeaderAction()).isEqualTo(Action.BACK);
     }
 
     @Test
-    public void createInstance_setActionStrip() {
-        ActionStrip actionStrip = new ActionStrip.Builder().addAction(Action.BACK).build();
+    public void createInstance_setEndHeaderAction() {
         GridTemplate template =
                 new GridTemplate.Builder()
                         .setSingleList(TestUtils.getGridItemList(2))
-                        .setTitle("Title")
-                        .setActionStrip(actionStrip)
+                        .setHeader(new Header.Builder()
+                                .setTitle("Title")
+                                .addEndHeaderAction(Action.BACK)
+                                .build())
                         .build();
-        assertThat(template.getActionStrip()).isEqualTo(actionStrip);
+        assertThat(template.getHeader().getEndHeaderActions().get(0)).isEqualTo(Action.BACK);
     }
 
     @Test
@@ -129,7 +137,9 @@ public class GridTemplateTest {
         GridTemplate template =
                 new GridTemplate.Builder()
                         .setSingleList(TestUtils.getGridItemList(2))
-                        .setHeaderAction(Action.BACK)
+                        .setHeader(new Header.Builder()
+                                .setStartHeaderAction(Action.BACK)
+                                .build())
                         .addAction(customAction)
                         .build();
         assertThat(template.getActions()).containsExactly(customAction);
@@ -172,6 +182,7 @@ public class GridTemplateTest {
                 IllegalArgumentException.class,
                 () -> new GridTemplate.Builder()
                         .setSingleList(TestUtils.getGridItemList(2))
+                        .addAction(customAction)
                         .addAction(customAction)
                         .addAction(customAction)
                         .build());
@@ -218,26 +229,75 @@ public class GridTemplateTest {
     }
 
     @Test
+    public void createInstance_setItemSize() {
+        ItemList list = TestUtils.getGridItemList(2);
+        GridTemplate template = new GridTemplate.Builder()
+                .setHeader(new Header.Builder()
+                        .setTitle("Title")
+                        .build())
+                .setSingleList(list)
+                .setItemSize(GridTemplate.ITEM_SIZE_LARGE)
+                .build();
+
+        assertThat(template.getItemSize()).isEqualTo(GridTemplate.ITEM_SIZE_LARGE);
+    }
+
+    @Test
+    public void createInstance_defaultItemSizeIsSmall() {
+        GridTemplate template = new GridTemplate.Builder()
+                .setHeader(new Header.Builder()
+                        .setTitle("Title")
+                        .build())
+                .setLoading(true)
+                .build();
+
+        assertThat(template.getItemSize()).isEqualTo(GridTemplate.ITEM_SIZE_SMALL);
+    }
+
+    @Test
+    public void createInstance_defaultItemImageShape() {
+        ItemList list = TestUtils.getGridItemList(2);
+        GridTemplate template = new GridTemplate.Builder().setSingleList(list).build();
+        assertThat(template.getItemImageShape()).isEqualTo(GridTemplate.ITEM_IMAGE_SHAPE_UNSET);
+    }
+
+    @Test
+    public void createInstance_setItemImageShape() {
+        ItemList list = TestUtils.getGridItemList(2);
+        GridTemplate template =
+                new GridTemplate.Builder()
+                        .setSingleList(list)
+                        .setItemImageShape(GridTemplate.ITEM_IMAGE_SHAPE_CIRCLE).build();
+        assertThat(template.getItemImageShape()).isEqualTo(GridTemplate.ITEM_IMAGE_SHAPE_CIRCLE);
+    }
+
+    @Test
     public void equals() {
         ItemList itemList = new ItemList.Builder().build();
         String title = "title";
-        ActionStrip actionStrip = new ActionStrip.Builder().addAction(Action.BACK).build();
+        Action backAction = Action.BACK;
 
         GridTemplate template =
                 new GridTemplate.Builder()
                         .setSingleList(itemList)
-                        .setHeaderAction(Action.BACK)
-                        .setActionStrip(actionStrip)
-                        .setTitle(title)
+                        .setHeader(new Header.Builder()
+                                .setStartHeaderAction(backAction)
+                                .setTitle(title)
+                                .addEndHeaderAction(backAction)
+                                .build())
+                        .setItemSize(GridTemplate.ITEM_SIZE_MEDIUM)
                         .build();
 
         assertThat(template)
                 .isEqualTo(
                         new GridTemplate.Builder()
                                 .setSingleList(itemList)
-                                .setHeaderAction(Action.BACK)
-                                .setActionStrip(actionStrip)
-                                .setTitle(title)
+                                .setHeader(new Header.Builder()
+                                        .setStartHeaderAction(backAction)
+                                        .setTitle(title)
+                                        .addEndHeaderAction(backAction)
+                                        .build())
+                                .setItemSize(GridTemplate.ITEM_SIZE_MEDIUM)
                                 .build());
     }
 
@@ -246,12 +306,15 @@ public class GridTemplateTest {
         ItemList itemList = new ItemList.Builder().build();
 
         GridTemplate template =
-                new GridTemplate.Builder().setTitle("Title 1").setSingleList(itemList).build();
+                new GridTemplate.Builder()
+                        .setHeader(new Header.Builder().setTitle("Title").build())
+                        .setSingleList(itemList)
+                        .build();
 
         assertThat(template)
                 .isNotEqualTo(
                         new GridTemplate.Builder()
-                                .setTitle("Title")
+                                .setHeader(new Header.Builder().setTitle("Title").build())
                                 .setSingleList(
                                         new ItemList.Builder().addItem(
                                                 new GridItem.Builder().setTitle("Title 2").setImage(
@@ -264,14 +327,17 @@ public class GridTemplateTest {
         ItemList itemList = new ItemList.Builder().build();
 
         GridTemplate template =
-                new GridTemplate.Builder().setSingleList(itemList).setHeaderAction(
-                        Action.BACK).build();
+                new GridTemplate.Builder()
+                        .setSingleList(itemList)
+                        .setHeader(new Header.Builder().setStartHeaderAction(Action.BACK).build())
+                        .build();
 
         assertThat(template)
                 .isNotEqualTo(
                         new GridTemplate.Builder()
                                 .setSingleList(itemList)
-                                .setHeaderAction(Action.APP_ICON)
+                                .setHeader(new Header.Builder()
+                                        .setStartHeaderAction(Action.APP_ICON).build())
                                 .build());
     }
 
@@ -280,12 +346,14 @@ public class GridTemplateTest {
         ItemList itemList = new ItemList.Builder().build();
         String title = "title";
 
-        GridTemplate template = new GridTemplate.Builder().setSingleList(itemList).setTitle(
-                title).build();
+        GridTemplate template = new GridTemplate.Builder().setSingleList(itemList)
+                .setHeader(new Header.Builder().setTitle(title).build())
+                .build();
 
         assertThat(template)
-                .isNotEqualTo(new GridTemplate.Builder().setSingleList(itemList).setTitle(
-                        "foo").build());
+                .isNotEqualTo(new GridTemplate.Builder().setSingleList(itemList)
+                        .setHeader(new Header.Builder().setTitle("foo").build())
+                        .build());
     }
 
     @Test
@@ -296,18 +364,20 @@ public class GridTemplateTest {
         GridTemplate template =
                 new GridTemplate.Builder()
                         .setSingleList(itemList)
-                        .setTitle(title)
-                        .setActionStrip(new ActionStrip.Builder().addAction(Action.BACK).build())
+                        .setHeader(new Header.Builder()
+                                .setTitle(title)
+                                .addEndHeaderAction(Action.BACK)
+                                .build())
                         .build();
 
         assertThat(template)
                 .isNotEqualTo(
                         new GridTemplate.Builder()
                                 .setSingleList(itemList)
-                                .setTitle(title)
-                                .setActionStrip(
-                                        new ActionStrip.Builder().addAction(
-                                                Action.APP_ICON).build())
+                                .setHeader(new Header.Builder()
+                                        .setTitle(title)
+                                        .addEndHeaderAction(Action.APP_ICON)
+                                        .build())
                                 .build());
     }
 
@@ -328,5 +398,37 @@ public class GridTemplateTest {
         assertThat(template)
                 .isNotEqualTo(new GridTemplate.Builder().setSingleList(itemList).addAction(
                         TestUtils.createAction(icon2, CarColor.RED)).build());
+    }
+
+    @Test
+    public void notEquals_differentSize() {
+        GridTemplate template1 =
+                new GridTemplate.Builder()
+                        .setLoading(true)
+                        .setItemSize(GridTemplate.ITEM_SIZE_MEDIUM)
+                        .build();
+        GridTemplate template2 =
+                new GridTemplate.Builder()
+                        .setLoading(true)
+                        .setItemSize(GridTemplate.ITEM_SIZE_SMALL)
+                        .build();
+        assertThat(template1).isNotEqualTo(template2);
+    }
+
+    @Test
+    public void notEquals_differentItemImageShape() {
+        ItemList itemList = new ItemList.Builder().build();
+
+        GridTemplate template1 =
+                new GridTemplate.Builder()
+                        .setSingleList(itemList)
+                        .setItemImageShape(GridTemplate.ITEM_IMAGE_SHAPE_CIRCLE)
+                        .build();
+        GridTemplate template2 =
+                new GridTemplate.Builder()
+                        .setSingleList(itemList)
+                        .setItemImageShape(GridTemplate.ITEM_IMAGE_SHAPE_UNSET)
+                        .build();
+        assertThat(template1).isNotEqualTo(template2);
     }
 }

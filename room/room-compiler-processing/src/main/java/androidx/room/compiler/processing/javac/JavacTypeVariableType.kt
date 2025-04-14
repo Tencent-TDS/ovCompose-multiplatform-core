@@ -19,8 +19,7 @@ package androidx.room.compiler.processing.javac
 import androidx.room.compiler.processing.XNullability
 import androidx.room.compiler.processing.XType
 import androidx.room.compiler.processing.XTypeVariableType
-import androidx.room.compiler.processing.javac.kotlin.KmTypeContainer
-import androidx.room.compiler.processing.javac.kotlin.nullability
+import androidx.room.compiler.processing.javac.kotlin.KmBaseTypeContainer
 import com.google.auto.common.MoreTypes.asIntersection
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeVariable
@@ -29,22 +28,17 @@ internal class JavacTypeVariableType(
     env: JavacProcessingEnv,
     override val typeMirror: TypeVariable,
     nullability: XNullability?,
-    override val kotlinType: KmTypeContainer?
+    override val kotlinType: KmBaseTypeContainer?
 ) : JavacType(env, typeMirror, nullability), XTypeVariableType {
     constructor(
         env: JavacProcessingEnv,
         typeMirror: TypeVariable
-    ) : this(
-        env = env,
-        typeMirror = typeMirror,
-        nullability = null,
-        kotlinType = null
-    )
+    ) : this(env = env, typeMirror = typeMirror, nullability = null, kotlinType = null)
 
     constructor(
         env: JavacProcessingEnv,
         typeMirror: TypeVariable,
-        kotlinType: KmTypeContainer
+        kotlinType: KmBaseTypeContainer
     ) : this(
         env = env,
         typeMirror = typeMirror,
@@ -56,16 +50,9 @@ internal class JavacTypeVariableType(
         env: JavacProcessingEnv,
         typeMirror: TypeVariable,
         nullability: XNullability
-    ) : this(
-        env = env,
-        typeMirror = typeMirror,
-        nullability = nullability,
-        kotlinType = null
-    )
+    ) : this(env = env, typeMirror = typeMirror, nullability = nullability, kotlinType = null)
 
-    override val equalityItems by lazy {
-        arrayOf(typeMirror)
-    }
+    override val equalityItems by lazy { arrayOf(typeMirror) }
 
     override val typeArguments: List<XType>
         get() = emptyList()

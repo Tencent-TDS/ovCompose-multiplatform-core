@@ -29,7 +29,6 @@ class ProfileVerificationOnUnsupportedApiVersions {
 
     @Before
     fun setUp() {
-
         // This test runs only on selected api version currently unsupported by profile verifier
         Assume.assumeTrue(
             Build.VERSION.SDK_INT < Build.VERSION_CODES.P ||
@@ -47,24 +46,26 @@ class ProfileVerificationOnUnsupportedApiVersions {
     }
 
     @Test
-    fun unsupportedApiWithInitializer() = withPackageName(PACKAGE_NAME_WITH_INITIALIZER) {
-        install(apkName = APK_WITH_INITIALIZER_V1, withProfile = false)
-        start(ACTIVITY_NAME)
-        evaluateUI {
-            profileInstalled(RESULT_CODE_ERROR_UNSUPPORTED_API_VERSION)
-            hasReferenceProfile(false)
-            hasCurrentProfile(false)
+    fun unsupportedApiWithInitializer() =
+        withPackageName(PACKAGE_NAME_WITH_INITIALIZER) {
+            install(apkName = APK_WITH_INITIALIZER_V1, withProfile = false)
+            start(ACTIVITY_NAME)
+            evaluateUI {
+                profileInstalled(RESULT_CODE_ERROR_UNSUPPORTED_API_VERSION)
+                hasReferenceProfile(false)
+                hasCurrentProfile(false)
+            }
         }
-    }
 
     @Test
-    fun unsupportedApiWithoutInitializer() = withPackageName(PACKAGE_NAME_WITHOUT_INITIALIZER) {
-        install(apkName = APK_WITHOUT_INITIALIZER_V1, withProfile = false)
-        start(ACTIVITY_NAME)
-        evaluateUI {
-            profileInstalled(RESULT_CODE_ERROR_UNSUPPORTED_API_VERSION)
-            hasReferenceProfile(false)
-            hasCurrentProfile(false)
+    fun unsupportedApiWithoutInitializer() =
+        withPackageName(PACKAGE_NAME_WITHOUT_INITIALIZER) {
+            install(apkName = APK_WITHOUT_INITIALIZER_V1, withProfile = false)
+            start(ACTIVITY_NAME)
+            evaluateUI {
+                profileInstalled(RESULT_CODE_ERROR_UNSUPPORTED_API_VERSION)
+                hasReferenceProfile(false)
+                hasCurrentProfile(false)
+            }
         }
-    }
 }

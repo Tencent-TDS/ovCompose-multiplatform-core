@@ -16,6 +16,7 @@
  */
 package androidx.leanback.app;
 
+import android.app.Fragment;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -23,13 +24,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import android.app.Fragment;
 import androidx.leanback.R;
 import androidx.leanback.widget.SearchOrbView;
 import androidx.leanback.widget.TitleHelper;
 import androidx.leanback.widget.TitleViewAdapter;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Fragment class for managing search and branding using a view that implements
@@ -65,12 +66,12 @@ public class BrandedFragment extends Fragment {
      * @param savedInstanceState If non-null, this fragment is being re-constructed
      *                           from a previous saved state as given here.
      * @return Title view which must have a descendant with id browse_title_group that implements
-     *         {@link TitleViewAdapter.Provider}, or null for no title view.
+     * {@link TitleViewAdapter.Provider}, or null for no title view.
      */
-    public View onInflateTitleView(LayoutInflater inflater, ViewGroup parent,
-                                Bundle savedInstanceState) {
+    public @NonNull View onInflateTitleView(@NonNull LayoutInflater inflater,
+            @Nullable ViewGroup parent, @Nullable Bundle savedInstanceState) {
         TypedValue typedValue = new TypedValue();
-        boolean found = parent.getContext().getTheme().resolveAttribute(
+        boolean found = parent != null && parent.getContext().getTheme().resolveAttribute(
                 R.attr.browseTitleViewLayout, typedValue, true);
         return inflater.inflate(found ? typedValue.resourceId : R.layout.lb_browse_title,
                 parent, false);
@@ -85,8 +86,8 @@ public class BrandedFragment extends Fragment {
      * @param savedInstanceState If non-null, this fragment is being re-constructed
      * from a previous saved state as given here.
      */
-    public void installTitleView(LayoutInflater inflater, ViewGroup parent,
-                            Bundle savedInstanceState) {
+    public void installTitleView(@NonNull LayoutInflater inflater, @NonNull ViewGroup parent,
+            @Nullable Bundle savedInstanceState) {
         View titleLayoutRoot = onInflateTitleView(inflater, parent, savedInstanceState);
         if (titleLayoutRoot != null) {
             parent.addView(titleLayoutRoot);
@@ -100,7 +101,7 @@ public class BrandedFragment extends Fragment {
      * Sets the view that implemented {@link TitleViewAdapter}.
      * @param titleView The view that implemented {@link TitleViewAdapter.Provider}.
      */
-    public void setTitleView(View titleView) {
+    public void setTitleView(@Nullable View titleView) {
         mTitleView = titleView;
         if (mTitleView == null) {
             mTitleViewAdapter = null;
@@ -125,7 +126,7 @@ public class BrandedFragment extends Fragment {
      * Returns the view that implements {@link TitleViewAdapter.Provider}.
      * @return The view that implements {@link TitleViewAdapter.Provider}.
      */
-    public View getTitleView() {
+    public @Nullable View getTitleView() {
         return mTitleView;
     }
 
@@ -133,7 +134,7 @@ public class BrandedFragment extends Fragment {
      * Returns the {@link TitleViewAdapter} implemented by title view.
      * @return The {@link TitleViewAdapter} implemented by title view.
      */
-    public TitleViewAdapter getTitleViewAdapter() {
+    public @Nullable TitleViewAdapter getTitleViewAdapter() {
         return mTitleViewAdapter;
     }
 
@@ -205,7 +206,7 @@ public class BrandedFragment extends Fragment {
      *
      * @param drawable The Drawable to display in the fragment title.
      */
-    public void setBadgeDrawable(Drawable drawable) {
+    public void setBadgeDrawable(@Nullable Drawable drawable) {
         if (mBadgeDrawable != drawable) {
             mBadgeDrawable = drawable;
             if (mTitleViewAdapter != null) {
@@ -218,7 +219,7 @@ public class BrandedFragment extends Fragment {
      * Returns the badge drawable used in the fragment title.
      * @return The badge drawable used in the fragment title.
      */
-    public Drawable getBadgeDrawable() {
+    public @Nullable Drawable getBadgeDrawable() {
         return mBadgeDrawable;
     }
 
@@ -227,7 +228,7 @@ public class BrandedFragment extends Fragment {
      *
      * @param title The title text of the fragment.
      */
-    public void setTitle(CharSequence title) {
+    public void setTitle(@Nullable CharSequence title) {
         mTitle = title;
         if (mTitleViewAdapter != null) {
             mTitleViewAdapter.setTitle(title);
@@ -238,7 +239,7 @@ public class BrandedFragment extends Fragment {
      * Returns the title text for the fragment.
      * @return Title text for the fragment.
      */
-    public CharSequence getTitle() {
+    public @Nullable CharSequence getTitle() {
         return mTitle;
     }
 
@@ -254,7 +255,7 @@ public class BrandedFragment extends Fragment {
      *
      * @param listener The listener to call when the search element is clicked.
      */
-    public void setOnSearchClickedListener(View.OnClickListener listener) {
+    public void setOnSearchClickedListener(View.@Nullable OnClickListener listener) {
         mExternalOnSearchClickedListener = listener;
         if (mTitleViewAdapter != null) {
             mTitleViewAdapter.setOnSearchClickedListener(listener);
@@ -267,7 +268,7 @@ public class BrandedFragment extends Fragment {
      *
      * @param colors Colors used to draw search affordance.
      */
-    public void setSearchAffordanceColors(SearchOrbView.Colors colors) {
+    public void setSearchAffordanceColors(SearchOrbView.@NonNull Colors colors) {
         mSearchAffordanceColors = colors;
         mSearchAffordanceColorSet = true;
         if (mTitleViewAdapter != null) {
@@ -279,7 +280,7 @@ public class BrandedFragment extends Fragment {
      * Returns the {@link androidx.leanback.widget.SearchOrbView.Colors}
      * used to draw the search affordance.
      */
-    public SearchOrbView.Colors getSearchAffordanceColors() {
+    public SearchOrbView.@Nullable Colors getSearchAffordanceColors() {
         if (mSearchAffordanceColorSet) {
             return mSearchAffordanceColors;
         }

@@ -20,12 +20,14 @@ import android.annotation.SuppressLint;
 import android.graphics.Color;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.DoNotInline;
 import androidx.annotation.FloatRange;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.Size;
 import androidx.annotation.VisibleForTesting;
+import androidx.core.content.res.CamColor;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
@@ -88,8 +90,8 @@ public final class ColorUtils {
      * {@linkplain android.graphics.Color#getModel models} of the colors do not match
      */
     @RequiresApi(26)
-    @NonNull
-    public static Color compositeColors(@NonNull Color foreground, @NonNull Color background) {
+    public static @NonNull Color compositeColors(@NonNull Color foreground,
+            @NonNull Color background) {
         return Api26Impl.compositeColors(foreground, background);
     }
 
@@ -99,7 +101,6 @@ public final class ColorUtils {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Color compositeColors(Color foreground, Color background) {
             if (!Objects.equals(foreground.getModel(), background.getModel())) {
                 throw new IllegalArgumentException(
@@ -250,7 +251,7 @@ public final class ColorUtils {
      */
     public static void RGBToHSL(@IntRange(from = 0x0, to = 0xFF) int r,
             @IntRange(from = 0x0, to = 0xFF) int g, @IntRange(from = 0x0, to = 0xFF) int b,
-            @NonNull float[] outHsl) {
+            float @NonNull [] outHsl) {
         final float rf = r / 255f;
         final float gf = g / 255f;
         final float bf = b / 255f;
@@ -298,7 +299,7 @@ public final class ColorUtils {
      * @param color the ARGB color to convert. The alpha component is ignored
      * @param outHsl 3-element array which holds the resulting HSL components
      */
-    public static void colorToHSL(@ColorInt int color, @NonNull float[] outHsl) {
+    public static void colorToHSL(@ColorInt int color, float @NonNull [] outHsl) {
         RGBToHSL(Color.red(color), Color.green(color), Color.blue(color), outHsl);
     }
 
@@ -315,7 +316,7 @@ public final class ColorUtils {
      * @return the resulting RGB color
      */
     @ColorInt
-    public static int HSLToColor(@NonNull float[] hsl) {
+    public static int HSLToColor(float @NonNull [] hsl) {
         final float h = hsl[0];
         final float s = hsl[1];
         final float l = hsl[2];
@@ -387,7 +388,7 @@ public final class ColorUtils {
      * @param color the ARGB color to convert. The alpha component is ignored
      * @param outLab 3-element array which holds the resulting LAB components
      */
-    public static void colorToLAB(@ColorInt int color, @NonNull double[] outLab) {
+    public static void colorToLAB(@ColorInt int color, double @NonNull [] outLab) {
         RGBToLAB(Color.red(color), Color.green(color), Color.blue(color), outLab);
     }
 
@@ -407,7 +408,7 @@ public final class ColorUtils {
      */
     public static void RGBToLAB(@IntRange(from = 0x0, to = 0xFF) int r,
             @IntRange(from = 0x0, to = 0xFF) int g, @IntRange(from = 0x0, to = 0xFF) int b,
-            @NonNull double[] outLab) {
+            double @NonNull [] outLab) {
         // First we convert RGB to XYZ
         RGBToXYZ(r, g, b, outLab);
         // outLab now contains XYZ
@@ -430,7 +431,7 @@ public final class ColorUtils {
      * @param color the ARGB color to convert. The alpha component is ignored
      * @param outXyz 3-element array which holds the resulting LAB components
      */
-    public static void colorToXYZ(@ColorInt int color, @NonNull double[] outXyz) {
+    public static void colorToXYZ(@ColorInt int color, double @NonNull [] outXyz) {
         RGBToXYZ(Color.red(color), Color.green(color), Color.blue(color), outXyz);
     }
 
@@ -453,7 +454,7 @@ public final class ColorUtils {
      */
     public static void RGBToXYZ(@IntRange(from = 0x0, to = 0xFF) int r,
             @IntRange(from = 0x0, to = 0xFF) int g, @IntRange(from = 0x0, to = 0xFF) int b,
-            @NonNull double[] outXyz) {
+            double @NonNull [] outXyz) {
         if (outXyz.length != 3) {
             throw new IllegalArgumentException("outXyz must have a length of 3.");
         }
@@ -490,7 +491,7 @@ public final class ColorUtils {
     public static void XYZToLAB(@FloatRange(from = 0f, to = XYZ_WHITE_REFERENCE_X) double x,
             @FloatRange(from = 0f, to = XYZ_WHITE_REFERENCE_Y) double y,
             @FloatRange(from = 0f, to = XYZ_WHITE_REFERENCE_Z) double z,
-            @NonNull double[] outLab) {
+            double @NonNull [] outLab) {
         if (outLab.length != 3) {
             throw new IllegalArgumentException("outLab must have a length of 3.");
         }
@@ -522,7 +523,7 @@ public final class ColorUtils {
     public static void LABToXYZ(@FloatRange(from = 0f, to = 100) final double l,
             @FloatRange(from = -128, to = 127) final double a,
             @FloatRange(from = -128, to = 127) final double b,
-            @NonNull double[] outXyz) {
+            double @NonNull [] outXyz) {
         final double fy = (l + 16) / 116;
         final double fx = a / 500 + fy;
         final double fz = fy - b / 200;
@@ -589,7 +590,7 @@ public final class ColorUtils {
      * Returns the euclidean distance between two LAB colors.
      */
     @SuppressWarnings("unused")
-    public static double distanceEuclidean(@NonNull double[] labX, @NonNull double[] labY) {
+    public static double distanceEuclidean(double @NonNull [] labX, double @NonNull [] labY) {
         return Math.sqrt(Math.pow(labX[0] - labY[0], 2)
                 + Math.pow(labX[1] - labY[1], 2)
                 + Math.pow(labX[2] - labY[2], 2));
@@ -646,8 +647,8 @@ public final class ColorUtils {
      * @param outResult 3-element array which holds the resulting HSL components
      */
     @SuppressWarnings("unused")
-    public static void blendHSL(@NonNull float[] hsl1, @NonNull float[] hsl2,
-            @FloatRange(from = 0.0, to = 1.0) float ratio, @NonNull float[] outResult) {
+    public static void blendHSL(float @NonNull [] hsl1, float @NonNull [] hsl2,
+            @FloatRange(from = 0.0, to = 1.0) float ratio, float @NonNull [] outResult) {
         if (outResult.length != 3) {
             throw new IllegalArgumentException("result must have a length of 3.");
         }
@@ -670,8 +671,8 @@ public final class ColorUtils {
      * @param outResult 3-element array which holds the resulting LAB components
      */
     @SuppressWarnings("unused")
-    public static void blendLAB(@NonNull double[] lab1, @NonNull double[] lab2,
-            @FloatRange(from = 0.0, to = 1.0) double ratio, @NonNull double[] outResult) {
+    public static void blendLAB(double @NonNull [] lab1, double @NonNull [] lab2,
+            @FloatRange(from = 0.0, to = 1.0) double ratio, double @NonNull [] outResult) {
         if (outResult.length != 3) {
             throw new IllegalArgumentException("outResult must have a length of 3.");
         }
@@ -679,6 +680,49 @@ public final class ColorUtils {
         outResult[0] = lab1[0] * inverseRatio + lab2[0] * ratio;
         outResult[1] = lab1[1] * inverseRatio + lab2[1] * ratio;
         outResult[2] = lab1[2] * inverseRatio + lab2[2] * ratio;
+    }
+
+    /**
+     * Generate an ARGB color using M3HCT color parameters.
+     *
+     * HCT color space is a new color space proposed in Material Design 3
+     * @see
+     * <a href="https://developer.android.com/design/ui/mobile/guides/styles/color#about-color-spaces">About Color Spaces</a>
+     *
+     * @param hue is Hue in M3HCT [0, 360); invalid values are corrected.
+     * @param chroma is Chroma in M3HCT [0, ?); Chroma may decrease because chroma has a
+     *               different maximum for any given hue and tone.
+     * @param tone is Tone in M3HCT [0, 100]; invalid values are corrected.
+     */
+    @SuppressWarnings("AcronymName")
+    @ColorInt
+    public static int M3HCTToColor(@FloatRange(from = 0.0, to = 360, toInclusive = false) float hue,
+            @FloatRange(from = 0.0, to = Double.POSITIVE_INFINITY, toInclusive = false)
+            float chroma, @FloatRange(from = 0.0, to = 100) float tone) {
+        return CamColor.toColor(hue, chroma, tone);
+    }
+
+    /**
+     * Generate a M3HCT color from an ARGB color.
+     *
+     * HCT color space is a new color space proposed in Material Design 3
+     * @see
+     * <a href="https://developer.android.com/design/ui/mobile/guides/styles/color#about-color-spaces">About Color Spaces</a>
+     *
+     * <ul>
+     * <li>outM3HCT[0] is Hue in M3HCT [0, 360); invalid values are corrected.</li>
+     * <li>outM3HCT[1] is Chroma in M3HCT [0, ?); Chroma may decrease because chroma has a
+     * different maximum for any given hue and tone.</li>
+     * <li>outM3HCT[2] is Tone in M3HCT [0, 100]; invalid values are corrected.</li>
+     * </ul>
+     *
+     * @param color is the ARGB color value we use to get its respective M3HCT values.
+     * @param outM3HCT 3-element array which holds the resulting M3HCT components (Hue, Chroma,
+     *                 Tone).
+     */
+    @SuppressWarnings("AcronymName")
+    public static void colorToM3HCT(@ColorInt int color, @Size(3) float @NonNull [] outM3HCT) {
+        CamColor.getM3HCTfromColor(color, outM3HCT);
     }
 
     @VisibleForTesting

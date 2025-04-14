@@ -27,6 +27,9 @@ package androidx.room {
   public final class EntityUpsertionAdapterKt {
   }
 
+  @RequiresOptIn @kotlin.annotation.Target(allowedTargets={kotlin.annotation.AnnotationTarget.CLASS, kotlin.annotation.AnnotationTarget.FUNCTION}) public @interface ExperimentalRoomApi {
+  }
+
   public class InvalidationTracker {
     method @WorkerThread public void addObserver(androidx.room.InvalidationTracker.Observer observer);
     method public void refreshVersionsAsync();
@@ -38,9 +41,14 @@ package androidx.room {
   }
 
   public abstract static class InvalidationTracker.Observer {
-    ctor public InvalidationTracker.Observer(String![] tables);
     ctor protected InvalidationTracker.Observer(String firstTable, java.lang.String... rest);
+    ctor public InvalidationTracker.Observer(String![] tables);
     method public abstract void onInvalidated(java.util.Set<java.lang.String> tables);
+  }
+
+  @androidx.room.ExperimentalRoomApi public final class MultiInstanceInvalidationService extends android.app.Service {
+    ctor public MultiInstanceInvalidationService();
+    method public android.os.IBinder onBind(android.content.Intent intent);
   }
 
   public final class Room {
@@ -68,9 +76,9 @@ package androidx.room {
     method @CallSuper public void init(androidx.room.DatabaseConfiguration configuration);
     method protected void internalInitInvalidationTracker(androidx.sqlite.db.SupportSQLiteDatabase db);
     method public boolean isOpen();
-    method public android.database.Cursor query(String query, Object![]? args);
-    method public android.database.Cursor query(androidx.sqlite.db.SupportSQLiteQuery query, optional android.os.CancellationSignal? signal);
     method public android.database.Cursor query(androidx.sqlite.db.SupportSQLiteQuery query);
+    method public android.database.Cursor query(androidx.sqlite.db.SupportSQLiteQuery query, optional android.os.CancellationSignal? signal);
+    method public android.database.Cursor query(String query, Object![]? args);
     method public void runInTransaction(Runnable body);
     method public <V> V! runInTransaction(java.util.concurrent.Callable<V> body);
     method @Deprecated public void setTransactionSuccessful();
@@ -101,7 +109,9 @@ package androidx.room {
     method public androidx.room.RoomDatabase.Builder<T> fallbackToDestructiveMigrationFrom(int... startVersions);
     method public androidx.room.RoomDatabase.Builder<T> fallbackToDestructiveMigrationOnDowngrade();
     method public androidx.room.RoomDatabase.Builder<T> openHelperFactory(androidx.sqlite.db.SupportSQLiteOpenHelper.Factory? factory);
+    method @androidx.room.ExperimentalRoomApi public androidx.room.RoomDatabase.Builder<T> setAutoCloseTimeout(@IntRange(from=0L) long autoCloseTimeout, java.util.concurrent.TimeUnit autoCloseTimeUnit);
     method public androidx.room.RoomDatabase.Builder<T> setJournalMode(androidx.room.RoomDatabase.JournalMode journalMode);
+    method @androidx.room.ExperimentalRoomApi public androidx.room.RoomDatabase.Builder<T> setMultiInstanceInvalidationServiceIntent(android.content.Intent invalidationServiceIntent);
     method public androidx.room.RoomDatabase.Builder<T> setQueryCallback(androidx.room.RoomDatabase.QueryCallback queryCallback, java.util.concurrent.Executor executor);
     method public androidx.room.RoomDatabase.Builder<T> setQueryExecutor(java.util.concurrent.Executor executor);
     method public androidx.room.RoomDatabase.Builder<T> setTransactionExecutor(java.util.concurrent.Executor executor);
@@ -118,8 +128,6 @@ package androidx.room {
   }
 
   public enum RoomDatabase.JournalMode {
-    method public static androidx.room.RoomDatabase.JournalMode valueOf(String name) throws java.lang.IllegalArgumentException;
-    method public static androidx.room.RoomDatabase.JournalMode[] values();
     enum_constant public static final androidx.room.RoomDatabase.JournalMode AUTOMATIC;
     enum_constant public static final androidx.room.RoomDatabase.JournalMode TRUNCATE;
     enum_constant public static final androidx.room.RoomDatabase.JournalMode WRITE_AHEAD_LOGGING;

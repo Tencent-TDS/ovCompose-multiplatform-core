@@ -21,7 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import android.widget.Button;
 
-import androidx.annotation.Nullable;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -29,6 +28,8 @@ import androidx.test.rule.ActivityTestRule;
 import androidx.wear.test.R;
 import androidx.wear.widget.util.WakeLockRule;
 
+import org.jspecify.annotations.Nullable;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,6 +57,7 @@ public class ConfirmationActivityTest {
             new ActivityTestRule<>(ConfirmationActivityTestActivity.class, true, true);
 
     @Test
+    @Ignore("b/272346886")
     public void testConfirmationDialogShownForDefaultDuration() throws Throwable {
         int testDuration = ConfirmationActivity.DEFAULT_ANIMATION_DURATION_MILLIS;
         // Check that the structure of the test is still valid
@@ -66,12 +68,14 @@ public class ConfirmationActivityTest {
     }
 
     @Test
+    @Ignore("b/272346886")
     public void testConfirmationDialogShownForLongerDuration() throws Throwable {
         testConfirmationDialogShownForConfiguredDuration(
                 ConfirmationActivity.DEFAULT_ANIMATION_DURATION_MILLIS * 2, "A message");
     }
 
     @Test
+    @Ignore("b/272346886")
     public void testConfirmationDialogWithMissingMessage() throws Throwable {
         testConfirmationDialogShownForConfiguredDuration(
                 ConfirmationActivity.DEFAULT_ANIMATION_DURATION_MILLIS * 2, /* message= */null);

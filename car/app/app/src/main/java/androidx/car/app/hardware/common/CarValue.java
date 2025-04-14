@@ -18,14 +18,15 @@ package androidx.car.app.hardware.common;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.annotations.CarProtocol;
 import androidx.car.app.annotations.ExperimentalCarApi;
-import androidx.car.app.annotations.RequiresCarApi;
 import androidx.car.app.annotations.KeepFields;
+import androidx.car.app.annotations.RequiresCarApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -47,7 +48,6 @@ public final class CarValue<T> {
      * Defines the possible status codes when trying to access car hardware properties, sensors,
      * and actions.
      *
-     * @hide
      */
     @IntDef({
             STATUS_UNKNOWN,
@@ -90,13 +90,11 @@ public final class CarValue<T> {
     @StatusCode
     public static final int STATUS_UNAVAILABLE = 3;
 
-    @Nullable
-    private final T mValue;
+    private final @Nullable T mValue;
     private final long mTimestampMillis;
     @StatusCode
     private final int mStatus;
-    @NonNull
-    private final List<CarZone> mCarZones;
+    private final @NonNull List<CarZone> mCarZones;
 
     private static <T> CarValue<T> unimplemented() {
         return new CarValue<>(null, 0, CarValue.STATUS_UNIMPLEMENTED);
@@ -106,45 +104,39 @@ public final class CarValue<T> {
         return new CarValue<>(null, 0, CarValue.STATUS_UNKNOWN);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<Integer> UNIMPLEMENTED_INTEGER = unimplemented();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<Integer> UNKNOWN_INTEGER = unknown();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<Boolean> UNKNOWN_BOOLEAN = unknown();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<Float> UNKNOWN_FLOAT = unknown();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<String> UNKNOWN_STRING = unknown();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<List<Float>> UNIMPLEMENTED_FLOAT_LIST = unimplemented();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<List<Float>> UNKNOWN_FLOAT_LIST = unknown();
 
-    /** @hide */
     @RestrictTo(LIBRARY)
     public static final CarValue<List<Integer>> UNKNOWN_INTEGER_LIST = unknown();
+
+    @RestrictTo(LIBRARY)
+    public static final CarValue<Integer[]> UNKNOWN_INTEGER_ARRAY = unknown();
 
     /**
      * Returns a the data value or {@code null} if the status is not successful.
      *
      * @see #getStatus
      */
-    @Nullable
-    public T getValue() {
+    public @Nullable T getValue() {
         return mValue;
     }
 
@@ -174,8 +166,7 @@ public final class CarValue<T> {
      * {@link CarValue#STATUS_UNIMPLEMENTED}.
      */
     @ExperimentalCarApi
-    @NonNull
-    public List<CarZone> getCarZones() {
+    public @NonNull List<CarZone> getCarZones() {
         if (mStatus == STATUS_UNIMPLEMENTED) {
             return Collections.emptyList();
         }
@@ -183,8 +174,7 @@ public final class CarValue<T> {
     }
 
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         return "[value: "
                 + mValue
                 + ", timestamp: "

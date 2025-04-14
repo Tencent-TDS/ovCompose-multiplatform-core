@@ -18,15 +18,34 @@ package androidx.camera.camera2.pipe.integration.compat
 
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.params.StreamConfigurationMap
+import android.util.Range
 import android.util.Size
-import androidx.annotation.RequiresApi
+import androidx.camera.core.Logger
 import androidx.camera.core.impl.ImageFormatConstants
 
-@RequiresApi(21)
+private const val TAG = "StreamConfigurationMapCompatBaseImpl"
+
 internal open class StreamConfigurationMapCompatBaseImpl(
-    val streamConfigurationMap: StreamConfigurationMap
-) :
-    StreamConfigurationMapCompat.StreamConfigurationMapCompatImpl {
+    val streamConfigurationMap: StreamConfigurationMap?
+) : StreamConfigurationMapCompat.StreamConfigurationMapCompatImpl {
+
+    override fun getOutputFormats(): Array<Int>? {
+        // b/361590210: try-catch to workaround the NullPointerException issue when using
+        // StreamConfigurationMap provided by Robolectric.
+        val outputFormats =
+            try {
+                streamConfigurationMap?.outputFormats
+            } catch (e: NullPointerException) {
+                Logger.w(TAG, "Failed to get output formats from StreamConfigurationMap", e)
+                null
+            } catch (e: IllegalArgumentException) {
+                Logger.w(TAG, "Failed to get output formats from StreamConfigurationMap", e)
+                null
+            }
+
+        return outputFormats?.toTypedArray()
+    }
+
     override fun getOutputSizes(format: Int): Array<Size>? {
         val sizes: Array<Size> =
             if (format == ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE) {
@@ -35,22 +54,42 @@ internal open class StreamConfigurationMapCompatBaseImpl(
                 // after Android level 23 but not public in Android L. Use {@link SurfaceTexture}
                 // or {@link MediaCodec} will finally mapped to 0x22 in StreamConfigurationMap to
                 // retrieve the output sizes information.
-                streamConfigurationMap.getOutputSizes(SurfaceTexture::class.java)
+                streamConfigurationMap?.getOutputSizes(SurfaceTexture::class.java) ?: emptyArray()
             } else {
-                streamConfigurationMap.getOutputSizes(format)
+                streamConfigurationMap?.getOutputSizes(format) ?: emptyArray()
             }
         return sizes
     }
 
     override fun <T> getOutputSizes(klass: Class<T>): Array<Size>? {
-        return streamConfigurationMap.getOutputSizes(klass)
+        return streamConfigurationMap?.getOutputSizes(klass) ?: emptyArray()
     }
 
     override fun getHighResolutionOutputSizes(format: Int): Array<Size>? {
         return null
     }
 
-    override fun unwrap(): StreamConfigurationMap {
+    override fun getHighSpeedVideoFpsRanges(): Array<Range<Int>>? {
+        return streamConfigurationMap?.getHighSpeedVideoFpsRanges()
+    }
+
+    override fun getHighSpeedVideoFpsRangesFor(size: Size): Array<Range<Int>>? {
+        return streamConfigurationMap?.getHighSpeedVideoFpsRangesFor(size)
+    }
+
+    override fun getHighSpeedVideoSizes(): Array<Size>? {
+        return streamConfigurationMap?.getHighSpeedVideoSizes()
+    }
+
+    override fun getHighSpeedVideoSizesFor(fpsRange: Range<Int>): Array<Size>? {
+        return streamConfigurationMap?.getHighSpeedVideoSizesFor(fpsRange)
+    }
+
+    override fun getOutputMinFrameDuration(format: Int, size: Size?): Long? {
+        return streamConfigurationMap?.getOutputMinFrameDuration(format, size)
+    }
+
+    override fun unwrap(): StreamConfigurationMap? {
         return streamConfigurationMap
     }
 }

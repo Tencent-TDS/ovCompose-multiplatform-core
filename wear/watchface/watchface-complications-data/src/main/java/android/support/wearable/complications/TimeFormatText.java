@@ -19,9 +19,10 @@ package android.support.wearable.complications;
 import android.content.res.Resources;
 import android.os.Parcel;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public final class TimeFormatText implements TimeDependentText {
+    private static final Date sDate = new Date();
 
     @Override
     public boolean equals(Object o) {
@@ -48,18 +50,16 @@ public final class TimeFormatText implements TimeDependentText {
         return mStyle == that.mStyle
                 && mTimePrecision == that.mTimePrecision
                 && Objects.equals(mDateFormat, that.mDateFormat)
-                && Objects.equals(mTimeZone, that.mTimeZone)
-                && Objects.equals(mDate.toString(), that.mDate.toString());
+                && Objects.equals(mTimeZone, that.mTimeZone);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mDateFormat, mStyle, mTimeZone, mDate, mTimePrecision);
+        return Objects.hash(mDateFormat, mStyle, mTimeZone, mTimePrecision);
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         if (ComplicationData.shouldRedact()) {
             return "TimeFormatText{Redacted}";
         }
@@ -69,8 +69,6 @@ public final class TimeFormatText implements TimeDependentText {
                 + mStyle
                 + ", mTimeZone="
                 + mTimeZone
-                + ", mDate="
-                + mDate
                 + ", mTimePrecision="
                 + mTimePrecision
                 + '}';
@@ -98,7 +96,6 @@ public final class TimeFormatText implements TimeDependentText {
 
     @ComplicationText.TimeFormatStyle private final int mStyle;
     private final TimeZone mTimeZone;
-    private final Date mDate;
     private long mTimePrecision;
 
     public TimeFormatText(
@@ -117,7 +114,6 @@ public final class TimeFormatText implements TimeDependentText {
         } else {
             mTimeZone = mDateFormat.getTimeZone();
         }
-        mDate = new Date();
     }
 
     TimeFormatText(
@@ -128,7 +124,6 @@ public final class TimeFormatText implements TimeDependentText {
         mDateFormat = dateFormat;
         mStyle = style;
         mTimeZone = timeZone;
-        mDate = new Date();
         mTimePrecision = timePrecision;
     }
 
@@ -163,8 +158,7 @@ public final class TimeFormatText implements TimeDependentText {
     }
 
     @Override
-    @NonNull
-    public CharSequence getTextAt(@NonNull Resources resources, long dateTimeMillis) {
+    public @NonNull CharSequence getTextAt(@NonNull Resources resources, long dateTimeMillis) {
         String formattedDate = mDateFormat.format(new Date(dateTimeMillis));
 
         switch (mStyle) {
@@ -214,8 +208,7 @@ public final class TimeFormatText implements TimeDependentText {
         return mTimePrecision;
     }
 
-    @NonNull
-    public String getFormatString() {
+    public @NonNull String getFormatString() {
         return mDateFormat.toPattern();
     }
 
@@ -223,21 +216,19 @@ public final class TimeFormatText implements TimeDependentText {
         return mStyle;
     }
 
-    @Nullable
-    public TimeZone getTimeZone() {
+    public @Nullable TimeZone getTimeZone() {
         return mTimeZone;
     }
 
     private long getOffset(long date) {
-        mDate.setTime(date);
-        if (mTimeZone.inDaylightTime(mDate)) {
+        sDate.setTime(date);
+        if (mTimeZone.inDaylightTime(sDate)) {
             return (long) mTimeZone.getRawOffset() + mTimeZone.getDSTSavings();
         }
         return mTimeZone.getRawOffset();
     }
 
-    @NonNull
-    private String getDateFormatWithoutText(String format) {
+    private @NonNull String getDateFormatWithoutText(String format) {
         StringBuilder result = new StringBuilder();
         boolean isTextPart = false;
         int index = 0;
@@ -277,20 +268,17 @@ public final class TimeFormatText implements TimeDependentText {
         this.mStyle = in.readInt();
         this.mTimeZone = (TimeZone) in.readSerializable();
         this.mTimePrecision = -1;
-        this.mDate = new Date();
     }
 
     public static final Creator<TimeFormatText> CREATOR =
             new Creator<TimeFormatText>() {
                 @Override
-                @NonNull
-                public TimeFormatText createFromParcel(@NonNull Parcel source) {
+                public @NonNull TimeFormatText createFromParcel(@NonNull Parcel source) {
                     return new TimeFormatText(source);
                 }
 
                 @Override
-                @NonNull
-                public TimeFormatText[] newArray(int size) {
+                public TimeFormatText @NonNull [] newArray(int size) {
                     return new TimeFormatText[size];
                 }
             };

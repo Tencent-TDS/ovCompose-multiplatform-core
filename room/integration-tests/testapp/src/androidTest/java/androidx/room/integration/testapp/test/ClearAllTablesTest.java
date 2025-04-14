@@ -27,7 +27,6 @@ import static org.junit.Assert.fail;
 import android.content.Context;
 import android.database.Cursor;
 
-import androidx.annotation.NonNull;
 import androidx.room.Dao;
 import androidx.room.Database;
 import androidx.room.Entity;
@@ -42,10 +41,10 @@ import androidx.room.RoomDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -198,7 +197,6 @@ public class ClearAllTablesTest {
 
     @Test
     @MediumTest
-    @SdkSuppress(minSdkVersion = 16)
     public void clearsDataFromDiskWal() throws IOException {
         clearsDataFromDisk(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING);
     }

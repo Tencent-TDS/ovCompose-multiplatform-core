@@ -17,104 +17,179 @@
 package androidx.benchmark.macro
 
 import androidx.benchmark.perfetto.PerfettoHelper
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.test.filters.MediumTest
-import kotlin.test.assertEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 @MediumTest
 @OptIn(ExperimentalMetricApi::class)
 class TraceSectionMetricTest {
-    private val api24ColdStart = createTempFileFromAsset(
-        prefix = "api24_startup_cold",
-        suffix = ".perfetto-trace"
-    ).absolutePath
+    private val api24ColdStart =
+        createTempFileFromAsset(prefix = "api24_startup_cold", suffix = ".perfetto-trace")
+            .absolutePath
 
-    private val commasInSliceNames = createTempFileFromAsset(
-        prefix = "api24_commas_in_slice_names",
-        suffix = ".perfetto-trace"
-    ).absolutePath
+    private val api31ColdStart =
+        createTempFileFromAsset(prefix = "api31_startup_cold", suffix = ".perfetto-trace")
+            .absolutePath
 
-    @Test
-    fun activityThreadMain() = verifyFirstSum(
-        tracePath = api24ColdStart,
-        packageName = Packages.TEST,
-        sectionName = "ActivityThreadMain",
-        expectedFirstMs = 12.639
-    )
+    private val commasInSliceNames =
+        createTempFileFromAsset(prefix = "api24_commas_in_slice_names", suffix = ".perfetto-trace")
+            .absolutePath
 
-    @Test
-    fun activityStart() = verifyFirstSum(
-        tracePath = api24ColdStart,
-        packageName = Packages.TEST,
-        sectionName = "activityStart",
-        expectedFirstMs = 81.979
-    )
+    private val truncatedProcessName =
+        createTempFileFromAsset(
+                prefix = "api29_cold_startup_processname_truncated",
+                suffix = ".perfetto-trace"
+            )
+            .absolutePath
 
     @Test
-    fun startActivityAndWait() = verifyFirstSum(
-        tracePath = api24ColdStart,
-        packageName = Packages.TEST,
-        sectionName = "startActivityAndWait",
-        expectedFirstMs = 1_110.689
-    )
-
-    @Test
-    fun launching() = verifyFirstSum(
-        tracePath = api24ColdStart,
-        packageName = Packages.TEST,
-        sectionName = "launching: androidx.benchmark.integration.macrobenchmark.target",
-        expectedFirstMs = 269.947
-    )
-
-    @Test
-    fun section1_2() = verifyFirstSum(
-        tracePath = commasInSliceNames,
-        packageName = Packages.TARGET,
-        sectionName = "section1,2",
-        expectedFirstMs = 0.006615
-    )
-
-    @Test
-    fun multiSection() = verifyFirstSum(
-        tracePath = api24ColdStart,
-        packageName = Packages.TARGET,
-        sectionName = "inflate",
-        expectedFirstMs = 13.318, // first inflation
-        expectedSumMs = 43.128 // total inflation
-    )
-
-    companion object {
-        private val captureInfo = Metric.CaptureInfo(
-            targetPackageName = Packages.TEST,
-            testPackageName = Packages.TEST,
-            startupMode = StartupMode.COLD,
-            apiLevel = 24
+    fun activityThreadMain() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = Packages.TARGET,
+            sectionName = "ActivityThreadMain",
+            expectedFirstMs = 12.639
         )
 
+    @Test
+    fun activityStart() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = Packages.TARGET,
+            sectionName = "activityStart",
+            expectedFirstMs = 81.979
+        )
+
+    @Test
+    fun startActivityAndWait() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = "androidx.benchmark.integration.macrobenchmark.test",
+            sectionName = "startActivityAndWait",
+            expectedFirstMs = 1_110.689,
+        )
+
+    @Test
+    fun launching() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = Packages.TARGET,
+            sectionName = "launching: androidx.benchmark.integration.macrobenchmark.target",
+            expectedFirstMs = 269.947,
+            targetPackageOnly = false // slice from system_server
+        )
+
+    @Test
+    fun section1_2() =
+        verifyFirstSum(
+            tracePath = commasInSliceNames,
+            packageName = Packages.TARGET,
+            sectionName = "section1,2",
+            expectedFirstMs = 0.006615
+        )
+
+    @Test
+    fun multiSection_targetOnly() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = Packages.TARGET,
+            sectionName = "inflate",
+            expectedFirstMs = 4.949,
+            expectedMinMs = 4.588,
+            expectedMaxMs = 10.242,
+            expectedSumMs = 19.779,
+            expectedSumCount = 3,
+            targetPackageOnly = true,
+        )
+
+    @Test
+    fun multiSection_unfiltered() =
+        verifyFirstSum(
+            tracePath = api24ColdStart,
+            packageName = Packages.TARGET,
+            sectionName = "inflate",
+            expectedFirstMs = 13.318, // first inflation, in diff process
+            expectedMinMs = 0.836,
+            expectedMaxMs = 13.318,
+            expectedSumMs = 43.128,
+            expectedSumCount = 8,
+            targetPackageOnly = false,
+        )
+
+    @Test
+    fun filterNonTerminatingSlices() =
+        verifyFirstSum(
+            tracePath = api31ColdStart, // arbitrary trace which includes non-termination slices
+            packageName = Packages.TARGET, // ignored
+            sectionName = "wait",
+            expectedFirstMs = 0.00724,
+            expectedMinMs = 0.001615, // filtered out non-terminating -1 duration
+            expectedMaxMs = 357.761234,
+            expectedSumMs = 811.865025,
+            expectedSumCount = 226, // filtered out single case where dur = -1
+            targetPackageOnly = false,
+        )
+
+    @Test
+    fun truncatedProcessName() =
+        verifyFirstSum(
+            tracePath = truncatedProcessName, // trace with truncated target process name
+            packageName = Packages.TARGET,
+            sectionName = "Choreographer#doFrame",
+            expectedFirstMs = 30.819014,
+            expectedMinMs = 0.122031,
+            expectedMaxMs = 30.81901,
+            expectedSumMs = 31.983701,
+            expectedSumCount = 3,
+            targetPackageOnly = true,
+        )
+
+    companion object {
         private fun verifyMetric(
             tracePath: String,
             packageName: String,
             sectionName: String,
             mode: TraceSectionMetric.Mode,
-            expectedMs: Double
+            expectedMs: Double,
+            expectedCount: Int,
+            targetPackageOnly: Boolean
         ) {
             assumeTrue(PerfettoHelper.isAbiSupported())
 
-            val metric = TraceSectionMetric(sectionName, mode)
-            val expectedKey = sectionName + "Ms"
-            metric.configure(packageName = packageName)
+            val metric = TraceSectionMetric(sectionName, mode, "testLabel", targetPackageOnly)
 
-            val iterationResult = PerfettoTraceProcessor.runSingleSessionServer(tracePath) {
-                metric.getMetrics(
-                    captureInfo = captureInfo,
-                    session = this
+            // note that most args are incorrect here, but currently
+            // only targetPackageName matters in this context
+            val captureInfo =
+                Metric.CaptureInfo(
+                    targetPackageName = packageName,
+                    testPackageName = Packages.TEST,
+                    startupMode = StartupMode.COLD,
+                    apiLevel = 24
                 )
+            metric.configure(captureInfo)
+
+            val result =
+                TraceProcessor.runSingleSessionServer(tracePath) {
+                    metric.getMeasurements(captureInfo = captureInfo, traceSession = this)
+                }
+
+            var measurements =
+                if (mode != TraceSectionMetric.Mode.Count) {
+                    listOf(Metric.Measurement("testLabel${mode.name}Ms", expectedMs))
+                } else {
+                    emptyList()
+                }
+
+            if (mode == TraceSectionMetric.Mode.Sum || mode == TraceSectionMetric.Mode.Count) {
+                measurements =
+                    measurements +
+                        listOf(Metric.Measurement("testLabelCount", expectedCount.toDouble()))
             }
 
-            assertEquals(setOf(expectedKey), iterationResult.singleMetrics.keys)
-            assertEquals(expectedMs, iterationResult.singleMetrics[expectedKey]!!, 0.001)
+            assertEqualMeasurements(expected = measurements, observed = result, threshold = 0.001)
         }
 
         private fun verifyFirstSum(
@@ -122,21 +197,65 @@ class TraceSectionMetricTest {
             packageName: String,
             sectionName: String,
             expectedFirstMs: Double,
-            expectedSumMs: Double = expectedFirstMs // default implies only one matching section
+            expectedSumMs: Double = expectedFirstMs, // default implies only one matching section
+            expectedMinMs: Double = expectedFirstMs, // default implies only one matching section
+            expectedMaxMs: Double = expectedFirstMs, // default implies only one matching section
+            expectedSumCount: Int = 1,
+            targetPackageOnly: Boolean = true,
         ) {
             verifyMetric(
                 tracePath = tracePath,
                 packageName = packageName,
                 sectionName = sectionName,
                 mode = TraceSectionMetric.Mode.First,
-                expectedMs = expectedFirstMs
+                expectedMs = expectedFirstMs,
+                expectedCount = 1, // unused
+                targetPackageOnly = targetPackageOnly,
             )
             verifyMetric(
                 tracePath = tracePath,
                 packageName = packageName,
                 sectionName = sectionName,
                 mode = TraceSectionMetric.Mode.Sum,
-                expectedMs = expectedSumMs
+                expectedMs = expectedSumMs,
+                expectedCount = expectedSumCount,
+                targetPackageOnly = targetPackageOnly,
+            )
+            verifyMetric(
+                tracePath = tracePath,
+                packageName = packageName,
+                sectionName = sectionName,
+                mode = TraceSectionMetric.Mode.Min,
+                expectedMs = expectedMinMs,
+                expectedCount = 1, // unused
+                targetPackageOnly = targetPackageOnly,
+            )
+            verifyMetric(
+                tracePath = tracePath,
+                packageName = packageName,
+                sectionName = sectionName,
+                mode = TraceSectionMetric.Mode.Max,
+                expectedMs = expectedMaxMs,
+                expectedCount = 1, // unused
+                targetPackageOnly = targetPackageOnly,
+            )
+            verifyMetric(
+                tracePath = tracePath,
+                packageName = packageName,
+                sectionName = sectionName,
+                mode = TraceSectionMetric.Mode.Count,
+                expectedMs = 1.0, // unused
+                expectedCount = expectedSumCount,
+                targetPackageOnly = targetPackageOnly,
+            )
+            verifyMetric(
+                tracePath = tracePath,
+                packageName = packageName,
+                sectionName = sectionName,
+                mode = TraceSectionMetric.Mode.Average,
+                expectedMs = expectedSumMs / expectedSumCount,
+                expectedCount = 1, // unused
+                targetPackageOnly = targetPackageOnly,
             )
         }
     }

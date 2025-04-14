@@ -34,7 +34,6 @@ import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Build;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.appcompat.widget.AppCompatTextView;
 import androidx.core.content.res.FontResourcesParserCompat;
@@ -45,13 +44,13 @@ import androidx.core.provider.FontRequest;
 import androidx.core.provider.FontsContractCompat;
 import androidx.core.provider.MockFontProvider;
 import androidx.core.test.R;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.testutils.WeightStyleFont;
 
 import com.google.common.truth.Truth;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -147,8 +146,8 @@ public class TypefaceCompatTest {
         final FontRequest parsedRequest = entry.getRequest();
         final FontRequest request = new FontRequest(parsedRequest.getProviderAuthority(),
                 parsedRequest.getProviderPackage(), parsedRequest.getQuery(), SIGNATURE);
-        return new ProviderResourceEntry(request, entry.getFetchStrategy(), entry.getTimeout(),
-                entry.getSystemFontFamilyName());
+        return new ProviderResourceEntry(request, null /* fallbackRequest */,
+                entry.getFetchStrategy(), entry.getTimeout(), entry.getSystemFontFamilyName());
     }
 
     public static class FontCallback extends ResourcesCompat.FontCallback {
@@ -537,7 +536,6 @@ public class TypefaceCompatTest {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 18) // API 14-20 backport fails on 17
     public void testTypeFaceCompatCreateWithExactStyle_upright() {
         doTypefaceCreate(false);
     }
@@ -570,20 +568,11 @@ public class TypefaceCompatTest {
     }
 
     @Test
-    @SdkSuppress(maxSdkVersion = 16) // API 14-20 backport fails on 17
-    public void testTypeFaceCompatCreateWithExactStyle_upright_api14_to_16() {
-        doTypefaceCreate(false);
-    }
-
-
-    @Test
-    @SdkSuppress(minSdkVersion = 18) // API 14-20 backport is too flakey for CI
     public void testTypeFaceCompatCreateWithExactStyle_italic() {
         doTypefaceCreate(true);
     }
 
     @Test
-    @SdkSuppress(maxSdkVersion = 16) // API 14-20 backport is too flakey for CI
     public void testTypeFaceCompatCreateWithExactStyle_italic_api14_to_16() {
         doTypefaceCreate(true);
     }

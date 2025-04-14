@@ -39,13 +39,13 @@ import android.hardware.camera2.params.MeteringRectangle;
 import androidx.annotation.OptIn;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.camera2.internal.Camera2CameraControlImpl;
+import androidx.camera.camera2.internal.util.TestUtil;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
 import androidx.camera.core.internal.CameraUseCaseAdapter;
-import androidx.camera.testing.CameraUtil;
-import androidx.camera.testing.CameraXUtil;
+import androidx.camera.testing.impl.CameraUtil;
+import androidx.camera.testing.impl.CameraXUtil;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
@@ -82,7 +82,7 @@ public final class Camera2CameraControlDeviceTest {
     private Camera2CameraControlImpl mCamera2CameraControlImpl;
 
     @Rule
-    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTest(
+    public TestRule mUseCamera = CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
             new CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
     );
 
@@ -94,7 +94,8 @@ public final class Camera2CameraControlDeviceTest {
         mCameraSelector = new CameraSelector.Builder().requireLensFacing(
                 CameraSelector.LENS_FACING_BACK).build();
         mCamera = CameraUtil.createCameraUseCaseAdapter(mContext, mCameraSelector);
-        mCamera2CameraControlImpl = (Camera2CameraControlImpl) mCamera.getCameraControl();
+        mCamera2CameraControlImpl =
+                TestUtil.getCamera2CameraControlImpl(mCamera.getCameraControl());
         mCamera2CameraControl = mCamera2CameraControlImpl.getCamera2CameraControl();
         mMockCaptureCallback = mock(CameraCaptureSession.CaptureCallback.class);
     }
@@ -116,7 +117,7 @@ public final class Camera2CameraControlDeviceTest {
         CaptureRequestOptions.Builder builder = new CaptureRequestOptions.Builder()
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_CAPTURE_INTENT,
-                        CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL)
+                        CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW)
                 .setCaptureRequestOption(
                         CaptureRequest.COLOR_CORRECTION_MODE,
                         CameraMetadata.COLOR_CORRECTION_MODE_FAST);
@@ -124,7 +125,7 @@ public final class Camera2CameraControlDeviceTest {
 
         assertThat(mCamera2CameraControl.getCaptureRequestOptions().getCaptureRequestOption(
                 CaptureRequest.CONTROL_CAPTURE_INTENT, null)).isEqualTo(
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
         assertThat(mCamera2CameraControl.getCaptureRequestOptions().getCaptureRequestOption(
                 CaptureRequest.COLOR_CORRECTION_MODE, null)).isEqualTo(
                 CameraMetadata.COLOR_CORRECTION_MODE_FAST);
@@ -134,14 +135,14 @@ public final class Camera2CameraControlDeviceTest {
     public void canSubmitCaptureRequestOptions_beforeBinding() {
         ListenableFuture<Void> future = updateCamera2Option(
                 CaptureRequest.CONTROL_CAPTURE_INTENT,
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
         bindUseCase();
 
         assertFutureCompletes(future);
 
         verifyCaptureRequestParameter(mMockCaptureCallback,
                 CaptureRequest.CONTROL_CAPTURE_INTENT,
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
     }
 
     @Test
@@ -149,13 +150,37 @@ public final class Camera2CameraControlDeviceTest {
         bindUseCase();
         ListenableFuture<Void> future = updateCamera2Option(
                 CaptureRequest.CONTROL_CAPTURE_INTENT,
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
 
         assertFutureCompletes(future);
 
         verifyCaptureRequestParameter(mMockCaptureCallback,
                 CaptureRequest.CONTROL_CAPTURE_INTENT,
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
+    }
+
+    @Test
+    public void canSubmitMultipleCaptureRequestOptions() {
+        bindUseCase();
+        ListenableFuture<Void> future = updateCamera2Option(
+                CaptureRequest.CONTROL_CAPTURE_INTENT,
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
+
+        assertFutureCompletes(future);
+
+        verifyCaptureRequestParameter(mMockCaptureCallback,
+                CaptureRequest.CONTROL_CAPTURE_INTENT,
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
+
+        future = updateCamera2Option(
+                CaptureRequest.CONTROL_CAPTURE_INTENT,
+                CaptureRequest.CONTROL_CAPTURE_INTENT_CUSTOM);
+
+        assertFutureCompletes(future);
+
+        verifyCaptureRequestParameter(mMockCaptureCallback,
+                CaptureRequest.CONTROL_CAPTURE_INTENT,
+                CaptureRequest.CONTROL_CAPTURE_INTENT_CUSTOM);
     }
 
     @Test
@@ -164,7 +189,7 @@ public final class Camera2CameraControlDeviceTest {
         CaptureRequestOptions.Builder builder = new CaptureRequestOptions.Builder()
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_CAPTURE_INTENT,
-                        CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL)
+                        CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW)
                 .setCaptureRequestOption(CaptureRequest.COLOR_CORRECTION_MODE,
                         CaptureRequest.COLOR_CORRECTION_MODE_FAST);
 
@@ -181,7 +206,7 @@ public final class Camera2CameraControlDeviceTest {
 
         assertThat(mCamera2CameraControl.getCaptureRequestOptions().getCaptureRequestOption(
                 CaptureRequest.CONTROL_CAPTURE_INTENT, null)).isEqualTo(
-                CaptureRequest.CONTROL_CAPTURE_INTENT_MANUAL);
+                CaptureRequest.CONTROL_CAPTURE_INTENT_PREVIEW);
         assertThat(mCamera2CameraControl.getCaptureRequestOptions().getCaptureRequestOption(
                 CaptureRequest.COLOR_CORRECTION_MODE, null)).isEqualTo(null);
     }
@@ -267,7 +292,7 @@ public final class Camera2CameraControlDeviceTest {
 
     private Rect getZoom2XCropRegion() throws Exception {
         AtomicReference<String> cameraIdRef = new AtomicReference<>();
-        String cameraId = ((CameraInfoInternal) mCamera.getCameraInfo()).getCameraId();
+        String cameraId = TestUtil.getCamera2CameraInfoImpl(mCamera.getCameraInfo()).getCameraId();
         cameraIdRef.set(cameraId);
 
         CameraManager cameraManager =

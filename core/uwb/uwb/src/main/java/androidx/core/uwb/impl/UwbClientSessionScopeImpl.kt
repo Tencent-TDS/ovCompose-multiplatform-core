@@ -16,83 +16,134 @@
 
 package androidx.core.uwb.impl
 
-import android.util.Log
 import androidx.core.uwb.RangingCapabilities
 import androidx.core.uwb.RangingMeasurement
 import androidx.core.uwb.RangingParameters
-import androidx.core.uwb.RangingResult.RangingResultPosition
+import androidx.core.uwb.RangingResult.RangingResultInitialized
 import androidx.core.uwb.RangingResult.RangingResultPeerDisconnected
+import androidx.core.uwb.RangingResult.RangingResultPosition
 import androidx.core.uwb.UwbAddress
-import androidx.core.uwb.UwbControleeSessionScope
+import androidx.core.uwb.UwbClientSessionScope
+import androidx.core.uwb.helper.handleApiException
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.uwb.RangingPosition
 import com.google.android.gms.nearby.uwb.RangingSessionCallback
 import com.google.android.gms.nearby.uwb.UwbClient
 import com.google.android.gms.nearby.uwb.UwbComplexChannel
 import com.google.android.gms.nearby.uwb.UwbDevice
+import com.google.android.gms.nearby.uwb.UwbRangeDataNtfConfig
+import com.google.android.gms.nearby.uwb.UwbStatusCodes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import androidx.core.uwb.helper.handleApiException
-import kotlinx.coroutines.channels.awaitClose
 
-internal class UwbClientSessionScopeImpl(
+internal open class UwbClientSessionScopeImpl(
     private val uwbClient: UwbClient,
     override val rangingCapabilities: RangingCapabilities,
     override val localAddress: UwbAddress
-) : UwbControleeSessionScope {
+) : UwbClientSessionScope {
     companion object {
         private const val TAG = "UwbClientSessionScope"
     }
+
     private var sessionStarted = false
 
     override fun prepareSession(parameters: RangingParameters) = callbackFlow {
         if (sessionStarted) {
-            throw IllegalStateException("Ranging has already started. To initiate " +
-                "a new ranging session, create a new client session scope.")
+            throw IllegalStateException(
+                "Ranging has already started. To initiate " +
+                    "a new ranging session, create a new client session scope."
+            )
         }
 
-        val configId = when (parameters.uwbConfigType) {
-            RangingParameters.UWB_CONFIG_ID_1 ->
-                com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_1
-            RangingParameters.UWB_CONFIG_ID_3 ->
-                com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_3
-            else ->
-                throw IllegalArgumentException("The selected UWB Config Id is not a valid id.")
+        val configId =
+            when (parameters.uwbConfigType) {
+                RangingParameters.CONFIG_UNICAST_DS_TWR ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_1
+                RangingParameters.CONFIG_MULTICAST_DS_TWR ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_2
+                RangingParameters.CONFIG_UNICAST_DS_TWR_NO_AOA ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_3
+                RangingParameters.CONFIG_PROVISIONED_UNICAST_DS_TWR ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_4
+                RangingParameters.CONFIG_PROVISIONED_MULTICAST_DS_TWR ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_5
+                RangingParameters.CONFIG_PROVISIONED_UNICAST_DS_TWR_NO_AOA ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_6
+                RangingParameters.CONFIG_PROVISIONED_INDIVIDUAL_MULTICAST_DS_TWR ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_7
+                else ->
+                    throw IllegalArgumentException("The selected UWB Config Id is not a valid id.")
+            }
+        val updateRate =
+            when (parameters.updateRateType) {
+                RangingParameters.RANGING_UPDATE_RATE_AUTOMATIC ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.AUTOMATIC
+                RangingParameters.RANGING_UPDATE_RATE_FREQUENT ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.FREQUENT
+                RangingParameters.RANGING_UPDATE_RATE_INFREQUENT ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.INFREQUENT
+                else ->
+                    throw IllegalArgumentException(
+                        "The selected ranging update rate is not a valid" + " update rate."
+                    )
+            }
+        val parametersBuilder =
+            com.google.android.gms.nearby.uwb.RangingParameters.Builder()
+                .setSessionId(parameters.sessionId)
+                .setUwbConfigId(configId)
+                .setRangingUpdateRate(updateRate)
+                .setIsAoaDisabled(parameters.isAoaDisabled)
+                .setComplexChannel(
+                    parameters.complexChannel?.let {
+                        UwbComplexChannel.Builder()
+                            .setChannel(it.channel)
+                            .setPreambleIndex(it.preambleIndex)
+                            .build()
+                    }
+                )
+        if (parameters.sessionKeyInfo != null) {
+            parametersBuilder.setSessionKeyInfo(parameters.sessionKeyInfo)
         }
-        val updateRate = when (parameters.updateRateType) {
-            RangingParameters.RANGING_UPDATE_RATE_AUTOMATIC ->
-                com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.AUTOMATIC
-            RangingParameters.RANGING_UPDATE_RATE_FREQUENT ->
-                com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.FREQUENT
-            RangingParameters.RANGING_UPDATE_RATE_INFREQUENT ->
-                com.google.android.gms.nearby.uwb.RangingParameters.RangingUpdateRate.INFREQUENT
-            else ->
-                throw IllegalArgumentException("The selected ranging update rate is not a valid" +
-                    " update rate.")
+        if (
+            configId == com.google.android.gms.nearby.uwb.RangingParameters.UwbConfigId.CONFIG_ID_7
+        ) {
+            parametersBuilder.setSubSessionId(parameters.subSessionId)
+            parametersBuilder.setSubSessionKeyInfo(parameters.subSessionKeyInfo)
         }
-        val parametersBuilder = com.google.android.gms.nearby.uwb.RangingParameters.Builder()
-            .setSessionId(parameters.sessionId)
-            .setUwbConfigId(configId)
-            .setRangingUpdateRate(updateRate)
-            .setSessionKeyInfo(parameters.sessionKeyInfo)
-            .setUwbConfigId(parameters.uwbConfigType)
-            .setComplexChannel(
-                parameters.complexChannel?.let {
-                    UwbComplexChannel.Builder()
-                        .setChannel(it.channel)
-                        .setPreambleIndex(it.preambleIndex)
-                        .build()
-                })
+        val slotDuration =
+            when (parameters.slotDurationMillis) {
+                RangingParameters.RANGING_SLOT_DURATION_1_MILLIS ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.SlotDuration.DURATION_1_MS
+                RangingParameters.RANGING_SLOT_DURATION_2_MILLIS ->
+                    com.google.android.gms.nearby.uwb.RangingParameters.SlotDuration.DURATION_2_MS
+                else ->
+                    throw IllegalArgumentException(
+                        "The selected slot duration is not a valid" + " slot duration."
+                    )
+            }
+        parametersBuilder.setSlotDuration(slotDuration)
+        if (parameters.uwbRangeDataNtfConfig != null) {
+            val ntfConfig = UwbRangeDataNtfConfig.Builder()
+            ntfConfig.setRangeDataConfigType(parameters.uwbRangeDataNtfConfig.configType)
+            ntfConfig.setNtfProximityNear(parameters.uwbRangeDataNtfConfig.ntfProximityNearCm)
+            ntfConfig.setNtfProximityFar(parameters.uwbRangeDataNtfConfig.ntfProximityFarCm)
+            parametersBuilder.setUwbRangeDataNtfConfig(ntfConfig.build())
+        }
         for (peer in parameters.peerDevices) {
             parametersBuilder.addPeerDevice(UwbDevice.createForAddress(peer.address.address))
         }
         val callback =
             object : RangingSessionCallback {
                 override fun onRangingInitialized(device: UwbDevice) {
-                    Log.i(TAG, "Started UWB ranging.")
+                    trySend(
+                        RangingResultInitialized(
+                            androidx.core.uwb.UwbDevice(UwbAddress(device.address.address))
+                        )
+                    )
                 }
 
                 override fun onRangingResult(device: UwbDevice, position: RangingPosition) {
@@ -101,12 +152,8 @@ internal class UwbClientSessionScopeImpl(
                             androidx.core.uwb.UwbDevice(UwbAddress(device.address.address)),
                             androidx.core.uwb.RangingPosition(
                                 RangingMeasurement(position.distance.value),
-                                position.azimuth?.let {
-                                    RangingMeasurement(it.value)
-                                },
-                                position.elevation?.let {
-                                    RangingMeasurement(it.value)
-                                },
+                                position.azimuth?.let { RangingMeasurement(it.value) },
+                                position.elevation?.let { RangingMeasurement(it.value) },
                                 position.elapsedRealtimeNanos
                             )
                         )
@@ -136,6 +183,20 @@ internal class UwbClientSessionScopeImpl(
                 } catch (e: ApiException) {
                     handleApiException(e)
                 }
+            }
+        }
+    }
+
+    override suspend fun reconfigureRangeDataNtf(
+        configType: Int,
+        proximityNear: Int,
+        proximityFar: Int
+    ) {
+        try {
+            uwbClient.reconfigureRangeDataNtf(configType, proximityNear, proximityFar).await()
+        } catch (e: ApiException) {
+            if (e.statusCode == UwbStatusCodes.INVALID_API_CALL) {
+                throw IllegalStateException("Please check that the ranging is active.")
             }
         }
     }

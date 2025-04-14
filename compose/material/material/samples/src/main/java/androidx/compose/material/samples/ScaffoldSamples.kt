@@ -38,6 +38,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
+import androidx.compose.material.ScaffoldDefaults
 import androidx.compose.material.Snackbar
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
@@ -57,20 +58,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
-private val colors = listOf(
-    Color(0xFFffd7d7.toInt()),
-    Color(0xFFffe9d6.toInt()),
-    Color(0xFFfffbd0.toInt()),
-    Color(0xFFe3ffd9.toInt()),
-    Color(0xFFd0fff8.toInt())
-)
+private val colors =
+    listOf(
+        Color(0xFFffd7d7.toInt()),
+        Color(0xFFffe9d6.toInt()),
+        Color(0xFFfffbd0.toInt()),
+        Color(0xFFe3ffd9.toInt()),
+        Color(0xFFd0fff8.toInt())
+    )
 
 @Sampled
 @Composable
@@ -84,11 +86,7 @@ fun SimpleScaffoldWithTopBar() {
             TopAppBar(
                 title = { Text("Simple Scaffold Screen") },
                 navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            scope.launch { scaffoldState.drawerState.open() }
-                        }
-                    ) {
+                    IconButton(onClick = { scope.launch { scaffoldState.drawerState.open() } }) {
                         Icon(Icons.Filled.Menu, contentDescription = "Localized description")
                     }
                 }
@@ -101,15 +99,11 @@ fun SimpleScaffoldWithTopBar() {
                 onClick = { /* fab click handler */ }
             )
         },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         content = { innerPadding ->
             LazyColumn(contentPadding = innerPadding) {
                 items(count = 100) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(colors[it % colors.size])
-                    )
+                    Box(Modifier.fillMaxWidth().height(50.dp).background(colors[it % colors.size]))
                 }
             }
         }
@@ -133,13 +127,14 @@ fun ScaffoldWithBottomBarAndCutout() {
 
     // When progress is 0, there is no modification to the edges so we are just drawing a rectangle.
     // This allows for a smooth transition between cut corners and round corners.
-    val fabShape = if (progress < 0) {
-        CutCornerShape(abs(progress))
-    } else if (progress == roundEdgePercent.toInt()) {
-        CircleShape
-    } else {
-        RoundedCornerShape(progress)
-    }
+    val fabShape =
+        if (progress < 0) {
+            CutCornerShape(abs(progress))
+        } else if (progress == roundEdgePercent.toInt()) {
+            CircleShape
+        } else {
+            RoundedCornerShape(progress)
+        }
     // lambda to call to trigger shape animation
     val changeShape: () -> Unit = {
         val target = animatedProgress.targetValue
@@ -159,9 +154,7 @@ fun ScaffoldWithBottomBarAndCutout() {
         bottomBar = {
             BottomAppBar(cutoutShape = fabShape) {
                 IconButton(
-                    onClick = {
-                        coroutineScope.launch { scaffoldState.drawerState.open() }
-                    }
+                    onClick = { coroutineScope.launch { scaffoldState.drawerState.open() } }
                 ) {
                     Icon(Icons.Filled.Menu, contentDescription = "Localized description")
                 }
@@ -174,17 +167,13 @@ fun ScaffoldWithBottomBarAndCutout() {
                 shape = fabShape
             )
         },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         floatingActionButtonPosition = FabPosition.Center,
         isFloatingActionButtonDocked = true,
         content = { innerPadding ->
             LazyColumn(contentPadding = innerPadding) {
                 items(count = 100) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .background(colors[it % colors.size])
-                    )
+                    Box(Modifier.fillMaxWidth().height(50.dp).background(colors[it % colors.size]))
                 }
             }
         }
@@ -210,6 +199,7 @@ fun ScaffoldWithSimpleSnackbar() {
                 }
             )
         },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         content = { innerPadding ->
             Text(
                 text = "Body content",
@@ -247,6 +237,7 @@ fun ScaffoldWithCustomSnackbar() {
                 }
             )
         },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         content = { innerPadding ->
             Text(
                 text = "Custom Snackbar Demo",
@@ -266,10 +257,11 @@ fun ScaffoldWithCoroutinesSnackbar() {
     val channel = remember { Channel<Int>(Channel.Factory.CONFLATED) }
     LaunchedEffect(channel) {
         channel.receiveAsFlow().collect { index ->
-            val result = snackbarHostState.showSnackbar(
-                message = "Snackbar # $index",
-                actionLabel = "Action on $index"
-            )
+            val result =
+                snackbarHostState.showSnackbar(
+                    message = "Snackbar # $index",
+                    actionLabel = "Action on $index"
+                )
             when (result) {
                 SnackbarResult.ActionPerformed -> {
                     /* action has been performed */
@@ -293,6 +285,7 @@ fun ScaffoldWithCoroutinesSnackbar() {
                 }
             )
         },
+        contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
         content = { innerPadding ->
             Text(
                 "Snackbar demo",

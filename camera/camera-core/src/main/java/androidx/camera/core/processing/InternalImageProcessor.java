@@ -21,16 +21,15 @@ import static androidx.core.util.Preconditions.checkArgument;
 
 import static java.util.Objects.requireNonNull;
 
-import android.os.Build;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.CameraEffect;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProcessor;
+import androidx.camera.core.ProcessingException;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
+import androidx.core.util.Consumer;
 
-import java.util.concurrent.ExecutionException;
+import org.jspecify.annotations.NonNull;
+
 import java.util.concurrent.Executor;
 
 /**
@@ -40,40 +39,43 @@ import java.util.concurrent.Executor;
  * <p>This class wrap calls to {@link ImageProcessor} with the effect-provided {@link Executor}.
  * It also provides additional from Camera
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class InternalImageProcessor {
 
-    @NonNull
-    private final Executor mExecutor;
-    @NonNull
-    private final ImageProcessor mImageProcessor;
+    private final @NonNull Executor mExecutor;
+    private final @NonNull ImageProcessor mImageProcessor;
+    private final @NonNull Consumer<Throwable> mErrorListener;
 
     public InternalImageProcessor(@NonNull CameraEffect cameraEffect) {
         checkArgument(cameraEffect.getTargets() == CameraEffect.IMAGE_CAPTURE);
         mExecutor = cameraEffect.getExecutor();
         mImageProcessor = requireNonNull(cameraEffect.getImageProcessor());
+        mErrorListener = cameraEffect.getErrorListener();
     }
 
     /**
      * Forwards the call to {@link ImageProcessor#process} on the effect-provided executor.
      */
-    @NonNull
-    public ImageProcessor.Response safeProcess(@NonNull ImageProcessor.Request request)
+    public ImageProcessor.@NonNull Response safeProcess(ImageProcessor.@NonNull Request request)
             throws ImageCaptureException {
         try {
             return CallbackToFutureAdapter.getFuture(
                     (CallbackToFutureAdapter.Resolver<ImageProcessor.Response>) completer -> {
                         mExecutor.execute(() -> {
+                            ImageProcessor.Response response;
                             try {
-                                completer.set(mImageProcessor.process(request));
-                            } catch (Exception e) {
-                                // Catch all exceptions and forward it CameraX.
+                                response = mImageProcessor.process(request);
+                            } catch (ProcessingException e) {
+                                // Forward the exception to CameraEffect error listener.
+                                mErrorListener.accept(e);
+                                // Forward the exception to takePicture callback.
                                 completer.setException(e);
+                                return;
                             }
+                            completer.set(response);
                         });
                         return "InternalImageProcessor#process " + request.hashCode();
                     }).get();
-        } catch (ExecutionException | InterruptedException e) {
+        } catch (Exception e) {
             Throwable cause = e.getCause() != null ? e.getCause() : e;
             throw new ImageCaptureException(
                     ERROR_UNKNOWN, "Failed to invoke ImageProcessor.", cause);

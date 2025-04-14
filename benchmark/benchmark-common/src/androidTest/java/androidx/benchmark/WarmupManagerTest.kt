@@ -18,11 +18,11 @@ package androidx.benchmark
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.TimeUnit
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
@@ -102,6 +102,5 @@ private fun generateFakeResults(warmupNeededNs: Long, idealDurationNs: Long): Se
     }
 
     // warmup until warmupNeededNs, then just return idealDurationNs
-    return generateSequence(1) { it + 1 }
-        .map { if (it < list.size) list[it] else idealDurationNs }
+    return generateSequence(1) { it + 1 }.map { if (it < list.size) list[it] else idealDurationNs }
 }

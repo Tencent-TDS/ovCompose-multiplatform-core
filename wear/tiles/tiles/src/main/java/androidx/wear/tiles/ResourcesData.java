@@ -16,14 +16,14 @@
 
 package androidx.wear.tiles;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Holder for Tiles' Resources class, to be parceled and transferred to Wear.
  *
  * <p>All this does is to serialize Resources as a protobuf and transmit it.
- *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public final class ResourcesData extends ProtoParcelable {
@@ -32,7 +32,7 @@ public final class ResourcesData extends ProtoParcelable {
     public static final Creator<ResourcesData> CREATOR =
             newCreator(ResourcesData.class, ResourcesData::new);
 
-    public ResourcesData(@NonNull byte[] payload, int version) {
+    public ResourcesData(byte @NonNull [] payload, int version) {
         super(payload, version);
     }
 }

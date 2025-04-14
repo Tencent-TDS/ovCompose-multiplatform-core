@@ -22,11 +22,12 @@ import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.CarAppMetadataHolderService;
 import androidx.car.app.CarContext;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Manages 'for result' app workflow.
@@ -34,7 +35,6 @@ import androidx.car.app.CarContext;
  * <p>This is used internally by the library and its functionality is exposed through
  * {@link androidx.car.app.CarContext}
  *
- * @hide
  */
 @MainThread
 @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -53,19 +53,16 @@ public interface ResultManager extends Manager {
      *
      * @see CarContext#getCallingComponent() for more details
      */
-    @Nullable
-    ComponentName getCallingComponent();
+    @Nullable ComponentName getCallingComponent();
 
     /**
      * Returns a platform-dependant instance of {@link ResultManager}.
      *
      * @throws IllegalStateException if none of the supported classes are found or if a supported
      *                               class was found but the constructor was mismatched
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    static ResultManager create(@NonNull CarContext context) throws IllegalStateException {
+    static @NonNull ResultManager create(@NonNull CarContext context) throws IllegalStateException {
         try {
             ServiceInfo serviceInfo = CarAppMetadataHolderService.getServiceInfo(context);
             String managerClassName = null;

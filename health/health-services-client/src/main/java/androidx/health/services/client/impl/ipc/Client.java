@@ -20,7 +20,6 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.health.services.client.impl.ipc.internal.BaseQueueOperation;
@@ -36,6 +35,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Client for establishing connection to a cross process service.
  *
@@ -43,7 +44,6 @@ import com.google.common.util.concurrent.SettableFuture;
  * interface. For user instruction see: go/wear-dd-wcs-sdk
  *
  * @param <S> type of the service interface
- * @hide
  */
 @RestrictTo(Scope.LIBRARY)
 public abstract class Client<S extends IInterface> {
@@ -258,8 +258,8 @@ public abstract class Client<S extends IInterface> {
         return settableFuture;
     }
 
-    @NonNull
-    protected Exception getApiVersionCheckFailureException(int currentVersion, int minApiVersion) {
+    protected @NonNull Exception getApiVersionCheckFailureException(int currentVersion,
+            int minApiVersion) {
         return new ApiVersionException(currentVersion, minApiVersion);
     }
 

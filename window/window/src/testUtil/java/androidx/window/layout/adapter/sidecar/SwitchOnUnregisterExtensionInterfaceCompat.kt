@@ -20,44 +20,42 @@ import android.graphics.Rect
 import androidx.annotation.GuardedBy
 import androidx.window.core.Bounds
 import androidx.window.layout.FoldingFeature
-import androidx.window.layout.adapter.sidecar.ExtensionInterfaceCompat.ExtensionCallbackInterface
 import androidx.window.layout.FoldingFeature.State
 import androidx.window.layout.FoldingFeature.State.Companion.FLAT
 import androidx.window.layout.FoldingFeature.State.Companion.HALF_OPENED
 import androidx.window.layout.HardwareFoldingFeature
 import androidx.window.layout.HardwareFoldingFeature.Type.Companion.HINGE
 import androidx.window.layout.WindowLayoutInfo
-import java.util.concurrent.locks.Lock
+import androidx.window.layout.adapter.sidecar.ExtensionInterfaceCompat.ExtensionCallbackInterface
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 /**
- * An implementation of [ExtensionInterfaceCompat] that switches the state when a consumer
- * is unregistered. Useful for testing consumers when they go through a cycle of register then
+ * An implementation of [ExtensionInterfaceCompat] that switches the state when a consumer is
+ * unregistered. Useful for testing consumers when they go through a cycle of register then
  * unregister then register again.
  */
 internal class SwitchOnUnregisterExtensionInterfaceCompat : ExtensionInterfaceCompat {
-    private val lock: Lock = ReentrantLock()
+    private val globalLock = ReentrantLock()
     private val foldBounds = Rect(0, 100, 200, 100)
-    @GuardedBy("mLock")
+    @GuardedBy("globalLock")
     private var callback: ExtensionCallbackInterface = EmptyExtensionCallbackInterface()
-    @GuardedBy("mLock")
-    private var state = FLAT
+    @GuardedBy("globalLock") private var state = FLAT
 
     override fun validateExtensionInterface(): Boolean {
         return true
     }
 
     override fun setExtensionCallback(extensionCallback: ExtensionCallbackInterface) {
-        lock.withLock { callback = extensionCallback }
+        globalLock.withLock { callback = extensionCallback }
     }
 
     override fun onWindowLayoutChangeListenerAdded(activity: Activity) {
-        lock.withLock { callback.onWindowLayoutChanged(activity, currentWindowLayoutInfo()) }
+        globalLock.withLock { callback.onWindowLayoutChanged(activity, currentWindowLayoutInfo()) }
     }
 
     override fun onWindowLayoutChangeListenerRemoved(activity: Activity) {
-        lock.withLock { state = toggleState(state) }
+        globalLock.withLock { state = toggleState(state) }
     }
 
     fun currentWindowLayoutInfo(): WindowLayoutInfo {

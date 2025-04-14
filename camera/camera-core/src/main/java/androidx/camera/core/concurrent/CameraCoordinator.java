@@ -20,12 +20,13 @@ package androidx.camera.core.concurrent;
 import android.hardware.camera2.CameraManager;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.impl.CameraStateRegistry;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -40,7 +41,6 @@ import java.util.List;
  *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@RequiresApi(21)
 public interface CameraCoordinator {
 
     int CAMERA_OPERATING_MODE_UNSPECIFIED = 0;
@@ -66,23 +66,21 @@ public interface CameraCoordinator {
      *
      * @return List of list of {@link CameraSelector}.
      */
-    @NonNull
-    List<List<CameraSelector>> getConcurrentCameraSelectors();
+    @NonNull List<List<CameraSelector>> getConcurrentCameraSelectors();
 
     /**
-     * Gets active concurrent camera selectors.
+     * Gets active concurrent camera infos.
      *
-     * @return list of active concurrent camera selectors.
+     * @return list of active concurrent camera infos.
      */
-    @NonNull
-    List<CameraSelector> getActiveConcurrentCameraSelectors();
+    @NonNull List<CameraInfo> getActiveConcurrentCameraInfos();
 
     /**
-     * Sets active concurrent camera selectors.
+     * Sets active concurrent camera infos.
      *
-     * @param cameraSelectors list of active concurrent camera selectors.
+     * @param cameraInfos list of active concurrent camera infos.
      */
-    void setActiveConcurrentCameraSelectors(@NonNull List<CameraSelector> cameraSelectors);
+    void setActiveConcurrentCameraInfos(@NonNull List<CameraInfo> cameraInfos);
 
     /**
      * Returns paired camera id in concurrent mode.
@@ -95,8 +93,7 @@ public interface CameraCoordinator {
      * @param cameraId camera id.
      * @return The paired camera id if exists or null if paired camera not exists.
      */
-    @Nullable
-    String getPairedConcurrentCameraId(@NonNull String cameraId);
+    @Nullable String getPairedConcurrentCameraId(@NonNull String cameraId);
 
     /**
      * Returns camera operating mode.
@@ -127,6 +124,11 @@ public interface CameraCoordinator {
      * @param listener {@link ConcurrentCameraModeListener}.
      */
     void removeListener(@NonNull ConcurrentCameraModeListener listener);
+
+    /**
+     * Clean up all the resources when CameraX shutdown.
+     */
+    void shutdown();
 
     /**
      * Interface for concurrent camera mode update.

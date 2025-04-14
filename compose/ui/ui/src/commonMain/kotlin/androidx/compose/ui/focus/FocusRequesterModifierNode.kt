@@ -16,35 +16,31 @@
 
 package androidx.compose.ui.focus
 
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection.Companion.Enter
+import androidx.compose.ui.layout.PinnableContainer.PinnedHandle
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.Nodes
-import androidx.compose.ui.node.visitChildren
+import androidx.compose.ui.node.visitSelfAndChildren
 
 /**
- * Implement this interface to create a modifier node that can be used to request changes in
- * the focus state of a [FocusTargetModifierNode] down the hierarchy.
+ * Implement this interface to create a modifier node that can be used to request changes in the
+ * focus state of a [FocusTargetNode] down the hierarchy.
  */
 interface FocusRequesterModifierNode : DelegatableNode
 
 /**
- * Use this function to request focus. If the system grants focus to a component associated
- * with this [FocusRequester], its [onFocusChanged] modifiers will receive a [FocusState] object
- * where [FocusState.isFocused] is true.
+ * Use this function to request focus. If the system grants focus to a component associated with
+ * this [FocusRequester], its [onFocusChanged] modifiers will receive a [FocusState] object where
+ * [FocusState.isFocused] is true.
  *
  * @sample androidx.compose.ui.samples.RequestFocusSample
  */
-@OptIn(ExperimentalComposeUiApi::class)
 fun FocusRequesterModifierNode.requestFocus(): Boolean {
-    visitChildren(Nodes.FocusTarget) { focusTarget ->
-        val focusProperties = focusTarget.fetchFocusProperties()
-        return if (focusProperties.canFocus) {
+    visitSelfAndChildren(Nodes.FocusTarget) { focusTarget ->
+        return if (focusTarget.fetchFocusProperties().canFocus) {
             focusTarget.requestFocus()
         } else {
-            focusTarget.findChildCorrespondingToFocusEnter(Enter) {
-                it.requestFocus()
-            }
+            focusTarget.findChildCorrespondingToFocusEnter(Enter) { it.requestFocus() }
         }
     }
     return false
@@ -53,20 +49,18 @@ fun FocusRequesterModifierNode.requestFocus(): Boolean {
 /**
  * Deny requests to clear focus.
  *
- * Use this function to send a request to capture focus. If a component captures focus,
- * it will send a [FocusState] object to its associated [onFocusChanged]
- * modifiers where [FocusState.isCaptured]() == true.
+ * Use this function to send a request to capture focus. If a component captures focus, it will send
+ * a [FocusState] object to its associated [onFocusChanged] modifiers where
+ * [FocusState.isCaptured]() == true.
  *
- * When a component is in a Captured state, all focus requests from other components are
- * declined.
+ * When a component is in a Captured state, all focus requests from other components are declined.
  *
- * @return true if the focus was successfully captured by one of the
- * [focus][focusTarget] modifiers associated with this [FocusRequester]. False otherwise.
- *
+ * @return true if the focus was successfully captured by one of the [focus][focusTarget] modifiers
+ *   associated with this [FocusRequester]. False otherwise.
  * @sample androidx.compose.ui.samples.CaptureFocusSample
  */
 fun FocusRequesterModifierNode.captureFocus(): Boolean {
-    visitChildren(Nodes.FocusTarget) {
+    visitSelfAndChildren(Nodes.FocusTarget) {
         if (it.captureFocus()) {
             return true
         }
@@ -75,22 +69,57 @@ fun FocusRequesterModifierNode.captureFocus(): Boolean {
 }
 
 /**
- * Use this function to send a request to free focus when one of the components associated
- * with this [FocusRequester] is in a Captured state. If a component frees focus,
- * it will send a [FocusState] object to its associated [onFocusChanged]
- * modifiers where [FocusState.isCaptured]() == false.
+ * Use this function to send a request to free focus when one of the components associated with this
+ * [FocusRequester] is in a Captured state. If a component frees focus, it will send a [FocusState]
+ * object to its associated [onFocusChanged] modifiers where [FocusState.isCaptured]() == false.
  *
- * When a component is in a Captured state, all focus requests from other components are
- * declined.
- *.
- * @return true if the captured focus was successfully released. i.e. At the end of this
- * operation, one of the components associated with this [focusRequester] freed focus.
+ * When a component is in a Captured state, all focus requests from other components are declined. .
  *
+ * @return true if the captured focus was successfully released. i.e. At the end of this operation,
+ *   one of the components associated with this [focusRequester] freed focus.
  * @sample androidx.compose.ui.samples.CaptureFocusSample
  */
 fun FocusRequesterModifierNode.freeFocus(): Boolean {
-    visitChildren(Nodes.FocusTarget) {
-        if (it.freeFocus()) return true
+    visitSelfAndChildren(Nodes.FocusTarget) { if (it.freeFocus()) return true }
+    return false
+}
+
+/**
+ * Use this function to request the focus target to save a reference to the currently focused child
+ * in its saved instance state. After calling this, focus can be restored to the saved child by
+ * making a call to [restoreFocusedChild].
+ *
+ * @return true if the focus target associated with this node has a focused child and we
+ *   successfully saved a reference to it.
+ */
+fun FocusRequesterModifierNode.saveFocusedChild(): Boolean {
+    visitSelfAndChildren(Nodes.FocusTarget) {
+        if (it.saveFocusedChild()) {
+            return true
+        }
     }
     return false
+}
+
+/**
+ * Use this function to restore focus to one of the children of the node pointed to by this
+ * [FocusRequester]. This restores focus to a previously focused child that was saved by using
+ * [saveFocusedChild].
+ *
+ * @return true if we successfully restored focus to one of the children of the [focusTarget]
+ *   associated with this node.
+ */
+fun FocusRequesterModifierNode.restoreFocusedChild(): Boolean {
+    visitSelfAndChildren(Nodes.FocusTarget) { if (it.restoreFocusedChild()) return true }
+    return false
+}
+
+// TODO: Consider making this public, or make findActiveFocusTargetModifierNode public.
+internal fun FocusRequesterModifierNode.pinFocusedChild(): PinnedHandle? {
+    visitSelfAndChildren(Nodes.FocusTarget) {
+        it.pinFocusedChild()?.let {
+            return it
+        }
+    }
+    return null
 }

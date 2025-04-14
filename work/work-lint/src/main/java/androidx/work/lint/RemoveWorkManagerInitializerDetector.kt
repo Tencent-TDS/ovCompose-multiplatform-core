@@ -43,33 +43,33 @@ class RemoveWorkManagerInitializerDetector : Detector(), SourceCodeScanner, XmlS
     private var removedDefaultInitializer = false
     private var location: Location? = null
 
-    // The `Application` subclass.
-    private var javaContext: JavaContext? = null
-    private var klass: UClass? = null
-
     private var applicationImplementsConfigurationProvider = false
 
     companion object {
 
-        private const val DESCRIPTION = "Remove androidx.work.WorkManagerInitializer from " +
-            "your AndroidManifest.xml when using on-demand initialization."
+        private const val DESCRIPTION =
+            "Remove androidx.work.WorkManagerInitializer from " +
+                "your AndroidManifest.xml when using on-demand initialization."
 
-        val ISSUE = Issue.create(
-            id = "RemoveWorkManagerInitializer",
-            briefDescription = DESCRIPTION,
-            explanation = """
+        val ISSUE =
+            Issue.create(
+                id = "RemoveWorkManagerInitializer",
+                briefDescription = DESCRIPTION,
+                explanation =
+                    """
                 If an `android.app.Application` implements `androidx.work.Configuration.Provider`,
                 the default `androidx.startup.InitializationProvider` needs to be removed from the
                 AndroidManifest.xml file.
             """,
-            androidSpecific = true,
-            category = Category.CORRECTNESS,
-            severity = Severity.FATAL,
-            implementation = Implementation(
-                RemoveWorkManagerInitializerDetector::class.java,
-                EnumSet.of(Scope.JAVA_FILE, Scope.MANIFEST)
+                androidSpecific = true,
+                category = Category.CORRECTNESS,
+                severity = Severity.FATAL,
+                implementation =
+                    Implementation(
+                        RemoveWorkManagerInitializerDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE, Scope.MANIFEST)
+                    )
             )
-        )
 
         private const val ATTR_NODE = "node"
 
@@ -90,18 +90,20 @@ class RemoveWorkManagerInitializerDetector : Detector(), SourceCodeScanner, XmlS
 
     override fun getApplicableElements() = listOf("application")
 
-    override fun applicableSuperClasses() = listOf(
-        "android.app.Application",
-        "androidx.work.Configuration.Provider"
-    )
+    override fun applicableSuperClasses() = listOf("android.app.Application")
 
     override fun visitElement(context: XmlContext, element: Element) {
+        // Use the application tag as the location, unless we find something better.
+        if (location == null) {
+            location = context.getLocation(element)
+        }
         // Check providers
         val providers = element.getElementsByTagName("provider")
-        val provider = providers.find { node ->
-            val name = node.attributes.getNamedItemNS(ANDROID_URI, ATTR_NAME)?.textContent
-            name == "androidx.startup.InitializationProvider"
-        }
+        val provider =
+            providers.find { node ->
+                val name = node.attributes.getNamedItemNS(ANDROID_URI, ATTR_NAME)?.textContent
+                name == "androidx.startup.InitializationProvider"
+            }
         if (provider != null) {
             location = context.getLocation(provider)
             val remove = provider.attributes.getNamedItemNS(TOOLS_URI, ATTR_NODE)
@@ -111,10 +113,11 @@ class RemoveWorkManagerInitializerDetector : Detector(), SourceCodeScanner, XmlS
         }
         // Check metadata
         val metadataElements = element.getElementsByTagName("meta-data")
-        val metadata = metadataElements.find { node ->
-            val name = node.attributes.getNamedItemNS(ANDROID_URI, ATTR_NAME)?.textContent
-            name == "androidx.work.WorkManagerInitializer"
-        }
+        val metadata =
+            metadataElements.find { node ->
+                val name = node.attributes.getNamedItemNS(ANDROID_URI, ATTR_NAME)?.textContent
+                name == "androidx.work.WorkManagerInitializer"
+            }
         if (metadata != null && !removedDefaultInitializer) {
             location = context.getLocation(metadata)
             val remove = metadata.attributes.getNamedItemNS(TOOLS_URI, ATTR_NODE)
@@ -125,40 +128,38 @@ class RemoveWorkManagerInitializerDetector : Detector(), SourceCodeScanner, XmlS
     }
 
     override fun visitClass(context: JavaContext, declaration: UClass) {
-        javaContext = context
-        if (context.evaluator.inheritsFrom(
+        if (
+            !context.evaluator.inheritsFrom(declaration.javaPsi, "android.app.Application", false)
+        ) {
+            return
+        }
+
+        // Ignore abstract classes.
+        if (context.evaluator.isAbstract(declaration)) {
+            return
+        }
+
+        // Allow suppression on the class itself.
+        if (context.driver.isSuppressed(context, ISSUE, declaration.javaPsi)) {
+            return
+        }
+
+        if (
+            context.evaluator.implementsInterface(
                 declaration.javaPsi,
-                "android.app.Application",
+                "androidx.work.Configuration.Provider",
                 false
             )
         ) {
-            klass = declaration
-            if (context.evaluator.implementsInterface(
-                    declaration.javaPsi,
-                    "androidx.work.Configuration.Provider",
-                    false
-                )
-            ) {
-                applicationImplementsConfigurationProvider = true
-            }
+            applicationImplementsConfigurationProvider = true
         }
     }
 
     override fun afterCheckRootProject(context: Context) {
-        val location = location ?: Location.create(context.file)
-        val javaKlass = klass
-        val isSuppressed = if (javaContext != null && javaKlass != null) {
-            context.driver.isSuppressed(javaContext, ISSUE, javaKlass.javaPsi)
-        } else {
-            false
-        }
+        val location = location ?: return
         if (applicationImplementsConfigurationProvider) {
-            if (!removedDefaultInitializer && !isSuppressed) {
-                context.report(
-                    issue = ISSUE,
-                    location = location,
-                    message = DESCRIPTION
-                )
+            if (!removedDefaultInitializer) {
+                context.report(issue = ISSUE, location = location, message = DESCRIPTION)
             }
         }
     }

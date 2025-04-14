@@ -16,14 +16,11 @@
 
 package androidx.camera.core.streamsharing;
 
+import static androidx.camera.core.impl.UseCaseConfig.OPTION_CAPTURE_TYPE;
 import static androidx.camera.core.internal.TargetConfig.OPTION_TARGET_CLASS;
 import static androidx.camera.core.internal.TargetConfig.OPTION_TARGET_NAME;
 
-import android.os.Build;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.camera.core.CameraSelector;
+import androidx.annotation.RestrictTo;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.impl.CaptureConfig;
 import androidx.camera.core.impl.MutableConfig;
@@ -31,7 +28,10 @@ import androidx.camera.core.impl.MutableOptionsBundle;
 import androidx.camera.core.impl.OptionsBundle;
 import androidx.camera.core.impl.SessionConfig;
 import androidx.camera.core.impl.UseCaseConfig;
+import androidx.camera.core.impl.UseCaseConfigFactory;
 import androidx.camera.core.internal.TargetConfig;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.UUID;
 
@@ -42,7 +42,6 @@ import java.util.UUID;
  * constructor directly. This class exists because the {@link UseCase#getUseCaseConfigBuilder}
  * method requires a builder for each {@link UseCase}.
  */
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 class StreamSharingBuilder implements
         UseCaseConfig.Builder<StreamSharing, StreamSharingConfig, StreamSharingBuilder> {
 
@@ -66,80 +65,66 @@ class StreamSharingBuilder implements
                             + ": "
                             + oldConfigClass);
         }
+        setCaptureType(UseCaseConfigFactory.CaptureType.STREAM_SHARING);
         setTargetClass(StreamSharing.class);
     }
 
-    @NonNull
     @Override
-    public MutableConfig getMutableConfig() {
+    public @NonNull MutableConfig getMutableConfig() {
         return mMutableConfig;
     }
 
-    @NonNull
     @Override
-    public StreamSharing build() {
+    public @NonNull StreamSharing build() {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setDefaultSessionConfig(@NonNull SessionConfig sessionConfig) {
+    public @NonNull StreamSharingBuilder setDefaultSessionConfig(
+            @NonNull SessionConfig sessionConfig) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setDefaultCaptureConfig(@NonNull CaptureConfig captureConfig) {
+    public @NonNull StreamSharingBuilder setDefaultCaptureConfig(
+            @NonNull CaptureConfig captureConfig) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setSessionOptionUnpacker(
-            @NonNull SessionConfig.OptionUnpacker optionUnpacker) {
+    public @NonNull StreamSharingBuilder setSessionOptionUnpacker(
+            SessionConfig.@NonNull OptionUnpacker optionUnpacker) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setCaptureOptionUnpacker(
-            @NonNull CaptureConfig.OptionUnpacker optionUnpacker) {
+    public @NonNull StreamSharingBuilder setCaptureOptionUnpacker(
+            CaptureConfig.@NonNull OptionUnpacker optionUnpacker) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setSurfaceOccupancyPriority(int priority) {
+    public @NonNull StreamSharingBuilder setSurfaceOccupancyPriority(int priority) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setCameraSelector(@NonNull CameraSelector cameraSelector) {
+    public @NonNull StreamSharingBuilder setZslDisabled(boolean disabled) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setZslDisabled(boolean disabled) {
+    public @NonNull StreamSharingBuilder setHighResolutionDisabled(boolean disabled) {
         throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setHighResolutionDisabled(boolean disabled) {
-        throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
-    }
-
-    @NonNull
-    @Override
-    public StreamSharingConfig getUseCaseConfig() {
+    public @NonNull StreamSharingConfig getUseCaseConfig() {
         return new StreamSharingConfig(OptionsBundle.from(mMutableConfig));
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setTargetClass(@NonNull Class<StreamSharing> targetClass) {
+    public @NonNull StreamSharingBuilder setTargetClass(@NonNull Class<StreamSharing> targetClass) {
         getMutableConfig().insertOption(OPTION_TARGET_CLASS, targetClass);
         // If no name is set yet, then generate a unique name
         if (null == getMutableConfig().retrieveOption(OPTION_TARGET_NAME, null)) {
@@ -149,17 +134,17 @@ class StreamSharingBuilder implements
         return this;
     }
 
-    @NonNull
     @Override
-    public StreamSharingBuilder setTargetName(@NonNull String targetName) {
+    public @NonNull StreamSharingBuilder setTargetName(@NonNull String targetName) {
         getMutableConfig().insertOption(OPTION_TARGET_NAME, targetName);
         return this;
     }
 
-    @NonNull
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @Override
-    public StreamSharingBuilder setUseCaseEventCallback(
-            @NonNull UseCase.EventCallback eventCallback) {
-        throw new UnsupportedOperationException(UNSUPPORTED_MESSAGE);
+    public @NonNull StreamSharingBuilder setCaptureType(
+            UseCaseConfigFactory.@NonNull CaptureType captureType) {
+        getMutableConfig().insertOption(OPTION_CAPTURE_TYPE, captureType);
+        return this;
     }
 }

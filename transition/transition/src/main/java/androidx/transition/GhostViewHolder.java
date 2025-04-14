@@ -23,17 +23,17 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 
 @SuppressLint("ViewConstructor")
 class GhostViewHolder extends FrameLayout {
 
-    @NonNull
-    private ViewGroup mParent;
+    private @NonNull ViewGroup mParent;
     private boolean mAttached;
 
     GhostViewHolder(ViewGroup parent) {
@@ -41,7 +41,7 @@ class GhostViewHolder extends FrameLayout {
         setClipChildren(false);
         mParent = parent;
         mParent.setTag(R.id.ghost_view_holder, this);
-        ViewGroupUtils.getOverlay(mParent).add(this);
+        ViewCompat.addOverlayView(mParent, this);
         mAttached = true;
     }
 
@@ -62,7 +62,7 @@ class GhostViewHolder extends FrameLayout {
         if ((getChildCount() == 1 && getChildAt(0) == child)
                 || getChildCount() == 0) {
             mParent.setTag(R.id.ghost_view_holder, null);
-            ViewGroupUtils.getOverlay(mParent).remove(this);
+            mParent.getOverlay().remove(this);
             mAttached = false;
         }
     }
@@ -77,8 +77,8 @@ class GhostViewHolder extends FrameLayout {
         }
         // we can't reuse the overlay object as this method can return another object after
         // calling remove as it was cleaned up because of no overlay view (in backport impl.)
-        ViewGroupUtils.getOverlay(mParent).remove(this);
-        ViewGroupUtils.getOverlay(mParent).add(this);
+        mParent.getOverlay().remove(this);
+        mParent.getOverlay().add(this);
     }
 
 
@@ -205,7 +205,6 @@ class GhostViewHolder extends FrameLayout {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static float getZ(View view) {
             return view.getZ();
         }

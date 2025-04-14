@@ -37,18 +37,34 @@ class WorkInfoTest {
     @Test
     fun testEqualityWithConstraints() {
         val id = UUID.randomUUID()
-        val info1 = WorkInfo(
-            id = id,
-            state = RUNNING,
-            tags = setOf("a"),
-            constraints = Constraints(requiredNetworkType = NetworkType.CONNECTED)
-        )
-        val info2 = WorkInfo(
-            id = id,
-            state = RUNNING,
-            tags = setOf("a"),
-            constraints = Constraints(requiredNetworkType = NetworkType.NOT_ROAMING)
-        )
+        val info1 =
+            WorkInfo(
+                id = id,
+                state = RUNNING,
+                tags = setOf("a"),
+                constraints = Constraints(requiredNetworkType = NetworkType.CONNECTED)
+            )
+        val info2 =
+            WorkInfo(
+                id = id,
+                state = RUNNING,
+                tags = setOf("a"),
+                constraints = Constraints(requiredNetworkType = NetworkType.NOT_ROAMING)
+            )
+        assertThat(info1 == info2).isFalse()
+    }
+
+    @Test
+    fun testEqualityWithStopReason() {
+        val id = UUID.randomUUID()
+        val info1 = WorkInfo(id = id, state = RUNNING, tags = setOf("a"), generation = 1)
+        val info2 =
+            WorkInfo(
+                id = id,
+                state = RUNNING,
+                tags = setOf("a"),
+                stopReason = WorkInfo.STOP_REASON_UNKNOWN
+            )
         assertThat(info1 == info2).isFalse()
     }
 }

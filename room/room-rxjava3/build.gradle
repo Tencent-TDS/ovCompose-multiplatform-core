@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-import androidx.build.Publish
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
-    id("com.google.devtools.ksp")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
@@ -28,24 +35,26 @@ dependencies {
     api(project(":room:room-runtime"))
     api(libs.rxjava3)
 
-    implementation("androidx.arch.core:core-runtime:2.0.1")
+    implementation("androidx.arch.core:core-runtime:2.2.0")
     implementation(libs.kotlinStdlib)
+    implementation(libs.kotlinCoroutinesRx3)
 
-    testImplementation(libs.truth)
+    testImplementation(project(":kruth:kruth"))
     testImplementation(libs.kotlinTest)
     testImplementation(libs.mockitoCore4)
     testImplementation(libs.mockitoKotlin4)
-    testImplementation("androidx.arch.core:core-testing:2.0.1")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("androidx.lifecycle:lifecycle-livedata:2.0.0") // for mocking invalidation tracker
 }
 
 androidx {
-    name = "Android Room RXJava3"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    name = "Room RXJava3"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Room RXJava3"
+    legacyDisableKotlinStrictApiMode = true
 }
 
 android {
-    namespace "androidx.room.rxjava3"
+    namespace = "androidx.room.rxjava3"
 }

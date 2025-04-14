@@ -33,11 +33,11 @@ import androidx.wear.compose.foundation.CurvedTextStyle
 import androidx.wear.compose.foundation.curvedColumn
 import androidx.wear.compose.foundation.curvedRow
 import androidx.wear.compose.foundation.padding
-import androidx.wear.compose.material.curvedText
 import androidx.wear.compose.material.LocalContentAlpha
 import androidx.wear.compose.material.LocalContentColor
 import androidx.wear.compose.material.LocalTextStyle
 import androidx.wear.compose.material.ProvideTextStyle
+import androidx.wear.compose.material.curvedText
 
 @Sampled
 @Composable
@@ -87,13 +87,10 @@ fun CurvedTextProviderDemo() {
         }
     }
 
-    ProvideTextStyle(value = TextStyle(
-        color = Color.Green,
-        background = Color.White,
-        fontWeight = FontWeight.Bold
-    )) {
-        CurvedLayout(anchor = 90f) {
-            curvedText("Green On White")
-        }
+    ProvideTextStyle(
+        value =
+            TextStyle(color = Color.Green, background = Color.White, fontWeight = FontWeight.Bold)
+    ) {
+        CurvedLayout(anchor = 90f) { curvedText("Green On White") }
     }
 }

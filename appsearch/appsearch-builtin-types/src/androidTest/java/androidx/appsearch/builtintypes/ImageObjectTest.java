@@ -18,7 +18,7 @@ package androidx.appsearch.builtintypes;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import androidx.appsearch.builtintypes.properties.Keywords;
+import androidx.appsearch.builtintypes.properties.Keyword;
 
 import org.junit.Test;
 
@@ -34,10 +34,11 @@ public class ImageObjectTest {
                 .addAlternateName("my picture")
                 .setDescription("this is my image")
                 .setUrl("content://images/1")
-                .addKeywords("pretty")
-                .addKeywords("wow")
+                .addKeyword("pretty")
+                .addKeyword("wow")
                 .setSha256("6ed48")
                 .setThumbnailSha256("8df68")
+                .setBytes(new byte[]{1, 2, 3})
                 .build();
 
         assertThat(imageObject.getNamespace()).isEqualTo("namespace");
@@ -49,10 +50,11 @@ public class ImageObjectTest {
         assertThat(imageObject.getAlternateNames()).containsExactly("my photo", "my picture");
         assertThat(imageObject.getDescription()).isEqualTo("this is my image");
         assertThat(imageObject.getUrl()).isEqualTo("content://images/1");
-        assertThat(imageObject.getKeywordsList())
-                .containsExactly(new Keywords("pretty"), new Keywords("wow"));
+        assertThat(imageObject.getKeywords())
+                .containsExactly(new Keyword("pretty"), new Keyword("wow"));
         assertThat(imageObject.getSha256()).isEqualTo("6ed48");
         assertThat(imageObject.getThumbnailSha256()).isEqualTo("8df68");
+        assertThat(imageObject.getBytes()).isEqualTo(new byte[]{1, 2, 3});
     }
 
     @Test
@@ -66,10 +68,11 @@ public class ImageObjectTest {
                 .addAlternateName("my picture")
                 .setDescription("this is my image")
                 .setUrl("content://images/1")
-                .addKeywords("pretty")
-                .addKeywords("wow")
+                .addKeyword("pretty")
+                .addKeyword("wow")
                 .setSha256("6ed48")
                 .setThumbnailSha256("8df68")
+                .setBytes(new byte[]{1, 2, 3})
                 .build();
         ImageObject imageObject2 = new ImageObject.Builder(imageObject1).build();
 
@@ -82,9 +85,10 @@ public class ImageObjectTest {
         assertThat(imageObject2.getAlternateNames()).containsExactly("my photo", "my picture");
         assertThat(imageObject2.getDescription()).isEqualTo("this is my image");
         assertThat(imageObject2.getUrl()).isEqualTo("content://images/1");
-        assertThat(imageObject2.getKeywordsList())
-                .containsExactly(new Keywords("pretty"), new Keywords("wow"));
+        assertThat(imageObject2.getKeywords())
+                .containsExactly(new Keyword("pretty"), new Keyword("wow"));
         assertThat(imageObject2.getSha256()).isEqualTo("6ed48");
         assertThat(imageObject2.getThumbnailSha256()).isEqualTo("8df68");
+        assertThat(imageObject2.getBytes()).isEqualTo(new byte[]{1, 2, 3});
     }
 }

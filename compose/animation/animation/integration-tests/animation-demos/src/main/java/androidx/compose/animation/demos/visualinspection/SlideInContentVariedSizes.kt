@@ -17,13 +17,13 @@
 package androidx.compose.animation.demos.visualinspection
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope.SlideDirection.Companion.Down
-import androidx.compose.animation.AnimatedContentScope.SlideDirection.Companion.Left
-import androidx.compose.animation.AnimatedContentScope.SlideDirection.Companion.Right
-import androidx.compose.animation.AnimatedContentScope.SlideDirection.Companion.Up
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Down
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Left
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Right
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection.Companion.Up
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,8 +40,8 @@ import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,37 +79,36 @@ fun SlideInContentVariedSizes() {
         Box(Modifier.fillMaxSize()) {
             AnimatedContent(
                 contentState,
-                modifier = Modifier.padding(top = 120.dp, start = 100.dp)
-                    .border(3.dp, Color(0xff79e9de)),
+                modifier =
+                    Modifier.padding(top = 120.dp, start = 100.dp).border(3.dp, Color(0xff79e9de)),
                 contentAlignment = contentAlignment,
                 transitionSpec = {
                     if (targetState < initialState) {
-                        if (horizontal) {
-                            slideIntoContainer(towards = Right) with slideOutOfContainer(
-                                towards = Right
-                            )
+                            if (horizontal) {
+                                slideIntoContainer(towards = Right) togetherWith
+                                    slideOutOfContainer(towards = Right)
+                            } else {
+                                slideIntoContainer(towards = Down) togetherWith
+                                    slideOutOfContainer(towards = Down)
+                            }
                         } else {
-                            slideIntoContainer(towards = Down) with slideOutOfContainer(
-                                towards = Down
-                            )
+                            if (horizontal) {
+                                slideIntoContainer(towards = Left)
+                                    .togetherWith(slideOutOfContainer(towards = Left))
+                            } else {
+                                slideIntoContainer(towards = Up)
+                                    .togetherWith(slideOutOfContainer(towards = Up))
+                            }
                         }
-                    } else {
-                        if (horizontal) {
-                            slideIntoContainer(towards = Left).with(
-                                slideOutOfContainer(towards = Left)
-                            )
-                        } else {
-                            slideIntoContainer(towards = Up).with(
-                                slideOutOfContainer(towards = Up)
-                            )
+                        .using(SizeTransform(clip = clip))
+                        .apply {
+                            targetContentZIndex =
+                                when (targetState) {
+                                    PaneState.Pane1 -> 1f
+                                    PaneState.Pane2 -> 2f
+                                    PaneState.Pane3 -> 3f
+                                }
                         }
-                    }.using(SizeTransform(clip = clip)).apply {
-                        targetContentZIndex = when (targetState) {
-                            PaneState.Pane1 -> 1f
-                            PaneState.Pane2 -> 2f
-                            PaneState.Pane3 -> 3f
-                        }
-                    }
                 }
             ) {
                 when (it) {
@@ -118,21 +117,22 @@ fun SlideInContentVariedSizes() {
                     PaneState.Pane3 -> Pane3()
                 }
             }
-            Row(
-                Modifier.matchParentSize(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(Modifier.matchParentSize(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Icon(
-                    Icons.Default.ArrowBack, contentDescription = null,
+                    Icons.AutoMirrored.Default.ArrowBack,
+                    contentDescription = null,
                     Modifier.clickable {
-                        contentState = PaneState.values()[max(0, contentState.ordinal - 1)]
-                    }.padding(top = 300.dp, bottom = 300.dp, end = 60.dp)
+                            contentState = PaneState.values()[max(0, contentState.ordinal - 1)]
+                        }
+                        .padding(top = 300.dp, bottom = 300.dp, end = 60.dp)
                 )
                 Icon(
-                    Icons.Default.ArrowForward, contentDescription = null,
+                    Icons.AutoMirrored.Default.ArrowForward,
+                    contentDescription = null,
                     Modifier.clickable {
-                        contentState = PaneState.values()[min(2, contentState.ordinal + 1)]
-                    }.padding(top = 300.dp, bottom = 300.dp, start = 60.dp)
+                            contentState = PaneState.values()[min(2, contentState.ordinal + 1)]
+                        }
+                        .padding(top = 300.dp, bottom = 300.dp, start = 60.dp)
                 )
             }
         }
@@ -143,28 +143,19 @@ fun SlideInContentVariedSizes() {
 fun AlignmentMenu(contentAlignment: Alignment, onAlignmentChanged: (alignment: Alignment) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        Button(onClick = { expanded = true }) {
-            Text("Current alignment: $contentAlignment")
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
+        Button(onClick = { expanded = true }) { Text("Current alignment: $contentAlignment") }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.TopStart) }) {
                 Text("TopStart")
             }
-            DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.TopEnd) }) {
-                Text("TopEnd")
-            }
+            DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.TopEnd) }) { Text("TopEnd") }
             DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.BottomStart) }) {
                 Text("BottomStart")
             }
             DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.BottomEnd) }) {
                 Text("BottomEnd")
             }
-            DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.Center) }) {
-                Text("Center")
-            }
+            DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.Center) }) { Text("Center") }
             DropdownMenuItem(onClick = { onAlignmentChanged(Alignment.TopCenter) }) {
                 Text("TopCenter")
             }
@@ -208,5 +199,7 @@ fun Pane2() {
 }
 
 private enum class PaneState {
-    Pane1, Pane2, Pane3
+    Pane1,
+    Pane2,
+    Pane3
 }

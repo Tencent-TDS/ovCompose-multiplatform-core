@@ -25,6 +25,7 @@ import androidx.compose.testutils.benchmark.benchmarkFirstDraw
 import androidx.compose.testutils.benchmark.benchmarkFirstLayout
 import androidx.compose.testutils.benchmark.benchmarkFirstMeasure
 import androidx.compose.testutils.benchmark.benchmarkLayoutPerf
+import androidx.compose.testutils.benchmark.benchmarkToFirstPixel
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.wear.compose.material.Chip
@@ -35,17 +36,19 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Benchmark for Wear Compose Chip.
- */
+/** Benchmark for Wear Compose Chip. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class ChipBenchmark {
 
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     private val chipCaseFactory = { ChipTestCase() }
+
+    @Test
+    fun first_pixel() {
+        benchmarkRule.benchmarkToFirstPixel(chipCaseFactory)
+    }
 
     @Test
     fun first_compose() {
@@ -85,20 +88,14 @@ internal class ChipTestCase : LayeredComposeTestCase() {
         Chip(
             onClick = {},
             colors = ChipDefaults.secondaryChipColors(),
-            label = {
-                Text("Primary label")
-            },
-            secondaryLabel = {
-                Text("Secondary label")
-            },
+            label = { Text("Primary label") },
+            secondaryLabel = { Text("Secondary label") },
             enabled = true,
         )
     }
 
     @Composable
     override fun ContentWrappers(content: @Composable () -> Unit) {
-        MaterialTheme {
-            content()
-        }
+        MaterialTheme { content() }
     }
 }

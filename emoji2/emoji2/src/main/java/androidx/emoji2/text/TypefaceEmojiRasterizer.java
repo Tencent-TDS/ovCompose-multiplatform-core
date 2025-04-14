@@ -17,7 +17,6 @@ package androidx.emoji2.text;
 
 import static androidx.annotation.RestrictTo.Scope.LIBRARY;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP;
-import static androidx.annotation.RestrictTo.Scope.TESTS;
 
 import android.annotation.SuppressLint;
 import android.graphics.Canvas;
@@ -27,11 +26,12 @@ import android.graphics.Typeface;
 import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
 import androidx.emoji2.text.flatbuffer.MetadataItem;
 import androidx.emoji2.text.flatbuffer.MetadataList;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -50,11 +50,9 @@ import java.lang.annotation.RetentionPolicy;
  *
  */
 @AnyThread
-@RequiresApi(19)
 public class TypefaceEmojiRasterizer {
     /**
      * Defines whether the system can render the emoji.
-     * @hide
      */
     @IntDef({HAS_GLYPH_UNKNOWN, HAS_GLYPH_ABSENT, HAS_GLYPH_EXISTS})
     @Retention(RetentionPolicy.SOURCE)
@@ -64,21 +62,18 @@ public class TypefaceEmojiRasterizer {
 
     /**
      * Not calculated on device yet.
-     * @hide
      */
     @RestrictTo(LIBRARY)
     static final int HAS_GLYPH_UNKNOWN = 0;
 
     /**
      * Device cannot render the emoji.
-     * @hide
      */
     @RestrictTo(LIBRARY)
     static final int HAS_GLYPH_ABSENT = 1;
 
     /**
      * Device can render the emoji.
-     * @hide
      */
     @RestrictTo(LIBRARY)
     static final int HAS_GLYPH_EXISTS = 2;
@@ -96,8 +91,7 @@ public class TypefaceEmojiRasterizer {
     /**
      * MetadataRepo that holds this instance.
      */
-    @NonNull
-    private final MetadataRepo mMetadataRepo;
+    private final @NonNull MetadataRepo mMetadataRepo;
 
     /**
      * Stores hasGlyph as well as exclusion values
@@ -108,10 +102,9 @@ public class TypefaceEmojiRasterizer {
     private volatile int mCache = 0;
 
     /**
-     * @hide
      */
     @RestrictTo(LIBRARY)
-    TypefaceEmojiRasterizer(@NonNull final MetadataRepo metadataRepo,
+    TypefaceEmojiRasterizer(final @NonNull MetadataRepo metadataRepo,
             @IntRange(from = 0) final int index) {
         mMetadataRepo = metadataRepo;
         mIndex = index;
@@ -125,8 +118,8 @@ public class TypefaceEmojiRasterizer {
      * @param y y-coordinate of the baseline of the emoji being drawn
      * @param paint Paint used for the text (e.g. color, size, style)
      */
-    public void draw(@NonNull final Canvas canvas, final float x, final float y,
-            @NonNull final Paint paint) {
+    public void draw(final @NonNull Canvas canvas, final float x, final float y,
+            final @NonNull Paint paint) {
         final Typeface typeface = mMetadataRepo.getTypeface();
         final Typeface oldTypeface = paint.getTypeface();
         paint.setTypeface(typeface);
@@ -142,8 +135,7 @@ public class TypefaceEmojiRasterizer {
     /**
      * @return return typeface to be used to render
      */
-    @NonNull
-    public Typeface getTypeface() {
+    public @NonNull Typeface getTypeface() {
         return mMetadataRepo.getTypeface();
     }
 
@@ -172,7 +164,6 @@ public class TypefaceEmojiRasterizer {
      * Unique id for the emoji, as loaded from the font file.
      *
      * @return unique id for the emoji
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public int getId() {
@@ -195,7 +186,6 @@ public class TypefaceEmojiRasterizer {
 
     /**
      * @return in which metadata version the emoji was added
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public short getCompatAdded() {
@@ -204,7 +194,6 @@ public class TypefaceEmojiRasterizer {
 
     /**
      * @return first SDK that the support for this emoji was added
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public short getSdkAdded() {
@@ -219,7 +208,6 @@ public class TypefaceEmojiRasterizer {
      *
      * @see TypefaceEmojiRasterizer#setHasGlyph
      * @return the set value of hasGlyph for this metadata item
-     * @hide
      */
     @HasGlyph
     @SuppressLint("KotlinPropertyAccess")
@@ -233,9 +221,9 @@ public class TypefaceEmojiRasterizer {
      *
      * This is only useful for testing, and will make the next display of this emoji slower.
      *
-     * @hide
      */
-    @RestrictTo(TESTS)
+    @RestrictTo(LIBRARY)
+    @VisibleForTesting
     public void resetHasGlyphCache() {
         boolean willExclude = isPreferredSystemRender();
         if (willExclude) {
@@ -250,7 +238,6 @@ public class TypefaceEmojiRasterizer {
      *
      * @see PaintCompat#hasGlyph
      * @param hasGlyph {@code true} if system can render the emoji
-     * @hide
      */
     @SuppressLint("KotlinPropertyAccess")
     @RestrictTo(LIBRARY)
@@ -268,7 +255,6 @@ public class TypefaceEmojiRasterizer {
      * If this emoji is excluded due to CodepointExclusions.getExcludedCodpoints()
      *
      * @param exclude if the emoji should never be rendered by emojicompat
-     * @hide
      */
     @RestrictTo(LIBRARY)
     public void setExclusion(boolean exclude) {
@@ -313,9 +299,8 @@ public class TypefaceEmojiRasterizer {
         return getMetadataItem().codepointsLength();
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         final StringBuilder builder = new StringBuilder();
         builder.append(super.toString());
         builder.append(", id:");

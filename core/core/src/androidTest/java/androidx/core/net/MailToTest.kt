@@ -22,22 +22,24 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/**
- * Class representing the different ways of parsing a mailto URI
- */
+/** Class representing the different ways of parsing a mailto URI */
 sealed class MailToParser {
     abstract fun isMailTo(uri: String): Boolean
+
     abstract fun parse(uri: String): MailTo
+
     override fun toString(): String = this.javaClass.simpleName
 }
 
 object StringMailToParser : MailToParser() {
     override fun isMailTo(uri: String) = MailTo.isMailTo(uri)
+
     override fun parse(uri: String) = MailTo.parse(uri)
 }
 
 object UriMailToParser : MailToParser() {
     override fun isMailTo(uri: String) = MailTo.isMailTo(Uri.parse(uri))
+
     override fun parse(uri: String) = MailTo.parse(Uri.parse(uri))
 }
 
@@ -52,8 +54,8 @@ class MailToTest(private val parser: MailToParser) {
         private const val MAILTOURI_1 = "mailto:chris@example.com"
         private const val MAILTOURI_2 = "mailto:infobot@example.com?subject=current-issue"
         private const val MAILTOURI_3 = "mailto:infobot@example.com?body=send%20current-issue"
-        private const val MAILTOURI_4 = "mailto:infobot@example.com?body=send%20current-" +
-            "issue%0D%0Asend%20index" // NOTYPO
+        private const val MAILTOURI_4 =
+            "mailto:infobot@example.com?body=send%20current-" + "issue%0D%0Asend%20index" // NOTYPO
         private const val MAILTOURI_5 = "mailto:joe@example.com?cc=bob@example.com&body=hello"
         private const val MAILTOURI_6 = "mailto:?to=joe@example.com&cc=bob@example.com&body=hello"
     }

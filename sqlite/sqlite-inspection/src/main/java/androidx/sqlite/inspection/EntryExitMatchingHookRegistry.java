@@ -16,13 +16,12 @@
 
 package androidx.sqlite.inspection;
 
-import android.annotation.SuppressLint;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.inspection.ArtTooling.EntryHook;
 import androidx.inspection.ArtTooling.ExitHook;
 import androidx.inspection.InspectorEnvironment;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -46,9 +45,8 @@ final class EntryExitMatchingHookRegistry {
     EntryExitMatchingHookRegistry(InspectorEnvironment environment) {
         mEnvironment = environment;
         mFrameStack = new ThreadLocal<Deque<Frame>>() {
-            @NonNull
             @Override
-            protected Deque<Frame> initialValue() {
+            protected @NonNull Deque<Frame> initialValue() {
                 return new ArrayDeque<>();
             }
         };
@@ -58,7 +56,6 @@ final class EntryExitMatchingHookRegistry {
             final OnExitCallback onExitCallback) {
         mEnvironment.artTooling().registerEntryHook(originClass, originMethod,
                 new EntryHook() {
-                    @SuppressLint("SyntheticAccessor")
                     @Override
                     public void onEntry(@Nullable Object thisObject,
                             @NonNull List<Object> args) {
@@ -68,7 +65,6 @@ final class EntryExitMatchingHookRegistry {
 
         mEnvironment.artTooling().registerExitHook(originClass, originMethod,
                 new ExitHook<Object>() {
-                    @SuppressLint("SyntheticAccessor")
                     @Override
                     public Object onExit(Object result) {
                         Frame entryFrame = getFrameStack().pollLast();
@@ -85,7 +81,7 @@ final class EntryExitMatchingHookRegistry {
     }
 
     private @NonNull Deque<Frame> getFrameStack() {
-        /** It won't be null because of overridden {@link ThreadLocal#initialValue} */
+        /* It won't be null because of overridden {@link ThreadLocal#initialValue} */
         //noinspection ConstantConditions
         return mFrameStack.get();
     }

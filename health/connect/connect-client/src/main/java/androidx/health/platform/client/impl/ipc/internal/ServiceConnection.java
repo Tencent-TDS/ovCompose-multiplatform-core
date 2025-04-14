@@ -25,11 +25,12 @@ import android.os.DeadObjectException;
 import android.os.IBinder;
 import android.os.RemoteException;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.VisibleForTesting;
 import androidx.health.platform.client.impl.logger.Logger;
+
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +48,6 @@ import javax.annotation.concurrent.NotThreadSafe;
  *
  * <p>Note: this class is not thread safe and should be called always from the same thread.
  *
- * @hide
  */
 @NotThreadSafe
 @RestrictTo(Scope.LIBRARY)
@@ -85,8 +85,7 @@ public class ServiceConnection implements android.content.ServiceConnection {
     private final Callback mCallback;
 
     @VisibleForTesting
-    @Nullable
-    IBinder mBinder;
+    @Nullable IBinder mBinder;
 
     @VisibleForTesting
     volatile boolean mIsServiceBound;
@@ -154,7 +153,7 @@ public class ServiceConnection implements android.content.ServiceConnection {
                             + "' and action '"
                             + mConnectionConfiguration.getBindAction()
                             + "'.");
-            handleNonRetriableDisconnection(new IllegalStateException("Service not available"));
+            handleNonRetriableDisconnection(new RemoteException("Binding to service failed"));
         }
     }
 
@@ -371,6 +370,6 @@ public class ServiceConnection implements android.content.ServiceConnection {
                         + mConnectionConfiguration.getClientName()
                         + "', binder is null");
         // This connection will never be usable, don't bother with retries.
-        handleRetriableDisconnection(new IllegalStateException("Null binding"));
+        handleRetriableDisconnection(new RemoteException("Null binding"));
     }
 }

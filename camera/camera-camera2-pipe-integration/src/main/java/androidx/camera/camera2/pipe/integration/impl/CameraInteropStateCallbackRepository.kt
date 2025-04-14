@@ -20,24 +20,19 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.os.Build
 import android.view.Surface
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.core.Log
 import androidx.camera.core.impl.SessionConfig
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.atomicfu.AtomicRef
 import kotlinx.atomicfu.atomic
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-@Singleton
 /**
  * A application-level single-instance repository for Camera Interop callbacks. It supplies
  * camera-pipe with internal callbacks on CameraX initialization. During runtime, before a camera
  * graph is created, CameraX updates these internal callbacks with Camera Interop callbacks so that
  * they may be triggered in camera-pipe.
  */
-class CameraInteropStateCallbackRepository @Inject constructor() {
+public class CameraInteropStateCallbackRepository {
 
     private val _deviceStateCallback = CameraInteropDeviceStateCallback()
     private val _sessionStateCallback = CameraInteropSessionStateCallback()
@@ -50,20 +45,21 @@ class CameraInteropStateCallbackRepository @Inject constructor() {
      *
      * @param sessionConfig the final merged sessionConfig used to create camera graph
      */
-    fun updateCallbacks(sessionConfig: SessionConfig) {
+    public fun updateCallbacks(sessionConfig: SessionConfig) {
         _deviceStateCallback.updateCallbacks(sessionConfig)
         _sessionStateCallback.updateCallbacks(sessionConfig)
     }
 
-    val deviceStateCallback
+    public val deviceStateCallback: CameraInteropDeviceStateCallback
         get() = _deviceStateCallback
 
-    val sessionStateCallback
+    public val sessionStateCallback: CameraInteropSessionStateCallback
         get() = _sessionStateCallback
 
-    class CameraInteropDeviceStateCallback() : CameraDevice.StateCallback() {
+    public class CameraInteropDeviceStateCallback : CameraDevice.StateCallback() {
 
         private var callbacks: AtomicRef<List<CameraDevice.StateCallback>> = atomic(listOf())
+
         internal fun updateCallbacks(sessionConfig: SessionConfig) {
             callbacks.value = sessionConfig.deviceStateCallbacks.toList()
         }
@@ -93,7 +89,7 @@ class CameraInteropStateCallbackRepository @Inject constructor() {
         }
     }
 
-    class CameraInteropSessionStateCallback() : CameraCaptureSession.StateCallback() {
+    public class CameraInteropSessionStateCallback : CameraCaptureSession.StateCallback() {
 
         private var callbacks: AtomicRef<List<CameraCaptureSession.StateCallback>> =
             atomic(listOf())
@@ -150,7 +146,6 @@ class CameraInteropStateCallbackRepository @Inject constructor() {
 
         @RequiresApi(Build.VERSION_CODES.M)
         private object Api23CompatImpl {
-            @DoNotInline
             @JvmStatic
             fun onSurfacePrepared(
                 session: CameraCaptureSession,
@@ -165,7 +160,6 @@ class CameraInteropStateCallbackRepository @Inject constructor() {
 
         @RequiresApi(Build.VERSION_CODES.O)
         private object Api26CompatImpl {
-            @DoNotInline
             @JvmStatic
             fun onCaptureQueueEmpty(
                 session: CameraCaptureSession,

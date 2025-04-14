@@ -20,18 +20,20 @@ import androidx.annotation.Sampled
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,39 +53,56 @@ fun MenuSample() {
         IconButton(onClick = { expanded = true }) {
             Icon(Icons.Default.MoreVert, contentDescription = "Localized description")
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text("Edit") },
                 onClick = { /* Handle edit! */ },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.Edit,
-                        contentDescription = null
-                    )
-                })
+                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
+            )
             DropdownMenuItem(
                 text = { Text("Settings") },
                 onClick = { /* Handle settings! */ },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.Settings,
-                        contentDescription = null
-                    )
-                })
-            Divider()
+                leadingIcon = { Icon(Icons.Outlined.Settings, contentDescription = null) }
+            )
+            HorizontalDivider()
             DropdownMenuItem(
                 text = { Text("Send Feedback") },
                 onClick = { /* Handle send feedback! */ },
-                leadingIcon = {
-                    Icon(
-                        Icons.Outlined.Email,
-                        contentDescription = null
-                    )
-                },
-                trailingIcon = { Text("F11", textAlign = TextAlign.Center) })
+                leadingIcon = { Icon(Icons.Outlined.Email, contentDescription = null) },
+                trailingIcon = { Text("F11", textAlign = TextAlign.Center) }
+            )
+        }
+    }
+}
+
+@Preview
+@Sampled
+@Composable
+fun MenuWithScrollStateSample() {
+    var expanded by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    Box(modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.TopStart)) {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = "Localized description")
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            scrollState = scrollState
+        ) {
+            repeat(30) {
+                DropdownMenuItem(
+                    text = { Text("Item ${it + 1}") },
+                    onClick = { /* TODO */ },
+                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
+                )
+            }
+        }
+        LaunchedEffect(expanded) {
+            if (expanded) {
+                // Scroll to show the bottom menu items.
+                scrollState.scrollTo(scrollState.maxValue)
+            }
         }
     }
 }

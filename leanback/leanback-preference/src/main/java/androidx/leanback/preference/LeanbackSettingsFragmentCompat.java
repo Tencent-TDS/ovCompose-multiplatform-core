@@ -20,9 +20,9 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import androidx.preference.EditTextPreference;
@@ -33,13 +33,15 @@ import androidx.preference.PreferenceFragment;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceScreen;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * This fragment provides a container for displaying a {@link LeanbackPreferenceFragmentCompat}
  *
  * <p>The following sample code shows a simple leanback preference fragment that is
  * populated from a resource.  The resource it loads is:</p>
  *
- * {@sample frameworks/support/samples/SupportPreferenceDemos/src/main/res/xml/preferences.xml preferences}
+ * {@sample samples/SupportPreferenceDemos/src/main/res/xml/preferences.xml preferences}
  *
  * <p>The sample implements
  * {@link PreferenceFragmentCompat.OnPreferenceStartFragmentCallback#onPreferenceStartFragment(
@@ -48,7 +50,7 @@ import androidx.preference.PreferenceScreen;
  * PreferenceFragmentCompat, PreferenceScreen)},
  * and {@link #onPreferenceStartInitialScreen()}:</p>
  *
- * {@sample frameworks/support/samples/SupportPreferenceDemos/src/main/java/com/example/androidx/preference/LeanbackPreferences.java leanback_preferences}
+ * {@sample samples/SupportPreferenceDemos/src/main/java/com/example/androidx/preference/LeanbackPreferences.java leanback_preferences}
  */
 public abstract class LeanbackSettingsFragmentCompat extends Fragment
         implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
@@ -58,7 +60,8 @@ public abstract class LeanbackSettingsFragmentCompat extends Fragment
     private static final String PREFERENCE_FRAGMENT_TAG =
             "androidx.leanback.preference.LeanbackSettingsFragment.PREFERENCE_FRAGMENT";
 
-    private final RootViewOnKeyListener mRootViewOnKeyListener = new RootViewOnKeyListener();
+    private final OnKeyListener mRootViewOnKeyListener =
+            decorateOnKeyListener(new RootViewOnKeyListener());
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -173,7 +176,17 @@ public abstract class LeanbackSettingsFragmentCompat extends Fragment
                 .commit();
     }
 
-    private class RootViewOnKeyListener implements View.OnKeyListener {
+    /**
+     * Modifies or replaces the OnKeyListener automatically set for this fragment.
+     *
+     * <p>The default implementation simply returns the listener.
+     */
+    @NonNull
+    protected OnKeyListener decorateOnKeyListener(@NonNull OnKeyListener onKeyListener) {
+        return onKeyListener;
+    }
+
+    private class RootViewOnKeyListener implements OnKeyListener {
         RootViewOnKeyListener() {
         }
 

@@ -27,6 +27,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,14 +46,10 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalTextApi::class)
 @Composable
 fun TextStrokeDemo() {
-    var dashInterval by remember { mutableStateOf(2f) }
+    var dashInterval by remember { mutableFloatStateOf(2f) }
     var stroke by remember {
         mutableStateOf(
-            Stroke(
-                width = 4f, pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(2f, 2f)
-                )
-            )
+            Stroke(width = 4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 2f)))
         )
     }
     var fontSize by remember { mutableStateOf(20.sp) }
@@ -60,39 +57,25 @@ fun TextStrokeDemo() {
     val finalStroke by remember {
         derivedStateOf {
             stroke.copy(
-                pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(
-                        dashInterval,
-                        dashInterval
-                    ), phase = 0f
-                )
+                pathEffect =
+                    PathEffect.dashPathEffect(floatArrayOf(dashInterval, dashInterval), phase = 0f)
             )
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Font Size")
-        Slider(
-            value = fontSize.value,
-            onValueChange = {
-                fontSize = it.sp
-            },
-            valueRange = 8f..144f
-        )
+        Slider(value = fontSize.value, onValueChange = { fontSize = it.sp }, valueRange = 8f..144f)
         Text("Width")
         Slider(
             value = stroke.width,
-            onValueChange = {
-                stroke = stroke.copy(width = it)
-            },
+            onValueChange = { stroke = stroke.copy(width = it) },
             valueRange = 0f..16f,
             steps = 16
         )
         Text("Miter")
         Slider(
             value = stroke.miter,
-            onValueChange = {
-                stroke = stroke.copy(miter = it)
-            },
+            onValueChange = { stroke = stroke.copy(miter = it) },
             valueRange = 0f..16f,
             steps = 16
         )
@@ -112,17 +95,20 @@ fun TextStrokeDemo() {
         ) {
             RadioButton(
                 selected = stroke.cap == StrokeCap.Butt,
-                onClick = { stroke = stroke.copy(cap = StrokeCap.Butt) })
+                onClick = { stroke = stroke.copy(cap = StrokeCap.Butt) }
+            )
             Text(text = "Butt", style = MaterialTheme.typography.body2)
 
             RadioButton(
                 selected = stroke.cap == StrokeCap.Round,
-                onClick = { stroke = stroke.copy(cap = StrokeCap.Round) })
+                onClick = { stroke = stroke.copy(cap = StrokeCap.Round) }
+            )
             Text(text = "Round", style = MaterialTheme.typography.body2)
 
             RadioButton(
                 selected = stroke.cap == StrokeCap.Square,
-                onClick = { stroke = stroke.copy(cap = StrokeCap.Square) })
+                onClick = { stroke = stroke.copy(cap = StrokeCap.Square) }
+            )
             Text(text = "Square", style = MaterialTheme.typography.body2)
         }
 
@@ -133,34 +119,34 @@ fun TextStrokeDemo() {
         ) {
             RadioButton(
                 selected = stroke.join == StrokeJoin.Round,
-                onClick = { stroke = stroke.copy(join = StrokeJoin.Round) })
+                onClick = { stroke = stroke.copy(join = StrokeJoin.Round) }
+            )
             Text(text = "Round", style = MaterialTheme.typography.body2)
 
             RadioButton(
                 selected = stroke.join == StrokeJoin.Miter,
-                onClick = { stroke = stroke.copy(join = StrokeJoin.Miter) })
+                onClick = { stroke = stroke.copy(join = StrokeJoin.Miter) }
+            )
             Text(text = "Miter", style = MaterialTheme.typography.body2)
 
             RadioButton(
                 selected = stroke.join == StrokeJoin.Bevel,
-                onClick = { stroke = stroke.copy(join = StrokeJoin.Bevel) })
+                onClick = { stroke = stroke.copy(join = StrokeJoin.Bevel) }
+            )
             Text(text = "Bevel", style = MaterialTheme.typography.body2)
         }
 
         Text(
             text = "This text is drawn using stroke! 🎉",
-            style = LocalTextStyle.current.merge(
-                TextStyle(
-                    fontSize = fontSize,
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            Color.Red,
-                            Color.Green,
-                            Color.Blue
-                        )
-                    ), drawStyle = finalStroke
+            style =
+                LocalTextStyle.current.merge(
+                    TextStyle(
+                        fontSize = fontSize,
+                        brush =
+                            Brush.horizontalGradient(listOf(Color.Red, Color.Green, Color.Blue)),
+                        drawStyle = finalStroke
+                    )
                 )
-            )
         )
     }
 }

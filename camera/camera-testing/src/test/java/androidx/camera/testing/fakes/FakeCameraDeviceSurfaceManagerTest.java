@@ -18,6 +18,7 @@ package androidx.camera.testing.fakes;
 
 import static android.graphics.ImageFormat.YUV_420_888;
 
+import static androidx.camera.core.impl.StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED;
 import static androidx.camera.core.impl.SurfaceConfig.ConfigSize.PREVIEW;
 import static androidx.camera.core.impl.SurfaceConfig.ConfigType.YUV;
 
@@ -30,13 +31,18 @@ import android.os.Build;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
+import androidx.camera.core.DynamicRange;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.impl.AttachedSurfaceInfo;
+import androidx.camera.core.impl.CameraMode;
 import androidx.camera.core.impl.StreamSpec;
 import androidx.camera.core.impl.SurfaceConfig;
 import androidx.camera.core.impl.UseCaseConfig;
+import androidx.camera.core.impl.UseCaseConfigFactory;
+import androidx.camera.testing.impl.fakes.FakeCameraDeviceSurfaceManager;
+import androidx.camera.testing.impl.fakes.FakeUseCaseConfig;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,10 +94,12 @@ public class FakeCameraDeviceSurfaceManagerTest {
         UseCaseConfig<?> preview = new FakeUseCaseConfig.Builder().getUseCaseConfig();
         UseCaseConfig<?> analysis = new ImageAnalysis.Builder().getUseCaseConfig();
         mFakeCameraDeviceSurfaceManager.getSuggestedStreamSpecs(
-                /* isConcurrentCameraModeOn = */false,
+                CameraMode.DEFAULT,
                 FAKE_CAMERA_ID0,
                 emptyList(),
-                createConfigOutputSizesMap(preview, analysis));
+                createConfigOutputSizesMap(preview, analysis),
+                false,
+                false);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -102,11 +110,17 @@ public class FakeCameraDeviceSurfaceManagerTest {
                         SurfaceConfig.create(YUV, PREVIEW),
                         YUV_420_888,
                         new Size(1, 1),
-                        new Range<>(30, 30));
+                        DynamicRange.SDR,
+                        singletonList(UseCaseConfigFactory.CaptureType.IMAGE_ANALYSIS),
+                        preview,
+                        new Range<>(30, 30),
+                        FRAME_RATE_RANGE_UNSPECIFIED);
         mFakeCameraDeviceSurfaceManager.getSuggestedStreamSpecs(
-                /* isConcurrentCameraModeOn = */false,
+                CameraMode.DEFAULT,
                 FAKE_CAMERA_ID0,
-                singletonList(analysis), createConfigOutputSizesMap(preview, video));
+                singletonList(analysis), createConfigOutputSizesMap(preview, video),
+                false,
+                false);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -115,23 +129,29 @@ public class FakeCameraDeviceSurfaceManagerTest {
         UseCaseConfig<?> video = new FakeUseCaseConfig.Builder().getUseCaseConfig();
         UseCaseConfig<?> analysis = new ImageAnalysis.Builder().getUseCaseConfig();
         mFakeCameraDeviceSurfaceManager.getSuggestedStreamSpecs(
-                /* isConcurrentCameraModeOn = */false,
+                CameraMode.DEFAULT,
                 FAKE_CAMERA_ID0,
-                Collections.emptyList(), createConfigOutputSizesMap(preview, video, analysis));
+                Collections.emptyList(), createConfigOutputSizesMap(preview, video, analysis),
+                false,
+                false);
     }
 
     @Test
     public void canRetrieveInsertedSuggestedStreamSpecs() {
         Map<UseCaseConfig<?>, StreamSpec> suggestedStreamSpecsCamera0 =
                 mFakeCameraDeviceSurfaceManager.getSuggestedStreamSpecs(
-                        /* isConcurrentCameraModeOn = */false,
+                        CameraMode.DEFAULT,
                         FAKE_CAMERA_ID0,
-                        Collections.emptyList(), createConfigOutputSizesMap(mFakeUseCaseConfig));
+                        emptyList(), createConfigOutputSizesMap(mFakeUseCaseConfig),
+                        false,
+                        false).first;
         Map<UseCaseConfig<?>, StreamSpec> suggestedStreamSpecCamera1 =
                 mFakeCameraDeviceSurfaceManager.getSuggestedStreamSpecs(
-                        /* isConcurrentCameraModeOn = */false,
+                        CameraMode.DEFAULT,
                         FAKE_CAMERA_ID1,
-                        Collections.emptyList(), createConfigOutputSizesMap(mFakeUseCaseConfig));
+                        emptyList(), createConfigOutputSizesMap(mFakeUseCaseConfig),
+                        false,
+                        false).first;
 
         assertThat(suggestedStreamSpecsCamera0.get(mFakeUseCaseConfig)).isEqualTo(
                 StreamSpec.builder(new Size(FAKE_WIDTH0, FAKE_HEIGHT0)).build());
@@ -140,7 +160,7 @@ public class FakeCameraDeviceSurfaceManagerTest {
     }
 
     private Map<UseCaseConfig<?>, List<Size>> createConfigOutputSizesMap(
-            @NonNull UseCaseConfig<?>... useCaseConfigs) {
+            UseCaseConfig<?> @NonNull ... useCaseConfigs) {
         Map<UseCaseConfig<?>, List<Size>> configOutputSizesMap = new HashMap<>();
         for (UseCaseConfig<?> useCaseConfig : useCaseConfigs) {
             configOutputSizesMap.put(useCaseConfig, Collections.emptyList());

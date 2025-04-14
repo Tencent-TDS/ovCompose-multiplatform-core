@@ -23,26 +23,25 @@ import androidx.compose.runtime.Stable
 /**
  * Provides all the needed info about the items which could be later composed and displayed as
  * children or [LazyLayout].
+ *
+ * Note: this interface is a part of [LazyLayout] harness that allows for building custom lazy
+ * layouts. LazyLayout and all corresponding APIs are still under development and are subject to
+ * change.
  */
 @Stable
 @ExperimentalFoundationApi
 interface LazyLayoutItemProvider {
 
-    /**
-     * The total number of items in the lazy layout (visible or not).
-     */
+    /** The total number of items in the lazy layout (visible or not). */
     val itemCount: Int
 
-    /**
-     * The item for the given [index].
-     */
-    @Composable
-    fun Item(index: Int)
+    /** The item for the given [index] and [key]. */
+    @Composable fun Item(index: Int, key: Any)
 
     /**
      * Returns the content type for the item on this index. It is used to improve the item
-     * compositions reusing efficiency. Note that null is a valid type and items of such
-     * type will be considered compatible.
+     * compositions reusing efficiency. Note that null is a valid type and items of such type will
+     * be considered compatible.
      */
     fun getContentType(index: Int): Any? = null
 
@@ -54,29 +53,27 @@ interface LazyLayoutItemProvider {
     fun getKey(index: Int): Any = getDefaultLazyLayoutKey(index)
 
     /**
-     * Get index for given key. The index is not guaranteed to be known for all keys in
-     * layout for optimization purposes, but must be present for elements in current viewport.
-     * If the key is not present in the layout or near current viewport, return -1.
+     * Get index for given key. The index is not guaranteed to be known for all keys in layout for
+     * optimization purposes, but must be present for elements in current viewport. If the key is
+     * not present in the layout or near current viewport, return -1.
      */
     fun getIndex(key: Any): Int = -1
 }
 
 /**
- * Finds a position of the item with the given key in the lists. This logic allows us to
- * detect when there were items added or removed before our current first item.
+ * Finds a position of the item with the given key in the lists. This logic allows us to detect when
+ * there were items added or removed before our current first item.
  */
-@ExperimentalFoundationApi
+@OptIn(ExperimentalFoundationApi::class)
 internal fun LazyLayoutItemProvider.findIndexByKey(
     key: Any?,
     lastKnownIndex: Int,
 ): Int {
-    if (key == null) {
+    if (key == null || itemCount == 0) {
         // there were no real item during the previous measure
         return lastKnownIndex
     }
-    if (lastKnownIndex < itemCount &&
-        key == getKey(lastKnownIndex)
-    ) {
+    if (lastKnownIndex < itemCount && key == getKey(lastKnownIndex)) {
         // this item is still at the same index
         return lastKnownIndex
     }
@@ -93,7 +90,9 @@ internal fun LazyLayoutItemProvider.findIndexByKey(
  * 1) Objects created for the same index are equals and never equals for different indexes.
  * 2) This class is saveable via a default SaveableStateRegistry on the platform.
  * 3) This objects can't be equals to any object which could be provided by a user as a custom key.
+ *
+ * Note: this function is a part of [LazyLayout] harness that allows for building custom lazy
+ * layouts. LazyLayout and all corresponding APIs are still under development and are subject to
+ * change.
  */
-@ExperimentalFoundationApi
-@Suppress("MissingNullability")
-expect fun getDefaultLazyLayoutKey(index: Int): Any
+@Suppress("MissingNullability") expect fun getDefaultLazyLayoutKey(index: Int): Any

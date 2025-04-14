@@ -17,17 +17,18 @@
 package androidx.appsearch.app;
 
 import androidx.annotation.AnyThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.exceptions.AppSearchException;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * A registry which maintains instances of {@link DocumentClassFactory}.
- * @hide
+ * @exportToFramework:hide
  */
 @AnyThread
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -41,8 +42,7 @@ public final class DocumentClassFactoryRegistry {
     private DocumentClassFactoryRegistry() {}
 
     /** Returns the singleton instance of {@link DocumentClassFactoryRegistry}. */
-    @NonNull
-    public static DocumentClassFactoryRegistry getInstance() {
+    public static @NonNull DocumentClassFactoryRegistry getInstance() {
         if (sInstance == null) {
             synchronized (DocumentClassFactoryRegistry.class) {
                 if (sInstance == null) {
@@ -60,9 +60,8 @@ public final class DocumentClassFactoryRegistry {
      * @throws AppSearchException if no factory for this document class could be found on the
      * classpath
      */
-    @NonNull
     @SuppressWarnings("unchecked")
-    public <T> DocumentClassFactory<T> getOrCreateFactory(@NonNull Class<T> documentClass)
+    public <T> @NonNull DocumentClassFactory<T> getOrCreateFactory(@NonNull Class<T> documentClass)
             throws AppSearchException {
         Preconditions.checkNotNull(documentClass);
         DocumentClassFactory<?> factory;
@@ -91,9 +90,8 @@ public final class DocumentClassFactoryRegistry {
      * @throws AppSearchException if no factory for this document class could be found on the
      * classpath
      */
-    @NonNull
     @SuppressWarnings("unchecked")
-    public <T> DocumentClassFactory<T> getOrCreateFactory(@NonNull T documentClass)
+    public <T> @NonNull DocumentClassFactory<T> getOrCreateFactory(@NonNull T documentClass)
             throws AppSearchException {
         Preconditions.checkNotNull(documentClass);
         Class<?> clazz = documentClass.getClass();
@@ -128,12 +126,36 @@ public final class DocumentClassFactoryRegistry {
         try {
             factoryClass = Class.forName(factoryClassName);
         } catch (ClassNotFoundException e) {
-            throw new AppSearchException(
-                    AppSearchResult.RESULT_INTERNAL_ERROR,
-                    "Failed to find document class converter \"" + factoryClassName
-                            + "\". Perhaps the annotation processor was not run or the class was "
-                            + "proguarded out?",
-                    e);
+            // If the current class or interface has only one parent interface/class, then try to
+            // look at the unique parent.
+            Class<?> superClass = documentClass.getSuperclass();
+            Class<?>[] superInterfaces = documentClass.getInterfaces();
+            if (superClass == Object.class) {
+                superClass = null;
+            }
+            int numParent = superInterfaces.length;
+            if (superClass != null) {
+                numParent += 1;
+            }
+
+            if (numParent == 1) {
+                if (superClass != null) {
+                    return loadFactoryByReflection(superClass);
+                } else {
+                    return loadFactoryByReflection(superInterfaces[0]);
+                }
+            }
+
+            String errorMessage = "Failed to find document class converter \"" + factoryClassName
+                    + "\". Perhaps the annotation processor was not run or the class was "
+                    + "proguarded out?";
+            if (numParent > 1) {
+                errorMessage += " Or, this class may not have been annotated with @Document, and "
+                        + "there is an ambiguity to determine a unique @Document annotated parent "
+                        + "class/interface.";
+            }
+
+            throw new AppSearchException(AppSearchResult.RESULT_INTERNAL_ERROR, errorMessage, e);
         }
         Object instance;
         try {

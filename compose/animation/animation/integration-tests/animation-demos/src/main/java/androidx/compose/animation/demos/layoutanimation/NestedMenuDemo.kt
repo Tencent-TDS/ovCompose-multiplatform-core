@@ -17,9 +17,10 @@
 package androidx.compose.animation.demos.layoutanimation
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentScope.SlideDirection
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -72,26 +73,24 @@ fun NestedMenuDemo() {
             modifier = Modifier.background(menuColor),
             transitionSpec = {
                 if (initialState < targetState) {
-                    // Going from parent menu to child menu, slide towards left
-                    slideIntoContainer(towards = SlideDirection.Left) with
-                        slideOutOfContainer(
-                            towards = SlideDirection.Left,
-                            targetOffset = { offsetForFullSlide -> offsetForFullSlide / 2 }
-                        )
-                } else {
-                    // Going from child menu to parent menu, slide towards right
-                    slideIntoContainer(
-                        towards = SlideDirection.Right,
-                        initialOffset = { offsetForFullSlide -> offsetForFullSlide / 2 }
-                    ) with
-                        slideOutOfContainer(towards = SlideDirection.Right)
-                }.apply {
-                    targetContentZIndex = when (targetState) {
-                        NestedMenuState.Level1 -> 1f
-                        NestedMenuState.Level2 -> 2f
-                        NestedMenuState.Level3 -> 3f
+                        // Going from parent menu to child menu, slide towards left
+                        slideIntoContainer(towards = SlideDirection.Left) togetherWith
+                            ExitTransition.KeepUntilTransitionsFinished
+                    } else {
+                        // Going from child menu to parent menu, slide towards right
+                        slideIntoContainer(
+                            towards = SlideDirection.Right,
+                            initialOffset = { offsetForFullSlide -> offsetForFullSlide / 2 }
+                        ) togetherWith slideOutOfContainer(towards = SlideDirection.Right)
                     }
-                }
+                    .apply {
+                        targetContentZIndex =
+                            when (targetState) {
+                                NestedMenuState.Level1 -> 1f
+                                NestedMenuState.Level2 -> 2f
+                                NestedMenuState.Level3 -> 3f
+                            }
+                    }
             }
         ) {
             when (it) {
@@ -103,7 +102,11 @@ fun NestedMenuDemo() {
     }
 }
 
-private enum class NestedMenuState { Level1, Level2, Level3 }
+private enum class NestedMenuState {
+    Level1,
+    Level2,
+    Level3
+}
 
 private fun NestedMenuState.next(): NestedMenuState =
     NestedMenuState.values()[min(this.ordinal + 1, 2)]

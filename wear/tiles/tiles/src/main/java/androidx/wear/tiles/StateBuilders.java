@@ -16,21 +16,27 @@
 
 package androidx.wear.tiles;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.wear.protolayout.expression.Fingerprint;
 import androidx.wear.protolayout.proto.StateProto;
 
-/** Builders for state of a tile. */
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Builders for state of a tile.
+ *
+ * @deprecated Use {@link androidx.wear.protolayout.StateBuilders} instead.
+ */
+@Deprecated
 public final class StateBuilders {
     private StateBuilders() {}
 
     /** {@link State} information. */
     public static final class State {
         private final StateProto.State mImpl;
-        @Nullable private final Fingerprint mFingerprint;
+        private final @Nullable Fingerprint mFingerprint;
 
         State(StateProto.State impl, @Nullable Fingerprint fingerprint) {
             this.mImpl = impl;
@@ -38,30 +44,23 @@ public final class StateBuilders {
         }
 
         /** Gets the ID of the clickable that was last clicked. */
-        @NonNull
-        public String getLastClickableId() {
+        public @NonNull String getLastClickableId() {
             return mImpl.getLastClickableId();
         }
 
-        /**
-         * Get the fingerprint for this object, or null if unknown.
-         *
-         */
+        /** Get the fingerprint for this object, or null if unknown. */
         @RestrictTo(Scope.LIBRARY_GROUP)
-        @Nullable
-        public Fingerprint getFingerprint() {
+        public @Nullable Fingerprint getFingerprint() {
             return mFingerprint;
         }
 
         @RestrictTo(Scope.LIBRARY_GROUP)
-        @NonNull
-        public static State fromProto(@NonNull StateProto.State proto) {
+        public static @NonNull State fromProto(StateProto.@NonNull State proto) {
             return new State(proto, null);
         }
 
         @RestrictTo(Scope.LIBRARY_GROUP)
-        @NonNull
-        public StateProto.State toProto() {
+        public StateProto.@NonNull State toProto() {
             return mImpl;
         }
 
@@ -73,8 +72,7 @@ public final class StateBuilders {
             public Builder() {}
 
             /** Builds an instance from accumulated values. */
-            @NonNull
-            public State build() {
+            public @NonNull State build() {
                 return new State(mImpl.build(), mFingerprint);
             }
         }

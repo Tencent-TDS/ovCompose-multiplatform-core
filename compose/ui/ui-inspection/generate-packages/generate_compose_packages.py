@@ -4,7 +4,8 @@ import argparse, os, sys
 
 # List of directories we want to exclude when traversing the project files. This list should
 # contain directories related to tests, documentation/samples, API, resources, etc.
-EXCLUDED_DIRS = ['androidTest', 'androidAndroidTest', 'api', 'docs', 'res', 'samples', 'test']
+EXCLUDED_DIRS = ['androidTest', 'androidAndroidTest', 'api', 'docs', 'res', 'samples', 'test',
+                 'androidInstrumentedTest']
 # List of packages that should be excluded when traversing the project files. These packages might
 # include Java/Kotlin source files that contain Composable, but we're not interested in including
 # them on the output list because it's unlikely that developers will use them in their code.
@@ -23,6 +24,20 @@ SCRIPT_NAME = 'generate_compose_packages.py'
 # File containing an ordered list of packages that contain at least one Composable.
 # The file is formatted as one package per line.
 COMPOSE_PACKAGES_LIST_FILE = 'compose_packages_list.txt'
+# frameworks/support directory relative to the directory of this script
+ROOT_DIR = '../../../..'
+
+# Specify the root directories where we search for composables, relative to frameworks/support
+TARGET_DIRECTORIES = map(
+    lambda d: "{0}/{1}".format(ROOT_DIR, d),
+    [
+        'compose',
+        'navigation/navigation-compose',
+        'wear/compose',
+        'lifecycle/lifecycle-runtime-compose',
+        'xr/compose',
+    ]
+)
 
 # Reads a source file with the given file_path and adds its package to the current set of packages
 # if the file contains at least one Composable.
@@ -49,6 +64,14 @@ def extract_packages_from_directory(directory):
             if filename.endswith('.java') or filename.endswith('.kt'):
                 add_package_if_composable(os.path.join(root, filename), packages)
     return packages
+
+# Searches the given directories and returns a sorted list of all the packages that contain
+# Composable functions.
+def sorted_packages_from_directories(directories):
+    packages = []
+    for directory in directories:
+        packages.extend(extract_packages_from_directory(directory))
+    return sorted(packages)
 
 # Verifies that the given the list of packages match the ones currently listed on the
 # compose_packages_list.txt file
@@ -94,6 +117,7 @@ def regenerate_packages_kt_file(packages):
     package = 'package androidx.compose.ui.inspection.inspector\n\n'
     imports = (
         'import androidx.annotation.VisibleForTesting\n'
+        'import androidx.collection.intSetOf\n'
         'import kotlin.math.absoluteValue\n\n'
     )
     package_name_hash_function = (
@@ -102,11 +126,12 @@ def regenerate_packages_kt_file(packages):
         '    packageName.fold(0) { hash, char -> hash * 31 + char.code }.absoluteValue\n\n'
     )
     system_packages_val = (
-        'val systemPackages = setOf(\n'
-        '    -1,\n'
+        'val systemPackages =\n'
+        '    intSetOf(\n'
+        '        -1,\n'
         '%s\n'
-        ')\n' % (
-            '\n'.join(['    packageNameHash("' + package + '"),' for package in packages])
+        '    )\n' % (
+            '\n'.join(['        packageNameHash("' + package + '"),' for package in packages])
         )
     )
     with open(kt_file, 'w') as file:
@@ -130,9 +155,7 @@ if __name__ == '__main__':
 
     # cd into directory of script
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # root should be `frameworks/support/compose/`, relative to the script directory
-    compose_root_directory = '../../..'
-    current_packages = sorted(extract_packages_from_directory(compose_root_directory))
+    current_packages = sorted_packages_from_directories(TARGET_DIRECTORIES)
 
     if args.regenerate:
         regenerate_packages_file(current_packages)

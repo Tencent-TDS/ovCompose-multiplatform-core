@@ -29,46 +29,51 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Divider
-import androidx.compose.material.RadioButton
-import androidx.compose.material.RadioButtonDefaults
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.catalog.library.R
 import androidx.compose.material3.catalog.library.model.ColorMode
+import androidx.compose.material3.catalog.library.model.ExpressiveThemeMode
 import androidx.compose.material3.catalog.library.model.FontScaleMode
 import androidx.compose.material3.catalog.library.model.MaxFontScale
 import androidx.compose.material3.catalog.library.model.MinFontScale
 import androidx.compose.material3.catalog.library.model.TextDirection
 import androidx.compose.material3.catalog.library.model.Theme
-import androidx.compose.material3.catalog.library.model.ThemeMode
+import androidx.compose.material3.catalog.library.model.ThemeColorMode
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ThemePicker(
-    theme: Theme,
-    onThemeChange: (theme: Theme) -> Unit
-) {
+fun ThemePicker(theme: Theme, onThemeChange: (theme: Theme) -> Unit) {
+    val openExpressiveDialog = remember { mutableStateOf(false) }
+    val expressiveThemeValue = remember { mutableStateOf(ExpressiveThemeMode.NonExpressive) }
+
     LazyColumn(
-        contentPadding = WindowInsets.safeDrawing
-            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
-            .add(
-                WindowInsets(
-                    top = ThemePickerPadding,
-                    bottom = ThemePickerPadding
-                )
-            )
-            .asPaddingValues(),
+        contentPadding =
+            WindowInsets.safeDrawing
+                .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+                .add(WindowInsets(top = ThemePickerPadding, bottom = ThemePickerPadding))
+                .asPaddingValues(),
         verticalArrangement = Arrangement.spacedBy(ThemePickerPadding)
     ) {
         item {
@@ -78,39 +83,34 @@ fun ThemePicker(
                 modifier = Modifier.padding(horizontal = ThemePickerPadding)
             )
             // LazyVerticalGrid can't be used within LazyColumn due to nested scrolling
-            val themeModes = ThemeMode.values()
+            val themeColorModes = ThemeColorMode.values()
             Column(
                 modifier = Modifier.padding(ThemePickerPadding),
-                verticalArrangement = Arrangement.spacedBy(ThemePickerPadding)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)) {
-                    ThemeModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        themeMode = themeModes[0],
-                        selected = themeModes[0] == theme.themeMode,
-                        onClick = { onThemeChange(theme.copy(themeMode = it)) }
+                        option = themeColorModes[0],
+                        selected = themeColorModes[0] == theme.themeColorMode,
+                        onClick = { onThemeChange(theme.copy(themeColorMode = it)) }
                     )
-                    ThemeModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        themeMode = themeModes[1],
-                        selected = themeModes[1] == theme.themeMode,
-                        onClick = { onThemeChange(theme.copy(themeMode = it)) }
+                        option = themeColorModes[1],
+                        selected = themeColorModes[1] == theme.themeColorMode,
+                        onClick = { onThemeChange(theme.copy(themeColorMode = it)) }
                     )
                 }
                 Row {
-                    ThemeModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        themeMode = themeModes[2],
-                        selected = themeModes[2] == theme.themeMode,
-                        onClick = { onThemeChange(theme.copy(themeMode = it)) }
+                        option = themeColorModes[2],
+                        selected = themeColorModes[2] == theme.themeColorMode,
+                        onClick = { onThemeChange(theme.copy(themeColorMode = it)) }
                     )
                 }
             }
-            // TODO: Replace with M3 Divider when available
-            Divider(
-                modifier = Modifier.padding(horizontal = ThemePickerPadding),
-                color = MaterialTheme.colorScheme.outline
-            )
+            HorizontalDivider(Modifier.padding(horizontal = ThemePickerPadding))
         }
         item {
             Text(
@@ -122,36 +122,32 @@ fun ThemePicker(
             val colorModes = ColorMode.values()
             Column(
                 modifier = Modifier.padding(ThemePickerPadding),
-                verticalArrangement = Arrangement.spacedBy(ThemePickerPadding)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)) {
-                    ColorModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        colorMode = colorModes[0],
+                        option = colorModes[0],
                         selected = colorModes[0] == theme.colorMode,
                         onClick = { onThemeChange(theme.copy(colorMode = it)) }
                     )
-                    ColorModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        colorMode = colorModes[1],
+                        option = colorModes[1],
                         selected = colorModes[1] == theme.colorMode,
                         onClick = { onThemeChange(theme.copy(colorMode = it)) }
                     )
                 }
                 Row {
-                    ColorModeItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        colorMode = colorModes[2],
+                        option = colorModes[2],
                         selected = colorModes[2] == theme.colorMode,
+                        enabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S,
                         onClick = { onThemeChange(theme.copy(colorMode = it)) }
                     )
                 }
             }
-            // TODO: Replace with M3 Divider when available
-            Divider(
-                modifier = Modifier.padding(horizontal = ThemePickerPadding),
-                color = MaterialTheme.colorScheme.outline
-            )
+            HorizontalDivider(Modifier.padding(horizontal = ThemePickerPadding))
         }
         item {
             Text(
@@ -163,36 +159,31 @@ fun ThemePicker(
             val textDirections = TextDirection.values()
             Column(
                 modifier = Modifier.padding(ThemePickerPadding),
-                verticalArrangement = Arrangement.spacedBy(ThemePickerPadding)
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)) {
-                    TextDirectionItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        textDirection = textDirections[0],
+                        option = textDirections[0],
                         selected = textDirections[0] == theme.textDirection,
                         onClick = { onThemeChange(theme.copy(textDirection = it)) }
                     )
-                    TextDirectionItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        textDirection = textDirections[1],
+                        option = textDirections[1],
                         selected = textDirections[1] == theme.textDirection,
                         onClick = { onThemeChange(theme.copy(textDirection = it)) }
                     )
                 }
                 Row {
-                    TextDirectionItem(
+                    RadioButtonOption(
                         modifier = Modifier.weight(1f),
-                        textDirection = textDirections[2],
+                        option = textDirections[2],
                         selected = textDirections[2] == theme.textDirection,
                         onClick = { onThemeChange(theme.copy(textDirection = it)) }
                     )
                 }
             }
-            // TODO: Replace with M3 Divider when available
-            Divider(
-                modifier = Modifier.padding(horizontal = ThemePickerPadding),
-                color = MaterialTheme.colorScheme.outline
-            )
+            HorizontalDivider(Modifier.padding(horizontal = ThemePickerPadding))
         }
         item {
             Text(
@@ -200,154 +191,147 @@ fun ThemePicker(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = ThemePickerPadding)
             )
-            Column {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)
-                ) {
-                    RadioButton(
-                        selected = theme.fontScaleMode == FontScaleMode.System,
-                        onClick = {
-                            onThemeChange(theme.copy(fontScaleMode = FontScaleMode.System))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colorScheme.primary,
-                            unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
-                    Text(
-                        text = FontScaleMode.System.label,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+            Column(
+                modifier = Modifier.padding(ThemePickerPadding),
+            ) {
+                RadioButtonOption(
+                    option = FontScaleMode.System,
+                    selected = theme.fontScaleMode == FontScaleMode.System,
+                    onClick = { onThemeChange(theme.copy(fontScaleMode = FontScaleMode.System)) }
+                )
+                RadioButtonOption(
+                    option = FontScaleMode.Custom,
+                    selected = theme.fontScaleMode == FontScaleMode.Custom,
+                    onClick = { onThemeChange(theme.copy(fontScaleMode = FontScaleMode.Custom)) }
+                )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)
-                ) {
-
-                    RadioButton(
-                        selected = theme.fontScaleMode == FontScaleMode.Custom,
-                        onClick = {
-                            onThemeChange(theme.copy(fontScaleMode = FontScaleMode.Custom))
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = MaterialTheme.colorScheme.primary,
-                            unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
-                    Text(
-                        text = FontScaleMode.Custom.label,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-
-                var fontScale by remember { mutableStateOf(theme.fontScale) }
-                FontScaleItem(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = ThemePickerPadding),
+                var fontScale by remember(theme.fontScale) { mutableFloatStateOf(theme.fontScale) }
+                CustomFontScaleSlider(
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = theme.fontScaleMode == FontScaleMode.Custom,
                     fontScale = fontScale,
                     onValueChange = { fontScale = it },
                     onValueChangeFinished = { onThemeChange(theme.copy(fontScale = fontScale)) }
                 )
             }
+            HorizontalDivider(Modifier.padding(horizontal = ThemePickerPadding))
         }
+        item {
+            Row {
+                Text(
+                    text = stringResource(id = R.string.expressive_theme_mode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier =
+                        Modifier.padding(
+                            start = ThemePickerPadding,
+                            // Align Badge closer to text
+                            end = ThemePickerPadding / 2
+                        )
+                )
+                Badge { Text(stringResource(R.string.experimental)) }
+            }
+            // LazyVerticalGrid can't be used within LazyColumn due to nested scrolling
+            val expressiveThemeModes = ExpressiveThemeMode.values()
+            Column(
+                modifier = Modifier.padding(ThemePickerPadding),
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)) {
+                    RadioButtonOption(
+                        modifier = Modifier.weight(1f),
+                        option = expressiveThemeModes[0],
+                        selected = expressiveThemeModes[0] == theme.expressiveThemeMode,
+                        onClick = {
+                            if (theme.expressiveThemeMode != it) {
+                                expressiveThemeValue.value = it
+                                openExpressiveDialog.value = true
+                            }
+                        }
+                    )
+                    RadioButtonOption(
+                        modifier = Modifier.weight(1f),
+                        option = expressiveThemeModes[1],
+                        selected = expressiveThemeModes[1] == theme.expressiveThemeMode,
+                        onClick = {
+                            if (theme.expressiveThemeMode != it) {
+                                expressiveThemeValue.value = it
+                                openExpressiveDialog.value = true
+                            }
+                        }
+                    )
+                }
+            }
+            HorizontalDivider(Modifier.padding(horizontal = ThemePickerPadding))
+        }
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(onClick = { onThemeChange(Theme()) }) {
+                    Text(text = stringResource(id = R.string.reset_all))
+                }
+            }
+        }
+    }
+    if (openExpressiveDialog.value) {
+        ExpressiveAlertDialog(
+            onDismissRequest = {
+                // Return to previous data type.
+                if (expressiveThemeValue.value == ExpressiveThemeMode.NonExpressive) {
+                    expressiveThemeValue.value = ExpressiveThemeMode.Expressive
+                } else {
+                    expressiveThemeValue.value = ExpressiveThemeMode.NonExpressive
+                }
+                openExpressiveDialog.value = false
+            },
+            onDismissButtonClick = {
+                // Return to previous data type.
+                if (expressiveThemeValue.value == ExpressiveThemeMode.NonExpressive) {
+                    expressiveThemeValue.value = ExpressiveThemeMode.Expressive
+                } else {
+                    expressiveThemeValue.value = ExpressiveThemeMode.NonExpressive
+                }
+                openExpressiveDialog.value = false
+            },
+            onConfirmButtonClick = {
+                onThemeChange(theme.copy(expressiveThemeMode = expressiveThemeValue.value))
+            }
+        )
     }
 }
 
 @Composable
-private fun ThemeModeItem(
-    modifier: Modifier = Modifier,
-    themeMode: ThemeMode,
+private fun <T> RadioButtonOption(
+    option: T,
     selected: Boolean,
-    onClick: (ThemeMode) -> Unit
+    onClick: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Row(
-        modifier = modifier,
+        modifier =
+            modifier
+                .selectable(
+                    selected = selected,
+                    enabled = enabled,
+                    onClick = { onClick(option) },
+                    role = Role.RadioButton,
+                )
+                .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)
     ) {
-        // TODO: Replace with M3 RadioButton when available
-        RadioButton(
-            selected = selected,
-            onClick = { onClick(themeMode) },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = MaterialTheme.colorScheme.primary,
-                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        )
-        Text(
-            text = themeMode.toString(),
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun ColorModeItem(
-    modifier: Modifier = Modifier,
-    colorMode: ColorMode,
-    selected: Boolean,
-    onClick: (ColorMode) -> Unit
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)
-    ) {
-        val enabled = when {
-            colorMode == ColorMode.Dynamic && Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> false
-            else -> true
-        }
-        // TODO: Replace with M3 RadioButton when available
         RadioButton(
             selected = selected,
             enabled = enabled,
-            onClick = { onClick(colorMode) },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = MaterialTheme.colorScheme.primary,
-                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
+            onClick = null,
         )
-        Text(
-            text = colorMode.label,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        Text(text = option.toString(), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
 @Composable
-private fun TextDirectionItem(
-    modifier: Modifier = Modifier,
-    textDirection: TextDirection,
-    selected: Boolean,
-    onClick: (TextDirection) -> Unit
-) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(ThemePickerPadding)
-    ) {
-        // TODO: Replace with M3 RadioButton when available
-        RadioButton(
-            selected = selected,
-            onClick = { onClick(textDirection) },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = MaterialTheme.colorScheme.primary,
-                unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        )
-        Text(
-            text = textDirection.toString(),
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun FontScaleItem(
+private fun CustomFontScaleSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean,
     fontScale: Float,
@@ -357,23 +341,39 @@ private fun FontScaleItem(
     onValueChangeFinished: () -> Unit
 ) {
     Column(modifier = modifier) {
-        // TODO: Replace with M3 Slider when available
         Slider(
             enabled = enabled,
             value = fontScale,
             onValueChange = onValueChange,
             onValueChangeFinished = onValueChangeFinished,
             valueRange = fontScaleMin..fontScaleMax,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
-            )
         )
         Text(
             text = stringResource(id = R.string.scale, fontScale),
             style = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+@Composable
+private fun ExpressiveAlertDialog(
+    onDismissRequest: () -> Unit,
+    onConfirmButtonClick: () -> Unit,
+    onDismissButtonClick: () -> Unit,
+) {
+    AlertDialog(
+        icon = { Icon(imageVector = Icons.Filled.Warning, contentDescription = null) },
+        title = { Text("Warning") },
+        text = {
+            Text(
+                "Setting a new Material theme will reset the catalog and progress will be " +
+                    "lost. Please confirm before proceeding."
+            )
+        },
+        onDismissRequest = onDismissRequest,
+        confirmButton = { Button(onClick = onConfirmButtonClick) { Text("Confirm") } },
+        dismissButton = { Button(onClick = onDismissButtonClick) { Text("Cancel") } },
+    )
 }
 
 private val ThemePickerPadding = 16.dp

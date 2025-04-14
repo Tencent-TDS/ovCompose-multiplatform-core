@@ -16,14 +16,15 @@
 
 package androidx.appsearch.localstorage.visibilitystore;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /**
  * Contains attributes of an API caller relevant to its access via visibility store.
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class CallerAccess {
@@ -39,15 +40,23 @@ public class CallerAccess {
     }
 
     /** Returns the name of the package which wants to access data. */
-    @NonNull
-    public String getCallingPackageName() {
+    public @NonNull String getCallingPackageName() {
         return mCallingPackageName;
+    }
+
+    /** Returns whether the caller should have default access to data in its own package. */
+    public boolean doesCallerHaveSelfAccess() {
+        return true;
     }
 
     @Override
     public boolean equals(@Nullable Object o) {
-        if (this == o) return true;
-        if (!(o instanceof CallerAccess)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof CallerAccess)) {
+            return false;
+        }
         CallerAccess that = (CallerAccess) o;
         return mCallingPackageName.equals(that.mCallingPackageName);
     }

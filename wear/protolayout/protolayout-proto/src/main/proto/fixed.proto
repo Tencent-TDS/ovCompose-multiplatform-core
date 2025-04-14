@@ -21,7 +21,8 @@ message FixedString {
 
 // A fixed float type.
 message FixedFloat {
-  // The value.
+  // The value. Note that a NAN value is considered invalid and any expression
+  // with this node will have an invalid value.
   float value = 1;
 }
 
@@ -42,4 +43,10 @@ message FixedInstant {
   // The number of seconds that have elapsed since 00:00:00 UTC on 1 January
   // 1970.
   int64 epoch_seconds = 1;
+}
+
+// A fixed duration type.
+message FixedDuration {
+  // Duration in seconds
+  int64 seconds = 1;
 }

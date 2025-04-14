@@ -23,10 +23,11 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager.widget.PagerAdapter;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -54,18 +55,18 @@ import java.util.ArrayList;
  * <p>Here is an example implementation of a pager containing fragments of
  * lists:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/java/com/example/android/supportv4/app/FragmentStatePagerSupport.java
+ * {@sample samples/Support4Demos/src/main/java/com/example/android/supportv4/app/FragmentStatePagerSupport.java
  *      complete}
  *
  * <p>The <code>R.layout.fragment_pager</code> resource of the top-level fragment is:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/res/layout/fragment_pager.xml
+ * {@sample samples/Support4Demos/src/main/res/layout/fragment_pager.xml
  *      complete}
  *
  * <p>The <code>R.layout.fragment_pager_list</code> resource containing each
  * individual fragment's layout is:
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/res/layout/fragment_pager_list.xml
+ * {@sample samples/Support4Demos/src/main/res/layout/fragment_pager_list.xml
  *      complete}
  *
  * @deprecated Switch to {@link androidx.viewpager2.widget.ViewPager2} and use
@@ -150,8 +151,7 @@ public abstract class FragmentStatePagerAdapter extends PagerAdapter {
     /**
      * Return the Fragment associated with a specified position.
      */
-    @NonNull
-    public abstract Fragment getItem(int position);
+    public abstract @NonNull Fragment getItem(int position);
 
     @Override
     public void startUpdate(@NonNull ViewGroup container) {
@@ -162,9 +162,8 @@ public abstract class FragmentStatePagerAdapter extends PagerAdapter {
     }
 
     @SuppressWarnings("deprecation")
-    @NonNull
     @Override
-    public Object instantiateItem(@NonNull ViewGroup container, int position) {
+    public @NonNull Object instantiateItem(@NonNull ViewGroup container, int position) {
         // If we already have this item instantiated, there is nothing
         // to do.  This can happen when we are restoring the entire pager
         // from its saved state, where the fragment manager has already
@@ -286,8 +285,7 @@ public abstract class FragmentStatePagerAdapter extends PagerAdapter {
     }
 
     @Override
-    @Nullable
-    public Parcelable saveState() {
+    public @Nullable Parcelable saveState() {
         Bundle state = null;
         if (mSavedState.size() > 0) {
             state = new Bundle();

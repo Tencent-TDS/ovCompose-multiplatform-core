@@ -20,6 +20,10 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.UiThread;
 import androidx.annotation.VisibleForTesting;
 
+import org.jspecify.annotations.NonNull;
+
+import java.util.List;
+
 /**
  * An object representing a dynamic type that is being prepared for evaluation by {@link
  * DynamicTypeEvaluator#bind}.
@@ -43,19 +47,15 @@ public interface BoundDynamicType extends AutoCloseable {
     /**
      * Sets the visibility to all animations in this dynamic type. They can be triggered when
      * visible.
-     *
      */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     void setAnimationVisibility(boolean visible);
 
-    /**
-     * Returns the number of currently running animations in this dynamic type.
-     *
-     */
+    /** Returns the number of currently running animations in this dynamic type. */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    @VisibleForTesting
     int getRunningAnimationCount();
 
     /** Destroys this dynamic type and it shouldn't be used after this. */
@@ -63,12 +63,28 @@ public interface BoundDynamicType extends AutoCloseable {
     @Override
     void close();
 
+    /** Returns the number of dynamic nodes that this dynamic type contains. */
+    @UiThread
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @VisibleForTesting
+    int getDynamicNodeCount();
+
     /**
-     * Returns the number of dynamic nodes that this dynamic type contains.
-     *
+     * Returns the cost of dynamic nodes that this dynamic type contains. See {@link
+     * DynamicDataNode#getCost()} for more details on node cost.
      */
     @UiThread
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
-    int getDynamicNodeCount();
+    @VisibleForTesting
+    int getDynamicNodeCost();
+
+    /**
+     * Retrieves a list of {@link DynamicTypeAnimator} objects associated with this dynamic type.
+     *
+     * @return A list of {@link DynamicTypeAnimator} objects representing animations within this
+     *     layout. The list may be empty if there are no animations.
+     *     <p>This method is intended for internal use by ui-tooling libraries
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @NonNull List<DynamicTypeAnimator> getAnimations();
 }

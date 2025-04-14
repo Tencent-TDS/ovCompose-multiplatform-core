@@ -16,6 +16,7 @@
 
 package androidx.wear.watchface.style
 
+import android.annotation.SuppressLint
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
 import android.graphics.drawable.Icon
@@ -24,6 +25,7 @@ import androidx.annotation.RestrictTo
 import androidx.wear.watchface.complications.IllegalNodeException
 import androidx.wear.watchface.complications.iterate
 import androidx.wear.watchface.style.UserStyleSetting.ComplicationSlotsUserStyleSetting.ComplicationSlotsOption
+import androidx.wear.watchface.style.UserStyleSetting.LargeCustomValueUserStyleSetting.Companion.CUSTOM_VALUE_USER_STYLE_SETTING_ID
 import androidx.wear.watchface.style.UserStyleSetting.Option
 import androidx.wear.watchface.style.data.UserStyleSchemaWireFormat
 import androidx.wear.watchface.style.data.UserStyleWireFormat
@@ -50,11 +52,18 @@ import org.xmlpull.v1.XmlPullParserException
  * To modify the user style, you should call [toMutableUserStyle] and construct a new [UserStyle]
  * instance with [MutableUserStyle.toUserStyle].
  *
+ * @deprecated use Watch Face Format instead
+ */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
+public class UserStyle
+/**
  * @param selectedOptions The [UserStyleSetting.Option] selected for each [UserStyleSetting]
  * @param copySelectedOptions Whether to create a copy of the provided [selectedOptions]. If
  *   `false`, no mutable copy of the [selectedOptions] map should be retained outside this class.
  */
-public class UserStyle
 private constructor(
     selectedOptions: Map<UserStyleSetting, UserStyleSetting.Option>,
     copySelectedOptions: Boolean
@@ -70,6 +79,8 @@ private constructor(
      *
      * A copy of the [selectedOptions] map will be created, so that changed to the map will not be
      * reflected by this object.
+     *
+     * @param selectedOptions The [UserStyleSetting.Option] selected for each [UserStyleSetting]
      */
     public constructor(
         selectedOptions: Map<UserStyleSetting, UserStyleSetting.Option>
@@ -234,7 +245,15 @@ private constructor(
     override fun isEmpty(): Boolean = selectedOptions.isEmpty()
 }
 
-/** A mutable [UserStyle]. This must be converted back to a [UserStyle] by calling [toUserStyle]. */
+/**
+ * A mutable [UserStyle]. This must be converted back to a [UserStyle] by calling [toUserStyle].
+ *
+ * @deprecated use Watch Face Format instead
+ */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class MutableUserStyle internal constructor(userStyle: UserStyle) :
     Iterable<Map.Entry<UserStyleSetting, UserStyleSetting.Option>> {
     /** The map from the available settings and the selected option. */
@@ -367,7 +386,13 @@ public class MutableUserStyle internal constructor(userStyle: UserStyle) :
 /**
  * A form of [UserStyle] which is easy to serialize. This is intended for use by the watch face
  * clients and the editor where we can't practically use [UserStyle] due to its limitations.
+ *
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class UserStyleData(public val userStyleMap: Map<String, ByteArray>) {
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public constructor(userStyle: UserStyleWireFormat) : this(userStyle.mUserStyle)
@@ -376,10 +401,20 @@ public class UserStyleData(public val userStyleMap: Map<String, ByteArray>) {
         "{" +
             userStyleMap.entries.joinToString(
                 transform = {
-                    try {
-                        it.key + "=" + it.value.decodeToString()
-                    } catch (e: Exception) {
-                        it.key + "=" + it.value
+                    when (it.key) {
+                        /**
+                         * For CustomValueUserStyleSetting and LargeCustomValueUserStyleSetting, we
+                         * display only the length of the value. These style settings is always use
+                         * the same key (CustomValue).
+                         */
+                        CUSTOM_VALUE_USER_STYLE_SETTING_ID ->
+                            it.key + "=[binary data, length: ${it.value.size}]"
+                        else ->
+                            try {
+                                it.key + "=" + it.value.decodeToString()
+                            } catch (e: Exception) {
+                                it.key + "=" + it.value
+                            }
                     }
                 }
             ) +
@@ -420,11 +455,16 @@ public class UserStyleData(public val userStyleMap: Map<String, ByteArray>) {
  *
  * @param userStyleSettings The user configurable style categories associated with this watch face.
  *   Empty if the watch face doesn't support user styling. Note we allow at most one
- *   [UserStyleSetting.CustomValueUserStyleSetting] in the list. Prior to android T ot most one
+ *   [UserStyleSetting.CustomValueUserStyleSetting] in the list. Prior to android T at most one
  *   [UserStyleSetting.ComplicationSlotsUserStyleSetting] is allowed, however from android T it's
  *   possible with hierarchical styles for there to be more than one, but at most one can be active
  *   at any given time.
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSetting>) {
     public val userStyleSettings = userStyleSettings
         @Deprecated("use rootUserStyleSettings instead") get
@@ -432,10 +472,10 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
     /** For use with hierarchical schemas, lists all the settings with no parent [Option]. */
     public val rootUserStyleSettings by lazy { userStyleSettings.filter { !it.hasParent } }
 
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     companion object {
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         @Throws(IOException::class, XmlPullParserException::class)
+        @SuppressLint("NewApi") // ColorUserStyleSetting
         fun inflate(
             resources: Resources,
             parser: XmlResourceParser,
@@ -453,6 +493,14 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
                     "BooleanUserStyleSetting" ->
                         userStyleSettings.add(
                             UserStyleSetting.BooleanUserStyleSetting.inflate(resources, parser)
+                        )
+                    "ColorUserStyleSetting" ->
+                        userStyleSettings.add(
+                            UserStyleSetting.ColorUserStyleSetting.inflate(
+                                resources,
+                                parser,
+                                idToSetting
+                            )
                         )
                     "ComplicationSlotsUserStyleSetting" ->
                         userStyleSettings.add(
@@ -530,7 +578,7 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
                     complicationSlotsUserStyleSettingCount++
                 is UserStyleSetting.CustomValueUserStyleSetting ->
                     customValueUserStyleSettingCount++
-                is UserStyleSetting.CustomValueUserStyleSetting2 ->
+                is UserStyleSetting.LargeCustomValueUserStyleSetting ->
                     customValueUserStyleSettingCount++
                 else -> {
                     // Nothing
@@ -705,7 +753,12 @@ public class UserStyleSchema constructor(userStyleSettings: List<UserStyleSettin
  *
  * @param schema The [UserStyleSchema] for this CurrentUserStyleRepository which describes the
  *   available style categories.
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class CurrentUserStyleRepository(public val schema: UserStyleSchema) {
     // Mutable backing field for [userStyle].
     private val mutableUserStyle = MutableStateFlow(schema.getDefaultUserStyle())
@@ -716,14 +769,20 @@ public class CurrentUserStyleRepository(public val schema: UserStyleSchema) {
      */
     public val userStyle: StateFlow<UserStyle> by CurrentUserStyleRepository::mutableUserStyle
 
-    /**
-     * The UserStyle options must be from the supplied [UserStyleSchema].
-     *
-     */
+    /** The UserStyle options must be from the supplied [UserStyleSchema]. */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public fun updateUserStyle(newUserStyle: UserStyle) {
         validateUserStyle(newUserStyle)
         mutableUserStyle.value = newUserStyle
+    }
+
+    /** Sets the user style, and returns a restoration function. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public fun updateUserStyleForScreenshot(newUserStyle: UserStyle): AutoCloseable {
+        val originalStyle = userStyle.value
+        updateUserStyle(newUserStyle)
+        // Avoid overwriting a change made by someone else.
+        return AutoCloseable { mutableUserStyle.compareAndSet(newUserStyle, originalStyle) }
     }
 
     @Suppress("Deprecation") // userStyleSettings

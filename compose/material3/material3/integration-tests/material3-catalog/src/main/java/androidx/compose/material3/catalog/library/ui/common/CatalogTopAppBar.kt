@@ -18,15 +18,18 @@ package androidx.compose.material3.catalog.library.ui.common
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.Divider
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -37,8 +40,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextOverflow
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,6 +55,8 @@ fun CatalogTopAppBar(
     showBackNavigationIcon: Boolean = false,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     onBackClick: () -> Unit = {},
+    favorite: Boolean = false,
+    onFavoriteClick: () -> Unit = {},
     onThemeClick: () -> Unit = {},
     onGuidelinesClick: () -> Unit = {},
     onDocsClick: () -> Unit = {},
@@ -59,6 +68,11 @@ fun CatalogTopAppBar(
 ) {
     var moreMenuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
+        modifier =
+            Modifier.semantics {
+                traversalIndex = -2f
+                isTraversalGroup = true
+            },
         title = {
             Text(
                 text = title,
@@ -69,16 +83,26 @@ fun CatalogTopAppBar(
         actions = {
             Box {
                 Row {
+                    IconButton(onClick = onFavoriteClick) {
+                        Icon(
+                            imageVector =
+                                if (favorite) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            tint =
+                                if (favorite) MaterialTheme.colorScheme.primary
+                                else LocalContentColor.current,
+                            contentDescription = stringResource(id = R.string.favorite_button)
+                        )
+                    }
                     IconButton(onClick = onThemeClick) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_palette_24dp),
-                            contentDescription = null
+                            contentDescription = stringResource(id = R.string.change_theme_button)
                         )
                     }
                     IconButton(onClick = { moreMenuExpanded = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
+                            contentDescription = stringResource(id = R.string.more_menu_button)
                         )
                     }
                 }
@@ -120,8 +144,8 @@ fun CatalogTopAppBar(
             if (showBackNavigationIcon) {
                 IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = null
+                        imageVector = Icons.AutoMirrored.Default.ArrowBack,
+                        contentDescription = stringResource(id = R.string.back_button)
                     )
                 }
             }
@@ -142,33 +166,36 @@ private fun MoreMenu(
     onPrivacyClick: () -> Unit,
     onLicensesClick: () -> Unit,
 ) {
-    // TODO: Replace with M3 DropdownMenu, DropdownMenuItem and Divider when available
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismissRequest
-    ) {
-        DropdownMenuItem(onClick = onGuidelinesClick) {
-            Text(stringResource(id = R.string.view_design_guidelines))
-        }
-        DropdownMenuItem(onClick = onDocsClick) {
-            Text(stringResource(id = R.string.view_developer_docs))
-        }
-        DropdownMenuItem(onClick = onSourceClick) {
-            Text(stringResource(id = R.string.view_source_code))
-        }
-        Divider(color = MaterialTheme.colorScheme.outline)
-        DropdownMenuItem(onClick = onIssueClick) {
-            Text(stringResource(id = R.string.report_an_issue))
-        }
-        Divider(color = MaterialTheme.colorScheme.outline)
-        DropdownMenuItem(onClick = onTermsClick) {
-            Text(stringResource(id = R.string.terms_of_service))
-        }
-        DropdownMenuItem(onClick = onPrivacyClick) {
-            Text(stringResource(id = R.string.privacy_policy))
-        }
-        DropdownMenuItem(onClick = onLicensesClick) {
-            Text(stringResource(id = R.string.open_source_licenses))
-        }
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismissRequest) {
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.view_design_guidelines)) },
+            onClick = onGuidelinesClick
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.view_developer_docs)) },
+            onClick = onDocsClick
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.view_source_code)) },
+            onClick = onSourceClick
+        )
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.report_an_issue)) },
+            onClick = onIssueClick
+        )
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.terms_of_service)) },
+            onClick = onTermsClick
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.privacy_policy)) },
+            onClick = onPrivacyClick
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(id = R.string.open_source_licenses)) },
+            onClick = onLicensesClick
+        )
     }
 }

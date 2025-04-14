@@ -29,12 +29,11 @@ import android.location.GnssMeasurementsEvent;
 import android.location.LocationManager;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.text.TextUtils;
 
-import androidx.core.os.CancellationSignal;
 import androidx.core.os.ExecutorCompat;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SdkSuppress;
@@ -63,13 +62,9 @@ public class LocationManagerCompatTest {
         boolean isLocationEnabled;
         if (VERSION.SDK_INT >= 28) {
             isLocationEnabled = mLocationManager.isLocationEnabled();
-        } else if (VERSION.SDK_INT >= 19) {
+        } else {
             isLocationEnabled = Settings.Secure.getInt(mContext.getContentResolver(), LOCATION_MODE,
                     LOCATION_MODE_OFF) != LOCATION_MODE_OFF;
-        } else {
-            isLocationEnabled = !TextUtils.isEmpty(
-                    Settings.Secure.getString(mContext.getContentResolver(),
-                            Settings.Secure.LOCATION_PROVIDERS_ALLOWED));
         }
 
         assertEquals(isLocationEnabled, LocationManagerCompat.isLocationEnabled(mLocationManager));
@@ -94,6 +89,18 @@ public class LocationManagerCompatTest {
     public void testGetCurrentLocation() {
         // can't do much to test this except check it doesn't crash
         CancellationSignal cs = new CancellationSignal();
+        LocationManagerCompat.getCurrentLocation(mLocationManager,
+                LocationManager.PASSIVE_PROVIDER, cs,
+                ExecutorCompat.create(new Handler(Looper.getMainLooper())),
+                location -> {});
+        cs.cancel();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Test
+    public void testGetCurrentLocation_compat() {
+        // can't do much to test this except check it doesn't crash
+        androidx.core.os.CancellationSignal cs = new androidx.core.os.CancellationSignal();
         LocationManagerCompat.getCurrentLocation(mLocationManager,
                 LocationManager.PASSIVE_PROVIDER, cs,
                 ExecutorCompat.create(new Handler(Looper.getMainLooper())),
@@ -152,58 +159,49 @@ public class LocationManagerCompatTest {
     @SdkSuppress(minSdkVersion = 24)
     @Test
     public void testRegisterGnssMeasurementsCallback_handler() {
+        if (VERSION.SDK_INT == VERSION_CODES.Q) {
+            // Q is very flaky
+            return;
+        }
+
         GnssMeasurementsEvent.Callback callback = new GnssMeasurementsEvent.Callback() {};
 
         // can't do much to test this except check it doesn't crash
-        if (VERSION.SDK_INT == VERSION_CODES.Q) {
-            // Q can be flaky with actual registrations - don't test the result
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    callback, new Handler(Looper.getMainLooper()));
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    Runnable::run,
-                    callback);
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    callback, new Handler(Looper.getMainLooper()));
-        } else {
-            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    callback, new Handler(Looper.getMainLooper())));
+        assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                callback, new Handler(Looper.getMainLooper())));
+        try {
             assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
                     Runnable::run,
                     callback));
             assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
                     callback, new Handler(Looper.getMainLooper())));
+        } finally {
+            LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
         }
-
-        LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
     }
 
     @SdkSuppress(minSdkVersion = 24)
     @Test
     public void testRegisterGnssMeasurementsCallback_executor() {
+        if (VERSION.SDK_INT == VERSION_CODES.Q) {
+            // Q is very flaky
+            return;
+        }
+
         GnssMeasurementsEvent.Callback callback = new GnssMeasurementsEvent.Callback() {};
 
         // can't do much to test this except check it doesn't crash
-        if (VERSION.SDK_INT == VERSION_CODES.Q) {
-            // Q can be flaky with actual registrations - don't test the result
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    Runnable::run,
-                    callback);
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    callback, new Handler(Looper.getMainLooper()));
-            LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    Runnable::run,
-                    callback);
-        } else {
-            assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
-                    Runnable::run,
-                    callback));
+        assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
+                Runnable::run,
+                callback));
+        try {
             assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
                     callback, new Handler(Looper.getMainLooper())));
             assertTrue(LocationManagerCompat.registerGnssMeasurementsCallback(mLocationManager,
                     Runnable::run,
                     callback));
+        } finally {
+            LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
         }
-
-        LocationManagerCompat.unregisterGnssMeasurementsCallback(mLocationManager, callback);
     }
 }

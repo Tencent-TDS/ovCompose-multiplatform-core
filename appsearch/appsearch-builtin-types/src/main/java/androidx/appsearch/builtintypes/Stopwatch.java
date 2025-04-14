@@ -17,17 +17,18 @@
 package androidx.appsearch.builtintypes;
 
 import android.content.Context;
-import android.os.Build;
 import android.os.SystemClock;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.utils.BootCountUtil;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -41,7 +42,7 @@ import java.util.List;
  */
 @Document(name = "builtin:Stopwatch")
 public class Stopwatch extends Thing {
-    /** @hide */
+    /** @exportToFramework:hide */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef({STATUS_UNKNOWN, STATUS_RESET, STATUS_RUNNING, STATUS_PAUSED})
     @Retention(RetentionPolicy.SOURCE)
@@ -74,14 +75,16 @@ public class Stopwatch extends Thing {
     @Document.DocumentProperty
     private final List<StopwatchLap> mLaps;
 
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     Stopwatch(@NonNull String namespace, @NonNull String id, int documentScore,
             long creationTimestampMillis, long documentTtlMillis, @Nullable String name,
             @Nullable List<String> alternateNames, @Nullable String description,
-            @Nullable String image, @Nullable String url, long baseTimeMillis,
-            long baseTimeMillisInElapsedRealtime, int bootCount, int status,
+            @Nullable String image, @Nullable String url,
+            @NonNull List<PotentialAction> potentialActions,
+            long baseTimeMillis, long baseTimeMillisInElapsedRealtime, int bootCount, int status,
             long accumulatedDurationMillis, @NonNull List<StopwatchLap> laps) {
         super(namespace, id, documentScore, creationTimestampMillis, documentTtlMillis, name,
-                alternateNames, description, image, url);
+                alternateNames, description, image, url, potentialActions);
         mBaseTimeMillis = baseTimeMillis;
         mBaseTimeMillisInElapsedRealtime = baseTimeMillisInElapsedRealtime;
         mBootCount = bootCount;
@@ -147,8 +150,7 @@ public class Stopwatch extends Thing {
     }
 
     /** Returns all the {@link StopwatchLap} instances. */
-    @NonNull
-    public List<StopwatchLap> getLaps() {
+    public @NonNull List<StopwatchLap> getLaps() {
         return mLaps;
     }
 
@@ -161,7 +163,6 @@ public class Stopwatch extends Thing {
      * in the {@link System#currentTimeMillis()} time base. Otherwise return
      * {@link #getBaseTimeMillis()}.
      */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public long calculateBaseTimeMillis(@NonNull Context context) {
         int currentBootCount = BootCountUtil.getCurrentBootCount(context);
         if (currentBootCount == -1 || currentBootCount != mBootCount) {
@@ -183,7 +184,6 @@ public class Stopwatch extends Thing {
      * {@link #getAccumulatedDurationMillis()} to get the static accumulated time stored in the
      * document.
      */
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     public long calculateCurrentAccumulatedDurationMillis(@NonNull Context context) {
         if (mStatus == STATUS_PAUSED || mStatus == STATUS_RESET) {
             return mAccumulatedDurationMillis;
@@ -255,8 +255,7 @@ public class Stopwatch extends Thing {
          * @param bootCount The current boot count of the device. See
          * {@link android.provider.Settings.Global#BOOT_COUNT}.
          */
-        @NonNull
-        public T setBaseTimeMillis(long baseTimeMillis,
+        public @NonNull T setBaseTimeMillis(long baseTimeMillis,
                 long baseTimeMillisInElapsedRealtime, int bootCount) {
             mBaseTimeMillis = baseTimeMillis;
             mBaseTimeMillisInElapsedRealtime = baseTimeMillisInElapsedRealtime;
@@ -275,9 +274,7 @@ public class Stopwatch extends Thing {
          * @param baseTimeMillisInElapsedRealtime The base time in milliseconds using the
          * {@link android.os.SystemClock#elapsedRealtime()} time base.
          */
-        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
-        @NonNull
-        public T setBaseTimeMillis(@NonNull Context context, long baseTimeMillis,
+        public @NonNull T setBaseTimeMillis(@NonNull Context context, long baseTimeMillis,
                 long baseTimeMillisInElapsedRealtime) {
             int bootCount = BootCountUtil.getCurrentBootCount(context);
             return setBaseTimeMillis(baseTimeMillis, baseTimeMillisInElapsedRealtime, bootCount);
@@ -289,8 +286,7 @@ public class Stopwatch extends Thing {
          * <p>Status can be {@link Stopwatch#STATUS_UNKNOWN}, {@link Stopwatch#STATUS_RESET},
          * {@link Stopwatch#STATUS_RUNNING}, or {@link Stopwatch#STATUS_PAUSED}.
          */
-        @NonNull
-        public T setStatus(@Status int status) {
+        public @NonNull T setStatus(@Status int status) {
             mStatus = Preconditions.checkArgumentInRange(status, STATUS_UNKNOWN, STATUS_PAUSED,
                     "status");
             return (T) this;
@@ -299,25 +295,23 @@ public class Stopwatch extends Thing {
         /**
          * Sets the total duration in milliseconds accumulated by the {@link Stopwatch}.
          */
-        @NonNull
-        public T setAccumulatedDurationMillis(long accumulatedDurationMillis) {
+        public @NonNull T setAccumulatedDurationMillis(long accumulatedDurationMillis) {
             mAccumulatedDurationMillis = accumulatedDurationMillis;
             return (T) this;
         }
 
         /** Sets all the {@link StopwatchLap} instances. */
-        @NonNull
-        public T setLaps(@NonNull List<StopwatchLap> laps) {
+        public @NonNull T setLaps(@NonNull List<StopwatchLap> laps) {
             mLaps = Preconditions.checkNotNull(laps);
             return (T) this;
         }
 
         /** Builds the {@link Stopwatch}. */
-        @NonNull
         @Override
-        public Stopwatch build() {
+        public @NonNull Stopwatch build() {
             return new Stopwatch(mNamespace, mId, mDocumentScore, mCreationTimestampMillis,
                     mDocumentTtlMillis, mName, mAlternateNames, mDescription, mImage, mUrl,
+                    mPotentialActions,
                     mBaseTimeMillis, mBaseTimeMillisInElapsedRealtime, mBootCount, mStatus,
                     mAccumulatedDurationMillis, mLaps);
         }

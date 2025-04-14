@@ -23,6 +23,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import androidx.core.util.Pair;
+
+import java.util.List;
+
 /**
  * RV specific layout tests.
  */
@@ -165,15 +169,39 @@ class TouchUtils {
     }
 
     static void scrollView(int axis, int axisValue, int inputDevice, View v) {
-        MotionEvent.PointerProperties[] pointerProperties = {new MotionEvent.PointerProperties()};
-        MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
-        coords.setAxisValue(axis, axisValue);
-        MotionEvent.PointerCoords[] pointerCoords = {coords};
-        MotionEvent e = MotionEvent.obtain(
-                0, System.currentTimeMillis(), MotionEvent.ACTION_SCROLL,
-                1, pointerProperties, pointerCoords, 0, 0, 1, 1, 0, 0, inputDevice, 0);
+        MotionEvent e = createMotionEvent(/* inputDeviceId= */ 0, inputDevice, axis, axisValue);
         v.onGenericMotionEvent(e);
         e.recycle();
+    }
+
+    /** Creates a {@link MotionEvent} with provided input and motion values. */
+    static MotionEvent createMotionEvent(
+            int inputDeviceId, int inputSource, int axis, int axisValue) {
+        return createMotionEvent(
+                inputDeviceId, inputSource, MotionEvent.ACTION_SCROLL,
+                List.of(Pair.create(axis, axisValue)));
+    }
+
+    /**
+     * Creates a {@link MotionEvent} with provided input and motion values.
+     *
+     * <p>Allows passing values for multiple axes. Each axis value is represented as a
+     * {@link Pair} of the axis and the respective axis value.
+     */
+    static MotionEvent createMotionEvent(
+            int inputDeviceId, int inputSource, int action,
+            List<Pair<Integer, Integer>> axisValues) {
+        MotionEvent.PointerProperties props = new MotionEvent.PointerProperties();
+        props.id = 0;
+        MotionEvent.PointerProperties[] pointerProperties = {props};
+        MotionEvent.PointerCoords coords = new MotionEvent.PointerCoords();
+        for (Pair<Integer, Integer> axisValue : axisValues) {
+            coords.setAxisValue(axisValue.first, axisValue.second);
+        }
+        MotionEvent.PointerCoords[] pointerCoords = {coords};
+        return MotionEvent.obtain(
+                0, System.currentTimeMillis(), action,
+                1, pointerProperties, pointerCoords, 0, 0, 1, 1, inputDeviceId, 0, inputSource, 0);
     }
 
     static void dragViewToTop(Instrumentation inst, View v) {
@@ -313,6 +341,11 @@ class TouchUtils {
             event = MotionEvent.obtain(downTime, eventTime, MotionEvent.ACTION_MOVE, x, y, 0);
             inst.sendPointerSync(event);
         }
+
+        // Dwell at the end, because this is a drag, not a fling
+        eventTime += 500;
+        event = MotionEvent.obtain(downTime, eventTime, MotionEvent.ACTION_MOVE, x, y, 0);
+        inst.sendPointerSync(event);
         eventTime++;
         event = MotionEvent.obtain(downTime, eventTime, MotionEvent.ACTION_UP, x, y, 0);
         inst.sendPointerSync(event);

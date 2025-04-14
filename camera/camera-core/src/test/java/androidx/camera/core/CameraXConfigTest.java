@@ -25,6 +25,7 @@ import android.util.Log;
 
 import androidx.camera.core.impl.CameraDeviceSurfaceManager;
 import androidx.camera.core.impl.CameraFactory;
+import androidx.camera.core.impl.QuirkSettings;
 import androidx.camera.testing.fakes.FakeAppConfig;
 
 import org.junit.Before;
@@ -104,5 +105,34 @@ public class CameraXConfigTest {
                 .setAvailableCamerasLimiter(cameraSelector)
                 .build();
         assertThat(cameraXConfig.getAvailableCamerasLimiter(null)).isEqualTo(cameraSelector);
+    }
+
+    @Test
+    public void canGetCameraOpenRetryMaxTimeoutInMsWhileOccupied() {
+        CameraXConfig cameraXConfig = new CameraXConfig.Builder()
+                .setCameraOpenRetryMaxTimeoutInMillisWhileResuming(1000L)
+                .build();
+
+        assertThat(cameraXConfig.getCameraOpenRetryMaxTimeoutInMillisWhileResuming())
+                .isEqualTo(1000L);
+    }
+
+    @Test
+    public void canGetInitRetryPolicy() {
+        CameraXConfig cameraXConfig = new CameraXConfig.Builder()
+                .setCameraProviderInitRetryPolicy(RetryPolicy.RETRY_UNAVAILABLE_CAMERA)
+                .build();
+
+        assertThat(cameraXConfig.getCameraProviderInitRetryPolicy())
+                .isEqualTo(RetryPolicy.RETRY_UNAVAILABLE_CAMERA);
+    }
+
+    @Test
+    public void canSetGetQuirkSettings() {
+        QuirkSettings quirkSettings = QuirkSettings.withAllQuirksDisabled();
+        CameraXConfig cameraXConfig = new CameraXConfig.Builder()
+                .setQuirkSettings(quirkSettings)
+                .build();
+        assertThat(cameraXConfig.getQuirkSettings()).isSameInstanceAs(quirkSettings);
     }
 }

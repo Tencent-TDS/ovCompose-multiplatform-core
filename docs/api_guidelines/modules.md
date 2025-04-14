@@ -40,6 +40,45 @@ sidecars) that ship on-device and are referenced via the `<uses-library>` tag
 should follow the naming convention `com.android.extensions.<feature-name>` to
 avoid placing `androidx`-packaged code in the platform's boot classpath.
 
+#### Maven name and description
+
+The `name` and `description` fields of the `androidx` configuration block are
+used to generate Maven artifact metadata, which is displayed on the artifact's
+maven.google.com entry and d.android.com landing page.
+
+```
+androidx {
+    name = "WorkManager Kotlin Extensions"
+    description = "Kotlin-friendly extensions for WorkManager."
+}
+```
+
+The name should be a human-readable, title-cased representation of the
+artifact's Maven coordinate. All components of the name **must** appear in the
+artifact's Maven group or artifact ID, with some exceptions:
+
+-   Marketing names may be shortened when used in the Maven group or artifact
+    ID, ex. "WorkManager" as `work`, "Android for Cars" as `car`, or "Kotlin
+    Extensions" as `ktx`
+-   Long (>10 character) words may be truncated to a short (>5 character) prefix
+-   Pluralization may be changed, ex. "Views" as `view`
+-   The following descriptive terms may appear in the name:
+    -   "extension(s)"
+    -   "for"
+    -   "integration"
+    -   "with"
+
+**Do not** use the following terms in the name:
+
+-   "AndroidX"
+-   "Library"
+-   "Implementation"
+
+The description should be a single phrase that completes the sentence, "This
+library provides ...". This phrase should provide enough description that a
+developer can decide whether they might want to learn more about using your
+library. **Do not** simply repeat the name of the library.
+
 #### Project directory structure {#module-structure}
 
 Libraries developed in AndroidX follow a consistent project naming and directory
@@ -82,13 +121,24 @@ available in our repo.
 It will create a new project with the proper structure and configuration based
 on your project needs!
 
-To use it:
+To use it, first install the virtualenv if it is not already installed
+
+*   (Linux) `sudo apt-get install virtualenv python3-venv`
+*   (Mac) `pip3 install virtualenv`
+*   (Mac homebrew) `brew install virtualenv`
+
+Then run the script:
 
 ```sh
 cd ~/androidx-main/frameworks/support && \
-cd development/project-creator && \
-./create_project.py androidx.foo foo-bar
+./development/project-creator/create_project.sh androidx.foo foo-bar
 ```
+
+If the module you are creating is an application (not a library), such as you
+might want for integration-tests, edit the project's `build.gradle` file and
+replace the plugin `id("com.android.library")` with
+`id("com.android.application")`. This allows you to run activities in that
+module from within Android Studio.
 
 If you are creating an unpublished module such as an integration test app with \
 the project creator script, it may not make sense to follow the same naming \
@@ -96,28 +146,6 @@ conventions as published libraries. In this situation it is safe to comment out
 \
 the `artifact_id` validation from the script or rename the module after it has \
 been created.
-
-If you see an error message `No module named 'toml'` try the following steps.
-
-*   Install necessary tools if they are not already installed
-    *   (Linux) `sudo apt-get install virtualenv python3-venv`
-    *   (Mac) `pip3 install virtualenv`
-*   Create a virtual environment with `virtualenv androidx_project_creator` (you
-    can choose another name for your virtualenv if you wish).
-*   Install the `toml` library in your virtual env with
-    `androidx_project_creator/bin/pip3 install toml`
-*   Run the project creator script from your virtual env with
-    `androidx_project_creator/bin/python3
-    ../../development/project-creator/create_project.py androidx.foo foo-bar`
-*   Delete your virtual env with `rm -rf ./androidx-project_creator`
-    *   virtualenv will automatically .gitignore itself, but you may want to to
-        remove it anyway.
-
-Note: if the module you are creating is an application (not a library), such as
-you might want for integration-tests, edit the project's `build.gradle` file and
-replace the plugin `id("com.android.library")` with
-`id("com.android.application")`. This allows you to run activities in that
-module from within Android Studio.
 
 #### Common sub-feature names {#module-naming-subfeature}
 
@@ -145,9 +173,9 @@ as appropriate.
 
 #### Splitting existing modules
 
-Existing modules *should not* be split into smaller modules; doing so creates
-the potential for class duplication issues when a developer depends on a new
-sub-module alongside the older top-level module. Consider the following
+Use caution when splitting existing modules into smaller modules; doing so
+creates the potential for class duplication issues when a developer depends on a
+new sub-module alongside the older top-level module. Consider the following
 scenario:
 
 *   `androidx.library:1.0.0`
@@ -166,16 +194,18 @@ A developer writes an app that depends directly on `androidx.library.util:1.1.0`
 and also transitively pulls in `androidx.library:1.0.0`. Their app will no
 longer compile due to class duplication of `androidx.library.util.B`.
 
-While it is possible for the developer to fix this by manually specifying a
-dependency on `androidx.library:1.1.0`, there is no easy way for the developer
-to discover this solution from the class duplication error raised at compile
-time.
+To avoid this issue make sure to define a
+[dependency constraint](/docs/api_guidelines/index.md#dependencies-constraints)
+on`androidx.library:1.1.0` from inside `androidx.library.util:1.1.0`. This
+ensures that if a developer depends on `androidx.library.util:1.1.0`, the
+minimum version of `androidx.library` will be `1.1.0`, avoiding the class
+duplication.
 
-Same-version groups are a special case for this rule. Existing modules that are
-already in a same-version group may be split into sub-modules provided that (a)
-the sub-modules are also in the same-version group and (b) the full API surface
-of the existing module is preserved through transitive dependencies, e.g. the
-sub-modules are added as dependencies of the existing module.
+Same-version groups already have constraints defined, so existing modules that
+are already in a same-version group may be split into sub-modules provided that
+(a) the sub-modules are also in the same-version group and (b) the full API
+surface of the existing module is preserved through transitive dependencies,
+e.g. the sub-modules are added as dependencies of the existing module.
 
 #### Same-version (atomic) groups {#modules-atomic}
 
@@ -254,7 +284,7 @@ library in this situation to skip versions, e.g. move directly from
 
 #### Kotlin Multiplatform library versions {#modules-kmp-versioning}
 
-When a library adds [Kotlin Multiplatform](/company/teams/androidx/kmp.md)
+When a library adds [Kotlin Multiplatform](/docs/kmp.md)
 support, it is permitted to have different versions for the multiplatform
 artifacts until they reach alpha quality.
 
@@ -274,7 +304,7 @@ DATASTORE = { group = "androidx.datastore", atomicGroupVersion = "versions.DATAS
 Note that you can specify a `multiplatformGroupVersion` if and only if you are
 also specifying a `atomicGroupVersion`.
 
-##### Non atomic Kotlin Multiplatform versions
+##### Non-atomic Kotlin Multiplatform versions
 
 If your Kotlin Multiplatform Library does not have atomic version groups, you
 can specify a KMP specifc version in the `build gradle` file:
@@ -284,7 +314,7 @@ import androidx.build.KmpPlatformsKt
 ...
 
 androidx {
-    name = "Android Support Library collections"
+    name = "Collection"
     type = LibraryType.KMP_LIBRARY
     mavenGroup = LibraryGroups.COLLECTION
     mavenVersion = KmpPlatformsKt.enableNative(project) ? LibraryVersions.COLLECTION_KMP : LibraryVersions.KMP
@@ -296,14 +326,14 @@ androidx {
 ### Choosing a `minSdkVersion` {#module-minsdkversion}
 
 The recommended minimum SDK version for new Jetpack libraries is currently
-**19** (Android 4.4, KitKat). This SDK was chosen to represent 99% of active
-devices based on Play Store check-ins (see Android Studio
+**23** (Android 6.0, Marshmallow). This SDK was chosen to represent 99% of
+active devices based on Play Store check-ins (see Android Studio
 [distribution metadata](https://dl.google.com/android/studio/metadata/distributions.json)
 for current statistics). This maximizes potential users for external developers
 while minimizing the amount of overhead necessary to support legacy versions.
 
 However, if no explicit minimum SDK version is specified for a library, the
-default is **14** (Android 4.0, Ice Cream Sandwich).
+default is **21** (Android 5.0, Lollipop).
 
 Note that a library **must not** depend on another library with a higher
 `minSdkVersion` that its own, so it may be necessary for a new library to match
@@ -320,7 +350,25 @@ Note that this pattern is *not recommended* because it leads to confusion for
 external developers and should be considered a last-resort when backporting
 behavior is not feasible.
 
-### Extension libraries (`-ktx`, `-guava`, etc.) {#module-ktx}
+### Platform extension (sidecar JAR) libraries {#module-extension}
+
+Platform extension or "sidecar JAR" libraries ship as part of the Android system
+image and are made available to developers through the `<uses-library>` manifest
+tag.
+
+Interfaces for platform extension libraries *may* be defined in Jetpack, like
+`androidx.window.extensions`, but must be implemented in the Android platform
+via AOSP or by device manufacturers. See
+[WindowManager Extensions](https://source.android.com/docs/core/display/windowmanager-extensions)
+for more details on the platform-side implementation of extension libraries,
+including motivations for their use.
+
+See
+[Platform extension (sidecar JAR) dependencies](/docs/api_guidelines#dependencies-sidecar)
+for guidelines on depending on extension libraries defined externally or within
+Jetpack.
+
+### Framework- and language-specific libraries (`-ktx`, `-guava`, etc.) {#module-ktx}
 
 New libraries should prefer Kotlin sources with built-in Java compatibility via
 `@JvmName` and other affordances of the Kotlin language. They may optionally

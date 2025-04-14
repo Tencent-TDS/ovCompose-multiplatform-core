@@ -21,7 +21,6 @@ import android.content.Context
 import android.graphics.Point
 import android.graphics.Rect
 import android.os.Build
-import android.view.Display
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiContext
@@ -37,16 +36,28 @@ import androidx.window.layout.WindowMetricsCalculator
  */
 internal class StubWindowMetricsCalculator : WindowMetricsCalculator {
 
+    private var overrideBounds: Rect? = null
+
+    fun overrideWindowBounds(bounds: Rect) {
+        overrideBounds = Rect(bounds)
+    }
+
+    fun overrideWindowBounds(left: Int, top: Int, right: Int, bottom: Int) {
+        overrideBounds = Rect(left, top, right, bottom)
+    }
+
     override fun computeCurrentWindowMetrics(activity: Activity): WindowMetrics {
         val displayMetrics = activity.resources.displayMetrics
-        val bounds = Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
-        return WindowMetrics(bounds)
+        val bounds =
+            overrideBounds ?: Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
+        return WindowMetrics(bounds, density = displayMetrics.density)
     }
 
     override fun computeMaximumWindowMetrics(activity: Activity): WindowMetrics {
         val displayMetrics = activity.resources.displayMetrics
-        val bounds = Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
-        return WindowMetrics(bounds)
+        val bounds =
+            overrideBounds ?: Rect(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels)
+        return WindowMetrics(bounds, density = displayMetrics.density)
     }
 
     // WindowManager#getDefaultDisplay is deprecated but we have this for compatibility with
@@ -54,10 +65,11 @@ internal class StubWindowMetricsCalculator : WindowMetricsCalculator {
     @Suppress("DEPRECATION")
     override fun computeCurrentWindowMetrics(@UiContext context: Context): WindowMetrics {
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val density = context.resources.displayMetrics.density
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Api30Impl.getWindowMetrics(wm)
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            Api30Impl.getWindowMetrics(wm, context, overrideBounds)
+        } else {
             val displaySize = Point()
             // We use getRealSize instead of getSize here because:
             //   1) computeCurrentWindowMetrics and computeMaximumWindowMetrics in this class
@@ -66,14 +78,9 @@ internal class StubWindowMetricsCalculator : WindowMetricsCalculator {
             //   2) getRealSize returns the largest region of the display, whereas getSize returns
             //      the current app window. So to stay consistent with class documentation, we use
             //      getRealSize.
-            Api17Impl.getRealSize(wm.defaultDisplay, displaySize)
-            val bounds = Rect(0, 0, displaySize.x, displaySize.y)
-            WindowMetrics(bounds)
-        } else {
-            val width = wm.defaultDisplay.width
-            val height = wm.defaultDisplay.height
-            val bounds = Rect(0, 0, width, height)
-            WindowMetrics(bounds)
+            wm.defaultDisplay.getRealSize(displaySize)
+            val bounds = overrideBounds ?: Rect(0, 0, displaySize.x, displaySize.y)
+            WindowMetrics(bounds, density = density)
         }
     }
 
@@ -83,17 +90,15 @@ internal class StubWindowMetricsCalculator : WindowMetricsCalculator {
 
     @RequiresApi(Build.VERSION_CODES.R)
     private object Api30Impl {
-        fun getWindowMetrics(windowManager: WindowManager): WindowMetrics {
-            return WindowMetrics(windowManager.currentWindowMetrics.bounds)
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
-    private object Api17Impl {
-        // getRealSize is deprecated but we have this for compatibility with older versions.
-        @Suppress("DEPRECATION")
-        fun getRealSize(display: Display, point: Point) {
-            display.getRealSize(point)
+        fun getWindowMetrics(
+            windowManager: WindowManager,
+            @UiContext context: Context,
+            overrideBounds: Rect?
+        ): WindowMetrics {
+            return WindowMetrics(
+                overrideBounds ?: windowManager.currentWindowMetrics.bounds,
+                density = context.resources.displayMetrics.density
+            )
         }
     }
 }

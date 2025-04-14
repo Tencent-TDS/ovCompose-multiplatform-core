@@ -46,7 +46,6 @@ import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationText;
 import android.view.SurfaceHolder;
 
-import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.wear.watchface.CanvasType;
 import androidx.wear.watchface.ComplicationHelperActivity;
@@ -62,13 +61,16 @@ import androidx.wear.watchface.style.CurrentUserStyleRepository;
 
 import kotlin.coroutines.Continuation;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.robolectric.Robolectric;
 import org.robolectric.annotation.internal.DoNotInstrument;
 
@@ -89,16 +91,16 @@ public class ComplicationDrawableTest {
     private androidx.wear.watchface.complications.data.ComplicationData mComplicationData;
     private int mDefaultTextSize;
 
+    @Rule public final MockitoRule mocks = MockitoJUnit.rule();
+
     @Mock Canvas mMockCanvas;
     @Mock Drawable mMockDrawableActive;
     @Mock Drawable mMockDrawableAmbient;
     @Mock PendingIntent mMockPendingIntent;
     @Mock Drawable.Callback mMockDrawableCallback;
 
-    @SuppressWarnings("deprecation") // b/251211092
     @Before
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
         mComplicationDrawable = new ComplicationDrawable();
         mComplicationDrawable.setCallback(mMockDrawableCallback);
 
@@ -730,9 +732,8 @@ public class ComplicationDrawableTest {
         }
 
         @SuppressWarnings("deprecation")
-        @Nullable
         @Override
-        protected Object createWatchFace(
+        protected @Nullable Object createWatchFace(
                 @NonNull SurfaceHolder surfaceHolder,
                 @NonNull WatchState watchState,
                 @NonNull ComplicationSlotsManager complicationSlotsManager,

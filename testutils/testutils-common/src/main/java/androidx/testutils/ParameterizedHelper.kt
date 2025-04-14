@@ -19,7 +19,6 @@ package androidx.testutils
 /**
  * Generate all argument enumerations for Parameterized tests. For example,
  * `generateAllEnumerations(listOf(false, true), listOf(1, 2, 3))` would return:
- *
  * ```
  * [
  *   [false, 1],
@@ -33,6 +32,7 @@ package androidx.testutils
  *
  * See [ParameterizedHelperTest] for more examples.
  */
+// TODO(kuanyingchou): Remove and replace with TestParameterInjector"
 fun generateAllEnumerations(vararg args: List<Any>): List<Array<Any>> =
     generateAllEnumerationsIteratively(args.toList()).map { it.toTypedArray() }
 

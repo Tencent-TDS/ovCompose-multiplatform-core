@@ -19,13 +19,13 @@ package androidx.core.i18n
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert.assertEquals
-import org.junit.Test
-import org.junit.runner.RunWith
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.Locale
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -35,16 +35,22 @@ import java.util.Locale
 @RunWith(AndroidJUnit4::class)
 class DateTimeFormatJdkStylesTest {
     private val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-    private val testCalendar = GregorianCalendar(
-        2021, Calendar.SEPTEMBER, 19, // Date
-        23, 42, 12 // Time
-    )
+    private val testCalendar =
+        GregorianCalendar(
+            2021,
+            Calendar.SEPTEMBER,
+            19, // Date
+            23,
+            42,
+            12 // Time
+        )
 
     init {
         testCalendar.set(Calendar.MILLISECOND, 345)
     }
 
-    @Test @SmallTest
+    @Test
+    @SmallTest
     fun testEmulateJavaStyles() {
         val locale = Locale.US
 
@@ -89,7 +95,10 @@ class DateTimeFormatJdkStylesTest {
         val jdkFormatter = DateFormat.getTimeInstance(javaStyle, locale)
         val options = DateTimeFormatterJdkStyleOptions.createTimeInstance(javaStyle)
         val compatFormatter = DateTimeFormatter(options, locale)
-        assertEquals(jdkFormatter.format(testCalendar.time), compatFormatter.format(testCalendar))
+        assertEquals(
+            Helper.normalizeNnbsp(jdkFormatter.format(testCalendar.time)),
+            Helper.normalizeNnbsp(compatFormatter.format(testCalendar))
+        )
     }
 
     private fun checkDateTime(
@@ -101,10 +110,14 @@ class DateTimeFormatJdkStylesTest {
         val options =
             DateTimeFormatterJdkStyleOptions.createDateTimeInstance(javaDateStyle, javaTimeStyle)
         val compatFormatter = DateTimeFormatter(options, locale)
-        assertEquals(jdkFormatter.format(testCalendar.time), compatFormatter.format(testCalendar))
+        assertEquals(
+            Helper.normalizeNnbsp(jdkFormatter.format(testCalendar.time)),
+            Helper.normalizeNnbsp(compatFormatter.format(testCalendar))
+        )
     }
 
-    @Test @SmallTest
+    @Test
+    @SmallTest
     fun testPredefinedStyles() {
         val options = DateTimeFormatterCommonOptions.ABBR_MONTH_WEEKDAY_DAY
         val formatter = DateTimeFormatter(appContext, options, Locale.US)

@@ -18,7 +18,6 @@
 package androidx.window.testing.embedding
 
 import android.content.res.Configuration
-import androidx.window.core.ExperimentalWindowApi
 import androidx.window.embedding.SplitAttributes
 import androidx.window.embedding.SplitAttributesCalculatorParams
 import androidx.window.embedding.SplitController
@@ -35,27 +34,25 @@ import java.util.Collections
  *
  * @param parentWindowMetrics The [WindowMetrics] of the host task. See
  *   [SplitAttributesCalculatorParams.parentWindowMetrics].
- * @param parentConfiguration The [Configuration] of the host task with empty [Configuration] as
- *   the default value. See [SplitAttributesCalculatorParams.parentConfiguration]
- * @param parentWindowLayoutInfo Used for reporting the
- *   [androidx.window.layout.FoldingFeature] with empty [WindowLayoutInfo] as the default value.
- *   See [androidx.window.testing.layout.TestWindowLayoutInfo] and
- *   [androidx.window.testing.layout.FoldingFeature] for how to create test
- *   [WindowLayoutInfo] with [androidx.window.layout.FoldingFeature].
- * @param defaultSplitAttributes The [SplitPairRule.defaultSplitAttributes] or
- *   the [SplitPlaceholderRule.defaultSplitAttributes] that the callback is applied a vertical
- *   equal [SplitAttributes] as the default value.
- *   See [SplitAttributesCalculatorParams.defaultSplitAttributes]
+ * @param parentConfiguration The [Configuration] of the host task with empty [Configuration] as the
+ *   default value. See [SplitAttributesCalculatorParams.parentConfiguration]
+ * @param parentWindowLayoutInfo Used for reporting the [androidx.window.layout.FoldingFeature] with
+ *   empty [WindowLayoutInfo] as the default value. See
+ *   [androidx.window.testing.layout.TestWindowLayoutInfo] and
+ *   [androidx.window.testing.layout.FoldingFeature] for how to create test [WindowLayoutInfo] with
+ *   [androidx.window.layout.FoldingFeature].
+ * @param defaultSplitAttributes The [SplitPairRule.defaultSplitAttributes] or the
+ *   [SplitPlaceholderRule.defaultSplitAttributes] that the callback is applied a vertical equal
+ *   [SplitAttributes] as the default value. See
+ *   [SplitAttributesCalculatorParams.defaultSplitAttributes]
  * @param areDefaultConstraintsSatisfied `true` to indicate that the [parentWindowMetrics] satisfies
- *   the constraints of [SplitPairRule] or [SplitPlaceholderRule] which defaults to `true`.
- *   See [SplitAttributesCalculatorParams.areDefaultConstraintsSatisfied]
+ *   the constraints of [SplitPairRule] or [SplitPlaceholderRule] which defaults to `true`. See
+ *   [SplitAttributesCalculatorParams.areDefaultConstraintsSatisfied]
  * @param splitRuleTag The [SplitPairRule.tag] or the [SplitPlaceholderRule.tag] that the callback
- *   is applied with `null` as the default value.
- *   See [SplitAttributesCalculatorParams.splitRuleTag].
- *
+ *   is applied with `null` as the default value. See
+ *   [SplitAttributesCalculatorParams.splitRuleTag].
  * @see SplitAttributesCalculatorParams
  */
-@ExperimentalWindowApi
 @Suppress("FunctionName")
 @JvmName("createTestSplitAttributesCalculatorParams")
 @JvmOverloads

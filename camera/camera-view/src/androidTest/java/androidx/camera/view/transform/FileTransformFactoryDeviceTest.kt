@@ -22,6 +22,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.media.ExifInterface
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.camera.core.impl.utils.Exif
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
@@ -30,20 +31,18 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import com.google.common.truth.Truth.assertThat
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 
 private const val WIDTH = 80
 private const val HEIGHT = 60
 
-/**
- * Instrument test for [FileTransformFactory].
- */
+/** Instrument test for [FileTransformFactory]. */
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 21)
@@ -53,9 +52,8 @@ class FileTransformFactoryDeviceTest {
     private val contentResolver = getApplicationContext<Context>().contentResolver
 
     @get:Rule
-    val runtimePermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        Manifest.permission.WRITE_EXTERNAL_STORAGE
-    )
+    val runtimePermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(Manifest.permission.WRITE_EXTERNAL_STORAGE)
 
     @Before
     fun setUp() {
@@ -76,7 +74,8 @@ class FileTransformFactoryDeviceTest {
     @Test
     fun extractFromFileWithExifInfo() {
         factory.isUsingExifOrientation = true
-        factory.getOutputTransform(createImageFile(ExifInterface.ORIENTATION_ROTATE_90))
+        factory
+            .getOutputTransform(createImageFile(ExifInterface.ORIENTATION_ROTATE_90))
             .assertMapping(1f, 1f, 0, WIDTH)
     }
 
@@ -94,9 +93,7 @@ class FileTransformFactoryDeviceTest {
         contentResolver.delete(uri, null, null)
     }
 
-    /**
-     * Asserts that the [OutputTransform] maps normalized (x, y) to image (x, y).
-     */
+    /** Asserts that the [OutputTransform] maps normalized (x, y) to image (x, y). */
     private fun OutputTransform.assertMapping(
         normalizedX: Float,
         normalizedY: Float,
@@ -105,7 +102,8 @@ class FileTransformFactoryDeviceTest {
     ) {
         val point = floatArrayOf(normalizedX, normalizedY)
         matrix.mapPoints(point)
-        assertThat(point).usingTolerance(0.001)
+        assertThat(point)
+            .usingTolerance(0.001)
             .containsExactly((floatArrayOf(imageX.toFloat(), imageY.toFloat())))
     }
 
@@ -128,12 +126,13 @@ class FileTransformFactoryDeviceTest {
     }
 
     private fun createMediaStoreImage(): Uri {
+        // Ensure the folder of MediaStore.Images.Media is created.
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)?.mkdirs()
+
         val contentValues = ContentValues()
         contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-        val uri = contentResolver.insert(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            contentValues
-        )
+        val uri =
+            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
         contentResolver.openOutputStream(uri!!).use {
             createBitmap().compress(Bitmap.CompressFormat.JPEG, 100, it!!)
         }

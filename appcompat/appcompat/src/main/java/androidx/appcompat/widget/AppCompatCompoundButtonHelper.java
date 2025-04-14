@@ -20,21 +20,20 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.widget.CompoundButton;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.R;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.widget.CompoundButtonCompat;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 class AppCompatCompoundButtonHelper {
-    @NonNull
-    private final CompoundButton mView;
+    private final @NonNull CompoundButton mView;
 
     private ColorStateList mButtonTintList = null;
     private PorterDuff.Mode mButtonTintMode = null;
@@ -102,7 +101,7 @@ class AppCompatCompoundButtonHelper {
         return mButtonTintList;
     }
 
-    void setSupportButtonTintMode(@Nullable PorterDuff.Mode tintMode) {
+    void setSupportButtonTintMode(PorterDuff.@Nullable Mode tintMode) {
         mButtonTintMode = tintMode;
         mHasButtonTintMode = true;
 
@@ -144,15 +143,4 @@ class AppCompatCompoundButtonHelper {
         }
     }
 
-    int getCompoundPaddingLeft(int superValue) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
-            // Before JB-MR1 the button drawable wasn't taken into account for padding. We'll
-            // workaround that here
-            Drawable buttonDrawable = CompoundButtonCompat.getButtonDrawable(mView);
-            if (buttonDrawable != null) {
-                superValue += buttonDrawable.getIntrinsicWidth();
-            }
-        }
-        return superValue;
-    }
 }

@@ -18,6 +18,8 @@
 
 package androidx.lifecycle
 
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -26,12 +28,8 @@ import org.junit.After
 import org.junit.Before
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
-/**
- * To ensure consistent behavior, we run these tests both on androidTest and test
- */
+/** To ensure consistent behavior, we run these tests both on androidTest and test */
 @RunWith(JUnit4::class)
 class LifecycleCoroutineScopeTest : LifecycleCoroutineScopeTestBase() {
     private val mainExecutor = Executors.newSingleThreadExecutor()

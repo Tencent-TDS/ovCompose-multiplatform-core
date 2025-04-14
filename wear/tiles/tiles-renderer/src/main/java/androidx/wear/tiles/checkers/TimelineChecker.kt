@@ -17,19 +17,16 @@
 package androidx.wear.tiles.checkers
 
 import android.util.Log
-import androidx.wear.tiles.TimelineBuilders.Timeline
-import androidx.wear.tiles.TimelineBuilders.TimelineEntry
+import androidx.wear.protolayout.TimelineBuilders
 import kotlin.jvm.Throws
 
-/**
- * Exception thrown when a TimelineEntryChecker fails.
- */
+/** Exception thrown when a TimelineEntryChecker fails. */
 internal class CheckerException(message: String) : Exception(message)
 
 /**
  * Checker for a Tile's TimelineEntries. Instances of this interface should check for a certain
- * condition on the given [TimelineEntry], and throw an instance of [CheckerException] if there
- * is a problem with that [TimelineEntry].
+ * condition on the given [TimelineEntry], and throw an instance of [CheckerException] if there is a
+ * problem with that [TimelineEntry].
  */
 internal interface TimelineEntryChecker {
     /** The name of this TimelineEntryChecker. This will be printed in any error output. */
@@ -40,13 +37,12 @@ internal interface TimelineEntryChecker {
      *
      * @throws CheckerException if there was an issue while checking the [TimelineEntry]
      */
-    @Throws(CheckerException::class)
-    fun check(entry: TimelineEntry)
+    @Throws(CheckerException::class) fun check(entry: TimelineBuilders.TimelineEntry)
 }
 
 /**
- * Checker for a given [Timeline]. This will run all provided [TimelineEntryChecker]s on the
- * given [Timeline], and if any fail, log an error to logcat.
+ * Checker for a given [Timeline]. This will run all provided [TimelineEntryChecker]s on the given
+ * [Timeline], and if any fail, log an error to logcat.
  *
  * @param entryCheckers The list of checkers to use. Defaults to all built in checks.
  */
@@ -58,7 +54,7 @@ internal class TimelineChecker(
     }
 
     /** Check a given [Timeline] against all registered [TimelineEntryChecker]s. */
-    public fun doCheck(timeline: Timeline) {
+    fun doCheck(timeline: TimelineBuilders.Timeline) {
         timeline.timelineEntries.forEach { entry ->
             entryCheckers.forEach {
                 try {

@@ -16,55 +16,59 @@
 
 package androidx.window.extensions.embedding;
 
-import androidx.annotation.NonNull;
-import androidx.window.extensions.WindowExtensions;
+import android.os.IBinder;
+
+import androidx.window.extensions.RequiresVendorApiLevel;
 import androidx.window.extensions.embedding.SplitAttributes.SplitType;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
 
 /** Describes a split of two containers with activities. */
 public class SplitInfo {
 
-    @NonNull
-    private final ActivityStack mPrimaryActivityStack;
-    @NonNull
-    private final ActivityStack mSecondaryActivityStack;
-    @NonNull
-    private final SplitAttributes mSplitAttributes;
+    private final @NonNull ActivityStack mPrimaryActivityStack;
+    private final @NonNull ActivityStack mSecondaryActivityStack;
+    private final @NonNull SplitAttributes mSplitAttributes;
+
+    private final @NonNull Token mToken;
 
     /**
-     * The {@code SplitInfo} constructor.
+     * The {@code SplitInfo} constructor
      *
-     * @param primaryActivityStack The primary {@link ActivityStack}.
-     * @param secondaryActivityStack The secondary {@link ActivityStack}.
-     * @param splitAttributes The current {@link SplitAttributes} of this split pair.
+     * @param primaryActivityStack The primary {@link ActivityStack}
+     * @param secondaryActivityStack The secondary {@link ActivityStack}
+     * @param splitAttributes The current {@link SplitAttributes} of this split pair
+     * @param token The token to identify this split pair
      */
     SplitInfo(@NonNull ActivityStack primaryActivityStack,
             @NonNull ActivityStack secondaryActivityStack,
-            @NonNull SplitAttributes splitAttributes) {
+            @NonNull SplitAttributes splitAttributes,
+            @NonNull Token token) {
         Objects.requireNonNull(primaryActivityStack);
         Objects.requireNonNull(secondaryActivityStack);
         Objects.requireNonNull(splitAttributes);
+        Objects.requireNonNull(token);
         mPrimaryActivityStack = primaryActivityStack;
         mSecondaryActivityStack = secondaryActivityStack;
         mSplitAttributes = splitAttributes;
+        mToken = token;
     }
 
-    @NonNull
-    public ActivityStack getPrimaryActivityStack() {
+    public @NonNull ActivityStack getPrimaryActivityStack() {
         return mPrimaryActivityStack;
     }
 
-    @NonNull
-    public ActivityStack getSecondaryActivityStack() {
+    public @NonNull ActivityStack getSecondaryActivityStack() {
         return mSecondaryActivityStack;
     }
 
     /**
-     * @deprecated Use {@link #getSplitAttributes()} starting with
-     * {@link WindowExtensions#VENDOR_API_LEVEL_2}. Only used if {@link #getSplitAttributes()}
-     * can't be called on {@link WindowExtensions#VENDOR_API_LEVEL_1}.
+     * @deprecated Use {@link #getSplitAttributes()} starting with vendor API level 2. Only used if
+     * {@link #getSplitAttributes()} can't be called on vendor API level 1.
      */
+    @RequiresVendorApiLevel(level = 1, deprecatedSince = 2)
     @Deprecated
     public float getSplitRatio() {
         final SplitType splitType = mSplitAttributes.getSplitType();
@@ -75,13 +79,23 @@ public class SplitInfo {
         }
     }
 
-    /**
-     * Returns the {@link SplitAttributes} of this split.
-     * Since {@link androidx.window.extensions.WindowExtensions#VENDOR_API_LEVEL_2}
-     */
-    @NonNull
-    public SplitAttributes getSplitAttributes() {
+    /** Returns the {@link SplitAttributes} of this split. */
+    @RequiresVendorApiLevel(level = 2)
+    public @NonNull SplitAttributes getSplitAttributes() {
         return mSplitAttributes;
+    }
+
+    /** @deprecated Use {@link #getSplitInfoToken()} instead. */
+    @Deprecated
+    @RequiresVendorApiLevel(level = 3, deprecatedSince = 5)
+    public @NonNull IBinder getToken() {
+        return mToken.getRawToken();
+    }
+
+    /** Returns a token uniquely identifying the split. */
+    @RequiresVendorApiLevel(level = 5)
+    public @NonNull Token getSplitInfoToken() {
+        return mToken;
     }
 
     @Override
@@ -91,7 +105,7 @@ public class SplitInfo {
         SplitInfo that = (SplitInfo) o;
         return mSplitAttributes.equals(that.mSplitAttributes) && mPrimaryActivityStack.equals(
                 that.mPrimaryActivityStack) && mSecondaryActivityStack.equals(
-                that.mSecondaryActivityStack);
+                that.mSecondaryActivityStack) && mToken.equals(that.mToken);
     }
 
     @Override
@@ -99,16 +113,63 @@ public class SplitInfo {
         int result = mPrimaryActivityStack.hashCode();
         result = result * 31 + mSecondaryActivityStack.hashCode();
         result = result * 31 + mSplitAttributes.hashCode();
+        result = result * 31 + mToken.hashCode();
         return result;
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         return "SplitInfo{"
                 + "mPrimaryActivityStack=" + mPrimaryActivityStack
                 + ", mSecondaryActivityStack=" + mSecondaryActivityStack
                 + ", mSplitAttributes=" + mSplitAttributes
+                + ", mToken=" + mToken
                 + '}';
+    }
+
+    /**
+     * A unique identifier to represent the split.
+     */
+    public static final class Token {
+
+        private final @NonNull IBinder mToken;
+
+        Token(@NonNull IBinder token) {
+            mToken = token;
+        }
+
+        @NonNull IBinder getRawToken() {
+            return mToken;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Token)) return false;
+            Token token = (Token) o;
+            return Objects.equals(mToken, token.mToken);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(mToken);
+        }
+
+        @Override
+        public @NonNull String toString() {
+            return "Token{"
+                    + "mToken=" + mToken
+                    + '}';
+        }
+
+        /**
+         * Creates a split token from binder.
+         *
+         * @param token the raw binder used by OEM Extensions implementation.
+         */
+        @RequiresVendorApiLevel(level = 5)
+        public static @NonNull Token createFromBinder(@NonNull IBinder token) {
+            return new Token(token);
+        }
     }
 }

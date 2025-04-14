@@ -27,11 +27,11 @@ import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -42,8 +42,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 const val DEBUG = false
 
@@ -51,66 +51,53 @@ const val DEBUG = false
 @Composable
 fun FancyScrollingDemo() {
     Column {
-        Text(
-            "<== Scroll horizontally ==>",
-            fontSize = 20.sp,
-            modifier = Modifier.padding(40.dp)
-        )
+        Text("<== Scroll horizontally ==>", fontSize = 20.sp, modifier = Modifier.padding(40.dp))
         val animScroll = remember { Animatable(0f) }
-        val itemWidth = remember { mutableStateOf(0f) }
+        val itemWidth = remember { mutableFloatStateOf(0f) }
         val scope = rememberCoroutineScope()
-        val modifier = Modifier.draggable(
-            orientation = Orientation.Horizontal,
-            state = rememberDraggableState { delta ->
-                // Snap to new drag position
-                scope.launch {
-                    animScroll.snapTo(animScroll.value + delta)
-                }
-            },
+        val modifier =
+            Modifier.draggable(
+                orientation = Orientation.Horizontal,
+                state =
+                    rememberDraggableState { delta ->
+                        // Snap to new drag position
+                        scope.launch { animScroll.snapTo(animScroll.value + delta) }
+                    },
+                onDragStopped = { velocity: Float ->
 
-            onDragStopped = { velocity: Float ->
-
-                // Uses default decay animation to calculate where the fling will settle,
-                // and adjust that position as needed. The target animation will be used for
-                // animating to the adjusted target.
-                scope.launch {
-                    val decay = exponentialDecay<Float>()
-                    val target = decay.calculateTargetValue(animScroll.value, velocity)
-                    // Adjust the target position to center align the item
-                    var rem = target % itemWidth.value
-                    if (rem < 0) {
-                        rem += itemWidth.value
+                    // Uses default decay animation to calculate where the fling will settle,
+                    // and adjust that position as needed. The target animation will be used for
+                    // animating to the adjusted target.
+                    scope.launch {
+                        val decay = exponentialDecay<Float>()
+                        val target = decay.calculateTargetValue(animScroll.value, velocity)
+                        // Adjust the target position to center align the item
+                        var rem = target % itemWidth.floatValue
+                        if (rem < 0) {
+                            rem += itemWidth.floatValue
+                        }
+                        animScroll.animateTo(
+                            targetValue = target - rem,
+                            initialVelocity = velocity,
+                            animationSpec = SpringSpec(dampingRatio = 2.0f, stiffness = 100f)
+                        )
                     }
-                    animScroll.animateTo(
-                        targetValue = target - rem,
-                        initialVelocity = velocity,
-                        animationSpec = SpringSpec(dampingRatio = 2.0f, stiffness = 100f)
-                    )
                 }
-            }
-        )
+            )
 
         Canvas(modifier.fillMaxWidth().height(400.dp)) {
             val width = size.width / 2f
             val scroll = animScroll.value + width / 2
-            itemWidth.value = width
+            itemWidth.floatValue = width
             if (DEBUG) {
-                Log.w(
-                    "Anim",
-                    "Drawing items with updated" +
-                        " Scroll: ${animScroll.value}"
-                )
+                Log.w("Anim", "Drawing items with updated" + " Scroll: ${animScroll.value}")
             }
             drawItems(scroll, width, size.height)
         }
     }
 }
 
-private fun DrawScope.drawItems(
-    scrollPosition: Float,
-    width: Float,
-    height: Float
-) {
+private fun DrawScope.drawItems(scrollPosition: Float, width: Float, height: Float) {
     var startingPos = scrollPosition % width
     if (startingPos > 0) {
         startingPos -= width
@@ -122,11 +109,7 @@ private fun DrawScope.drawItems(
     }
 
     val size = Size(width - 20, height)
-    drawRect(
-        pastelColors[startingColorIndex],
-        topLeft = Offset(startingPos + 10, 0f),
-        size = size
-    )
+    drawRect(pastelColors[startingColorIndex], topLeft = Offset(startingPos + 10, 0f), size = size)
 
     drawRect(
         pastelColors[(startingColorIndex + pastelColors.size - 1) % pastelColors.size],
@@ -141,13 +124,14 @@ private fun DrawScope.drawItems(
     )
 }
 
-private val colors = listOf(
-    Color(0xFFffd9d9),
-    Color(0xFFffa3a3),
-    Color(0xFFff7373),
-    Color(0xFFff3b3b),
-    Color(0xFFce0000),
-    Color(0xFFff3b3b),
-    Color(0xFFff7373),
-    Color(0xFFffa3a3)
-)
+private val colors =
+    listOf(
+        Color(0xFFffd9d9),
+        Color(0xFFffa3a3),
+        Color(0xFFff7373),
+        Color(0xFFff3b3b),
+        Color(0xFFce0000),
+        Color(0xFFff3b3b),
+        Color(0xFFff7373),
+        Color(0xFFffa3a3)
+    )

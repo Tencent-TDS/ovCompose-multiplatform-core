@@ -16,14 +16,14 @@
 
 package androidx.profileinstaller;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
@@ -33,7 +33,6 @@ import java.util.zip.Inflater;
 /**
  * A set of utilities on top of InputStream / OutputStream that are used by [ProfileTranscoder].
  */
-@RequiresApi(19)
 class Encoding {
     private Encoding() {}
 
@@ -75,7 +74,7 @@ class Encoding {
         return (numberOfBits + SIZEOF_BYTE - 1 & -SIZEOF_BYTE) / SIZEOF_BYTE;
     }
 
-    static @NonNull byte[] read(@NonNull InputStream is, int length) throws IOException {
+    static byte @NonNull [] read(@NonNull InputStream is, int length) throws IOException {
         byte[] buffer = new byte[length];
         int offset = 0;
         while (offset < length) {
@@ -114,7 +113,7 @@ class Encoding {
         return new String(read(is, size), StandardCharsets.UTF_8);
     }
 
-    static @NonNull byte[] readCompressed(
+    static byte @NonNull [] readCompressed(
             @NonNull InputStream is,
             int compressedDataSize,
             int uncompressedDataSize
@@ -173,7 +172,7 @@ class Encoding {
         os.write(outputData); // compressed body
     }
 
-    static byte[] compress(@NonNull byte[] data) throws IOException {
+    static byte[] compress(byte @NonNull [] data) throws IOException {
         Deflater compressor = new Deflater(Deflater.BEST_SPEED);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (DeflaterOutputStream deflater = new DeflaterOutputStream(out, compressor)) {
@@ -184,7 +183,14 @@ class Encoding {
         return out.toByteArray();
     }
 
-    static void writeAll(@NonNull InputStream is, @NonNull OutputStream os) throws IOException {
+    static void writeAll(@NonNull InputStream is,
+            @NonNull OutputStream os,
+            @Nullable FileLock lock) throws IOException {
+
+        boolean isValid = lock != null && lock.isValid();
+        if (!isValid) {
+            throw new IOException("Unable to acquire a lock on the underlying file channel.");
+        }
         byte[] buf = new byte[512];
         int length;
         while ((length = is.read(buf)) > 0) {

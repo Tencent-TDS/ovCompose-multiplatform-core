@@ -17,9 +17,9 @@
 package androidx.camera.extensions.internal.sessionprocessor;
 
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.SessionConfiguration;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -27,24 +27,28 @@ import java.util.Map;
 /**
  * A config representing a {@link android.hardware.camera2.params.SessionConfiguration}
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 interface Camera2SessionConfig {
     /**
      * Returns all the {@link Camera2OutputConfig}s that will be used to create
      * {@link android.hardware.camera2.params.OutputConfiguration}.
      */
-    @NonNull
-    List<Camera2OutputConfig> getOutputConfigs();
+    @NonNull List<Camera2OutputConfig> getOutputConfigs();
 
     /**
      * Gets all the parameters to create the session parameters with.
      */
-    @NonNull
-    Map<CaptureRequest.Key<?>, Object> getSessionParameters();
+    @NonNull Map<CaptureRequest.Key<?>, Object> getSessionParameters();
 
     /**
      * Gets the template id used for creating {@link CaptureRequest}s to be passed in
      * {@link android.hardware.camera2.params.SessionConfiguration#setSessionParameters}.
      */
     int getSessionTemplateId();
+
+    /**
+     * Gets the session type
+     */
+    default int getSessionType() {
+        return SessionConfiguration.SESSION_REGULAR;
+    }
 }

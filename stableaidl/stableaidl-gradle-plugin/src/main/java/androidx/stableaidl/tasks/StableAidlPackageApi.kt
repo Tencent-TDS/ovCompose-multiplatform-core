@@ -31,10 +31,10 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 
-/**
- * Transforms an AAR by adding parcelable headers.
- */
+/** Transforms an AAR by adding parcelable headers. */
+@DisableCachingByDefault(because = "Primarily filesystem operations")
 abstract class StableAidlPackageApi : DefaultTask() {
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
@@ -44,8 +44,7 @@ abstract class StableAidlPackageApi : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val packagedDir: DirectoryProperty
 
-    @get:OutputFile
-    abstract val updatedAarFile: RegularFileProperty
+    @get:OutputFile abstract val updatedAarFile: RegularFileProperty
 
     @TaskAction
     fun taskAction() {
@@ -67,9 +66,7 @@ internal fun aidlPackageApiDelegate(
     val tempDir = Files.createTempDirectory("${name}Unzip").toFile()
     tempDir.deleteOnExit()
 
-    ZipFile(aar).use { aarFile ->
-        aarFile.unzipTo(tempDir)
-    }
+    ZipFile(aar).use { aarFile -> aarFile.unzipTo(tempDir) }
 
     val aidlRoot = File(tempDir, "aidl")
     if (!aidlRoot.exists()) {
@@ -97,18 +94,14 @@ internal fun ZipFile.unzipTo(tempDir: File) {
         } else {
             val file = File(tempDir, entry.name)
             file.parentFile.mkdirs()
-            getInputStream(entry).use { stream ->
-                file.writeBytes(stream.readBytes())
-            }
+            getInputStream(entry).use { stream -> file.writeBytes(stream.readBytes()) }
         }
     }
 }
 
 internal fun File.zipTo(outZip: File) {
     ZipOutputStream(outZip.outputStream()).use { stream ->
-        listFiles()!!.forEach { file ->
-            stream.addFileRecursive(null, file)
-        }
+        listFiles()!!.forEach { file -> stream.addFileRecursive(null, file) }
     }
 }
 
@@ -122,18 +115,14 @@ internal fun ZipOutputStream.addFileRecursive(parentPath: String?, file: File) {
 
     if (file.isFile) {
         putNextEntry(entry)
-        file.inputStream().use { stream ->
-            stream.copyTo(this)
-        }
+        file.inputStream().use { stream -> stream.copyTo(this) }
         closeEntry()
     } else if (file.isDirectory) {
         val listFiles = file.listFiles()
         if (!listFiles.isNullOrEmpty()) {
             putNextEntry(entry)
             closeEntry()
-            listFiles.forEach { containedFile ->
-                addFileRecursive(entryPath, containedFile)
-            }
+            listFiles.forEach { containedFile -> addFileRecursive(entryPath, containedFile) }
         }
     }
 }

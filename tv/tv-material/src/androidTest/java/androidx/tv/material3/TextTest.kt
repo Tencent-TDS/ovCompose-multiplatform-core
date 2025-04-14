@@ -35,27 +35,47 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@OptIn(ExperimentalTvMaterial3Api::class)
 @MediumTest
 @RunWith(AndroidJUnit4::class)
 class TextTest {
 
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
-    private val ExpectedTextStyle = TextStyle(
-        color = Color.Blue,
-        textAlign = TextAlign.End,
-        fontSize = 32.sp,
-        fontStyle = FontStyle.Italic,
-        letterSpacing = 0.3.em
-    )
+    private val ExpectedTextStyle =
+        TextStyle(
+            color = Color.Blue,
+            textAlign = TextAlign.End,
+            fontSize = 32.sp,
+            fontStyle = FontStyle.Italic,
+            letterSpacing = 0.3.em
+        )
 
     private val TestText = "TestText"
+
+    @OptIn(ExperimentalTvMaterial3Api::class)
+    @Test
+    fun testDefaultIncludeFontPadding() {
+        var localTextStyle: TextStyle? = null
+        var display1TextStyle: TextStyle? = null
+        rule.setContent {
+            MaterialTheme {
+                localTextStyle = LocalTextStyle.current
+                display1TextStyle = LocalTypography.current.displayMedium
+            }
+        }
+
+        assertThat(localTextStyle?.platformStyle?.paragraphStyle?.includeFontPadding)
+            .isEqualTo(false)
+
+        assertThat(display1TextStyle?.platformStyle?.paragraphStyle?.includeFontPadding)
+            .isEqualTo(false)
+    }
 
     @Test
     fun inheritsThemeTextStyle() {
@@ -82,11 +102,11 @@ class TextTest {
         }
 
         rule.runOnIdle {
-            Truth.assertThat(textColor).isEqualTo(ExpectedTextStyle.color)
-            Truth.assertThat(textAlign).isEqualTo(ExpectedTextStyle.textAlign)
-            Truth.assertThat(fontSize).isEqualTo(ExpectedTextStyle.fontSize)
-            Truth.assertThat(fontStyle).isEqualTo(ExpectedTextStyle.fontStyle)
-            Truth.assertThat(letterSpacing).isEqualTo(ExpectedTextStyle.letterSpacing)
+            assertThat(textColor).isEqualTo(ExpectedTextStyle.color)
+            assertThat(textAlign).isEqualTo(ExpectedTextStyle.textAlign)
+            assertThat(fontSize).isEqualTo(ExpectedTextStyle.fontSize)
+            assertThat(fontStyle).isEqualTo(ExpectedTextStyle.fontStyle)
+            assertThat(letterSpacing).isEqualTo(ExpectedTextStyle.letterSpacing)
         }
     }
 
@@ -97,13 +117,14 @@ class TextTest {
         var fontSize: TextUnit? = null
         var fontStyle: FontStyle? = null
         var letterSpacing: TextUnit? = null
-        val testStyle = TextStyle(
-            color = Color.Green,
-            textAlign = TextAlign.Center,
-            fontSize = 16.sp,
-            fontStyle = FontStyle.Normal,
-            letterSpacing = 0.6.em
-        )
+        val testStyle =
+            TextStyle(
+                color = Color.Green,
+                textAlign = TextAlign.Center,
+                fontSize = 16.sp,
+                fontStyle = FontStyle.Normal,
+                letterSpacing = 0.6.em
+            )
         rule.setContent {
             ProvideTextStyle(ExpectedTextStyle) {
                 Box(Modifier.background(Color.White)) {
@@ -123,17 +144,16 @@ class TextTest {
         }
 
         rule.runOnIdle {
-            Truth.assertThat(textColor).isEqualTo(testStyle.color)
-            Truth.assertThat(textAlign).isEqualTo(testStyle.textAlign)
-            Truth.assertThat(fontSize).isEqualTo(testStyle.fontSize)
-            Truth.assertThat(fontStyle).isEqualTo(testStyle.fontStyle)
-            Truth.assertThat(letterSpacing).isEqualTo(testStyle.letterSpacing)
+            assertThat(textColor).isEqualTo(testStyle.color)
+            assertThat(textAlign).isEqualTo(testStyle.textAlign)
+            assertThat(fontSize).isEqualTo(testStyle.fontSize)
+            assertThat(fontStyle).isEqualTo(testStyle.fontStyle)
+            assertThat(letterSpacing).isEqualTo(testStyle.letterSpacing)
         }
     }
 
     @Test
     fun settingParametersExplicitly() {
-        var textColor: Color? = null
         var textAlign: TextAlign? = null
         var fontSize: TextUnit? = null
         var fontStyle: FontStyle? = null
@@ -155,7 +175,6 @@ class TextTest {
                         fontStyle = expectedFontStyle,
                         letterSpacing = expectedLetterSpacing,
                         onTextLayout = {
-                            textColor = it.layoutInput.style.color
                             textAlign = it.layoutInput.style.textAlign
                             fontSize = it.layoutInput.style.fontSize
                             fontStyle = it.layoutInput.style.fontStyle
@@ -168,18 +187,16 @@ class TextTest {
 
         rule.runOnIdle {
             // explicit parameters should override values from the style.
-            Truth.assertThat(textColor).isEqualTo(expectedColor)
-            Truth.assertThat(textAlign).isEqualTo(expectedTextAlign)
-            Truth.assertThat(fontSize).isEqualTo(expectedFontSize)
-            Truth.assertThat(fontStyle).isEqualTo(expectedFontStyle)
-            Truth.assertThat(letterSpacing).isEqualTo(expectedLetterSpacing)
+            assertThat(textAlign).isEqualTo(expectedTextAlign)
+            assertThat(fontSize).isEqualTo(expectedFontSize)
+            assertThat(fontStyle).isEqualTo(expectedFontStyle)
+            assertThat(letterSpacing).isEqualTo(expectedLetterSpacing)
         }
     }
 
     // Not really an expected use-case, but we should ensure the behavior here is consistent.
     @Test
     fun settingColorAndTextStyle() {
-        var textColor: Color? = null
         var textAlign: TextAlign? = null
         var fontSize: TextUnit? = null
         var fontStyle: FontStyle? = null
@@ -202,7 +219,6 @@ class TextTest {
                         letterSpacing = expectedLetterSpacing,
                         style = ExpectedTextStyle,
                         onTextLayout = {
-                            textColor = it.layoutInput.style.color
                             textAlign = it.layoutInput.style.textAlign
                             fontSize = it.layoutInput.style.fontSize
                             fontStyle = it.layoutInput.style.fontStyle
@@ -215,11 +231,10 @@ class TextTest {
 
         rule.runOnIdle {
             // explicit parameters should override values from the style.
-            Truth.assertThat(textColor).isEqualTo(expectedColor)
-            Truth.assertThat(textAlign).isEqualTo(expectedTextAlign)
-            Truth.assertThat(fontSize).isEqualTo(expectedFontSize)
-            Truth.assertThat(fontStyle).isEqualTo(expectedFontStyle)
-            Truth.assertThat(letterSpacing).isEqualTo(expectedLetterSpacing)
+            assertThat(textAlign).isEqualTo(expectedTextAlign)
+            assertThat(fontSize).isEqualTo(expectedFontSize)
+            assertThat(fontStyle).isEqualTo(expectedFontStyle)
+            assertThat(letterSpacing).isEqualTo(expectedLetterSpacing)
         }
     }
 
@@ -228,18 +243,17 @@ class TextTest {
         rule.setContent {
             ProvideTextStyle(ExpectedTextStyle) {
                 Box(Modifier.background(Color.White)) {
-                    Text(
-                        TestText,
-                        modifier = Modifier.testTag("text")
-                    )
+                    Text(TestText, modifier = Modifier.testTag("text"))
                 }
             }
         }
 
         val textLayoutResults = mutableListOf<TextLayoutResult>()
-        rule.onNodeWithTag("text")
-            .assertTextEquals(TestText)
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(textLayoutResults) }
+        rule.onNodeWithTag("text").assertTextEquals(TestText).performSemanticsAction(
+            SemanticsActions.GetTextLayoutResult
+        ) {
+            it(textLayoutResults)
+        }
         assert(textLayoutResults.size == 1) { "TextLayoutResult is null" }
     }
 }

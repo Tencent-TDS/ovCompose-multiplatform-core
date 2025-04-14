@@ -16,21 +16,21 @@
 
 package androidx.camera.video
 
-import android.media.CamcorderProfile.QUALITY_1080P
 import android.media.CamcorderProfile.QUALITY_2160P
-import android.media.CamcorderProfile.QUALITY_480P
 import android.media.CamcorderProfile.QUALITY_720P
 import android.media.CamcorderProfile.QUALITY_HIGH
 import android.media.CamcorderProfile.QUALITY_LOW
 import android.os.Build
-import androidx.camera.testing.EncoderProfilesUtil.RESOLUTION_2160P
-import androidx.camera.testing.EncoderProfilesUtil.RESOLUTION_720P
-import androidx.camera.testing.EncoderProfilesUtil.PROFILES_1080P
-import androidx.camera.testing.EncoderProfilesUtil.PROFILES_2160P
-import androidx.camera.testing.EncoderProfilesUtil.PROFILES_480P
-import androidx.camera.testing.EncoderProfilesUtil.PROFILES_720P
+import android.util.Range
+import androidx.camera.core.DynamicRange
+import androidx.camera.core.DynamicRange.HLG_10_BIT
+import androidx.camera.core.DynamicRange.SDR
 import androidx.camera.testing.fakes.FakeCameraInfoInternal
-import androidx.camera.testing.fakes.FakeEncoderProfilesProvider
+import androidx.camera.testing.impl.EncoderProfilesUtil.PROFILES_2160P
+import androidx.camera.testing.impl.EncoderProfilesUtil.PROFILES_720P
+import androidx.camera.testing.impl.EncoderProfilesUtil.RESOLUTION_2160P
+import androidx.camera.testing.impl.EncoderProfilesUtil.RESOLUTION_720P
+import androidx.camera.testing.impl.fakes.FakeEncoderProfilesProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertThrows
 import org.junit.Test
@@ -40,29 +40,30 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
 private const val CAMERA_ID_0 = "0"
-private const val CAMERA_ID_1 = "1"
 
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
+@Suppress("DEPRECATION")
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class QualitySelectorTest {
 
-    private val cameraInfo0 = FakeCameraInfoInternal(CAMERA_ID_0).apply {
-        encoderProfilesProvider = FakeEncoderProfilesProvider.Builder()
-            .add(QUALITY_HIGH, PROFILES_2160P)
-            .add(QUALITY_2160P, PROFILES_2160P)
-            .add(QUALITY_720P, PROFILES_720P)
-            .add(QUALITY_LOW, PROFILES_720P)
-            .build()
-    }
-    private val cameraInfo1 = FakeCameraInfoInternal(CAMERA_ID_1).apply {
-        encoderProfilesProvider = FakeEncoderProfilesProvider.Builder()
-            .add(QUALITY_HIGH, PROFILES_1080P)
-            .add(QUALITY_1080P, PROFILES_1080P)
-            .add(QUALITY_480P, PROFILES_480P)
-            .add(QUALITY_LOW, PROFILES_480P)
-            .build()
-    }
+    private val cameraInfo0 =
+        FakeCameraInfoInternal(CAMERA_ID_0).apply {
+            encoderProfilesProvider =
+                FakeEncoderProfilesProvider.Builder()
+                    .add(QUALITY_HIGH, PROFILES_2160P)
+                    .add(QUALITY_2160P, PROFILES_2160P)
+                    .add(QUALITY_720P, PROFILES_720P)
+                    .add(QUALITY_LOW, PROFILES_720P)
+                    .build()
+        }
+    private val videoCapabilities =
+        createFakeVideoCapabilities(
+            mapOf(
+                SDR to listOf(Quality.UHD, Quality.HD),
+                HLG_10_BIT to listOf(Quality.FHD, Quality.SD)
+            )
+        )
 
     @Test
     fun getSortedQualities_fromLargeToSmall() {
@@ -97,24 +98,16 @@ class QualitySelectorTest {
     @Test
     fun getResolution_returnCorrectResolution() {
         // camera0 supports 2160P(UHD) and 720P(HD)
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.HIGHEST)
-        ).isEqualTo(RESOLUTION_2160P)
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.LOWEST)
-        ).isEqualTo(RESOLUTION_720P)
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.UHD)
-        ).isEqualTo(RESOLUTION_2160P)
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.FHD)
-        ).isNull()
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.HD)
-        ).isEqualTo(RESOLUTION_720P)
-        assertThat(
-            QualitySelector.getResolution(cameraInfo0, Quality.SD)
-        ).isNull()
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.HIGHEST))
+            .isEqualTo(RESOLUTION_2160P)
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.LOWEST))
+            .isEqualTo(RESOLUTION_720P)
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.UHD))
+            .isEqualTo(RESOLUTION_2160P)
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.FHD)).isNull()
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.HD))
+            .isEqualTo(RESOLUTION_720P)
+        assertThat(QualitySelector.getResolution(cameraInfo0, Quality.SD)).isNull()
     }
 
     @Test
@@ -138,270 +131,306 @@ class QualitySelectorTest {
     @Test
     fun getPrioritizedQualities_selectSingleQuality() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
+        // SDR supports 2160P(UHD) and 720P(HD)
         val qualitySelector = QualitySelector.from(Quality.UHD)
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_selectQualityByOrder() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
+        // SDR supports 2160P(UHD) and 720P(HD)
         val qualitySelector =
             QualitySelector.fromOrderedList(listOf(Quality.FHD, Quality.UHD, Quality.HD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.UHD, Quality.HD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.UHD, Quality.HD))
     }
 
     @Test
     fun getPrioritizedQualities_noFallbackStrategy() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
+        // SDR supports 2160P(UHD) and 720P(HD)
         val qualitySelector = QualitySelector.from(Quality.FHD)
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEmpty()
+        assertThat(selectedQualities).isEmpty()
     }
 
     @Test
     fun getPrioritizedQualities_withFallbackStrategy() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.FHD,
-            FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(
+                Quality.FHD,
+                FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD)
+            )
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_containHighestQuality_addAll() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
+        // SDR supports 2160P(UHD) and 720P(HD)
         val qualitySelector = QualitySelector.fromOrderedList(listOf(Quality.FHD, Quality.HIGHEST))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.UHD, Quality.HD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.UHD, Quality.HD))
     }
 
     @Test
     fun getPrioritizedQualities_containLowestQuality_addAllReversely() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
+        // SDR supports 2160P(UHD) and 720P(HD)
         val qualitySelector = QualitySelector.fromOrderedList(listOf(Quality.FHD, Quality.LOWEST))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_addDuplicateQuality_getSingleQualityWithCorrectOrder() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.fromOrderedList(
-            listOf(
-                Quality.SD,
-                Quality.FHD,
-                Quality.HD,
-                Quality.UHD,
-                // start duplicate qualities
-                Quality.SD,
-                Quality.HD,
-                Quality.FHD,
-                Quality.UHD,
-                Quality.LOWEST,
-                Quality.HIGHEST
-            ),
-            FallbackStrategy.higherQualityThan(Quality.LOWEST)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.fromOrderedList(
+                listOf(
+                    Quality.SD,
+                    Quality.FHD,
+                    Quality.HD,
+                    Quality.UHD,
+                    // start duplicate qualities
+                    Quality.SD,
+                    Quality.HD,
+                    Quality.FHD,
+                    Quality.UHD,
+                    Quality.LOWEST,
+                    Quality.HIGHEST
+                ),
+                FallbackStrategy.higherQualityThan(Quality.LOWEST)
+            )
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackLowerOrHigher_getLower() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.FHD,
-            FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(
+                Quality.FHD,
+                FallbackStrategy.lowerQualityOrHigherThan(Quality.FHD)
+            )
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackLowerOrHigher_fallbackQualityNotIncluded() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.SD,
-            FallbackStrategy.higherQualityThan(Quality.HD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(Quality.SD, FallbackStrategy.higherQualityThan(Quality.HD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackLowerOrHigher_getHigher() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.SD,
-            FallbackStrategy.lowerQualityOrHigherThan(Quality.SD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(Quality.SD, FallbackStrategy.lowerQualityOrHigherThan(Quality.SD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD, Quality.UHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackLower_getLower() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.FHD,
-            FallbackStrategy.lowerQualityThan(Quality.FHD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(Quality.FHD, FallbackStrategy.lowerQualityThan(Quality.FHD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.HD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.HD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackLower_getNone() {
         // Arrange.
-        // camera0 supports 2160P(UHD) and 720P(HD)
-        val qualitySelector = QualitySelector.from(
-            Quality.SD,
-            FallbackStrategy.lowerQualityThan(Quality.SD)
-        )
+        // SDR supports 2160P(UHD) and 720P(HD)
+        val qualitySelector =
+            QualitySelector.from(Quality.SD, FallbackStrategy.lowerQualityThan(Quality.SD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo0)
+        val supportedQualities = videoCapabilities.getSupportedQualities(SDR)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEmpty()
+        assertThat(selectedQualities).isEmpty()
     }
 
     @Test
     fun getPrioritizedQualities_fallbackHigherOrLower_getHigher() {
         // Arrange.
-        // camera1 supports 1080P(FHD) and 480P(SD)
-        val qualitySelector = QualitySelector.from(
-            Quality.HD,
-            FallbackStrategy.higherQualityOrLowerThan(Quality.HD)
-        )
+        // HLG10 supports 1080P(FHD) and 480P(SD)
+        val qualitySelector =
+            QualitySelector.from(Quality.HD, FallbackStrategy.higherQualityOrLowerThan(Quality.HD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo1)
+        val supportedQualities = videoCapabilities.getSupportedQualities(HLG_10_BIT)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.FHD, Quality.SD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.FHD, Quality.SD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackHigher_fallbackQualityNotIncluded() {
         // Arrange.
-        // camera1 supports 1080P(FHD) and 480P(SD)
-        val qualitySelector = QualitySelector.from(
-            Quality.UHD,
-            FallbackStrategy.higherQualityThan(Quality.SD)
-        )
+        // HLG10 supports 1080P(FHD) and 480P(SD)
+        val qualitySelector =
+            QualitySelector.from(Quality.UHD, FallbackStrategy.higherQualityThan(Quality.SD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo1)
+        val supportedQualities = videoCapabilities.getSupportedQualities(HLG_10_BIT)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.FHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.FHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackHigherOrLower_getLower() {
         // Arrange.
-        // camera1 supports 1080P(FHD) and 480P(SD)
-        val qualitySelector = QualitySelector.from(
-            Quality.UHD,
-            FallbackStrategy.higherQualityOrLowerThan(Quality.UHD)
-        )
+        // HLG10 supports 1080P(FHD) and 480P(SD)
+        val qualitySelector =
+            QualitySelector.from(
+                Quality.UHD,
+                FallbackStrategy.higherQualityOrLowerThan(Quality.UHD)
+            )
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo1)
+        val supportedQualities = videoCapabilities.getSupportedQualities(HLG_10_BIT)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.FHD, Quality.SD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.FHD, Quality.SD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackHigher_getHigher() {
         // Arrange.
-        // camera1 supports 1080P(FHD) and 480P(SD)
-        val qualitySelector = QualitySelector.from(
-            Quality.HD,
-            FallbackStrategy.higherQualityThan(Quality.HD)
-        )
+        // HLG10 supports 1080P(FHD) and 480P(SD)
+        val qualitySelector =
+            QualitySelector.from(Quality.HD, FallbackStrategy.higherQualityThan(Quality.HD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo1)
+        val supportedQualities = videoCapabilities.getSupportedQualities(HLG_10_BIT)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEqualTo(listOf(Quality.FHD))
+        assertThat(selectedQualities).isEqualTo(listOf(Quality.FHD))
     }
 
     @Test
     fun getPrioritizedQualities_fallbackHigher_getNone() {
         // Arrange.
-        // camera1 supports 1080P(FHD) and 480P(SD)
-        val qualitySelector = QualitySelector.from(
-            Quality.UHD,
-            FallbackStrategy.higherQualityThan(Quality.UHD)
-        )
+        // HLG10 supports 1080P(FHD) and 480P(SD)
+        val qualitySelector =
+            QualitySelector.from(Quality.UHD, FallbackStrategy.higherQualityThan(Quality.UHD))
 
         // Act.
-        val qualities = qualitySelector.getPrioritizedQualities(cameraInfo1)
+        val supportedQualities = videoCapabilities.getSupportedQualities(HLG_10_BIT)
+        val selectedQualities = qualitySelector.getPrioritizedQualities(supportedQualities)
 
         // Assert.
-        assertThat(qualities).isEmpty()
+        assertThat(selectedQualities).isEmpty()
+    }
+
+    /** Create a fake VideoCapabilities that can only use the getSupportedQualities method. */
+    private fun createFakeVideoCapabilities(
+        supportedQualitiesMap: Map<DynamicRange, List<Quality>>
+    ): VideoCapabilities {
+        return object : VideoCapabilities {
+
+            override fun getSupportedDynamicRanges(): MutableSet<DynamicRange> {
+                throw UnsupportedOperationException("Not supported.")
+            }
+
+            override fun getSupportedQualities(dynamicRange: DynamicRange): MutableList<Quality> {
+                return supportedQualitiesMap[dynamicRange]?.toMutableList() ?: mutableListOf()
+            }
+
+            override fun isQualitySupported(quality: Quality, dynamicRange: DynamicRange): Boolean {
+                throw UnsupportedOperationException("Not supported.")
+            }
+
+            override fun getSupportedFrameRateRanges(
+                quality: Quality,
+                dynamicRange: DynamicRange
+            ): Set<Range<Int>> {
+                throw UnsupportedOperationException("Not supported.")
+            }
+
+            override fun isStabilizationSupported(): Boolean {
+                return false
+            }
+        }
     }
 }

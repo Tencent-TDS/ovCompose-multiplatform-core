@@ -1,10 +1,16 @@
 // Signature format: 4.0
 package androidx.dynamicanimation.animation {
 
+  public class AnimationHandler {
+    ctor public AnimationHandler(androidx.dynamicanimation.animation.FrameCallbackScheduler);
+    method @VisibleForTesting public float getDurationScale();
+  }
+
   public abstract class DynamicAnimation<T extends androidx.dynamicanimation.animation.DynamicAnimation<T>> {
     method public T! addEndListener(androidx.dynamicanimation.animation.DynamicAnimation.OnAnimationEndListener!);
     method public T! addUpdateListener(androidx.dynamicanimation.animation.DynamicAnimation.OnAnimationUpdateListener!);
     method @MainThread public void cancel();
+    method @VisibleForTesting public androidx.dynamicanimation.animation.AnimationHandler getAnimationHandler();
     method public float getMinimumVisibleChange();
     method public androidx.dynamicanimation.animation.FrameCallbackScheduler getScheduler();
     method public boolean isRunning();
@@ -45,10 +51,10 @@ package androidx.dynamicanimation.animation {
     method public void onAnimationUpdate(androidx.dynamicanimation.animation.DynamicAnimation!, float, float);
   }
 
-  public abstract static class DynamicAnimation.ViewProperty extends androidx.dynamicanimation.animation.FloatPropertyCompat<android.view.View> {
+  public abstract static class DynamicAnimation.ViewProperty extends androidx.dynamicanimation.animation.FloatPropertyCompat<android.view.View!> {
   }
 
-  public final class FlingAnimation extends androidx.dynamicanimation.animation.DynamicAnimation<androidx.dynamicanimation.animation.FlingAnimation> {
+  public final class FlingAnimation extends androidx.dynamicanimation.animation.DynamicAnimation<androidx.dynamicanimation.animation.FlingAnimation!> {
     ctor public FlingAnimation(androidx.dynamicanimation.animation.FloatValueHolder!);
     ctor public <K> FlingAnimation(K!, androidx.dynamicanimation.animation.FloatPropertyCompat<K!>!);
     method public float getFriction();
@@ -77,7 +83,7 @@ package androidx.dynamicanimation.animation {
     method public void postFrameCallback(Runnable);
   }
 
-  public final class SpringAnimation extends androidx.dynamicanimation.animation.DynamicAnimation<androidx.dynamicanimation.animation.SpringAnimation> {
+  public final class SpringAnimation extends androidx.dynamicanimation.animation.DynamicAnimation<androidx.dynamicanimation.animation.SpringAnimation!> {
     ctor public SpringAnimation(androidx.dynamicanimation.animation.FloatValueHolder!);
     ctor public SpringAnimation(androidx.dynamicanimation.animation.FloatValueHolder!, float);
     ctor public <K> SpringAnimation(K!, androidx.dynamicanimation.animation.FloatPropertyCompat<K!>!);

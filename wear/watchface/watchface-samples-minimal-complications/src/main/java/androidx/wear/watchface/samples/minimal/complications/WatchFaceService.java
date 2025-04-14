@@ -22,7 +22,6 @@ import android.content.res.Resources;
 import android.graphics.RectF;
 import android.view.SurfaceHolder;
 
-import androidx.annotation.NonNull;
 import androidx.wear.watchface.CanvasComplicationFactory;
 import androidx.wear.watchface.ComplicationSlotInflationFactory;
 import androidx.wear.watchface.ComplicationSlotsManager;
@@ -40,7 +39,7 @@ import androidx.wear.watchface.style.CurrentUserStyleRepository;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 /** The service hosting the watch face. */
 public class WatchFaceService extends ListenableWatchFaceService {
@@ -51,13 +50,12 @@ public class WatchFaceService extends ListenableWatchFaceService {
         return resources.getInteger(R.integer.complication_slot_id);
     }
 
-    @NotNull
     @Override
-    protected ListenableFuture<WatchFace> createWatchFaceFuture(
-            @NotNull SurfaceHolder surfaceHolder,
-            @NotNull WatchState watchState,
-            @NotNull ComplicationSlotsManager complicationSlotsManager,
-            @NotNull CurrentUserStyleRepository currentUserStyleRepository) {
+    protected @NonNull ListenableFuture<WatchFace> createWatchFaceFuture(
+            @NonNull SurfaceHolder surfaceHolder,
+            @NonNull WatchState watchState,
+            @NonNull ComplicationSlotsManager complicationSlotsManager,
+            @NonNull CurrentUserStyleRepository currentUserStyleRepository) {
         Renderer renderer =
                 new WatchFaceRenderer(
                         getResources(),
@@ -73,15 +71,13 @@ public class WatchFaceService extends ListenableWatchFaceService {
                                 new Intent(this, ComplicationRationalActivity.class)));
     }
 
-    @NotNull
     @Override
-    public ComplicationSlotInflationFactory getComplicationSlotInflationFactory(
+    public @NonNull ComplicationSlotInflationFactory getComplicationSlotInflationFactory(
             @NonNull CurrentUserStyleRepository currentUserStyleRepository) {
         final Context context = this;
         return new ComplicationSlotInflationFactory() {
-            @NonNull
             @Override
-            public CanvasComplicationFactory getCanvasComplicationFactory(int slotId) {
+            public @NonNull CanvasComplicationFactory getCanvasComplicationFactory(int slotId) {
                 return (watchState, invalidateCallback) ->
                         new CanvasComplicationDrawable(
                                 new ComplicationDrawable(context), watchState, invalidateCallback);

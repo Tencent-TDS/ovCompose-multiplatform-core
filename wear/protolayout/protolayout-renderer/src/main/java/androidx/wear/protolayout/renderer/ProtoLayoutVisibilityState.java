@@ -23,10 +23,7 @@ import androidx.annotation.RestrictTo.Scope;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-/**
- * The visibility state of the layout.
- *
- */
+/** The visibility state of the layout. */
 @IntDef({
     ProtoLayoutVisibilityState.VISIBILITY_STATE_FULLY_VISIBLE,
     ProtoLayoutVisibilityState.VISIBILITY_STATE_PARTIALLY_VISIBLE,
@@ -37,8 +34,10 @@ import java.lang.annotation.RetentionPolicy;
 public @interface ProtoLayoutVisibilityState {
     /** Fully visible and on-screen. */
     int VISIBILITY_STATE_FULLY_VISIBLE = 0;
+
     /** The layout is either entering or leaving the screen. */
     int VISIBILITY_STATE_PARTIALLY_VISIBLE = 1;
+
     /** The layout is off screen, or covered up by a foreground activity. */
     int VISIBILITY_STATE_INVISIBLE = 2;
 }

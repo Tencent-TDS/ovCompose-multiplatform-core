@@ -26,27 +26,27 @@ import androidx.test.filters.MediumTest
 import androidx.work.Configuration
 import androidx.work.OneTimeWorkRequest
 import androidx.work.impl.TestWorkManagerImpl
-import androidx.work.impl.model.WorkGenerationalId
 import androidx.work.impl.WorkManagerImpl
+import androidx.work.impl.model.WorkGenerationalId
 import androidx.work.impl.utils.SerialExecutorImpl
 import androidx.work.impl.utils.SynchronousExecutor
 import androidx.work.impl.utils.WorkTimer
 import androidx.work.impl.utils.taskexecutor.SerialExecutor
 import com.google.android.gms.gcm.GcmNetworkManager
 import com.google.android.gms.gcm.TaskParams
+import java.util.concurrent.Executor
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyLong
 import org.mockito.ArgumentMatchers.eq
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.atLeastOnce
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
-import java.util.concurrent.Executor
+import org.mockito.Mockito.`when`
 
 @RunWith(AndroidJUnit4::class)
 @MediumTest
@@ -61,19 +61,22 @@ class WorkManagerGcmDispatcherTest {
     fun setUp() {
         mContext = ApplicationProvider.getApplicationContext()
         mExecutor = SynchronousExecutor()
-        ArchTaskExecutor.getInstance().setDelegate(object : TaskExecutor() {
-            override fun executeOnDiskIO(runnable: Runnable) {
-                runnable.run()
-            }
+        ArchTaskExecutor.getInstance()
+            .setDelegate(
+                object : TaskExecutor() {
+                    override fun executeOnDiskIO(runnable: Runnable) {
+                        runnable.run()
+                    }
 
-            override fun isMainThread(): Boolean {
-                return true
-            }
+                    override fun isMainThread(): Boolean {
+                        return true
+                    }
 
-            override fun postToMainThread(runnable: Runnable) {
-                runnable.run()
-            }
-        })
+                    override fun postToMainThread(runnable: Runnable) {
+                        runnable.run()
+                    }
+                }
+            )
 
         val workTaskExecutor: androidx.work.impl.utils.taskexecutor.TaskExecutor =
             object : androidx.work.impl.utils.taskexecutor.TaskExecutor {
@@ -88,10 +91,8 @@ class WorkManagerGcmDispatcherTest {
                 }
             }
 
-        val configuration = Configuration.Builder()
-            .setMinimumLoggingLevel(Log.DEBUG)
-            .setExecutor(mExecutor)
-            .build()
+        val configuration =
+            Configuration.Builder().setMinimumLoggingLevel(Log.DEBUG).setExecutor(mExecutor).build()
 
         mWorkManager = TestWorkManagerImpl(mContext, configuration, workTaskExecutor)
         WorkManagerImpl.setDelegate(mWorkManager)
@@ -123,9 +124,8 @@ class WorkManagerGcmDispatcherTest {
         `when`(taskParams.tag).thenReturn(request.workSpec.id)
         val result = mDispatcher.onRunTask(taskParams)
         assert(result == GcmNetworkManager.RESULT_SUCCESS)
-        verify(mWorkTimer, times(1)).startTimer(eq(
-            WorkGenerationalId(request.workSpec.id, 0)
-        ), anyLong(), any())
+        verify(mWorkTimer, times(1))
+            .startTimer(eq(WorkGenerationalId(request.workSpec.id, 0)), anyLong(), any())
         verify(mWorkTimer, atLeastOnce()).stopTimer(eq(WorkGenerationalId(request.workSpec.id, 0)))
     }
 }

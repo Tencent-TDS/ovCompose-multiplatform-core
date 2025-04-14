@@ -16,25 +16,16 @@
 
 package androidx.compose.foundation
 
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.OnGloballyPositionedModifier
-import androidx.compose.ui.modifier.ModifierLocalConsumer
-import androidx.compose.ui.modifier.ModifierLocalProvider
-import androidx.compose.ui.modifier.ModifierLocalReadScope
-import androidx.compose.ui.modifier.ProvidableModifierLocal
-import androidx.compose.ui.modifier.modifierLocalOf
-import androidx.compose.ui.platform.debugInspectorInfo
-
-@OptIn(ExperimentalFoundationApi::class)
-internal val ModifierLocalFocusedBoundsObserver =
-    modifierLocalOf<((LayoutCoordinates?) -> Unit)?> { null }
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.TraversableNode
+import androidx.compose.ui.node.findNearestAncestor
+import androidx.compose.ui.platform.InspectorInfo
 
 /**
- * Calls [onPositioned] whenever the bounds of the currently-focused area changes.
- * If a child of this node has focus, [onPositioned] will be called immediately with a non-null
+ * Calls [onPositioned] whenever the bounds of the currently-focused area changes. If a child of
+ * this node has focus, [onPositioned] will be called immediately with a non-null
  * [LayoutCoordinates] that can be queried for the focused bounds, and again every time the focused
  * child changes or is repositioned. When a child loses focus, [onPositioned] will be passed `null`.
  *
@@ -44,80 +35,41 @@ internal val ModifierLocalFocusedBoundsObserver =
  * Note that there may be some cases where the focused bounds change but the callback is _not_
  * invoked, but the last [LayoutCoordinates] will always return the most up-to-date bounds.
  */
-@ExperimentalFoundationApi
 fun Modifier.onFocusedBoundsChanged(onPositioned: (LayoutCoordinates?) -> Unit): Modifier =
-    composed(
-        debugInspectorInfo {
-            name = "onFocusedBoundsChanged"
-            properties["onPositioned"] = onPositioned
-        }
-    ) {
-        remember(onPositioned) { FocusedBoundsObserverModifier(onPositioned) }
+    this then FocusedBoundsObserverElement(onPositioned)
+
+private class FocusedBoundsObserverElement(val onPositioned: (LayoutCoordinates?) -> Unit) :
+    ModifierNodeElement<FocusedBoundsObserverNode>() {
+    override fun create(): FocusedBoundsObserverNode = FocusedBoundsObserverNode(onPositioned)
+
+    override fun update(node: FocusedBoundsObserverNode) {
+        node.onPositioned = onPositioned
     }
 
-private class FocusedBoundsObserverModifier(
-    private val handler: (LayoutCoordinates?) -> Unit
-) : ModifierLocalConsumer,
-    ModifierLocalProvider<((LayoutCoordinates?) -> Unit)?>,
-        (LayoutCoordinates?) -> Unit {
-    private var parent: ((LayoutCoordinates?) -> Unit)? = null
-    private var lastBounds: LayoutCoordinates? = null
+    override fun hashCode(): Int = onPositioned.hashCode()
 
-    override val key: ProvidableModifierLocal<((LayoutCoordinates?) -> Unit)?>
-        get() = ModifierLocalFocusedBoundsObserver
-    override val value: (LayoutCoordinates?) -> Unit
-        get() = this
-
-    override fun onModifierLocalsUpdated(scope: ModifierLocalReadScope) {
-        val newParent = with(scope) { ModifierLocalFocusedBoundsObserver.current }
-        if (newParent != parent) {
-            parent = newParent
-            // Don't need to call the new parent ourselves because the child will also get the
-            // modifier locals updated callback, and it will bubble the event up itself.
-        }
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        val otherModifier = other as? FocusedBoundsObserverElement ?: return false
+        return onPositioned === otherModifier.onPositioned
     }
 
-    /** Called when a child gains/loses focus or is focused and changes position. */
-    override fun invoke(focusedBounds: LayoutCoordinates?) {
-        lastBounds = focusedBounds
-        handler(focusedBounds)
-        parent?.invoke(focusedBounds)
+    override fun InspectorInfo.inspectableProperties() {
+        name = "onFocusedBoundsChanged"
+        properties["onPositioned"] = onPositioned
     }
 }
 
-/**
- * Modifier used by [Modifier.focusable] to publish the location of the focused element.
- * Should only be applied to the node when it is actually focused.
- */
-@OptIn(ExperimentalFoundationApi::class)
-internal class FocusedBoundsModifier : ModifierLocalConsumer,
-    OnGloballyPositionedModifier {
-    private var observer: ((LayoutCoordinates?) -> Unit)? = null
-    private var layoutCoordinates: LayoutCoordinates? = null
+internal class FocusedBoundsObserverNode(var onPositioned: (LayoutCoordinates?) -> Unit) :
+    Modifier.Node(), TraversableNode {
 
-    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        layoutCoordinates = coordinates
-        if (coordinates.isAttached) {
-            notifyObserverWhenAttached()
-        } else {
-            observer?.invoke(null)
-        }
+    override val traverseKey: Any = TraverseKey
+
+    /** Called when a child gains/loses focus or is focused and changes position. */
+    fun onFocusBoundsChanged(focusedBounds: LayoutCoordinates?) {
+        onPositioned(focusedBounds)
+        findNearestAncestor()?.onFocusBoundsChanged(focusedBounds)
     }
 
-    override fun onModifierLocalsUpdated(scope: ModifierLocalReadScope) {
-        val newObserver = with(scope) { ModifierLocalFocusedBoundsObserver.current }
-        if (newObserver == null) {
-            // We're being removed from the hierarchy. Inform the previous listener.
-            observer?.invoke(null)
-        }
-        observer = newObserver
-        // Don't need to explicitly notify observers here because onGloballyPositioned will get
-        // called after this method, and that will notify observers.
-    }
-
-    private fun notifyObserverWhenAttached() {
-        if (layoutCoordinates != null && layoutCoordinates!!.isAttached) {
-            observer?.invoke(layoutCoordinates)
-        }
-    }
+    companion object TraverseKey
 }

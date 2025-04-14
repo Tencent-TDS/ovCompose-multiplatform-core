@@ -21,6 +21,8 @@ import android.content.Context
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.core.util.Consumer
 import androidx.wear.watchface.Renderer
+import androidx.wear.watchface.WatchFaceRuntimeService
+import androidx.wear.watchface.client.WatchFaceControlClient.Companion.createWatchFaceControlClient
 import androidx.wear.watchface.client.WatchFaceControlClient.ServiceNotBoundException
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.style.UserStyleData
@@ -37,7 +39,13 @@ import kotlinx.coroutines.launch
 /**
  * [ListenableFuture]-based compatibility wrapper around [WatchFaceControlClient]'s suspending
  * methods. This class is open to allow mocking.
+ *
+ * @deprecated use Watch Face Format instead
  */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public open class ListenableWatchFaceControlClient(
     private val watchFaceControlClient: WatchFaceControlClient
 ) : WatchFaceControlClient {
@@ -116,6 +124,51 @@ public open class ListenableWatchFaceControlClient(
                     WatchFaceControlClient.createWatchFaceControlClient(
                         context,
                         watchFacePackageName
+                    )
+                )
+            }
+
+        /**
+         * Similar [createWatchFaceControlClient] this constructs a [WatchFaceControlClient] which
+         * attempts to connect to the watch face runtime in the android package
+         * [runtimePackageName].
+         *
+         * A watch face runtime is a special type of watch face, which renders a watch face
+         * described by resources in another package [resourceOnlyWatchFacePackageName].
+         *
+         * Note only one watch face definition per resource only watch face package is supported.
+         *
+         * Currently Wear OS only supports the runtime for the Android Watch Face Format (see
+         * https://developer.android.com/training/wearables/wff for more details).
+         *
+         * @param context Calling application's [Context].
+         * @param runtimePackageName The name of the package containing the watch face runtime's
+         *   control service to bind to.
+         * @param resourceOnlyWatchFacePackageName The name of the package from which to load the
+         *   resource only watch face. This is exposed to the runtime via the
+         *   `resourceOnlyWatchFacePackageName` parameter passed to
+         *   [WatchFaceRuntimeService.createUserStyleSchema],
+         *   [WatchFaceRuntimeService.createComplicationSlotsManager],
+         *   [WatchFaceRuntimeService.createUserStyleFlavors] and
+         *   [WatchFaceRuntimeService.createWatchFace]).
+         * @return [ListenableFuture]<[ListenableWatchFaceControlClient]> which on success resolves
+         *   to a [ListenableWatchFaceControlClient] or throws a [ServiceNotBoundException] if the
+         *   watch face control service can not be bound.
+         */
+        @JvmStatic
+        public fun createWatchFaceRuntimeControlClientAsync(
+            context: Context,
+            runtimePackageName: String,
+            resourceOnlyWatchFacePackageName: String
+        ): ListenableFuture<ListenableWatchFaceControlClient> =
+            launchFutureCoroutine(
+                "ListenableWatchFaceControlClient.createWatchFaceRuntimeControlClient",
+            ) {
+                ListenableWatchFaceControlClient(
+                    WatchFaceControlClient.createWatchFaceRuntimeControlClient(
+                        context,
+                        runtimePackageName,
+                        resourceOnlyWatchFacePackageName
                     )
                 )
             }
@@ -289,6 +342,9 @@ public open class ListenableWatchFaceControlClient(
             previewImageUpdateRequestedExecutor,
             previewImageUpdateRequestedListener
         )
+
+    override fun hasComplicationDataCache(): Boolean =
+        watchFaceControlClient.hasComplicationDataCache()
 
     override fun getEditorServiceClient(): EditorServiceClient =
         watchFaceControlClient.getEditorServiceClient()

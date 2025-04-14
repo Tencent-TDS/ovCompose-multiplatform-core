@@ -15,15 +15,13 @@
      limitations under the License.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="1"
-    android:versionName="1.0">
+    xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
   <uses-permission android:name="androidx.car.app.NAVIGATION_TEMPLATES"/>
   <uses-permission android:name="androidx.car.app.ACCESS_SURFACE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -47,8 +45,7 @@
 
   <application
     android:label="@string/app_name"
-    android:icon="@drawable/ic_launcher"
-    android:extractNativeLibs="false">
+    android:icon="@drawable/ic_launcher">
 
     <meta-data
         android:name="com.android.automotive"
@@ -61,7 +58,6 @@
 
     <service
         android:name="androidx.car.app.sample.navigation.common.car.NavigationCarAppService"
-        android:foregroundServiceType="location"
         android:exported="true">
 
       <intent-filter>
@@ -73,11 +69,13 @@
     <service
         android:name="androidx.car.app.sample.navigation.common.nav.NavigationService"
         android:enabled="true"
+        android:foregroundServiceType="location"
         android:exported="true">
     </service>
 
     <activity
         android:name="androidx.car.app.activity.CarAppActivity"
+        android:configChanges="uiMode"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
         android:exported="true"
         android:launchMode="singleTask"

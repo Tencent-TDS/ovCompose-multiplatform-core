@@ -32,18 +32,17 @@ import androidx.work.impl.model.WorkSpecDao
 import androidx.work.impl.utils.taskexecutor.InstantWorkTaskExecutor
 import androidx.work.impl.utils.taskexecutor.TaskExecutor
 import androidx.work.worker.TestWorker
+import java.util.UUID
 import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.ArgumentMatchers
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.anyString
 import org.mockito.Mockito.mock
-import java.util.UUID
+import org.mockito.Mockito.`when`
 
 @RunWith(AndroidJUnit4::class)
-
 public class WorkForegroundUpdaterTest {
 
     private lateinit var mContext: Context
@@ -67,8 +66,9 @@ public class WorkForegroundUpdaterTest {
 
     @Test(expected = IllegalStateException::class)
     @MediumTest
-    // Mockito tries to class load android.os.CancellationSignal which is only available on API >= 16
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 29)
+    // Mockito tries to class load android.os.CancellationSignal which is only available on API >=
+    // 16
+    @SdkSuppress(maxSdkVersion = 29)
     public fun setForeground_whenWorkReplaced() {
         val foregroundUpdater =
             WorkForegroundUpdater(mDatabase, mForegroundProcessor, mTaskExecutor)
@@ -82,8 +82,9 @@ public class WorkForegroundUpdaterTest {
 
     @Test(expected = IllegalStateException::class)
     @MediumTest
-    // Mockito tries to class load android.os.CancellationSignal which is only available on API >= 16
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 29)
+    // Mockito tries to class load android.os.CancellationSignal which is only available on API >=
+    // 16
+    @SdkSuppress(maxSdkVersion = 29)
     public fun setForeground_whenWorkFinished() {
         `when`(mWorkSpecDao.getState(anyString())).thenReturn(WorkInfo.State.SUCCEEDED)
         val foregroundUpdater =
@@ -102,10 +103,12 @@ public class WorkForegroundUpdaterTest {
         `when`(mWorkSpecDao.getState(anyString())).thenReturn(WorkInfo.State.RUNNING)
         `when`(mForegroundProcessor.startForeground(anyString(), ArgumentMatchers.any()))
             .thenThrow(IllegalStateException("Subject to foreground service restrictions."))
-        val request = OneTimeWorkRequest.Builder(TestWorker::class.java)
-            .setConstraints(
-                Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
-            ).build()
+        val request =
+            OneTimeWorkRequest.Builder(TestWorker::class.java)
+                .setConstraints(
+                    Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+                )
+                .build()
         val notificationId = 1
         val notification = mock(Notification::class.java)
         val metadata = ForegroundInfo(notificationId, notification)

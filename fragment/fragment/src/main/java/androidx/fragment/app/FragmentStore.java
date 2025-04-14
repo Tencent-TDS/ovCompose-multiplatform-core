@@ -21,8 +21,9 @@ import android.util.Log;
 import android.view.ViewGroup;
 
 import androidx.annotation.IdRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -151,6 +152,10 @@ class FragmentStore {
             mNonConfig.removeRetainedFragment(f);
         }
 
+        if (mActive.get(f.mWho) != newlyInactive) {
+            return;
+        }
+
         // Don't remove yet. That happens in burpActive(). This prevents
         // concurrent modification while iterating over mActive
         FragmentStateManager removedStateManager = mActive.put(f.mWho, null);
@@ -176,16 +181,14 @@ class FragmentStore {
         values.removeAll(Collections.singleton(null));
     }
 
-    @Nullable
-    Bundle getSavedState(@NonNull String who) {
+    @Nullable Bundle getSavedState(@NonNull String who) {
         return mSavedState.get(who);
     }
 
     /**
      * Sets the saved state, returning the previously set state bundle, if any.
      */
-    @Nullable
-    Bundle setSavedState(@NonNull String who, @Nullable Bundle bundle) {
+    @Nullable Bundle setSavedState(@NonNull String who, @Nullable Bundle bundle) {
         if (bundle != null) {
             return mSavedState.put(who, bundle);
         } else {
@@ -198,13 +201,11 @@ class FragmentStore {
         mSavedState.putAll(allSavedStates);
     }
 
-    @NonNull
-    HashMap<String, Bundle> getAllSavedState() {
+    @NonNull HashMap<String, Bundle> getAllSavedState() {
         return mSavedState;
     }
 
-    @NonNull
-    ArrayList<String> saveActiveFragments() {
+    @NonNull ArrayList<String> saveActiveFragments() {
         ArrayList<String> active = new ArrayList<>(mActive.size());
         for (FragmentStateManager fragmentStateManager : mActive.values()) {
             if (fragmentStateManager != null) {
@@ -221,8 +222,7 @@ class FragmentStore {
         return active;
     }
 
-    @Nullable
-    ArrayList<String> saveAddedFragments() {
+    @Nullable ArrayList<String> saveAddedFragments() {
         synchronized (mAdded) {
             if (mAdded.isEmpty()) {
                 return null;
@@ -239,8 +239,7 @@ class FragmentStore {
         }
     }
 
-    @NonNull
-    List<FragmentStateManager> getActiveFragmentStateManagers() {
+    @NonNull List<FragmentStateManager> getActiveFragmentStateManagers() {
         ArrayList<FragmentStateManager> activeFragmentStateManagers = new ArrayList<>();
         for (FragmentStateManager fragmentStateManager : mActive.values()) {
             if (fragmentStateManager != null) {
@@ -250,9 +249,8 @@ class FragmentStore {
         return activeFragmentStateManagers;
     }
 
-    @NonNull
     @SuppressWarnings("MixedMutabilityReturnType")
-    List<Fragment> getFragments() {
+    @NonNull List<Fragment> getFragments() {
         if (mAdded.isEmpty()) {
             return Collections.emptyList();
         }
@@ -261,8 +259,7 @@ class FragmentStore {
         }
     }
 
-    @NonNull
-    List<Fragment> getActiveFragments() {
+    @NonNull List<Fragment> getActiveFragments() {
         ArrayList<Fragment> activeFragments = new ArrayList<>();
         for (FragmentStateManager fragmentStateManager : mActive.values()) {
             if (fragmentStateManager != null) {
@@ -278,8 +275,7 @@ class FragmentStore {
         return mActive.size();
     }
 
-    @Nullable
-    Fragment findFragmentById(@IdRes int id) {
+    @Nullable Fragment findFragmentById(@IdRes int id) {
         // First look through added fragments.
         for (int i = mAdded.size() - 1; i >= 0; i--) {
             Fragment f = mAdded.get(i);
@@ -299,8 +295,7 @@ class FragmentStore {
         return null;
     }
 
-    @Nullable
-    Fragment findFragmentByTag(@Nullable String tag) {
+    @Nullable Fragment findFragmentByTag(@Nullable String tag) {
         if (tag != null) {
             // First look through added fragments.
             for (int i = mAdded.size() - 1; i >= 0; i--) {
@@ -328,13 +323,11 @@ class FragmentStore {
         return mActive.get(who) != null;
     }
 
-    @Nullable
-    FragmentStateManager getFragmentStateManager(@NonNull String who) {
+    @Nullable FragmentStateManager getFragmentStateManager(@NonNull String who) {
         return mActive.get(who);
     }
 
-    @Nullable
-    Fragment findFragmentByWho(@NonNull String who) {
+    @Nullable Fragment findFragmentByWho(@NonNull String who) {
         for (FragmentStateManager fragmentStateManager : mActive.values()) {
             if (fragmentStateManager != null) {
                 Fragment f = fragmentStateManager.getFragment();
@@ -346,8 +339,7 @@ class FragmentStore {
         return null;
     }
 
-    @Nullable
-    Fragment findActiveFragment(@NonNull String who) {
+    @Nullable Fragment findActiveFragment(@NonNull String who) {
         FragmentStateManager fragmentStateManager = mActive.get(who);
         if (fragmentStateManager != null) {
             return fragmentStateManager.getFragment();
@@ -404,7 +396,7 @@ class FragmentStore {
     }
 
     void dump(@NonNull String prefix, @Nullable FileDescriptor fd,
-            @NonNull PrintWriter writer, @Nullable String[] args) {
+            @NonNull PrintWriter writer, String @Nullable [] args) {
         String innerPrefix = prefix + "    ";
 
         if (!mActive.isEmpty()) {

@@ -16,23 +16,24 @@
 
 package androidx.appsearch.localstorage.stats;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.app.AppSearchResult;
+import androidx.appsearch.stats.BaseStats;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A class for holding detailed stats to log for each individual document put by a
  * {@link androidx.appsearch.app.AppSearchSession#putAsync} call.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public final class PutDocumentStats {
-    @NonNull
-    private final String mPackageName;
-    @NonNull
-    private final String mDatabase;
+public final class PutDocumentStats extends BaseStats {
+    private final @NonNull String mPackageName;
+    private final @NonNull String mDatabase;
     /**
      * The status code returned by {@link AppSearchResult#getResultCode()} for the call or
      * internal state.
@@ -65,8 +66,32 @@ public final class PutDocumentStats {
     /** Number of tokens added to the index. */
     private final int mNativeNumTokensIndexed;
 
+    /**
+     * Time used to index all indexable string terms in the document. It does not include the
+     * time to merge indices.
+     */
+    private final int mNativeTermIndexLatencyMillis;
+
+    /** Time used to index all indexable integers in the document. */
+    private final int mNativeIntegerIndexLatencyMillis;
+
+    /** Time used to index all qualified id join strings in the document. */
+    private final int mNativeQualifiedIdJoinIndexLatencyMillis;
+
+    /** Time used to sort and merge the lite index's hit buffer. */
+    private final int mNativeLiteIndexSortLatencyMillis;
+
+    /**
+     * Time used to index all metadata terms in the document, which can only be
+     * added by PropertyExistenceIndexingHandler currently.
+     */
+    private final int mMetadataTermIndexLatencyMillis;
+
+    /**Time used to index all embeddings in the document.*/
+    private final int mEmbeddingIndexLatencyMillis;
+
     PutDocumentStats(@NonNull Builder builder) {
-        Preconditions.checkNotNull(builder);
+        super(builder);
         mPackageName = builder.mPackageName;
         mDatabase = builder.mDatabase;
         mStatusCode = builder.mStatusCode;
@@ -79,17 +104,21 @@ public final class PutDocumentStats {
         mNativeIndexMergeLatencyMillis = builder.mNativeIndexMergeLatencyMillis;
         mNativeDocumentSizeBytes = builder.mNativeDocumentSizeBytes;
         mNativeNumTokensIndexed = builder.mNativeNumTokensIndexed;
+        mNativeTermIndexLatencyMillis = builder.mNativeTermIndexLatencyMillis;
+        mNativeIntegerIndexLatencyMillis = builder.mNativeIntegerIndexLatencyMillis;
+        mNativeQualifiedIdJoinIndexLatencyMillis = builder.mNativeQualifiedIdJoinIndexLatencyMillis;
+        mNativeLiteIndexSortLatencyMillis = builder.mNativeLiteIndexSortLatencyMillis;
+        mMetadataTermIndexLatencyMillis = builder.mMetadataTermIndexLatencyMillis;
+        mEmbeddingIndexLatencyMillis = builder.mEmbeddingIndexLatencyMillis;
     }
 
     /** Returns calling package name. */
-    @NonNull
-    public String getPackageName() {
+    public @NonNull String getPackageName() {
         return mPackageName;
     }
 
     /** Returns calling database name. */
-    @NonNull
-    public String getDatabase() {
+    public @NonNull String getDatabase() {
         return mDatabase;
     }
 
@@ -144,12 +173,43 @@ public final class PutDocumentStats {
         return mNativeNumTokensIndexed;
     }
 
+    /** Returns time spent on term indexing, in milliseconds. */
+    public int getNativeTermIndexLatencyMillis() {
+        return mNativeTermIndexLatencyMillis;
+    }
+
+    /** Returns time spent on integer indexing, in milliseconds. */
+    public int getNativeIntegerIndexLatencyMillis() {
+        return mNativeIntegerIndexLatencyMillis;
+    }
+
+    /** Returns time spent on qualified id join indexing, in milliseconds. */
+    public int getNativeQualifiedIdJoinIndexLatencyMillis() {
+        return mNativeQualifiedIdJoinIndexLatencyMillis;
+    }
+
+    /** Returns time spent sorting and merging the lite index, in milliseconds. */
+    public int getNativeLiteIndexSortLatencyMillis() {
+        return mNativeLiteIndexSortLatencyMillis;
+    }
+
+    /**
+     * Returns time used to index all metadata terms in the document, which can only be
+     * added by PropertyExistenceIndexingHandler currently, in milliseconds.
+     */
+    public int getMetadataTermIndexLatencyMillis() {
+        return mMetadataTermIndexLatencyMillis;
+    }
+
+    /** Returns time used to index all embeddings in the document, in milliseconds. */
+    public int getEmbeddingIndexLatencyMillis() {
+        return mEmbeddingIndexLatencyMillis;
+    }
+
     /** Builder for {@link PutDocumentStats}. */
-    public static class Builder {
-        @NonNull
-        final String mPackageName;
-        @NonNull
-        final String mDatabase;
+    public static class Builder extends BaseStats.Builder<PutDocumentStats.Builder> {
+        final @NonNull String mPackageName;
+        final @NonNull String mDatabase;
         @AppSearchResult.ResultCode
         int mStatusCode;
         int mTotalLatencyMillis;
@@ -161,6 +221,12 @@ public final class PutDocumentStats {
         int mNativeIndexMergeLatencyMillis;
         int mNativeDocumentSizeBytes;
         int mNativeNumTokensIndexed;
+        int mNativeTermIndexLatencyMillis;
+        int mNativeIntegerIndexLatencyMillis;
+        int mNativeQualifiedIdJoinIndexLatencyMillis;
+        int mNativeLiteIndexSortLatencyMillis;
+        int mMetadataTermIndexLatencyMillis;
+        int mEmbeddingIndexLatencyMillis;
 
         /** Builder for {@link PutDocumentStats} */
         public Builder(@NonNull String packageName, @NonNull String database) {
@@ -169,22 +235,22 @@ public final class PutDocumentStats {
         }
 
         /** Sets the status code. */
-        @NonNull
-        public Builder setStatusCode(@AppSearchResult.ResultCode int statusCode) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setStatusCode(@AppSearchResult.ResultCode int statusCode) {
             mStatusCode = statusCode;
             return this;
         }
 
         /** Sets total latency in millis. */
-        @NonNull
-        public Builder setTotalLatencyMillis(int totalLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setTotalLatencyMillis(int totalLatencyMillis) {
             mTotalLatencyMillis = totalLatencyMillis;
             return this;
         }
 
         /** Sets how much time we spend for generating document proto, in milliseconds. */
-        @NonNull
-        public Builder setGenerateDocumentProtoLatencyMillis(
+        @CanIgnoreReturnValue
+        public @NonNull Builder setGenerateDocumentProtoLatencyMillis(
                 int generateDocumentProtoLatencyMillis) {
             mGenerateDocumentProtoLatencyMillis = generateDocumentProtoLatencyMillis;
             return this;
@@ -194,51 +260,101 @@ public final class PutDocumentStats {
          * Sets how much time we spend for rewriting types and namespaces in document, in
          * milliseconds.
          */
-        @NonNull
-        public Builder setRewriteDocumentTypesLatencyMillis(int rewriteDocumentTypesLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setRewriteDocumentTypesLatencyMillis(
+                int rewriteDocumentTypesLatencyMillis) {
             mRewriteDocumentTypesLatencyMillis = rewriteDocumentTypesLatencyMillis;
             return this;
         }
 
         /** Sets the native latency, in milliseconds. */
-        @NonNull
-        public Builder setNativeLatencyMillis(int nativeLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeLatencyMillis(int nativeLatencyMillis) {
             mNativeLatencyMillis = nativeLatencyMillis;
             return this;
         }
 
         /** Sets how much time we spend on document store, in milliseconds. */
-        @NonNull
-        public Builder setNativeDocumentStoreLatencyMillis(int nativeDocumentStoreLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeDocumentStoreLatencyMillis(
+                int nativeDocumentStoreLatencyMillis) {
             mNativeDocumentStoreLatencyMillis = nativeDocumentStoreLatencyMillis;
             return this;
         }
 
         /** Sets the native index latency, in milliseconds. */
-        @NonNull
-        public Builder setNativeIndexLatencyMillis(int nativeIndexLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeIndexLatencyMillis(int nativeIndexLatencyMillis) {
             mNativeIndexLatencyMillis = nativeIndexLatencyMillis;
             return this;
         }
 
         /** Sets how much time we spend on merging indices, in milliseconds. */
-        @NonNull
-        public Builder setNativeIndexMergeLatencyMillis(int nativeIndexMergeLatencyMillis) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeIndexMergeLatencyMillis(
+                int nativeIndexMergeLatencyMillis) {
             mNativeIndexMergeLatencyMillis = nativeIndexMergeLatencyMillis;
             return this;
         }
 
         /** Sets document size, in bytes. */
-        @NonNull
-        public Builder setNativeDocumentSizeBytes(int nativeDocumentSizeBytes) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeDocumentSizeBytes(int nativeDocumentSizeBytes) {
             mNativeDocumentSizeBytes = nativeDocumentSizeBytes;
             return this;
         }
 
         /** Sets number of tokens indexed in native. */
-        @NonNull
-        public Builder setNativeNumTokensIndexed(int nativeNumTokensIndexed) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeNumTokensIndexed(int nativeNumTokensIndexed) {
             mNativeNumTokensIndexed = nativeNumTokensIndexed;
+            return this;
+        }
+
+        /** Sets the native term indexing time, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeTermIndexLatencyMillis(int nativeTermIndexLatencyMillis) {
+            mNativeTermIndexLatencyMillis = nativeTermIndexLatencyMillis;
+            return this;
+        }
+
+        /** Sets the native integer indexing time, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeIntegerIndexLatencyMillis(
+                int nativeIntegerIndexLatencyMillis) {
+            mNativeIntegerIndexLatencyMillis = nativeIntegerIndexLatencyMillis;
+            return this;
+        }
+
+        /** Sets the native qualified id indexing time, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeQualifiedIdJoinIndexLatencyMillis(
+                int nativeQualifiedIdJoinIndexLatencyMillis) {
+            mNativeQualifiedIdJoinIndexLatencyMillis = nativeQualifiedIdJoinIndexLatencyMillis;
+            return this;
+        }
+
+        /** Sets the native lite index sort latency, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setNativeLiteIndexSortLatencyMillis(
+                int nativeLiteIndexSortLatencyMillis) {
+            mNativeLiteIndexSortLatencyMillis = nativeLiteIndexSortLatencyMillis;
+            return this;
+        }
+
+        /** Sets the native metadata term index latency, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setMetadataTermIndexLatencyMillis(
+                int metadataTermIndexLatencyMillis) {
+            mMetadataTermIndexLatencyMillis = metadataTermIndexLatencyMillis;
+            return this;
+        }
+
+        /** Sets the native embedding index latency, in millis. */
+        @CanIgnoreReturnValue
+        public @NonNull Builder setEmbeddingIndexLatencyMillis(
+                int embeddingIndexLatencyMillis) {
+            mEmbeddingIndexLatencyMillis = embeddingIndexLatencyMillis;
             return this;
         }
 
@@ -246,8 +362,8 @@ public final class PutDocumentStats {
          * Creates a new {@link PutDocumentStats} object from the contents of this
          * {@link Builder} instance.
          */
-        @NonNull
-        public PutDocumentStats build() {
+        @Override
+        public @NonNull PutDocumentStats build() {
             return new PutDocumentStats(/* builder= */ this);
         }
     }

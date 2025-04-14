@@ -18,15 +18,16 @@ package androidx.camera.video;
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.SurfaceRequest;
 import androidx.camera.core.impl.ConstantObservable;
 import androidx.camera.core.impl.Observable;
 import androidx.camera.core.impl.Timebase;
 import androidx.core.util.Consumer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.concurrent.Executor;
 
@@ -41,12 +42,10 @@ import java.util.concurrent.Executor;
  * {@link Recorder}. This interface is usually only needs to be implemented by applications for
  * advanced use cases.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface VideoOutput {
     /**
      * A state which represents whether the video frame producer is producing frames to the
      * provided {@link Surface}.
-     *
      */
     @RestrictTo(Scope.LIBRARY)
     enum SourceState {
@@ -93,21 +92,23 @@ public interface VideoOutput {
     /**
      * Called when a new {@link Surface} has been requested by a video frame producer.
      *
-     * @param timebase the video source timebase
+     * @param request the request for a surface which contains the requirements of the
+     *                surface and methods for completing the request.
+     * @param timebase the video source timebase.
+     * @param hasGlProcessing whether the video recording pipeline involves OpenGL processing.
      */
     @RestrictTo(Scope.LIBRARY)
-    default void onSurfaceRequested(@NonNull SurfaceRequest request, @NonNull Timebase timebase) {
+    default void onSurfaceRequested(@NonNull SurfaceRequest request, @NonNull Timebase timebase,
+            boolean hasGlProcessing) {
         onSurfaceRequested(request);
     }
 
     /**
      * Returns an observable {@link StreamInfo} which contains the information of the
      * {@link VideoOutput}.
-     *
      */
-    @NonNull
     @RestrictTo(Scope.LIBRARY)
-    default Observable<StreamInfo> getStreamInfo() {
+    default @NonNull Observable<StreamInfo> getStreamInfo() {
         return StreamInfo.ALWAYS_ACTIVE_OBSERVABLE;
     }
 
@@ -127,17 +128,39 @@ public interface VideoOutput {
      * {@link #onSurfaceRequested(SurfaceRequest)}.
      */
     @RestrictTo(Scope.LIBRARY)
-    @NonNull
-    default Observable<MediaSpec> getMediaSpec() {
+    default @NonNull Observable<MediaSpec> getMediaSpec() {
         return ConstantObservable.withValue(null);
     }
 
     /**
-     * Called when the state of the video frame producer is changed.
+     * Returns an observable to know if the streaming from a video frame producer is required.
      *
+     * <p> This should be true for cases like when user is starting a video recording or streaming
+     * and false when user has decided to stop the recording/streaming. The video frame producer
+     * will use this information to do know whether it's now safe to do operations which may disrupt
+     * video quality/consistency (e.g. AE precapture).
+     */
+    @RestrictTo(Scope.LIBRARY)
+    default @NonNull Observable<Boolean> isSourceStreamRequired() {
+        return ConstantObservable.withValue(false);
+    }
+
+    /**
+     * Called when the state of the video frame producer is changed.
      */
     @RestrictTo(Scope.LIBRARY)
     default void onSourceStateChanged(@NonNull SourceState sourceState) {
 
+    }
+
+    // TODO(b/278170231): wraps getMediaSpec and getMediaCapabilities for increased scalability and
+    //  easier retrieval of initial specs and capabilities.
+    /**
+     * Returns the {@link VideoCapabilities} information of the {@link VideoOutput}.
+     */
+    @RestrictTo(Scope.LIBRARY)
+    default @NonNull VideoCapabilities getMediaCapabilities(@NonNull CameraInfo cameraInfo,
+            int sessionType) {
+        return VideoCapabilities.EMPTY;
     }
 }

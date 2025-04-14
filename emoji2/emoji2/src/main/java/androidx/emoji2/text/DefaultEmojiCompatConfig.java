@@ -27,13 +27,14 @@ import android.content.pm.Signature;
 import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.provider.FontRequest;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -92,8 +93,7 @@ public final class DefaultEmojiCompatConfig {
      * @return A valid config for downloading the emoji compat font, or null if no font provider
      * could be found.
      */
-    @Nullable
-    public static FontRequestEmojiCompatConfig create(@NonNull Context context) {
+    public static @Nullable FontRequestEmojiCompatConfig create(@NonNull Context context) {
         return (FontRequestEmojiCompatConfig) new DefaultEmojiCompatConfigFactory(null)
                 .create(context);
     }
@@ -102,7 +102,6 @@ public final class DefaultEmojiCompatConfig {
      * Actual factory for generating default emoji configs, does service locator lookup internally.
      *
      * @see DefaultEmojiCompatConfig#create
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public static class DefaultEmojiCompatConfigFactory {
@@ -113,7 +112,6 @@ public final class DefaultEmojiCompatConfig {
         private final DefaultEmojiCompatConfigHelper mHelper;
 
         /**
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         public DefaultEmojiCompatConfigFactory(@Nullable DefaultEmojiCompatConfigHelper helper) {
@@ -122,11 +120,9 @@ public final class DefaultEmojiCompatConfig {
 
         /**
          * @see DefaultEmojiCompatConfig#create
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @Nullable
-        public EmojiCompat.Config create(@NonNull Context context) {
+        public EmojiCompat.@Nullable Config create(@NonNull Context context) {
             return configOrNull(context, (FontRequest) queryForDefaultFontRequest(context));
         }
 
@@ -136,8 +132,7 @@ public final class DefaultEmojiCompatConfig {
          * @param fontRequest optional font request
          * @return a new config if fontRequest is not null
          */
-        @Nullable
-        private EmojiCompat.Config configOrNull(@NonNull Context context,
+        private EmojiCompat.@Nullable Config configOrNull(@NonNull Context context,
                 @Nullable FontRequest fontRequest) {
             if (fontRequest == null) {
                 return null;
@@ -150,12 +145,10 @@ public final class DefaultEmojiCompatConfig {
          * Find the installed font provider and return a FontInfo that describes it.
          * @param context context for getting package manager
          * @return valid FontRequest, or null if no provider could be found
-         * @hide
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY)
-        @Nullable
         @VisibleForTesting
-        FontRequest queryForDefaultFontRequest(@NonNull Context context) {
+        @Nullable FontRequest queryForDefaultFontRequest(@NonNull Context context) {
             PackageManager packageManager = context.getPackageManager();
             // throw here since the developer has provided an atypical Context
             Preconditions.checkNotNull(packageManager,
@@ -177,8 +170,7 @@ public final class DefaultEmojiCompatConfig {
          * @param packageManager package manager from a Context
          * @return a ResolveInfo for a system installed content provider, or null if none found
          */
-        @Nullable
-        private ProviderInfo queryDefaultInstalledContentProvider(
+        private @Nullable ProviderInfo queryDefaultInstalledContentProvider(
                 @NonNull PackageManager packageManager) {
             List<ResolveInfo> providers = mHelper.queryIntentContentProviders(packageManager,
                     new Intent(INTENT_LOAD_EMOJI_FONT), 0);
@@ -211,8 +203,7 @@ public final class DefaultEmojiCompatConfig {
          * @return a valid font request
          * @throws NullPointerException if the passed resolveInfo has a null providerInfo.
          */
-        @NonNull
-        private FontRequest generateFontRequestFrom(
+        private @NonNull FontRequest generateFontRequestFrom(
                 @NonNull ProviderInfo providerInfo,
                 @NonNull PackageManager packageManager
         ) throws PackageManager.NameNotFoundException {
@@ -229,8 +220,7 @@ public final class DefaultEmojiCompatConfig {
         /**
          * Convert signatures into a form usable by a FontConfig
          */
-        @NonNull
-        private List<List<byte[]>> convertToByteArray(@NonNull Signature[] signatures) {
+        private @NonNull List<List<byte[]>> convertToByteArray(Signature @NonNull [] signatures) {
             List<byte[]> shaList = new ArrayList<>();
             for (Signature signature : signatures) {
                 shaList.add(signature.toByteArray());
@@ -241,12 +231,9 @@ public final class DefaultEmojiCompatConfig {
         /**
          * @return the right DefaultEmojiCompatConfigHelper for the device API
          */
-        @NonNull
-        private static DefaultEmojiCompatConfigHelper getHelperForApi() {
+        private static @NonNull DefaultEmojiCompatConfigHelper getHelperForApi() {
             if (Build.VERSION.SDK_INT >= 28) {
                 return new DefaultEmojiCompatConfigHelper_API28();
-            } else if (Build.VERSION.SDK_INT >= 19) {
-                return new DefaultEmojiCompatConfigHelper_API19();
             } else {
                 return new DefaultEmojiCompatConfigHelper();
             }
@@ -254,31 +241,16 @@ public final class DefaultEmojiCompatConfig {
     }
 
     /**
-     * Helper to lookup signatures in package manager.
-     *
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     public static class DefaultEmojiCompatConfigHelper {
         /**
-         * Get the signing signatures for a package in package manager.
-         */
-        @SuppressWarnings("deprecation") // replaced in API 28
-        @NonNull
-        public Signature[] getSigningSignatures(@NonNull PackageManager packageManager,
-                @NonNull String providerPackage) throws PackageManager.NameNotFoundException {
-            PackageInfo packageInfoForSignatures = packageManager.getPackageInfo(providerPackage,
-                    PackageManager.GET_SIGNATURES);
-            return packageInfoForSignatures.signatures;
-        }
-
-        /**
          * Get the content provider by intent.
          */
-        @NonNull
-        public List<ResolveInfo> queryIntentContentProviders(@NonNull PackageManager packageManager,
-                @NonNull Intent intent, int flags) {
-            return Collections.emptyList();
+        @SuppressWarnings("deprecation")
+        public @NonNull List<ResolveInfo> queryIntentContentProviders(
+                @NonNull PackageManager packageManager, @NonNull Intent intent, int flags) {
+            return packageManager.queryIntentContentProviders(intent, flags);
         }
 
         /**
@@ -286,48 +258,32 @@ public final class DefaultEmojiCompatConfig {
          * @param resolveInfo the subject
          * @return resolveInfo.providerInfo above API 19
          */
-        @Nullable
-        public ProviderInfo getProviderInfo(@NonNull ResolveInfo resolveInfo) {
-            throw new IllegalStateException("Unable to get provider info prior to API 19");
-        }
-    }
-
-    /**
-     * Actually do lookups > API 19
-     *
-     * @hide
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY)
-    @RequiresApi(19)
-    public static class DefaultEmojiCompatConfigHelper_API19
-            extends DefaultEmojiCompatConfigHelper {
-        @NonNull
-        @Override
-        @SuppressWarnings("deprecation")
-        public List<ResolveInfo> queryIntentContentProviders(@NonNull PackageManager packageManager,
-                @NonNull Intent intent, int flags) {
-            return packageManager.queryIntentContentProviders(intent, flags);
-        }
-
-        @Nullable
-        @Override
-        public ProviderInfo getProviderInfo(@NonNull ResolveInfo resolveInfo) {
+        public @Nullable ProviderInfo getProviderInfo(@NonNull ResolveInfo resolveInfo) {
             return resolveInfo.providerInfo;
+        }
+
+        /**
+         * Get the signing signatures for a package in package manager.
+         */
+        @SuppressWarnings("deprecation") // using deprecated API to match exact behavior in core
+        public Signature @NonNull [] getSigningSignatures(@NonNull PackageManager packageManager,
+                @NonNull String providerPackage) throws PackageManager.NameNotFoundException {
+            PackageInfo packageInfoForSignatures = packageManager.getPackageInfo(providerPackage,
+                    PackageManager.GET_SIGNATURES);
+            return packageInfoForSignatures.signatures;
         }
     }
 
     /**
      * Helper to lookup signatures in package manager > API 28
-     * @hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @RequiresApi(28)
     public static class DefaultEmojiCompatConfigHelper_API28
-            extends DefaultEmojiCompatConfigHelper_API19 {
+            extends DefaultEmojiCompatConfigHelper {
         @SuppressWarnings("deprecation") // using deprecated API to match exact behavior in core
         @Override
-        @NonNull
-        public Signature[] getSigningSignatures(@NonNull PackageManager packageManager,
+        public Signature @NonNull [] getSigningSignatures(@NonNull PackageManager packageManager,
                 @NonNull String providerPackage)
                 throws PackageManager.NameNotFoundException {
             // This uses the deprecated GET_SIGNATURES currently to match the behavior in Core.

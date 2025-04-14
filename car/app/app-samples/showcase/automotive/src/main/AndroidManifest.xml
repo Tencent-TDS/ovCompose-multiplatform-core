@@ -16,13 +16,15 @@
 -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="1"
-    android:versionName="1.0">
+    xmlns:tools="http://schemas.android.com/tools">
 
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+
+  <!-- SDK 33 onwards, apps require this permission to send any notifications to the system -->
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
   <!-- For PlaceListMapTemplate -->
   <uses-permission android:name="androidx.car.app.MAP_TEMPLATES"/>
@@ -60,7 +62,6 @@
   <application
       android:label="@string/app_name"
       android:icon="@drawable/ic_launcher"
-      android:extractNativeLibs="false"
       android:supportsRtl="true">
 
     <meta-data
@@ -88,6 +89,7 @@
 
     <service
         android:name=".common.screens.navigationdemos.NavigationNotificationService"
+        android:foregroundServiceType="location"
         android:exported="true">
     </service>
 
@@ -103,6 +105,7 @@
 
     <activity
         android:name="androidx.car.app.activity.CarAppActivity"
+        android:configChanges="uiMode"
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
         android:exported="true"
         android:launchMode="singleTask"

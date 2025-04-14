@@ -21,20 +21,30 @@ import androidx.emoji2.bundled.BundledEmojiCompatConfig
 import androidx.emoji2.text.EmojiCompat
 import androidx.test.core.app.ApplicationProvider
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 
 fun initializeEmojiCompatWithBundledForTest(replaceAll: Boolean = true) {
     val context = ApplicationProvider.getApplicationContext<Context>()
-    val config = BundledEmojiCompatConfig(context)
+    val config = BundledEmojiCompatConfig(context, DirectExecutor())
     config.setMetadataLoadStrategy(EmojiCompat.LOAD_STRATEGY_MANUAL)
     config.setReplaceAll(replaceAll)
     val latch = CountDownLatch(1)
-    config.registerInitCallback(object : EmojiCompat.InitCallback() {
-        override fun onInitialized() {
-            super.onInitialized()
-            latch.countDown()
+    config.registerInitCallback(
+        DirectExecutor(),
+        object : EmojiCompat.InitCallback() {
+            override fun onInitialized() {
+                super.onInitialized()
+                latch.countDown()
+            }
         }
-    })
+    )
     EmojiCompat.reset(config).load()
     latch.await(2, TimeUnit.SECONDS)
+}
+
+private class DirectExecutor : Executor {
+    override fun execute(command: Runnable?) {
+        command?.run()
+    }
 }

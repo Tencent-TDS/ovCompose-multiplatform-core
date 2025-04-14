@@ -22,10 +22,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Choreographer;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.startup.Initializer;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -70,28 +70,19 @@ public class ProfileInstallerInitializer
      *
      * @return Result immediately.
      */
-    @NonNull
     @Override
-    public Result create(@NonNull Context context) {
+    public @NonNull Result create(@NonNull Context context) {
         if (Build.VERSION.SDK_INT < ProfileVersion.MIN_SUPPORTED_SDK) {
             // If we are below the supported SDK, there is nothing for us to do, so return early.
             return new Result();
         }
         // If we made it this far, we are going to try and install the profile in the background,
         // but delay a bit to avoid interfering with app startup work.
-        delayAfterFirstFrame(context.getApplicationContext());
-        return new Result();
-    }
-
-    /**
-     * Wait until the first frame of the application to do anything.
-     *
-     * This allows startup code to run before the delay is scheduled.
-     */
-    @RequiresApi(16)
-    void delayAfterFirstFrame(@NonNull Context appContext) {
+        Context appContext = context.getApplicationContext();
         // schedule delay after first frame callback
-        Choreographer16Impl.postFrameCallback(() -> installAfterDelay(appContext));
+        Choreographer.getInstance().postFrameCallback(frameTimeNanos ->
+                installAfterDelay(appContext));
+        return new Result();
     }
 
     /**
@@ -120,9 +111,8 @@ public class ProfileInstallerInitializer
     /**
      * Initializer has no dependencies.
      */
-    @NonNull
     @Override
-    public List<Class<? extends Initializer<?>>> dependencies() {
+    public @NonNull List<Class<? extends Initializer<?>>> dependencies() {
         return Collections.emptyList();
     }
 
@@ -150,17 +140,6 @@ public class ProfileInstallerInitializer
      */
     public static class Result { }
 
-    @RequiresApi(16)
-    private static class Choreographer16Impl {
-        private Choreographer16Impl() {
-            // Non-instantiable.
-        }
-
-        @DoNotInline
-        public static void postFrameCallback(Runnable r) {
-            Choreographer.getInstance().postFrameCallback(frameTimeNanos -> r.run());
-        }
-    }
 
     @RequiresApi(28)
     private static class Handler28Impl {
@@ -169,7 +148,6 @@ public class ProfileInstallerInitializer
         }
 
         // avoid aligning with vsync when available (API 28+)
-        @DoNotInline
         public static Handler createAsync(Looper looper) {
             return Handler.createAsync(looper);
         }

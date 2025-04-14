@@ -20,10 +20,8 @@ import android.os.Build;
 import android.view.View.OnTouchListener;
 import android.widget.PopupMenu;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Helper for accessing features in {@link PopupMenu}.
@@ -52,24 +50,7 @@ public final class PopupMenuCompat {
      * @return a touch listener that controls drag-to-open behavior, or {@code null} on
      *         unsupported APIs
      */
-    @Nullable
-    public static OnTouchListener getDragToOpenListener(@NonNull Object popupMenu) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return Api19Impl.getDragToOpenListener((PopupMenu) popupMenu);
-        } else {
-            return null;
-        }
-    }
-
-    @RequiresApi(19)
-    static class Api19Impl {
-        private Api19Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static OnTouchListener getDragToOpenListener(PopupMenu popupMenu) {
-            return popupMenu.getDragToOpenListener();
-        }
+    public static @Nullable OnTouchListener getDragToOpenListener(@NonNull Object popupMenu) {
+        return ((PopupMenu) popupMenu).getDragToOpenListener();
     }
 }

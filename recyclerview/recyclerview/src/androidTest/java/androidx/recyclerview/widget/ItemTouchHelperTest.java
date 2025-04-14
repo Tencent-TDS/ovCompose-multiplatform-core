@@ -28,20 +28,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.animation.ValueAnimator;
-import android.os.Build;
 import android.view.Gravity;
 import android.view.ViewConfiguration;
 
-import androidx.annotation.NonNull;
 import androidx.core.util.Pair;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.Suppress;
 import androidx.testutils.AnimationDurationScaleRule;
 import androidx.testutils.PollingCheck;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -139,14 +137,12 @@ public class ItemTouchHelperTest extends BaseRecyclerViewInstrumentationTest {
 
     // Test is disabled as it is flaky.
     @Suppress
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Test
     public void swipeStartInRTL() throws Throwable {
         mSetupRTL = true;
         basicSwipeTest(START, START | END, getActivity().getWindow().getDecorView().getWidth());
     }
 
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Test
     @FlakyTest(bugId = 190192628)
     public void swipeEndInRTL() throws Throwable {
@@ -362,14 +358,14 @@ public class ItemTouchHelperTest extends BaseRecyclerViewInstrumentationTest {
 
         @Override
         public boolean onMove(@NonNull RecyclerView recyclerView,
-                @NonNull RecyclerView.ViewHolder viewHolder,
-                @NonNull RecyclerView.ViewHolder target) {
+                RecyclerView.@NonNull ViewHolder viewHolder,
+                RecyclerView.@NonNull ViewHolder target) {
             mMoveRecordList.add(new MoveRecord(viewHolder, target));
             return true;
         }
 
         @Override
-        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+        public void onSwiped(RecyclerView.@NonNull ViewHolder viewHolder, int direction) {
             mSwipeRecords.add(new SwipeRecord(viewHolder, direction));
         }
 
@@ -384,7 +380,7 @@ public class ItemTouchHelperTest extends BaseRecyclerViewInstrumentationTest {
 
         @Override
         public void clearView(@NonNull RecyclerView recyclerView,
-                @NonNull RecyclerView.ViewHolder viewHolder) {
+                RecyclerView.@NonNull ViewHolder viewHolder) {
             super.clearView(recyclerView, viewHolder);
             mCleared.add(viewHolder);
         }

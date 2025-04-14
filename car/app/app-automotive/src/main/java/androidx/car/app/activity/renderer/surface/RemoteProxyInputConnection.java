@@ -16,51 +16,57 @@
 
 package androidx.car.app.activity.renderer.surface;
 
+import static androidx.car.app.utils.LogTags.TAG;
+
 import static java.util.Objects.requireNonNull;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.inputmethod.CompletionInfo;
 import android.view.inputmethod.CorrectionInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
-import android.view.inputmethod.InputConnectionWrapper;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputContentInfo;
+import android.view.inputmethod.SurroundingText;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.car.app.activity.ServiceDispatcher;
 import androidx.car.app.activity.renderer.IProxyInputConnection;
+import androidx.car.app.serialization.Bundleable;
+import androidx.car.app.serialization.BundlerException;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** Proxies input connection calls to the provided {@link IProxyInputConnection}. */
-final class RemoteProxyInputConnection extends InputConnectionWrapper {
+final class RemoteProxyInputConnection implements InputConnection {
     private final ServiceDispatcher mServiceDispatcher;
     private final IProxyInputConnection mProxyInputConnection;
 
     RemoteProxyInputConnection(@NonNull ServiceDispatcher serviceDispatcher,
             @NonNull IProxyInputConnection proxyInputConnection) {
-        super(null, true);
         mServiceDispatcher = serviceDispatcher;
         mProxyInputConnection = proxyInputConnection;
     }
 
-    @Nullable
     @Override
-    public CharSequence getTextBeforeCursor(int n, int flags) {
+    public @Nullable CharSequence getTextBeforeCursor(int n, int flags) {
         return mServiceDispatcher.fetch("getTextBeforeCursor", null, () ->
                 mProxyInputConnection.getTextBeforeCursor(n, flags));
     }
 
-    @Nullable
     @Override
-    public CharSequence getTextAfterCursor(int n, int flags) {
+    public @Nullable CharSequence getTextAfterCursor(int n, int flags) {
         return mServiceDispatcher.fetch("getTextAfterCursor", null, () ->
                 mProxyInputConnection.getTextAfterCursor(n, flags));
     }
 
-    @Nullable
     @Override
-    public CharSequence getSelectedText(int flags) {
+    public @Nullable CharSequence getSelectedText(int flags) {
         return mServiceDispatcher.fetch("getSelectedText", null, () ->
                 mProxyInputConnection.getSelectedText(flags));
     }
@@ -72,18 +78,25 @@ final class RemoteProxyInputConnection extends InputConnectionWrapper {
         return res != null ? res : 0;
     }
 
-    @Nullable
     @Override
-    public ExtractedText getExtractedText(@NonNull ExtractedTextRequest request, int flags) {
+    public @Nullable ExtractedText getExtractedText(@NonNull ExtractedTextRequest request,
+            int flags) {
         requireNonNull(request);
         return mServiceDispatcher.fetch("getExtractedText", null, () ->
-                        mProxyInputConnection.getExtractedText(request, flags));
+                mProxyInputConnection.getExtractedText(request, flags));
     }
 
     @Override
     public boolean deleteSurroundingText(int beforeLength, int afterLength) {
         Boolean success = mServiceDispatcher.fetch("deleteSurroundingText", false, () ->
                 mProxyInputConnection.deleteSurroundingText(beforeLength, afterLength));
+        return success != null ? success : false;
+    }
+
+    @Override
+    public boolean deleteSurroundingTextInCodePoints(int beforeLength, int afterLength) {
+        Boolean success = mServiceDispatcher.fetch("deleteSurroundingTextInCodePoints", false, () ->
+                mProxyInputConnection.deleteSurroundingTextInCodePoints(beforeLength, afterLength));
         return success != null ? success : false;
     }
 
@@ -211,9 +224,40 @@ final class RemoteProxyInputConnection extends InputConnectionWrapper {
         mServiceDispatcher.dispatch("closeConnection", mProxyInputConnection::closeConnection);
     }
 
-    @Nullable
+    @SuppressWarnings("NullAway") // b/316639429
     @Override
-    public Handler getHandler() {
+    public boolean commitContent(@NonNull InputContentInfo inputContentInfo, int flags,
+            @Nullable Bundle bundle) {
+        try {
+            Bundleable inputContentInfoBundleable = Bundleable.create(inputContentInfo);
+            Boolean success = mServiceDispatcher.fetch("commitContent", false, () ->
+                    mProxyInputConnection.commitContent(inputContentInfoBundleable, flags,
+                            bundle));
+            return success != null ? success : false;
+        } catch (BundlerException e) {
+            Log.e(TAG, "Cannot create inputContentInfo bundleable", e);
+            return false;
+        }
+    }
+
+    @Override
+    @RequiresApi(Build.VERSION_CODES.S)
+    public @Nullable SurroundingText getSurroundingText(int beforeLength, int afterLength,
+            int flags) {
+        return mServiceDispatcher.fetch("getSurroundingText", null, () -> {
+            try {
+                Bundleable bundleable = mProxyInputConnection.getSurroundingText(beforeLength,
+                        afterLength, flags);
+                return bundleable == null ? null : (SurroundingText) bundleable.get();
+            } catch (BundlerException e) {
+                Log.e(TAG, "Cannot get surrounding text", e);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public @Nullable Handler getHandler() {
         return null;
     }
 }

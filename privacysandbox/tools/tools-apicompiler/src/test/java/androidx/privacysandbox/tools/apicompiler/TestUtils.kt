@@ -16,38 +16,31 @@
 
 package androidx.privacysandbox.tools.apicompiler
 
-import androidx.privacysandbox.tools.testing.allTestLibraryStubs
 import androidx.privacysandbox.tools.testing.CompilationTestHelper
+import androidx.privacysandbox.tools.testing.TestEnvironment
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.compiler.TestCompilationResult
 
 /**
  * Compile the given sources using the PrivacySandboxKspCompiler.
  *
- * Default parameters will set required options like AIDL compiler path and use the latest
- * Android platform API stubs that support the Privacy Sandbox.
+ * Default parameters will set required options like AIDL compiler path and use the latest Android
+ * platform API stubs that support the Privacy Sandbox.
  */
 fun compileWithPrivacySandboxKspCompiler(
     sources: List<Source>,
-    addLibraryStubs: Boolean = true,
     extraProcessorOptions: Map<String, String> = mapOf(),
 ): TestCompilationResult {
     val provider = PrivacySandboxKspCompiler.Provider()
 
     val processorOptions = buildMap {
-        val aidlCompilerPath = (System.getProperty("aidl_compiler_path")
-            ?: throw IllegalArgumentException("aidl_compiler_path flag not set."))
-        put("aidl_compiler_path", aidlCompilerPath)
-        val frameworkAidlPath = (System.getProperty("framework_aidl_path")
-            ?: throw IllegalArgumentException("framework_aidl_path flag not set."))
-        put("aidl_compiler_path", aidlCompilerPath)
-        put("framework_aidl_path", frameworkAidlPath)
+        put("aidl_compiler_path", TestEnvironment.aidlCompilerPath.toString())
+        put("framework_aidl_path", TestEnvironment.frameworkAidlPath.toString())
         putAll(extraProcessorOptions)
     }
 
     return CompilationTestHelper.compileAll(
-        if (addLibraryStubs) sources + allTestLibraryStubs
-        else sources,
+        sources,
         symbolProcessorProviders = listOf(provider),
         processorOptions = processorOptions,
     )

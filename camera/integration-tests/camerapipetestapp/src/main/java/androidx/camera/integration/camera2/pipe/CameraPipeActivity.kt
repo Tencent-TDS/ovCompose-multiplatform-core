@@ -17,27 +17,35 @@
 package androidx.camera.integration.camera2.pipe
 
 import android.Manifest
-import android.hardware.camera2.CameraCharacteristics
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Trace
 import android.util.Log
+import android.util.Size
 import android.view.View
+import androidx.annotation.GuardedBy
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraPipe
-import kotlinx.coroutines.runBlocking
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
-/**
- * This is the main activity for the CameraPipe test application.
- */
+/** This is the main activity for the CameraPipe test application. */
+@SuppressLint("RestrictedApiAndroidX")
 class CameraPipeActivity : CameraPermissionActivity() {
+    private val lock = Any()
+
     private lateinit var cameraPipe: CameraPipe
     private lateinit var dataVisualizations: DataVisualizations
     private lateinit var ui: CameraPipeUi
+    private lateinit var concurrentCameraIds: List<List<CameraId>>
 
-    private var lastCameraId: CameraId? = null
-    private var currentCamera: SimpleCamera? = null
-    private var operatingMode: CameraGraph.OperatingMode = CameraGraph.OperatingMode.NORMAL
+    @GuardedBy("lock") private lateinit var cameraIdGroups: List<List<CameraId>>
+
+    private var cameraIdsJob: Job? = null
+    private var lastCameraIds: List<CameraId>? = null
+    private var currentCameras: List<SimpleCamera>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,6 +66,28 @@ class CameraPipeActivity : CameraPermissionActivity() {
         ui.switchButton.setOnClickListener { startNextCamera() }
         Trace.endSection()
 
+        val cameraDevices = cameraPipe.cameras()
+
+        concurrentCameraIds =
+            checkNotNull(cameraDevices.awaitConcurrentCameraIds())
+                .filter { it.size <= 2 }
+                .map { it.toList() }
+        synchronized(lock) {
+            cameraIdGroups =
+                checkNotNull(cameraDevices.awaitCameraIds()).map { listOf(it) } +
+                    concurrentCameraIds
+        }
+
+        cameraIdsJob =
+            lifecycleScope.launch {
+                cameraDevices.cameraIdsFlow().collect {
+                    Log.i("CXCP-App", "Collected updated camera ID list: $it")
+                    synchronized(lock) {
+                        cameraIdGroups = it.map { listOf(it) } + concurrentCameraIds
+                    }
+                }
+            }
+
         // TODO: Update this to work with newer versions of the visualizations and to accept
         //   the CameraPipeUi object as a parameter.
         dataVisualizations = DataVisualizations(this)
@@ -68,16 +98,15 @@ class CameraPipeActivity : CameraPermissionActivity() {
         Log.i("CXCP-App", "Activity onStart")
 
         checkPermissionsAndRun(
-            setOf(
-                Manifest.permission.CAMERA,
-                Manifest.permission.RECORD_AUDIO
-            )
+            setOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
         ) {
-            val camera = currentCamera
-            if (camera == null) {
+            val cameras = currentCameras
+            if (cameras == null) {
                 startNextCamera()
             } else {
-                camera.start()
+                for (camera in cameras) {
+                    camera.start()
+                }
             }
         }
     }
@@ -85,23 +114,42 @@ class CameraPipeActivity : CameraPermissionActivity() {
     override fun onResume() {
         super.onResume()
         Log.i("CXCP-App", "Activity onResume")
+        currentCameras?.let {
+            for (camera in it) {
+                camera.resume()
+            }
+        }
     }
 
     override fun onPause() {
         super.onPause()
         Log.i("CXCP-App", "Activity onPause")
+        currentCameras?.let {
+            for (camera in it) {
+                camera.pause()
+            }
+        }
     }
 
     override fun onStop() {
         super.onStop()
         Log.i("CXCP-App", "Activity onStop")
-        currentCamera?.stop()
+        currentCameras?.let {
+            for (camera in it) {
+                camera.stop()
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.i("CXCP-App", "Activity onDestroy")
-        currentCamera?.close()
+        currentCameras?.let {
+            for (camera in it) {
+                camera.close()
+            }
+        }
+        cameraIdsJob?.cancel()
         dataVisualizations.close()
     }
 
@@ -109,65 +157,75 @@ class CameraPipeActivity : CameraPermissionActivity() {
         Trace.beginSection("CXCP-App#startNextCamera")
 
         Trace.beginSection("CXCP-App#stopCamera")
-        var camera = currentCamera
-        camera?.stop()
+        var cameras = currentCameras
+        cameras?.let {
+            for (camera in it) {
+                camera.close()
+            }
+        }
         Trace.endSection()
 
         Trace.beginSection("CXCP-App#findNextCamera")
-        val cameraId = runBlocking { findNextCamera(lastCameraId) }
+        val cameraIds = findNextCameraIdGroup(lastCameraIds)
         Trace.endSection()
 
         Trace.beginSection("CXCP-App#startCameraGraph")
-        camera = SimpleCamera.create(cameraPipe, cameraId, ui.viewfinder, listOf(), operatingMode)
+        if (cameraIds.size == 1) {
+            cameras =
+                listOf(
+                    SimpleCamera.create(
+                        cameraPipe,
+                        cameraIds.first(),
+                        ui.viewfinder,
+                        emptyList(),
+                        CameraGraph.OperatingMode.NORMAL,
+                    )
+                )
+            ui.viewfinderText.text = cameras[0].cameraInfoString()
+            ui.viewfinder2.visibility = View.INVISIBLE
+            ui.viewfinderText2.visibility = View.INVISIBLE
+        } else {
+            cameras =
+                SimpleCamera.create(
+                    cameraPipe,
+                    cameraIds,
+                    listOf(ui.viewfinder, ui.viewfinder2),
+                    listOf(Size(1280, 720), Size(1280, 720))
+                )
+            ui.viewfinderText.text = cameras[0].cameraInfoString()
+            ui.viewfinderText2.text = cameras[1].cameraInfoString()
+            ui.viewfinder2.visibility = View.VISIBLE
+            ui.viewfinderText2.visibility = View.VISIBLE
+        }
         Trace.endSection()
-        currentCamera = camera
-        lastCameraId = cameraId
-        ui.viewfinderText.text = camera.cameraInfoString()
+        currentCameras = cameras
+        lastCameraIds = cameraIds
 
-        camera.start()
+        for (camera in cameras) {
+            camera.start()
+        }
         Trace.endSection()
 
         Trace.endSection()
     }
 
-    private suspend fun findNextCamera(lastCameraId: CameraId?): CameraId {
-        val cameras = cameraPipe.cameras().getCameraIds()
-        checkNotNull(cameras) { "Unable to load CameraIds from CameraPipe" }
-
-        // By default, open the first back facing camera if no camera was previously configured.
-        if (lastCameraId == null) {
-            for (id in cameras) {
-                val metadata = cameraPipe.cameras().getCameraMetadata(id)
-                if (metadata != null && metadata[CameraCharacteristics.LENS_FACING] ==
-                    CameraCharacteristics.LENS_FACING_BACK) {
-                    return id
-                }
+    private fun findNextCameraIdGroup(lastCameraIdGroup: List<CameraId>?): List<CameraId> =
+        synchronized(lock) {
+            // By default, open the first back facing camera if no camera was previously configured.
+            if (lastCameraIdGroup == null) {
+                return cameraIdGroups.first()
             }
-            return cameras.first()
+
+            // If a camera was previously open, select the next camera in the list of all cameras.
+            // It is possible that the list of cameras contains only one camera, in which case this
+            // will return the same camera as "currentCameraId"
+            val lastCamerasIndex = cameraIdGroups.indexOf(lastCameraIdGroup)
+            if (lastCamerasIndex == -1) {
+                Log.e("CXCP-App", "Failed to find matching camera!")
+                return cameraIdGroups.first()
+            }
+
+            // When we reach the end of the list of cameras, loop.
+            return cameraIdGroups[(lastCamerasIndex + 1) % cameraIdGroups.size]
         }
-
-        // If a camera was previously opened and the operating mode is NORMAL, return the same
-        // camera but switch to HIGH_SPEED operating mode
-        if (operatingMode == CameraGraph.OperatingMode.NORMAL) {
-            operatingMode = CameraGraph.OperatingMode.HIGH_SPEED
-            return lastCameraId
-        }
-
-        // If the operating mode is not NORMAL, continue finding the next camera, which will
-        // be opened in NORMAL operating mode
-        operatingMode = CameraGraph.OperatingMode.NORMAL
-
-        // If a camera was previously open, select the next camera in the list of all cameras. It is
-        // possible that the list of cameras contains only one camera, in which case this will return
-        // the same camera as "currentCameraId"
-
-        val lastCameraIndex = cameras.indexOf(lastCameraId)
-        if (cameras.isEmpty() || lastCameraIndex == -1) {
-            Log.e("CXCP-App", "Failed to find matching camera!")
-            return cameras.first()
-        }
-
-        // When we reach the end of the list of cameras, loop.
-        return cameras[(lastCameraIndex + 1) % cameras.size]
-    }
 }

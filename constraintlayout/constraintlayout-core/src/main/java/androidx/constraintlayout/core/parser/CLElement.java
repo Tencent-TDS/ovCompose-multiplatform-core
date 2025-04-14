@@ -15,6 +15,8 @@
  */
 package androidx.constraintlayout.core.parser;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -203,13 +205,9 @@ public class CLElement implements Cloneable {
     }
 
     @Override
-    public CLElement clone() {
+    public @NonNull CLElement clone() {
         try {
-            CLElement clone = (CLElement) super.clone();
-            if (mContainer != null) {
-                clone.mContainer = (CLContainer) mContainer.clone();
-            }
-            return clone;
+            return (CLElement) super.clone();
         } catch (CloneNotSupportedException e) {
             throw new AssertionError();
         }

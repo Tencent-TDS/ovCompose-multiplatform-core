@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2022 The Android Open Source Project
  *
@@ -23,9 +22,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-/**
- * OpenGL Renderer class responsible for drawing lines
- */
+/** OpenGL Renderer class responsible for drawing lines */
 class LineRenderer {
 
     private var mVertexShader: Int = -1
@@ -43,6 +40,8 @@ class LineRenderer {
 
     fun initialize() {
         release()
+        GLES20.glEnable(GLES20.GL_BLEND)
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
         mVertexShader = loadShader(GLES20.GL_VERTEX_SHADER, VertexShaderCode)
         mFragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, FragmentShaderCode)
 
@@ -61,10 +60,11 @@ class LineRenderer {
         bb.order(ByteOrder.nativeOrder())
 
         // create a floating point buffer from the ByteBuffer
-        mVertexBuffer = bb.asFloatBuffer().apply {
-            put(mLineCoords)
-            position(0)
-        }
+        mVertexBuffer =
+            bb.asFloatBuffer().apply {
+                put(mLineCoords)
+                position(0)
+            }
 
         mPositionHandle = GLES20.glGetAttribLocation(mGlProgram, vPosition)
         mMvpMatrixHandle = GLES20.glGetUniformLocation(mGlProgram, uMVPMatrix)
@@ -97,10 +97,10 @@ class LineRenderer {
         GLES20.glUseProgram(mGlProgram)
         GLES20.glLineWidth(lineWidth)
         GLES20.glEnableVertexAttribArray(mPositionHandle)
-        mColorArray[0] = Color.red(color).toFloat()
-        mColorArray[1] = Color.green(color).toFloat()
-        mColorArray[2] = Color.blue(color).toFloat()
-        mColorArray[3] = Color.alpha(color).toFloat()
+        mColorArray[0] = Color.red(color) / 255f
+        mColorArray[1] = Color.green(color) / 255f
+        mColorArray[2] = Color.blue(color) / 255f
+        mColorArray[3] = Color.alpha(color) / 255f
         // Set color for drawing the triangle
         GLES20.glUniform4fv(mColorHandle, 1, mColorArray, 0)
         GLES20.glUniformMatrix4fv(mMvpMatrixHandle, 1, false, mvpMatrix, 0)
@@ -119,9 +119,12 @@ class LineRenderer {
 
             // Prepare the triangle coordinate data
             GLES20.glVertexAttribPointer(
-                mPositionHandle, CoordsPerVertex,
-                GLES20.GL_FLOAT, false,
-                VertexStride, buffer
+                mPositionHandle,
+                CoordsPerVertex,
+                GLES20.GL_FLOAT,
+                false,
+                VertexStride,
+                buffer
             )
             GLES20.glDrawArrays(GLES20.GL_LINES, 0, VertexCount)
         }

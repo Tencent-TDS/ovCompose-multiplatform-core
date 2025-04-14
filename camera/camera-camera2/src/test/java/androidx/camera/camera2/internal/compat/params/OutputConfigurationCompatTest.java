@@ -16,6 +16,9 @@
 
 package androidx.camera.camera2.internal.compat.params;
 
+import static android.hardware.camera2.params.OutputConfiguration.MIRROR_MODE_H;
+import static android.hardware.camera2.params.OutputConfiguration.MIRROR_MODE_NONE;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.mockito.Mockito.mock;
@@ -23,6 +26,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.graphics.SurfaceTexture;
+import android.hardware.camera2.params.DynamicRangeProfiles;
 import android.hardware.camera2.params.OutputConfiguration;
 import android.os.Build;
 import android.util.Size;
@@ -45,6 +49,8 @@ public final class OutputConfigurationCompatTest {
 
     private static final int TEST_GROUP_ID = 100;
     private static final String PHYSICAL_CAMERA_ID = "1";
+
+    private static final long DYNAMIC_RANGE_PROFILE = DynamicRangeProfiles.HLG10;
 
     private static void assumeSurfaceSharingAvailable(
             OutputConfigurationCompat outputConfigCompat) {
@@ -234,5 +240,31 @@ public final class OutputConfigurationCompatTest {
         outputConfigCompat.setPhysicalCameraId(PHYSICAL_CAMERA_ID);
 
         verify(outputConfig, times(1)).setPhysicalCameraId(PHYSICAL_CAMERA_ID);
+    }
+
+    @Test
+    @Config(minSdk = 33)
+    public void canSetMirrorMode() {
+        OutputConfiguration outputConfig = mock(OutputConfiguration.class);
+
+        OutputConfigurationCompat outputConfigCompat = OutputConfigurationCompat.wrap(outputConfig);
+
+        outputConfigCompat.setMirrorMode(MIRROR_MODE_NONE);
+
+        verify(outputConfig, times(1)).setMirrorMode(MIRROR_MODE_NONE);
+
+        outputConfigCompat.setMirrorMode(MIRROR_MODE_H);
+
+        verify(outputConfig, times(1)).setMirrorMode(MIRROR_MODE_H);
+    }
+
+    @Test
+    public void canSetDynamicRangeProfile() {
+        OutputConfigurationCompat outputConfigCompat =
+                new OutputConfigurationCompat(mock(Surface.class));
+
+        outputConfigCompat.setDynamicRangeProfile(DYNAMIC_RANGE_PROFILE);
+
+        assertThat(outputConfigCompat.getDynamicRangeProfile()).isEqualTo(DYNAMIC_RANGE_PROFILE);
     }
 }

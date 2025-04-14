@@ -14,63 +14,78 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.graph
 
 import android.hardware.camera2.params.MeteringRectangle
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.AeMode
 import androidx.camera.camera2.pipe.AfMode
 import androidx.camera.camera2.pipe.AwbMode
 import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.FrameCapture
+import androidx.camera.camera2.pipe.FrameMetadata
 import androidx.camera.camera2.pipe.Lock3ABehavior
 import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.Result3A
-import androidx.camera.camera2.pipe.TorchState
-import androidx.camera.camera2.pipe.core.TokenLock
+import androidx.camera.camera2.pipe.core.Token
+import androidx.camera.camera2.pipe.internal.CameraGraphParametersImpl
+import androidx.camera.camera2.pipe.internal.FrameCaptureQueue
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.Deferred
 
 internal val cameraGraphSessionIds = atomic(0)
 
 internal class CameraGraphSessionImpl(
-    private val token: TokenLock.Token,
+    private val token: Token,
     private val graphProcessor: GraphProcessor,
-    private val controller3A: Controller3A
+    private val controller3A: Controller3A,
+    private val frameCaptureQueue: FrameCaptureQueue,
+    private val parameters: CameraGraphParametersImpl
 ) : CameraGraph.Session {
     private val debugId = cameraGraphSessionIds.incrementAndGet()
-    private val closed = atomic(false)
 
     override fun submit(request: Request) {
-        check(!closed.value) { "Cannot call submit on $this after close." }
+        check(!token.released) { "Cannot call submit on $this after close." }
         graphProcessor.submit(request)
     }
 
     override fun submit(requests: List<Request>) {
-        check(!closed.value) { "Cannot call submit on $this after close." }
+        check(!token.released) { "Cannot call submit on $this after close." }
         check(requests.isNotEmpty()) { "Cannot call submit with an empty list of Requests!" }
         graphProcessor.submit(requests)
     }
 
+    override fun capture(request: Request): FrameCapture {
+        val frameCapture = frameCaptureQueue.enqueue(request)
+        submit(request)
+        return frameCapture
+    }
+
+    override fun capture(requests: List<Request>): List<FrameCapture> {
+        val frameCaptures = frameCaptureQueue.enqueue(requests)
+        submit(requests)
+        return frameCaptures
+    }
+
     override fun startRepeating(request: Request) {
-        check(!closed.value) { "Cannot call startRepeating on $this after close." }
-        graphProcessor.startRepeating(request)
+        check(!token.released) { "Cannot call startRepeating on $this after close." }
+        graphProcessor.repeatingRequest = request
     }
 
     override fun abort() {
-        check(!closed.value) { "Cannot call abort on $this after close." }
+        check(!token.released) { "Cannot call abort on $this after close." }
         graphProcessor.abort()
     }
 
     override fun stopRepeating() {
-        check(!closed.value) { "Cannot call stopRepeating on $this after close." }
-        graphProcessor.stopRepeating()
+        check(!token.released) { "Cannot call stopRepeating on $this after close." }
+        graphProcessor.repeatingRequest = null
     }
 
     override fun close() {
-        closed.compareAndSet(expect = false, update = true)
-        // Release the token so that a new instance of session can be created.
+        val unappliedParameters = parameters.fetchUpdatedParameters()
+        if (unappliedParameters != null) {
+            graphProcessor.updateGraphParameters(unappliedParameters)
+        }
         token.release()
     }
 
@@ -82,7 +97,7 @@ internal class CameraGraphSessionImpl(
         afRegions: List<MeteringRectangle>?,
         awbRegions: List<MeteringRectangle>?
     ): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call update3A on $this after close." }
+        check(!token.released) { "Cannot call update3A on $this after close." }
         return controller3A.update3A(
             aeMode = aeMode,
             afMode = afMode,
@@ -101,15 +116,20 @@ internal class CameraGraphSessionImpl(
         afRegions: List<MeteringRectangle>?,
         awbRegions: List<MeteringRectangle>?
     ): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call submit3A on $this after close." }
+        check(!token.released) { "Cannot call submit3A on $this after close." }
         return controller3A.submit3A(aeMode, afMode, awbMode, aeRegions, afRegions, awbRegions)
     }
 
-    override fun setTorch(torchState: TorchState): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call setTorch on $this after close." }
+    override fun setTorchOn(): Deferred<Result3A> {
+        check(!token.released) { "Cannot call setTorchOn on $this after close." }
         // TODO(sushilnath): First check whether the camera device has a flash unit. Ref:
         // https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics#FLASH_INFO_AVAILABLE
-        return controller3A.setTorch(torchState)
+        return controller3A.setTorchOn()
+    }
+
+    override fun setTorchOff(aeMode: AeMode?): Deferred<Result3A> {
+        check(!token.released) { "Cannot call setTorchOff on $this after close." }
+        return controller3A.setTorchOff(aeMode)
     }
 
     override suspend fun lock3A(
@@ -123,10 +143,13 @@ internal class CameraGraphSessionImpl(
         afLockBehavior: Lock3ABehavior?,
         awbLockBehavior: Lock3ABehavior?,
         afTriggerStartAeMode: AeMode?,
+        convergedCondition: ((FrameMetadata) -> Boolean)?,
+        lockedCondition: ((FrameMetadata) -> Boolean)?,
         frameLimit: Int,
-        timeLimitNs: Long
+        convergedTimeLimitNs: Long,
+        lockedTimeLimitNs: Long
     ): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call lock3A on $this after close." }
+        check(!token.released) { "Cannot call lock3A on $this after close." }
         // TODO(sushilnath): check if the device or the current mode supports lock for each of
         // ae, af and awb respectively. If not supported return an exception or return early with
         // the right status code.
@@ -138,24 +161,48 @@ internal class CameraGraphSessionImpl(
             afLockBehavior,
             awbLockBehavior,
             afTriggerStartAeMode,
+            convergedCondition,
+            lockedCondition,
             frameLimit,
-            timeLimitNs
+            convergedTimeLimitNs,
+            lockedTimeLimitNs
         )
     }
 
-    override suspend fun unlock3A(ae: Boolean?, af: Boolean?, awb: Boolean?): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call unlock3A on $this after close." }
-        return controller3A.unlock3A(ae, af, awb)
+    override suspend fun unlock3A(
+        ae: Boolean?,
+        af: Boolean?,
+        awb: Boolean?,
+        unlockedCondition: ((FrameMetadata) -> Boolean)?,
+        frameLimit: Int,
+        timeLimitNs: Long
+    ): Deferred<Result3A> {
+        check(!token.released) { "Cannot call unlock3A on $this after close." }
+        return controller3A.unlock3A(ae, af, awb, unlockedCondition, frameLimit, timeLimitNs)
     }
 
-    override suspend fun lock3AForCapture(frameLimit: Int, timeLimitNs: Long): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call lock3AForCapture on $this after close." }
-        return controller3A.lock3AForCapture(frameLimit, timeLimitNs)
+    override suspend fun lock3AForCapture(
+        lockedCondition: ((FrameMetadata) -> Boolean)?,
+        frameLimit: Int,
+        timeLimitNs: Long
+    ): Deferred<Result3A> {
+        check(!token.released) { "Cannot call lock3AForCapture on $this after close." }
+        return controller3A.lock3AForCapture(lockedCondition, frameLimit, timeLimitNs)
     }
 
-    override suspend fun unlock3APostCapture(): Deferred<Result3A> {
-        check(!closed.value) { "Cannot call unlock3APostCapture on $this after close." }
-        return controller3A.unlock3APostCapture()
+    override suspend fun lock3AForCapture(
+        triggerAf: Boolean,
+        waitForAwb: Boolean,
+        frameLimit: Int,
+        timeLimitNs: Long
+    ): Deferred<Result3A> {
+        check(!token.released) { "Cannot call lock3AForCapture on $this after close." }
+        return controller3A.lock3AForCapture(triggerAf, waitForAwb, frameLimit, timeLimitNs)
+    }
+
+    override suspend fun unlock3APostCapture(cancelAf: Boolean): Deferred<Result3A> {
+        check(!token.released) { "Cannot call unlock3APostCapture on $this after close." }
+        return controller3A.unlock3APostCapture(cancelAf)
     }
 
     override fun toString(): String = "CameraGraph.Session-$debugId"

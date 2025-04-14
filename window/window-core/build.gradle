@@ -14,30 +14,70 @@
  * limitations under the License.
  */
 
-import androidx.build.LibraryType
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+
+import androidx.build.SoftwareType
+import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
-dependencies {
-    api(libs.kotlinStdlib)
-    // Add dependencies here
+androidXMultiplatform {
+    jvm()
+    androidLibrary {
+        namespace = "androidx.window.core"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+    }
+    mac()
+    linux()
+    ios()
+    watchos()
+    tvos()
 
-    testImplementation(libs.kotlinTest)
-    testImplementation(libs.kotlinTestAnnotationsCommon)
-    testImplementation(libs.kotlinCoroutinesCore)
-}
+    defaultPlatform(PlatformIdentifier.JVM)
 
-android {
-    namespace "androidx.window.core"
+    sourceSets {
+        commonMain {
+            dependencies {
+                api(libs.kotlinStdlib)
+                api("androidx.annotation:annotation:1.9.1")
+            }
+        }
+
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinTest)
+                implementation(libs.kotlinTestAnnotationsCommon)
+                implementation(libs.kotlinCoroutinesCore)
+            }
+        }
+
+        androidInstrumentedTest {
+            dependencies {
+                implementation(libs.testRunner)
+            }
+        }
+    }
+
+    enableBinaryCompatibilityValidator = false
 }
 
 androidx {
-    name = "androidx.window:window-core"
-    type = LibraryType.PUBLISHED_LIBRARY
+    name = "WindowManager Core"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2022"
     description = "WindowManager Core Library."
+    legacyDisableKotlinStrictApiMode = true
+    samples(project(":window:window-core-samples"))
 }

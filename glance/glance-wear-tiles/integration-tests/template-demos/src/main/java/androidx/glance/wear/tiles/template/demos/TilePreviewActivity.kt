@@ -26,15 +26,16 @@ import androidx.wear.tiles.manager.TileUiClient
 class TilePreviewActivity : Activity() {
     lateinit var tileUiClient: TileUiClient
 
-    override fun onCreate(savedInstanceBundle: Bundle?) {
-        super.onCreate(savedInstanceBundle)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_preview)
 
-        tileUiClient = TileUiClient(
-            context = this,
-            component = ComponentName(this, DemoTile::class.java),
-            parentView = findViewById<FrameLayout>(R.id.tile_container)
-        )
+        tileUiClient =
+            TileUiClient(
+                context = this,
+                component = ComponentName(this, DemoTile::class.java),
+                parentView = findViewById<FrameLayout>(R.id.tile_container)
+            )
         tileUiClient.connect()
     }
 

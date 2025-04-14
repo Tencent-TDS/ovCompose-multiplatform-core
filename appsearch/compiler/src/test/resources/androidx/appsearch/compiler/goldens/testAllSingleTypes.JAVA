@@ -1,16 +1,22 @@
 package com.example.appsearch;
 
+import androidx.appsearch.app.AppSearchBlobHandle;
 import androidx.appsearch.app.AppSearchSchema;
 import androidx.appsearch.app.DocumentClassFactory;
+import androidx.appsearch.app.DocumentClassMappingContext;
+import androidx.appsearch.app.EmbeddingVector;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.exceptions.AppSearchException;
 import java.lang.Boolean;
+import java.lang.Class;
 import java.lang.Double;
 import java.lang.Float;
 import java.lang.Integer;
 import java.lang.Long;
 import java.lang.Override;
 import java.lang.String;
+import java.util.Collections;
+import java.util.List;
 import javax.annotation.processing.Generated;
 
 @Generated("androidx.appsearch.compiler.AppSearchCompiler")
@@ -29,6 +35,7 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
             .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_NONE)
             .setIndexingType(AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_NONE)
+            .setJoinableValueType(AppSearchSchema.StringPropertyConfig.JOINABLE_VALUE_TYPE_NONE)
             .build())
           .addProperty(new AppSearchSchema.LongPropertyConfig.Builder("integerProp")
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
@@ -50,7 +57,20 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
           .addProperty(new AppSearchSchema.BytesPropertyConfig.Builder("bytesProp")
             .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
             .build())
+          .addProperty(new AppSearchSchema.EmbeddingPropertyConfig.Builder("vectorProp")
+            .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+            .setIndexingType(AppSearchSchema.EmbeddingPropertyConfig.INDEXING_TYPE_NONE)
+            .setQuantizationType(AppSearchSchema.EmbeddingPropertyConfig.QUANTIZATION_TYPE_NONE)
+            .build())
+          .addProperty(new AppSearchSchema.BlobHandlePropertyConfig.Builder("blobHandleProp")
+            .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+            .build())
           .build();
+  }
+
+  @Override
+  public List<Class<?>> getDependencyDocumentClasses() throws AppSearchException {
+    return Collections.emptyList();
   }
 
   @Override
@@ -85,13 +105,22 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     if (bytesPropCopy != null) {
       builder.setPropertyBytes("bytesProp", bytesPropCopy);
     }
+    EmbeddingVector vectorPropCopy = document.vectorProp;
+    if (vectorPropCopy != null) {
+      builder.setPropertyEmbedding("vectorProp", vectorPropCopy);
+    }
+    AppSearchBlobHandle blobHandlePropCopy = document.blobHandleProp;
+    if (blobHandlePropCopy != null) {
+      builder.setPropertyBlobHandle("blobHandleProp", blobHandlePropCopy);
+    }
     return builder.build();
   }
 
   @Override
-  public Gift fromGenericDocument(GenericDocument genericDoc) throws AppSearchException {
-    String idConv = genericDoc.getId();
+  public Gift fromGenericDocument(GenericDocument genericDoc,
+      DocumentClassMappingContext documentClassMappingContext) throws AppSearchException {
     String namespaceConv = genericDoc.getNamespace();
+    String idConv = genericDoc.getId();
     String[] stringPropCopy = genericDoc.getPropertyStringArray("stringProp");
     String stringPropConv = null;
     if (stringPropCopy != null && stringPropCopy.length != 0) {
@@ -127,6 +156,16 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     if (bytesPropCopy != null && bytesPropCopy.length != 0) {
       bytesPropConv = bytesPropCopy[0];
     }
+    EmbeddingVector[] vectorPropCopy = genericDoc.getPropertyEmbeddingArray("vectorProp");
+    EmbeddingVector vectorPropConv = null;
+    if (vectorPropCopy != null && vectorPropCopy.length != 0) {
+      vectorPropConv = vectorPropCopy[0];
+    }
+    AppSearchBlobHandle[] blobHandlePropCopy = genericDoc.getPropertyBlobHandleArray("blobHandleProp");
+    AppSearchBlobHandle blobHandlePropConv = null;
+    if (blobHandlePropCopy != null && blobHandlePropCopy.length != 0) {
+      blobHandlePropConv = blobHandlePropCopy[0];
+    }
     Gift document = new Gift();
     document.namespace = namespaceConv;
     document.id = idConv;
@@ -137,6 +176,8 @@ public final class $$__AppSearch__Gift implements DocumentClassFactory<Gift> {
     document.doubleProp = doublePropConv;
     document.booleanProp = booleanPropConv;
     document.bytesProp = bytesPropConv;
+    document.vectorProp = vectorPropConv;
+    document.blobHandleProp = blobHandlePropConv;
     return document;
   }
 }

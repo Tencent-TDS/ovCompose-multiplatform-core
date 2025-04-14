@@ -25,7 +25,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.testutils.fonts.R
 import androidx.compose.foundation.demos.text.FontVariationSettingsCompot.compatSetFontVariationSettings
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,6 +36,7 @@ import androidx.compose.material.Slider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.testutils.fonts.R
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,9 +64,9 @@ import kotlinx.coroutines.withContext
 fun VariableFontsDemo() {
     if (Build.VERSION.SDK_INT < 26) {
         Text("Variable fonts are only supported on API 26+")
-     }
+    }
 
-    val (weight, setWeight) = remember { mutableStateOf(1000f) }
+    val (weight, setWeight) = remember { mutableFloatStateOf(1000f) }
     val (italic, setItalic) = remember { mutableStateOf(false) }
     LazyColumn {
         this.stickyHeader {
@@ -83,8 +84,10 @@ fun VariableFontsDemo() {
             }
         }
         item {
-            Text("These demos show setting fontVariationSettings on a demo font that " +
-                "exaggerates 'wght'. Font only supports the codepoint 'A' code=\"0x41\"")
+            Text(
+                "These demos show setting fontVariationSettings on a demo font that " +
+                    "exaggerates 'wght'. Font only supports the codepoint 'A' code=\"0x41\""
+            )
         }
         item {
             TagLine(tag = "ResourceFont")
@@ -117,19 +120,21 @@ fun VariableFontsDemo() {
 fun AssetFont(weight: Int, italic: Boolean) {
     Column(Modifier.fillMaxWidth()) {
         val context = LocalContext.current
-        val assetFonts = remember(weight, italic) {
-            FontFamily(
-                Font(
-                    "subdirectory/asset_variable_font.ttf",
-                    context.assets,
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
-                        /* italic not supported by font, ignored */
-                        FontVariation.italic(if (italic) 1f else 0f)
+        val assetFonts =
+            remember(weight, italic) {
+                FontFamily(
+                    Font(
+                        "subdirectory/asset_variable_font.ttf",
+                        context.assets,
+                        variationSettings =
+                            FontVariation.Settings(
+                                FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
+                                /* italic not supported by font, ignored */
+                                FontVariation.italic(if (italic) 1f else 0f)
+                            )
                     )
                 )
-            )
-        }
+            }
         Text(
             "A",
             fontSize = 48.sp,
@@ -143,25 +148,25 @@ fun AssetFont(weight: Int, italic: Boolean) {
 @Composable
 fun FileFont(weight: Int, italic: Boolean) {
     val context = LocalContext.current
-    val filePath = remember { mutableStateOf<String?> (null) }
-    LaunchedEffect(Unit) {
-        filePath.value = mkTempFont(context).path
-    }
+    val filePath = remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { filePath.value = mkTempFont(context).path }
     val actualPath = filePath.value ?: return
 
     Column(Modifier.fillMaxWidth()) {
-        val fileFonts = remember(weight, italic) {
-            FontFamily(
-                Font(
-                    File(actualPath),
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
-                        /* italic not supported by font, ignored */
-                        FontVariation.italic(if (italic) 1f else 0f)
+        val fileFonts =
+            remember(weight, italic) {
+                FontFamily(
+                    Font(
+                        File(actualPath),
+                        variationSettings =
+                            FontVariation.Settings(
+                                FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
+                                /* italic not supported by font, ignored */
+                                FontVariation.italic(if (italic) 1f else 0f)
+                            )
                     )
                 )
-            )
-        }
+            }
         Text(
             "A",
             fontSize = 48.sp,
@@ -176,25 +181,25 @@ fun FileFont(weight: Int, italic: Boolean) {
 @RequiresApi(26)
 fun ParcelFileDescriptorFont(weight: Int, italic: Boolean) {
     val context = LocalContext.current
-    val filePath = remember { mutableStateOf<String?> (null) }
-    LaunchedEffect(Unit) {
-        filePath.value = mkTempFont(context).path
-    }
+    val filePath = remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { filePath.value = mkTempFont(context).path }
     val actualPath = filePath.value ?: return
 
     Column(Modifier.fillMaxWidth()) {
-        val parcelFonts = remember(weight, italic) {
-            FontFamily(
-                Font(
-                    File(actualPath).toParcelFileDescriptor(context),
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
-                        /* italic not supported by font, ignored */
-                        FontVariation.italic(if (italic) 1f else 0f)
+        val parcelFonts =
+            remember(weight, italic) {
+                FontFamily(
+                    Font(
+                        File(actualPath).toParcelFileDescriptor(context),
+                        variationSettings =
+                            FontVariation.Settings(
+                                FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
+                                /* italic not supported by font, ignored */
+                                FontVariation.italic(if (italic) 1f else 0f)
+                            )
                     )
                 )
-            )
-        }
+            }
         Text(
             "A",
             fontSize = 48.sp,
@@ -208,18 +213,20 @@ fun ParcelFileDescriptorFont(weight: Int, italic: Boolean) {
 @Composable
 fun DeviceNamedFontFamilyFont(weight: Int, italic: Boolean) {
     Column(Modifier.fillMaxWidth()) {
-        val deviceFonts = remember(weight, italic) {
-            FontFamily(
-                Font(
-                    DeviceFontFamilyName("sans-serif"),
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
-                        /* italic not supported by font, ignored */
-                        FontVariation.italic(if (italic) 1f else 0f)
+        val deviceFonts =
+            remember(weight, italic) {
+                FontFamily(
+                    Font(
+                        DeviceFontFamilyName("sans-serif"),
+                        variationSettings =
+                            FontVariation.Settings(
+                                FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
+                                /* italic not supported by font, ignored */
+                                FontVariation.italic(if (italic) 1f else 0f)
+                            )
                     )
                 )
-            )
-        }
+            }
         Text(
             "Setting variation on system fonts has no effect on (most) Android builds",
             fontSize = 12.sp,
@@ -227,9 +234,7 @@ fun DeviceNamedFontFamilyFont(weight: Int, italic: Boolean) {
             modifier = Modifier.align(Alignment.CenterHorizontally)
         )
         val textPaint = remember { TextPaint() }
-        Canvas(modifier = Modifier
-            .fillMaxWidth()
-            .height(40.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(40.dp)) {
             this.drawIntoCanvas {
                 val nativeCanvas = drawContext.canvas.nativeCanvas
                 textPaint.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
@@ -243,7 +248,8 @@ fun DeviceNamedFontFamilyFont(weight: Int, italic: Boolean) {
                     "Platform 'sans-serif' behavior on this device' (nativeCanvas)" /* text */,
                     0f /* x */,
                     40f /* y */,
-                    textPaint)
+                    textPaint
+                )
             }
         }
     }
@@ -253,18 +259,20 @@ fun DeviceNamedFontFamilyFont(weight: Int, italic: Boolean) {
 @Composable
 fun ResourceFont(weight: Int, italic: Boolean) {
     Column(Modifier.fillMaxWidth()) {
-        val resourceFonts = remember(weight, italic) {
-            FontFamily(
-                Font(
-                    R.font.variable_font,
-                    variationSettings = FontVariation.Settings(
-                        FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
-                        /* italic not supported by font, ignored */
-                        FontVariation.italic(if (italic) 1f else 0f)
+        val resourceFonts =
+            remember(weight, italic) {
+                FontFamily(
+                    Font(
+                        R.font.variable_font,
+                        variationSettings =
+                            FontVariation.Settings(
+                                FontVariation.weight(weight.toInt()), /* Changes "A" glyph */
+                                /* italic not supported by font, ignored */
+                                FontVariation.italic(if (italic) 1f else 0f)
+                            )
                     )
                 )
-            )
-        }
+            }
         Text(
             "A",
             fontSize = 48.sp,
@@ -274,16 +282,17 @@ fun ResourceFont(weight: Int, italic: Boolean) {
     }
 }
 
-private suspend fun mkTempFont(context: Context): File = withContext(Dispatchers.IO) {
-    val temp = File.createTempFile("tmp", ".ttf", context.filesDir)
-    context.assets.open("subdirectory/asset_variable_font.ttf").use { input ->
-        val bytes = input.readBytes()
-        context.openFileOutput(temp.name, Context.MODE_PRIVATE).use { output ->
-            output.write(bytes)
+private suspend fun mkTempFont(context: Context): File =
+    withContext(Dispatchers.IO) {
+        val temp = File.createTempFile("tmp", ".ttf", context.filesDir)
+        context.assets.open("subdirectory/asset_variable_font.ttf").use { input ->
+            val bytes = input.readBytes()
+            context.openFileOutput(temp.name, Context.MODE_PRIVATE).use { output ->
+                output.write(bytes)
+            }
         }
+        temp
     }
-    temp
-}
 
 private fun File.toParcelFileDescriptor(context: Context): ParcelFileDescriptor {
     context.openFileInput(name).use { input ->

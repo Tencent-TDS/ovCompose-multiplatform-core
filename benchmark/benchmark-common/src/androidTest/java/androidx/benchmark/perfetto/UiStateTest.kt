@@ -19,6 +19,8 @@ package androidx.benchmark.perfetto
 import androidx.benchmark.createTempFileFromAsset
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import java.io.File
+import kotlin.test.assertEquals
 import okio.ByteString
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,8 +28,6 @@ import org.junit.runner.RunWith
 import perfetto.protos.Trace
 import perfetto.protos.TracePacket
 import perfetto.protos.UiState
-import java.io.File
-import kotlin.test.assertEquals
 
 @RunWith(AndroidJUnit4::class)
 @SmallTest
@@ -40,21 +40,14 @@ public class UiStateTest {
                 timeline_end_ts = 100,
                 UiState.HighlightProcess(cmdline = "test.package")
             ),
-            UiState(
-                timelineStart = 1,
-                timelineEnd = 100,
-                highlightPackage = "test.package"
-            )
+            UiState(timelineStart = 1, timelineEnd = 100, highlightPackage = "test.package")
         )
     }
 
     @Test
     public fun uiStateCheck() {
-        val uiState = UiState(
-            timelineStart = 1,
-            timelineEnd = 100,
-            highlightPackage = "test.package"
-        )
+        val uiState =
+            UiState(timelineStart = 1, timelineEnd = 100, highlightPackage = "test.package")
 
         val bytes = UiState.ADAPTER.encode(uiState)
         val uiStateParse = UiState.ADAPTER.decode(bytes)
@@ -63,39 +56,31 @@ public class UiStateTest {
 
     @Test
     public fun append() {
-        val initial = Trace(
-            packet = listOf(
-                TracePacket(
-                    compressed_packets = ByteString.of(0, 1, 3)
-                )
-            )
-        )
+        val initial =
+            Trace(packet = listOf(TracePacket(compressed_packets = ByteString.of(0, 1, 3))))
         val file = File.createTempFile("append", ".trace")
         file.writeBytes(Trace.ADAPTER.encode(initial))
         file.appendUiState(
-            UiState(
-                timelineStart = 0,
-                timelineEnd = 1,
-                highlightPackage = "test.package"
-            )
+            UiState(timelineStart = 0, timelineEnd = 1, highlightPackage = "test.package")
         )
 
         val final = Trace.ADAPTER.decode(file.readBytes())
 
-        val expected = Trace(
-            packet = listOf(
-                TracePacket(
-                    compressed_packets = ByteString.of(0, 1, 3)
-                ),
-                TracePacket(
-                    ui_state = UiState(
-                        timeline_start_ts = 0,
-                        timeline_end_ts = 1,
-                        UiState.HighlightProcess(cmdline = "test.package")
+        val expected =
+            Trace(
+                packet =
+                    listOf(
+                        TracePacket(compressed_packets = ByteString.of(0, 1, 3)),
+                        TracePacket(
+                            ui_state =
+                                UiState(
+                                    timeline_start_ts = 0,
+                                    timeline_end_ts = 1,
+                                    UiState.HighlightProcess(cmdline = "test.package")
+                                )
+                        )
                     )
-                )
             )
-        )
         assertEquals(expected, final)
     }
 
@@ -104,11 +89,7 @@ public class UiStateTest {
         val traceFile = createTempFileFromAsset("api31_startup_warm", ".perfetto-trace")
         val initialSize = traceFile.readBytes().size
         traceFile.appendUiState(
-            UiState(
-                timelineStart = 2,
-                timelineEnd = 4,
-                highlightPackage = "test.package"
-            )
+            UiState(timelineStart = 2, timelineEnd = 4, highlightPackage = "test.package")
         )
 
         val finalSize = traceFile.readBytes().size

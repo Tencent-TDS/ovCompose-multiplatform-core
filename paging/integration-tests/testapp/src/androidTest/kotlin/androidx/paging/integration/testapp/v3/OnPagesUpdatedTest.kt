@@ -22,6 +22,8 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
+import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,28 +38,25 @@ import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.test.assertTrue
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 class OnPagesUpdatedTest {
-    @get:Rule
-    val scenarioRule = ActivityScenarioRule(V3Activity::class.java)
+    @get:Rule val scenarioRule = ActivityScenarioRule(V3Activity::class.java)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
+    @Ignore("b/278918559")
     fun onPagesUpdatedFlow() = runBlocking {
         val scenario = scenarioRule.scenario
 
         lateinit var job: Job
         lateinit var adapter: V3Adapter
-        scenario.onActivity { activity ->
-            adapter = activity.pagingAdapter
-        }
+        scenario.onActivity { activity -> adapter = activity.pagingAdapter }
 
         // Wait for initial load to complete.
         adapter.onPagesUpdatedFlow.first { adapter.itemCount > 0 }
@@ -68,12 +67,13 @@ class OnPagesUpdatedTest {
             // Items are loaded before we start observing.
             assertThat(activity.pagingAdapter.itemCount).isGreaterThan(0)
 
-            job = activity.lifecycleScope.launch {
-                activity.pagingAdapter.onPagesUpdatedFlow.collect {
-                    onPagesUpdatedEventsCh.send(it)
-                    processNextPageUpdateCh.receive()
+            job =
+                activity.lifecycleScope.launch {
+                    activity.pagingAdapter.onPagesUpdatedFlow.collect {
+                        onPagesUpdatedEventsCh.send(it)
+                        processNextPageUpdateCh.receive()
+                    }
                 }
-            }
 
             // Page update from before we started listening should not be buffered.
             assertTrue { onPagesUpdatedEventsCh.isEmpty }
@@ -94,16 +94,14 @@ class OnPagesUpdatedTest {
         processNextPageUpdateCh.send(Unit)
 
         // Trigger a bunch of updates without unblocking page update collector.
-        repeat(66) {
-            adapter.refreshAndAwaitIdle()
-        }
+        repeat(66) { adapter.refreshAndAwaitIdle() }
 
         // Fully unblock collector.
         var pageUpdates = 0
         try {
             while (true) {
                 processNextPageUpdateCh.trySend(Unit)
-                onPagesUpdatedEventsCh.receiveWithTimeoutMillis(10_000)
+                onPagesUpdatedEventsCh.receiveWithTimeoutMillis(1000)
                 pageUpdates++
             }
         } catch (e: TimeoutCancellationException) {
@@ -126,30 +124,31 @@ class OnPagesUpdatedTest {
     private suspend fun V3Adapter.refreshAndAwaitIdle() {
         val scenario = scenarioRule.scenario
         val loadStateCollectorStarted = CompletableDeferred<Unit>()
-        val result = CoroutineScope(EmptyCoroutineContext).async {
-            loadStateFlow
-                .onStart { loadStateCollectorStarted.complete(Unit) }
-                .scan(RefreshState.INITIAL) { acc, next ->
-                    when (acc) {
-                        RefreshState.INITIAL -> {
-                            if (next.source.refresh is LoadState.Loading) {
-                                RefreshState.LOADING
-                            } else {
-                                RefreshState.INITIAL
+        val result =
+            CoroutineScope(EmptyCoroutineContext).async {
+                loadStateFlow
+                    .onStart { loadStateCollectorStarted.complete(Unit) }
+                    .scan(RefreshState.INITIAL) { acc, next ->
+                        when (acc) {
+                            RefreshState.INITIAL -> {
+                                if (next.source.refresh is LoadState.Loading) {
+                                    RefreshState.LOADING
+                                } else {
+                                    RefreshState.INITIAL
+                                }
                             }
-                        }
-                        RefreshState.LOADING -> {
-                            if (next.source.refresh !is LoadState.Loading) {
-                                RefreshState.DONE
-                            } else {
-                                RefreshState.LOADING
+                            RefreshState.LOADING -> {
+                                if (next.source.refresh !is LoadState.Loading) {
+                                    RefreshState.DONE
+                                } else {
+                                    RefreshState.LOADING
+                                }
                             }
+                            else -> acc
                         }
-                        else -> acc
                     }
-                }
-                .first { it == RefreshState.DONE }
-        }
+                    .first { it == RefreshState.DONE }
+            }
 
         loadStateCollectorStarted.await()
         scenario.onActivity { refresh() }
@@ -157,6 +156,8 @@ class OnPagesUpdatedTest {
     }
 
     private enum class RefreshState {
-        INITIAL, LOADING, DONE
+        INITIAL,
+        LOADING,
+        DONE
     }
 }

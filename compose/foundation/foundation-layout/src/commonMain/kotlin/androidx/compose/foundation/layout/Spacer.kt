@@ -18,26 +18,25 @@ package androidx.compose.foundation.layout
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.Modifier
 
 /**
  * Component that represents an empty space layout, whose size can be defined using
  * [Modifier.width], [Modifier.height] and [Modifier.size] modifiers.
  *
  * @sample androidx.compose.foundation.layout.samples.SpacerExample
- *
  * @param modifier modifiers to set to this spacer
  */
 @Composable
 @NonRestartableComposable
 fun Spacer(modifier: Modifier) {
-    Layout({}, measurePolicy = SpacerMeasurePolicy, modifier = modifier)
+    Layout(measurePolicy = SpacerMeasurePolicy, modifier = modifier)
 }
 
 private object SpacerMeasurePolicy : MeasurePolicy {

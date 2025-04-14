@@ -28,7 +28,7 @@ data class LambdaLocation(val fileName: String, val startLine: Int, val endLine:
                 System.loadLibrary("compose_inspection_jni")
             } catch (e: UnsatisfiedLinkError) {
                 Log.w(
-                    "ComposeLayoutInspector",
+                    SPAM_LOG_TAG,
                     "Swallowing loadLibrary exception. Already loaded by a previous classloader?",
                     e
                 )
@@ -39,7 +39,6 @@ data class LambdaLocation(val fileName: String, val startLine: Int, val endLine:
             return resolve(o::class.java)
         }
 
-        @JvmStatic
-        private external fun resolve(clazz: Class<*>): LambdaLocation?
+        @JvmStatic private external fun resolve(clazz: Class<*>): LambdaLocation?
     }
 }

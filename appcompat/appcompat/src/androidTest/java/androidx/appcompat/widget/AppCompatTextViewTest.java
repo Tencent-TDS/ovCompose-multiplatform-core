@@ -18,10 +18,13 @@ package androidx.appcompat.widget;
 import static androidx.appcompat.testutils.TestUtilsActions.setEnabled;
 import static androidx.appcompat.testutils.TestUtilsActions.setTextAppearance;
 import static androidx.appcompat.testutils.TestUtilsMatchers.isBackground;
+import static androidx.core.view.ViewKt.drawToBitmap;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+
+import static junit.framework.Assert.assertFalse;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -30,8 +33,10 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.app.Instrumentation;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
@@ -67,6 +72,7 @@ import androidx.test.annotation.UiThreadTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.filters.SdkSuppress;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.vectordrawable.graphics.drawable.VectorDrawableCompat;
 
 import org.junit.Ignore;
@@ -236,7 +242,6 @@ public class AppCompatTextViewTest
 
     @Test
     @UiThreadTest
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.JELLY_BEAN)
     public void testTextSize_canBeZero() {
         final TextView textView = mContainer.findViewById(R.id.textview_zero_text_size);
         // text size should be 0 as set in xml, rather than the text view default (15.0)
@@ -463,7 +468,6 @@ public class AppCompatTextViewTest
         assertEquals(Typeface.SERIF, textView.getTypeface());
     }
 
-    @SdkSuppress(minSdkVersion = 16)
     @Test
     @UiThreadTest
     public void testfontFamilyNamespaceHierarchy() {
@@ -478,7 +482,15 @@ public class AppCompatTextViewTest
     public void testFontVariation_setInXml() {
         final AppCompatTextView textView = mActivity.findViewById(
                 R.id.textview_fontVariation_textView);
-        assertEquals("'wdth' 30", textView.getFontVariationSettings());
+        assertEquals("'wght' 200", textView.getFontVariationSettings());
+
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        runCommandAndAssertBitmapChangedOrSame(textView, /* expectSame*/ true, () ->
+                instrumentation.runOnMainSync(() -> {
+                    textView.setFontVariationSettings("'wght' 100"); /* reset */
+                    textView.setFontVariationSettings("'wght' 200");
+                })
+        );
     }
 
     @SdkSuppress(minSdkVersion = 26)
@@ -487,6 +499,28 @@ public class AppCompatTextViewTest
         final AppCompatTextView textView = mActivity.findViewById(
                 R.id.textview_fontVariation_textAppearance);
         assertEquals("'wght' 300", textView.getFontVariationSettings());
+
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        runCommandAndAssertBitmapChangedOrSame(textView, /* expectSame*/ true, () ->
+                instrumentation.runOnMainSync(() -> {
+                    textView.setFontVariationSettings("'wght' 100"); /* reset */
+                    textView.setFontVariationSettings("'wght' 300");
+                })
+        );
+    }
+
+    @SdkSuppress(minSdkVersion = 26)
+    @Test
+    public void testFontVariation_setByBothXmlAndTextAppearance() throws InterruptedException {
+        final AppCompatTextView textView = mActivity.findViewById(
+                R.id.textview_fontVariation_textAppearance);
+
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        runCommandAndAssertBitmapChangedOrSame(textView, /* expectSame*/ true, () ->
+                instrumentation.runOnMainSync(() ->
+                        textView.setTextAppearance(R.style.TextView_FontVariation)
+                )
+        );
     }
 
     @SdkSuppress(minSdkVersion = 26)
@@ -496,7 +530,7 @@ public class AppCompatTextViewTest
                 R.id.textview_fontVariation_textView_and_textAppearance);
         //FontVariation is set in both AppCompatTextView and textAppearance,
         //we should use the one in AppCompatTextView.
-        assertEquals("'wdth' 30", textView.getFontVariationSettings());
+        assertEquals("'wght' 700", textView.getFontVariationSettings());
     }
 
     @SdkSuppress(minSdkVersion = 26)
@@ -504,10 +538,57 @@ public class AppCompatTextViewTest
     @UiThreadTest
     public void testFontVariation_setTextAppearance() throws Throwable {
         final AppCompatTextView textView = mActivity.findViewById(
-                R.id.textview_simple
+                R.id.textview_fontVariation_textView
         );
         textView.setTextAppearance(textView.getContext(), R.style.TextView_FontVariation);
         assertEquals("'wght' 300", textView.getFontVariationSettings());
+    }
+
+    @SdkSuppress(minSdkVersion = 26)
+    @Test
+    public void testFontVariation_setTextAppearance_changesPixels() throws Throwable {
+        final AppCompatTextView textView = mActivity.findViewById(
+                R.id.textview_fontVariation_textView
+        );
+
+        Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
+        instrumentation.runOnMainSync(() ->
+                textView.setFontVariationSettings("'wght' 900")
+        );
+        runCommandAndAssertBitmapChangedOrSame(textView, /* expectSame*/ false, () ->
+                instrumentation.runOnMainSync(() ->
+                        textView.setTextAppearance(textView.getContext(),
+                                R.style.TextView_FontVariation)
+                )
+        );
+    }
+
+    /**
+     * Run a command and confirm that the result of the command was a visible change to at least
+     * one pixel or exact similarity
+     *
+     * @param subject view to change
+     * @param expectSame when true, expect pixels to be identical, otherwise expect differences
+     * @param command comamnd to be called. it is not dispatched
+     */
+    public void runCommandAndAssertBitmapChangedOrSame(TextView subject, Boolean expectSame,
+            Runnable command) {
+        Bitmap before = drawToBitmap(subject, Bitmap.Config.ARGB_8888);
+        try {
+            command.run();
+            Bitmap after = drawToBitmap(subject, Bitmap.Config.ARGB_8888);
+            try {
+                if (expectSame) {
+                    assertTrue(before.sameAs(after));
+                } else {
+                    assertFalse(before.sameAs(after));
+                }
+            } finally {
+                after.recycle();
+            }
+        } finally {
+            before.recycle();
+        }
     }
 
     @Test
@@ -774,7 +855,6 @@ public class AppCompatTextViewTest
         assertNotNull(compoundDrawables[3]);
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawablesCompat_relative() {
         // Given an ACTV with both drawableStartCompat and drawableEndCompat set
@@ -786,19 +866,6 @@ public class AppCompatTextViewTest
         assertNotNull(compoundDrawablesRelative[2]);
     }
 
-    @SdkSuppress(maxSdkVersion = 16)
-    @Test
-    public void testCompoundDrawablesCompat_relativeIgnoredPre17() {
-        // Given an ACTV with both drawableStartCompat and drawableEndCompat set
-        final AppCompatTextView textView = mActivity.findViewById(
-                R.id.text_view_compound_drawables_compat_relative);
-        // Then both should be ignored before API17
-        final Drawable[] compoundDrawables = textView.getCompoundDrawables();
-        assertNull(compoundDrawables[0]);
-        assertNull(compoundDrawables[2]);
-    }
-
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawablesCompat_relativeAndAbsolute() {
         // Given an ACTV with both drawableStartCompat and drawableRightCompat set
@@ -839,7 +906,6 @@ public class AppCompatTextViewTest
         assertNotNull(compoundDrawables[3]);
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawablesRelative_platformCompatCoexist() {
         // Given an ACTV with app:drawableStartCompat & android:drawableEnd set
@@ -851,7 +917,6 @@ public class AppCompatTextViewTest
         assertNotNull(compoundDrawables[2]);
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawables_relativePlatform_ignoresCompatAbsolute() {
         // Given an ACTV with app:drawableLeftCompat & android:drawableEnd set
@@ -863,7 +928,6 @@ public class AppCompatTextViewTest
         assertNull(textView.getCompoundDrawablesRelative()[0]);
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawables_relativeCompat_ignoresPlatformAbsolute() {
         // Given an ACTV with app:drawableStartCompat & android:drawableRight set
@@ -1033,7 +1097,6 @@ public class AppCompatTextViewTest
                 TextViewCompat.getCompoundDrawableTintList(textView));
     }
 
-    @SdkSuppress(minSdkVersion = 17)
     @Test
     public void testCompoundDrawableRelativeTint() {
         // Given an ACTV with a white drawableStartCompat set and a #f0f drawableTint
@@ -1231,5 +1294,18 @@ public class AppCompatTextViewTest
         // Argument is nullable.
         view.setCustomSelectionActionModeCallback(null);
         assertNull(view.getCustomSelectionActionModeCallback());
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
+    @Test
+    public void testTextFontWeight() {
+        final AppCompatTextView textView = mActivity.findViewById(
+                R.id.text_view_text_font_weight);
+
+        if (textView.getTypeface() == null) return;
+
+        final int textFontWeight = textView.getTypeface().getWeight();
+
+        assertEquals(textFontWeight, 900);
     }
 }

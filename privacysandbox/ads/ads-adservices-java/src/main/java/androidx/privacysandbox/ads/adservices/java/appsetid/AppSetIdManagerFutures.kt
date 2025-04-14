@@ -16,12 +16,12 @@
 
 package androidx.privacysandbox.ads.adservices.java.appsetid
 
-import androidx.privacysandbox.ads.adservices.java.internal.asListenableFuture
 import android.content.Context
 import android.os.LimitExceededException
 import androidx.annotation.DoNotInline
 import androidx.privacysandbox.ads.adservices.appsetid.AppSetId
 import androidx.privacysandbox.ads.adservices.appsetid.AppSetIdManager
+import androidx.privacysandbox.ads.adservices.java.internal.asListenableFuture
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,23 +41,22 @@ abstract class AppSetIdManagerFutures internal constructor() {
      */
     abstract fun getAppSetIdAsync(): ListenableFuture<AppSetId>
 
-    private class Api33Ext4JavaImpl(
-        private val mAppSetIdManager: AppSetIdManager
-    ) : AppSetIdManagerFutures() {
+    private class Api33Ext4JavaImpl(private val mAppSetIdManager: AppSetIdManager) :
+        AppSetIdManagerFutures() {
         @DoNotInline
         override fun getAppSetIdAsync(): ListenableFuture<AppSetId> {
-            return CoroutineScope(Dispatchers.Main).async {
-                mAppSetIdManager.getAppSetId()
-            }.asListenableFuture()
+            return CoroutineScope(Dispatchers.Default)
+                .async { mAppSetIdManager.getAppSetId() }
+                .asListenableFuture()
         }
     }
 
     companion object {
         /**
-         *  Creates [AppSetIdManagerFutures].
+         * Creates [AppSetIdManagerFutures].
          *
-         *  @return AppSetIdManagerFutures object. If the device is running an incompatible
-         *  build, the value returned is null.
+         * @return AppSetIdManagerFutures object. If the device is running an incompatible build,
+         *   the value returned is null.
          */
         @JvmStatic
         fun from(context: Context): AppSetIdManagerFutures? {

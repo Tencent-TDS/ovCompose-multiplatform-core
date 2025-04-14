@@ -22,7 +22,6 @@ import static androidx.constraintlayout.core.motion.utils.TypedValues.MotionType
 import static androidx.constraintlayout.core.widgets.ConstraintWidget.HORIZONTAL;
 import static androidx.constraintlayout.core.widgets.ConstraintWidget.VERTICAL;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.constraintlayout.core.motion.utils.TypedBundle;
 import androidx.constraintlayout.core.motion.utils.TypedValues;
@@ -41,6 +40,8 @@ import androidx.constraintlayout.core.state.helpers.GridReference;
 import androidx.constraintlayout.core.state.helpers.GuidelineReference;
 import androidx.constraintlayout.core.widgets.ConstraintWidget;
 import androidx.constraintlayout.core.widgets.Flow;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -935,7 +936,6 @@ public class ConstraintSetParser {
                                       String name,
                                       LayoutVariables layoutVariables,
                                       CLObject element) throws CLParsingException {
-
         GridReference grid = state.getGrid(name, gridType);
 
         for (String param : element.names()) {
@@ -1001,18 +1001,19 @@ public class ConstraintSetParser {
                     }
                     break;
                 case "padding":
+                    // Note that padding is currently not properly handled in GridCore
                     CLElement paddingObject = element.get(param);
-                    int paddingLeft = 0;
-                    int paddingTop = 0;
-                    int paddingRight = 0;
-                    int paddingBottom = 0;
+                    float paddingStart = 0;
+                    float paddingTop = 0;
+                    float paddingEnd = 0;
+                    float paddingBottom = 0;
                     if (paddingObject instanceof CLArray && ((CLArray) paddingObject).size() > 1) {
-                        paddingLeft = ((CLArray) paddingObject).getInt(0);
-                        paddingRight = paddingLeft;
+                        paddingStart = ((CLArray) paddingObject).getInt(0);
+                        paddingEnd = paddingStart;
                         paddingTop = ((CLArray) paddingObject).getInt(1);
                         paddingBottom = paddingTop;
                         if (((CLArray) paddingObject).size() > 2) {
-                            paddingRight = ((CLArray) paddingObject).getInt(2);
+                            paddingEnd = ((CLArray) paddingObject).getInt(2);
                             try {
                                 paddingBottom = ((CLArray) paddingObject).getInt(3);
                             } catch (ArrayIndexOutOfBoundsException e) {
@@ -1021,33 +1022,35 @@ public class ConstraintSetParser {
 
                         }
                     } else {
-                        paddingLeft = paddingObject.getInt();
-                        paddingTop = paddingLeft;
-                        paddingRight = paddingLeft;
-                        paddingBottom = paddingLeft;
+                        paddingStart = paddingObject.getInt();
+                        paddingTop = paddingStart;
+                        paddingEnd = paddingStart;
+                        paddingBottom = paddingStart;
                     }
-                    grid.setPaddingLeft(paddingLeft);
-                    grid.setPaddingTop(paddingTop);
-                    grid.setPaddingRight(paddingRight);
-                    grid.setPaddingBottom(paddingBottom);
+                    grid.setPaddingStart(Math.round(toPix(state, paddingStart)));
+                    grid.setPaddingTop(Math.round(toPix(state, paddingTop)));
+                    grid.setPaddingEnd(Math.round(toPix(state, paddingEnd)));
+                    grid.setPaddingBottom(Math.round(toPix(state, paddingBottom)));
                     break;
                 case "flags":
-                    String flags = element.get(param).content();
-                    if (flags != null && flags.length() > 0) {
+                    int flagValue = 0;
+                    String flags = "";
+                    try {
+                        CLElement obj  = element.get(param);
+                        if (obj instanceof CLNumber) {
+                            flagValue = obj.getInt();
+                        } else {
+                            flags = obj.content();
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("Error parsing grid flags " + ex);
+                    }
+
+                    if (flags != null && !flags.isEmpty()) {
+                        // In older APIs, the flags may still be defined as a String
                         grid.setFlags(flags);
                     } else {
-                        CLArray flagArray = element.getArrayOrNull(param);
-                        flags = "";
-                        if (flagArray != null) {
-                            for (int i = 0; i < flagArray.size(); i++) {
-                                String flag = flagArray.get(i).content();
-                                flags += flag;
-                                if (i != flagArray.size() - 1) {
-                                    flags += "|";
-                                }
-                            }
-                            grid.setFlags(flags);
-                        }
+                        grid.setFlags(flagValue);
                     }
                     break;
                 default:
@@ -1160,10 +1163,10 @@ public class ConstraintSetParser {
                     break;
                 case "padding":
                     CLElement paddingObject = element.get(param);
-                    int paddingLeft = 0;
-                    int paddingTop = 0;
-                    int paddingRight = 0;
-                    int paddingBottom = 0;
+                    float paddingLeft = 0;
+                    float paddingTop = 0;
+                    float paddingRight = 0;
+                    float paddingBottom = 0;
                     if (paddingObject instanceof CLArray && ((CLArray) paddingObject).size() > 1) {
                         paddingLeft = ((CLArray) paddingObject).getInt(0);
                         paddingRight = paddingLeft;
@@ -1184,10 +1187,10 @@ public class ConstraintSetParser {
                         paddingRight = paddingLeft;
                         paddingBottom = paddingLeft;
                     }
-                    flow.setPaddingLeft(paddingLeft);
-                    flow.setPaddingTop(paddingTop);
-                    flow.setPaddingRight(paddingRight);
-                    flow.setPaddingBottom(paddingBottom);
+                    flow.setPaddingLeft(Math.round(toPix(state, paddingLeft)));
+                    flow.setPaddingTop(Math.round(toPix(state, paddingTop)));
+                    flow.setPaddingRight(Math.round(toPix(state, paddingRight)));
+                    flow.setPaddingBottom(Math.round(toPix(state, paddingBottom)));
                     break;
                 case "vAlign":
                     String vAlignValue = element.get(param).content();
@@ -1361,9 +1364,9 @@ public class ConstraintSetParser {
             state.verticalGuideline(guidelineId);
         }
 
-        // Ignore LTR for Horizontal guidelines, since `start` & `end` represent the distance
-        // from `top` and `bottom` respectively
-        boolean isLtr = state.isLtr() || orientation == ConstraintWidget.HORIZONTAL;
+        // Layout direction may be ignored for Horizontal guidelines (placed along the Y axis),
+        // since `start` & `end` represent the `top` and `bottom` distances respectively.
+        boolean isLtr = !state.isRtl() || orientation == ConstraintWidget.HORIZONTAL;
 
         GuidelineReference guidelineReference = (GuidelineReference) reference.getFacade();
 
@@ -1444,7 +1447,7 @@ public class ConstraintSetParser {
             State state,
             String elementName, CLObject element
     ) throws CLParsingException {
-        boolean isLtr = state.isLtr();
+        boolean isLtr = !state.isRtl();
         BarrierReference reference = state.barrier(elementName, State.Direction.END);
         ArrayList<String> constraints = element.names();
         if (constraints == null) {
@@ -1646,7 +1649,7 @@ public class ConstraintSetParser {
                 //  where the bias needs to be reversed in RTL, we probably want a better or more
                 //  intuitive way to do this
                 value = layoutVariables.get(element.get(attributeName));
-                if (!state.isLtr()) {
+                if (state.isRtl()) {
                     value = 1f - value;
                 }
                 reference.horizontalBias(value);
@@ -1814,7 +1817,7 @@ public class ConstraintSetParser {
             ConstraintReference reference,
             String constraintName
     ) throws CLParsingException {
-        boolean isLtr = state.isLtr();
+        boolean isLtr = !state.isRtl();
         CLArray constraint = element.getArrayOrNull(constraintName);
         if (constraint != null && constraint.size() > 1) {
             // params: target, anchor

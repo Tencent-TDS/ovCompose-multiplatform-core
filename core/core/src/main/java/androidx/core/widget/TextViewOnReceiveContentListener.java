@@ -22,7 +22,6 @@ import static androidx.core.view.ContentInfoCompat.SOURCE_INPUT_METHOD;
 
 import android.content.ClipData;
 import android.content.Context;
-import android.os.Build;
 import android.text.Editable;
 import android.text.Selection;
 import android.text.Spanned;
@@ -30,14 +29,14 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.view.ContentInfoCompat;
 import androidx.core.view.ContentInfoCompat.Flags;
 import androidx.core.view.ContentInfoCompat.Source;
 import androidx.core.view.OnReceiveContentListener;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Default implementation inserting content into editable {@link TextView} components. This class
@@ -48,9 +47,8 @@ import androidx.core.view.OnReceiveContentListener;
 public final class TextViewOnReceiveContentListener implements OnReceiveContentListener {
     private static final String LOG_TAG = "ReceiveContent";
 
-    @Nullable
     @Override
-    public ContentInfoCompat onReceiveContent(@NonNull View view,
+    public @Nullable ContentInfoCompat onReceiveContent(@NonNull View view,
             @NonNull ContentInfoCompat payload) {
         if (Log.isLoggable(LOG_TAG, Log.DEBUG)) {
             Log.d(LOG_TAG, "onReceive: " + payload);
@@ -88,12 +86,13 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         return null;
     }
 
-    private static CharSequence coerceToText(@NonNull Context context, @NonNull ClipData.Item item,
+    private static CharSequence coerceToText(@NonNull Context context, ClipData.@NonNull Item item,
             @Flags int flags) {
-        if (Build.VERSION.SDK_INT >= 16) {
-            return Api16Impl.coerce(context, item, flags);
+        if ((flags & FLAG_CONVERT_TO_PLAIN_TEXT) != 0) {
+            CharSequence text = item.coerceToText(context);
+            return (text instanceof Spanned) ? text.toString() : text;
         } else {
-            return ApiImpl.coerce(context, item, flags);
+            return item.coerceToStyledText(context);
         }
     }
 
@@ -105,33 +104,5 @@ public final class TextViewOnReceiveContentListener implements OnReceiveContentL
         final int end = Math.max(0, Math.max(selStart, selEnd));
         Selection.setSelection(editable, end);
         editable.replace(start, end, replacement);
-    }
-
-    @RequiresApi(16) // For ClipData.Item.coerceToStyledText()
-    private static final class Api16Impl {
-        private Api16Impl() {}
-
-        static CharSequence coerce(@NonNull Context context, @NonNull ClipData.Item item,
-                @Flags int flags) {
-            if ((flags & FLAG_CONVERT_TO_PLAIN_TEXT) != 0) {
-                CharSequence text = item.coerceToText(context);
-                return (text instanceof Spanned) ? text.toString() : text;
-            } else {
-                return item.coerceToStyledText(context);
-            }
-        }
-    }
-
-    private static final class ApiImpl {
-        private ApiImpl() {}
-
-        static CharSequence coerce(@NonNull Context context, @NonNull ClipData.Item item,
-                @Flags int flags) {
-            CharSequence text = item.coerceToText(context);
-            if ((flags & FLAG_CONVERT_TO_PLAIN_TEXT) != 0 && text instanceof Spanned) {
-                text = text.toString();
-            }
-            return text;
-        }
     }
 }

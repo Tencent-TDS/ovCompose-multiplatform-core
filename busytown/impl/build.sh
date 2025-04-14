@@ -20,9 +20,9 @@ mkdir -p "$DIST_DIR"
 export DIST_DIR="$DIST_DIR"
 if [ "$CHANGE_INFO" != "" ]; then
   cp "$CHANGE_INFO" "$DIST_DIR/"
-fi
-if [ "$MANIFEST" == "" ]; then
-  export MANIFEST="$DIST_DIR/manifest_${BUILD_NUMBER}.xml"
+  if [ "$MANIFEST" == "" ]; then
+    export MANIFEST="$DIST_DIR/manifest_${BUILD_NUMBER}.xml"
+  fi
 fi
 
 # parse arguments
@@ -32,9 +32,17 @@ if [ "$1" == "--diagnose" ]; then
 else
   DIAGNOSE=false
 fi
+if [ "$1" == "--diagnose-timeout" ]; then
+  shift
+  DIAGNOSE_TIMEOUT_ARG="--timeout $1"
+  shift
+else
+  DIAGNOSE_TIMEOUT_ARG=""
+fi
 
 # record the build start time
 BUILD_START_MARKER="$OUT_DIR/build.sh.start"
+rm -f "$BUILD_START_MARKER"
 touch $BUILD_START_MARKER
 # record the build number
 echo "$BUILD_NUMBER" >> "$OUT_DIR/build_number.log"
@@ -49,19 +57,12 @@ function run() {
   if eval "$*"; then
     return 0
   else
-    echo >&2
-    echo "Gradle command failed:" >&2
-    echo >&2
     # Echo the Gradle command formatted for ease of reading.
-    # Put each argument on its own line because some arguments may be long.
-    # Also put "\" at the end of non-final lines so the command can be copy-pasted
-    echo "$*" | sed 's/ / \\\n/g' | sed 's/^/    /' >&2
+    echo "Gradle command failed:" >&2
+    echo "    $*" >&2
     return 1
   fi
 }
-
-# export some variables
-ANDROID_HOME=../../prebuilts/fullsdk-linux
 
 BUILD_STATUS=0
 # enable remote build cache unless explicitly disabled
@@ -69,24 +70,25 @@ if [ "$USE_ANDROIDX_REMOTE_BUILD_CACHE" == "" ]; then
   export USE_ANDROIDX_REMOTE_BUILD_CACHE=gcp
 fi
 
-# Make sure that our native dependencies are new enough for KMP/konan
-# If our existing native libraries are newer, then we don't downgrade them because
-# something else (like Bash) might be requiring the newer version.
-function areNativeLibsNewEnoughForKonan() {
-  host=`uname`
-  if [[ "$host" == Darwin* ]]; then
-    # we don't have any Macs having native dependencies too old to build KMP/konan
-    true
-  else
-    # on Linux we check whether we have a sufficiently new GLIBCXX
-    gcc --print-file-name=libstdc++.so.6 | xargs readelf -a -W | grep GLIBCXX_3.4.21 >/dev/null
+# list kotlin sessions in case there are several, b/279739438
+function checkForLeftoverKotlinSessions() {
+  KOTLIN_SESSIONS_DIR=$OUT_DIR/gradle-project-cache/kotlin/sessions
+  NUM_KOTLIN_SESSIONS="$(ls $KOTLIN_SESSIONS_DIR 2>/dev/null | wc -l)"
+  if [ "$NUM_KOTLIN_SESSIONS" -gt 0 ]; then
+    echo "Found $NUM_KOTLIN_SESSIONS leftover kotlin sessions in $KOTLIN_SESSIONS_DIR"
   fi
 }
-if ! areNativeLibsNewEnoughForKonan; then
-  KONAN_HOST_LIBS="$OUT_DIR/konan-host-libs"
-  $SCRIPT_DIR/prepare-linux-sysroot.sh "$KONAN_HOST_LIBS"
-  export LD_LIBRARY_PATH=$KONAN_HOST_LIBS
-fi
+checkForLeftoverKotlinSessions
+
+# list java processes to check for any running kotlin daemons, b/282228230
+function listJavaProcesses() {
+  echo "All java processes:"
+  ps -ef | grep /java || true
+}
+listJavaProcesses
+
+# launch a process to monitor for timeouts
+busytown/impl/monitor.sh 3600 busytown/impl/showJavaStacks.sh &
 
 # run the build
 if run ./gradlew --ci "$@"; then
@@ -99,22 +101,25 @@ else
     # We probably won't have enough time to fully diagnose the problem given this timeout, but
     # we might be able to determine whether this problem is reproducible enough for a developer to
     # more easily investigate further
-    ./development/diagnose-build-failure/diagnose-build-failure.sh --timeout 600 "--ci $*"
-  fi
-  if grep "/prefab" "$DIST_DIR/logs/gradle.log" >/dev/null 2>/dev/null; then
-    # error looks like it might have involved prefab, copy the prefab dir to DIST where we can find it
-    if [ -e "$OUT_DIR/androidx/external/libyuv/build" ]; then
-      cd "$OUT_DIR/androidx/external/libyuv/build"
-      echo "Zipping $PWD into $DIST_DIR/libyuv-build.zip"
-      zip -qr "$DIST_DIR/libyuv-build.zip" .
-      cd -
-    fi
+    ./development/diagnose-build-failure/diagnose-build-failure.sh $DIAGNOSE_TIMEOUT_ARG "--ci $*" || true
+    scansPrevDir="$DIST_DIR/scans-prev"
+    mkdir -p "$scansPrevDir"
+    # restore any prior build scans into the dist dir
+    cp ../../diagnose-build-failure/prev/dist/scan*.zip "$scansPrevDir/" || true
   fi
   BUILD_STATUS=1 # failure
 fi
 
 # check that no unexpected modifications were made to the source repository, such as new cache directories
 DIST_DIR=$DIST_DIR $SCRIPT_DIR/verify_no_caches_in_source_repo.sh $BUILD_START_MARKER
+
+# copy problem report to DIST_DIR so we can see them
+PROBLEM_REPORTS_EXPORTED=$DIST_DIR/problem-reports
+PROBLEM_REPORTS=$OUT_DIR/androidx/build/reports/problems
+if [ -d "$PROBLEM_REPORTS" ]; then
+    rm -rf "$PROBLEM_REPORTS_EXPORTED"
+    cp -r "$PROBLEM_REPORTS" "$PROBLEM_REPORTS_EXPORTED"
+fi
 
 # copy configuration cache reports to DIST_DIR so we can see them b/250893051
 CONFIGURATION_CACHE_REPORTS_EXPORTED=$DIST_DIR/configuration-cache-reports
@@ -123,5 +128,8 @@ if [ -d "$CONFIGURATION_CACHE_REPORTS" ]; then
     rm -rf "$CONFIGURATION_CACHE_REPORTS_EXPORTED"
     cp -r "$CONFIGURATION_CACHE_REPORTS" "$CONFIGURATION_CACHE_REPORTS_EXPORTED"
 fi
+
+# stop Gradle daemon to clean up after ourselves
+./gradlew --stop
 
 exit "$BUILD_STATUS"

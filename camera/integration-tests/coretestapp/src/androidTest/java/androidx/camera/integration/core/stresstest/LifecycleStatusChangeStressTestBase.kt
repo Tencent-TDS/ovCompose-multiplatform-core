@@ -18,6 +18,7 @@ package androidx.camera.integration.core.stresstest
 
 import android.Manifest
 import android.content.Context
+import android.os.Build
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -36,12 +37,12 @@ import androidx.camera.integration.core.util.StressTestUtil.launchCameraXActivit
 import androidx.camera.integration.core.waitForImageAnalysisIdle
 import androidx.camera.integration.core.waitForViewfinderIdle
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.testing.CameraPipeConfigTestRule
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.CoreAppTestUtil
-import androidx.camera.testing.LabTestRule
-import androidx.camera.testing.StressTestRule
-import androidx.camera.testing.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.CameraPipeConfigTestRule
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.CoreAppTestUtil
+import androidx.camera.testing.impl.LabTestRule
+import androidx.camera.testing.impl.StressTestRule
+import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -53,6 +54,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.junit.After
+import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.ClassRule
@@ -67,14 +69,16 @@ abstract class LifecycleStatusChangeStressTestBase(
     private val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
     @get:Rule
-    val cameraPipeConfigTestRule = CameraPipeConfigTestRule(
-        active = implName == CameraPipeConfig::class.simpleName,
-    )
+    val cameraPipeConfigTestRule =
+        CameraPipeConfigTestRule(
+            active = implName == CameraPipeConfig::class.simpleName,
+        )
 
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(cameraConfig)
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(cameraConfig)
+        )
 
     @get:Rule
     val permissionRule: GrantPermissionRule =
@@ -83,11 +87,9 @@ abstract class LifecycleStatusChangeStressTestBase(
             Manifest.permission.RECORD_AUDIO
         )
 
-    @get:Rule
-    val labTest: LabTestRule = LabTestRule()
+    @get:Rule val labTest: LabTestRule = LabTestRule()
 
-    @get:Rule
-    val repeatRule = RepeatRule()
+    @get:Rule val repeatRule = RepeatRule()
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
@@ -96,8 +98,7 @@ abstract class LifecycleStatusChangeStressTestBase(
     private lateinit var cameraIdCameraSelector: CameraSelector
 
     companion object {
-        @ClassRule
-        @JvmField val stressTest = StressTestRule()
+        @ClassRule @JvmField val stressTest = StressTestRule()
 
         @JvmStatic
         @Parameterized.Parameters(name = "config = {0}, cameraId = {2}")
@@ -106,6 +107,7 @@ abstract class LifecycleStatusChangeStressTestBase(
 
     @Before
     fun setup(): Unit = runBlocking {
+        assumeLifecycleStatusChangeTestCompatibleDevice()
         assumeTrue(CameraUtil.deviceHasCamera())
         CoreAppTestUtil.assumeCompatibleDevice()
         CoreAppTestUtil.assumeNotUntestableFrontCamera(cameraId)
@@ -131,16 +133,17 @@ abstract class LifecycleStatusChangeStressTestBase(
 
         cameraIdCameraSelector = createCameraSelectorById(cameraId)
 
-        camera = withContext(Dispatchers.Main) {
-            cameraProvider.bindToLifecycle(FakeLifecycleOwner(), cameraIdCameraSelector)
-        }
+        camera =
+            withContext(Dispatchers.Main) {
+                cameraProvider.bindToLifecycle(FakeLifecycleOwner(), cameraIdCameraSelector)
+            }
     }
 
     @After
     fun tearDown(): Unit = runBlocking {
         if (::cameraProvider.isInitialized) {
             withContext(Dispatchers.Main) {
-                cameraProvider.shutdown()[10000, TimeUnit.MILLISECONDS]
+                cameraProvider.shutdownAsync()[10000, TimeUnit.MILLISECONDS]
             }
         }
 
@@ -158,11 +161,16 @@ abstract class LifecycleStatusChangeStressTestBase(
         cameraId: String,
         useCaseCombination: Int,
         verificationTarget: Int,
-        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT
+        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT,
+        enableStreamSharing: Boolean = false
     ) {
         // Launches CameraXActivity and wait for the preview ready.
         val activityScenario =
-            launchCameraXActivityAndWaitForPreviewReady(cameraId, useCaseCombination)
+            launchCameraXActivityAndWaitForPreviewReady(
+                cameraId,
+                useCaseCombination,
+                forceEnableStreamSharing = enableStreamSharing
+            )
 
         // Pauses, resumes the activity, and then checks the test target use case can capture
         // images successfully.
@@ -205,11 +213,16 @@ abstract class LifecycleStatusChangeStressTestBase(
         cameraId: String,
         useCaseCombination: Int,
         verificationTarget: Int,
-        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT
+        repeatCount: Int = STRESS_TEST_OPERATION_REPEAT_COUNT,
+        enableStreamSharing: Boolean = false
     ) {
         // Launches CameraXActivity and wait for the preview ready.
         val activityScenario =
-            launchCameraXActivityAndWaitForPreviewReady(cameraId, useCaseCombination)
+            launchCameraXActivityAndWaitForPreviewReady(
+                cameraId,
+                useCaseCombination,
+                forceEnableStreamSharing = enableStreamSharing
+            )
 
         // Pauses, resumes the activity repeatedly, and then checks the test target use case can
         // capture images successfully.
@@ -242,4 +255,17 @@ abstract class LifecycleStatusChangeStressTestBase(
             }
         }
     }
+
+    /**
+     * On some devices, after ProcessCameraProvider#shutdownAsync has been executed, the device
+     * WindowManager might still try to launch the CameraXActivity according to some unknown reason.
+     * This causes the CameraXActivity to invoke ProcessCameraProvider#getAvailableCameraInfos and
+     * then result in NPE problem. Therefore, the LifecycleStatusChange related tests will be
+     * skipped on those devices. See b/390272054 for the details.
+     */
+    private fun assumeLifecycleStatusChangeTestCompatibleDevice() =
+        assumeFalse(
+            "Samsung".equals(Build.BRAND, ignoreCase = true) &&
+                "SM-S921U".equals(Build.MODEL, ignoreCase = true)
+        )
 }

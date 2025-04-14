@@ -13,7 +13,8 @@
     },
     "main" : {
         "exclude" : [
-          "room"
+            "compose-runtime",
+            "room"
         ],
         "default": true
     }

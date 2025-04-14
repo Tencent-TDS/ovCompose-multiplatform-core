@@ -28,8 +28,6 @@ import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.CarContext;
 import androidx.car.app.HostDispatcher;
@@ -46,6 +44,9 @@ import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.Executor;
 
@@ -69,10 +70,8 @@ public class NavigationManager implements Manager {
     private final HostDispatcher mHostDispatcher;
 
     // Guarded by main thread access.
-    @Nullable
-    private NavigationManagerCallback mNavigationManagerCallback;
-    @Nullable
-    private Executor mNavigationManagerCallbackExecutor;
+    private @Nullable NavigationManagerCallback mNavigationManagerCallback;
+    private @Nullable Executor mNavigationManagerCallbackExecutor;
     private boolean mIsNavigating;
     private boolean mIsAutoDriveEnabled;
 
@@ -155,7 +154,7 @@ public class NavigationManager implements Manager {
      * @throws IllegalStateException if the current thread is not the main thread
      */
     @MainThread
-    public void setNavigationManagerCallback(@NonNull /* @CallbackExecutor */ Executor executor,
+    public void setNavigationManagerCallback(/* @CallbackExecutor */ @NonNull Executor executor,
             @NonNull NavigationManagerCallback callback) {
         checkMainThread();
 
@@ -249,11 +248,9 @@ public class NavigationManager implements Manager {
     /**
      * Creates an instance of {@link NavigationManager}.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
-    @NonNull
-    public static NavigationManager create(@NonNull CarContext carContext,
+    public static @NonNull NavigationManager create(@NonNull CarContext carContext,
             @NonNull HostDispatcher hostDispatcher, @NonNull Lifecycle lifecycle) {
         requireNonNull(carContext);
         requireNonNull(hostDispatcher);
@@ -265,18 +262,15 @@ public class NavigationManager implements Manager {
     /**
      * Returns the {@code INavigationManager.Stub} binder object.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
-    @NonNull
-    public INavigationManager.Stub getIInterface() {
+    public INavigationManager.@NonNull Stub getIInterface() {
         return mNavigationManager;
     }
 
     /**
      * Tells the app to stop navigating.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @MainThread
@@ -306,7 +300,6 @@ public class NavigationManager implements Manager {
      * <p>This is used in a testing environment, allowing testing the navigation app's navigation
      * capabilities without being in a car.
      *
-     * @hide
      */
     @RestrictTo(LIBRARY)
     @MainThread
@@ -329,7 +322,6 @@ public class NavigationManager implements Manager {
         executor.execute(callback::onAutoDriveEnabled);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
     @SuppressWarnings({"methodref.receiver.bound.invalid"})
     protected NavigationManager(@NonNull CarContext carContext,

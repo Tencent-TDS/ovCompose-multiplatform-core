@@ -18,28 +18,25 @@ package androidx.camera.camera2.pipe.integration.adapter
 
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.CameraDevice
-import android.media.MediaCodec
+import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.os.Build
+import android.util.Range
 import android.view.Surface
-import androidx.camera.camera2.pipe.integration.impl.STREAM_USE_CASE_OPTION
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.Preview
 import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.utils.futures.Futures
-import androidx.camera.testing.fakes.FakeUseCase
-import androidx.camera.testing.fakes.FakeUseCaseConfig
+import androidx.camera.testing.impl.fakes.FakeUseCase
+import androidx.camera.testing.impl.fakes.FakeUseCaseConfig
 import androidx.testutils.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import junit.framework.TestCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
@@ -48,10 +45,6 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @DoNotInstrument
 class SessionConfigAdapterTest {
 
-    private val mockSurface = Mockito.mock(DeferrableSurface::class.java)
-    private val mockSessionConfig = Mockito.mock(SessionConfig::class.java)
-    private val mockImplementationOption =
-        Mockito.mock(androidx.camera.core.impl.Config::class.java)
     private val sessionConfigAdapter = SessionConfigAdapter(listOf())
 
     @get:Rule
@@ -72,9 +65,7 @@ class SessionConfigAdapterTest {
         }
 
         // Act
-        val sessionConfigAdapter = SessionConfigAdapter(
-            useCases = listOf(fakeTestUseCase)
-        )
+        val sessionConfigAdapter = SessionConfigAdapter(useCases = listOf(fakeTestUseCase))
 
         // Assert
         assertThat(sessionConfigAdapter.isSessionConfigValid()).isFalse()
@@ -89,19 +80,24 @@ class SessionConfigAdapterTest {
         // Arrange
         val testDeferrableSurface = createTestDeferrableSurface().apply { close() }
 
-        val errorListener = object : SessionConfig.ErrorListener {
-            val results = mutableListOf<Pair<SessionConfig, SessionConfig.SessionError>>()
-            override fun onError(sessionConfig: SessionConfig, error: SessionConfig.SessionError) {
-                results.add(Pair(sessionConfig, error))
+        val errorListener =
+            object : SessionConfig.ErrorListener {
+                val results = mutableListOf<Pair<SessionConfig, SessionConfig.SessionError>>()
+
+                override fun onError(
+                    sessionConfig: SessionConfig,
+                    error: SessionConfig.SessionError
+                ) {
+                    results.add(Pair(sessionConfig, error))
+                }
             }
-        }
 
         val fakeTestUseCase1 = createFakeTestUseCase {
             it.setupSessionConfig(
                 SessionConfig.Builder().also { sessionConfigBuilder ->
                     sessionConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
                     sessionConfigBuilder.addSurface(testDeferrableSurface)
-                    sessionConfigBuilder.addErrorListener(errorListener)
+                    sessionConfigBuilder.setErrorListener(errorListener)
                 }
             )
         }
@@ -110,126 +106,65 @@ class SessionConfigAdapterTest {
                 SessionConfig.Builder().also { sessionConfigBuilder ->
                     sessionConfigBuilder.setTemplateType(CameraDevice.TEMPLATE_PREVIEW)
                     sessionConfigBuilder.addSurface(createTestDeferrableSurface().apply { close() })
-                    sessionConfigBuilder.addErrorListener(errorListener)
+                    sessionConfigBuilder.setErrorListener(errorListener)
                 }
             )
         }
 
         // Act
-        SessionConfigAdapter(
-            useCases = listOf(fakeTestUseCase1, fakeTestUseCase2)
-        ).reportSurfaceInvalid(testDeferrableSurface)
+        SessionConfigAdapter(useCases = listOf(fakeTestUseCase1, fakeTestUseCase2))
+            .reportSurfaceInvalid(testDeferrableSurface)
 
         // Assert, verify it only reports the SURFACE_NEEDS_RESET error on one SessionConfig
         // at a time.
         assertThat(errorListener.results.size).isEqualTo(1)
-        assertThat(errorListener.results[0].second).isEqualTo(
-            SessionConfig.SessionError.SESSION_ERROR_SURFACE_NEEDS_RESET
-        )
+        assertThat(errorListener.results[0].second)
+            .isEqualTo(SessionConfig.SessionError.SESSION_ERROR_SURFACE_NEEDS_RESET)
+    }
+
+    @Test
+    fun getExpectedFrameRateRange() {
+        // Arrange
+        val testDeferrableSurface = createTestDeferrableSurface()
+
+        // Create an invalid SessionConfig which doesn't set the template
+        val fakeTestUseCase = createFakeTestUseCase {
+            it.setupSessionConfig(
+                SessionConfig.Builder().also { sessionConfigBuilder ->
+                    sessionConfigBuilder.addSurface(testDeferrableSurface)
+                    sessionConfigBuilder.setTemplateType(TEMPLATE_PREVIEW)
+                    sessionConfigBuilder.setExpectedFrameRateRange(Range(15, 24))
+                }
+            )
+        }
+
+        // Act
+        val sessionConfigAdapter = SessionConfigAdapter(useCases = listOf(fakeTestUseCase))
+
+        // Assert
+        assertThat(sessionConfigAdapter.isSessionConfigValid()).isTrue()
+        assertThat(sessionConfigAdapter.getValidSessionConfigOrNull()).isNotNull()
+        assertThat(sessionConfigAdapter.getExpectedFrameRateRange()).isEqualTo(Range(15, 24))
+
+        // Clean up
+        testDeferrableSurface.close()
     }
 
     @Test
     fun populateSurfaceToStreamUseCaseMappingEmptyUseCase() {
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(listOf(), true)
+        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(listOf(), listOf())
         TestCase.assertTrue(mapping.isEmpty())
     }
 
     @Test
-    fun populateSurfaceToStreamUseCaseMappingNoAppropriateContainerClass() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(FakeUseCase::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions).thenReturn(mockImplementationOption)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping[mockSurface] == 0L)
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingPreview() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(Preview::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions).thenReturn(mockImplementationOption)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping.isNotEmpty())
-        TestCase.assertTrue(mapping[mockSurface] == 1L)
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingZSL() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(Preview::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions)
-            .thenReturn(mockImplementationOption)
-        Mockito.`when`(mockSessionConfig.templateType)
-            .thenReturn(CameraDevice.TEMPLATE_ZERO_SHUTTER_LAG)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
+    fun populateSurfaceToStreamUseHintMappingEmptyUseCase() {
+        val mapping = sessionConfigAdapter.getSurfaceToStreamUseHintMapping(listOf())
         TestCase.assertTrue(mapping.isEmpty())
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingImageAnalysis() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(ImageAnalysis::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions)
-            .thenReturn(mockImplementationOption)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping.isNotEmpty())
-        TestCase.assertTrue(mapping[mockSurface] == 1L)
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingImageCapture() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(ImageCapture::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions).thenReturn(mockImplementationOption)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping.isNotEmpty())
-        TestCase.assertTrue(mapping[mockSurface] == 2L)
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingVideoCapture() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(MediaCodec::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions).thenReturn(mockImplementationOption)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping.isNotEmpty())
-        TestCase.assertTrue(mapping[mockSurface] == 3L)
-    }
-
-    @Test
-    fun populateSurfaceToStreamUseCaseMappingCustomized() {
-        Mockito.`when`(mockSurface.containerClass).thenReturn(MediaCodec::class.java)
-        Mockito.`when`(mockSessionConfig.surfaces).thenReturn(listOf(mockSurface))
-        Mockito.`when`(mockSessionConfig.implementationOptions)
-            .thenReturn(mockImplementationOption)
-        Mockito.`when`(mockImplementationOption.containsOption(STREAM_USE_CASE_OPTION))
-            .thenReturn(true)
-        Mockito.`when`(mockImplementationOption.retrieveOption(STREAM_USE_CASE_OPTION))
-            .thenReturn(0L)
-        val sessionConfigs: MutableCollection<SessionConfig> = ArrayList()
-        sessionConfigs.add(mockSessionConfig)
-        val mapping = sessionConfigAdapter.getSurfaceToStreamUseCaseMapping(sessionConfigs, true)
-        TestCase.assertTrue(mapping.isNotEmpty())
-        TestCase.assertTrue(mapping[mockSurface] == 0L)
     }
 
     private fun createFakeTestUseCase(block: (FakeTestUseCase) -> Unit): FakeTestUseCase = run {
         val configBuilder = FakeUseCaseConfig.Builder().setTargetName("UseCase")
-        FakeTestUseCase(configBuilder.useCaseConfig).also {
-            block(it)
-        }
+        FakeTestUseCase(configBuilder.useCaseConfig).also { block(it) }
     }
 
     private fun createTestDeferrableSurface(): TestDeferrableSurface = run {
@@ -242,17 +177,20 @@ class SessionConfigAdapterTest {
 class FakeTestUseCase(
     config: FakeUseCaseConfig,
 ) : FakeUseCase(config) {
+    var cameraControlReady = false
 
     fun setupSessionConfig(sessionConfigBuilder: SessionConfig.Builder) {
-        updateSessionConfig(sessionConfigBuilder.build())
+        updateSessionConfig(listOf(sessionConfigBuilder.build()))
         notifyActive()
+    }
+
+    override fun onCameraControlReady() {
+        cameraControlReady = true
     }
 }
 
-class TestDeferrableSurface : DeferrableSurface() {
-    private val surfaceTexture = SurfaceTexture(0).also {
-        it.setDefaultBufferSize(0, 0)
-    }
+open class TestDeferrableSurface : DeferrableSurface() {
+    private val surfaceTexture = SurfaceTexture(0).also { it.setDefaultBufferSize(0, 0) }
     val testSurface = Surface(surfaceTexture)
 
     override fun provideSurface(): ListenableFuture<Surface> {
@@ -263,4 +201,14 @@ class TestDeferrableSurface : DeferrableSurface() {
         testSurface.release()
         surfaceTexture.release()
     }
+}
+
+class BlockingTestDeferrableSurface : TestDeferrableSurface() {
+    private val deferred = CompletableDeferred<Surface>()
+
+    override fun provideSurface(): ListenableFuture<Surface> {
+        return deferred.asListenableFuture()
+    }
+
+    fun resume() = deferred.complete(testSurface)
 }

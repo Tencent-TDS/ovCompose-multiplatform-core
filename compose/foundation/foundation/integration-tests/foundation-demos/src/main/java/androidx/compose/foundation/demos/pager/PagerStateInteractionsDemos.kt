@@ -16,7 +16,6 @@
 
 package androidx.compose.foundation.demos.pager
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,92 +31,70 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-val PagerStateInteractions = listOf(
-    ComposableDemo("Moving Pages Programmatically") { StateDrivenPage() },
-    ComposableDemo("Observing Page Changes - Full Size Page") { StateMonitoringPager() },
-    ComposableDemo("Observing Page Changes - Custom Page Size") {
-        StateMonitoringCustomPageSize()
-    },
-    ComposableDemo("Moving Pages Programmatically and Observing Changes") {
-        StateDrivenPageWithMonitor()
-    }
-)
+val PagerStateInteractions =
+    listOf(
+        ComposableDemo("Moving Pages Programmatically") { StateDrivenPage() },
+        ComposableDemo("Observing Page Changes - Full Size Page") { StateMonitoringPager() },
+        ComposableDemo("Observing Page Changes - Custom Page Size") {
+            StateMonitoringCustomPageSize()
+        },
+        ComposableDemo("Moving Pages Programmatically and Observing Changes") {
+            StateDrivenPageWithMonitor()
+        }
+    )
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StateDrivenPage() {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { PagesCount }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            modifier = Modifier.weight(0.9f),
-            state = pagerState,
-            pageCount = PagesCount
-        ) {
-            PagerItem(it)
-        }
+        HorizontalPager(modifier = Modifier.weight(0.9f), state = pagerState) { PagerItem(it) }
         PagerControls(Modifier.weight(0.1f), pagerState)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StateDrivenPageWithMonitor() {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { PagesCount }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            modifier = Modifier.weight(0.8f),
-            state = pagerState,
-            pageCount = PagesCount
-        ) {
-            PagerItem(it)
-        }
+        HorizontalPager(modifier = Modifier.weight(0.8f), state = pagerState) { PagerItem(it) }
         PagerControls(Modifier.weight(0.1f), pagerState)
         PageMonitor(Modifier.weight(0.1f), pagerState = pagerState)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StateMonitoringPager() {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { PagesCount }
     Column(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            modifier = Modifier.weight(0.9f),
-            state = pagerState,
-            pageCount = PagesCount
-        ) {
-            PagerItem(it)
-        }
-        PageMonitor(Modifier.weight(0.1f), pagerState)
+        HorizontalPager(modifier = Modifier.weight(0.8f), state = pagerState) { PagerItem(it) }
+        PageMonitor(Modifier.weight(0.2f), pagerState)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PageMonitor(modifier: Modifier, pagerState: PagerState) {
     Column(modifier.fillMaxWidth()) {
         Text(text = "Current Page: ${pagerState.currentPage}")
         Text(text = "Target Page: ${pagerState.targetPage}")
         Text(text = "Settled Page Offset: ${pagerState.settledPage}")
+        // This is to visualize the changing of this value during scroll.
+        // Reading scroll-related backed properties in composition will have performance impacts.
+        Text(text = "Current Page Offset Fraction: ${pagerState.currentPageOffsetFraction}")
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun StateMonitoringCustomPageSize() {
-    val pagerState = rememberPagerState()
+    val pagerState = rememberPagerState { PagesCount }
 
-    val fling = PagerDefaults.flingBehavior(
-        state = pagerState, PagerSnapDistance.atMost(3)
-    )
+    val fling = PagerDefaults.flingBehavior(state = pagerState, PagerSnapDistance.atMost(3))
 
     Column(modifier = Modifier.fillMaxSize()) {
         HorizontalPager(
             modifier = Modifier.weight(0.9f),
             state = pagerState,
-            pageCount = PagesCount,
             pageSize = PageSize.Fixed(96.dp),
             flingBehavior = fling
         ) {

@@ -14,102 +14,108 @@
  * limitations under the License.
  */
 
-
-import androidx.build.AndroidXComposePlugin
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
 }
 
-AndroidXComposePlugin.applyAndConfigureKotlinPlugin(project)
+androidXMultiplatform {
+    androidLibrary {
+        namespace = "androidx.compose.runtime.integrationtests"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
 
-dependencies {
-
-    if(!AndroidXComposePlugin.isMultiplatformEnabled(project)) {
-        androidTestImplementation(projectOrArtifact(":compose:ui:ui"))
-        androidTestImplementation(projectOrArtifact(":compose:material:material"))
-        androidTestImplementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
-        androidTestImplementation(project(":compose:runtime:runtime"))
-        androidTestImplementation(projectOrArtifact(":compose:test-utils"))
-        androidTestImplementation(projectOrArtifact(":activity:activity-compose"))
-
-        androidTestImplementation(libs.junit)
-        androidTestImplementation(libs.kotlinTestJunit)
-        androidTestImplementation(libs.testExtJunit)
-        androidTestImplementation(libs.testCore)
-        androidTestImplementation(libs.testRunner)
-        androidTestImplementation(libs.testRules)
-        androidTestImplementation(libs.kotlinStdlib)
-        androidTestImplementation(libs.kotlinReflect)
-        androidTestImplementation(libs.truth)
-    }
-}
-
-android {
-    namespace "androidx.compose.runtime.integrationtests"
-}
-
-if(AndroidXComposePlugin.isMultiplatformEnabled(project)) {
-    androidXComposeMultiplatform {
-        android()
-        desktop()
+        compileSdk = 35
+        aarMetadata.minCompileSdk = 35
     }
 
-    kotlin {
-        /*
-         * When updating dependencies, make sure to make the an an analogous update in the
-         * corresponding block above
-         */
-        sourceSets {
-            commonMain.dependencies {
+    sourceSets {
+        commonMain {
+            dependencies {
                 implementation(libs.kotlinStdlibCommon)
                 implementation(libs.kotlinCoroutinesCore)
-                implementation(projectOrArtifact(":compose:ui:ui"))
+                implementation(project(":compose:ui:ui"))
             }
-            jvmMain.dependencies {
+        }
+
+        commonTest {
+            dependencies {
+                implementation(libs.kotlinTest)
+            }
+        }
+
+        jvmMain {
+            dependsOn(commonMain)
+            dependencies {
                 implementation(libs.kotlinStdlib)
                 api(libs.kotlinCoroutinesCore)
             }
-            androidMain.dependencies {
+        }
+
+        androidMain {
+            dependsOn(jvmMain)
+            dependencies {
                 api(libs.kotlinCoroutinesAndroid)
-                api("androidx.annotation:annotation:1.1.0")
+                api("androidx.annotation:annotation:1.8.1")
 
                 implementation("androidx.core:core-ktx:1.1.0")
             }
-            desktopMain.dependencies {
-                api(libs.kotlinCoroutinesSwing)
-            }
+        }
 
-            commonTest.dependencies {
-                implementation(kotlin("test-junit"))
+        jvmTest {
+            dependsOn(commonTest)
+            dependencies {
             }
-            androidAndroidTest.dependencies {
-                implementation(projectOrArtifact(":compose:ui:ui"))
-                implementation(projectOrArtifact(":compose:material:material"))
-                implementation(projectOrArtifact(":compose:ui:ui-test-junit4"))
-                implementation(projectOrArtifact(":compose:test-utils"))
-                implementation(projectOrArtifact(":activity:activity-compose"))
+        }
+
+        androidInstrumentedTest {
+            dependsOn(jvmTest)
+            dependencies {
+                implementation(project(":compose:ui:ui"))
+                implementation(project(":compose:material:material"))
+                implementation(project(":compose:ui:ui-test-junit4"))
+                implementation(project(":compose:test-utils"))
+                implementation("androidx.activity:activity-compose:1.10.1")
                 implementation(libs.testExtJunit)
                 implementation(libs.testRules)
                 implementation(libs.testRunner)
                 implementation(libs.truth)
             }
         }
+
+        androidUnitTest {
+            dependsOn(jvmTest)
+        }
     }
 }
+
 
 tasks.withType(KotlinCompile).configureEach {
     kotlinOptions {
         incremental = false
-        freeCompilerArgs += "-Xcontext-receivers"
+        freeCompilerArgs += [
+            "-Xcontext-receivers",
+        ]
     }
 }
 
 public File findFile() {
-    project.file("src/androidAndroidTest/kotlin/androidx/compose/runtime/GroupSizeTests.kt")
+    project.file("src/androidInstrumentedTest/kotlin/androidx/compose/runtime/GroupSizeTests.kt")
 }
 
 class UpdateExpectedGroupSizes extends DefaultTask {

@@ -18,7 +18,6 @@ package androidx.benchmark.macro.perfetto
 
 import android.os.Build
 import android.util.JsonReader
-import androidx.annotation.RequiresApi
 import androidx.benchmark.Outputs
 import androidx.benchmark.Shell
 import androidx.benchmark.macro.MacrobenchmarkScope
@@ -26,15 +25,17 @@ import androidx.benchmark.macro.Packages
 import androidx.benchmark.macro.perfetto.PerfettoSdkHandshakeTest.SdkDelivery.MISSING
 import androidx.benchmark.macro.perfetto.PerfettoSdkHandshakeTest.SdkDelivery.PROVIDED_BY_BENCHMARK
 import androidx.benchmark.perfetto.PerfettoCapture
+import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig
+import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig.InitialProcessState
 import androidx.benchmark.perfetto.PerfettoHelper.Companion.isAbiSupported
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
-import androidx.tracing.perfetto.PerfettoHandshake
-import androidx.tracing.perfetto.PerfettoHandshake.ExternalLibraryProvider
-import androidx.tracing.perfetto.PerfettoHandshake.ResponseExitCodes.RESULT_CODE_ALREADY_ENABLED
-import androidx.tracing.perfetto.PerfettoHandshake.ResponseExitCodes.RESULT_CODE_ERROR_BINARY_MISSING
-import androidx.tracing.perfetto.PerfettoHandshake.ResponseExitCodes.RESULT_CODE_SUCCESS
-import androidx.tracing.perfetto.PerfettoHandshake.ResponseExitCodes.RESULT_CODE_CANCELLED
-import androidx.tracing.perfetto.PerfettoHandshake.ResponseExitCodes.RESULT_CODE_ERROR_OTHER
+import androidx.tracing.perfetto.handshake.PerfettoSdkHandshake
+import androidx.tracing.perfetto.handshake.protocol.ResponseResultCodes.RESULT_CODE_ALREADY_ENABLED
+import androidx.tracing.perfetto.handshake.protocol.ResponseResultCodes.RESULT_CODE_CANCELLED
+import androidx.tracing.perfetto.handshake.protocol.ResponseResultCodes.RESULT_CODE_ERROR_BINARY_MISSING
+import androidx.tracing.perfetto.handshake.protocol.ResponseResultCodes.RESULT_CODE_ERROR_OTHER
+import androidx.tracing.perfetto.handshake.protocol.ResponseResultCodes.RESULT_CODE_SUCCESS
 import com.google.common.truth.Truth.assertThat
 import java.io.File
 import java.io.StringReader
@@ -47,15 +48,16 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
 
-private const val tracingPerfettoVersion = "1.0.0-alpha12" // TODO(224510255): get by 'reflection'
+private const val tracingPerfettoVersion = "1.0.0" // TODO(224510255): get by 'reflection'
 private const val minSupportedSdk = Build.VERSION_CODES.R // TODO(234351579): Support API < 30
 
 @RunWith(Parameterized::class)
 /**
  * End-to-end test verifying the process of enabling Perfetto SDK tracing using a broadcast.
+ *
  * @see [androidx.tracing.perfetto.TracingReceiver]
  */
-@RequiresApi(Build.VERSION_CODES.R) // TODO(234351579): Support API < 30
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.R) // TODO(234351579): Support API < 30
 class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
     private val perfettoCapture = PerfettoCapture()
     private val targetPackage = Packages.TARGET
@@ -64,11 +66,12 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
     companion object {
         @Parameters(name = "{0}")
         @JvmStatic
-        fun parameters() = listOf(
-            TestConfig(sdkDelivery = PROVIDED_BY_BENCHMARK, packageAlive = true),
-            TestConfig(sdkDelivery = MISSING, packageAlive = true),
-            // TODO: tests verifying tracing on app start-up
-        )
+        fun parameters() =
+            listOf(
+                TestConfig(sdkDelivery = PROVIDED_BY_BENCHMARK, packageAlive = true),
+                TestConfig(sdkDelivery = MISSING, packageAlive = true),
+                // TODO: tests verifying tracing on app start-up
+            )
     }
 
     @Before
@@ -88,8 +91,7 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
     @After
     fun tearDown() {
         // kill the process at the end of the test
-        scope.killProcess()
-        assertPackageAlive(false)
+        killProcess()
     }
 
     @Test
@@ -101,24 +103,32 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         if (testConfig.packageAlive) enablePackage()
 
         // issue an 'enable' broadcast
-        perfettoCapture.enableAndroidxTracingPerfetto(
-            targetPackage, shouldProvideBinaries(testConfig.sdkDelivery)
-        ).let { response: String? ->
-            when (testConfig.sdkDelivery) {
-                PROVIDED_BY_BENCHMARK -> assertThat(response).isNull()
-                MISSING -> assertMissingBinariesResponse(response)
+        perfettoCapture
+            .enableAndroidxTracingPerfetto(
+                targetPackage,
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
+            )
+            .let { response: String? ->
+                when (testConfig.sdkDelivery) {
+                    PROVIDED_BY_BENCHMARK -> assertThat(response).isNull()
+                    MISSING -> assertMissingBinariesResponse(response)
+                }
             }
-        }
 
         // issue an 'enable' broadcast again
-        perfettoCapture.enableAndroidxTracingPerfetto(
-            targetPackage, shouldProvideBinaries(testConfig.sdkDelivery)
-        ).let { response: String? ->
-            when (testConfig.sdkDelivery) {
-                PROVIDED_BY_BENCHMARK -> assertAlreadyEnabledResponse(response)
-                MISSING -> assertMissingBinariesResponse(response)
+        perfettoCapture
+            .enableAndroidxTracingPerfetto(
+                targetPackage,
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
+            )
+            .let { response: String? ->
+                when (testConfig.sdkDelivery) {
+                    PROVIDED_BY_BENCHMARK -> assertAlreadyEnabledResponse(response)
+                    MISSING -> assertMissingBinariesResponse(response)
+                }
             }
-        }
 
         // check that the process 'survived' the test
         assertPackageAlive(true)
@@ -134,7 +144,8 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         try {
             perfettoCapture.enableAndroidxTracingPerfetto(
                 targetPackage,
-                shouldProvideBinaries(testConfig.sdkDelivery)
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
             )
         } catch (e: IllegalStateException) {
             assertThat(e.message).ignoringCase().contains("Unsupported ABI")
@@ -151,103 +162,230 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         val response =
             perfettoCapture.enableAndroidxTracingPerfetto(
                 targetPackage,
-                shouldProvideBinaries(testConfig.sdkDelivery)
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
             )
 
         assertThat(response).ignoringCase().contains("SDK version not supported")
     }
 
     /**
-     * This tests [androidx.tracing.perfetto.PerfettoHandshake] which is used by both Benchmark
-     * and Studio.
+     * This tests [androidx.tracing.perfetto.handshake.PerfettoSdkHandshake] which is used by both
+     * Benchmark and Studio.
      *
-     * By contrast, other tests use the [PerfettoCapture.enableAndroidxTracingPerfetto], which
-     * is built on top of [androidx.tracing.perfetto.PerfettoHandshake] and implements
-     * the parts where Studio and Benchmark differ.
+     * By contrast, other tests use the [PerfettoCapture.enableAndroidxTracingPerfetto], which is
+     * built on top of [androidx.tracing.perfetto.handshake.PerfettoSdkHandshake] and implements the
+     * parts where Studio and Benchmark differ.
      */
     @Test
     fun test_handshake_framework() {
         assumeTrue(isAbiSupported())
         assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
 
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-
-        val libraryProvider: ExternalLibraryProvider? = when (testConfig.sdkDelivery) {
-            MISSING -> null
-            PROVIDED_BY_BENCHMARK -> {
-                // find tracing-perfetto-binary AAR in test assets
-                val libraryZipPath: String? = run {
-                    val rx =
-                        Regex("tracing-perfetto-binary-[^/]+\\.aar", RegexOption.IGNORE_CASE)
-                    val queue = ArrayDeque(context.assets.list("")?.asList() ?: emptyList())
-                    while (queue.isNotEmpty()) {
-                        val curr = queue.removeFirst()
-                        val desc = context.assets.list(curr) ?: emptyArray()
-                        when (desc.size) {
-                            0 -> if (curr.matches(rx)) return@run curr
-                            else -> queue.addAll(desc.map { "$curr/$it" })
-                        }
-                    }
-                    null
-                }
-                assertThat(libraryZipPath).isNotNull()
-
-                // place the AAR in a location that can be referenced by a file-system path
-                val tmpLibFile = File.createTempFile(
-                    "tmplib", ".zip",
-                    Outputs.dirUsableByAppAndShell
-                ).also { it.deleteOnExit() }
-                context.assets.open(libraryZipPath!!).use { input ->
-                    tmpLibFile.outputStream().use { output -> input.copyTo(output) }
-                }
-
-                // construct a library provider referencing the AAR
-                ExternalLibraryProvider(
-                    tmpLibFile,
-                    Outputs.dirUsableByAppAndShell
-                ) { tmpFile, dstFile ->
-                    Shell.executeScriptSilent("mkdir -p ${dstFile.parentFile!!.path}")
-                    Shell.executeScriptSilent("mv ${tmpFile.path} ${dstFile.path}")
-                }
+        /** perform a handshake using [androidx.tracing.perfetto.handshake.PerfettoSdkHandshake] */
+        val libraryZip: File? = resolvePerfettoAar()
+        val tmpDir = Outputs.dirUsableByAppAndShell
+        val mvTmpDst = createShellFileMover()
+        val librarySource =
+            libraryZip?.let {
+                PerfettoSdkHandshake.LibrarySource.aarLibrarySource(libraryZip, tmpDir, mvTmpDst)
             }
-        }
-
-        // construct a handshake
-
-        val handshake = PerfettoHandshake(
-            targetPackage,
-            parseJsonMap = { jsonString: String ->
-                sequence {
-                    JsonReader(StringReader(jsonString)).use { reader ->
-                        reader.beginObject()
-                        while (reader.hasNext()) yield(reader.nextName() to reader.nextString())
-                        reader.endObject()
-                    }
-                }.toMap()
-            },
-            Shell::executeScriptCaptureStdout
-        )
-
-        /** perform a handshake using [androidx.tracing.perfetto.PerfettoHandshake] */
-
         val versionRx = "\\d+(\\.\\d+){2}(-[\\w-]+)?"
-        handshake.enableTracing(libraryProvider).also { response ->
-            val expectedExitCode = when (testConfig.sdkDelivery) {
-                PROVIDED_BY_BENCHMARK -> RESULT_CODE_SUCCESS
-                MISSING -> RESULT_CODE_ERROR_BINARY_MISSING
+        val handshake = constructPerfettoHandshake()
+        when (testConfig.sdkDelivery) {
+            PROVIDED_BY_BENCHMARK -> {
+                checkNotNull(libraryZip)
+                handshake.enableTracingImmediate(librarySource).let { response ->
+                    assertThat(response.resultCode).isEqualTo(RESULT_CODE_SUCCESS)
+                    assertThat(response.requiredVersion).matches(versionRx)
+                }
+                handshake.enableTracingImmediate(librarySource).let { response ->
+                    assertThat(response.resultCode).isEqualTo(RESULT_CODE_ALREADY_ENABLED)
+                    assertThat(response.requiredVersion).matches(versionRx)
+                }
             }
-            assertThat(response.exitCode).isEqualTo(expectedExitCode)
-            assertThat(response.requiredVersion).matches(versionRx)
+            MISSING -> {
+                check(libraryZip == null)
+                handshake.enableTracingImmediate().let { response ->
+                    assertThat(response.resultCode).isEqualTo(RESULT_CODE_ERROR_BINARY_MISSING)
+                    assertThat(response.requiredVersion).matches(versionRx)
+                }
+                handshake.enableTracingImmediate().let { response ->
+                    assertThat(response.resultCode).isEqualTo(RESULT_CODE_ERROR_BINARY_MISSING)
+                    assertThat(response.requiredVersion).matches(versionRx)
+                }
+            }
         }
+    }
 
-        handshake.enableTracing(libraryProvider).also { response ->
-            val expectedExitCode = when (testConfig.sdkDelivery) {
-                PROVIDED_BY_BENCHMARK -> RESULT_CODE_ALREADY_ENABLED
-                MISSING -> RESULT_CODE_ERROR_BINARY_MISSING
+    @Test
+    fun test_handshake_framework_cold_start_persistent() =
+        test_handshake_framework_cold_start(persistent = true)
+
+    @Test
+    fun test_handshake_framework_cold_start_non_persistent() =
+        test_handshake_framework_cold_start(persistent = false)
+
+    fun test_handshake_framework_cold_start(persistent: Boolean) {
+        assumeTrue(isAbiSupported())
+        assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
+        assumeTrue(testConfig.sdkDelivery == PROVIDED_BY_BENCHMARK)
+
+        // perform a handshake setting up cold start tracing
+        killProcess()
+        assertPackageAlive(false)
+        val handshake = constructPerfettoHandshake()
+        val libraryZip = resolvePerfettoAar()
+        val tmpDir = Outputs.dirUsableByAppAndShell
+        val mvTmpDst = createShellFileMover()
+        val librarySource =
+            libraryZip?.let {
+                PerfettoSdkHandshake.LibrarySource.aarLibrarySource(libraryZip, tmpDir, mvTmpDst)
             }
-            assertThat(response.exitCode).isEqualTo(expectedExitCode)
-            assertThat(response.requiredVersion).matches(versionRx)
+
+        try {
+            val enableColdTracingResponse =
+                handshake.enableTracingColdStart(persistent, librarySource)
+            assertThat(enableColdTracingResponse.resultCode).isEqualTo(RESULT_CODE_SUCCESS)
+            assertPackageAlive(false)
+
+            // start the app
+            // verify that tracing was enabled at app startup (once)
+            enablePackage()
+            handshake.enableTracingImmediate().let {
+                assertThat(it.resultCode).isEqualTo(RESULT_CODE_ALREADY_ENABLED)
+            }
+
+            // verify that tracing was enabled at app startup (more than once)
+            killProcess()
+            enablePackage()
+            handshake.enableTracingImmediate(librarySource).let {
+                assertThat(it.resultCode)
+                    .isEqualTo(
+                        // in non-persistent mode, cold startup tracing should expire after one run
+                        when (persistent) {
+                            true -> RESULT_CODE_ALREADY_ENABLED
+                            else -> RESULT_CODE_SUCCESS
+                        }
+                    )
+            }
+        } finally {
+            // clean up
+            handshake.disableTracingColdStart().let {
+                assertThat(it.resultCode).isEqualTo(RESULT_CODE_SUCCESS)
+            }
         }
+    }
+
+    /**
+     * Tests [androidx.benchmark.perfetto.PerfettoCapture.enableAndroidxTracingPerfetto] as opposed
+     * to [androidx.tracing.perfetto.handshake.PerfettoSdkHandshake.enableTracingColdStart]
+     */
+    @Test
+    fun test_handshake_cold_start() {
+        assumeTrue(isAbiSupported())
+        assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
+        assumeTrue(testConfig.sdkDelivery == PROVIDED_BY_BENCHMARK)
+
+        // perform a handshake setting up cold start tracing
+        killProcess()
+        assertPackageAlive(false)
+
+        perfettoCapture
+            .enableAndroidxTracingPerfetto(
+                targetPackage,
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = true
+            )
+            .let { assertThat(it).isNull() }
+        assertPackageAlive(false)
+
+        // start the app
+        // verify that tracing was enabled at app startup (once)
+        enablePackage()
+        perfettoCapture
+            .enableAndroidxTracingPerfetto(
+                targetPackage,
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
+            )
+            .let { assertAlreadyEnabledResponse(it) }
+
+        // verify that tracing was enabled at app startup (more than once)
+        killProcess()
+        enablePackage()
+        perfettoCapture
+            .enableAndroidxTracingPerfetto(
+                targetPackage,
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
+            )
+            .let {
+                // in non-persistent mode, cold startup tracing should expire after one run
+                assertThat(it).isNull()
+            }
+    }
+
+    @Test
+    fun test_handshake_framework_cold_start_disable_persistent() =
+        test_handshake_framework_cold_start_disable(persistent = true)
+
+    @Test
+    fun test_handshake_framework_cold_start_disable_non_persistent() =
+        test_handshake_framework_cold_start_disable(persistent = true)
+
+    fun test_handshake_framework_cold_start_disable(persistent: Boolean) {
+        assumeTrue(isAbiSupported())
+        assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
+        assumeTrue(testConfig.sdkDelivery == PROVIDED_BY_BENCHMARK)
+
+        // perform a handshake setting up cold start tracing
+        killProcess()
+        val handshake = constructPerfettoHandshake()
+        val libraryZip = resolvePerfettoAar()
+        val tmpDir = Outputs.dirUsableByAppAndShell
+        val mvTmpDst = createShellFileMover()
+        val librarySource =
+            libraryZip?.let {
+                PerfettoSdkHandshake.LibrarySource.aarLibrarySource(libraryZip, tmpDir, mvTmpDst)
+            }
+        val enableColdTracingResponse = handshake.enableTracingColdStart(persistent, librarySource)
+        assertThat(enableColdTracingResponse.resultCode).isEqualTo(RESULT_CODE_SUCCESS)
+
+        // disable cold start tracing
+        handshake.disableTracingColdStart()
+        assertPackageAlive(false)
+
+        // start the app
+        enablePackage()
+
+        /**
+         * Verify that tracing was not enabled at app startup. Note: if cold start tracing was
+         * enabled, we'd receive [RESULT_CODE_ALREADY_ENABLED]
+         */
+        val enableWarmTracingResponse = handshake.enableTracingImmediate(librarySource)
+        assertThat(enableWarmTracingResponse.resultCode).isEqualTo(RESULT_CODE_SUCCESS)
+    }
+
+    @Test
+    fun test_handshake_framework_cold_start_app_terminated_on_error() {
+        assumeTrue(isAbiSupported())
+        assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
+        assumeTrue(testConfig.sdkDelivery == MISSING)
+
+        // perform a handshake setting up cold start tracing
+        val handshake = constructPerfettoHandshake()
+        val enableColdTracingResponse = handshake.enableTracingColdStart()
+        assertThat(enableColdTracingResponse.resultCode).isEqualTo(RESULT_CODE_ERROR_BINARY_MISSING)
+
+        // verify that the app process has been terminated
+        // in the non-error case we already have these verifications in other tests
+        assertPackageAlive(false)
+    }
+
+    private fun killProcess() {
+        scope.killProcess()
+        assertPackageAlive(false)
     }
 
     @Test
@@ -255,39 +393,43 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         assumeTrue(isAbiSupported())
         assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
 
-        val response = perfettoCapture.enableAndroidxTracingPerfetto(
-            "package.does.not.exist.89e51176_bc28_41f1_ac73_ca717454b517",
-            shouldProvideBinaries(testConfig.sdkDelivery)
-        )
+        val response =
+            perfettoCapture.enableAndroidxTracingPerfetto(
+                "package.does.not.exist.89e51176_bc28_41f1_ac73_ca717454b517",
+                shouldProvideBinaries(testConfig.sdkDelivery),
+                isColdStartupTracing = false
+            )
 
-        assertThat(response).ignoringCase()
+        assertThat(response)
+            .ignoringCase()
             .contains("The broadcast to enable tracing was not received")
     }
 
     /**
-     * Unlike [test_handshake_package_does_not_exist], which uses [PerfettoCapture], this test
-     * uses a lower-level component [PerfettoHandshake].
+     * Unlike [test_handshake_package_does_not_exist], which uses [PerfettoCapture], this test uses
+     * a lower-level component [PerfettoSdkHandshake].
      */
     @Test
     fun test_handshake_framework_package_does_not_exist() {
         assumeTrue(isAbiSupported())
         assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
 
-        val handshake = PerfettoHandshake(
-            "package.does.not.exist.89e51176_bc28_41f1_ac73_ca717454b517",
-            parseJsonMap = { emptyMap() },
-            Shell::executeScriptCaptureStdout
-        )
+        val handshake =
+            PerfettoSdkHandshake(
+                "package.does.not.exist.89e51176_bc28_41f1_ac73_ca717454b517",
+                parseJsonMap = { emptyMap() },
+                Shell::executeScriptCaptureStdout
+            )
 
         // try
-        handshake.enableTracing(null).also { response ->
-            assertThat(response.exitCode).isEqualTo(RESULT_CODE_CANCELLED)
+        handshake.enableTracingImmediate().also { response ->
+            assertThat(response.resultCode).isEqualTo(RESULT_CODE_CANCELLED)
             assertThat(response.requiredVersion).isNull()
         }
 
         // try again
-        handshake.enableTracing(null).also { response ->
-            assertThat(response.exitCode).isEqualTo(RESULT_CODE_CANCELLED)
+        handshake.enableTracingImmediate().also { response ->
+            assertThat(response.resultCode).isEqualTo(RESULT_CODE_CANCELLED)
             assertThat(response.requiredVersion).isNull()
         }
     }
@@ -298,19 +440,21 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         assumeTrue(Build.VERSION.SDK_INT >= minSupportedSdk)
 
         val parsingException = "I don't know how to JSON"
-        val handshake = PerfettoHandshake(
-            targetPackage,
-            parseJsonMap = { throw IllegalArgumentException(parsingException) },
-            Shell::executeScriptCaptureStdout
-        )
-
-        handshake.enableTracing(null).also { response ->
-            assertThat(response.exitCode).isEqualTo(RESULT_CODE_ERROR_OTHER)
-            assertThat(response.requiredVersion).isNull()
-            assertThat(response.message).containsMatch(
-                "Exception occurred while trying to parse a response.*Error.*$parsingException"
-                    .toPattern(Pattern.CASE_INSENSITIVE)
+        val handshake =
+            PerfettoSdkHandshake(
+                targetPackage,
+                parseJsonMap = { throw IllegalArgumentException(parsingException) },
+                Shell::executeScriptCaptureStdout
             )
+
+        handshake.enableTracingImmediate().also { response ->
+            assertThat(response.resultCode).isEqualTo(RESULT_CODE_ERROR_OTHER)
+            assertThat(response.requiredVersion).isNull()
+            assertThat(response.message)
+                .containsMatch(
+                    "Exception occurred while trying to parse a response.*Error.*$parsingException"
+                        .toPattern(Pattern.CASE_INSENSITIVE)
+                )
         }
     }
 
@@ -334,18 +478,79 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
     private fun assertMissingBinariesResponse(response: String?) {
         assertThat(response).ignoringCase().contains("binary dependencies missing")
         assertThat(response).contains("Required version: $tracingPerfettoVersion")
-        assertThat(response).containsMatch(
-            "Perfetto SDK binary dependencies missing" +
-                ".*UnsatisfiedLinkError.*libtracing_perfetto.so"
-        )
-        assertThat(response).contains(
-            "androidTestImplementation(" +
-                "\"androidx.tracing:tracing-perfetto-binary:$tracingPerfettoVersion\")"
-        )
+        assertThat(response)
+            .containsMatch(
+                "Perfetto SDK binary dependencies missing" +
+                    ".*UnsatisfiedLinkError.*libtracing_perfetto.so"
+            )
+        assertThat(response)
+            .contains(
+                "androidTestImplementation(" +
+                    "\"androidx.tracing:tracing-perfetto-binary:$tracingPerfettoVersion\")"
+            )
     }
 
     private fun assertPackageAlive(expected: Boolean) =
         assertThat(Shell.isPackageAlive(targetPackage)).isEqualTo(expected)
+
+    private fun createShellFileMover() = { tmpFile: File, dstFile: File ->
+        Shell.mkdir(dstFile.parentFile!!.path)
+        Shell.mv(from = tmpFile.path, to = dstFile.path)
+    }
+
+    private fun constructPerfettoHandshake(): PerfettoSdkHandshake =
+        PerfettoSdkHandshake(
+            targetPackage,
+            parseJsonMap = { jsonString: String ->
+                sequence {
+                        JsonReader(StringReader(jsonString)).use { reader ->
+                            reader.beginObject()
+                            while (reader.hasNext()) yield(reader.nextName() to reader.nextString())
+                            reader.endObject()
+                        }
+                    }
+                    .toMap()
+            },
+            executeShellCommand = { cmd ->
+                val (stdout, stderr) = Shell.executeScriptCaptureStdoutStderr(cmd)
+                listOf(stdout, stderr)
+                    .filter { it.isNotBlank() }
+                    .joinToString(separator = System.lineSeparator())
+            }
+        )
+
+    private fun resolvePerfettoAar(): File? =
+        when (testConfig.sdkDelivery) {
+            MISSING -> null
+            PROVIDED_BY_BENCHMARK -> {
+                // find tracing-perfetto-binary AAR in test assets
+                val context = InstrumentationRegistry.getInstrumentation().targetContext
+                val libraryZipPath: String? = run {
+                    val rx = Regex("tracing-perfetto-binary-[^/]+\\.aar", RegexOption.IGNORE_CASE)
+                    val queue = ArrayDeque(context.assets.list("")?.asList() ?: emptyList())
+                    while (queue.isNotEmpty<String?>()) {
+                        val curr = queue.removeFirst()
+                        val desc = context.assets.list(curr) ?: emptyArray()
+                        when (desc.size) {
+                            0 -> if (curr.matches(rx)) return@run curr
+                            else -> queue.addAll(desc.map { "$curr/$it" })
+                        }
+                    }
+                    null
+                }
+                assertThat(libraryZipPath).isNotNull()
+
+                // place the AAR in a location that can be referenced by a file-system path
+                val tmpLibFile =
+                    File.createTempFile("tmplib", ".zip", Outputs.dirUsableByAppAndShell).also {
+                        it.deleteOnExit()
+                    }
+                context.assets.open(libraryZipPath!!).use { input ->
+                    tmpLibFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                tmpLibFile
+            }
+        }
 
     data class TestConfig(
         /** Determines if and how Perfetto binaries are provided to the test app. */
@@ -358,8 +563,8 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
     /**
      * Determines if and how Perfetto binaries are provided to the test app.
      *
-     * Note: the case where SDK binaries are already present is not tested here.
-     * To some degree we test that case in
+     * Note: the case where SDK binaries are already present is not tested here. To some degree we
+     * test that case in
      * [androidx.tracing.perfetto.test.TracingTest.test_endToEnd_binaryDependenciesPresent].
      */
     enum class SdkDelivery {
@@ -369,4 +574,24 @@ class PerfettoSdkHandshakeTest(private val testConfig: TestConfig) {
         /** Remain unresolved */
         MISSING
     }
+
+    private fun PerfettoCapture.enableAndroidxTracingPerfetto(
+        targetPackage: String,
+        provideBinariesIfMissing: Boolean,
+        isColdStartupTracing: Boolean
+    ): String? =
+        this.enableAndroidxTracingPerfetto(
+                PerfettoSdkConfig(
+                    targetPackage,
+                    if (isColdStartupTracing) InitialProcessState.NotAlive
+                    else InitialProcessState.Alive,
+                    provideBinariesIfMissing
+                )
+            )
+            .let { (resultCode, message) ->
+                // Maps the response into the old contract of [enableAndroidxTracingPerfetto], where
+                // for
+                // success we get a [null] response; otherwise an error message
+                if (resultCode == RESULT_CODE_SUCCESS) null else message
+            }
 }

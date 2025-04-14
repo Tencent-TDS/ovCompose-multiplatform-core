@@ -73,17 +73,35 @@ class WithPackageBlock internal constructor(private val packageName: String) {
 
         try {
 
+            // Creates an install session
+            val installCreateOutput = executeCommand("pm install-create -t").first().trim()
+            val sessionId =
+                REGEX_SESSION_ID.find(installCreateOutput)
+                    .throwIfNull("pm install session is invalid.")
+                    .groups[1]
+                    .throwIfNull("pm install session is invalid.")
+                    .value
+                    .toLong()
+
+            // Creates tmp dir for this session
+            val baseTmpFolder = "$TEMP_DIR/$sessionId"
+            assertThat(executeCommand("mkdir -p $baseTmpFolder")).isEmpty()
+            cleanUpBlocks.add { executeCommand("rm -Rf $baseTmpFolder") }
+
             // First writes in a temp file the apk from the assets
-            val tmpApkFile = File(dirUsableByAppAndShell, "tmp_$apkName").also { file ->
-                file.delete()
-                file.createNewFile()
-                file.deleteOnExit()
-                file.outputStream().use { instrumentation.context.assets.open(apkName).copyTo(it) }
-            }
+            val tmpApkFile =
+                File(dirUsableByAppAndShell, "tmp_$apkName").also { file ->
+                    file.delete()
+                    file.createNewFile()
+                    file.deleteOnExit()
+                    file.outputStream().use {
+                        instrumentation.context.assets.open(apkName).copyTo(it)
+                    }
+                }
             cleanUpBlocks.add { tmpApkFile.delete() }
 
             // Then moves it to a destination that can be used to install it
-            val destApkPath = "$TEMP_DIR/$apkName"
+            val destApkPath = "$baseTmpFolder/base.apk"
             assertThat(executeCommand("mv ${tmpApkFile.absolutePath} $destApkPath")).isEmpty()
             cleanUpBlocks.add { executeCommand("rm $destApkPath") }
 
@@ -91,19 +109,9 @@ class WithPackageBlock internal constructor(private val packageName: String) {
             // For reference:
             // https://source.corp.google.com/android-internal/packages/modules/adb/client/adb_install.cpp
 
-            // Creates an install session
-            val installCreateOutput = executeCommand("pm install-create -t").first().trim()
-            val sessionId = REGEX_SESSION_ID
-                .find(installCreateOutput)
-                .throwIfNull("pm install session is invalid.")
-                .groups[1]
-                .throwIfNull("pm install session is invalid.")
-                .value
-                .toLong()
-
             // Adds the base apk to the install session
             val successBaseApk =
-                executeCommand("pm install-write $sessionId base.apk $TEMP_DIR/$apkName")
+                executeCommand("pm install-write $sessionId base.apk $destApkPath")
                     .first()
                     .trim()
                     .startsWith("Success")
@@ -115,40 +123,37 @@ class WithPackageBlock internal constructor(private val packageName: String) {
             if (withProfile) {
 
                 // Generates the profiles using device profile writer
-                val tmpProfileProfFile = File(dirUsableByAppAndShell, "tmp_profile.prof")
-                    .also {
+                val tmpProfileProfFile =
+                    File(dirUsableByAppAndShell, "tmp_profile.prof").also {
                         it.delete()
                         it.createNewFile()
                         it.deleteOnExit()
                     }
                 cleanUpBlocks.add { tmpProfileProfFile.delete() }
 
-                val deviceProfileWriter = DeviceProfileWriter(
-                    instrumentation.context.assets,
-                    DirectExecutor.INSTANCE,
-                    EMPTY_DIAGNOSTICS,
-                    apkName,
-                    BASELINE_PROF,
-                    BASELINE_PROFM,
-                    tmpProfileProfFile
-                )
+                val deviceProfileWriter =
+                    DeviceProfileWriter(
+                        instrumentation.context.assets,
+                        DirectExecutor.INSTANCE,
+                        EMPTY_DIAGNOSTICS,
+                        apkName,
+                        "${apkName}_$BASELINE_PROF",
+                        "${apkName}_$BASELINE_PROFM",
+                        tmpProfileProfFile
+                    )
                 if (!deviceProfileWriter.deviceAllowsProfileInstallerAotWrites()) {
                     throw IllegalStateException(
                         "The device does not allow profile installer aot writes"
                     )
                 }
-                val success = deviceProfileWriter.read()
-                    .transcodeIfNeeded()
-                    .write()
+                val success = deviceProfileWriter.read().transcodeIfNeeded().write()
                 if (!success) {
-                    throw IllegalStateException(
-                        "Profile was not installed correctly."
-                    )
+                    throw IllegalStateException("Profile was not installed correctly.")
                 }
 
                 // Compress the profile to generate the dex metadata file
-                val tmpDmFile = File(dirUsableByAppAndShell, "tmp_base.dm")
-                    .also {
+                val tmpDmFile =
+                    File(dirUsableByAppAndShell, "tmp_base.dm").also {
                         it.delete()
                         it.createNewFile()
                         it.deleteOnExit()
@@ -164,7 +169,7 @@ class WithPackageBlock internal constructor(private val packageName: String) {
                 cleanUpBlocks.add { tmpDmFile.delete() }
 
                 // Then moves it to a destination that can be used to install it
-                val dmFilePath = "$TEMP_DIR/$DM_FILE_NAME"
+                val dmFilePath = "$baseTmpFolder/$DM_FILE_NAME"
                 executeCommand("mv ${tmpDmFile.absolutePath} $dmFilePath")
                 cleanUpBlocks.add { executeCommand("rm $dmFilePath") }
 
@@ -195,20 +200,20 @@ class WithPackageBlock internal constructor(private val packageName: String) {
 
             // Runs all the clean up blocks. This will clean up also partial operations in case
             // there is an issue during install
-            cleanUpBlocks.forEach { it() }
+            cleanUpBlocks.reversed().forEach { it() }
         }
     }
 
     fun start(activityName: String) {
-        val error = executeCommand("am start -n $packageName/$activityName")
-            .any { it.startsWith("Error") }
+        turnOnScreen()
+        val error =
+            executeCommand("am start -n $packageName/$activityName").any { it.startsWith("Error") }
         assertThat(error).isFalse()
         uiDevice.waitForIdle()
     }
 
     fun stop() {
-        val error = executeCommand("am force-stop $packageName")
-            .any { it.startsWith("Error") }
+        val error = executeCommand("am force-stop $packageName").any { it.startsWith("Error") }
         assertThat(error).isFalse()
         uiDevice.waitForIdle()
     }
@@ -220,11 +225,12 @@ class WithPackageBlock internal constructor(private val packageName: String) {
     }
 
     fun broadcastProfileInstallAction() {
-        val result = broadcast(
-            packageName = packageName,
-            action = "androidx.profileinstaller.action.INSTALL_PROFILE",
-            receiverClass = "androidx.profileinstaller.ProfileInstallReceiver"
-        )
+        val result =
+            broadcast(
+                packageName = packageName,
+                action = "androidx.profileinstaller.action.INSTALL_PROFILE",
+                receiverClass = "androidx.profileinstaller.ProfileInstallReceiver"
+            )
         assertWithMessage("Profile install action broadcast failed with code.")
             .that(result)
             .isEqualTo(ProfileInstaller.RESULT_INSTALL_SUCCESS)
@@ -239,8 +245,7 @@ class WithPackageBlock internal constructor(private val packageName: String) {
 
     private fun executeCommand(command: String): List<String> {
         Log.d(TAG, "Executing command: `$command`")
-        return ParcelFileDescriptor
-            .AutoCloseInputStream(uiAutomation.executeShellCommand(command))
+        return ParcelFileDescriptor.AutoCloseInputStream(uiAutomation.executeShellCommand(command))
             .bufferedReader()
             .lineSequence()
             .toList()
@@ -248,18 +253,25 @@ class WithPackageBlock internal constructor(private val packageName: String) {
 
     fun evaluateUI(block: AssertUiBlock.() -> Unit) {
         val resourceId = "id/txtNotice"
-        val lines = uiDevice
-            .wait(Until.findObject(By.res("$packageName:$resourceId")), UI_TIMEOUT)
-            .text
-            .lines()
-            .map { it.split(":")[1].trim() }
-        assertThat(lines).hasSize(3)
+        val lines =
+            uiDevice
+                .wait(Until.findObject(By.res("$packageName:$resourceId")), UI_TIMEOUT)
+                .text
+                .lines()
+                .map { it.split(":")[1].trim() }
         block(AssertUiBlock(lines))
+    }
+
+    fun turnOnScreen() {
+        if (!uiDevice.isScreenOn()) {
+            uiDevice.wakeUp()
+        }
+        executeCommand("wm dismiss-keyguard")
     }
 
     companion object {
         private const val TAG = "TestManager"
-        private const val TEMP_DIR = "/data/local/tmp/"
+        private const val TEMP_DIR = "/data/local/tmp"
         private const val UI_TIMEOUT = 20000L
         private const val BASELINE_PROF = "baseline.prof"
         private const val BASELINE_PROFM = "baseline.profm"
@@ -268,10 +280,10 @@ class WithPackageBlock internal constructor(private val packageName: String) {
     }
 
     class AssertUiBlock(private val lines: List<String>) {
-        fun profileInstalled(resultCode: Int) =
+        fun profileInstalled(vararg resultCodes: Int) =
             assertWithMessage("Unexpected profile verification result code")
                 .that(lines[0].toInt())
-                .isEqualTo(resultCode)
+                .isIn(resultCodes.toList())
 
         fun hasReferenceProfile(value: Boolean) =
             assertWithMessage("Unexpected hasReferenceProfile value")
@@ -282,12 +294,22 @@ class WithPackageBlock internal constructor(private val packageName: String) {
             assertWithMessage("Unexpected hasCurrentProfile value")
                 .that(lines[2].toBoolean())
                 .isEqualTo(value)
+
+        fun hasEmbeddedProfile(value: Boolean) =
+            assertWithMessage("Unexpected hasEmbeddedProfile value")
+                .that(lines[3].toBoolean())
+                .isEqualTo(value)
+    }
+
+    val isCuttlefish by lazy {
+        executeCommand("getprop ro.product.product.model").any { "cuttlefish" in it.lowercase() }
     }
 }
 
 private val EMPTY_DIAGNOSTICS: ProfileInstaller.DiagnosticsCallback =
     object : ProfileInstaller.DiagnosticsCallback {
         private val TAG = "ProfileVerifierDiagnosticsCallback"
+
         override fun onDiagnosticReceived(code: Int, data: Any?) {
             Log.d(TAG, "onDiagnosticReceived: $code")
         }
@@ -300,6 +322,8 @@ private val EMPTY_DIAGNOSTICS: ProfileInstaller.DiagnosticsCallback =
 private fun <T> T?.throwIfNull(message: String): T = this ?: throw Exception(message)
 
 val isApi30 by lazy { Build.VERSION.SDK_INT == Build.VERSION_CODES.R }
+val isApi28 by lazy { Build.VERSION.SDK_INT == Build.VERSION_CODES.P }
+val isApi29 by lazy { Build.VERSION.SDK_INT == Build.VERSION_CODES.Q }
 
 const val PACKAGE_NAME_WITH_INITIALIZER =
     "androidx.profileinstaller.integration.profileverification.target"

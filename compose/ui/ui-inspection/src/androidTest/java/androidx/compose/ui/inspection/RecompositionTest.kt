@@ -17,7 +17,6 @@
 package androidx.compose.ui.inspection
 
 import android.view.inspector.WindowInspector
-import androidx.compose.ui.inspection.rules.DebugViewAttributeRule
 import androidx.compose.ui.inspection.rules.JvmtiRule
 import androidx.compose.ui.inspection.rules.sendCommand
 import androidx.compose.ui.inspection.testdata.RecompositionTestActivity
@@ -47,14 +46,12 @@ import org.junit.rules.RuleChain
 class RecompositionTest {
     private val rule = createAndroidComposeRule<RecompositionTestActivity>()
 
-    @get:Rule
-    val chain = RuleChain.outerRule(JvmtiRule()).around(DebugViewAttributeRule()).around(rule)!!
+    @get:Rule val chain = RuleChain.outerRule(JvmtiRule()).around(rule)!!
 
     private lateinit var inspectorTester: InspectorTester
 
     @Before
     fun before() {
-        JvmtiRule.ensureInitialised()
         runBlocking {
             inspectorTester = InspectorTester(inspectorId = "layoutinspector.compose.inspection")
         }
@@ -67,9 +64,9 @@ class RecompositionTest {
 
     @Test
     fun recomposing(): Unit = runBlocking {
-        inspectorTester.sendCommand(
-            GetUpdateSettingsCommand(includeRecomposeCounts = true)
-        ).updateSettingsResponse
+        inspectorTester
+            .sendCommand(GetUpdateSettingsCommand(includeRecomposeCounts = true))
+            .updateSettingsResponse
 
         rule.onNodeWithText("Click row 1").performClick()
         rule.onNodeWithText("Click row 1").performClick()
@@ -79,13 +76,19 @@ class RecompositionTest {
 
         val rootId =
             WindowInspector.getGlobalWindowViews().map { it.uniqueDrawingId }.single().toLong()
-        var composables = inspectorTester.sendCommand(
-            GetComposablesCommand(rootId, skipSystemComposables = false)
-        ).getComposablesResponse
+        var composables =
+            inspectorTester
+                .sendCommand(GetComposablesCommand(rootId, skipSystemComposables = false))
+                .getComposablesResponse
 
-        val parameters = inspectorTester.sendCommand(
-            GetAllParametersCommand(rootId, skipSystemComposables = false)
-        ).getAllParametersResponse
+        val parameters =
+            inspectorTester
+                .sendCommand(GetAllParametersCommand(rootId, skipSystemComposables = false))
+                .getAllParametersResponse
+
+        if (composables.rootsList.single().nodesList.isEmpty()) {
+            error("No nodes returned. Check that the compose inspector was successfully enabled.")
+        }
 
         // Buttons have double recompose counts, as they are
         // recomposed on the down event for the press indication
@@ -96,17 +99,20 @@ class RecompositionTest {
         assertThat(nodes.text2.recomposeCount).isEqualTo(1)
 
         // Stop counting but keep the current counts:
-        inspectorTester.sendCommand(
-            GetUpdateSettingsCommand(includeRecomposeCounts = false, keepRecomposeCounts = true)
-        ).updateSettingsResponse
+        inspectorTester
+            .sendCommand(
+                GetUpdateSettingsCommand(includeRecomposeCounts = false, keepRecomposeCounts = true)
+            )
+            .updateSettingsResponse
 
         rule.onNodeWithText("Click row 1").performClick()
         rule.onNodeWithText("Click row 2").performClick()
         rule.waitForIdle()
 
-        composables = inspectorTester.sendCommand(
-            GetComposablesCommand(rootId, skipSystemComposables = false)
-        ).getComposablesResponse
+        composables =
+            inspectorTester
+                .sendCommand(GetComposablesCommand(rootId, skipSystemComposables = false))
+                .getComposablesResponse
         nodes = Nodes(composables, parameters)
 
         assertThat(nodes.button1.recomposeCount).isEqualTo(6)
@@ -115,17 +121,20 @@ class RecompositionTest {
         assertThat(nodes.text2.recomposeCount).isEqualTo(1)
 
         // Continue counting:
-        inspectorTester.sendCommand(
-            GetUpdateSettingsCommand(includeRecomposeCounts = true, keepRecomposeCounts = true)
-        ).updateSettingsResponse
+        inspectorTester
+            .sendCommand(
+                GetUpdateSettingsCommand(includeRecomposeCounts = true, keepRecomposeCounts = true)
+            )
+            .updateSettingsResponse
 
         rule.onNodeWithText("Click row 1").performClick()
         rule.onNodeWithText("Click row 2").performClick()
         rule.waitForIdle()
 
-        composables = inspectorTester.sendCommand(
-            GetComposablesCommand(rootId, skipSystemComposables = false)
-        ).getComposablesResponse
+        composables =
+            inspectorTester
+                .sendCommand(GetComposablesCommand(rootId, skipSystemComposables = false))
+                .getComposablesResponse
         nodes = Nodes(composables, parameters)
 
         // Buttons have double recompose counts, as they are
@@ -136,17 +145,20 @@ class RecompositionTest {
         assertThat(nodes.text2.recomposeCount).isEqualTo(2)
 
         // Continue counting but reset the counts:
-        inspectorTester.sendCommand(
-            GetUpdateSettingsCommand(includeRecomposeCounts = true, keepRecomposeCounts = false)
-        ).updateSettingsResponse
+        inspectorTester
+            .sendCommand(
+                GetUpdateSettingsCommand(includeRecomposeCounts = true, keepRecomposeCounts = false)
+            )
+            .updateSettingsResponse
 
         rule.onNodeWithText("Click row 1").performClick()
         rule.onNodeWithText("Click row 2").performClick()
         rule.waitForIdle()
 
-        composables = inspectorTester.sendCommand(
-            GetComposablesCommand(rootId, skipSystemComposables = false)
-        ).getComposablesResponse
+        composables =
+            inspectorTester
+                .sendCommand(GetComposablesCommand(rootId, skipSystemComposables = false))
+                .getComposablesResponse
         nodes = Nodes(composables, parameters)
 
         // Buttons have double recompose counts, as they are
@@ -172,7 +184,9 @@ class RecompositionTest {
             predicate: (String) -> Boolean
         ): ComposableNode {
             val strings = composables.stringsList.toMap()
-            return composables.rootsList.single().nodesList
+            return composables.rootsList
+                .single()
+                .nodesList
                 .flatMap { it.flatten() }
                 .single { strings[it.name] == name && hasText(it, parameters, predicate) }
         }
@@ -184,11 +198,13 @@ class RecompositionTest {
         ): Boolean {
             val strings = parameters.stringsList.toMap()
             val group = parameters.parameterGroupsList.single { it.composableId == node.id }
-            if (group.parameterList.any {
-                    strings[it.name] == "text" &&
+            if (
+                group.parameterList.any {
+                    strings[it.name] == "$0" &&
                         it.type == Parameter.Type.STRING &&
                         predicate(strings[it.int32Value]!!)
-                }) {
+                }
+            ) {
                 return true
             }
             return node.childrenList.any { hasText(it, parameters, predicate) }

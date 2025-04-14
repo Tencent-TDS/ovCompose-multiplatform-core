@@ -18,13 +18,13 @@ package androidx.camera.core.impl.utils;
 
 import android.location.Location;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Logger;
 import androidx.exifinterface.media.ExifInterface;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -45,11 +45,13 @@ import java.util.Objects;
  *
  * <p>Call {@link #save()} to persist changes to disc.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public final class Exif {
 
     /** Timestamp value indicating a timestamp value that is either not set or not valid */
     public static final long INVALID_TIMESTAMP = -1;
+    // Forked from ExifInterface.TAG_THUMBNAIL_ORIENTATION. The value is library-internal so we
+    // can't depend on it directly.
+    public static final String TAG_THUMBNAIL_ORIENTATION = "ThumbnailOrientation";
 
     private static final String TAG = Exif.class.getSimpleName();
 
@@ -94,7 +96,7 @@ public final class Exif {
             ExifInterface.TAG_JPEG_INTERCHANGE_FORMAT_LENGTH,
             ExifInterface.TAG_THUMBNAIL_IMAGE_LENGTH,
             ExifInterface.TAG_THUMBNAIL_IMAGE_WIDTH,
-            ExifInterface.TAG_THUMBNAIL_ORIENTATION);
+            TAG_THUMBNAIL_ORIENTATION);
 
     private final ExifInterface mExifInterface;
 
@@ -110,8 +112,7 @@ public final class Exif {
      *
      * @param file the file to read exif data from
      */
-    @NonNull
-    public static Exif createFromFile(@NonNull File file) throws IOException {
+    public static @NonNull Exif createFromFile(@NonNull File file) throws IOException {
         return createFromFileString(file.toString());
     }
 
@@ -120,8 +121,8 @@ public final class Exif {
      *
      * <p> This method rewinds and reads the given buffer.
      */
-    @NonNull
-    public static Exif createFromImageProxy(@NonNull ImageProxy imageProxy) throws IOException {
+    public static @NonNull Exif createFromImageProxy(@NonNull ImageProxy imageProxy)
+            throws IOException {
         ByteBuffer buffer = imageProxy.getPlanes()[0].getBuffer();
         // Rewind to make sure it is at the beginning of the buffer
         buffer.rewind();
@@ -137,8 +138,7 @@ public final class Exif {
      *
      * @param filePath the path to the file to read exif data from
      */
-    @NonNull
-    public static Exif createFromFileString(@NonNull String filePath) throws IOException {
+    public static @NonNull Exif createFromFileString(@NonNull String filePath) throws IOException {
         return new Exif(new ExifInterface(filePath));
     }
 
@@ -147,8 +147,7 @@ public final class Exif {
      *
      * @param is the input stream to read exif data from
      */
-    @NonNull
-    public static Exif createFromInputStream(@NonNull InputStream is) throws IOException {
+    public static @NonNull Exif createFromInputStream(@NonNull InputStream is) throws IOException {
         return new Exif(new ExifInterface(is));
     }
 
@@ -231,8 +230,7 @@ public final class Exif {
         return mExifInterface.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0);
     }
 
-    @Nullable
-    public String getDescription() {
+    public @Nullable String getDescription() {
         return mExifInterface.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION);
     }
 
@@ -386,8 +384,7 @@ public final class Exif {
     }
 
     /** @return The location this picture was taken, or null if no location is available. */
-    @Nullable
-    public Location getLocation() {
+    public @Nullable Location getLocation() {
         String provider = mExifInterface.getAttribute(ExifInterface.TAG_GPS_PROCESSING_METHOD);
         double[] latlng = mExifInterface.getLatLong();
         double altitude = mExifInterface.getAltitude(0);
@@ -605,8 +602,12 @@ public final class Exif {
     }
 
     @VisibleForTesting
-    @NonNull
-    public ExifInterface getExifInterface() {
+    public @Nullable String getMetadata() {
+        return mExifInterface.getAttribute(ExifInterface.TAG_XMP);
+    }
+
+    @VisibleForTesting
+    public @NonNull ExifInterface getExifInterface() {
         return mExifInterface;
     }
 
@@ -723,8 +724,7 @@ public final class Exif {
      *
      * <p> Deprecated tags are not included.
      */
-    @NonNull
-    public static List<String> getAllExifTags() {
+    public static @NonNull List<String> getAllExifTags() {
         return Arrays.asList(
                 ExifInterface.TAG_IMAGE_WIDTH,
                 ExifInterface.TAG_IMAGE_LENGTH,
@@ -863,7 +863,7 @@ public final class Exif {
                 ExifInterface.TAG_INTEROPERABILITY_INDEX,
                 ExifInterface.TAG_THUMBNAIL_IMAGE_LENGTH,
                 ExifInterface.TAG_THUMBNAIL_IMAGE_WIDTH,
-                ExifInterface.TAG_THUMBNAIL_ORIENTATION,
+                TAG_THUMBNAIL_ORIENTATION,
                 ExifInterface.TAG_DNG_VERSION,
                 ExifInterface.TAG_DEFAULT_CROP_SIZE,
                 ExifInterface.TAG_ORF_THUMBNAIL_IMAGE,

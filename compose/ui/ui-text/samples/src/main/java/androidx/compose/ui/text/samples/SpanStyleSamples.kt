@@ -21,7 +21,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -32,35 +31,26 @@ import androidx.compose.ui.unit.sp
 fun SpanStyleSample() {
     Text(
         fontSize = 16.sp,
-        text = buildAnnotatedString {
-            withStyle(style = SpanStyle(color = Color.Red)) {
-                append("Hello")
+        text =
+            buildAnnotatedString {
+                withStyle(style = SpanStyle(color = Color.Red)) { append("Hello") }
+                withStyle(SpanStyle(color = Color.Blue)) { append(" World") }
             }
-            withStyle(SpanStyle(color = Color.Blue)) {
-                append(" World")
-            }
-        }
     )
 }
 
-@OptIn(ExperimentalTextApi::class)
 @Sampled
 @Composable
 fun SpanStyleBrushSample() {
     val brushColors = listOf(Color.Red, Color.Blue, Color.Green, Color.Yellow)
     Text(
         fontSize = 16.sp,
-        text = buildAnnotatedString {
-            withStyle(SpanStyle(
-                brush = Brush.radialGradient(brushColors)
-            )) {
-                append("Hello")
+        text =
+            buildAnnotatedString {
+                withStyle(SpanStyle(brush = Brush.radialGradient(brushColors))) { append("Hello") }
+                withStyle(SpanStyle(brush = Brush.radialGradient(brushColors.asReversed()))) {
+                    append(" World")
+                }
             }
-            withStyle(SpanStyle(
-                brush = Brush.radialGradient(brushColors.asReversed())
-            )) {
-                append(" World")
-            }
-        }
     )
 }

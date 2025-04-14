@@ -38,7 +38,7 @@
     <string name="settings_action_title" msgid="8616900063253887861">"সেটিংস"</string>
     <string name="accept_action_title" msgid="4899660585470647578">"সম্মতি দিন"</string>
     <string name="reject_action_title" msgid="6730366705938402668">"বাতিল করুন"</string>
-    <string name="ok_action_title" msgid="7128494973966098611">"ওকে"</string>
+    <string name="ok_action_title" msgid="7128494973966098611">"ঠিক আছে"</string>
     <string name="throw_action_title" msgid="7163710562670220163">"থ্রো"</string>
     <string name="commute_action_title" msgid="2585755255290185096">"যাতায়াত করুন"</string>
     <string name="sign_out_action_title" msgid="1653943000866713010">"সাইন-আউট করুন"</string>
@@ -96,10 +96,10 @@
     <string name="unavailable" msgid="3636401138255192934">"উপলভ্য নেই"</string>
     <string name="ev_connector_types" msgid="735458637011996125">"EV কানেক্টরের ধরন"</string>
     <string name="example_title" msgid="530257630320010494">"যেমন, %d"</string>
-    <string name="example_1_text" msgid="8456567953748293512">"এই টেক্সট লাল রঙে লেখা হয়েছে"</string>
-    <string name="example_2_text" msgid="718820705318661440">"এই টেক্সট সবুজ রঙে লেখা হয়েছে"</string>
-    <string name="example_3_text" msgid="977269832109695627">"এই টেক্সট নীল রঙে লেখা হয়েছে"</string>
-    <string name="example_4_text" msgid="2043547015979437373">"এই টেক্সট হলুদ রঙে লেখা হয়েছে"</string>
+    <string name="example_1_text" msgid="8631503055894800688">"এই টেক্সটে "<annotation color="red">"লাল রঙ"</annotation>" আছে"</string>
+    <string name="example_2_text" msgid="1359373957397219102">"এই টেক্সটে "<annotation color="green">"সবুজ রঙ"</annotation>" আছে"</string>
+    <string name="example_3_text" msgid="2409207170762049673">"এই টেক্সটে "<annotation color="blue">"নীল রঙ"</annotation>" আছে"</string>
+    <string name="example_4_text" msgid="9055989886645433000">"এই টেক্সটে "<annotation color="yellow">"হলুদ রঙ"</annotation>" আছে"</string>
     <string name="example_5_text" msgid="8828804968749423500">"এই টেক্সট প্রাথমিক রঙ ব্যবহার করে"</string>
     <string name="example_6_text" msgid="7991523168517599600">"এই টেক্সটে গৌণ কালার ব্যবহৃত হয়েছে"</string>
     <string name="color_demo" msgid="1822427636476178993">"কালার দেখানো ডেমো"</string>
@@ -231,12 +231,16 @@
     <string name="msg_template_demo_title" msgid="3895210951340409473">"মেসেজ টেমপ্লেটের ডেমো"</string>
     <string name="msg_template_demo_text" msgid="2275291617716161409">"মেসেজে এখানে লেখা হবে।\nবেশি টেক্সট হলে, দ্বিতীয় লাইনে লিখুন।"</string>
     <string name="short_msg_template_demo_title" msgid="6798738013668580714">"ছোট মেসেজ টেমপ্লেট সংক্রান্ত ডেমো"</string>
+    <string name="sectioned_item_template_demo_title" msgid="8377594346379786774">"বিভাগ অনুযায়ী আইটেম টেমপ্লেটের ডেমো"</string>
+    <string name="sectioned_item_template_radio_button_section_title" msgid="1014325865070733609">"রেডিও বাটন বিভাগ"</string>
+    <string name="sectioned_item_template_toggle_section_title" msgid="3197227971733559949">"টগল বিভাগ"</string>
+    <string name="sectioned_item_template_lots_of_rows_section_title" msgid="1501401956386938735">"অসংখ্য সারি বিভাগ"</string>
     <string name="pane_template_demo_title" msgid="7804292600060341608">"প্যানেল টেমপ্লেটের ডেমো"</string>
     <string name="place_list_template_demo_title" msgid="2054022985455460469">"জায়গার তালিকার টেমপ্লেটের ডেমো"</string>
     <string name="browse_places_title" msgid="7246005909846715898">"জায়গা ব্রাউজ করুন"</string>
     <string name="search_template_demo_title" msgid="1770474418958318114">"\'টেমপ্লেট ডেমো\' সার্চ করুন"</string>
     <string name="search_hint" msgid="978495498991026792">"এখানে সার্চ করুন"</string>
-    <string name="additional_text" msgid="8410289578276941586">"আমাদের পরিষেবার শর্তাবলী পর্যালোচনা করুন"</string>
+    <string name="additional_text" msgid="5755100726890686184">"আমাদের "<annotation link="terms_of_service">"পরিষেবার শর্তাবলী"</annotation>" পর্যালোচনা করুন"</string>
     <string name="google_sign_in" msgid="6556259799319701727">"Google-এ সাইন-ইন"</string>
     <string name="use_pin" msgid="7850893299484337431">"পিন ব্যবহার করুন"</string>
     <string name="qr_code" msgid="5487041647280777397">"QR কোড"</string>
@@ -264,6 +268,7 @@
     <string name="tab_title_list" msgid="5104962518489668123">"তালিকা ট্যাব"</string>
     <string name="tab_title_grid" msgid="5268168907976325154">"ট্যাবের দীর্ঘ শিরোনাম সহ গ্রিড ট্যাব"</string>
     <string name="tab_title_search" msgid="1892925693146631173">"সার্চ ট্যাব"</string>
+    <string name="tab_title_loading" msgid="5385807479734490989">"\'ট্যাব\' লোড করা হচ্ছে"</string>
     <string name="tab_template_loading_demo_title" msgid="4638051615030345574">"টেম্পলেট লোড করার সম্পর্কিত ডেমো ট্যাব"</string>
     <string name="tab_template_no_tabs_demo_title" msgid="6907466201298082309">"ট্যাব ছাড়াই ট্যাব টেমপ্লেটের ডেমো"</string>
     <string name="images_unknown_host_error" msgid="3180661817432720076">"অজানা হোস্টের জন্য ছবি দেখানো যায় না"</string>
@@ -298,7 +303,7 @@
     <string name="some_additional_text" msgid="4009872495806318260">"অতিরিক্ত টেক্সট"</string>
     <string name="sample_additional_list" msgid="5085372891301576306">"বেছে নেওয়া যায় এমন তালিকার নমুনা"</string>
     <string name="task_restriction_demo_title" msgid="2212084350718766941">"টাস্কের উপর আরোপ করা বিধিনিষেধ সম্পর্কিত ডেমো"</string>
-    <string name="task_limit_reached_msg" msgid="6038763366777119364">"টাস্কের সীমা পেরিয়ে গেছে\nআরও এগোলে, অ্যাপকে জোর করে বন্ধ করা হবে"</string>
+    <string name="task_limit_reached_msg" msgid="7162842196382260992">"এর ফলে টাস্কের সর্বাধিক সীমা ছাড়িয়ে যাবে এবং আপনাকে নতুন স্ক্রিনে নিয়ে যাবে।"</string>
     <string name="task_step_of_title" msgid="2791717962535723839">"টাস্কের %2$d ধাপের %1$d নম্বর ধাপ"</string>
     <string name="task_step_of_text" msgid="4646729781462227219">"এগিয়ে যাওয়ার জন্য ক্লিক করুন"</string>
     <string name="task_content_allowed" msgid="545061986612431190">"বিভিন্ন টেমপ্লেট দেখুন ও নিশ্চিত করুন যে গাড়িটি \'ড্রাইভিং\' মোডে আছে"</string>
@@ -320,17 +325,16 @@
     <string name="secondary_actions_test_subtitle" msgid="6985282813402073703">"শুধুমাত্র সেকেন্ডারি অ্যাকশন বেছে নেওয়া যেতে পারে"</string>
     <string name="decoration_test_title" msgid="8450127046762442244">"ডেকরেশন টেস্ট"</string>
     <string name="secondary_actions_decoration_test_title" msgid="6282873404859209490">"সেকেন্ডারি অ্যাকশন ও ডেকরেশন"</string>
+    <string name="secondary_actions_decoration_test_title_long" msgid="3700606949229899169">"সেকেন্ডারি অ্যাকশন ও ডেকরেশনের দীর্ঘ টাইটেল আছে এমন সারি"</string>
     <string name="secondary_actions_decoration_test_subtitle" msgid="155884606592724532">"সারিও বেছে নেওয়া যেতে পারে"</string>
     <string name="secondary_action_toast" msgid="5076434693504006565">"সেকেন্ডারি অ্যাকশন বেছে নেওয়া হয়েছে"</string>
     <string name="row_primary_action_toast" msgid="756516694751965204">"সারির প্রাইমারি অ্যাকশন বেছে নেওয়া হয়েছে"</string>
-    <!-- no translation found for sectioned_item_list_demo_title (1236735461225007729) -->
-    <skip />
-    <!-- no translation found for sectioned_item_list_one_title (6594204350307263338) -->
-    <skip />
-    <!-- no translation found for sectioned_item_list_two_title (4941545381743022833) -->
-    <skip />
-    <!-- no translation found for sectioned_item_list_subtext (2963927693547537519) -->
-    <skip />
+    <string name="sectioned_item_list_demo_title" msgid="1236735461225007729">"বিভাগ অনুযায়ী করা আইটেম তালিকার ডেমো"</string>
+    <string name="sectioned_item_list_one_title" msgid="6594204350307263338">"তালিকা ১"</string>
+    <string name="sectioned_item_list_two_title" msgid="4941545381743022833">"তালিকা ২"</string>
+    <string name="sectioned_item_list_subtext" msgid="2963927693547537519">"প্রতিটি তালিকায় থাকা সাবটেক্সট"</string>
+    <string name="empty_list_demo_title" msgid="5989013634820902455">"ডেমোর খালি তালিকা"</string>
+    <string name="empty_list_message" msgid="5331395517560728138">"তালিকায় কিছু নেই"</string>
     <string name="misc_templates_demos_title" msgid="6077169010255928114">"অন্যান্য টেমপ্লেটের ডেমো"</string>
     <string name="showcase_demos_title" msgid="1542092687878113304">"ডেমো শোকেস করুন"</string>
     <string name="template_layouts_demo_title" msgid="788249269446087847">"টেমপ্লেট লেআউট সংক্রান্ত ডেমো"</string>
@@ -366,4 +370,8 @@
     <string name="route_options_demo_title" msgid="4599699012716426514">"রুটের বিকল্প"</string>
     <string name="avoid_highways_row_title" msgid="4711913426200490304">"হাইওয়ে এড়িয়ে চলুন"</string>
     <string name="avoid_ferries_row_title" msgid="8232883866013711974">"ফেরি পরিষেবা নেবেন না"</string>
+    <string name="map_demos_title" msgid="2169766615521476592">"ম্যাপ সম্পর্কিত ডেমো"</string>
+    <string name="map_with_content_demo_title" msgid="1032610482145018739">"কন্টেন্ট সহ ম্যাপ সম্পর্কিত ডেমো"</string>
+    <string name="map_with_message_demo_title" msgid="7007078234918054436">"মেসেজ টেমপ্লেট সহ ম্যাপ সম্পর্কিত ডেমো"</string>
+    <string name="map_with_grid_demo_title" msgid="688667167861193192">"গ্রিড টেমপ্লেট সহ ম্যাপ সম্পর্কিত ডেমো"</string>
 </resources>

@@ -14,6 +14,7 @@ package androidx.fragment.app {
     method public void onCancel(android.content.DialogInterface);
     method @MainThread public android.app.Dialog onCreateDialog(android.os.Bundle?);
     method @CallSuper public void onDismiss(android.content.DialogInterface);
+    method public final androidx.activity.ComponentDialog requireComponentDialog();
     method public final android.app.Dialog requireDialog();
     method public void setCancelable(boolean);
     method public void setShowsDialog(boolean);
@@ -59,7 +60,7 @@ package androidx.fragment.app {
     method public Object? getSharedElementEnterTransition();
     method public Object? getSharedElementReturnTransition();
     method public final String getString(@StringRes int);
-    method public final String getString(@StringRes int, java.lang.Object!...);
+    method public final String getString(@StringRes int, java.lang.Object!...?);
     method public final String? getTag();
     method @Deprecated public final androidx.fragment.app.Fragment? getTargetFragment();
     method @Deprecated public final int getTargetRequestCode();
@@ -84,8 +85,8 @@ package androidx.fragment.app {
     method public final boolean isVisible();
     method @Deprecated @CallSuper @MainThread public void onActivityCreated(android.os.Bundle?);
     method @Deprecated public void onActivityResult(int, int, android.content.Intent?);
-    method @CallSuper @MainThread public void onAttach(android.content.Context);
     method @Deprecated @CallSuper @MainThread public void onAttach(android.app.Activity);
+    method @CallSuper @MainThread public void onAttach(android.content.Context);
     method @Deprecated @MainThread public void onAttachFragment(androidx.fragment.app.Fragment);
     method @CallSuper public void onConfigurationChanged(android.content.res.Configuration);
     method @MainThread public boolean onContextItemSelected(android.view.MenuItem);
@@ -101,8 +102,8 @@ package androidx.fragment.app {
     method @CallSuper @MainThread public void onDetach();
     method public android.view.LayoutInflater onGetLayoutInflater(android.os.Bundle?);
     method @MainThread public void onHiddenChanged(boolean);
-    method @CallSuper @UiThread public void onInflate(android.content.Context, android.util.AttributeSet, android.os.Bundle?);
     method @Deprecated @CallSuper @UiThread public void onInflate(android.app.Activity, android.util.AttributeSet, android.os.Bundle?);
+    method @CallSuper @UiThread public void onInflate(android.content.Context, android.util.AttributeSet, android.os.Bundle?);
     method @CallSuper @MainThread public void onLowMemory();
     method public void onMultiWindowModeChanged(boolean);
     method @Deprecated @MainThread public boolean onOptionsItemSelected(android.view.MenuItem);
@@ -197,14 +198,14 @@ package androidx.fragment.app {
 
   public final class FragmentContainerView extends android.widget.FrameLayout {
     ctor public FragmentContainerView(android.content.Context context);
-    ctor public FragmentContainerView(android.content.Context context, android.util.AttributeSet? attrs, optional int defStyleAttr);
     ctor public FragmentContainerView(android.content.Context context, android.util.AttributeSet? attrs);
-    method public <F extends androidx.fragment.app.Fragment> F! getFragment();
+    ctor public FragmentContainerView(android.content.Context context, android.util.AttributeSet? attrs, optional int defStyleAttr);
+    method public <F extends androidx.fragment.app.Fragment> F getFragment();
   }
 
   public class FragmentController {
     method public void attachHost(androidx.fragment.app.Fragment?);
-    method public static androidx.fragment.app.FragmentController createController(androidx.fragment.app.FragmentHostCallback<?>);
+    method public static androidx.fragment.app.FragmentController createController(androidx.fragment.app.FragmentHostCallback<? extends java.lang.Object!>);
     method public void dispatchActivityCreated();
     method @Deprecated public void dispatchConfigurationChanged(android.content.res.Configuration);
     method public boolean dispatchContextItemSelected(android.view.MenuItem);
@@ -237,8 +238,8 @@ package androidx.fragment.app {
     method public void noteStateNotSaved();
     method public android.view.View? onCreateView(android.view.View?, String, android.content.Context, android.util.AttributeSet);
     method @Deprecated public void reportLoaderStart();
-    method @Deprecated public void restoreAllState(android.os.Parcelable?, java.util.List<androidx.fragment.app.Fragment!>?);
     method @Deprecated public void restoreAllState(android.os.Parcelable?, androidx.fragment.app.FragmentManagerNonConfig?);
+    method @Deprecated public void restoreAllState(android.os.Parcelable?, java.util.List<androidx.fragment.app.Fragment!>?);
     method @Deprecated public void restoreLoaderNonConfig(androidx.collection.SimpleArrayMap<java.lang.String!,androidx.loader.app.LoaderManager!>!);
     method @Deprecated public void restoreSaveState(android.os.Parcelable?);
     method @Deprecated public androidx.collection.SimpleArrayMap<java.lang.String!,androidx.loader.app.LoaderManager!>? retainLoaderNonConfig();
@@ -250,24 +251,24 @@ package androidx.fragment.app {
   public class FragmentFactory {
     ctor public FragmentFactory();
     method public androidx.fragment.app.Fragment instantiate(ClassLoader, String);
-    method public static Class<? extends androidx.fragment.app.Fragment> loadFragmentClass(ClassLoader, String);
+    method public static Class<? extends androidx.fragment.app.Fragment!> loadFragmentClass(ClassLoader, String);
   }
 
-  public abstract class FragmentHostCallback<E> extends androidx.fragment.app.FragmentContainer {
-    ctor public FragmentHostCallback(android.content.Context, android.os.Handler, int);
-    method public void onDump(String, java.io.FileDescriptor?, java.io.PrintWriter, String![]?);
-    method public android.view.View? onFindViewById(int);
-    method public abstract E? onGetHost();
+  public abstract class FragmentHostCallback<H> extends androidx.fragment.app.FragmentContainer {
+    ctor public FragmentHostCallback(android.content.Context context, android.os.Handler handler, int windowAnimations);
+    method public void onDump(String prefix, java.io.FileDescriptor? fd, java.io.PrintWriter writer, String[]? args);
+    method public android.view.View? onFindViewById(int id);
+    method public abstract H onGetHost();
     method public android.view.LayoutInflater onGetLayoutInflater();
     method public int onGetWindowAnimations();
     method public boolean onHasView();
     method public boolean onHasWindowAnimations();
-    method @Deprecated public void onRequestPermissionsFromFragment(androidx.fragment.app.Fragment, String![], int);
-    method public boolean onShouldSaveFragmentState(androidx.fragment.app.Fragment);
-    method public boolean onShouldShowRequestPermissionRationale(String);
-    method public void onStartActivityFromFragment(androidx.fragment.app.Fragment, android.content.Intent, int);
-    method public void onStartActivityFromFragment(androidx.fragment.app.Fragment, android.content.Intent, int, android.os.Bundle?);
-    method @Deprecated public void onStartIntentSenderFromFragment(androidx.fragment.app.Fragment, android.content.IntentSender, int, android.content.Intent?, int, int, int, android.os.Bundle?) throws android.content.IntentSender.SendIntentException;
+    method @Deprecated public void onRequestPermissionsFromFragment(androidx.fragment.app.Fragment fragment, String[] permissions, int requestCode);
+    method public boolean onShouldSaveFragmentState(androidx.fragment.app.Fragment fragment);
+    method public boolean onShouldShowRequestPermissionRationale(String permission);
+    method public void onStartActivityFromFragment(androidx.fragment.app.Fragment fragment, android.content.Intent intent, int requestCode);
+    method public void onStartActivityFromFragment(androidx.fragment.app.Fragment fragment, android.content.Intent intent, int requestCode, android.os.Bundle? options);
+    method @Deprecated @kotlin.jvm.Throws(exceptionClasses=SendIntentException::class) public void onStartIntentSenderFromFragment(androidx.fragment.app.Fragment fragment, android.content.IntentSender intent, int requestCode, android.content.Intent? fillInIntent, int flagsMask, int flagsValues, int extraFlags, android.os.Bundle? options) throws android.content.IntentSender.SendIntentException;
     method public void onSupportInvalidateOptionsMenu();
   }
 
@@ -281,10 +282,12 @@ package androidx.fragment.app {
     method public final void clearFragmentResultListener(String);
     method public void dump(String, java.io.FileDescriptor?, java.io.PrintWriter, String![]?);
     method @Deprecated public static void enableDebugLogging(boolean);
-    method public boolean executePendingTransactions();
+    method @SuppressCompatibility @androidx.fragment.app.PredictiveBackControl public static void enablePredictiveBack(boolean);
+    method @MainThread public boolean executePendingTransactions();
     method public static <F extends androidx.fragment.app.Fragment> F findFragment(android.view.View);
     method public androidx.fragment.app.Fragment? findFragmentById(@IdRes int);
     method public androidx.fragment.app.Fragment? findFragmentByTag(String?);
+    method public static androidx.fragment.app.FragmentManager findFragmentManager(android.view.View);
     method public androidx.fragment.app.FragmentManager.BackStackEntry getBackStackEntryAt(int);
     method public int getBackStackEntryCount();
     method public androidx.fragment.app.Fragment? getFragment(android.os.Bundle, String);
@@ -294,13 +297,14 @@ package androidx.fragment.app {
     method public androidx.fragment.app.strictmode.FragmentStrictMode.Policy? getStrictModePolicy();
     method public boolean isDestroyed();
     method public boolean isStateSaved();
+    method public final void onContainerAvailable(androidx.fragment.app.FragmentContainerView);
     method @Deprecated @RestrictTo(androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX) public androidx.fragment.app.FragmentTransaction openTransaction();
     method public void popBackStack();
-    method public void popBackStack(String?, int);
     method public void popBackStack(int, int);
-    method public boolean popBackStackImmediate();
-    method public boolean popBackStackImmediate(String?, int);
+    method public void popBackStack(String?, int);
+    method @MainThread public boolean popBackStackImmediate();
     method public boolean popBackStackImmediate(int, int);
+    method @MainThread public boolean popBackStackImmediate(String?, int);
     method public void putFragment(android.os.Bundle, String, androidx.fragment.app.Fragment);
     method public void registerFragmentLifecycleCallbacks(androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks, boolean);
     method public void removeFragmentOnAttachListener(androidx.fragment.app.FragmentOnAttachListener);
@@ -344,7 +348,9 @@ package androidx.fragment.app {
   }
 
   public static interface FragmentManager.OnBackStackChangedListener {
+    method @MainThread public default void onBackStackChangeCancelled();
     method @MainThread public default void onBackStackChangeCommitted(androidx.fragment.app.Fragment, boolean);
+    method @MainThread public default void onBackStackChangeProgressed(androidx.activity.BackEventCompat);
     method @MainThread public default void onBackStackChangeStarted(androidx.fragment.app.Fragment, boolean);
     method @MainThread public void onBackStackChanged();
   }
@@ -389,7 +395,7 @@ package androidx.fragment.app {
   @Deprecated public class FragmentTabHost extends android.widget.TabHost implements android.widget.TabHost.OnTabChangeListener {
     ctor @Deprecated public FragmentTabHost(android.content.Context);
     ctor @Deprecated public FragmentTabHost(android.content.Context, android.util.AttributeSet?);
-    method @Deprecated public void addTab(android.widget.TabHost.TabSpec, Class<?>, android.os.Bundle?);
+    method @Deprecated public void addTab(android.widget.TabHost.TabSpec, Class<? extends java.lang.Object!>, android.os.Bundle?);
     method @Deprecated public void onTabChanged(String?);
     method @Deprecated public void setup(android.content.Context, androidx.fragment.app.FragmentManager);
     method @Deprecated public void setup(android.content.Context, androidx.fragment.app.FragmentManager, int);
@@ -397,29 +403,30 @@ package androidx.fragment.app {
 
   public abstract class FragmentTransaction {
     ctor @Deprecated public FragmentTransaction();
-    method public final androidx.fragment.app.FragmentTransaction add(Class<? extends androidx.fragment.app.Fragment>, android.os.Bundle?, String?);
+    method public final androidx.fragment.app.FragmentTransaction add(android.view.ViewGroup, androidx.fragment.app.Fragment, String?);
     method public androidx.fragment.app.FragmentTransaction add(androidx.fragment.app.Fragment, String?);
-    method public final androidx.fragment.app.FragmentTransaction add(@IdRes int, Class<? extends androidx.fragment.app.Fragment>, android.os.Bundle?);
     method public androidx.fragment.app.FragmentTransaction add(@IdRes int, androidx.fragment.app.Fragment);
-    method public final androidx.fragment.app.FragmentTransaction add(@IdRes int, Class<? extends androidx.fragment.app.Fragment>, android.os.Bundle?, String?);
     method public androidx.fragment.app.FragmentTransaction add(@IdRes int, androidx.fragment.app.Fragment, String?);
+    method public final androidx.fragment.app.FragmentTransaction add(@IdRes int, Class<? extends androidx.fragment.app.Fragment!>, android.os.Bundle?);
+    method public final androidx.fragment.app.FragmentTransaction add(@IdRes int, Class<? extends androidx.fragment.app.Fragment!>, android.os.Bundle?, String?);
+    method public final androidx.fragment.app.FragmentTransaction add(Class<? extends androidx.fragment.app.Fragment!>, android.os.Bundle?, String?);
     method public androidx.fragment.app.FragmentTransaction addSharedElement(android.view.View, String);
     method public androidx.fragment.app.FragmentTransaction addToBackStack(String?);
     method public androidx.fragment.app.FragmentTransaction attach(androidx.fragment.app.Fragment);
     method public abstract int commit();
     method public abstract int commitAllowingStateLoss();
-    method public abstract void commitNow();
-    method public abstract void commitNowAllowingStateLoss();
+    method @MainThread public abstract void commitNow();
+    method @MainThread public abstract void commitNowAllowingStateLoss();
     method public androidx.fragment.app.FragmentTransaction detach(androidx.fragment.app.Fragment);
     method public androidx.fragment.app.FragmentTransaction disallowAddToBackStack();
     method public androidx.fragment.app.FragmentTransaction hide(androidx.fragment.app.Fragment);
     method public boolean isAddToBackStackAllowed();
     method public boolean isEmpty();
     method public androidx.fragment.app.FragmentTransaction remove(androidx.fragment.app.Fragment);
-    method public final androidx.fragment.app.FragmentTransaction replace(@IdRes int, Class<? extends androidx.fragment.app.Fragment>, android.os.Bundle?);
     method public androidx.fragment.app.FragmentTransaction replace(@IdRes int, androidx.fragment.app.Fragment);
-    method public final androidx.fragment.app.FragmentTransaction replace(@IdRes int, Class<? extends androidx.fragment.app.Fragment>, android.os.Bundle?, String?);
     method public androidx.fragment.app.FragmentTransaction replace(@IdRes int, androidx.fragment.app.Fragment, String?);
+    method public final androidx.fragment.app.FragmentTransaction replace(@IdRes int, Class<? extends androidx.fragment.app.Fragment!>, android.os.Bundle?);
+    method public final androidx.fragment.app.FragmentTransaction replace(@IdRes int, Class<? extends androidx.fragment.app.Fragment!>, android.os.Bundle?, String?);
     method public androidx.fragment.app.FragmentTransaction runOnCommit(Runnable);
     method @Deprecated public androidx.fragment.app.FragmentTransaction setAllowOptimization(boolean);
     method @Deprecated public androidx.fragment.app.FragmentTransaction setBreadCrumbShortTitle(@StringRes int);
@@ -449,21 +456,28 @@ package androidx.fragment.app {
     ctor public FragmentTransitionImpl();
     method public abstract void addTarget(Object, android.view.View);
     method public abstract void addTargets(Object, java.util.ArrayList<android.view.View!>);
+    method public void animateToEnd(Object);
+    method public void animateToStart(Object, Runnable);
     method public abstract void beginDelayedTransition(android.view.ViewGroup, Object?);
     method protected static void bfsAddViewChildren(java.util.List<android.view.View!>!, android.view.View!);
     method public abstract boolean canHandle(Object);
     method public abstract Object! cloneTransition(Object?);
+    method public Object? controlDelayedTransition(android.view.ViewGroup, Object);
     method protected void getBoundsOnScreen(android.view.View!, android.graphics.Rect!);
     method protected static boolean isNullOrEmpty(java.util.List!);
+    method public boolean isSeekingSupported();
+    method public boolean isSeekingSupported(Object);
     method public abstract Object! mergeTransitionsInSequence(Object?, Object?, Object?);
     method public abstract Object! mergeTransitionsTogether(Object?, Object?, Object?);
     method public abstract void removeTarget(Object, android.view.View);
     method public abstract void replaceTargets(Object, java.util.ArrayList<android.view.View!>!, java.util.ArrayList<android.view.View!>!);
     method public abstract void scheduleHideFragmentView(Object, android.view.View, java.util.ArrayList<android.view.View!>);
     method public abstract void scheduleRemoveTargets(Object, Object?, java.util.ArrayList<android.view.View!>?, Object?, java.util.ArrayList<android.view.View!>?, Object?, java.util.ArrayList<android.view.View!>?);
-    method public abstract void setEpicenter(Object, android.view.View?);
+    method public void setCurrentPlayTime(Object, float);
     method public abstract void setEpicenter(Object, android.graphics.Rect);
+    method public abstract void setEpicenter(Object, android.view.View?);
     method public void setListenerForTransitionEnd(androidx.fragment.app.Fragment, Object, androidx.core.os.CancellationSignal, Runnable);
+    method public void setListenerForTransitionEnd(androidx.fragment.app.Fragment, Object, androidx.core.os.CancellationSignal, Runnable?, Runnable);
     method public abstract void setSharedElementTargets(Object, android.view.View, java.util.ArrayList<android.view.View!>);
     method public abstract void swapSharedElementTargets(Object?, java.util.ArrayList<android.view.View!>?, java.util.ArrayList<android.view.View!>?);
     method public abstract Object! wrapTransitionInSet(Object?);
@@ -484,20 +498,23 @@ package androidx.fragment.app {
     method public void setSelection(int);
   }
 
+  @SuppressCompatibility @kotlin.RequiresOptIn(level=kotlin.RequiresOptIn.Level.WARNING) @kotlin.annotation.Retention(kotlin.annotation.AnnotationRetention.BINARY) @kotlin.annotation.Target(allowedTargets=kotlin.annotation.AnnotationTarget.FUNCTION) public @interface PredictiveBackControl {
+  }
+
 }
 
 package androidx.fragment.app.strictmode {
 
   public final class FragmentReuseViolation extends androidx.fragment.app.strictmode.Violation {
     method public String getPreviousFragmentId();
-    property public final String previousFragmentId;
+    property public String previousFragmentId;
   }
 
   public final class FragmentStrictMode {
     method public androidx.fragment.app.strictmode.FragmentStrictMode.Policy getDefaultPolicy();
     method @VisibleForTesting public void onPolicyViolation(androidx.fragment.app.strictmode.Violation violation);
     method public void setDefaultPolicy(androidx.fragment.app.strictmode.FragmentStrictMode.Policy);
-    property public final androidx.fragment.app.strictmode.FragmentStrictMode.Policy defaultPolicy;
+    property public androidx.fragment.app.strictmode.FragmentStrictMode.Policy defaultPolicy;
     field public static final androidx.fragment.app.strictmode.FragmentStrictMode INSTANCE;
   }
 
@@ -528,7 +545,7 @@ package androidx.fragment.app.strictmode {
 
   public final class FragmentTagUsageViolation extends androidx.fragment.app.strictmode.Violation {
     method public android.view.ViewGroup? getParentContainer();
-    property public final android.view.ViewGroup? parentContainer;
+    property public android.view.ViewGroup? parentContainer;
   }
 
   public final class GetRetainInstanceUsageViolation extends androidx.fragment.app.strictmode.RetainInstanceUsageViolation {
@@ -549,13 +566,13 @@ package androidx.fragment.app.strictmode {
   public final class SetTargetFragmentUsageViolation extends androidx.fragment.app.strictmode.TargetFragmentUsageViolation {
     method public int getRequestCode();
     method public androidx.fragment.app.Fragment getTargetFragment();
-    property public final int requestCode;
-    property public final androidx.fragment.app.Fragment targetFragment;
+    property public int requestCode;
+    property public androidx.fragment.app.Fragment targetFragment;
   }
 
   public final class SetUserVisibleHintViolation extends androidx.fragment.app.strictmode.Violation {
     method public boolean isVisibleToUser();
-    property public final boolean isVisibleToUser;
+    property public boolean isVisibleToUser;
   }
 
   public abstract class TargetFragmentUsageViolation extends androidx.fragment.app.strictmode.Violation {
@@ -568,14 +585,14 @@ package androidx.fragment.app.strictmode {
 
   public final class WrongFragmentContainerViolation extends androidx.fragment.app.strictmode.Violation {
     method public android.view.ViewGroup getContainer();
-    property public final android.view.ViewGroup container;
+    property public android.view.ViewGroup container;
   }
 
   public final class WrongNestedHierarchyViolation extends androidx.fragment.app.strictmode.Violation {
     method public int getContainerId();
     method public androidx.fragment.app.Fragment getExpectedParentFragment();
-    property public final int containerId;
-    property public final androidx.fragment.app.Fragment expectedParentFragment;
+    property public int containerId;
+    property public androidx.fragment.app.Fragment expectedParentFragment;
   }
 
 }

@@ -18,15 +18,24 @@ package androidx.appsearch.app;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.annotation.RequiresFeature;
 import androidx.annotation.RestrictTo;
+import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.exceptions.AppSearchException;
+import androidx.appsearch.flags.FlaggedApi;
+import androidx.appsearch.flags.Flags;
+import androidx.appsearch.safeparcel.AbstractSafeParcelable;
+import androidx.appsearch.safeparcel.SafeParcelable;
+import androidx.appsearch.safeparcel.stub.StubCreators.SearchSpecCreator;
 import androidx.appsearch.util.BundleUtil;
 import androidx.collection.ArrayMap;
 import androidx.collection.ArraySet;
@@ -40,39 +49,134 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
  * This class represents the specification logic for AppSearch. It can be used to set the type of
  * search, like prefix or exact only or apply filters to search for a specific schema type only etc.
  */
-public final class SearchSpec {
+@SafeParcelable.Class(creator = "SearchSpecCreator")
+// TODO(b/384721898): Switch to JSpecify annotations
+@SuppressWarnings({"HiddenSuperclass", "JSpecifyNullness"})
+public final class SearchSpec extends AbstractSafeParcelable {
+
+    /**  Creator class for {@link SearchSpec}. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @FlaggedApi(Flags.FLAG_ENABLE_SAFE_PARCELABLE_2)
+    public static final @NonNull Parcelable.Creator<SearchSpec> CREATOR =
+            new SearchSpecCreator();
+
     /**
      * Schema type to be used in {@link SearchSpec.Builder#addProjection} to apply
      * property paths to all results, excepting any types that have had their own, specific
      * property paths set.
+     *
+     * @deprecated use {@link #SCHEMA_TYPE_WILDCARD} instead.
      */
+    @Deprecated
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final String PROJECTION_SCHEMA_TYPE_WILDCARD = "*";
 
-    static final String TERM_MATCH_TYPE_FIELD = "termMatchType";
-    static final String SCHEMA_FIELD = "schema";
-    static final String NAMESPACE_FIELD = "namespace";
-    static final String PACKAGE_NAME_FIELD = "packageName";
-    static final String NUM_PER_PAGE_FIELD = "numPerPage";
-    static final String RANKING_STRATEGY_FIELD = "rankingStrategy";
-    static final String ORDER_FIELD = "order";
-    static final String SNIPPET_COUNT_FIELD = "snippetCount";
-    static final String SNIPPET_COUNT_PER_PROPERTY_FIELD = "snippetCountPerProperty";
-    static final String MAX_SNIPPET_FIELD = "maxSnippet";
-    static final String PROJECTION_TYPE_PROPERTY_PATHS_FIELD = "projectionTypeFieldMasks";
-    static final String RESULT_GROUPING_TYPE_FLAGS = "resultGroupingTypeFlags";
-    static final String RESULT_GROUPING_LIMIT = "resultGroupingLimit";
-    static final String TYPE_PROPERTY_WEIGHTS_FIELD = "typePropertyWeightsField";
-    static final String JOIN_SPEC = "joinSpec";
-    static final String ADVANCED_RANKING_EXPRESSION = "advancedRankingExpression";
-    static final String ENABLED_FEATURES_FIELD = "enabledFeatures";
+    /**
+     * Schema type to be used in {@link SearchSpec.Builder#addFilterProperties(String, Collection)}
+     * and {@link SearchSpec.Builder#addProjection} to apply property paths to all results,
+     * excepting any types that have had their own, specific property paths set.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_PROPERTIES)
+    public static final String SCHEMA_TYPE_WILDCARD = "*";
 
-    /** @hide */
+    @Field(id = 1, getter = "getTermMatch")
+    private final int mTermMatchType;
+
+    @Field(id = 2, getter = "getFilterSchemas")
+    private final List<String> mSchemas;
+
+    @Field(id = 3, getter = "getFilterNamespaces")
+    private final List<String> mNamespaces;
+
+    @Field(id = 4)
+    final Bundle mTypePropertyFilters;
+
+    @Field(id = 5, getter = "getFilterPackageNames")
+    private final List<String> mPackageNames;
+
+    @Field(id = 6, getter = "getResultCountPerPage")
+    private final int mResultCountPerPage;
+
+    @Field(id = 7, getter = "getRankingStrategy")
+    @RankingStrategy
+    private final int mRankingStrategy;
+
+    @Field(id = 8, getter = "getOrder")
+    @Order
+    private final int mOrder;
+
+    @Field(id = 9, getter = "getSnippetCount")
+    private final int mSnippetCount;
+
+    @Field(id = 10, getter = "getSnippetCountPerProperty")
+    private final int mSnippetCountPerProperty;
+
+    @Field(id = 11, getter = "getMaxSnippetSize")
+    private final int mMaxSnippetSize;
+
+    @Field(id = 12)
+    final Bundle mProjectionTypePropertyMasks;
+
+    @Field(id = 13, getter = "getResultGroupingTypeFlags")
+    @GroupingType
+    private final int mResultGroupingTypeFlags;
+
+    @Field(id = 14, getter = "getResultGroupingLimit")
+    private final int mGroupingLimit;
+
+    @Field(id = 15)
+    final Bundle mTypePropertyWeightsField;
+
+    @Field(id = 16, getter = "getJoinSpec")
+    private final @Nullable JoinSpec mJoinSpec;
+
+    @Field(id = 17, getter = "getAdvancedRankingExpression")
+    private final String mAdvancedRankingExpression;
+
+    @Field(id = 18, getter = "getEnabledFeatures")
+    private final List<String> mEnabledFeatures;
+
+    @Field(id = 19, getter = "getSearchSourceLogTag")
+    private final @Nullable String mSearchSourceLogTag;
+
+    @Field(id = 20, getter = "getEmbeddingParameters")
+    private final @NonNull List<EmbeddingVector> mEmbeddingParameters;
+
+    @Field(id = 21, getter = "getDefaultEmbeddingSearchMetricType")
+    private final int mDefaultEmbeddingSearchMetricType;
+
+    @Field(id = 22, getter = "getInformationalRankingExpressions")
+    private final @NonNull List<String> mInformationalRankingExpressions;
+
+    @Field(id = 23, getter = "getSearchStringParameters")
+    private final @NonNull List<String> mSearchStringParameters;
+
+    /**
+     * Holds the list of document ids to search over.
+     *
+     * <p>If empty, the query will search over all documents.
+     */
+    @Field(id = 24, getter = "getFilterDocumentIds")
+    private final @NonNull List<String> mFilterDocumentIds;
+
+    /**
+     * Whether to retrieve embedding match info for the query.
+     */
+    @Field(id = 25, getter = "shouldRetrieveEmbeddingMatchInfos")
+    private final boolean mRetrieveEmbeddingMatchInfos;
+
+    /**
+     * Default number of documents per page.
+     *
+     * @exportToFramework:hide
+     */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final int DEFAULT_NUM_PER_PAGE = 10;
 
@@ -86,10 +190,11 @@ public final class SearchSpec {
     /**
      * Term Match Type for the query.
      *
-     * @hide
+     * @exportToFramework:hide
      */
     // NOTE: The integer values of these constants must match the proto enum constants in
     // {@link com.google.android.icing.proto.SearchSpecProto.termMatchType}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(value = {
             TERM_MATCH_EXACT_ONLY,
             TERM_MATCH_PREFIX
@@ -100,22 +205,25 @@ public final class SearchSpec {
 
     /**
      * Query terms will only match exact tokens in the index.
-     * <p>Ex. A query term "foo" will only match indexed token "foo", and not "foot" or "football".
+     * <p>For example, a query term "foo" will only match indexed token "foo", and not "foot" or
+     * "football".
      */
     public static final int TERM_MATCH_EXACT_ONLY = 1;
     /**
      * Query terms will match indexed tokens when the query term is a prefix of the token.
-     * <p>Ex. A query term "foo" will match indexed tokens like "foo", "foot", and "football".
+     * <p>For example, a query term "foo" will match indexed tokens like "foo", "foot", and
+     * "football".
      */
     public static final int TERM_MATCH_PREFIX = 2;
 
     /**
      * Ranking Strategy for query result.
      *
-     * @hide
+     * @exportToFramework:hide
      */
     // NOTE: The integer values of these constants must match the proto enum constants in
     // {@link ScoringSpecProto.RankingStrategy.Code}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(value = {
             RANKING_STRATEGY_NONE,
             RANKING_STRATEGY_DOCUMENT_SCORE,
@@ -164,10 +272,11 @@ public final class SearchSpec {
     /**
      * Order for query result.
      *
-     * @hide
+     * @exportToFramework:hide
      */
     // NOTE: The integer values of these constants must match the proto enum constants in
     // {@link ScoringSpecProto.Order.Code}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @IntDef(value = {
             ORDER_DESCENDING,
             ORDER_ASCENDING
@@ -184,51 +293,155 @@ public final class SearchSpec {
     /**
      * Grouping type for result limits.
      *
-     * @hide
+     * @exportToFramework:hide
      */
     @IntDef(flag = true, value = {
             GROUPING_TYPE_PER_PACKAGE,
-            GROUPING_TYPE_PER_NAMESPACE
+            GROUPING_TYPE_PER_NAMESPACE,
+            GROUPING_TYPE_PER_SCHEMA
     })
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
     public @interface GroupingType {
     }
-
     /**
      * Results should be grouped together by package for the purpose of enforcing a limit on the
      * number of results returned per package.
      */
-    public static final int GROUPING_TYPE_PER_PACKAGE = 0b01;
+    public static final int GROUPING_TYPE_PER_PACKAGE = 1 << 0;
     /**
      * Results should be grouped together by namespace for the purpose of enforcing a limit on the
      * number of results returned per namespace.
      */
-    public static final int GROUPING_TYPE_PER_NAMESPACE = 0b10;
+    public static final int GROUPING_TYPE_PER_NAMESPACE = 1 << 1;
+    /**
+     * Results should be grouped together by schema type for the purpose of enforcing a limit on the
+     * number of results returned per schema type.
+     */
+    @RequiresFeature(
+            enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+            name = Features.SEARCH_SPEC_GROUPING_TYPE_PER_SCHEMA)
+    @FlaggedApi(Flags.FLAG_ENABLE_GROUPING_TYPE_PER_SCHEMA)
+    public static final int GROUPING_TYPE_PER_SCHEMA = 1 << 2;
 
-    private final Bundle mBundle;
-
-    /** @hide */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    public SearchSpec(@NonNull Bundle bundle) {
-        Preconditions.checkNotNull(bundle);
-        mBundle = bundle;
+    /**
+     * Type of scoring used to calculate similarity for embedding vectors. For details of each, see
+     * comments above each value.
+     *
+     * @exportToFramework:hide
+     */
+    // NOTE: The integer values of these constants must match the proto enum constants in
+    // {@link SearchSpecProto.EmbeddingQueryMetricType.Code}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @IntDef(value = {
+            EMBEDDING_SEARCH_METRIC_TYPE_DEFAULT,
+            EMBEDDING_SEARCH_METRIC_TYPE_COSINE,
+            EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT,
+            EMBEDDING_SEARCH_METRIC_TYPE_EUCLIDEAN,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface EmbeddingSearchMetricType {
     }
 
     /**
-     * Returns the {@link Bundle} populated by this builder.
-     *
-     * @hide
+     * Use the default metric set in {@link SearchSpec#getDefaultEmbeddingSearchMetricType()} for
+     * embedding search and ranking.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    public Bundle getBundle() {
-        return mBundle;
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public static final int EMBEDDING_SEARCH_METRIC_TYPE_DEFAULT = 0;
+
+    /**
+     * Cosine similarity as metric for embedding search and ranking.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public static final int EMBEDDING_SEARCH_METRIC_TYPE_COSINE = 1;
+    /**
+     * Dot product similarity as metric for embedding search and ranking.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public static final int EMBEDDING_SEARCH_METRIC_TYPE_DOT_PRODUCT = 2;
+    /**
+     * Euclidean distance as metric for embedding search and ranking.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public static final int EMBEDDING_SEARCH_METRIC_TYPE_EUCLIDEAN = 3;
+
+
+    @Constructor
+    SearchSpec(
+            @Param(id = 1) int termMatchType,
+            @Param(id = 2) @NonNull List<String> schemas,
+            @Param(id = 3) @NonNull List<String> namespaces,
+            @Param(id = 4) @NonNull Bundle properties,
+            @Param(id = 5) @NonNull List<String> packageNames,
+            @Param(id = 6) int resultCountPerPage,
+            @Param(id = 7) @RankingStrategy int rankingStrategy,
+            @Param(id = 8) @Order int order,
+            @Param(id = 9) int snippetCount,
+            @Param(id = 10) int snippetCountPerProperty,
+            @Param(id = 11) int maxSnippetSize,
+            @Param(id = 12) @NonNull Bundle projectionTypePropertyMasks,
+            @Param(id = 13) int resultGroupingTypeFlags,
+            @Param(id = 14) int groupingLimit,
+            @Param(id = 15) @NonNull Bundle typePropertyWeightsField,
+            @Param(id = 16) @Nullable JoinSpec joinSpec,
+            @Param(id = 17) @NonNull String advancedRankingExpression,
+            @Param(id = 18) @NonNull List<String> enabledFeatures,
+            @Param(id = 19) @Nullable String searchSourceLogTag,
+            @Param(id = 20) @Nullable List<EmbeddingVector> embeddingParameters,
+            @Param(id = 21) int defaultEmbeddingSearchMetricType,
+            @Param(id = 22) @Nullable List<String> informationalRankingExpressions,
+            @Param(id = 23) @Nullable List<String> searchStringParameters,
+            @Param(id = 24) @Nullable List<String> filterDocumentIds,
+            @Param(id = 25) boolean retrieveEmbeddingMatchInfos) {
+        mTermMatchType = termMatchType;
+        mSchemas = Collections.unmodifiableList(Preconditions.checkNotNull(schemas));
+        mNamespaces = Collections.unmodifiableList(Preconditions.checkNotNull(namespaces));
+        mTypePropertyFilters = Preconditions.checkNotNull(properties);
+        mPackageNames = Collections.unmodifiableList(Preconditions.checkNotNull(packageNames));
+        mResultCountPerPage = resultCountPerPage;
+        mRankingStrategy = rankingStrategy;
+        mOrder = order;
+        mSnippetCount = snippetCount;
+        mSnippetCountPerProperty = snippetCountPerProperty;
+        mMaxSnippetSize = maxSnippetSize;
+        mProjectionTypePropertyMasks = Preconditions.checkNotNull(projectionTypePropertyMasks);
+        mResultGroupingTypeFlags = resultGroupingTypeFlags;
+        mGroupingLimit = groupingLimit;
+        mTypePropertyWeightsField = Preconditions.checkNotNull(typePropertyWeightsField);
+        mJoinSpec = joinSpec;
+        mAdvancedRankingExpression = Preconditions.checkNotNull(advancedRankingExpression);
+        mEnabledFeatures = Collections.unmodifiableList(
+                Preconditions.checkNotNull(enabledFeatures));
+        mSearchSourceLogTag = searchSourceLogTag;
+        if (embeddingParameters != null) {
+            mEmbeddingParameters = Collections.unmodifiableList(embeddingParameters);
+        } else {
+            mEmbeddingParameters = Collections.emptyList();
+        }
+        mDefaultEmbeddingSearchMetricType = defaultEmbeddingSearchMetricType;
+        if (informationalRankingExpressions != null) {
+            mInformationalRankingExpressions = Collections.unmodifiableList(
+                    informationalRankingExpressions);
+        } else {
+            mInformationalRankingExpressions = Collections.emptyList();
+        }
+        mSearchStringParameters =
+                (searchStringParameters != null)
+                        ? Collections.unmodifiableList(searchStringParameters)
+                        : Collections.emptyList();
+        mFilterDocumentIds =
+                (filterDocumentIds != null)
+                        ? Collections.unmodifiableList(filterDocumentIds)
+                        : Collections.emptyList();
+        mRetrieveEmbeddingMatchInfos = retrieveEmbeddingMatchInfos;
     }
 
+
     /** Returns how the query terms should match terms in the index. */
-    public @TermMatch int getTermMatch() {
-        return mBundle.getInt(TERM_MATCH_TYPE_FIELD, -1);
+    @TermMatch
+    public int getTermMatch() {
+        return mTermMatchType;
     }
 
     /**
@@ -236,13 +449,30 @@ public final class SearchSpec {
      *
      * <p>If empty, the query will search over all schema types.
      */
-    @NonNull
-    public List<String> getFilterSchemas() {
-        List<String> schemas = mBundle.getStringArrayList(SCHEMA_FIELD);
-        if (schemas == null) {
+    public @NonNull List<String> getFilterSchemas() {
+        if (mSchemas == null) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(schemas);
+        return mSchemas;
+    }
+
+    /**
+     * Returns the map of schema and target properties to search over.
+     *
+     * <p>If empty, will search over all schema and properties.
+     *
+     * <p>Calling this function repeatedly is inefficient. Prefer to retain the Map returned
+     * by this function, rather than calling it multiple times.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_PROPERTIES)
+    public @NonNull Map<String, List<String>> getFilterProperties() {
+        Set<String> schemas = mTypePropertyFilters.keySet();
+        Map<String, List<String>> typePropertyPathsMap = new ArrayMap<>(schemas.size());
+        for (String schema : schemas) {
+            typePropertyPathsMap.put(schema, Preconditions.checkNotNull(
+                    mTypePropertyFilters.getStringArrayList(schema)));
+        }
+        return typePropertyPathsMap;
     }
 
     /**
@@ -250,13 +480,11 @@ public final class SearchSpec {
      *
      * <p>If empty, the query will search over all namespaces.
      */
-    @NonNull
-    public List<String> getFilterNamespaces() {
-        List<String> namespaces = mBundle.getStringArrayList(NAMESPACE_FIELD);
-        if (namespaces == null) {
+    public @NonNull List<String> getFilterNamespaces() {
+        if (mNamespaces == null) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(namespaces);
+        return mNamespaces;
     }
 
     /**
@@ -266,45 +494,66 @@ public final class SearchSpec {
      * package names are specified which caller doesn't have access to, then those package names
      * will be ignored.
      */
-    @NonNull
-    public List<String> getFilterPackageNames() {
-        List<String> packageNames = mBundle.getStringArrayList(PACKAGE_NAME_FIELD);
-        if (packageNames == null) {
+    public @NonNull List<String> getFilterPackageNames() {
+        if (mPackageNames == null) {
             return Collections.emptyList();
         }
-        return Collections.unmodifiableList(packageNames);
+        return mPackageNames;
+    }
+
+    /**
+     * Returns the list of document ids to search over.
+     *
+     * <p>If empty, the query will search over all documents.
+     */
+    @ExperimentalAppSearchApi
+    @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_DOCUMENT_IDS)
+    public @NonNull List<String> getFilterDocumentIds() {
+        return mFilterDocumentIds;
     }
 
     /** Returns the number of results per page in the result set. */
     public int getResultCountPerPage() {
-        return mBundle.getInt(NUM_PER_PAGE_FIELD, DEFAULT_NUM_PER_PAGE);
+        return mResultCountPerPage;
     }
 
     /** Returns the ranking strategy. */
-    public @RankingStrategy int getRankingStrategy() {
-        return mBundle.getInt(RANKING_STRATEGY_FIELD);
+    @RankingStrategy
+    public int getRankingStrategy() {
+        return mRankingStrategy;
     }
 
     /** Returns the order of returned search results (descending or ascending). */
-    public @Order int getOrder() {
-        return mBundle.getInt(ORDER_FIELD);
+    @Order
+    public int getOrder() {
+        return mOrder;
     }
 
     /** Returns how many documents to generate snippets for. */
     public int getSnippetCount() {
-        return mBundle.getInt(SNIPPET_COUNT_FIELD);
+        return mSnippetCount;
     }
 
     /**
      * Returns how many matches for each property of a matching document to generate snippets for.
      */
     public int getSnippetCountPerProperty() {
-        return mBundle.getInt(SNIPPET_COUNT_PER_PROPERTY_FIELD);
+        return mSnippetCountPerProperty;
     }
 
     /** Returns the maximum size of a snippet in characters. */
     public int getMaxSnippetSize() {
-        return mBundle.getInt(MAX_SNIPPET_FIELD);
+        return mMaxSnippetSize;
+    }
+
+    /**
+     * Returns whether to retrieve embedding match infos as a part of
+     * {@link SearchResult#getMatchInfos()}
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_EMBEDDING_MATCH_INFO)
+    @ExperimentalAppSearchApi
+    public boolean shouldRetrieveEmbeddingMatchInfos() {
+        return mRetrieveEmbeddingMatchInfos;
     }
 
     /**
@@ -317,15 +566,13 @@ public final class SearchSpec {
      *
      * @return A mapping of schema types to lists of projection strings.
      */
-    @NonNull
-    public Map<String, List<String>> getProjections() {
-        Bundle typePropertyPathsBundle = Preconditions.checkNotNull(
-                mBundle.getBundle(PROJECTION_TYPE_PROPERTY_PATHS_FIELD));
-        Set<String> schemas = typePropertyPathsBundle.keySet();
+    public @NonNull Map<String, List<String>> getProjections() {
+        Set<String> schemas = mProjectionTypePropertyMasks.keySet();
         Map<String, List<String>> typePropertyPathsMap = new ArrayMap<>(schemas.size());
         for (String schema : schemas) {
-            typePropertyPathsMap.put(schema, Preconditions.checkNotNull(
-                    typePropertyPathsBundle.getStringArrayList(schema)));
+            typePropertyPathsMap.put(schema,
+                    Objects.requireNonNull(
+                            mProjectionTypePropertyMasks.getStringArrayList(schema)));
         }
         return typePropertyPathsMap;
     }
@@ -340,18 +587,20 @@ public final class SearchSpec {
      *
      * @return A mapping of schema types to lists of projection {@link PropertyPath} objects.
      */
-    @NonNull
-    public Map<String, List<PropertyPath>> getProjectionPaths() {
-        Bundle typePropertyPathsBundle = mBundle.getBundle(PROJECTION_TYPE_PROPERTY_PATHS_FIELD);
-        Set<String> schemas = typePropertyPathsBundle.keySet();
+    public @NonNull Map<String, List<PropertyPath>> getProjectionPaths() {
+        Set<String> schemas = mProjectionTypePropertyMasks.keySet();
         Map<String, List<PropertyPath>> typePropertyPathsMap = new ArrayMap<>(schemas.size());
         for (String schema : schemas) {
-            ArrayList<String> propertyPathList = typePropertyPathsBundle.getStringArrayList(schema);
-            List<PropertyPath> copy = new ArrayList<>(propertyPathList.size());
-            for (String p: propertyPathList) {
-                copy.add(new PropertyPath(p));
+            ArrayList<String> propertyPathList = mProjectionTypePropertyMasks.getStringArrayList(
+                    schema);
+            if (propertyPathList != null) {
+                List<PropertyPath> copy = new ArrayList<>(propertyPathList.size());
+                for (int i = 0; i < propertyPathList.size(); i++) {
+                    String p = propertyPathList.get(i);
+                    copy.add(new PropertyPath(p));
+                }
+                typePropertyPathsMap.put(schema, copy);
             }
-            typePropertyPathsMap.put(schema, copy);
         }
         return typePropertyPathsMap;
     }
@@ -365,20 +614,21 @@ public final class SearchSpec {
      * @return a {@link Map} of schema type to an inner-map of property paths of the schema type to
      * the weight to set for that property.
      */
-    @NonNull
-    public Map<String, Map<String, Double>> getPropertyWeights() {
-        Bundle typePropertyWeightsBundle = mBundle.getBundle(TYPE_PROPERTY_WEIGHTS_FIELD);
-        Set<String> schemaTypes = typePropertyWeightsBundle.keySet();
+    public @NonNull Map<String, Map<String, Double>> getPropertyWeights() {
+        Set<String> schemaTypes = mTypePropertyWeightsField.keySet();
         Map<String, Map<String, Double>> typePropertyWeightsMap = new ArrayMap<>(
                 schemaTypes.size());
         for (String schemaType : schemaTypes) {
-            Bundle propertyPathBundle = typePropertyWeightsBundle.getBundle(schemaType);
-            Set<String> propertyPaths = propertyPathBundle.keySet();
-            Map<String, Double> propertyPathWeights = new ArrayMap<>(propertyPaths.size());
-            for (String propertyPath : propertyPaths) {
-                propertyPathWeights.put(propertyPath, propertyPathBundle.getDouble(propertyPath));
+            Bundle propertyPathBundle = mTypePropertyWeightsField.getBundle(schemaType);
+            if (propertyPathBundle != null) {
+                Set<String> propertyPaths = propertyPathBundle.keySet();
+                Map<String, Double> propertyPathWeights = new ArrayMap<>(propertyPaths.size());
+                for (String propertyPath : propertyPaths) {
+                    propertyPathWeights.put(propertyPath,
+                            propertyPathBundle.getDouble(propertyPath));
+                }
+                typePropertyWeightsMap.put(schemaType, propertyPathWeights);
             }
-            typePropertyWeightsMap.put(schemaType, propertyPathWeights);
         }
         return typePropertyWeightsMap;
     }
@@ -392,21 +642,23 @@ public final class SearchSpec {
      * @return a {@link Map} of schema type to an inner-map of property paths of the schema type to
      * the weight to set for that property.
      */
-    @NonNull
-    public Map<String, Map<PropertyPath, Double>> getPropertyWeightPaths() {
-        Bundle typePropertyWeightsBundle = mBundle.getBundle(TYPE_PROPERTY_WEIGHTS_FIELD);
-        Set<String> schemaTypes = typePropertyWeightsBundle.keySet();
+    public @NonNull Map<String, Map<PropertyPath, Double>> getPropertyWeightPaths() {
+        Set<String> schemaTypes = mTypePropertyWeightsField.keySet();
         Map<String, Map<PropertyPath, Double>> typePropertyWeightsMap = new ArrayMap<>(
                 schemaTypes.size());
         for (String schemaType : schemaTypes) {
-            Bundle propertyPathBundle = typePropertyWeightsBundle.getBundle(schemaType);
-            Set<String> propertyPaths = propertyPathBundle.keySet();
-            Map<PropertyPath, Double> propertyPathWeights = new ArrayMap<>(propertyPaths.size());
-            for (String propertyPath : propertyPaths) {
-                propertyPathWeights.put(new PropertyPath(propertyPath),
-                        propertyPathBundle.getDouble(propertyPath));
+            Bundle propertyPathBundle = mTypePropertyWeightsField.getBundle(schemaType);
+            if (propertyPathBundle != null) {
+                Set<String> propertyPaths = propertyPathBundle.keySet();
+                Map<PropertyPath, Double> propertyPathWeights =
+                        new ArrayMap<>(propertyPaths.size());
+                for (String propertyPath : propertyPaths) {
+                    propertyPathWeights.put(
+                            new PropertyPath(propertyPath),
+                            propertyPathBundle.getDouble(propertyPath));
+                }
+                typePropertyWeightsMap.put(schemaType, propertyPathWeights);
             }
-            typePropertyWeightsMap.put(schemaType, propertyPathWeights);
         }
         return typePropertyWeightsMap;
     }
@@ -415,104 +667,250 @@ public final class SearchSpec {
      * Get the type of grouping limit to apply, or 0 if {@link Builder#setResultGrouping} was not
      * called.
      */
-    public @GroupingType int getResultGroupingTypeFlags() {
-        return mBundle.getInt(RESULT_GROUPING_TYPE_FLAGS);
+    @GroupingType
+    public int getResultGroupingTypeFlags() {
+        return mResultGroupingTypeFlags;
     }
 
     /**
      * Get the maximum number of results to return for each group.
      *
-     * @return the maximum number of results to return for each group or Integer.MAX_VALUE if
+     * @return the maximum number of results to return for each group or 0 if
      * {@link Builder#setResultGrouping(int, int)} was not called.
      */
     public int getResultGroupingLimit() {
-        return mBundle.getInt(RESULT_GROUPING_LIMIT, Integer.MAX_VALUE);
+        return mGroupingLimit;
     }
 
     /**
      * Returns specification on which documents need to be joined.
      */
-    @Nullable
-    public JoinSpec getJoinSpec() {
-        Bundle joinSpec = mBundle.getBundle(JOIN_SPEC);
-        if (joinSpec == null) {
-            return null;
-        }
-        return new JoinSpec(joinSpec);
+    public @Nullable JoinSpec getJoinSpec() {
+        return mJoinSpec;
     }
 
     /**
      * Get the advanced ranking expression, or "" if {@link Builder#setRankingStrategy(String)}
      * was not called.
      */
-    @NonNull
-    public String getAdvancedRankingExpression() {
-        return mBundle.getString(ADVANCED_RANKING_EXPRESSION, "");
+    public @NonNull String getAdvancedRankingExpression() {
+        return mAdvancedRankingExpression;
+    }
+
+
+    /**
+     * Gets a tag to indicate the source of this search, or {@code null} if
+     * {@link Builder#setSearchSourceLogTag(String)} was not called.
+     *
+     * <p> Some AppSearch implementations may log a hash of this tag using statsd. This tag may be
+     * used for tracing performance issues and crashes to a component of an app.
+     *
+     * <p>Call {@link Builder#setSearchSourceLogTag} and give a unique value if you want to
+     * distinguish this search scenario with other search scenarios during performance analysis.
+     *
+     * <p>Under no circumstances will AppSearch log the raw String value using statsd, but it
+     * will be provided as-is to custom {@code AppSearchLogger} implementations you have
+     * registered in your app.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG)
+    public @Nullable String getSearchSourceLogTag() {
+        return mSearchSourceLogTag;
     }
 
     /**
-     * Returns whether the {@link Features#NUMERIC_SEARCH} feature is enabled.
+     * Returns the list of {@link EmbeddingVector} that can be referenced in the query through the
+     * "getEmbeddingParameter({index})" function.
+     *
+     * @see AppSearchSession#search
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public @NonNull List<EmbeddingVector> getEmbeddingParameters() {
+        return mEmbeddingParameters;
+    }
+
+    /**
+     * Returns the default embedding metric type used for embedding search
+     * (see {@link AppSearchSession#search}) and ranking
+     * (see {@link SearchSpec.Builder#setRankingStrategy(String)}).
+     */
+    @EmbeddingSearchMetricType
+    @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+    public int getDefaultEmbeddingSearchMetricType() {
+        return mDefaultEmbeddingSearchMetricType;
+    }
+
+    /**
+     * Returns the informational ranking expressions.
+     *
+     * @see Builder#addInformationalRankingExpressions
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+    public @NonNull List<String> getInformationalRankingExpressions() {
+        return mInformationalRankingExpressions;
+    }
+
+    /**
+     * Returns the list of String parameters that can be referenced in the query through the
+     * "getSearchStringParameter({index})" function.
+     *
+     * @see AppSearchSession#search
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+    public @NonNull List<String> getSearchStringParameters() {
+        return mSearchStringParameters;
+    }
+
+    /**
+     * Returns whether the NUMERIC_SEARCH feature is enabled.
      */
     public boolean isNumericSearchEnabled() {
-        return getEnabledFeatures().contains(Features.NUMERIC_SEARCH);
+        return mEnabledFeatures.contains(FeatureConstants.NUMERIC_SEARCH);
     }
 
     /**
-     * Returns whether the {@link Features#VERBATIM_SEARCH} feature is enabled.
+     * Returns whether the VERBATIM_SEARCH feature is enabled.
      */
     public boolean isVerbatimSearchEnabled() {
-        return getEnabledFeatures().contains(Features.VERBATIM_SEARCH);
+        return mEnabledFeatures.contains(FeatureConstants.VERBATIM_SEARCH);
     }
 
     /**
-     * Returns whether the {@link Features#LIST_FILTER_QUERY_LANGUAGE} feature is enabled.
+     * Returns whether the LIST_FILTER_QUERY_LANGUAGE feature is enabled.
      */
     public boolean isListFilterQueryLanguageEnabled() {
-        return getEnabledFeatures().contains(Features.LIST_FILTER_QUERY_LANGUAGE);
+        return mEnabledFeatures.contains(FeatureConstants.LIST_FILTER_QUERY_LANGUAGE);
+    }
+
+    /**
+     * Returns whether the ScorablePropertyRanking feature is enabled.
+     */
+    @ExperimentalAppSearchApi
+    @FlaggedApi(Flags.FLAG_ENABLE_SCORABLE_PROPERTY)
+    public boolean isScorablePropertyRankingEnabled() {
+        return mEnabledFeatures.contains(FeatureConstants.SCHEMA_SCORABLE_PROPERTY_CONFIG);
+    }
+
+    /**
+     * Returns whether the LIST_FILTER_HAS_PROPERTY_FUNCTION feature is enabled.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_LIST_FILTER_HAS_PROPERTY_FUNCTION)
+    public boolean isListFilterHasPropertyFunctionEnabled() {
+        return mEnabledFeatures.contains(FeatureConstants.LIST_FILTER_HAS_PROPERTY_FUNCTION);
+    }
+
+    /**
+     * Returns whether the LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION feature is enabled.
+     */
+    @ExperimentalAppSearchApi
+    @FlaggedApi(Flags.FLAG_ENABLE_LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION)
+    public boolean isListFilterMatchScoreExpressionFunctionEnabled() {
+        return mEnabledFeatures.contains(
+                FeatureConstants.LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION);
     }
 
     /**
      * Get the list of enabled features that the caller is intending to use in this search call.
      *
      * @return the set of {@link Features} enabled in this {@link SearchSpec} Entry.
-     * @hide
+     * @exportToFramework:hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    public List<String> getEnabledFeatures() {
-        return mBundle.getStringArrayList(ENABLED_FEATURES_FIELD);
+    public @NonNull List<String> getEnabledFeatures() {
+        return mEnabledFeatures;
+    }
+
+    @Override
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @FlaggedApi(Flags.FLAG_ENABLE_SAFE_PARCELABLE_2)
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
+        SearchSpecCreator.writeToParcel(this, dest, flags);
     }
 
     /** Builder for {@link SearchSpec objects}. */
     public static final class Builder {
-        private ArrayList<String> mSchemas = new ArrayList<>();
-        private ArrayList<String> mNamespaces = new ArrayList<>();
-        private ArrayList<String> mPackageNames = new ArrayList<>();
+        private List<String> mSchemas = new ArrayList<>();
+        private List<String> mNamespaces = new ArrayList<>();
+        private Bundle mTypePropertyFilters = new Bundle();
+        private List<String> mPackageNames = new ArrayList<>();
         private ArraySet<String> mEnabledFeatures = new ArraySet<>();
         private Bundle mProjectionTypePropertyMasks = new Bundle();
         private Bundle mTypePropertyWeights = new Bundle();
+        private List<EmbeddingVector> mEmbeddingParameters = new ArrayList<>();
+        private List<String> mSearchStringParameters = new ArrayList<>();
+        private List<String> mFilterDocumentIds = new ArrayList<>();
 
         private int mResultCountPerPage = DEFAULT_NUM_PER_PAGE;
-        private @TermMatch int mTermMatchType = TERM_MATCH_PREFIX;
+        @TermMatch private int mTermMatchType = TERM_MATCH_PREFIX;
+        @EmbeddingSearchMetricType
+        private int mDefaultEmbeddingSearchMetricType = EMBEDDING_SEARCH_METRIC_TYPE_COSINE;
         private int mSnippetCount = 0;
         private int mSnippetCountPerProperty = MAX_SNIPPET_PER_PROPERTY_COUNT;
         private int mMaxSnippetSize = 0;
-        private @RankingStrategy int mRankingStrategy = RANKING_STRATEGY_NONE;
-        private @Order int mOrder = ORDER_DESCENDING;
-        private @GroupingType int mGroupingTypeFlags = 0;
+        @RankingStrategy private int mRankingStrategy = RANKING_STRATEGY_NONE;
+        @Order private int mOrder = ORDER_DESCENDING;
+        @GroupingType private int mGroupingTypeFlags = 0;
         private int mGroupingLimit = 0;
-        private JoinSpec mJoinSpec;
+        private @Nullable JoinSpec mJoinSpec;
         private String mAdvancedRankingExpression = "";
+        private List<String> mInformationalRankingExpressions = new ArrayList<>();
+        private @Nullable String mSearchSourceLogTag;
+        private boolean mRetrieveEmbeddingMatchInfos = false;
         private boolean mBuilt = false;
 
+        /** Constructs a new {@link Builder} for {@link SearchSpec} objects. */
+        public Builder() {
+        }
+
+        /** Constructs a new {@link Builder} from the given {@link SearchSpec}. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @OptIn(markerClass = ExperimentalAppSearchApi.class)
+        public Builder(@NonNull SearchSpec searchSpec) {
+            Objects.requireNonNull(searchSpec);
+            mSchemas = new ArrayList<>(searchSpec.getFilterSchemas());
+            mNamespaces = new ArrayList<>(searchSpec.getFilterNamespaces());
+            for (Map.Entry<String, List<String>> entry :
+                    searchSpec.getFilterProperties().entrySet()) {
+                addFilterProperties(entry.getKey(), entry.getValue());
+            }
+            mPackageNames = new ArrayList<>(searchSpec.getFilterPackageNames());
+            mEnabledFeatures = new ArraySet<>(searchSpec.getEnabledFeatures());
+            for (Map.Entry<String, List<String>> entry : searchSpec.getProjections().entrySet()) {
+                addProjection(entry.getKey(), entry.getValue());
+            }
+            for (Map.Entry<String, Map<String, Double>> entry :
+                    searchSpec.getPropertyWeights().entrySet()) {
+                setPropertyWeights(entry.getKey(), entry.getValue());
+            }
+            mEmbeddingParameters = new ArrayList<>(searchSpec.getEmbeddingParameters());
+            mSearchStringParameters = new ArrayList<>(searchSpec.getSearchStringParameters());
+            mResultCountPerPage = searchSpec.getResultCountPerPage();
+            mTermMatchType = searchSpec.getTermMatch();
+            mDefaultEmbeddingSearchMetricType = searchSpec.getDefaultEmbeddingSearchMetricType();
+            mSnippetCount = searchSpec.getSnippetCount();
+            mSnippetCountPerProperty = searchSpec.getSnippetCountPerProperty();
+            mMaxSnippetSize = searchSpec.getMaxSnippetSize();
+            mRankingStrategy = searchSpec.getRankingStrategy();
+            mOrder = searchSpec.getOrder();
+            mGroupingTypeFlags = searchSpec.getResultGroupingTypeFlags();
+            mGroupingLimit = searchSpec.getResultGroupingLimit();
+            mJoinSpec = searchSpec.getJoinSpec();
+            mAdvancedRankingExpression = searchSpec.getAdvancedRankingExpression();
+            mInformationalRankingExpressions = new ArrayList<>(
+                    searchSpec.getInformationalRankingExpressions());
+            mSearchSourceLogTag = searchSpec.getSearchSourceLogTag();
+            mFilterDocumentIds = new ArrayList<>(searchSpec.getFilterDocumentIds());
+            mRetrieveEmbeddingMatchInfos = searchSpec.shouldRetrieveEmbeddingMatchInfos();
+        }
+
         /**
-         * Indicates how the query terms should match {@code TermMatchCode} in the index.
+         * Sets how the query terms should match {@code TermMatchCode} in the index.
          *
          * <p>If this method is not called, the default term match type is
          * {@link SearchSpec#TERM_MATCH_PREFIX}.
          */
-        @NonNull
-        public Builder setTermMatch(@TermMatch int termMatchType) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setTermMatch(@TermMatch int termMatchType) {
             Preconditions.checkArgumentInRange(termMatchType, TERM_MATCH_EXACT_ONLY,
                     TERM_MATCH_PREFIX, "Term match type");
             resetIfBuilt();
@@ -526,8 +924,8 @@ public final class SearchSpec {
          *
          * <p>If unset, the query will search over all schema types.
          */
-        @NonNull
-        public Builder addFilterSchemas(@NonNull String... schemas) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterSchemas(@NonNull String... schemas) {
             Preconditions.checkNotNull(schemas);
             resetIfBuilt();
             return addFilterSchemas(Arrays.asList(schemas));
@@ -539,8 +937,8 @@ public final class SearchSpec {
          *
          * <p>If unset, the query will search over all schema types.
          */
-        @NonNull
-        public Builder addFilterSchemas(@NonNull Collection<String> schemas) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterSchemas(@NonNull Collection<String> schemas) {
             Preconditions.checkNotNull(schemas);
             resetIfBuilt();
             mSchemas.addAll(schemas);
@@ -555,18 +953,20 @@ public final class SearchSpec {
          *
          * <p>If unset, the query will search over all schema types.
          *
+         * <p>Merged list available from {@link #getFilterSchemas()}.
+         *
          * @param documentClasses classes annotated with {@link Document}.
          */
-        // Merged list available from getFilterSchemas
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder addFilterDocumentClasses(
-                @NonNull Collection<? extends Class<?>> documentClasses) throws AppSearchException {
+        public @NonNull Builder addFilterDocumentClasses(
+                @NonNull Collection<? extends java.lang.Class<?>> documentClasses)
+                throws AppSearchException {
             Preconditions.checkNotNull(documentClasses);
             resetIfBuilt();
             List<String> schemas = new ArrayList<>(documentClasses.size());
             DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
-            for (Class<?> documentClass : documentClasses) {
+            for (java.lang.Class<?> documentClass : documentClasses) {
                 DocumentClassFactory<?> factory = registry.getOrCreateFactory(documentClass);
                 schemas.add(factory.getSchemaName());
             }
@@ -583,26 +983,176 @@ public final class SearchSpec {
          *
          * <p>If unset, the query will search over all schema types.
          *
+         * <p>Merged list available from {@link #getFilterSchemas()}.
+         *
          * @param documentClasses classes annotated with {@link Document}.
          */
-        // Merged list available from getFilterSchemas()
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder addFilterDocumentClasses(@NonNull Class<?>... documentClasses)
-                throws AppSearchException {
+        public @NonNull Builder addFilterDocumentClasses(
+                @NonNull java.lang.Class<?>... documentClasses) throws AppSearchException {
             Preconditions.checkNotNull(documentClasses);
             resetIfBuilt();
             return addFilterDocumentClasses(Arrays.asList(documentClasses));
         }
 // @exportToFramework:endStrip()
 
+        /** Clears all schema type filters. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearFilterSchemas() {
+            resetIfBuilt();
+            mSchemas.clear();
+            return this;
+        }
+
+        /**
+         * Adds property paths for the specified type to the property filter of
+         * {@link SearchSpec} Entry. Only returns documents that have matches under
+         * the specified properties. If property paths are added for a type, then only the
+         * properties referred to will be searched for results of that type.
+         *
+         * <p> If a property path that is specified isn't present in a result, it will be ignored
+         * for that result. Property paths cannot be null.
+         *
+         * <p>If no property paths are added for a particular type, then all properties of
+         * results of that type will be searched.
+         *
+         * <p>Example properties: 'body', 'sender.name', 'sender.emailaddress', etc.
+         *
+         * <p>If property paths are added for the
+         * {@link SearchSpec#SCHEMA_TYPE_WILDCARD}, then those property paths will
+         * apply to all results, excepting any types that have their own, specific property paths
+         * set.
+         *
+         * @param schema the {@link AppSearchSchema} that contains the target properties
+         * @param propertyPaths The String version of {@link PropertyPath}. A dot-delimited
+         *                      sequence of property names.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_PROPERTIES)
+        public @NonNull Builder addFilterProperties(@NonNull String schema,
+                @NonNull Collection<String> propertyPaths) {
+            Preconditions.checkNotNull(schema);
+            Preconditions.checkNotNull(propertyPaths);
+            resetIfBuilt();
+            ArrayList<String> propertyPathsArrayList = new ArrayList<>(propertyPaths.size());
+            for (String propertyPath : propertyPaths) {
+                Preconditions.checkNotNull(propertyPath);
+                propertyPathsArrayList.add(propertyPath);
+            }
+            mTypePropertyFilters.putStringArrayList(schema, propertyPathsArrayList);
+            return this;
+        }
+
+        /**
+         * Adds property paths for the specified type to the property filter of
+         * {@link SearchSpec} Entry. Only returns documents that have matches under the specified
+         * properties. If property paths are added for a type, then only the properties referred
+         * to will be searched for results of that type.
+         *
+         * @see #addFilterProperties(String, Collection)
+         *
+         * @param schema the {@link AppSearchSchema} that contains the target properties
+         * @param propertyPaths The {@link PropertyPath} to search search over
+         */
+        // Getter method is getFilterProperties
+        @SuppressLint("MissingGetterMatchingBuilder")
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_PROPERTIES)
+        public @NonNull Builder addFilterPropertyPaths(@NonNull String schema,
+                @NonNull Collection<PropertyPath> propertyPaths) {
+            Preconditions.checkNotNull(schema);
+            Preconditions.checkNotNull(propertyPaths);
+            ArrayList<String> propertyPathsArrayList = new ArrayList<>(propertyPaths.size());
+            for (PropertyPath propertyPath : propertyPaths) {
+                propertyPathsArrayList.add(propertyPath.toString());
+            }
+            return addFilterProperties(schema, propertyPathsArrayList);
+        }
+
+
+// @exportToFramework:startStrip()
+
+        /**
+         * Adds property paths for the specified type to the property filter of
+         * {@link SearchSpec} Entry. Only returns documents that have matches under the specified
+         * properties. If property paths are added for a type, then only the properties referred
+         * to will be searched for results of that type.
+         *
+         * @see #addFilterProperties(String, Collection)
+         *
+         * @param documentClass class annotated with {@link Document}.
+         * @param propertyPaths The String version of {@link PropertyPath}. A dot-delimited
+                                sequence of property names.
+         *
+         */
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES)
+        public @NonNull Builder addFilterProperties(@NonNull java.lang.Class<?> documentClass,
+                @NonNull Collection<String> propertyPaths) throws AppSearchException {
+            Preconditions.checkNotNull(documentClass);
+            Preconditions.checkNotNull(propertyPaths);
+            resetIfBuilt();
+            DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+            DocumentClassFactory<?> factory = registry.getOrCreateFactory(documentClass);
+            return addFilterProperties(factory.getSchemaName(), propertyPaths);
+        }
+// @exportToFramework:endStrip()
+
+// @exportToFramework:startStrip()
+        /**
+         * Adds property paths for the specified type to the property filter of
+         * {@link SearchSpec} Entry. Only returns documents that have matches under the specified
+         * properties. If property paths are added for a type, then only the properties referred
+         * to will be searched for results of that type.
+         *
+         * @see #addFilterProperties(String, Collection)
+         *
+         * @param documentClass class annotated with {@link Document}.
+         * @param propertyPaths The {@link PropertyPath} to search search over
+         *
+         */
+        // Getter method is getFilterProperties
+        @SuppressLint("MissingGetterMatchingBuilder")
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_PROPERTIES)
+        public @NonNull Builder addFilterPropertyPaths(@NonNull java.lang.Class<?> documentClass,
+                @NonNull Collection<PropertyPath> propertyPaths) throws AppSearchException {
+            Preconditions.checkNotNull(documentClass);
+            Preconditions.checkNotNull(propertyPaths);
+            resetIfBuilt();
+            DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+            DocumentClassFactory<?> factory = registry.getOrCreateFactory(documentClass);
+            return addFilterPropertyPaths(factory.getSchemaName(), propertyPaths);
+        }
+// @exportToFramework:endStrip()
+
+        /** Clears the property filters for all schema types. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearFilterProperties() {
+            resetIfBuilt();
+            mTypePropertyFilters.clear();
+            return this;
+        }
+
         /**
          * Adds a namespace filter to {@link SearchSpec} Entry. Only search for documents that
          * have the specified namespaces.
          * <p>If unset, the query will search over all namespaces.
          */
-        @NonNull
-        public Builder addFilterNamespaces(@NonNull String... namespaces) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterNamespaces(@NonNull String... namespaces) {
             Preconditions.checkNotNull(namespaces);
             resetIfBuilt();
             return addFilterNamespaces(Arrays.asList(namespaces));
@@ -613,11 +1163,21 @@ public final class SearchSpec {
          * have the specified namespaces.
          * <p>If unset, the query will search over all namespaces.
          */
-        @NonNull
-        public Builder addFilterNamespaces(@NonNull Collection<String> namespaces) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterNamespaces(@NonNull Collection<String> namespaces) {
             Preconditions.checkNotNull(namespaces);
             resetIfBuilt();
             mNamespaces.addAll(namespaces);
+            return this;
+        }
+
+        /** Clears all namespace filters. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearFilterNamespaces() {
+            resetIfBuilt();
+            mNamespaces.clear();
             return this;
         }
 
@@ -629,8 +1189,8 @@ public final class SearchSpec {
          * If package names are specified which caller doesn't have access to, then those package
          * names will be ignored.
          */
-        @NonNull
-        public Builder addFilterPackageNames(@NonNull String... packageNames) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterPackageNames(@NonNull String... packageNames) {
             Preconditions.checkNotNull(packageNames);
             resetIfBuilt();
             return addFilterPackageNames(Arrays.asList(packageNames));
@@ -644,11 +1204,68 @@ public final class SearchSpec {
          * If package names are specified which caller doesn't have access to, then those package
          * names will be ignored.
          */
-        @NonNull
-        public Builder addFilterPackageNames(@NonNull Collection<String> packageNames) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder addFilterPackageNames(@NonNull Collection<String> packageNames) {
             Preconditions.checkNotNull(packageNames);
             resetIfBuilt();
             mPackageNames.addAll(packageNames);
+            return this;
+        }
+
+        /** Clears all package name filters. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearFilterPackageNames() {
+            resetIfBuilt();
+            mPackageNames.clear();
+            return this;
+        }
+
+        /**
+         * Adds a document id filter to {@link SearchSpec} Entry. Only search for documents that
+         * have the specified document ids.
+         *
+         * <p>If unset, the query will search over all documents.
+         */
+        @CanIgnoreReturnValue
+        @ExperimentalAppSearchApi
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_DOCUMENT_IDS)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_DOCUMENT_IDS)
+        public @NonNull Builder addFilterDocumentIds(@NonNull String... documentIds) {
+            Preconditions.checkNotNull(documentIds);
+            resetIfBuilt();
+            return addFilterDocumentIds(Arrays.asList(documentIds));
+        }
+
+        /**
+         * Adds a document id filter to {@link SearchSpec} Entry. Only search for documents that
+         * have the specified document ids.
+         *
+         * <p>If unset, the query will search over all documents.
+         */
+        @CanIgnoreReturnValue
+        @ExperimentalAppSearchApi
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_FILTER_DOCUMENT_IDS)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_FILTER_DOCUMENT_IDS)
+        public @NonNull Builder addFilterDocumentIds(@NonNull Collection<String> documentIds) {
+            Preconditions.checkNotNull(documentIds);
+            resetIfBuilt();
+            mFilterDocumentIds.addAll(documentIds);
+            return this;
+        }
+
+        /** Clears the document id filters. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearFilterDocumentIds() {
+            resetIfBuilt();
+            mFilterDocumentIds.clear();
             return this;
         }
 
@@ -657,8 +1274,8 @@ public final class SearchSpec {
          *
          * <p>The default number of results per page is 10.
          */
-        @NonNull
-        public SearchSpec.Builder setResultCountPerPage(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder setResultCountPerPage(
                 @IntRange(from = 0, to = MAX_NUM_PER_PAGE) int resultCountPerPage) {
             Preconditions.checkArgumentInRange(
                     resultCountPerPage, 0, MAX_NUM_PER_PAGE, "resultCountPerPage");
@@ -668,8 +1285,8 @@ public final class SearchSpec {
         }
 
         /** Sets ranking strategy for AppSearch results. */
-        @NonNull
-        public Builder setRankingStrategy(@RankingStrategy int rankingStrategy) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setRankingStrategy(@RankingStrategy int rankingStrategy) {
             Preconditions.checkArgumentInRange(rankingStrategy, RANKING_STRATEGY_NONE,
                     RANKING_STRATEGY_JOIN_AGGREGATE_SCORE, "Result ranking strategy");
             resetIfBuilt();
@@ -687,53 +1304,42 @@ public final class SearchSpec {
          * <p>The ranking expression is a mathematical expression that will be evaluated to a
          * floating-point number of double type representing the score of each document.
          *
-         * <p>Numeric literals, arithmetic operators, mathematical functions, and document-based
-         * functions are supported to build expressions.
-         *
-         * <p>The following are examples of numeric literals:
-         * <ul>
-         *     <li>Integer
-         *     <p>Example: 0, 1, 2, 13
-         *     <li>Floating-point number
-         *     <p>Example: 0.333, 0.5, 123.456
-         *     <li>Negative number
-         *     <p>Example: -5, -10.5, -100.123
-         * </ul>
+         * <p>Numeric literals, arithmetic operators, mathematical functions, document-based, and
+         * property-value-based functions are supported to build expressions.
          *
          * <p>The following are supported arithmetic operators:
          * <ul>
          *     <li>Addition(+)
-         *     <p>Example: "1 + 1" will be evaluated to 2.
          *     <li>Subtraction(-)
-         *     <p>Example: "2 - 1.5" will be evaluated to 0.5.
          *     <li>Multiplication(*)
-         *     <p>Example: "2 * -2" will be evaluated to -4.
-         *     <li>Division(/)
-         *     <p>Example: "5 / 2" will be evaluated to 2.5.
+         *     <li>Floating Point Division(/)
          * </ul>
          *
-         * <p>Multiplication and division have higher precedences than addition and subtraction,
-         * but multiplication has the same precedence as division, and addition has the same
-         * precedence as subtraction. Parentheses are supported to change precedences.
+         * <p>Operator precedences are compliant with the Java Language, and parentheses are
+         * supported. For example, "2.2 + (3 - 4) / 2" evaluates to 1.7.
          *
-         * <p>For example:
-         * <ul>
-         *     <li>"2 + 3 - 4 * 5" will be evaluated to -15
-         *     <li>"(2 + 3) - (4 * 5)" will be evaluated to -15
-         *     <li>"2 + (3 - 4) * 5" will be evaluated to -3
-         * </ul>
-         *
-         * <p>The following are supported mathematical functions:
+         * <p>The following are supported basic mathematical functions:
          * <ul>
          *     <li>log(x) - the natural log of x
          *     <li>log(x, y) - the log of y with base x
          *     <li>pow(x, y) - x to the power of y
-         *     <li>max(v1, v2, ..., vn) with n > 0 - the maximum value among v1, ..., vn
-         *     <li>min(v1, v2, ..., vn) with n > 0 - the minimum value among v1, ..., vn
-         *     <li>sqrt(x) - the square root of x
-         *     <li>abs(x) - the absolute value of x
-         *     <li>sin(x), cos(x), tan(x) - trigonometric functions of x
+         *     <li>sqrt(x)
+         *     <li>abs(x)
+         *     <li>sin(x), cos(x), tan(x)
          *     <li>Example: "max(abs(-100), 10) + pow(2, 10)" will be evaluated to 1124
+         * </ul>
+         *
+         * <p>The following variadic mathematical functions are supported, with n > 0. They also
+         * accept list value parameters. For example, if V is a value of list type, we can call
+         * sum(V) to get the sum of all the values in V. List literals are not supported, so a
+         * value of list type can only be constructed as a return value of some particular
+         * document-based functions.
+         * <ul>
+         *     <li>max(v1, v2, ..., vn) or max(V)
+         *     <li>min(v1, v2, ..., vn) or min(V)
+         *     <li>len(v1, v2, ..., vn) or len(V)
+         *     <li>sum(v1, v2, ..., vn) or sum(V)
+         *     <li>avg(v1, v2, ..., vn) or avg(V)
          * </ul>
          *
          * <p>Document-based functions must be called via "this", which represents the current
@@ -754,34 +1360,141 @@ public final class SearchSpec {
          *     document, where type must be evaluated to an integer from 1 to 2. Type 1 refers to
          *     usages reported by {@link AppSearchSession#reportUsageAsync}, and type 2 refers to
          *     usages reported by {@link GlobalSearchSession#reportSystemUsageAsync}.
+         *     <li>this.childrenRankingSignals()
+         *     <p>Returns a list of children ranking signals calculated by scoring the joined
+         *     documents using the ranking strategy specified in the nested {@link SearchSpec}.
+         *     Currently, a document can only be a child of another document in the context of
+         *     joins. If this function is called without the Join API enabled, a type error will
+         *     be raised.
+         *     <li>this.propertyWeights()
+         *     <p>Returns a list of the normalized weights of the matched properties for the
+         *     current document being scored. Property weights come from what's specified in
+         *     {@link SearchSpec}. After normalizing, each provided weight will be divided by the
+         *     maximum weight, so that each of them will be <= 1.
+         *     <li>this.matchedSemanticScores(getEmbeddingParameter({embedding_index}), {metric})
+         *     <p>Returns a list of the matched similarity scores from "semanticSearch" in the query
+         *     expression (see also {@link AppSearchSession#search}) based on embedding_index and
+         *     metric. If metric is omitted, it defaults to the metric specified in
+         *     {@link SearchSpec.Builder#setDefaultEmbeddingSearchMetricType(int)}. If no
+         *     "semanticSearch" is called for embedding_index and metric in the query, this
+         *     function will return an empty list. If multiple "semanticSearch"s are called for
+         *     the same embedding_index and metric, this function will return a list of their
+         *     merged scores.
+         *     <p>Example: `this.matchedSemanticScores(getEmbeddingParameter(0), "COSINE")` will
+         *     return a list of matched scores within the range of [0.5, 1], if
+         *     `semanticSearch(getEmbeddingParameter(0), 0.5, 1, "COSINE")` is called in the
+         *     query expression.
+         * </ul>
+         *
+         * <p>Property-value-based functions can be called via the function of
+         * getScorableProperty(schemaType, propertyPath)
+         *
+         * <ul>
+         *     <li>In order to use this function, ScorablePropertyRanking feature must be enabled
+         *     via {@link SearchSpec.Builder#setScorablePropertyRankingEnabled(boolean)}.
+         *     <li>Param 'schemaType' must be a valid AppSearch SchemaType otherwise an error is
+         *     returned.
+         *     <li>Param 'propertyPath' must be valid and scorable otherwise an error is returned.
+         *     It is considered scorable when:
+         *     <ul>
+         *         <li>It is to a property that is set to be enabled for scoring, or that
+         *         </li>
+         *         <li>
+         *             It points to a scorable property of nested schema types.
+         *         </li>
+         *     </ul>
+         *     <li>This function returns a list double values for the matched documents.
+         *     <ul>
+         *         <li>If the matched document's schema is different from 'schemaType', or the
+         *         property under the 'propertyPath' holds no element, an empty list is returned.
+         *         </li>
+         *     </ul>
+         *     <li>Some examples below:
+         *     <p>Suppose that there are two schemas: 'Gmail' and 'Person'. 'Gmail' schema has a
+         *     property 'recipient' with schema type 'Person'.
+         *     In the advanced ranking expression, you can have:
+         *     <ul>
+         *         <li> "sum(getScorableProperty('Gmail', 'viewTimes'))"
+         *         <li> "maxOrDefault(getScorableProperty('Person', 'income'), 0)"
+         *         <li> "sum(getScorableProperty('Gmail', 'recipient.income'))"
+         *         <li> "this.documentScore() + sum(getScorableProperty('Gmail', 'viewTimes'))"
+         *     </ul>
+         * </ul>
+         *
+         * <p>The following functions are provided for enhanced list manipulation.
+         * <ul>
+         *   <li>minOrDefault(V, default_score)
+         *     <p>Returns the minimum value in the input list V or the default_score if the list is
+         *     empty.
+         *     <p>Example: "minOrDefault(this.matchedSemanticScores(getEmbeddingParameter(0)), 10)"
+         *     will return the minimum matched semantic scores or 10 if there is no matched score
+         *     for the current document.
+         *     <p>This function requires the feature
+         *     {@link Features#SEARCH_SPEC_RANKING_FUNCTION_MAX_MIN_OR_DEFAULT}.
+         *   <li>maxOrDefault(V, default_score)
+         *     <p>Returns the maximum value in the input list V or the default_score if the list is
+         *     empty.
+         *     <p>Example: "maxOrDefault(this.matchedSemanticScores(getEmbeddingParameter(0)), -10)"
+         *     will return the maximum matched semantic scores or -10 if there is no matched score
+         *     for the current document.
+         *     <p>This function requires the feature
+         *     {@link Features#SEARCH_SPEC_RANKING_FUNCTION_MAX_MIN_OR_DEFAULT}.
+         *   <li>filterByRange(V, low, high)
+         *     <p>Returns a sublist of V that only contains the elements that fall within the
+         *     specified range [low, high].
+         *     <p>Example: "filterByRange(this.matchedSemanticScores(getEmbeddingParameter(0)),
+         *     0, 1)" will return a list of matched semantic scores that are between 0 and 1,
+         *     inclusive.
+         *     <p>This function requires the feature
+         *     {@link Features#SEARCH_SPEC_RANKING_FUNCTION_FILTER_BY_RANGE}.
          * </ul>
          *
          * <p>Some errors may occur when using advanced ranking.
+         *
+         * <p>Syntax Error: the expression violates the syntax of the advanced ranking language.
+         * Below are some examples.
          * <ul>
-         *     <li>Syntax Error: the expression violates the syntax of the advanced ranking
-         *     language, such as unbalanced parenthesis.
-         *     <li>Type Error: the expression fails a static type check, such as getting the wrong
-         *     number of arguments for a function.
-         *     <li>Evaluation Error: an error occurred while evaluating the value of the
-         *     expression, such as getting a non-finite value in the middle of evaluation.
-         *     Expressions like "1 / 0" and "log(0) fall into this category.
+         *     <li>"1 + " - missing operand
+         *     <li>"2 * (1 + 2))" - unbalanced parenthesis
+         *     <li>"2 ^ 3" - unknown operator
+         * </ul>
+         *
+         * <p>Type Error: the expression fails a static type check. Below are some examples.
+         * <ul>
+         *     <li>"sin(2, 3)" - wrong number of arguments for the sin function
+         *     <li>"this.childrenRankingSignals() + 1" - cannot add a list with a number
+         *     <li>"this.propertyWeights()" - the final type of the overall expression cannot be
+         *     a list, which can be fixed by "max(this.propertyWeights())"
+         *     <li>"abs(this.propertyWeights())" - the abs function does not support list type
+         *     arguments
+         *     <li>"print(2)" - unknown function
+         * </ul>
+         *
+         * <p>Evaluation Error: an error occurred while evaluating the value of the expression.
+         * Below are some examples.
+         * <ul>
+         *     <li>"1 / 0", "log(0)", "1 + sqrt(-1)" - getting a non-finite value in the middle
+         *     of evaluation
+         *     <li>"this.usageCount(1 + 0.5)" - expect the argument to be an integer. Note that
+         *     this is not a type error and "this.usageCount(1.5 + 1/2)" can succeed without any
+         *     issues
+         *     <li>"this.documentScore()" - in case of an IO error, this will be an evaluation error
          * </ul>
          *
          * <p>Syntax errors and type errors will fail the entire search and will cause
-         * {@link SearchResults#getNextPageAsync()} to throw an {@link AppSearchException}.
+         * {@link SearchResults#getNextPageAsync} to throw an {@link AppSearchException} with the
+         * result code of {@link AppSearchResult#RESULT_INVALID_ARGUMENT}.
          * <p>Evaluation errors will result in the offending documents receiving the default score.
          * For {@link #ORDER_DESCENDING}, the default score will be 0, for
          * {@link #ORDER_ASCENDING} the default score will be infinity.
          *
          * @param advancedRankingExpression a non-empty string representing the ranking expression.
          */
-        @NonNull
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SEARCH_SPEC_ADVANCED_RANKING_EXPRESSION)
-        // @exportToFramework:endStrip()
-        public Builder setRankingStrategy(@NonNull String advancedRankingExpression) {
+        public @NonNull Builder setRankingStrategy(@NonNull String advancedRankingExpression) {
             Preconditions.checkStringNotEmpty(advancedRankingExpression);
             resetIfBuilt();
             mRankingStrategy = RANKING_STRATEGY_ADVANCED_RANKING_EXPRESSION;
@@ -790,13 +1503,112 @@ public final class SearchSpec {
         }
 
         /**
-         * Indicates the order of returned search results, the default is
+         * Adds informational ranking expressions to be evaluated for each document in the search
+         * result. The values of these expressions will be returned to the caller via
+         * {@link SearchResult#getInformationalRankingSignals()}. These expressions are purely for
+         * the caller to retrieve additional information about the result and have no effect on
+         * ranking.
+         *
+         * <p>The syntax is exactly the same as specified in
+         * {@link SearchSpec.Builder#setRankingStrategy(String)}.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS)
+        @FlaggedApi(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+        public @NonNull Builder addInformationalRankingExpressions(
+                @NonNull String... informationalRankingExpressions) {
+            Preconditions.checkNotNull(informationalRankingExpressions);
+            resetIfBuilt();
+            return addInformationalRankingExpressions(
+                    Arrays.asList(informationalRankingExpressions));
+        }
+
+        /**
+         * Adds informational ranking expressions to be evaluated for each document in the search
+         * result. The values of these expressions will be returned to the caller via
+         * {@link SearchResult#getInformationalRankingSignals()}. These expressions are purely for
+         * the caller to retrieve additional information about the result and have no effect on
+         * ranking.
+         *
+         * <p>The syntax is exactly the same as specified in
+         * {@link SearchSpec.Builder#setRankingStrategy(String)}.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_ADD_INFORMATIONAL_RANKING_EXPRESSIONS)
+        @FlaggedApi(Flags.FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS)
+        public @NonNull Builder addInformationalRankingExpressions(
+                @NonNull Collection<String> informationalRankingExpressions) {
+            Preconditions.checkNotNull(informationalRankingExpressions);
+            resetIfBuilt();
+            mInformationalRankingExpressions.addAll(informationalRankingExpressions);
+            return this;
+        }
+
+        /** Clears all informational ranking expressions. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearInformationalRankingExpressions() {
+            resetIfBuilt();
+            mInformationalRankingExpressions.clear();
+            return this;
+        }
+
+        /**
+         * Sets an optional log tag to indicate the source of this search.
+         *
+         * <p>Some AppSearch implementations may log a hash of this tag using statsd. This tag
+         * may be used for tracing performance issues and crashes to a component of an app.
+         *
+         * <p>Call this method and give a unique value if you want to distinguish this search
+         * scenario with other search scenarios during performance analysis.
+         *
+         * <p>Under no circumstances will AppSearch log the raw String value using statsd, but it
+         * will be provided as-is to custom {@code AppSearchLogger} implementations you have
+         * registered in your app.
+         *
+         * @param searchSourceLogTag A String to indicate the source caller of this search. It is
+         *                           used to label the search statsd for performance analysis. It
+         *                           is not the tag we are using in {@link android.util.Log}. The
+         *                           length of the teg should between 1 and 100.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_SET_SEARCH_SOURCE_LOG_TAG)
+        public @NonNull Builder setSearchSourceLogTag(@NonNull String searchSourceLogTag) {
+            Preconditions.checkStringNotEmpty(searchSourceLogTag);
+            Preconditions.checkArgument(searchSourceLogTag.length() <= 100,
+                    "The maximum supported tag length is 100. This tag is too long: "
+                            + searchSourceLogTag.length());
+            resetIfBuilt();
+            mSearchSourceLogTag = searchSourceLogTag;
+            return this;
+        }
+
+        /** Clears the log tag that indicates the source of this search. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearSearchSourceLogTag() {
+            resetIfBuilt();
+            mSearchSourceLogTag = null;
+            return this;
+        }
+
+        /**
+         * Sets the order of returned search results, the default is
          * {@link #ORDER_DESCENDING}, meaning that results with higher scores come first.
          *
          * <p>This order field will be ignored if RankingStrategy = {@code RANKING_STRATEGY_NONE}.
          */
-        @NonNull
-        public Builder setOrder(@Order int order) {
+        @CanIgnoreReturnValue
+        public @NonNull Builder setOrder(@Order int order) {
             Preconditions.checkArgumentInRange(order, ORDER_DESCENDING, ORDER_ASCENDING,
                     "Result ranking order");
             resetIfBuilt();
@@ -805,8 +1617,8 @@ public final class SearchSpec {
         }
 
         /**
-         * Only the first {@code snippetCount} documents based on the ranking strategy
-         * will have snippet information provided.
+         * Sets the {@code snippetCount} such that the first {@code snippetCount} documents based
+         * on the ranking strategy will have snippet information provided.
          *
          * <p>The list returned from {@link SearchResult#getMatchInfos} will contain at most this
          * many entries.
@@ -814,8 +1626,8 @@ public final class SearchSpec {
          * <p>If set to 0 (default), snippeting is disabled and the list returned from
          * {@link SearchResult#getMatchInfos} will be empty.
          */
-        @NonNull
-        public SearchSpec.Builder setSnippetCount(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder setSnippetCount(
                 @IntRange(from = 0, to = MAX_SNIPPET_COUNT) int snippetCount) {
             Preconditions.checkArgumentInRange(snippetCount, 0, MAX_SNIPPET_COUNT, "snippetCount");
             resetIfBuilt();
@@ -834,8 +1646,8 @@ public final class SearchSpec {
          * <p>The default behavior is to snippet all matches a property contains, up to the maximum
          * value of 10,000.
          */
-        @NonNull
-        public SearchSpec.Builder setSnippetCountPerProperty(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder setSnippetCountPerProperty(
                 @IntRange(from = 0, to = MAX_SNIPPET_PER_PROPERTY_COUNT)
                 int snippetCountPerProperty) {
             Preconditions.checkArgumentInRange(snippetCountPerProperty,
@@ -851,19 +1663,42 @@ public final class SearchSpec {
          * {@code maxSnippetSize/2} bytes after the middle of the matching token. It respects
          * token boundaries, therefore the returned window may be smaller than requested.
          *
-         * <p> Setting {@code maxSnippetSize} to 0 will disable windowing and an empty string will
+         * <p> Setting {@code maxSnippetSize} to 0 will disable windowing and an empty String will
          * be returned. If matches enabled is also set to false, then snippeting is disabled.
          *
-         * <p>Ex. {@code maxSnippetSize} = 16. "foo bar baz bat rat" with a query of "baz" will
-         * return a window of "bar baz bat" which is only 11 bytes long.
+         * <p>For example, {@code maxSnippetSize} = 16. "foo bar baz bat rat" with a query of "baz"
+         * will return a window of "bar baz bat" which is only 11 bytes long.
          */
-        @NonNull
-        public SearchSpec.Builder setMaxSnippetSize(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder setMaxSnippetSize(
                 @IntRange(from = 0, to = MAX_SNIPPET_SIZE_LIMIT) int maxSnippetSize) {
             Preconditions.checkArgumentInRange(
                     maxSnippetSize, 0, MAX_SNIPPET_SIZE_LIMIT, "maxSnippetSize");
             resetIfBuilt();
             mMaxSnippetSize = maxSnippetSize;
+            return this;
+        }
+
+        /**
+         * Sets whether to retrieve embedding match infos as a part of
+         * {@link SearchResult#getMatchInfos()}.
+         *
+         * <p>Note that this does not modify the snippet count fields, and any retrieved
+         * embedding match infos also count toward the limit set in
+         * {@link SearchSpec#getSnippetCount()} and
+         * {@link SearchSpec#getSnippetCountPerProperty()}.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_EMBEDDING_MATCH_INFO)
+        @FlaggedApi(Flags.FLAG_ENABLE_EMBEDDING_MATCH_INFO)
+        @ExperimentalAppSearchApi
+        @SuppressLint("MissingGetterMatchingBuilder")
+        public @NonNull Builder setRetrieveEmbeddingMatchInfos(
+                boolean retrieveEmbeddingMatchInfos) {
+            resetIfBuilt();
+            mRetrieveEmbeddingMatchInfos = retrieveEmbeddingMatchInfos;
             return this;
         }
 
@@ -878,8 +1713,8 @@ public final class SearchSpec {
          * @param schema a string corresponding to the schema to add projections to.
          * @param propertyPaths the projections to add.
          */
-        @NonNull
-        public SearchSpec.Builder addProjection(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder addProjection(
                 @NonNull String schema, @NonNull Collection<String> propertyPaths) {
             Preconditions.checkNotNull(schema);
             Preconditions.checkNotNull(propertyPaths);
@@ -903,9 +1738,8 @@ public final class SearchSpec {
          * results of that type will be retrieved.
          *
          * <p>If property path is added for the
-         * {@link SearchSpec#PROJECTION_SCHEMA_TYPE_WILDCARD}, then those property paths will
-         * apply to all results, excepting any types that have their own, specific property paths
-         * set.
+         * {@link SearchSpec#SCHEMA_TYPE_WILDCARD}, then those property paths will apply to all
+         * results, excepting any types that have their own, specific property paths set.
          *
          * <p>Suppose the following document is in the index.
          * <pre>{@code
@@ -956,8 +1790,8 @@ public final class SearchSpec {
          * @param schema a string corresponding to the schema to add projections to.
          * @param propertyPaths the projections to add.
          */
-        @NonNull
-        public SearchSpec.Builder addProjectionPaths(
+        @CanIgnoreReturnValue
+        public @NonNull SearchSpec.Builder addProjectionPaths(
                 @NonNull String schema, @NonNull Collection<PropertyPath> propertyPaths) {
             Preconditions.checkNotNull(schema);
             Preconditions.checkNotNull(propertyPaths);
@@ -981,10 +1815,11 @@ public final class SearchSpec {
          *                      add projections to.
          * @param propertyPaths the projections to add.
          */
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")  // Projections available from getProjections
-        @NonNull
-        public SearchSpec.Builder addProjectionsForDocumentClass(
-                @NonNull Class<?> documentClass, @NonNull Collection<String> propertyPaths)
+        public @NonNull SearchSpec.Builder addProjectionsForDocumentClass(
+                @NonNull java.lang.Class<?> documentClass,
+                @NonNull Collection<String> propertyPaths)
                 throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
@@ -1001,10 +1836,11 @@ public final class SearchSpec {
          *                      add projections to.
          * @param propertyPaths the projections to add.
          */
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")  // Projections available from getProjections
-        @NonNull
-        public SearchSpec.Builder addProjectionPathsForDocumentClass(
-                @NonNull Class<?> documentClass, @NonNull Collection<PropertyPath> propertyPaths)
+        public @NonNull SearchSpec.Builder addProjectionPathsForDocumentClass(
+                @NonNull java.lang.Class<?> documentClass,
+                @NonNull Collection<PropertyPath> propertyPaths)
                 throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
@@ -1016,17 +1852,27 @@ public final class SearchSpec {
         }
 // @exportToFramework:endStrip()
 
+        /** Clears the projections for all schema types. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearProjections() {
+            resetIfBuilt();
+            mProjectionTypePropertyMasks.clear();
+            return this;
+        }
+
         /**
          * Sets the maximum number of results to return for each group, where groups are defined
          * by grouping type.
          *
-         * <p>Calling this method will override any previous calls. So calling
-         * setResultGrouping(GROUPING_TYPE_PER_PACKAGE, 7) and then calling
-         * setResultGrouping(GROUPING_TYPE_PER_PACKAGE, 2) will result in only the latter, a
-         * limit of two results per package, being applied. Or calling setResultGrouping
-         * (GROUPING_TYPE_PER_PACKAGE, 1) and then calling setResultGrouping
-         * (GROUPING_TYPE_PER_PACKAGE | GROUPING_PER_NAMESPACE, 5) will result in five results
-         * per package per namespace.
+         * <p>Calling this method will override any previous calls. So calling {@code
+         * setResultGrouping(GROUPING_TYPE_PER_PACKAGE, 7)} and then calling {@code
+         * setResultGrouping(GROUPING_TYPE_PER_PACKAGE, 2)} will result in only the latter, a limit
+         * of two results per package, being applied. Or calling {@code setResultGrouping
+         * (GROUPING_TYPE_PER_PACKAGE, 1)} and then calling {@code setResultGrouping
+         * (GROUPING_TYPE_PER_PACKAGE | GROUPING_PER_NAMESPACE, 5)} will result in five results per
+         * package per namespace.
          *
          * @param groupingTypeFlags One or more combination of grouping types.
          * @param limit             Number of results to return per {@code groupingTypeFlags}.
@@ -1034,14 +1880,25 @@ public final class SearchSpec {
          */
         // Individual parameters available from getResultGroupingTypeFlags and
         // getResultGroupingLimit
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder setResultGrouping(@GroupingType int groupingTypeFlags, int limit) {
+        public @NonNull Builder setResultGrouping(@GroupingType int groupingTypeFlags, int limit) {
             Preconditions.checkState(
                     groupingTypeFlags != 0, "Result grouping type cannot be zero.");
             resetIfBuilt();
             mGroupingTypeFlags = groupingTypeFlags;
             mGroupingLimit = limit;
+            return this;
+        }
+
+        /** Clears the result grouping and limit. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearResultGrouping() {
+            resetIfBuilt();
+            mGroupingTypeFlags = 0;
+            mGroupingLimit = 0;
             return this;
         }
 
@@ -1075,13 +1932,11 @@ public final class SearchSpec {
          *                            weight to set for that property.
          * @throws IllegalArgumentException if a weight is equal to or less than 0.0.
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SEARCH_SPEC_PROPERTY_WEIGHTS)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public SearchSpec.Builder setPropertyWeights(@NonNull String schemaType,
+        public @NonNull SearchSpec.Builder setPropertyWeights(@NonNull String schemaType,
                 @NonNull Map<String, Double> propertyPathWeights) {
             Preconditions.checkNotNull(schemaType);
             Preconditions.checkNotNull(propertyPathWeights);
@@ -1101,6 +1956,16 @@ public final class SearchSpec {
             return this;
         }
 
+        /** Clears the property weights for all schema types. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearPropertyWeights() {
+            resetIfBuilt();
+            mTypePropertyWeights.clear();
+            return this;
+        }
+
         /**
          * Specifies which documents to join with, and how to join.
          *
@@ -1109,15 +1974,23 @@ public final class SearchSpec {
          *
          * @param joinSpec a specification on how to perform the Join operation.
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.JOIN_SPEC_AND_QUALIFIED_ID)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public Builder setJoinSpec(@NonNull JoinSpec joinSpec) {
+        public @NonNull Builder setJoinSpec(@NonNull JoinSpec joinSpec) {
             resetIfBuilt();
             mJoinSpec = Preconditions.checkNotNull(joinSpec);
+            return this;
+        }
+
+        /** Clears the {@link JoinSpec}. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearJoinSpec() {
+            resetIfBuilt();
+            mJoinSpec = null;
             return this;
         }
 
@@ -1151,13 +2024,11 @@ public final class SearchSpec {
          *                            weight to set for that property.
          * @throws IllegalArgumentException if a weight is equal to or less than 0.0.
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SEARCH_SPEC_PROPERTY_WEIGHTS)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public SearchSpec.Builder setPropertyWeightPaths(@NonNull String schemaType,
+        public @NonNull SearchSpec.Builder setPropertyWeightPaths(@NonNull String schemaType,
                 @NonNull Map<PropertyPath, Double> propertyPathWeights) {
             Preconditions.checkNotNull(propertyPathWeights);
 
@@ -1206,13 +2077,13 @@ public final class SearchSpec {
          *                            classpath
          * @throws IllegalArgumentException if a weight is equal to or less than 0.0.
          */
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SEARCH_SPEC_PROPERTY_WEIGHTS)
-        @NonNull
-        public SearchSpec.Builder setPropertyWeightsForDocumentClass(
-                @NonNull Class<?> documentClass,
+        public @NonNull SearchSpec.Builder setPropertyWeightsForDocumentClass(
+                @NonNull java.lang.Class<?> documentClass,
                 @NonNull Map<String, Double> propertyPathWeights) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
@@ -1253,13 +2124,13 @@ public final class SearchSpec {
          *                            classpath
          * @throws IllegalArgumentException if a weight is equal to or less than 0.0.
          */
+        @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SEARCH_SPEC_PROPERTY_WEIGHTS)
-        @NonNull
-        public SearchSpec.Builder setPropertyWeightPathsForDocumentClass(
-                @NonNull Class<?> documentClass,
+        public @NonNull SearchSpec.Builder setPropertyWeightPathsForDocumentClass(
+                @NonNull java.lang.Class<?> documentClass,
                 @NonNull Map<PropertyPath, Double> propertyPathWeights) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
@@ -1267,10 +2138,132 @@ public final class SearchSpec {
             return setPropertyWeightPaths(factory.getSchemaName(), propertyPathWeights);
         }
 // @exportToFramework:endStrip()
+        /**
+         * Adds an embedding search to {@link SearchSpec} Entry, which will be referred in the
+         * query expression and the ranking expression for embedding search.
+         *
+         * @see AppSearchSession#search
+         * @see SearchSpec.Builder#setRankingStrategy(String)
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        public @NonNull Builder addEmbeddingParameters(
+                @NonNull EmbeddingVector... searchEmbeddings) {
+            Preconditions.checkNotNull(searchEmbeddings);
+            resetIfBuilt();
+            return addEmbeddingParameters(Arrays.asList(searchEmbeddings));
+        }
 
         /**
-         * Sets the {@link Features#NUMERIC_SEARCH} feature as enabled/disabled according to the
-         * enabled parameter.
+         * Adds an embedding search to {@link SearchSpec} Entry, which will be referred in the
+         * query expression and the ranking expression for embedding search.
+         *
+         * @see AppSearchSession#search
+         * @see SearchSpec.Builder#setRankingStrategy(String)
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        public @NonNull Builder addEmbeddingParameters(
+                @NonNull Collection<EmbeddingVector> searchEmbeddings) {
+            Preconditions.checkNotNull(searchEmbeddings);
+            resetIfBuilt();
+            mEmbeddingParameters.addAll(searchEmbeddings);
+            return this;
+        }
+
+        /** Clears the embedding parameters. */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearEmbeddingParameters() {
+            resetIfBuilt();
+            mEmbeddingParameters.clear();
+            return this;
+        }
+
+        /**
+         * Sets the default embedding metric type used for embedding search
+         * (see {@link AppSearchSession#search}) and ranking
+         * (see {@link SearchSpec.Builder#setRankingStrategy(String)}).
+         *
+         * <p>If this method is not called, the default embedding search metric type is
+         * {@link SearchSpec#EMBEDDING_SEARCH_METRIC_TYPE_COSINE}. Metrics specified within
+         * "semanticSearch" or "matchedSemanticScores" functions in search/ranking expressions
+         * will override this default.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        public @NonNull Builder setDefaultEmbeddingSearchMetricType(
+                @EmbeddingSearchMetricType int defaultEmbeddingSearchMetricType) {
+            Preconditions.checkArgumentInRange(defaultEmbeddingSearchMetricType,
+                    EMBEDDING_SEARCH_METRIC_TYPE_COSINE,
+                    EMBEDDING_SEARCH_METRIC_TYPE_EUCLIDEAN, "Embedding search metric type");
+            resetIfBuilt();
+            mDefaultEmbeddingSearchMetricType = defaultEmbeddingSearchMetricType;
+            return this;
+        }
+
+        /**
+         * Adds Strings to the list of String parameters that can be referenced in the query through
+         * the "getSearchStringParameter({index})" function.
+         *
+         * @see AppSearchSession#search
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+        public @NonNull Builder addSearchStringParameters(
+                @NonNull String... searchStringParameters) {
+            Preconditions.checkNotNull(searchStringParameters);
+            resetIfBuilt();
+            return addSearchStringParameters(Arrays.asList(searchStringParameters));
+        }
+
+        /**
+         * Adds Strings to the list of String parameters that can be referenced in the query through
+         * the "getSearchStringParameter({index})" function.
+         *
+         * @see AppSearchSession#search
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+        @FlaggedApi(Flags.FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS)
+        public @NonNull Builder addSearchStringParameters(
+                @NonNull List<String> searchStringParameters) {
+            Preconditions.checkNotNull(searchStringParameters);
+            resetIfBuilt();
+            mSearchStringParameters.addAll(searchStringParameters);
+            return this;
+        }
+
+        /**
+         * Clears the list of String parameters that can be referenced in the query through the
+         * "getSearchStringParameter({index})" function.
+         */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearSearchStringParameters() {
+            resetIfBuilt();
+            mSearchStringParameters.clear();
+            return this;
+        }
+
+        /**
+         * Sets the NUMERIC_SEARCH feature as enabled/disabled according to the enabled parameter.
          *
          * @param enabled Enables the feature if true, otherwise disables it.
          *
@@ -1278,20 +2271,17 @@ public final class SearchSpec {
          * {@link AppSearchSchema.LongPropertyConfig#INDEXING_TYPE_RANGE} and all other numeric
          * querying features.
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.NUMERIC_SEARCH)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public Builder setNumericSearchEnabled(boolean enabled) {
-            modifyEnabledFeature(Features.NUMERIC_SEARCH, enabled);
+        public @NonNull Builder setNumericSearchEnabled(boolean enabled) {
+            modifyEnabledFeature(FeatureConstants.NUMERIC_SEARCH, enabled);
             return this;
         }
 
         /**
-         * Sets the {@link Features#VERBATIM_SEARCH} feature as enabled/disabled according to the
-         * enabled parameter.
+         * Sets the VERBATIM_SEARCH feature as enabled/disabled according to the enabled parameter.
          *
          * @param enabled Enables the feature if true, otherwise disables it
          *
@@ -1300,23 +2290,21 @@ public final class SearchSpec {
          * verbatim search features within the query language that allows clients to search
          * using the verbatim string operator.
          *
-         * <p>Ex. The verbatim string operator '"foo/bar" OR baz' will ensure that 'foo/bar' is
-         * treated as a single 'verbatim' token.
+         * <p>For example, The verbatim string operator '"foo/bar" OR baz' will ensure that
+         * 'foo/bar' is treated as a single 'verbatim' token.
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.VERBATIM_SEARCH)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public Builder setVerbatimSearchEnabled(boolean enabled) {
-            modifyEnabledFeature(Features.VERBATIM_SEARCH, enabled);
+        public @NonNull Builder setVerbatimSearchEnabled(boolean enabled) {
+            modifyEnabledFeature(FeatureConstants.VERBATIM_SEARCH, enabled);
             return this;
         }
 
         /**
-         * Sets the {@link Features#LIST_FILTER_QUERY_LANGUAGE} feature as enabled/disabled
-         * according to the enabled parameter.
+         * Sets the LIST_FILTER_QUERY_LANGUAGE feature as enabled/disabled according to the
+         * enabled parameter.
          *
          * @param enabled Enables the feature if true, otherwise disables it.
          *
@@ -1331,7 +2319,7 @@ public final class SearchSpec {
          * <p>The newly added custom functions covered by this feature are:
          * <ul>
          * <li>createList(String...)</li>
-         * <li>termSearch(String, List<String>)</li>
+         * <li>termSearch(String, {@code List<String>})</li>
          * </ul>
          *
          * <p>createList takes a variable number of strings and returns a list of strings.
@@ -1343,14 +2331,71 @@ public final class SearchSpec {
          * for example, the query "(subject:foo OR body:foo) (subject:bar OR body:bar)"
          * could be rewritten as "termSearch(\"foo bar\", createList(\"subject\", \"bar\"))"
          */
-        // @exportToFramework:startStrip()
+        @CanIgnoreReturnValue
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.LIST_FILTER_QUERY_LANGUAGE)
-        // @exportToFramework:endStrip()
-        @NonNull
-        public Builder setListFilterQueryLanguageEnabled(boolean enabled) {
-            modifyEnabledFeature(Features.LIST_FILTER_QUERY_LANGUAGE, enabled);
+        public @NonNull Builder setListFilterQueryLanguageEnabled(boolean enabled) {
+            modifyEnabledFeature(FeatureConstants.LIST_FILTER_QUERY_LANGUAGE, enabled);
+            return this;
+        }
+
+        /**
+         * Sets the LIST_FILTER_HAS_PROPERTY_FUNCTION feature as enabled/disabled according to
+         * the enabled parameter.
+         *
+         * @param enabled Enables the feature if true, otherwise disables it
+         *
+         * <p>If disabled, disallows the use of the "hasProperty" function. See
+         * {@link AppSearchSession#search} for more details about the function.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.LIST_FILTER_HAS_PROPERTY_FUNCTION)
+        @FlaggedApi(Flags.FLAG_ENABLE_LIST_FILTER_HAS_PROPERTY_FUNCTION)
+        public @NonNull Builder setListFilterHasPropertyFunctionEnabled(boolean enabled) {
+            modifyEnabledFeature(FeatureConstants.LIST_FILTER_HAS_PROPERTY_FUNCTION, enabled);
+            return this;
+        }
+
+        /**
+         * Sets the LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION feature as enabled/disabled
+         * according to the enabled parameter.
+         *
+         * <p>If not enabled, the use of the "matchScoreExpression" function is disallowed. See
+         * {@link AppSearchSession#search} for more details about the function.
+         *
+         * @param enabled Enables the feature if true, otherwise disables it
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION)
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION)
+        public @NonNull Builder setListFilterMatchScoreExpressionFunctionEnabled(boolean enabled) {
+            modifyEnabledFeature(
+                    FeatureConstants.LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION, enabled);
+            return this;
+        }
+
+        /**
+         * Sets the ScorablePropertyRanking feature as enabled or disabled.
+         *
+         * <p>If enabled, 'getScorableProperty' function can be used in the advanced ranking
+         * expression. For details, see {@link SearchSpec.Builder#setRankingStrategy(String)}.
+         *
+         * @param enabled Enables the feature if true, otherwise disables it.
+         */
+        @CanIgnoreReturnValue
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SCHEMA_SCORABLE_PROPERTY_CONFIG)
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_SCORABLE_PROPERTY)
+        public @NonNull Builder setScorablePropertyRankingEnabled(boolean enabled) {
+            modifyEnabledFeature(FeatureConstants.SCHEMA_SCORABLE_PROPERTY_CONFIG, enabled);
             return this;
         }
 
@@ -1368,9 +2413,7 @@ public final class SearchSpec {
          * {@link #RANKING_STRATEGY_JOIN_AGGREGATE_SCORE}.
          *
          */
-        @NonNull
-        public SearchSpec build() {
-            Bundle bundle = new Bundle();
+        public @NonNull SearchSpec build() {
             if (mJoinSpec != null) {
                 if (mRankingStrategy != RANKING_STRATEGY_JOIN_AGGREGATE_SCORE
                         && mJoinSpec.getAggregationScoringStrategy()
@@ -1379,43 +2422,42 @@ public final class SearchSpec {
                             + "the nested JoinSpec, but ranking strategy is not "
                             + "RANKING_STRATEGY_JOIN_AGGREGATE_SCORE");
                 }
-                bundle.putBundle(JOIN_SPEC, mJoinSpec.getBundle());
             } else if (mRankingStrategy == RANKING_STRATEGY_JOIN_AGGREGATE_SCORE) {
                 throw new IllegalStateException("Attempting to rank based on joined documents, but "
                         + "no JoinSpec provided");
             }
-            bundle.putStringArrayList(SCHEMA_FIELD, mSchemas);
-            bundle.putStringArrayList(NAMESPACE_FIELD, mNamespaces);
-            bundle.putStringArrayList(PACKAGE_NAME_FIELD, mPackageNames);
-            bundle.putStringArrayList(ENABLED_FEATURES_FIELD, new ArrayList<>(mEnabledFeatures));
-            bundle.putBundle(PROJECTION_TYPE_PROPERTY_PATHS_FIELD, mProjectionTypePropertyMasks);
-            bundle.putInt(NUM_PER_PAGE_FIELD, mResultCountPerPage);
-            bundle.putInt(TERM_MATCH_TYPE_FIELD, mTermMatchType);
-            bundle.putInt(SNIPPET_COUNT_FIELD, mSnippetCount);
-            bundle.putInt(SNIPPET_COUNT_PER_PROPERTY_FIELD, mSnippetCountPerProperty);
-            bundle.putInt(MAX_SNIPPET_FIELD, mMaxSnippetSize);
-            bundle.putInt(RANKING_STRATEGY_FIELD, mRankingStrategy);
-            bundle.putInt(ORDER_FIELD, mOrder);
-            bundle.putInt(RESULT_GROUPING_TYPE_FLAGS, mGroupingTypeFlags);
-            bundle.putInt(RESULT_GROUPING_LIMIT, mGroupingLimit);
             if (!mTypePropertyWeights.isEmpty()
-                    && RANKING_STRATEGY_RELEVANCE_SCORE != mRankingStrategy) {
+                    && mRankingStrategy != RANKING_STRATEGY_RELEVANCE_SCORE
+                    && mRankingStrategy != RANKING_STRATEGY_ADVANCED_RANKING_EXPRESSION) {
                 throw new IllegalArgumentException("Property weights are only compatible with the "
-                        + "RANKING_STRATEGY_RELEVANCE_SCORE ranking strategy.");
+                        + "RANKING_STRATEGY_RELEVANCE_SCORE and "
+                        + "RANKING_STRATEGY_ADVANCED_RANKING_EXPRESSION ranking strategies.");
             }
-            bundle.putBundle(TYPE_PROPERTY_WEIGHTS_FIELD, mTypePropertyWeights);
-            bundle.putString(ADVANCED_RANKING_EXPRESSION, mAdvancedRankingExpression);
+
             mBuilt = true;
-            return new SearchSpec(bundle);
+            return new SearchSpec(mTermMatchType, mSchemas, mNamespaces,
+                    mTypePropertyFilters, mPackageNames, mResultCountPerPage,
+                    mRankingStrategy, mOrder, mSnippetCount, mSnippetCountPerProperty,
+                    mMaxSnippetSize, mProjectionTypePropertyMasks, mGroupingTypeFlags,
+                    mGroupingLimit, mTypePropertyWeights, mJoinSpec, mAdvancedRankingExpression,
+                    new ArrayList<>(mEnabledFeatures), mSearchSourceLogTag, mEmbeddingParameters,
+                    mDefaultEmbeddingSearchMetricType, mInformationalRankingExpressions,
+                    mSearchStringParameters, mFilterDocumentIds, mRetrieveEmbeddingMatchInfos);
         }
 
         private void resetIfBuilt() {
             if (mBuilt) {
                 mSchemas = new ArrayList<>(mSchemas);
+                mTypePropertyFilters = BundleUtil.deepCopy(mTypePropertyFilters);
                 mNamespaces = new ArrayList<>(mNamespaces);
                 mPackageNames = new ArrayList<>(mPackageNames);
                 mProjectionTypePropertyMasks = BundleUtil.deepCopy(mProjectionTypePropertyMasks);
                 mTypePropertyWeights = BundleUtil.deepCopy(mTypePropertyWeights);
+                mEmbeddingParameters = new ArrayList<>(mEmbeddingParameters);
+                mInformationalRankingExpressions = new ArrayList<>(
+                        mInformationalRankingExpressions);
+                mSearchStringParameters = new ArrayList<>(mSearchStringParameters);
+                mFilterDocumentIds = new ArrayList<>(mFilterDocumentIds);
                 mBuilt = false;
             }
         }

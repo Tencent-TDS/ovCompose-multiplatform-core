@@ -21,10 +21,11 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.google.android.wearable.compat.WearableActivityController;
+
+import org.jspecify.annotations.Nullable;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -47,7 +48,9 @@ import java.io.PrintWriter;
  *     AmbientMode.AmbientController controller = AmbientMode.attachAmbientSupport(this);
  *     boolean isAmbient =  controller.isAmbient();
  * }</pre>
- * @deprecated please use {@link AmbientModeSupport} instead.
+ *
+ * @deprecated Use {@link AmbientLifecycleObserver} instead. These classes use lifecycle
+ * components instead, preventing the need to hook these events using fragments.
  */
 @SuppressWarnings("deprecation")
 @Deprecated
@@ -165,8 +168,7 @@ public final class AmbientMode extends android.app.Fragment {
                 }
             };
     AmbientDelegate mDelegate;
-    @Nullable
-    AmbientCallback mSuppliedCallback;
+    @Nullable AmbientCallback mSuppliedCallback;
     private AmbientController mController;
 
     /**

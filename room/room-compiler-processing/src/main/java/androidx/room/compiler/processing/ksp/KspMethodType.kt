@@ -19,6 +19,7 @@ package androidx.room.compiler.processing.ksp
 import androidx.room.compiler.processing.XMethodType
 import androidx.room.compiler.processing.XSuspendMethodType
 import androidx.room.compiler.processing.XType
+import androidx.room.compiler.processing.XTypeVariableType
 import com.squareup.javapoet.TypeVariableName
 
 internal sealed class KspMethodType(
@@ -26,16 +27,21 @@ internal sealed class KspMethodType(
     override val origin: KspMethodElement,
     containing: KspType?
 ) : KspExecutableType(env, origin, containing), XMethodType {
-    override val typeVariableNames: List<TypeVariableName> by lazy {
-        origin.declaration.typeParameters.map {
-            val typeParameterBounds = it.bounds.map {
-                it.asJTypeName(env.resolver)
-            }.toList().toTypedArray()
-            TypeVariableName.get(
-                it.name.asString(),
-                *typeParameterBounds
+
+    override val typeVariables: List<XTypeVariableType> by lazy {
+        origin.declaration.typeParameters.map { KspMethodTypeVariableType(env, it) }
+    }
+
+    @Deprecated(
+        "Use typeVariables property and convert to JavaPoet names.",
+        replaceWith =
+            ReplaceWith(
+                "typeVariables.map { it.asTypeName().toJavaPoet() }",
+                "androidx.room.compiler.codegen.toJavaPoet"
             )
-        }
+    )
+    override val typeVariableNames: List<TypeVariableName> by lazy {
+        typeVariables.map { it.asTypeName().java as TypeVariableName }
     }
 
     private class KspNormalMethodType(
@@ -44,10 +50,14 @@ internal sealed class KspMethodType(
         containing: KspType?
     ) : KspMethodType(env, origin, containing) {
         override val returnType: XType by lazy {
-            origin.declaration.returnKspType(
-                env = env,
-                containing = containing
-            )
+            origin.declaration
+                .returnKspType(env = env, containing = containing)
+                .copyWithScope(
+                    KSTypeVarianceResolverScope.MethodReturnType(
+                        method = origin,
+                        asMemberOf = containing
+                    )
+                )
         }
     }
 
@@ -63,23 +73,18 @@ internal sealed class KspMethodType(
         override fun getSuspendFunctionReturnType(): XType {
             // suspend functions work w/ continuation so it is always boxed
             return env.wrap(
-                ksType = origin.declaration.returnTypeAsMemberOf(
-                    ksType = containing?.ksType
-                ),
+                ksType = origin.declaration.returnTypeAsMemberOf(ksType = containing?.ksType),
                 allowPrimitives = false
             )
         }
     }
 
     companion object {
-        fun create(
-            env: KspProcessingEnv,
-            origin: KspMethodElement,
-            containing: KspType?
-        ) = if (origin.isSuspendFunction()) {
-            KspSuspendMethodType(env, origin, containing)
-        } else {
-            KspNormalMethodType(env, origin, containing)
-        }
+        fun create(env: KspProcessingEnv, origin: KspMethodElement, containing: KspType?) =
+            if (origin.isSuspendFunction()) {
+                KspSuspendMethodType(env, origin, containing)
+            } else {
+                KspNormalMethodType(env, origin, containing)
+            }
     }
 }

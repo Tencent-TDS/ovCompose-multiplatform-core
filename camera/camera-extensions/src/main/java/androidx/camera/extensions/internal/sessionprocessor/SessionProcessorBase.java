@@ -22,52 +22,71 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Pair;
 
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
-import androidx.camera.camera2.impl.Camera2ImplConfig;
-import androidx.camera.camera2.interop.Camera2CameraInfo;
-import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraXThreads;
 import androidx.camera.core.Logger;
+import androidx.camera.core.impl.AdapterCameraInfo.CameraOperation;
+import androidx.camera.core.impl.CameraInfoInternal;
 import androidx.camera.core.impl.DeferrableSurface;
-import androidx.camera.core.impl.OutputSurface;
+import androidx.camera.core.impl.OutputSurfaceConfiguration;
 import androidx.camera.core.impl.SessionConfig;
 import androidx.camera.core.impl.SessionProcessor;
 import androidx.camera.core.impl.SessionProcessorSurface;
 import androidx.camera.core.impl.utils.executor.CameraXExecutors;
+import androidx.camera.extensions.CameraExtensionsControl;
+import androidx.camera.extensions.CameraExtensionsInfo;
+import androidx.camera.extensions.ExtensionMode;
+import androidx.camera.extensions.internal.ExtensionsUtils;
+import androidx.camera.extensions.internal.RequestOptionConfig;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Base class for SessionProcessor implementation. It is responsible for creating image readers and
  * maintaining the {@link ImageProcessor} associated with the image reader.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-abstract class SessionProcessorBase implements SessionProcessor {
+abstract class SessionProcessorBase implements SessionProcessor, CameraExtensionsInfo,
+        CameraExtensionsControl {
     private static final String TAG = "SessionProcessorBase";
-    @NonNull
+    /**
+     * Unknown extension strength.
+     */
+    protected static final int EXTENSION_STRENGTH_UNKNOWN = -1;
     @GuardedBy("mLock")
-    private Map<Integer, ImageReader> mImageReaderMap = new HashMap<>();
+    private final @NonNull Map<Integer, ImageReader> mImageReaderMap = new HashMap<>();
     @GuardedBy("mLock")
-    private Map<Integer, Camera2OutputConfig> mOutputConfigMap = new HashMap<>();
+    private final Map<Integer, Camera2OutputConfig> mOutputConfigMap = new HashMap<>();
 
-    @Nullable
-    private HandlerThread mImageReaderHandlerThread;
+    private @Nullable HandlerThread mImageReaderHandlerThread;
     @GuardedBy("mLock")
-    private List<DeferrableSurface> mSurfacesList = new ArrayList<>();
-    private final Object mLock = new Object();
+    private final List<DeferrableSurface> mSurfacesList = new ArrayList<>();
+    protected final Object mLock = new Object();
     private String mCameraId;
 
-    @NonNull
-    private static SessionProcessorSurface createOutputConfigSurface(
+    private final @CameraOperation @NonNull Set<Integer> mSupportedCameraOperations;
+    private final @ExtensionMode.Mode int mMode;
+    @GuardedBy("mLock")
+    protected int mExtensionStrength = EXTENSION_STRENGTH_UNKNOWN;
+
+    SessionProcessorBase(@NonNull List<CaptureRequest.Key<?>> supportedParameterKeys,
+            @ExtensionMode.Mode int mode) {
+        mSupportedCameraOperations = ExtensionsUtils.getSupportedCameraOperations(
+                supportedParameterKeys);
+        mMode = mode;
+    }
+
+    private static @NonNull SessionProcessorSurface createOutputConfigSurface(
             @NonNull Camera2OutputConfig outputConfig, Map<Integer, ImageReader> imageReaderMap) {
         if (outputConfig instanceof SurfaceOutputConfig) {
             SurfaceOutputConfig surfaceOutputConfig = (SurfaceOutputConfig) outputConfig;
@@ -97,23 +116,16 @@ abstract class SessionProcessorBase implements SessionProcessor {
         }
         throw new UnsupportedOperationException("Unsupported Camera2OutputConfig:" + outputConfig);
     }
-    @NonNull
+
     @Override
-    @OptIn(markerClass = ExperimentalCamera2Interop.class)
-    public final SessionConfig initSession(@NonNull CameraInfo cameraInfo,
-            @NonNull OutputSurface previewSurfaceConfig,
-            @NonNull OutputSurface imageCaptureSurfaceConfig,
-            @Nullable OutputSurface imageAnalysisSurfaceConfig) {
-        Camera2CameraInfo camera2CameraInfo = Camera2CameraInfo.from(cameraInfo);
+    public final @NonNull SessionConfig initSession(@NonNull CameraInfo cameraInfo,
+            @Nullable OutputSurfaceConfiguration outputSurfaceConfiguration) {
+        CameraInfoInternal cameraInfoInternal = (CameraInfoInternal) cameraInfo;
         Map<String, CameraCharacteristics> characteristicsMap =
-                camera2CameraInfo.getCameraCharacteristicsMap();
+                ExtensionsUtils.getCameraCharacteristicsMap(cameraInfoInternal);
         Camera2SessionConfig camera2SessionConfig = initSessionInternal(
-                camera2CameraInfo.getCameraId(),
-                characteristicsMap,
-                previewSurfaceConfig,
-                imageCaptureSurfaceConfig,
-                imageAnalysisSurfaceConfig
-        );
+                cameraInfoInternal.getCameraId(), characteristicsMap,
+                Objects.requireNonNull(outputSurfaceConfiguration));
 
         SessionConfig.Builder sessionConfigBuilder = new SessionConfig.Builder();
         synchronized (mLock) {
@@ -143,7 +155,7 @@ abstract class SessionProcessorBase implements SessionProcessor {
             }
         }
 
-        Camera2ImplConfig.Builder camera2ConfigurationBuilder = new Camera2ImplConfig.Builder();
+        RequestOptionConfig.Builder camera2ConfigurationBuilder = new RequestOptionConfig.Builder();
         for (CaptureRequest.Key<?> key : camera2SessionConfig.getSessionParameters().keySet()) {
             @SuppressWarnings("unchecked")
             CaptureRequest.Key<Object> objKey = (CaptureRequest.Key<Object>) key;
@@ -152,23 +164,25 @@ abstract class SessionProcessorBase implements SessionProcessor {
         }
         sessionConfigBuilder.setImplementationOptions(camera2ConfigurationBuilder.build());
         sessionConfigBuilder.setTemplateType(camera2SessionConfig.getSessionTemplateId());
+        sessionConfigBuilder.setSessionType(camera2SessionConfig.getSessionType());
 
         mImageReaderHandlerThread = new HandlerThread(
                 CameraXThreads.TAG + "extensions_image_reader");
         mImageReaderHandlerThread.start();
 
-        mCameraId = camera2CameraInfo.getCameraId();
+        mCameraId = cameraInfoInternal.getCameraId();
         Logger.d(TAG, "initSession: cameraId=" + mCameraId);
         return sessionConfigBuilder.build();
     }
 
-    @NonNull
-    protected abstract Camera2SessionConfig initSessionInternal(
-            @NonNull String cameraId,
+    @Override
+    public @CameraOperation @NonNull Set<Integer> getSupportedCameraOperations() {
+        return mSupportedCameraOperations;
+    }
+
+    protected abstract @NonNull Camera2SessionConfig initSessionInternal(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> cameraCharacteristicsMap,
-            @NonNull OutputSurface previewSurfaceConfig,
-            @NonNull OutputSurface imageCaptureSurfaceConfig,
-            @Nullable OutputSurface imageAnalysisSurfaceConfig);
+            @NonNull OutputSurfaceConfiguration outputSurfaceConfig);
 
 
     protected void setImageProcessor(int outputConfigId,
@@ -208,6 +222,7 @@ abstract class SessionProcessorBase implements SessionProcessor {
             mSurfacesList.clear();
             mImageReaderMap.clear();
             mOutputConfigMap.clear();
+            mExtensionStrength = EXTENSION_STRENGTH_UNKNOWN;
         }
 
         if (mImageReaderHandlerThread != null) {
@@ -218,9 +233,14 @@ abstract class SessionProcessorBase implements SessionProcessor {
 
     protected abstract void deInitSessionInternal();
 
+    @Override
+    public @NonNull Pair<Integer, Integer> getImplementationType() {
+        return Pair.create(SessionProcessor.TYPE_VENDOR_LIBRARY, mMode);
+    }
+
     private static class ImageRefHolder implements ImageReference {
         private int mRefCount;
-        private Image mImage;
+        private final Image mImage;
         private final Object mImageLock = new Object();
 
         @SuppressWarnings("WeakerAccess") /* synthetic accessor */
@@ -254,9 +274,8 @@ abstract class SessionProcessorBase implements SessionProcessor {
             return true;
         }
 
-        @Nullable
         @Override
-        public Image get() {
+        public @Nullable Image get() {
             return mImage;
         }
     }

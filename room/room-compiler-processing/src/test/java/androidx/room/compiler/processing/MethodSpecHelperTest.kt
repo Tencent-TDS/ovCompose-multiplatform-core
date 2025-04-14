@@ -16,41 +16,43 @@
 
 package androidx.room.compiler.processing
 
+import androidx.kruth.assertThat
 import androidx.room.compiler.processing.javac.JavacMethodElement
 import androidx.room.compiler.processing.javac.JavacTypeElement
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.compileFiles
-import androidx.testutils.generateAllEnumerations
 import androidx.room.compiler.processing.util.javaTypeUtils
 import androidx.room.compiler.processing.util.runKaptTest
 import androidx.room.compiler.processing.util.runProcessorTest
+import androidx.testutils.generateAllEnumerations
 import com.google.auto.common.MoreTypes
-import com.google.common.truth.Truth.assertThat
 import com.squareup.javapoet.MethodSpec
 import com.squareup.javapoet.ParameterSpec
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.Parameterized
 import java.io.File
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.Modifier
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.util.Types
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
 @RunWith(Parameterized::class)
 class MethodSpecHelperTest(
     // if true, pre-compile sources then run the test to account for changes between .class files
     // and source files
     val preCompiledCode: Boolean,
-    val shouldMarkParamsFinal: Boolean
+    val shouldMarkParamsFinal: Boolean,
+    val ignoreOwner: Boolean
 ) {
     @Test
     fun javaOverrides() {
         // check our override impl matches javapoet
-        val source = Source.java(
-            "foo.bar.Baz",
-            """
+        val source =
+            Source.java(
+                "foo.bar.Baz",
+                """
             package foo.bar;
             import androidx.room.compiler.processing.testcode.OtherAnnotation;
 
@@ -81,17 +83,19 @@ class MethodSpecHelperTest(
                 protected void throwsException() throws Exception {
                 }
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun kotlinOverrides() {
         // check our override impl matches javapoet
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             import androidx.room.compiler.processing.testcode.OtherAnnotation;
 
@@ -164,16 +168,18 @@ class MethodSpecHelperTest(
                 // keep these at the end to match the order w/ KAPT because we fake them in KSP
                 internal abstract val abstractVal: String
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun kotlinParametersAsFunction() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             interface MyInterface
             interface Baz {
@@ -209,17 +215,19 @@ class MethodSpecHelperTest(
                 suspend fun suspend_threeArgs_suspend_returnsString(operation: suspend (one: String, two: Int, three: Boolean) -> String) {
                 }
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun variance() {
         // check our override impl matches javapoet
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             interface MyInterface<T> {
                 suspend fun suspendReturnList(arg1:Int, arg2:String):List<T>
@@ -249,16 +257,18 @@ class MethodSpecHelperTest(
                 suspend fun s3(args : I3<String>): I3<String>
                 suspend fun s4(args : I1<String>): String
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun inheritedVariance_openType() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             interface MyInterface<T> {
                 fun receiveList(argsInParent : List<T>):Unit
@@ -269,16 +279,18 @@ class MethodSpecHelperTest(
                 fun myList(args: List<Book>):Unit
                 override fun receiveList(argsInParent : List<Book>):Unit
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun inheritedVariance_finalType() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             interface MyInterface<T> {
                 fun receiveList(argsInParent : List<T>):Unit
@@ -288,16 +300,18 @@ class MethodSpecHelperTest(
                 fun myList(args: List<String>):Unit
                 override fun receiveList(argsInParent : List<String>):Unit
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source, ignoreInheritedMethods = true)
     }
 
     @Test
     fun inheritedVariance_enumType() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             enum class EnumType {
                 FOO,
@@ -311,16 +325,18 @@ class MethodSpecHelperTest(
                 fun myList(args: List<EnumType>):Unit
                 override fun receiveList(argsInParent : List<EnumType>):Unit
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun inheritedVariance_multiLevel() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar;
             interface GrandParent<T> {
                 fun receiveList(list : List<T>): Unit
@@ -331,16 +347,18 @@ class MethodSpecHelperTest(
             }
             interface Baz : Parent {
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun primitiveOverrides() {
-        val source = Source.kotlin(
-            "Foo.kt",
-            """
+        val source =
+            Source.kotlin(
+                "Foo.kt",
+                """
             package foo.bar
             data class LongFoo(val id: Long, val description: String)
             /* Interface with generics only */
@@ -356,16 +374,18 @@ class MethodSpecHelperTest(
                 //fun insert(item: LongFoo)
                 //override fun getFirstItemId(): Long
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Test
     fun javaOverridesWithVariance() {
-        val source = Source.java(
-            "foo.bar.Base",
-            """
+        val source =
+            Source.java(
+                "foo.bar.Base",
+                """
                 package foo.bar;
                 import java.util.List;
 
@@ -376,33 +396,38 @@ class MethodSpecHelperTest(
                     void arrayT(T[] t);
                 }
             """
-        )
-        val impl = Source.java(
-            "foo.bar.Baz",
-            """
+            )
+        val impl =
+            Source.java(
+                "foo.bar.Baz",
+                """
             package foo.bar;
             public interface Baz extends Base<Integer> {
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source, impl)
     }
 
     @Test
     fun javaOverridesKotlinProperty() {
-        val myInterface = Source.kotlin(
-            "MyInterface.kt",
-            """
+        val myInterface =
+            Source.kotlin(
+                "MyInterface.kt",
+                """
             package foo.bar
             interface MyInterface {
                 val x:Int
                 var y:Int
             }
-            """.trimIndent()
-        )
-        val javaImpl = Source.java(
-            "foo.bar.Baz",
             """
+                    .trimIndent()
+            )
+        val javaImpl =
+            Source.java(
+                "foo.bar.Baz",
+                """
             package foo.bar;
             class Baz implements MyInterface {
                 public int getX() {
@@ -414,16 +439,18 @@ class MethodSpecHelperTest(
                 public void setY(int value) {
                 }
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(myInterface, javaImpl)
     }
 
     @Test
     fun kotlinOverridesKotlinProperty() {
-        val source = Source.kotlin(
-            "MyInterface.kt",
-            """
+        val source =
+            Source.kotlin(
+                "MyInterface.kt",
+                """
             package foo.bar
             interface MyInterface {
                 var x:Int
@@ -433,44 +460,45 @@ class MethodSpecHelperTest(
                     get() = TODO("not implemented")
                     set(value) {}
             }
-            """.trimIndent()
-        )
+            """
+                    .trimIndent()
+            )
         overridesCheck(source)
     }
 
     @Suppress("NAME_SHADOWING") // intentional
     private fun overridesCheck(
         vararg sources: Source,
-        ignoreInheritedMethods: Boolean = false
+        ignoreInheritedMethods: Boolean = false,
+        kotlincArgs: List<String> = emptyList()
     ) {
-        val (sources: List<Source>, classpath: List<File>) = if (preCompiledCode) {
-            emptyList<Source>() to compileFiles(sources.toList())
-        } else {
-            sources.toList() to emptyList()
-        }
+        val (sources: List<Source>, classpath: List<File>) =
+            if (preCompiledCode) {
+                emptyList<Source>() to compileFiles(sources.toList())
+            } else {
+                sources.toList() to emptyList()
+            }
         // first build golden image with Java processor so we can use JavaPoet's API
-        val golden = buildMethodsViaJavaPoet(
-            sources = sources,
-            classpath = classpath,
-            ignoreInheritedMethods = ignoreInheritedMethods
-        )
+        val golden =
+            buildMethodsViaJavaPoet(
+                sources = sources,
+                classpath = classpath,
+                ignoreInheritedMethods = ignoreInheritedMethods
+            )
         runProcessorTest(
             sources = sources + Source.kotlin("Placeholder.kt", ""),
-            classpath = classpath
+            classpath = classpath,
+            kotlincArguments = kotlincArgs
         ) { invocation ->
             val (target, methods) = invocation.getOverrideTestTargets(ignoreInheritedMethods)
             methods.forEachIndexed { index, method ->
-                val func = if (shouldMarkParamsFinal)
-                    MethodSpecHelper::overridingWithFinalParams
-                else
-                    MethodSpecHelper::overriding
+                val subject =
+                    if (ignoreOwner) MethodSpecHelper.overriding(method)
+                    else if (shouldMarkParamsFinal)
+                        MethodSpecHelper.overridingWithFinalParams(method, target.type)
+                    else MethodSpecHelper.overriding(method, target.type)
 
-                val subject = func(
-                    method,
-                    target.type
-                ).toSignature()
-
-                assertThat(subject).isEqualTo(golden[index])
+                assertThat(subject.toSignature()).isEqualTo(golden[index])
             }
         }
     }
@@ -481,52 +509,47 @@ class MethodSpecHelperTest(
         ignoreInheritedMethods: Boolean
     ): List<String> {
         lateinit var result: List<String>
-        runKaptTest(
-            sources = sources,
-            classpath = classpath
-        ) { invocation ->
-            val (target, methods) = invocation.getOverrideTestTargets(
-                ignoreInheritedMethods
-            )
+        runKaptTest(sources = sources, classpath = classpath) { invocation ->
+            val (target, methods) = invocation.getOverrideTestTargets(ignoreInheritedMethods)
             val element = (target as JavacTypeElement).element
-            result = methods
-                .map {
-                    (it as JavacMethodElement).element
-                }.map {
-                    generateFromJavapoet(
-                        it,
-                        MoreTypes.asDeclared(element.asType()),
-                        invocation.javaTypeUtils
-                    ).toSignature()
-                }
+            result =
+                methods
+                    .map { (it as JavacMethodElement).element }
+                    .map {
+                        generateFromJavapoet(
+                                it,
+                                MoreTypes.asDeclared(element.asType()),
+                                invocation.javaTypeUtils
+                            )
+                            .toSignature()
+                    }
         }
         return result
     }
 
     /**
-     * Get test targets. There is an edge case where it is not possible to implement an interface
-     * in java, b/174313780. [ignoreInheritedMethods] helps avoid that case.
+     * Get test targets. There is an edge case where it is not possible to implement an interface in
+     * java, b/174313780. [ignoreInheritedMethods] helps avoid that case.
      */
     private fun XTestInvocation.getOverrideTestTargets(
         ignoreInheritedMethods: Boolean
     ): Pair<XTypeElement, List<XMethodElement>> {
-        val objectMethodNames = processingEnv
-            .requireTypeElement("java.lang.Object")
-            .getAllNonPrivateInstanceMethods()
-            .map {
-                it.jvmName
-            }
+        val objectMethodNames =
+            processingEnv
+                .requireTypeElement("java.lang.Object")
+                .getAllNonPrivateInstanceMethods()
+                .map { it.jvmName }
         val target = processingEnv.requireTypeElement("foo.bar.Baz")
-        val methods = if (ignoreInheritedMethods) {
-            target.getDeclaredMethods().filter { !it.isStatic() }
-        } else {
-            target.getAllNonPrivateInstanceMethods().toList()
-        }
-        val selectedMethods = methods.filter {
-            it.isOverrideableIgnoringContainer()
-        }.filterNot {
-            it.jvmName in objectMethodNames
-        }
+        val methods =
+            if (ignoreInheritedMethods) {
+                target.getDeclaredMethods().filter { !it.isStatic() }
+            } else {
+                target.getAllNonPrivateInstanceMethods().toList()
+            }
+        val selectedMethods =
+            methods
+                .filter { it.isOverrideableIgnoringContainer() }
+                .filterNot { it.jvmName in objectMethodNames }
         return target to selectedMethods
     }
 
@@ -535,11 +558,7 @@ class MethodSpecHelperTest(
         owner: DeclaredType,
         typeUtils: Types
     ): MethodSpec.Builder {
-        return overrideWithoutAnnotations(
-            elm = method,
-            owner = owner,
-            typeUtils = typeUtils
-        )
+        return overrideWithoutAnnotations(elm = method, owner = owner, typeUtils = typeUtils)
     }
 
     private fun MethodSpec.Builder.toSignature(): String {
@@ -548,44 +567,38 @@ class MethodSpecHelperTest(
             // here much
             val backup = this.parameters.toList()
             parameters.clear()
-            backup.forEachIndexed { index, spec ->
-                addParameter(spec.rename("arg$index"))
-            }
+            backup.forEachIndexed { index, spec -> addParameter(spec.rename("arg$index")) }
         }
         return build().toString()
     }
 
     private fun ParameterSpec.rename(newName: String): ParameterSpec {
-        return ParameterSpec
-            .builder(
-                type,
-                newName
-            ).addModifiers(modifiers)
+        return ParameterSpec.builder(type, newName)
+            .addModifiers(modifiers)
             .addAnnotations(annotations)
             .build()
     }
 
-    /**
-     * Copied from DaoWriter for backwards compatibility
-     */
+    /** Copied from DaoWriter for backwards compatibility */
     private fun overrideWithoutAnnotations(
         elm: ExecutableElement,
         owner: DeclaredType,
         typeUtils: Types
     ): MethodSpec.Builder {
-        val baseSpec = MethodSpec.overriding(elm, owner, typeUtils)
-            .build()
-
-        val params = if (shouldMarkParamsFinal) {
-            // make all the params final
-            baseSpec.parameters.map {
-                it.toBuilder().apply {
-                    addModifiers(Modifier.FINAL)
-                }.build()
-            }
-        } else {
-            baseSpec.parameters
+        if (ignoreOwner) {
+            return MethodSpec.overriding(elm)
         }
+        val baseSpec = MethodSpec.overriding(elm, owner, typeUtils).build()
+
+        val params =
+            if (shouldMarkParamsFinal) {
+                // make all the params final
+                baseSpec.parameters.map {
+                    it.toBuilder().apply { addModifiers(Modifier.FINAL) }.build()
+                }
+            } else {
+                baseSpec.parameters
+            }
 
         return MethodSpec.methodBuilder(baseSpec.name).apply {
             addAnnotation(Override::class.java)
@@ -600,7 +613,10 @@ class MethodSpecHelperTest(
 
     companion object {
         @JvmStatic
-        @Parameterized.Parameters(name = "preCompiledCode={0}, shouldMarkParamsFinal={1}")
-        fun params() = generateAllEnumerations(listOf(false, true), listOf(false, true))
+        @Parameterized.Parameters(
+            name = "preCompiledCode={0}, shouldMarkParamsFinal={1}, ignoreOwner={2}"
+        )
+        fun params() =
+            generateAllEnumerations(listOf(false, true), listOf(false, true), listOf(false, true))
     }
 }

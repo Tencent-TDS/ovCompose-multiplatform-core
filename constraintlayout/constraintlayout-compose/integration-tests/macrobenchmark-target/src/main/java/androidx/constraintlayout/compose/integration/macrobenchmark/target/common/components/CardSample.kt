@@ -28,10 +28,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.LoremIpsum
-import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.newHourMinuteTimeStamp
-import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.randomAvatarId
-import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.randomFullName
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,23 +41,23 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.ConstraintSet
 import androidx.constraintlayout.compose.Dimension
+import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.LoremIpsum
+import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.newHourMinuteTimeStamp
+import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.randomAvatarId
+import androidx.constraintlayout.compose.integration.macrobenchmark.target.common.sampledata.randomFullName
 
 @Preview
 @Composable
 private fun CardSamplePreview() {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.LightGray)
-            .verticalScroll(rememberScrollState()),
+        modifier =
+            Modifier.fillMaxSize()
+                .background(Color.LightGray)
+                .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         for (i in 0 until 15) {
-            CardSample(
-                Modifier
-                    .height(80.dp)
-                    .background(Color.White, RoundedCornerShape(10.dp))
-            )
+            CardSample(Modifier.height(80.dp).background(Color.White, RoundedCornerShape(10.dp)))
         }
     }
 }
@@ -106,16 +102,14 @@ fun CardSample(
     timeStamp: String = newHourMinuteTimeStamp()
 ) {
     ConstraintLayout(
-        modifier = Modifier
-            .defaultMinSize(minWidth = 200.dp, minHeight = 50.dp)
-            .then(modifier)
-            .padding(4.dp),
+        modifier =
+            Modifier.defaultMinSize(minWidth = 200.dp, minHeight = 50.dp)
+                .then(modifier)
+                .padding(4.dp),
         constraintSet = cardSampleConstraintSet
     ) {
         Image(
-            modifier = Modifier
-                .layoutId("image")
-                .clip(RoundedCornerShape(10.dp)),
+            modifier = Modifier.layoutId("image").clip(RoundedCornerShape(10.dp)),
             painter = painterResource(id = drawableRes),
             contentDescription = null
         )

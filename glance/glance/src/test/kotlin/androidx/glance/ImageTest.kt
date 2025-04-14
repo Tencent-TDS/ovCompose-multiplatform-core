@@ -26,13 +26,13 @@ import androidx.glance.semantics.SemanticsModifier
 import androidx.glance.semantics.SemanticsProperties
 import androidx.glance.unit.ColorProvider
 import com.google.common.truth.Truth.assertThat
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ImageTest {
@@ -44,30 +44,31 @@ class ImageTest {
     }
 
     @Test
-    fun createImage() = fakeCoroutineScope.runTest {
-        val root = runTestingComposition {
-            Image(
-                provider = ImageProvider(5),
-                contentDescription = "Hello World",
-                modifier = GlanceModifier.padding(5.dp),
-                contentScale = ContentScale.FillBounds
-            )
+    fun createImage() =
+        fakeCoroutineScope.runTest {
+            val root = runTestingComposition {
+                Image(
+                    provider = ImageProvider(5),
+                    contentDescription = "Hello World",
+                    modifier = GlanceModifier.padding(5.dp),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+
+            assertThat(root.children).hasSize(1)
+            assertThat(root.children[0]).isInstanceOf(EmittableImage::class.java)
+
+            val img = root.children[0] as EmittableImage
+
+            val imgSource = assertIs<AndroidResourceImageProvider>(img.provider)
+            assertThat(imgSource.resId).isEqualTo(5)
+            val semanticsModifier = assertNotNull(img.modifier.findModifier<SemanticsModifier>())
+            assertThat(semanticsModifier.configuration[SemanticsProperties.ContentDescription])
+                .containsExactly("Hello World")
+            assertThat(img.contentScale).isEqualTo(ContentScale.FillBounds)
+            assertThat(img.modifier.findModifier<PaddingModifier>()).isNotNull()
+            assertThat(img.colorFilterParams).isNull()
         }
-
-        assertThat(root.children).hasSize(1)
-        assertThat(root.children[0]).isInstanceOf(EmittableImage::class.java)
-
-        val img = root.children[0] as EmittableImage
-
-        val imgSource = assertIs<AndroidResourceImageProvider>(img.provider)
-        assertThat(imgSource.resId).isEqualTo(5)
-        val semanticsModifier = assertNotNull(img.modifier.findModifier<SemanticsModifier>())
-        assertThat(semanticsModifier.configuration[SemanticsProperties.ContentDescription])
-            .containsExactly("Hello World")
-        assertThat(img.contentScale).isEqualTo(ContentScale.FillBounds)
-        assertThat(img.modifier.findModifier<PaddingModifier>()).isNotNull()
-        assertThat(img.colorFilterParams).isNull()
-    }
 
     @Test
     fun createImage_tintColorFilter() {

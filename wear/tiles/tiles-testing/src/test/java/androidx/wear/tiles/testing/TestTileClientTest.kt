@@ -18,9 +18,9 @@ package androidx.wear.tiles.testing
 
 import android.os.Looper
 import androidx.concurrent.futures.ResolvableFuture
+import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.tiles.EventBuilders
 import androidx.wear.tiles.RequestBuilders
-import androidx.wear.tiles.ResourceBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileProvider
 import androidx.wear.tiles.TileService
@@ -39,6 +39,7 @@ public class TestTileClientTest {
     private companion object {
         private val RESOURCES_VERSION = "10"
     }
+
     private val fakeTileService = FakeTileService()
     private lateinit var clientUnderTest: TestTileClient<FakeTileService>
 
@@ -68,9 +69,10 @@ public class TestTileClientTest {
 
     @Test
     public fun canCallOnResourcesRequest() {
-        val future = clientUnderTest.requestResources(
-            RequestBuilders.ResourcesRequest.Builder().build()
-        )
+        val future =
+            clientUnderTest.requestTileResourcesAsync(
+                RequestBuilders.ResourcesRequest.Builder().build()
+            )
         shadowOf(Looper.getMainLooper()).idle()
 
         assertThat(future.isDone).isTrue()
@@ -145,7 +147,7 @@ public class TestTileClientTest {
             return f
         }
 
-        override fun onResourcesRequest(
+        override fun onTileResourcesRequest(
             requestParams: RequestBuilders.ResourcesRequest
         ): ListenableFuture<ResourceBuilders.Resources> {
             val f = ResolvableFuture.create<ResourceBuilders.Resources>()
@@ -163,10 +165,12 @@ public class TestTileClientTest {
             onTileRemoveFired = true
         }
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407502045
         override fun onTileEnterEvent(requestParams: EventBuilders.TileEnterEvent) {
             onTileEnterFired = true
         }
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407502045
         override fun onTileLeaveEvent(requestParams: EventBuilders.TileLeaveEvent) {
             onTileLeaveFired = true
         }

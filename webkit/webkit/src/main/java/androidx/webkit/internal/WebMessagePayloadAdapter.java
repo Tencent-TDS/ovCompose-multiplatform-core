@@ -16,52 +16,66 @@
 
 package androidx.webkit.internal;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.webkit.WebMessageCompat;
 
 import org.chromium.support_lib_boundary.WebMessagePayloadBoundaryInterface;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * Adapter between {@link WebMessageCompat} and {@link WebMessagePayloadBoundaryInterface}.
  * This class is used to pass **payload** of a WebMessageCompat to Chromium.
  */
 public class WebMessagePayloadAdapter implements WebMessagePayloadBoundaryInterface {
-    private final @NonNull WebMessageCompat mMessageCompat;
+    private final @WebMessagePayloadType int mType;
+    private final @Nullable String mString;
+    private final byte @Nullable [] mArrayBuffer;
 
-    public WebMessagePayloadAdapter(@NonNull WebMessageCompat webMessageCompat) {
-        mMessageCompat = webMessageCompat;
+    public WebMessagePayloadAdapter(final @Nullable String data) {
+        mType = WebMessageCompat.TYPE_STRING;
+        mString = data;
+        mArrayBuffer = null;
+    }
+
+    public WebMessagePayloadAdapter(final byte @NonNull [] arrayBuffer) {
+        mType = WebMessageCompat.TYPE_ARRAY_BUFFER;
+        mString = null;
+        mArrayBuffer = arrayBuffer;
     }
 
     @Override
-    @NonNull
-    public String[] getSupportedFeatures() {
+    public String @NonNull [] getSupportedFeatures() {
         // getType, getAsString and getAsArrayBuffer are covered by
-        // WEB_MESSAGE_GET_MESSAGE_PAYLOAD.
+        // WEB_MESSAGE_ARRAY_BUFFER.
         return new String[0];
     }
 
     @Override
     public int getType() {
-        switch (mMessageCompat.getType()) {
-            case WebMessageCompat.TYPE_STRING:
-                return WebMessagePayloadType.TYPE_STRING;
-            case WebMessageCompat.TYPE_ARRAY_BUFFER:
-                return WebMessagePayloadType.TYPE_ARRAY_BUFFER;
+        return mType;
+    }
+
+    @Override
+    public @Nullable String getAsString() {
+        checkType(WebMessagePayloadType.TYPE_STRING);
+        return mString;
+    }
+
+    @Override
+    public byte @NonNull [] getAsArrayBuffer() {
+        checkType(WebMessagePayloadType.TYPE_ARRAY_BUFFER);
+        return Objects.requireNonNull(mArrayBuffer);
+    }
+
+    /**
+     * Check if current message payload type is the {@code expectedType}.
+     */
+    private void checkType(@WebMessagePayloadType int expectedType) {
+        if (mType != expectedType) {
+            throw new IllegalStateException("Expected " + expectedType + ", but type is " + mType);
         }
-        // Should never happen.
-        throw WebViewFeatureInternal.getUnsupportedOperationException();
     }
 
-    @Nullable
-    @Override
-    public String getAsString() {
-        return mMessageCompat.getData();
-    }
-
-    @NonNull
-    @Override
-    public byte[] getAsArrayBuffer() {
-        return mMessageCompat.getArrayBuffer();
-    }
 }

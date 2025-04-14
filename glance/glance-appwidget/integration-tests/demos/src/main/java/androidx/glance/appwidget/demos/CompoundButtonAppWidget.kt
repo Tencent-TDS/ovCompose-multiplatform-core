@@ -17,6 +17,7 @@
 package androidx.glance.appwidget.demos
 
 import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,18 +28,18 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.appwidget.CheckBox
+import androidx.glance.appwidget.CheckboxDefaults
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.RadioButton
+import androidx.glance.appwidget.RadioButtonDefaults
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.Switch
+import androidx.glance.appwidget.SwitchDefaults
 import androidx.glance.appwidget.appWidgetBackground
-import androidx.glance.appwidget.checkBoxColors
 import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.radioButtonColors
-import androidx.glance.appwidget.selectableGroup
 import androidx.glance.appwidget.provideContent
-import androidx.glance.appwidget.switchColors
+import androidx.glance.appwidget.selectableGroup
 import androidx.glance.background
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
@@ -59,20 +60,31 @@ class CompoundButtonAppWidget : GlanceAppWidget() {
     override suspend fun provideGlance(
         context: Context,
         id: GlanceId,
-    ) = provideContent {
+    ) = provideContent { Content() }
+
+    override suspend fun providePreview(context: Context, widgetCategory: Int) = provideContent {
+        Content()
+    }
+
+    @Composable
+    private fun Content() {
         Column(
-            modifier = GlanceModifier.fillMaxSize().background(Color.LightGray)
-                .padding(R.dimen.external_padding).cornerRadius(R.dimen.corner_radius)
-                .appWidgetBackground(),
+            modifier =
+                GlanceModifier.fillMaxSize()
+                    .background(Color.LightGray)
+                    .padding(R.dimen.external_padding)
+                    .cornerRadius(R.dimen.corner_radius)
+                    .appWidgetBackground(),
             verticalAlignment = Alignment.Vertical.CenterVertically,
             horizontalAlignment = Alignment.Horizontal.CenterHorizontally
         ) {
-            val textStyle = TextStyle(
-                color = ColorProvider(day = Color.Red, night = Color.Cyan),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                fontStyle = FontStyle.Italic
-            )
+            val textStyle =
+                TextStyle(
+                    color = ColorProvider(day = Color.Red, night = Color.Cyan),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontStyle = FontStyle.Italic
+                )
             val fillModifier = GlanceModifier.fillMaxWidth()
 
             var checkbox1Checked by remember { mutableStateOf(false) }
@@ -80,7 +92,7 @@ class CompoundButtonAppWidget : GlanceAppWidget() {
             var checkbox3Checked by remember { mutableStateOf(false) }
             var switch1Checked by remember { mutableStateOf(false) }
             var switch2Checked by remember { mutableStateOf(false) }
-            var radioChecked by remember { mutableStateOf(0) }
+            @Suppress("AutoboxingStateCreation") var radioChecked by remember { mutableStateOf(0) }
 
             CheckBox(
                 checked = checkbox1Checked,
@@ -94,10 +106,11 @@ class CompoundButtonAppWidget : GlanceAppWidget() {
                 text = "Checkbox 2",
                 style = textStyle,
                 modifier = fillModifier,
-                colors = checkBoxColors(
-                    checkedColor = ColorProvider(day = Color.Red, night = Color.Cyan),
-                    uncheckedColor = ColorProvider(day = Color.Green, night = Color.Magenta)
-                )
+                colors =
+                    CheckboxDefaults.colors(
+                        checkedColor = ColorProvider(day = Color.Red, night = Color.Cyan),
+                        uncheckedColor = ColorProvider(day = Color.Green, night = Color.Magenta)
+                    )
             )
             CheckBox(
                 checked = checkbox3Checked,
@@ -108,12 +121,15 @@ class CompoundButtonAppWidget : GlanceAppWidget() {
                 checked = switch1Checked,
                 onCheckedChange = { switch1Checked = !switch1Checked },
                 text = "Switch 1",
-                colors = switchColors(
-                    checkedThumbColor = ColorProvider(day = Color.Red, night = Color.Cyan),
-                    uncheckedThumbColor = ColorProvider(day = Color.Green, night = Color.Magenta),
-                    checkedTrackColor = ColorProvider(day = Color.Blue, night = Color.Yellow),
-                    uncheckedTrackColor = ColorProvider(day = Color.Magenta, night = Color.Green)
-                ),
+                colors =
+                    SwitchDefaults.colors(
+                        checkedThumbColor = ColorProvider(day = Color.Red, night = Color.Cyan),
+                        uncheckedThumbColor =
+                            ColorProvider(day = Color.Green, night = Color.Magenta),
+                        checkedTrackColor = ColorProvider(day = Color.Blue, night = Color.Yellow),
+                        uncheckedTrackColor =
+                            ColorProvider(day = Color.Magenta, night = Color.Green)
+                    ),
             )
             Switch(
                 checked = switch2Checked,
@@ -127,19 +143,21 @@ class CompoundButtonAppWidget : GlanceAppWidget() {
                     checked = radioChecked == 0,
                     onClick = { radioChecked = 0 },
                     text = "Radio 1",
-                    colors = radioButtonColors(
-                        checkedColor = ColorProvider(day = Color.Red, night = Color.Cyan),
-                        uncheckedColor = ColorProvider(day = Color.Green, night = Color.Magenta)
-                    ),
+                    colors =
+                        RadioButtonDefaults.colors(
+                            checkedColor = ColorProvider(day = Color.Red, night = Color.Cyan),
+                            uncheckedColor = ColorProvider(day = Color.Green, night = Color.Magenta)
+                        ),
                 )
                 RadioButton(
                     checked = radioChecked == 1,
                     onClick = { radioChecked = 1 },
                     text = "Radio 2",
-                    colors = radioButtonColors(
-                        checkedColor = ColorProvider(day = Color.Cyan, night = Color.Yellow),
-                        uncheckedColor = ColorProvider(day = Color.Red, night = Color.Blue)
-                    ),
+                    colors =
+                        RadioButtonDefaults.colors(
+                            checkedColor = ColorProvider(day = Color.Cyan, night = Color.Yellow),
+                            uncheckedColor = ColorProvider(day = Color.Red, night = Color.Blue)
+                        ),
                 )
                 RadioButton(
                     checked = radioChecked == 2,

@@ -24,6 +24,8 @@ import androidx.work.impl.utils.SynchronousExecutor
 import androidx.work.impl.utils.taskexecutor.WorkManagerTaskExecutor
 import androidx.work.worker.FailureWorker
 import androidx.work.worker.TestWorker
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import org.hamcrest.CoreMatchers.instanceOf
 import org.hamcrest.CoreMatchers.notNullValue
 import org.hamcrest.MatcherAssert.assertThat
@@ -31,7 +33,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 @SmallTest
@@ -57,13 +58,9 @@ class DelegatingWorkerFactoryTest : DatabaseTest() {
 
         val request = OneTimeWorkRequest.from(TestWorker::class.java)
         insertWork(request)
-        val params: WorkerParameters =
-            newWorkerParams(factory, progressUpdater, mForegroundUpdater)
-        val worker = factory.createWorkerWithDefaultFallback(
-            context,
-            TestWorker::class.java.name,
-            params
-        )
+        val params: WorkerParameters = newWorkerParams(factory, progressUpdater, mForegroundUpdater)
+        val worker =
+            factory.createWorkerWithDefaultFallback(context, TestWorker::class.java.name, params)
 
         assertThat(worker, notNullValue())
         assertThat(worker, instanceOf(FailureWorker::class.java))
@@ -74,13 +71,9 @@ class DelegatingWorkerFactoryTest : DatabaseTest() {
         factory = DelegatingWorkerFactory()
         val request = OneTimeWorkRequest.from(TestWorker::class.java)
         insertWork(request)
-        val params: WorkerParameters =
-            newWorkerParams(factory, progressUpdater, mForegroundUpdater)
-        val worker = factory.createWorkerWithDefaultFallback(
-            context,
-            TestWorker::class.java.name,
-            params
-        )
+        val params: WorkerParameters = newWorkerParams(factory, progressUpdater, mForegroundUpdater)
+        val worker =
+            factory.createWorkerWithDefaultFallback(context, TestWorker::class.java.name, params)
 
         assertThat(worker, notNullValue())
         assertThat(worker, instanceOf(TestWorker::class.java))
@@ -90,26 +83,28 @@ class DelegatingWorkerFactoryTest : DatabaseTest() {
         factory: WorkerFactory,
         progressUpdater: ProgressUpdater,
         foregroundUpdater: ForegroundUpdater
-    ) = WorkerParameters(
-        UUID.randomUUID(),
-        Data.EMPTY,
-        listOf<String>(),
-        WorkerParameters.RuntimeExtras(),
-        1,
-        0,
-        SynchronousExecutor(),
-        WorkManagerTaskExecutor(SynchronousExecutor()),
-        factory,
-        progressUpdater,
-        foregroundUpdater
-    )
+    ) =
+        WorkerParameters(
+            UUID.randomUUID(),
+            Data.EMPTY,
+            listOf<String>(),
+            WorkerParameters.RuntimeExtras(),
+            1,
+            0,
+            SynchronousExecutor(),
+            Dispatchers.Default,
+            WorkManagerTaskExecutor(SynchronousExecutor()),
+            factory,
+            progressUpdater,
+            foregroundUpdater
+        )
 }
 
 class NoOpFactory : WorkerFactory() {
     override fun createWorker(
-        context: Context,
-        workerClass: String,
-        parameters: WorkerParameters
+        appContext: Context,
+        workerClassName: String,
+        workerParameters: WorkerParameters
     ): ListenableWorker? {
         return null
     }
@@ -117,10 +112,10 @@ class NoOpFactory : WorkerFactory() {
 
 class FailedWorkerFactory : WorkerFactory() {
     override fun createWorker(
-        context: Context,
-        workerClass: String,
-        parameters: WorkerParameters
-    ): ListenableWorker? {
-        return FailureWorker(context, parameters)
+        appContext: Context,
+        workerClassName: String,
+        workerParameters: WorkerParameters
+    ): ListenableWorker {
+        return FailureWorker(appContext, workerParameters)
     }
 }

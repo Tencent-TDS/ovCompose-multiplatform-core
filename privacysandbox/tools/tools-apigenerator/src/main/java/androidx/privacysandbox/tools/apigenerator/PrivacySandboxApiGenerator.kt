@@ -23,18 +23,23 @@ import androidx.privacysandbox.tools.core.generator.AidlGenerator
 import androidx.privacysandbox.tools.core.generator.BinderCodeConverter
 import androidx.privacysandbox.tools.core.generator.ClientBinderCodeConverter
 import androidx.privacysandbox.tools.core.generator.ClientProxyTypeGenerator
+import androidx.privacysandbox.tools.core.generator.CoreLibInfoAndBinderWrapperConverterGenerator
 import androidx.privacysandbox.tools.core.generator.GenerationTarget
+import androidx.privacysandbox.tools.core.generator.PrivacySandboxCancellationExceptionFileGenerator
 import androidx.privacysandbox.tools.core.generator.PrivacySandboxExceptionFileGenerator
+import androidx.privacysandbox.tools.core.generator.SdkActivityLauncherProxyGenerator
 import androidx.privacysandbox.tools.core.generator.ServiceFactoryFileGenerator
 import androidx.privacysandbox.tools.core.generator.StubDelegatesGenerator
 import androidx.privacysandbox.tools.core.generator.ThrowableParcelConverterFileGenerator
+import androidx.privacysandbox.tools.core.generator.TransportCancellationGenerator
 import androidx.privacysandbox.tools.core.generator.ValueConverterFileGenerator
 import androidx.privacysandbox.tools.core.generator.ValueFileGenerator
 import androidx.privacysandbox.tools.core.model.ParsedApi
+import androidx.privacysandbox.tools.core.model.containsSdkActivityLauncher
 import androidx.privacysandbox.tools.core.model.getOnlyService
 import androidx.privacysandbox.tools.core.model.hasSuspendFunctions
+import androidx.privacysandbox.tools.core.proto.InvalidProtocolBufferException
 import androidx.privacysandbox.tools.core.proto.PrivacySandboxToolsProtocol.ToolMetadata
-import com.google.protobuf.InvalidProtocolBufferException
 import java.io.File
 import java.nio.file.Path
 import java.util.zip.ZipInputStream
@@ -59,9 +64,9 @@ class PrivacySandboxApiGenerator {
     /**
      * Generate API sources for a given SDK.
      *
-     * The SDK interface is defined by the [sdkInterfaceDescriptors], which is expected to be
-     * a zip file with a set of compiled Kotlin interfaces using Privacy Sandbox tool annotations.
-     * The SDK is expected to be compiled with compatible Privacy Sandbox tools.
+     * The SDK interface is defined by the [sdkInterfaceDescriptors], which is expected to be a zip
+     * file with a set of compiled Kotlin interfaces using Privacy Sandbox tool annotations. The SDK
+     * is expected to be compiled with compatible Privacy Sandbox tools.
      *
      * @param sdkInterfaceDescriptors Zip file with the SDK's annotated and compiled interfaces.
      * @param aidlCompiler AIDL compiler binary. It must target API 30 or above.
@@ -110,13 +115,14 @@ class PrivacySandboxApiGenerator {
         )
         generateValueConverters(api, binderCodeConverter, output)
         generateSuspendFunctionUtilities(api, basePackageName, output)
+        generateCoreLibInfoConverters(api, output)
+        generateSdkActivityLauncherUtilities(api, basePackageName, output)
     }
 
     private fun generateBinders(api: ParsedApi, aidlCompiler: AidlCompiler, output: File) {
         val aidlWorkingDir = output.resolve("tmp-aidl").also { it.mkdir() }
         try {
-            val generatedFiles =
-                AidlGenerator.generate(aidlCompiler, api, aidlWorkingDir.toPath())
+            val generatedFiles = AidlGenerator.generate(aidlCompiler, api, aidlWorkingDir.toPath())
             generatedFiles.forEach {
                 val relativePath = aidlWorkingDir.toPath().relativize(it.file.toPath())
                 val source = it.file.toPath()
@@ -131,9 +137,7 @@ class PrivacySandboxApiGenerator {
 
     private fun generateServiceFactory(api: ParsedApi, output: File) {
         val serviceFactoryFileGenerator = ServiceFactoryFileGenerator()
-        api.services.forEach {
-            serviceFactoryFileGenerator.generate(it).writeTo(output)
-        }
+        api.services.forEach { serviceFactoryFileGenerator.generate(it).writeTo(output) }
     }
 
     private fun generateStubDelegates(
@@ -179,6 +183,21 @@ class PrivacySandboxApiGenerator {
         }
     }
 
+    private fun generateCoreLibInfoConverters(api: ParsedApi, output: File) {
+        api.interfaces
+            .filter { it.inheritsUiAdapter }
+            .map { CoreLibInfoAndBinderWrapperConverterGenerator.generate(it).writeTo(output) }
+    }
+
+    private fun generateSdkActivityLauncherUtilities(
+        api: ParsedApi,
+        basePackageName: String,
+        output: File
+    ) {
+        if (!api.containsSdkActivityLauncher()) return
+        SdkActivityLauncherProxyGenerator(basePackageName).generate().writeTo(output)
+    }
+
     private fun unzipDescriptorsFileAndParseStubs(
         sdkInterfaceDescriptors: Path,
         outputDirectory: Path,
@@ -204,15 +223,14 @@ class PrivacySandboxApiGenerator {
     }
 
     private fun ensureValidMetadata(metadataFile: Path) {
-        require(metadataFile.exists()) {
-            "Missing tool metadata in SDK API descriptor."
-        }
+        require(metadataFile.exists()) { "Missing tool metadata in SDK API descriptor." }
 
-        val metadata = try {
-            ToolMetadata.parseFrom(metadataFile.readBytes())
-        } catch (e: InvalidProtocolBufferException) {
-            throw IllegalArgumentException("Invalid Privacy Sandbox tool metadata.", e)
-        }
+        val metadata =
+            try {
+                ToolMetadata.parseFrom(metadataFile.readBytes())
+            } catch (e: InvalidProtocolBufferException) {
+                throw IllegalArgumentException("Invalid Privacy Sandbox tool metadata.", e)
+            }
 
         val sdkCodeGenerationVersion = metadata.codeGenerationVersion
         val consumerVersion = Metadata.toolMetadata.codeGenerationVersion
@@ -228,9 +246,11 @@ class PrivacySandboxApiGenerator {
         output: File
     ) {
         if (!api.hasSuspendFunctions()) return
-        ThrowableParcelConverterFileGenerator(basePackageName).generate(
-            convertFromParcel = true
-        ).writeTo(output)
+        ThrowableParcelConverterFileGenerator(basePackageName).generate().writeTo(output)
+        TransportCancellationGenerator(api.getOnlyService().type.packageName)
+            .generate()
+            .writeTo(output)
         PrivacySandboxExceptionFileGenerator(basePackageName).generate().writeTo(output)
+        PrivacySandboxCancellationExceptionFileGenerator(basePackageName).generate().writeTo(output)
     }
 }

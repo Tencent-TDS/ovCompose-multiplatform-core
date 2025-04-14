@@ -18,39 +18,33 @@ package androidx.compose.ui.text.font
 
 import android.content.Context
 import android.graphics.Typeface
-import android.os.Build
-import androidx.annotation.DoNotInline
-import androidx.annotation.RequiresApi
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.Async
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.Blocking
 import androidx.compose.ui.text.font.FontLoadingStrategy.Companion.OptionalLocal
 import androidx.core.content.res.ResourcesCompat
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlin.coroutines.resume
+import kotlin.runCatching
+import kotlinx.coroutines.suspendCancellableCoroutine
 
-/**
- * Android implementation for [PlatformFontLoader].
- *
- * It is designed to work both on-device and for Preview.
- */
-internal class AndroidFontLoader(
-    context: Context
-) : PlatformFontLoader {
+/** Android implementation for [Font.ResourceLoader]. It is designed to load only [ResourceFont]. */
+internal class AndroidFontLoader(context: Context) : PlatformFontLoader {
     private val context = context.applicationContext
 
     @OptIn(ExperimentalTextApi::class)
     override fun loadBlocking(font: Font): Typeface? {
         return when (font) {
             is AndroidFont -> font.typefaceLoader.loadBlocking(context, font)
-            is ResourceFont -> when (font.loadingStrategy) {
-                Blocking -> font.load(context)
-                OptionalLocal -> runCatching { font.load(context) }.getOrNull()
-                Async -> throw UnsupportedOperationException("Unsupported Async font load path")
-                else -> throw IllegalArgumentException(
-                    "Unknown loading type ${font.loadingStrategy}"
-                )
-            }.setFontVariationSettings(font.variationSettings, context)
+            is ResourceFont ->
+                when (font.loadingStrategy) {
+                    Blocking -> font.load(context)
+                    OptionalLocal -> runCatching { font.load(context) }.getOrNull()
+                    Async -> throw UnsupportedOperationException("Unsupported Async font load path")
+                    else ->
+                        throw IllegalArgumentException(
+                            "Unknown loading type ${font.loadingStrategy}"
+                        )
+                }.setFontVariationSettings(font.variationSettings, context)
             else -> null
         }
     }
@@ -59,8 +53,8 @@ internal class AndroidFontLoader(
     override suspend fun awaitLoad(font: Font): Typeface? {
         return when (font) {
             is AndroidFont -> font.typefaceLoader.awaitLoad(context, font)
-            is ResourceFont -> font.loadAsync(context)
-                .setFontVariationSettings(font.variationSettings, context)
+            is ResourceFont ->
+                font.loadAsync(context).setFontVariationSettings(font.variationSettings, context)
             else -> throw IllegalArgumentException("Unknown font type: $font")
         }
     }
@@ -69,22 +63,28 @@ internal class AndroidFontLoader(
 }
 
 private fun ResourceFont.load(context: Context): Typeface =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        ResourceFontHelper.load(context, this)
-    } else {
-        ResourcesCompat.getFont(context, resId)!!
-    }
+    ResourcesCompat.getFont(context, resId)!!
 
-// This uses withContext to a blocking call to support Preview, which is not capable of displaying
-// when async ResourcesCompat is used.
+// TODO(seanmcq): Move to core-ktx to dedup
 private suspend fun ResourceFont.loadAsync(context: Context): Typeface {
-    return withContext(Dispatchers.IO) { load(context) }
-}
+    return suspendCancellableCoroutine { continuation ->
+        ResourcesCompat.getFont(
+            context,
+            resId,
+            object : ResourcesCompat.FontCallback() {
+                override fun onFontRetrieved(typeface: Typeface) {
+                    continuation.resume(typeface)
+                }
 
-@RequiresApi(Build.VERSION_CODES.O)
-private object ResourceFontHelper {
-    @DoNotInline
-    fun load(context: Context, font: ResourceFont): Typeface {
-        return context.resources.getFont(font.resId)
+                override fun onFontRetrievalFailed(reason: Int) {
+                    continuation.cancel(
+                        IllegalStateException(
+                            "Unable to load font ${this@loadAsync} (reason=$reason)"
+                        )
+                    )
+                }
+            },
+            null
+        )
     }
 }

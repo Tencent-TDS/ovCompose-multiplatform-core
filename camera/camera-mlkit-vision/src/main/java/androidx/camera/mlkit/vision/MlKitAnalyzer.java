@@ -16,6 +16,9 @@
 package androidx.camera.mlkit.vision;
 
 import static androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_ORIGINAL;
+import static androidx.camera.core.ImageAnalysis.COORDINATE_SYSTEM_SENSOR;
+import static androidx.camera.core.impl.utils.TransformUtils.getRectToRect;
+import static androidx.camera.core.impl.utils.TransformUtils.rotateRect;
 
 import static com.google.android.gms.common.internal.Preconditions.checkArgument;
 import static com.google.mlkit.vision.interfaces.Detector.TYPE_BARCODE_SCANNING;
@@ -23,25 +26,24 @@ import static com.google.mlkit.vision.interfaces.Detector.TYPE_SEGMENTATION;
 import static com.google.mlkit.vision.interfaces.Detector.TYPE_TEXT_RECOGNITION;
 
 import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.media.Image;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Logger;
 import androidx.camera.view.TransformExperimental;
-import androidx.camera.view.transform.CoordinateTransform;
 import androidx.camera.view.transform.ImageProxyTransformFactory;
-import androidx.camera.view.transform.OutputTransform;
 import androidx.core.util.Consumer;
 
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.interfaces.Detector;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,8 +63,8 @@ import java.util.concurrent.Executor;
  * <p> This class handles the coordinate transformation between ML Kit output and the target
  * coordinate system. Using the {@code targetCoordinateSystem} set in the constructor, it
  * calculates the {@link Matrix} with the value provided by CameraX via
- * {@link ImageAnalysis.Analyzer#updateTransform} and forwards it to the ML Kit {@code Detector}. The
- * coordinates returned by MLKit will be in the specified coordinate system.
+ * {@link ImageAnalysis.Analyzer#updateTransform} and forwards it to the ML Kit {@code Detector}.
+ * The coordinates returned by MLKit will be in the specified coordinate system.
  *
  * <p> This class is designed to work seamlessly with the {@code CameraController} class in
  * camera-view. When used with {@link ImageAnalysis} in camera-core, the following scenarios may
@@ -85,26 +87,21 @@ import java.util.concurrent.Executor;
  *
  * @see ImageAnalysis.Analyzer
  */
-@RequiresApi(21)
 public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
 
     private static final String TAG = "MlKitAnalyzer";
 
     private static final Size DEFAULT_SIZE = new Size(480, 360);
 
-    @NonNull
-    private final List<Detector<?>> mDetectors;
+    private final @NonNull List<Detector<?>> mDetectors;
     private final int mTargetCoordinateSystem;
     // Synthetic access
-    @NonNull
-    final Consumer<Result> mConsumer;
+    final @NonNull Consumer<Result> mConsumer;
     // Synthetic access
     final ImageProxyTransformFactory mImageAnalysisTransformFactory;
-    @NonNull
-    private final Executor mExecutor;
+    private final @NonNull Executor mExecutor;
 
-    @Nullable
-    private Matrix mSensorToTarget;
+    private @Nullable Matrix mSensorToTarget;
 
     /**
      * Constructor of {@link MlKitAnalyzer}.
@@ -149,33 +146,51 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
     }
 
     /**
-     * {@inheritDoc}
+     * Analyzes the image with the ML Kit {@code Detector}s.
+     *
+     * <p>This method forwards the image and the transformation {@link Matrix} to the {@code
+     * Detector}s. The {@code Matrix} is calculated based on the target coordinate system set in
+     * the constructor.
+     *
+     * <p>Usually this method is invoked by {@link ImageAnalysis} when a new frame is available.
+     *
+     * @see ImageAnalysis.Analyzer#analyze
      */
     @Override
     @OptIn(markerClass = TransformExperimental.class)
     public final void analyze(@NonNull ImageProxy imageProxy) {
         // By default, the matrix is identity for COORDINATE_SYSTEM_ORIGINAL.
-        Matrix transform = new Matrix();
+        Matrix analysisToTarget = new Matrix();
         if (mTargetCoordinateSystem != COORDINATE_SYSTEM_ORIGINAL) {
             // Calculate the transform if not COORDINATE_SYSTEM_ORIGINAL.
             Matrix sensorToTarget = mSensorToTarget;
-            if (sensorToTarget == null) {
-                // If the app set a target coordinate system, do not perform detection until the
-                // transform is ready.
-                Logger.d(TAG, "Transform is null.");
+            if (mTargetCoordinateSystem != COORDINATE_SYSTEM_SENSOR && sensorToTarget == null) {
+                // If the app sets an sensor to target transformation, we cannot provide correct
+                // coordinates until it is ready. Return early.
+                Logger.d(TAG, "Sensor-to-target transformation is null.");
                 imageProxy.close();
                 return;
             }
-            OutputTransform analysisTransform =
-                    mImageAnalysisTransformFactory.getOutputTransform(imageProxy);
-            Size cropRectSize = new Size(imageProxy.getCropRect().width(),
-                    imageProxy.getCropRect().height());
-            CoordinateTransform coordinateTransform = new CoordinateTransform(analysisTransform,
-                    new OutputTransform(sensorToTarget, cropRectSize));
-            coordinateTransform.transform(transform);
+            Matrix sensorToAnalysis =
+                    new Matrix(imageProxy.getImageInfo().getSensorToBufferTransformMatrix());
+            // Calculate the rotation added by ML Kit.
+            RectF sourceRect = new RectF(0, 0, imageProxy.getWidth(),
+                    imageProxy.getHeight());
+            RectF bufferRect = rotateRect(sourceRect,
+                    imageProxy.getImageInfo().getRotationDegrees());
+            Matrix analysisToMlKitRotation = getRectToRect(sourceRect, bufferRect,
+                    imageProxy.getImageInfo().getRotationDegrees());
+            // Concat the MLKit transformation with sensor to Analysis.
+            sensorToAnalysis.postConcat(analysisToMlKitRotation);
+            // Invert to get analysis to sensor.
+            sensorToAnalysis.invert(analysisToTarget);
+            if (mTargetCoordinateSystem != COORDINATE_SYSTEM_SENSOR) {
+                // Concat the sensor to target transformation to get the overall transformation.
+                analysisToTarget.postConcat(sensorToTarget);
+            }
         }
         // Detect the image recursively, starting from index 0.
-        detectRecursively(imageProxy, 0, transform, new HashMap<>(), new HashMap<>());
+        detectRecursively(imageProxy, 0, analysisToTarget, new HashMap<>(), new HashMap<>());
     }
 
     /**
@@ -245,9 +260,8 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
     /**
      * {@inheritDoc}
      */
-    @NonNull
     @Override
-    public final Size getDefaultTargetResolution() {
+    public final @NonNull Size getDefaultTargetResolution() {
         Size size = DEFAULT_SIZE;
         for (Detector<?> detector : mDetectors) {
             Size detectorSize = getTargetResolution(detector.getDetectorType());
@@ -264,8 +278,7 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
      *
      * <p> The resolution can be found on ML Kit's DAC page.
      */
-    @NonNull
-    private Size getTargetResolution(int detectorType) {
+    private @NonNull Size getTargetResolution(int detectorType) {
         switch (detectorType) {
             case TYPE_BARCODE_SCANNING:
             case TYPE_TEXT_RECOGNITION:
@@ -300,10 +313,8 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
      */
     public static final class Result {
 
-        @NonNull
-        private final Map<Detector<?>, Object> mValues;
-        @NonNull
-        private final Map<Detector<?>, Throwable> mThrowables;
+        private final @NonNull Map<Detector<?>, Object> mValues;
+        private final @NonNull Map<Detector<?>, Throwable> mThrowables;
         private final long mTimestamp;
 
         public Result(@NonNull Map<Detector<?>, Object> values, long timestamp,
@@ -326,9 +337,8 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
          * @param detector has to be one of the {@code Detector}s provided in
          *                 {@link MlKitAnalyzer}'s constructor.
          */
-        @Nullable
         @SuppressWarnings("unchecked")
-        public <T> T getValue(@NonNull Detector<T> detector) {
+        public <T> @Nullable T getValue(@NonNull Detector<T> detector) {
             checkDetectorExists(detector);
             return (T) mValues.get(detector);
         }
@@ -341,8 +351,7 @@ public class MlKitAnalyzer implements ImageAnalysis.Analyzer {
          * @param detector has to be one of the {@code Detector}s provided in
          *                 {@link MlKitAnalyzer}'s constructor.
          */
-        @Nullable
-        public Throwable getThrowable(@NonNull Detector<?> detector) {
+        public @Nullable Throwable getThrowable(@NonNull Detector<?> detector) {
             checkDetectorExists(detector);
             return mThrowables.get(detector);
         }

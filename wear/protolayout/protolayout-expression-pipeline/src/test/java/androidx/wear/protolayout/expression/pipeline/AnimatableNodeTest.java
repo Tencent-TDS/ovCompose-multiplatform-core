@@ -24,13 +24,16 @@ import android.animation.TypeEvaluator;
 import android.graphics.Color;
 import android.os.Looper;
 
-import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.wear.protolayout.expression.proto.AnimationParameterProto;
+import androidx.wear.protolayout.expression.proto.AnimationParameterProto.AnimationParameters;
 import androidx.wear.protolayout.expression.proto.AnimationParameterProto.AnimationSpec;
+import androidx.wear.protolayout.expression.proto.AnimationParameterProto.Repeatable;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -61,7 +64,8 @@ public class AnimatableNodeTest {
     @Test
     public void infiniteAnimator_onlyStartsWhenNodeIsVisible() {
         QuotaManager quotaManager = new FixedQuotaManagerImpl(Integer.MAX_VALUE);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
 
@@ -79,7 +83,8 @@ public class AnimatableNodeTest {
     @Test
     public void infiniteAnimator_pausesWhenNodeIsInvisible() {
         QuotaManager quotaManager = new FixedQuotaManagerImpl(Integer.MAX_VALUE);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
 
@@ -98,7 +103,8 @@ public class AnimatableNodeTest {
     @Test
     public void animator_noQuota_notPlayed() {
         QuotaManager quotaManager = new FixedQuotaManagerImpl(0);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
 
@@ -111,7 +117,8 @@ public class AnimatableNodeTest {
     public void animator_reused_withFloatValues() {
         mUpdateValues.clear();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(Integer.MAX_VALUE);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         quotaAwareAnimator.addUpdateCallback(a -> mUpdateValues.add((float) a));
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
@@ -161,7 +168,8 @@ public class AnimatableNodeTest {
     public void animator_reuse_withFloatValues() {
         mUpdateValues.clear();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(Integer.MAX_VALUE);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         quotaAwareAnimator.addUpdateCallback(a -> mUpdateValues.add((float) a));
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
@@ -184,7 +192,8 @@ public class AnimatableNodeTest {
     public void animator_reuse_noQuota() {
         mUpdateValues.clear();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(0);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         quotaAwareAnimator.addUpdateCallback(a -> mUpdateValues.add((float) a));
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
@@ -207,7 +216,8 @@ public class AnimatableNodeTest {
     public void animator_reuse_noQuota_then_withQuota() {
         mUpdateValues.clear();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(1);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         quotaAwareAnimator.addUpdateCallback(a -> mUpdateValues.add((float) a));
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
@@ -234,7 +244,8 @@ public class AnimatableNodeTest {
     public void animator_reuse_withQuota_then_noQuota() {
         mUpdateValues.clear();
         QuotaManager quotaManager = new FixedQuotaManagerImpl(1);
-        TestQuotaAwareAnimator quotaAwareAnimator = new TestQuotaAwareAnimator(quotaManager);
+        TestQuotaAwareAnimator quotaAwareAnimator =
+                new TestQuotaAwareAnimator(quotaManager, AnimatableNode.FLOAT_EVALUATOR);
         quotaAwareAnimator.setFloatValues(0.0f, 10.0f);
         quotaAwareAnimator.addUpdateCallback(a -> mUpdateValues.add((float) a));
         TestAnimatableNode animNode = new TestAnimatableNode(quotaAwareAnimator);
@@ -255,23 +266,124 @@ public class AnimatableNodeTest {
         assertThat(mUpdateValues).containsExactly(15.0f);
     }
 
+    @Test
+    public void animationWithCustomReverseDuration_animatorWithAux() {
+        QuotaManager quotaManager = new FixedQuotaManagerImpl(1);
+        TestAnimatableNode animNode =
+                new TestAnimatableNode(quotaManager,
+                        createAnimationSpec(4, 100, 200, 0, 0),
+                        AnimatableNode.FLOAT_EVALUATOR);
+        QuotaAwareAnimator animator = animNode.getQuotaAwareAnimator();
+
+        assertThat(animator).isInstanceOf(QuotaAwareAnimatorWithAux.class);
+    }
+
+    @Test
+    public void animationWithCustomReverseDuration_consumeOneQuota() {
+        QuotaManager quotaManager = new FixedQuotaManagerImpl(2);
+        TestAnimatableNode animNode =
+                new TestAnimatableNode(quotaManager,
+                        createAnimationSpec(2, 100, 200, 0, 0),
+                        AnimatableNode.INT_EVALUATOR);
+        animNode.setVisibility(true);
+        QuotaAwareAnimator animator = animNode.getQuotaAwareAnimator();
+        animator.setIntValues(0, 10);
+
+        animNode.startOrSkipAnimator();
+        assertThat(animator.isRunning()).isTrue();
+
+        assertThat(quotaManager.tryAcquireQuota(1)).isTrue();
+        assertThat(quotaManager.tryAcquireQuota(1)).isFalse();
+
+        shadowOf(Looper.getMainLooper()).idle();
+        assertThat(quotaManager.tryAcquireQuota(1)).isTrue();
+    }
+
+    @Test
+    public void animationWithCustomReverseDuration_releaseQuotaWhenInvisible() {
+        QuotaManager quotaManager = new FixedQuotaManagerImpl(1);
+        TestAnimatableNode animNode =
+                new TestAnimatableNode(quotaManager,
+                        createAnimationSpec(2, 100, 200, 0, 0),
+                        AnimatableNode.INT_EVALUATOR);
+        animNode.setVisibility(true);
+        QuotaAwareAnimator animator = animNode.getQuotaAwareAnimator();
+        animator.setIntValues(0, 10);
+
+        animNode.startOrSkipAnimator();
+        assertThat(animator.isRunning()).isTrue();
+        assertThat(quotaManager.tryAcquireQuota(1)).isFalse();
+
+        animNode.setVisibility(false);
+        assertThat(quotaManager.tryAcquireQuota(1)).isTrue();
+    }
+
+    @Test
+    public void animationWithCustomReverseDuration_checkAnimationValues() {
+        mUpdateValues.clear();
+        QuotaManager quotaManager = new FixedQuotaManagerImpl(1);
+        TestAnimatableNode animNode =
+                new TestAnimatableNode(quotaManager,
+                        createAnimationSpec(2, 100, 200, 0, 0),
+                        AnimatableNode.FLOAT_EVALUATOR);
+        animNode.setVisibility(true);
+        QuotaAwareAnimator animator = animNode.getQuotaAwareAnimator();
+
+        float start = 1.0f;
+        float end = 10.0f;
+        animator.setFloatValues(start, end);
+        animator.addUpdateCallback(a -> mUpdateValues.add((float) a));
+        animNode.startOrSkipAnimator();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        for (Float value : mUpdateValues) {
+            assertThat(value).isIn(Range.closed(start, end));
+        }
+        assertThat(mUpdateValues.size()).isGreaterThan(3);
+        assertThat(mUpdateValues.get(0)).isEqualTo(start);
+        assertThat(Iterables.getLast(mUpdateValues)).isEqualTo(start);
+
+        int increasingValueCount = 0;
+        int decreasingValueCount = 0;
+        for (int i = 0; i < mUpdateValues.size() - 2; i++) {
+            if (mUpdateValues.get(i) < mUpdateValues.get(i + 1)) {
+                increasingValueCount++;
+            } else {
+                decreasingValueCount++;
+            }
+        }
+        // reverse duration is double length of forward duration, expecting decreasing value
+        // count about
+        // double of the increasing value count.
+        assertThat(decreasingValueCount).isAtLeast((increasingValueCount - 1) * 2);
+        assertThat(decreasingValueCount).isAtMost((increasingValueCount + 1) * 2);
+    }
+
     static class TestAnimatableNode extends AnimatableNode {
 
         TestAnimatableNode(QuotaAwareAnimator quotaAwareAnimator) {
             super(quotaAwareAnimator);
+        }
+
+        TestAnimatableNode(
+                @NonNull QuotaManager quotaManager,
+                @NonNull AnimationSpec spec,
+                @NonNull TypeEvaluator typeEvaluator) {
+            super(quotaManager, spec, typeEvaluator);
+        }
+
+        QuotaAwareAnimator getQuotaAwareAnimator() {
+            return mQuotaAwareAnimator;
         }
     }
 
     static class TestQuotaAwareAnimator extends QuotaAwareAnimator {
         public boolean isInfiniteAnimator = false;
 
-        TestQuotaAwareAnimator(@NonNull QuotaManager mQuotaManager) {
-            super(mQuotaManager, AnimationSpec.getDefaultInstance());
-        }
 
         @SuppressWarnings("rawtypes")
-        TestQuotaAwareAnimator(
-                @NonNull QuotaManager mQuotaManager, @NonNull TypeEvaluator evaluator) {
+        TestQuotaAwareAnimator(@NonNull QuotaManager mQuotaManager,
+                @NonNull TypeEvaluator evaluator) {
             super(mQuotaManager, AnimationSpec.getDefaultInstance(), evaluator);
         }
 
@@ -279,5 +391,35 @@ public class AnimatableNodeTest {
         protected boolean isInfiniteAnimator() {
             return isInfiniteAnimator;
         }
+    }
+
+    @NonNull AnimationSpec createAnimationSpec(
+            int iterations,
+            int forwardDuration,
+            int reverseDuration,
+            int forwardRepeatDelay,
+            int reverseRepeatDelay) {
+        return AnimationSpec.newBuilder()
+                .setAnimationParameters(
+                        AnimationParameters.newBuilder()
+                                .setDurationMillis(forwardDuration)
+                                .build())
+                .setRepeatable(
+                        Repeatable.newBuilder()
+                                .setRepeatMode(
+                                        AnimationParameterProto.RepeatMode.REPEAT_MODE_REVERSE)
+                                .setForwardRepeatOverride(
+                                        AnimationParameters.newBuilder()
+                                                .setDelayMillis(forwardRepeatDelay)
+                                                .build())
+                                .setReverseRepeatOverride(
+                                        AnimationParameters.newBuilder()
+                                                .setDurationMillis(reverseDuration)
+                                                .setDelayMillis(reverseRepeatDelay)
+                                                .build()
+                                )
+                                .setIterations(iterations)
+                                .build())
+                .build();
     }
 }

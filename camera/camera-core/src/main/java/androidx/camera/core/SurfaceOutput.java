@@ -16,17 +16,26 @@
 
 package androidx.camera.core;
 
+import static androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE;
+
+import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraCharacteristics;
 import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+import androidx.camera.core.impl.CameraInternal;
 import androidx.core.util.Consumer;
 
 import com.google.auto.value.AutoValue;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.io.Closeable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.Executor;
@@ -39,7 +48,7 @@ import java.util.concurrent.Executor;
  *
  * @see SurfaceProcessor#onOutputSurface(SurfaceOutput)
  */
-public interface SurfaceOutput {
+public interface SurfaceOutput extends Closeable {
 
     /**
      * Gets the {@link Surface} for drawing processed frames.
@@ -52,8 +61,7 @@ public interface SurfaceOutput {
      *                 {@link SurfaceOutput}. The implementation should then invoke
      *                 {@link #close()} to mark the {@link Surface} as no longer in use.
      */
-    @NonNull
-    Surface getSurface(
+    @NonNull Surface getSurface(
             @NonNull Executor executor,
             @NonNull Consumer<Event> listener);
 
@@ -67,17 +75,17 @@ public interface SurfaceOutput {
 
     /**
      * This field indicates the format of the {@link Surface}.
-     *
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     @CameraEffect.Formats
-    int getFormat();
+    default int getFormat() {
+        return INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE;
+    }
 
     /**
      * Gets the size of the {@link Surface}.
      */
-    @NonNull
-    Size getSize();
+    @NonNull Size getSize();
 
     /**
      * Call this method to mark the {@link Surface} as no longer in use.
@@ -87,14 +95,8 @@ public interface SurfaceOutput {
      * {@link Surface}. Writing to the {@link Surface} after calling this method might cause
      * errors.
      */
+    @Override
     void close();
-
-    /**
-     * Asks the {@link SurfaceProcessor} implementation to stopping writing to the {@link Surface}.
-     *
-     */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    void requestClose();
 
     /**
      * Applies an additional 4x4 transformation on the original matrix.
@@ -149,7 +151,41 @@ public interface SurfaceOutput {
      * @param original the original 4x4 matrix. The array must have exactly 16 elements.
      * @see SurfaceTexture#getTransformMatrix(float[])
      */
-    void updateTransformMatrix(@NonNull float[] updated, @NonNull float[] original);
+    void updateTransformMatrix(float @NonNull [] updated, float @NonNull [] original);
+
+    /**
+     * Applies an additional 4x4 transformation on the original matrix, in dual concurrent cameras.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    default void updateTransformMatrix(
+            float @NonNull [] updated, float @NonNull [] original, boolean isPrimary) {
+    }
+
+    /**
+     * Returns the sensor to image buffer transform matrix.
+     *
+     * <p>The value is a mapping from sensor coordinates to buffer coordinates, which is,
+     * from the rect of {@link CameraCharacteristics#SENSOR_INFO_ACTIVE_ARRAY_SIZE} to the
+     * rect defined by {@code (0, 0, #getSize()#getWidth(), #getSize()#getHeight())}. The matrix can
+     * be used to map the coordinates from one {@link UseCase} to another. For example,
+     * detecting face with {@link ImageAnalysis}, and then highlighting the face in
+     * {@link Preview}.
+     *
+     * <p>Code sample
+     * <code><pre>
+     *  // Get the transformation from sensor to effect output.
+     *  Matrix sensorToEffect = surfaceOutput.getSensorToBufferTransform();
+     *  // Get the transformation from sensor to ImageAnalysis.
+     *  Matrix sensorToAnalysis = imageProxy.getSensorToBufferTransform();
+     *  // Concatenate the two matrices to get the transformation from ImageAnalysis to effect.
+     *  Matrix analysisToEffect = Matrix()
+     *  sensorToAnalysis.invert(analysisToEffect);
+     *  analysisToEffect.postConcat(sensorToEffect);
+     * </pre></code>
+     */
+    default @NonNull Matrix getSensorToBufferTransform() {
+        return new Matrix();
+    }
 
     /**
      * Events of the {@link Surface} retrieved from
@@ -158,9 +194,11 @@ public interface SurfaceOutput {
     @AutoValue
     abstract class Event {
 
+        Event() {
+        }
+
         /**
          * Possible event codes.
-         *
          */
         @IntDef({EVENT_REQUEST_CLOSE})
         @Retention(RetentionPolicy.SOURCE)
@@ -190,18 +228,62 @@ public interface SurfaceOutput {
         /**
          * Gets the {@link SurfaceOutput} associated with this event.
          */
-        @NonNull
-        public abstract SurfaceOutput getSurfaceOutput();
+        public abstract @NonNull SurfaceOutput getSurfaceOutput();
 
         /**
          * Creates a {@link Event} for sending to the implementation.
-         *
          */
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        @NonNull
-        public static SurfaceOutput.Event of(@EventCode int code,
+        public static SurfaceOutput.@NonNull Event of(@EventCode int code,
                 @NonNull SurfaceOutput surfaceOutput) {
             return new AutoValue_SurfaceOutput_Event(code, surfaceOutput);
+        }
+    }
+
+    /**
+     * Camera input information for transformation matrix calculation in {@link SurfaceOutput}.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    @AutoValue
+    abstract class CameraInputInfo {
+
+        /**
+         * Gets input size.
+         */
+        public abstract @NonNull Size getInputSize();
+
+        /**
+         * Gets input crop rect.
+         */
+        public abstract @NonNull Rect getInputCropRect();
+
+        /**
+         * Gets {@link CameraInternal}.
+         */
+        public abstract @Nullable CameraInternal getCameraInternal();
+
+        /**
+         * Gets input rotation degrees.
+         */
+        public abstract int getRotationDegrees();
+
+        /**
+         * Gets input mirroring state.
+         */
+        public abstract boolean getMirroring();
+
+        /**
+         * Creates a {@link CameraInputInfo}.
+         */
+        public static SurfaceOutput.@NonNull CameraInputInfo of(
+                @NonNull Size inputSize,
+                @NonNull Rect inputCropRect,
+                @Nullable CameraInternal cameraInternal,
+                int rotationDegrees,
+                boolean mirroring) {
+            return new AutoValue_SurfaceOutput_CameraInputInfo(
+                    inputSize, inputCropRect, cameraInternal,
+                    rotationDegrees, mirroring);
         }
     }
 }

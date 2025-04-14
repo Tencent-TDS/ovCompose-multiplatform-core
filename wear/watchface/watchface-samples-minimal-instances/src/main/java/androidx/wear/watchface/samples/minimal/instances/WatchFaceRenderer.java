@@ -26,7 +26,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.SurfaceHolder;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Px;
 import androidx.annotation.UiThread;
 import androidx.lifecycle.FlowLiveDataConversions;
@@ -44,7 +43,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import kotlin.Unit;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
@@ -71,10 +70,10 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
     private TimeRenderer mTimeRenderer;
 
     public WatchFaceRenderer(
-            @NotNull SurfaceHolder surfaceHolder,
-            @NotNull CurrentUserStyleRepository currentUserStyleRepository,
-            @NotNull WatchState watchState,
-            @NotNull Resources resources) {
+            @NonNull SurfaceHolder surfaceHolder,
+            @NonNull CurrentUserStyleRepository currentUserStyleRepository,
+            @NonNull WatchState watchState,
+            @NonNull Resources resources) {
         super(
                 surfaceHolder,
                 currentUserStyleRepository,
@@ -91,9 +90,8 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
     }
 
     @UiThread
-    @NonNull
     @Override
-    public ListenableFuture<Unit> initFuture() {
+    public @NonNull ListenableFuture<Unit> initFuture() {
         // observeForever has to be called from the UI thread but the WatchFaceRenderer is called
         // from a background thread.
         FlowLiveDataConversions.asLiveData(mCurrentUserStyleRepository.getUserStyle())
@@ -104,7 +102,7 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
 
     @Override
     public void render(
-            @NotNull Canvas canvas, @NotNull Rect rect, @NotNull ZonedDateTime zonedDateTime) {
+            @NonNull Canvas canvas, @NonNull Rect rect, @NonNull ZonedDateTime zonedDateTime) {
         mTimeRenderer.render(canvas, rect, zonedDateTime, getRenderParameters());
     }
 
@@ -130,9 +128,9 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
 
     private interface TimeRenderer {
         void render(
-                @NotNull Canvas canvas,
-                @NotNull Rect rect,
-                @NotNull ZonedDateTime zonedDateTime,
+                @NonNull Canvas canvas,
+                @NonNull Rect rect,
+                @NonNull ZonedDateTime zonedDateTime,
                 RenderParameters renderParameters);
     }
 
@@ -195,9 +193,9 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
 
         @Override
         public void render(
-                @NotNull Canvas canvas,
-                @NotNull Rect rect,
-                @NotNull ZonedDateTime zonedDateTime,
+                @NonNull Canvas canvas,
+                @NonNull Rect rect,
+                @NonNull ZonedDateTime zonedDateTime,
                 RenderParameters renderParameters) {
             mPaint.setColor(Color.BLACK);
             canvas.drawRect(rect, mPaint);
@@ -269,9 +267,9 @@ public class WatchFaceRenderer extends ListenableCanvasRenderer {
 
         @Override
         public void render(
-                @NotNull Canvas canvas,
-                @NotNull Rect rect,
-                @NotNull ZonedDateTime zonedDateTime,
+                @NonNull Canvas canvas,
+                @NonNull Rect rect,
+                @NonNull ZonedDateTime zonedDateTime,
                 RenderParameters renderParameters) {
             boolean isActive = renderParameters.getDrawMode() != DrawMode.AMBIENT;
             int hour = zonedDateTime.getHour();

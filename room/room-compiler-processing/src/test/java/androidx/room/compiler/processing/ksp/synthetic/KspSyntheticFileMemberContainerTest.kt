@@ -16,14 +16,15 @@
 
 package androidx.room.compiler.processing.ksp.synthetic
 
+import androidx.kruth.assertThat
+import androidx.kruth.assertWithMessage
 import androidx.room.compiler.processing.ksp.KspFieldElement
+import androidx.room.compiler.processing.ksp.KspProcessingEnv
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.compileFiles
 import androidx.room.compiler.processing.util.getField
 import androidx.room.compiler.processing.util.kspResolver
 import androidx.room.compiler.processing.util.runKspTest
-import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import org.junit.Test
@@ -35,29 +36,39 @@ import org.junit.runners.JUnit4
 class KspSyntheticFileMemberContainerTest {
     @Test
     fun topLevel_noPackage() {
-        val annotation = Source.kotlin(
-            "MyAnnotation.kt",
-            """
+        val annotation =
+            Source.kotlin(
+                "MyAnnotation.kt",
+                """
             annotation class MyAnnotation
-            """.trimIndent()
-        )
-        val appSrc = Source.kotlin(
-            "App.kt",
             """
+                    .trimIndent()
+            )
+        val appSrc =
+            Source.kotlin(
+                "App.kt",
+                """
                 @MyAnnotation
                 val appMember = 1
-            """.trimIndent()
-        )
-        runKspTest(
-            sources = listOf(annotation, appSrc)
-        ) { invocation ->
+            """
+                    .trimIndent()
+            )
+        runKspTest(sources = listOf(annotation, appSrc)) { invocation ->
             val elements = invocation.kspResolver.getSymbolsWithAnnotation("MyAnnotation").toList()
             assertThat(elements).hasSize(1)
-            val className = elements.map {
-                val owner = invocation.kspResolver.getOwnerJvmClassName(it as KSPropertyDeclaration)
-                assertWithMessage(it.toString()).that(owner).isNotNull()
-                KspSyntheticFileMemberContainer(owner!!).asClassName()
-            }.first()
+            val className =
+                elements
+                    .map {
+                        val owner =
+                            invocation.kspResolver.getOwnerJvmClassName(it as KSPropertyDeclaration)
+                        assertWithMessage(it.toString()).that(owner).isNotNull()
+                        KspSyntheticFileMemberContainer(
+                                invocation.processingEnv as KspProcessingEnv,
+                                owner!!
+                            )
+                            .asClassName()
+                    }
+                    .first()
             assertThat(className.packageName).isEmpty()
             assertThat(className.simpleNames).containsExactly("AppKt")
         }
@@ -65,10 +76,11 @@ class KspSyntheticFileMemberContainerTest {
 
     @Test
     fun nestedClassNames() {
-        fun buildSources(pkg: String) = listOf(
-            Source.java(
-                "$pkg.JavaClass",
-                """
+        fun buildSources(pkg: String) =
+            listOf(
+                Source.java(
+                    "$pkg.JavaClass",
+                    """
                 package $pkg;
                 public class JavaClass {
                     int member;
@@ -79,11 +91,12 @@ class KspSyntheticFileMemberContainerTest {
                         int member;
                     }
                 }
-                """.trimIndent()
-            ),
-            Source.java(
-                "${pkg}JavaClass",
                 """
+                        .trimIndent()
+                ),
+                Source.java(
+                    "${pkg}JavaClass",
+                    """
                 public class ${pkg}JavaClass {
                     int member;
                     public static class NestedClass {
@@ -93,11 +106,12 @@ class KspSyntheticFileMemberContainerTest {
                         int member;
                     }
                 }
-                """.trimIndent()
-            ),
-            Source.kotlin(
-                "$pkg/KotlinClass.kt",
                 """
+                        .trimIndent()
+                ),
+                Source.kotlin(
+                    "$pkg/KotlinClass.kt",
+                    """
                 package $pkg
                 class KotlinClass {
                     val member = 1
@@ -108,11 +122,12 @@ class KspSyntheticFileMemberContainerTest {
                         val member = 1
                     }
                 }
-                """.trimIndent()
-            ),
-            Source.kotlin(
-                "KotlinClass.kt",
                 """
+                        .trimIndent()
+                ),
+                Source.kotlin(
+                    "KotlinClass.kt",
+                    """
                 class ${pkg}KotlinClass {
                     val member = 1
                     class NestedClass {
@@ -122,21 +137,24 @@ class KspSyntheticFileMemberContainerTest {
                         val member = 1
                     }
                 }
-                """.trimIndent()
+                """
+                        .trimIndent()
+                )
             )
-        )
         val lib = compileFiles(buildSources("lib"))
-        runKspTest(
-            sources = buildSources("app"),
-            classpath = lib
-        ) { invocation ->
+        runKspTest(sources = buildSources("app"), classpath = lib) { invocation ->
             fun runTest(qName: String) {
                 invocation.processingEnv.requireTypeElement(qName).let { target ->
                     val field = target.getField("member") as KspFieldElement
                     val owner = invocation.kspResolver.getOwnerJvmClassName(field.declaration)
                     assertWithMessage(qName).that(owner).isNotNull()
-                    val synthetic = KspSyntheticFileMemberContainer(owner!!)
-                    assertWithMessage(qName).that(target.asClassName())
+                    val synthetic =
+                        KspSyntheticFileMemberContainer(
+                            invocation.processingEnv as KspProcessingEnv,
+                            owner!!
+                        )
+                    assertWithMessage(qName)
+                        .that(target.asClassName())
                         .isEqualTo(synthetic.asClassName())
                 }
             }

@@ -20,7 +20,6 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.health.platform.client.impl.ipc.internal.BaseQueueOperation;
@@ -36,6 +35,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Client for establishing connection to a cross process service.
  *
@@ -43,7 +44,6 @@ import com.google.common.util.concurrent.SettableFuture;
  * interface. For user instruction see: go/wear-dd-wcs-sdk
  *
  * @param <S> type of the service interface
- * @hide
  */
 @RestrictTo(Scope.LIBRARY)
 public abstract class Client<S extends IInterface> {
@@ -99,8 +99,7 @@ public abstract class Client<S extends IInterface> {
      *
      * @see #execute(RemoteFutureOperation)
      */
-    @NonNull
-    protected <R> ListenableFuture<R> execute(@NonNull RemoteOperation<S, R> operation) {
+    protected <R> @NonNull ListenableFuture<R> execute(@NonNull RemoteOperation<S, R> operation) {
         return execute((service, resultFuture) -> resultFuture.set(operation.execute(service)));
     }
 
@@ -112,8 +111,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails.
      */
-    @NonNull
-    protected <R> ListenableFuture<R> execute(
+    protected <R> @NonNull ListenableFuture<R> execute(
             @NonNull RemoteFutureOperation<S, R> operation) {
         SettableFuture<R> settableFuture = SettableFuture.create();
         mConnectionManager.scheduleForExecution(createQueueOperation(operation, settableFuture));
@@ -129,8 +127,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails or if the remote service version is lower than {@code minApiVersion}
      */
-    @NonNull
-    protected <R> ListenableFuture<R> executeWithVersionCheck(
+    protected <R> @NonNull ListenableFuture<R> executeWithVersionCheck(
             int minApiVersion, @NonNull RemoteFutureOperation<S, R> operation) {
         SettableFuture<R> settableFuture = SettableFuture.create();
         ListenableFuture<Integer> versionFuture =
@@ -170,8 +167,7 @@ public abstract class Client<S extends IInterface> {
      *
      * <p>If current version is available from earlier calls, it would return the value from cache.
      */
-    @NonNull
-    protected ListenableFuture<Integer> getCurrentRemoteVersion(boolean forceRefresh) {
+    protected @NonNull ListenableFuture<Integer> getCurrentRemoteVersion(boolean forceRefresh) {
         if (mCurrentVersion == UNKNOWN_VERSION || forceRefresh) {
             return Futures.transform(
                     execute(mRemoteVersionGetter),
@@ -198,8 +194,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails
      */
-    @NonNull
-    protected <R> ListenableFuture<R> registerListener(
+    protected <R> @NonNull ListenableFuture<R> registerListener(
             @NonNull ListenerKey listenerKey,
             @NonNull RemoteOperation<S, R> registerListenerOperation
     ) {
@@ -222,8 +217,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails
      */
-    @NonNull
-    protected <R> ListenableFuture<R> registerListener(
+    protected <R> @NonNull ListenableFuture<R> registerListener(
             @NonNull ListenerKey listenerKey,
             @NonNull RemoteFutureOperation<S, R> registerListenerOperation
     ) {
@@ -243,8 +237,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails
      */
-    @NonNull
-    protected <R> ListenableFuture<R> unregisterListener(
+    protected <R> @NonNull ListenableFuture<R> unregisterListener(
             @NonNull ListenerKey listenerKey,
             @NonNull RemoteOperation<S, R> unregisterListenerOperation
     ) {
@@ -264,8 +257,7 @@ public abstract class Client<S extends IInterface> {
      * @return {@link ListenableFuture} with the result of the operation or an exception if the
      *     execution fails
      */
-    @NonNull
-    protected <R> ListenableFuture<R> unregisterListener(
+    protected <R> @NonNull ListenableFuture<R> unregisterListener(
             @NonNull ListenerKey listenerKey,
             @NonNull RemoteFutureOperation<S, R> unregisterListenerOperation
     ) {
@@ -275,8 +267,7 @@ public abstract class Client<S extends IInterface> {
         return settableFuture;
     }
 
-    @NonNull
-    protected Exception getApiVersionCheckFailureException(
+    protected @NonNull Exception getApiVersionCheckFailureException(
             int currentVersion, int minApiVersion) {
         return new ApiVersionException(currentVersion, minApiVersion);
     }
@@ -302,9 +293,8 @@ public abstract class Client<S extends IInterface> {
                 settableFuture.setException(exception);
             }
 
-            @NonNull
             @Override
-            public QueueOperation trackExecution(@NonNull ExecutionTracker tracker) {
+            public @NonNull QueueOperation trackExecution(@NonNull ExecutionTracker tracker) {
                 tracker.track(settableFuture);
                 return this;
             }

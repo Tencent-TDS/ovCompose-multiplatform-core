@@ -26,36 +26,32 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.CarContext.CarServiceType;
 import androidx.car.app.constraints.IConstraintHost;
+import androidx.car.app.media.IMediaPlaybackHost;
 import androidx.car.app.navigation.INavigationHost;
 import androidx.car.app.suggestion.ISuggestionHost;
 import androidx.car.app.utils.LogTags;
 import androidx.car.app.utils.RemoteUtils;
 import androidx.car.app.utils.ThreadUtils;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.security.InvalidParameterException;
 
 /**
  * Dispatches calls to the host and manages possible exceptions.
- *
- * @hide
  */
 @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
 public final class HostDispatcher {
-    @Nullable
-    private ICarHost mCarHost;
-    @Nullable
-    private IAppHost mAppHost;
-    @Nullable
-    private IConstraintHost mConstraintHost;
-    @Nullable
-    private INavigationHost mNavigationHost;
-    @Nullable
-    private ISuggestionHost mSuggestionHost;
+    private @Nullable ICarHost mCarHost;
+    private @Nullable IAppHost mAppHost;
+    private @Nullable IConstraintHost mConstraintHost;
+    private @Nullable INavigationHost mNavigationHost;
+    private @Nullable ISuggestionHost mSuggestionHost;
+    private @Nullable IMediaPlaybackHost mPlaybackMediaHost;
 
     /**
      * Dispatches the {@code call} to the host for the given {@code hostType}.
@@ -67,9 +63,8 @@ public final class HostDispatcher {
      * @throws HostException     if the host throws any exception other than
      *                           {@link SecurityException}
      */
-    @Nullable
     @SuppressWarnings({"unchecked", "cast.unsafe"}) // Cannot check if instanceof ServiceT
-    public <ServiceT, ReturnT> ReturnT dispatchForResult(
+    public <ServiceT, ReturnT> @Nullable ReturnT dispatchForResult(
             @CarServiceType @NonNull String hostType, @NonNull String callName,
             @NonNull HostCall<ServiceT, ReturnT> call) throws RemoteException {
         return RemoteUtils.dispatchCallToHostForResult(callName, () -> {
@@ -131,11 +126,11 @@ public final class HostDispatcher {
      * Retrieves the {@link IInterface} for the given {@code hostType}.
      *
      * @throws RemoteException if the host is unresponsive
-     * @hide
      */
+    @SuppressWarnings({
+            "UnsafeOptInUsageError"})
     @RestrictTo(LIBRARY)
-    @Nullable
-    IInterface getHost(@CarServiceType String hostType) throws RemoteException {
+    @Nullable IInterface getHost(@CarServiceType String hostType) throws RemoteException {
         if (mCarHost == null) {
             Log.e(LogTags.TAG_DISPATCH, "Host is not bound when attempting to retrieve host "
                     + "service");
@@ -143,56 +138,76 @@ public final class HostDispatcher {
         }
 
         IInterface host;
-        switch (hostType) {
-            case CarContext.APP_SERVICE:
-                if (mAppHost == null) {
-                    mAppHost =
-                            RemoteUtils.dispatchCallToHostForResult("getHost(App)", () ->
-                                    IAppHost.Stub.asInterface(requireNonNull(mCarHost).getHost(
-                                            CarContext.APP_SERVICE)));
-                }
-                host = mAppHost;
-                break;
-            case CarContext.CONSTRAINT_SERVICE:
-                if (mConstraintHost == null) {
-                    mConstraintHost =
-                            RemoteUtils.dispatchCallToHostForResult("getHost(Constraints)", () ->
-                                    IConstraintHost.Stub.asInterface(
-                                            requireNonNull(mCarHost).getHost(
-                                                    CarContext.CONSTRAINT_SERVICE)));
-                }
-                host = mConstraintHost;
-                break;
-            case CarContext.SUGGESTION_SERVICE:
-                if (mSuggestionHost == null) {
-                    mSuggestionHost =
-                            RemoteUtils.dispatchCallToHostForResult(
-                                    "getHost(Suggestion)", () ->
-                                            ISuggestionHost.Stub.asInterface(
+        try {
+            switch (hostType) {
+                case CarContext.APP_SERVICE:
+                    if (mAppHost == null) {
+                        mAppHost =
+                                RemoteUtils.dispatchCallToHostForResult("getHost(App)", () ->
+                                        IAppHost.Stub.asInterface(requireNonNull(mCarHost).getHost(
+                                                CarContext.APP_SERVICE)));
+                    }
+                    host = mAppHost;
+                    break;
+                case CarContext.CONSTRAINT_SERVICE:
+                    if (mConstraintHost == null) {
+                        mConstraintHost =
+                                RemoteUtils.dispatchCallToHostForResult(
+                                        "getHost(Constraints)", () ->
+                                            IConstraintHost.Stub.asInterface(
                                                     requireNonNull(mCarHost).getHost(
-                                                            CarContext.SUGGESTION_SERVICE))
-                            );
-                }
-                host = mSuggestionHost;
-                break;
-            case CarContext.NAVIGATION_SERVICE:
-                if (mNavigationHost == null) {
-                    mNavigationHost =
-                            RemoteUtils.dispatchCallToHostForResult(
-                                    "getHost(Navigation)", () ->
-                                            INavigationHost.Stub.asInterface(
-                                                    requireNonNull(mCarHost).getHost(
-                                                            CarContext.NAVIGATION_SERVICE))
-                            );
-                }
-                host = mNavigationHost;
-                break;
-            case CarContext.CAR_SERVICE:
-                host = mCarHost;
-                break;
-            default:
-                throw new InvalidParameterException("Invalid host type: " + hostType);
+                                                            CarContext.CONSTRAINT_SERVICE)));
+                    }
+                    host = mConstraintHost;
+                    break;
+                case CarContext.SUGGESTION_SERVICE:
+                    if (mSuggestionHost == null) {
+                        mSuggestionHost =
+                                RemoteUtils.dispatchCallToHostForResult(
+                                        "getHost(Suggestion)", () ->
+                                                ISuggestionHost.Stub.asInterface(
+                                                        requireNonNull(mCarHost).getHost(
+                                                                CarContext.SUGGESTION_SERVICE))
+                                );
+                    }
+                    host = mSuggestionHost;
+                    break;
+                case CarContext.MEDIA_PLAYBACK_SERVICE:
+                    if (mPlaybackMediaHost == null) {
+                        mPlaybackMediaHost =
+                                RemoteUtils.dispatchCallToHostForResult(
+                                        "getHost(Media)", () ->
+                                                IMediaPlaybackHost.Stub.asInterface(
+                                                        requireNonNull(mCarHost).getHost(
+                                                                CarContext.MEDIA_PLAYBACK_SERVICE))
+                                );
+                    }
+                    host = mPlaybackMediaHost;
+                    break;
+                case CarContext.NAVIGATION_SERVICE:
+                    if (mNavigationHost == null) {
+                        mNavigationHost =
+                                RemoteUtils.dispatchCallToHostForResult(
+                                        "getHost(Navigation)", () ->
+                                                INavigationHost.Stub.asInterface(
+                                                        requireNonNull(mCarHost).getHost(
+                                                                CarContext.NAVIGATION_SERVICE))
+                                );
+                    }
+                    host = mNavigationHost;
+                    break;
+                case CarContext.CAR_SERVICE:
+                    host = mCarHost;
+                    break;
+                default:
+                    throw new InvalidParameterException("Invalid host type: " + hostType);
+            }
+        } catch (HostException e) {
+            Log.e(LogTags.TAG_DISPATCH, "Host threw an exception when attempting to retrieve "
+                    + "host service");
+            return null;
         }
+
         return host;
     }
 }

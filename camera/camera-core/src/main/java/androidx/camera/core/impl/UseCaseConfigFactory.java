@@ -18,16 +18,15 @@ package androidx.camera.core.impl;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ImageCapture.CaptureMode;
 import androidx.camera.core.InitializationException;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A Repository for generating use case configurations.
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public interface UseCaseConfigFactory {
 
     enum CaptureType {
@@ -50,7 +49,16 @@ public interface UseCaseConfigFactory {
         /**
          * Capture type for video capture. A use case of this type is consuming a stream of frames.
          */
-        VIDEO_CAPTURE
+        VIDEO_CAPTURE,
+        /**
+         * Capture type for stream sharing. A use case of this type is consuming a stream of frames.
+         */
+        STREAM_SHARING,
+        /**
+         * Capture type for metering repeating. A use case of this type is consuming a stream of
+         * frames.
+         */
+        METERING_REPEATING
     }
 
     /**
@@ -64,8 +72,8 @@ public interface UseCaseConfigFactory {
          * @return the factory instance
          * @throws InitializationException if it fails to create the factory
          */
-        @NonNull
-        UseCaseConfigFactory newInstance(@NonNull Context context) throws InitializationException;
+        @NonNull UseCaseConfigFactory newInstance(@NonNull Context context)
+                throws InitializationException;
     }
 
     /**
@@ -76,13 +84,12 @@ public interface UseCaseConfigFactory {
      * @param captureMode The {@link CaptureMode} for the configuration.
      * @return The use case configuration.
      */
-    @Nullable
-    Config getConfig(@NonNull CaptureType captureType, @CaptureMode int captureMode);
+    @Nullable Config getConfig(@NonNull CaptureType captureType, @CaptureMode int captureMode);
 
     UseCaseConfigFactory EMPTY_INSTANCE = new UseCaseConfigFactory() {
-        @Nullable
         @Override
-        public Config getConfig(@NonNull CaptureType captureType, @CaptureMode int captureMode) {
+        public @Nullable Config getConfig(@NonNull CaptureType captureType,
+                @CaptureMode int captureMode) {
             return null;
         }
     };

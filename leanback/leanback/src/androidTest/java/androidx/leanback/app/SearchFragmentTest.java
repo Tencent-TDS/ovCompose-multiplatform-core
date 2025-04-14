@@ -20,6 +20,7 @@ package androidx.leanback.app;
 
 import static org.junit.Assert.assertTrue;
 
+import android.app.Fragment;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,7 +32,6 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
-import android.app.Fragment;
 import androidx.leanback.test.R;
 import androidx.leanback.testutils.LeakDetector;
 import androidx.leanback.testutils.PollingCheck;
@@ -47,6 +47,7 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.testutils.AnimationTest;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -147,16 +148,23 @@ public class SearchFragmentTest extends SingleFragmentTestBase {
             leakDetector.observeObject(gridView.getChildAt(i));
         }
         gridView = null;
-        EmptyFragment emptyFragment = new EmptyFragment();
-        activity.getFragmentManager().beginTransaction()
-                .replace(R.id.main_frame, emptyFragment)
-                .addToBackStack("BK")
-                .commit();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        activity.getFragmentManager().beginTransaction()
+                               .replace(R.id.main_frame, new EmptyFragment())
+                               .addToBackStack("BK")
+                               .commit();
+                    }
+                }
+        );
 
         PollingCheck.waitFor(1000, new PollingCheck.PollingCheckCondition() {
             @Override
             public boolean canProceed() {
-                return emptyFragment.isResumed();
+                return activity.getFragmentManager()
+                        .findFragmentById(R.id.main_frame).isResumed();
             }
         });
         leakDetector.assertNoLeak();
@@ -190,6 +198,7 @@ public class SearchFragmentTest extends SingleFragmentTestBase {
     }
 
     @Test
+    @Ignore("b/281082608")
     public void testFocusWithSpeechRecognizerEnabled() throws Exception {
 
         // Skip the test for devices which do not have SpeechRecognizer

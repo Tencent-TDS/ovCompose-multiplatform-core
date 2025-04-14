@@ -19,24 +19,31 @@ package androidx.camera.camera2.pipe.integration.impl
 import android.content.Context
 import android.graphics.Point
 import android.hardware.display.DisplayManager
+import android.os.Build
 import android.util.Size
 import android.view.Display
+import android.view.WindowManager
 import androidx.camera.camera2.pipe.integration.adapter.RobolectricCameraPipeTestRunner
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.truth.Truth.assertThat
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 import org.robolectric.shadow.api.Shadow
 import org.robolectric.shadows.ShadowDisplay
 import org.robolectric.shadows.ShadowDisplayManager
 import org.robolectric.shadows.ShadowDisplayManager.removeDisplay
+import org.robolectric.util.ReflectionHelpers
 
 @Suppress("DEPRECATION") // getRealSize
 @RunWith(RobolectricCameraPipeTestRunner::class)
 @DoNotInstrument
+@Config(minSdk = 21)
 class DisplayInfoManagerTest {
     private val displayInfoManager = DisplayInfoManager(ApplicationProvider.getApplicationContext())
 
@@ -45,8 +52,10 @@ class DisplayInfoManagerTest {
         val displayId = ShadowDisplayManager.addDisplay(displayStr)
 
         if (state != Display.STATE_ON) {
-            val displayManager = (ApplicationProvider.getApplicationContext() as Context)
-                .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val displayManager =
+                (ApplicationProvider.getApplicationContext() as Context).getSystemService(
+                    Context.DISPLAY_SERVICE
+                ) as DisplayManager
             (Shadow.extract(displayManager.getDisplay(displayId)) as ShadowDisplay).setState(state)
         }
 
@@ -63,8 +72,10 @@ class DisplayInfoManagerTest {
 
     @After
     fun tearDown() {
-        val displayManager = (ApplicationProvider.getApplicationContext() as Context)
-            .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager?
+        val displayManager =
+            (ApplicationProvider.getApplicationContext() as Context).getSystemService(
+                Context.DISPLAY_SERVICE
+            ) as DisplayManager?
 
         displayManager?.let {
             for (display in it.displays) {
@@ -76,14 +87,16 @@ class DisplayInfoManagerTest {
     @Test
     fun defaultDisplayIsDeviceDisplay_whenOneDisplay() {
         // Arrange
-        val displayManager = (ApplicationProvider.getApplicationContext() as Context)
-            .getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+        val displayManager =
+            (ApplicationProvider.getApplicationContext() as Context).getSystemService(
+                Context.DISPLAY_SERVICE
+            ) as DisplayManager
         val currentDisplaySize = Point()
         displayManager.displays[0].getRealSize(currentDisplaySize)
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(currentDisplaySize, size)
@@ -97,7 +110,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(2000, 3000), size)
@@ -112,7 +125,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(480, 640), size)
@@ -124,11 +137,11 @@ class DisplayInfoManagerTest {
         addDisplay(480, 640)
 
         // Act
-        displayInfoManager.defaultDisplay
+        displayInfoManager.getMaxSizeDisplay()
         addDisplay(2000, 3000)
 
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(2000, 3000), size)
@@ -144,7 +157,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(480, 640), size)
@@ -160,7 +173,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(480, 640), size)
@@ -176,7 +189,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
 
         // Assert
         assertEquals(Point(2000, 3000), size)
@@ -189,7 +202,7 @@ class DisplayInfoManagerTest {
 
         // Act
         val size = Point()
-        displayInfoManager.defaultDisplay.getRealSize(size)
+        displayInfoManager.getMaxSizeDisplay().getRealSize(size)
     }
 
     @Test
@@ -198,7 +211,7 @@ class DisplayInfoManagerTest {
         addDisplay(480, 640)
 
         // Act & Assert
-        assertEquals(Size(640, 480), displayInfoManager.previewSize)
+        assertEquals(Size(640, 480), displayInfoManager.getPreviewSize())
     }
 
     @Test
@@ -207,7 +220,7 @@ class DisplayInfoManagerTest {
         addDisplay(2000, 3000)
 
         // Act & Assert
-        assertEquals(Size(1920, 1080), displayInfoManager.previewSize)
+        assertEquals(Size(1920, 1080), displayInfoManager.getPreviewSize())
     }
 
     @Test
@@ -216,10 +229,41 @@ class DisplayInfoManagerTest {
         addDisplay(480, 640)
 
         // Act
-        displayInfoManager.previewSize
+        displayInfoManager.getPreviewSize()
         addDisplay(2000, 3000)
+        displayInfoManager.refresh()
 
         // Assert
-        assertEquals(Size(1920, 1080), displayInfoManager.previewSize)
+        assertEquals(Size(1920, 1080), displayInfoManager.getPreviewSize())
+    }
+
+    @Test
+    fun canReturnFallbackPreviewSize640x480_displaySmallerThan320x240() {
+        // Arrange
+        val windowManager =
+            ApplicationProvider.getApplicationContext<Context>()
+                .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        Shadows.shadowOf(windowManager.defaultDisplay).setRealWidth(16)
+        Shadows.shadowOf(windowManager.defaultDisplay).setRealHeight(16)
+
+        // Act & Assert
+        val displayInfoManager = DisplayInfoManager(ApplicationProvider.getApplicationContext())
+        assertThat(displayInfoManager.getPreviewSize()).isEqualTo(Size(640, 480))
+    }
+
+    @Test
+    fun canReturnCorrectPreviewSize_fromDisplaySizeCorrector() {
+        // Arrange
+        val windowManager =
+            ApplicationProvider.getApplicationContext<Context>()
+                .getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        Shadows.shadowOf(windowManager.defaultDisplay).setRealWidth(16)
+        Shadows.shadowOf(windowManager.defaultDisplay).setRealHeight(16)
+
+        ReflectionHelpers.setStaticField(Build::class.java, "MODEL", "SM-A127F")
+
+        // Act & Assert
+        val displayInfoManager = DisplayInfoManager(ApplicationProvider.getApplicationContext())
+        assertThat(displayInfoManager.getPreviewSize()).isEqualTo(Size(1600, 720))
     }
 }

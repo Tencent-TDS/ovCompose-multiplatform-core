@@ -17,10 +17,11 @@
 package androidx.compose.foundation.gestures
 
 import androidx.compose.animation.core.AnimationConstants.UnspecifiedTime
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.spring
+import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.MotionDurationScale
 import kotlin.contracts.ExperimentalContracts
@@ -34,9 +35,9 @@ import kotlin.math.roundToLong
  * zero.
  *
  * Unlike the standard [AnimationState], this class allows the value to be changed while the
- * animation is running. When that happens, the next frame will continue animating the new value
- * to zero as though the previous animation was interrupted and restarted with the new value. See
- * the docs on [animateToZero] for more information.
+ * animation is running. When that happens, the next frame will continue animating the new value to
+ * zero as though the previous animation was interrupted and restarted with the new value. See the
+ * docs on [animateToZero] for more information.
  *
  * An analogy for how this animation works is gravity – you can pick something up, and as soon as
  * you let it go it will start falling to the ground. If you catch it and raise it higher, it will
@@ -48,8 +49,9 @@ import kotlin.math.roundToLong
  * update the value, which makes for a more convenient API for this particular use case, and makes
  * it cheaper to update [value] on every frame.
  */
-internal class UpdatableAnimationState {
+internal class UpdatableAnimationState(animationSpec: AnimationSpec<Float>) {
 
+    private val vectorizedSpec = animationSpec.vectorize(Float.VectorConverter)
     private var lastFrameTime = UnspecifiedTime
     private var lastVelocity = ZeroVector
     private var isRunning = false
@@ -67,27 +69,28 @@ internal class UpdatableAnimationState {
     var value: Float = 0f
 
     /**
-     * Starts animating [value] to 0f. This function will suspend until [value] actually reaches
-     * 0f – e.g. if [value] is reset to a non-zero value on every frame, it will never return. When
+     * Starts animating [value] to 0f. This function will suspend until [value] actually reaches 0f
+     * – e.g. if [value] is reset to a non-zero value on every frame, it will never return. When
      * this function does return, [value] will have been set to exactly 0f.
      *
      * If this function is called more than once concurrently, it will throw.
      *
      * @param beforeFrame Called _inside_ the choreographer callback on every frame with the
-     * difference between the previous value and the new value. This corresponds to the typical
-     * frame callback used in the other animation APIs and [withFrameNanos]. It runs before
-     * composition, layout, and other passes for the frame.
+     *   difference between the previous value and the new value. This corresponds to the typical
+     *   frame callback used in the other animation APIs and [withFrameNanos]. It runs before
+     *   composition, layout, and other passes for the frame.
      * @param afterFrame Called _outside_ the choreographer callback for every frame, _after_ the
-     * composition and layout passes have finished running for that frame. This function allows the
-     * caller to update [value] based on any layout changes performed in [beforeFrame].
+     *   composition and layout passes have finished running for that frame. This function allows
+     *   the caller to update [value] based on any layout changes performed in [beforeFrame].
      */
     @OptIn(ExperimentalContracts::class)
+    @Suppress("LEAKED_IN_PLACE_LAMBDA")
     suspend fun animateToZero(
         beforeFrame: (valueDelta: Float) -> Unit,
         afterFrame: () -> Unit,
     ) {
         contract { callsInPlace(beforeFrame) }
-        check(!isRunning)
+        checkPrecondition(!isRunning) { "animateToZero called while previous animation is running" }
 
         val durationScale = coroutineContext[MotionDurationScale]?.scaleFactor ?: 1f
         isRunning = true
@@ -103,29 +106,34 @@ internal class UpdatableAnimationState {
                     }
 
                     val vectorizedCurrentValue = AnimationVector1D(value)
-                    val playTime = if (durationScale == 0f) {
-                        // The duration scale will be 0 when animations are disabled via a11y
-                        // settings or developer settings.
-                        RebasableAnimationSpec.getDurationNanos(
-                            initialValue = AnimationVector1D(value),
+                    val playTime =
+                        if (durationScale == 0f) {
+                            // The duration scale will be 0 when animations are disabled via a11y
+                            // settings or developer settings.
+                            vectorizedSpec.getDurationNanos(
+                                initialValue = AnimationVector1D(value),
+                                targetValue = ZeroVector,
+                                initialVelocity = lastVelocity
+                            )
+                        } else {
+                            ((frameTime - lastFrameTime) / durationScale).roundToLong()
+                        }
+                    val newValue =
+                        vectorizedSpec
+                            .getValueFromNanos(
+                                playTimeNanos = playTime,
+                                initialValue = vectorizedCurrentValue,
+                                targetValue = ZeroVector,
+                                initialVelocity = lastVelocity
+                            )
+                            .value
+                    lastVelocity =
+                        vectorizedSpec.getVelocityFromNanos(
+                            playTimeNanos = playTime,
+                            initialValue = vectorizedCurrentValue,
                             targetValue = ZeroVector,
                             initialVelocity = lastVelocity
                         )
-                    } else {
-                        ((frameTime - lastFrameTime) / durationScale).roundToLong()
-                    }
-                    val newValue = RebasableAnimationSpec.getValueFromNanos(
-                        playTimeNanos = playTime,
-                        initialValue = vectorizedCurrentValue,
-                        targetValue = ZeroVector,
-                        initialVelocity = lastVelocity
-                    ).value
-                    lastVelocity = RebasableAnimationSpec.getVelocityFromNanos(
-                        playTimeNanos = playTime,
-                        initialValue = vectorizedCurrentValue,
-                        targetValue = ZeroVector,
-                        initialVelocity = lastVelocity
-                    )
                     lastFrameTime = frameTime
 
                     val delta = value - newValue
@@ -162,12 +170,6 @@ internal class UpdatableAnimationState {
     private companion object {
         const val VisibilityThreshold = 0.01f
         val ZeroVector = AnimationVector1D(0f)
-
-        /**
-         * Only the spring spec actually supports the way this class runs the animation, so we
-         * don't allow other specs to be passed in.
-         */
-        val RebasableAnimationSpec = spring<Float>().vectorize(Float.VectorConverter)
 
         fun Float.isZeroish() = absoluteValue < VisibilityThreshold
     }

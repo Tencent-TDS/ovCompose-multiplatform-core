@@ -19,22 +19,25 @@ package androidx.transition;
 import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.animation.TimeInterpolator;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
+import android.os.Build;
 import android.util.AndroidRuntimeException;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.IdRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.core.content.res.TypedArrayUtils;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * A TransitionSet is a parent of child transitions (including other
@@ -77,7 +80,7 @@ public class TransitionSet extends Transition {
      */
     private static final int FLAG_CHANGE_EPICENTER = 0x08;
 
-    private ArrayList<Transition> mTransitions = new ArrayList<>();
+    ArrayList<Transition> mTransitions = new ArrayList<>();
     private boolean mPlayTogether = true;
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     int mCurrentListeners;
@@ -86,6 +89,7 @@ public class TransitionSet extends Transition {
     // Flags to know whether or not the interpolator, path motion, epicenter, propagation
     // have changed
     private int mChangeFlags = 0;
+    private Transition[] mTransitionsCache;
 
     /**
      * A flag used to indicate that the child transitions of this set
@@ -110,8 +114,6 @@ public class TransitionSet extends Transition {
     public TransitionSet() {
     }
 
-    @SuppressLint("RestrictedApi") // remove once core lib would be released with the new
-    // LIBRARY_GROUP_PREFIX restriction. tracking in b/127286008
     public TransitionSet(@NonNull Context context, @NonNull AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, Styleable.TRANSITION_SET);
@@ -130,8 +132,7 @@ public class TransitionSet extends Transition {
      *                 transitions in sequence.
      * @return This transitionSet object.
      */
-    @NonNull
-    public TransitionSet setOrdering(int ordering) {
+    public @NonNull TransitionSet setOrdering(int ordering) {
         switch (ordering) {
             case ORDERING_SEQUENTIAL:
                 mPlayTogether = false;
@@ -174,8 +175,7 @@ public class TransitionSet extends Transition {
      * @param transition A non-null child transition to be added to this set.
      * @return This transitionSet object.
      */
-    @NonNull
-    public TransitionSet addTransition(@NonNull Transition transition) {
+    public @NonNull TransitionSet addTransition(@NonNull Transition transition) {
         addTransitionInternal(transition);
         if (mDuration >= 0) {
             transition.setDuration(mDuration);
@@ -218,8 +218,7 @@ public class TransitionSet extends Transition {
      * @see #addTransition(Transition)
      * @see #getTransitionCount()
      */
-    @Nullable
-    public Transition getTransitionAt(int index) {
+    public @Nullable Transition getTransitionAt(int index) {
         if (index < 0 || index >= mTransitions.size()) {
             return null;
         }
@@ -233,9 +232,8 @@ public class TransitionSet extends Transition {
      * @param duration The length of the animation, in milliseconds.
      * @return This transitionSet object.
      */
-    @NonNull
     @Override
-    public TransitionSet setDuration(long duration) {
+    public @NonNull TransitionSet setDuration(long duration) {
         super.setDuration(duration);
         if (mDuration >= 0 && mTransitions != null) {
             int numTransitions = mTransitions.size();
@@ -246,15 +244,13 @@ public class TransitionSet extends Transition {
         return this;
     }
 
-    @NonNull
     @Override
-    public TransitionSet setStartDelay(long startDelay) {
+    public @NonNull TransitionSet setStartDelay(long startDelay) {
         return (TransitionSet) super.setStartDelay(startDelay);
     }
 
-    @NonNull
     @Override
-    public TransitionSet setInterpolator(@Nullable TimeInterpolator interpolator) {
+    public @NonNull TransitionSet setInterpolator(@Nullable TimeInterpolator interpolator) {
         mChangeFlags |= FLAG_CHANGE_INTERPOLATOR;
         if (mTransitions != null) {
             int numTransitions = mTransitions.size();
@@ -265,123 +261,109 @@ public class TransitionSet extends Transition {
         return (TransitionSet) super.setInterpolator(interpolator);
     }
 
-    @NonNull
     @Override
-    public TransitionSet addTarget(@NonNull View target) {
+    public @NonNull TransitionSet addTarget(@NonNull View target) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).addTarget(target);
         }
         return (TransitionSet) super.addTarget(target);
     }
 
-    @NonNull
     @Override
-    public TransitionSet addTarget(@IdRes int targetId) {
+    public @NonNull TransitionSet addTarget(@IdRes int targetId) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).addTarget(targetId);
         }
         return (TransitionSet) super.addTarget(targetId);
     }
 
-    @NonNull
     @Override
-    public TransitionSet addTarget(@NonNull String targetName) {
+    public @NonNull TransitionSet addTarget(@NonNull String targetName) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).addTarget(targetName);
         }
         return (TransitionSet) super.addTarget(targetName);
     }
 
-    @NonNull
     @Override
-    public TransitionSet addTarget(@NonNull Class<?> targetType) {
+    public @NonNull TransitionSet addTarget(@NonNull Class<?> targetType) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).addTarget(targetType);
         }
         return (TransitionSet) super.addTarget(targetType);
     }
 
-    @NonNull
     @Override
-    public TransitionSet addListener(@NonNull TransitionListener listener) {
+    public @NonNull TransitionSet addListener(@NonNull TransitionListener listener) {
         return (TransitionSet) super.addListener(listener);
     }
 
-    @NonNull
     @Override
-    public TransitionSet removeTarget(@IdRes int targetId) {
+    public @NonNull TransitionSet removeTarget(@IdRes int targetId) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).removeTarget(targetId);
         }
         return (TransitionSet) super.removeTarget(targetId);
     }
 
-    @NonNull
     @Override
-    public TransitionSet removeTarget(@NonNull View target) {
+    public @NonNull TransitionSet removeTarget(@NonNull View target) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).removeTarget(target);
         }
         return (TransitionSet) super.removeTarget(target);
     }
 
-    @NonNull
     @Override
-    public TransitionSet removeTarget(@NonNull Class<?> target) {
+    public @NonNull TransitionSet removeTarget(@NonNull Class<?> target) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).removeTarget(target);
         }
         return (TransitionSet) super.removeTarget(target);
     }
 
-    @NonNull
     @Override
-    public TransitionSet removeTarget(@NonNull String targetName) {
+    public @NonNull TransitionSet removeTarget(@NonNull String targetName) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).removeTarget(targetName);
         }
         return (TransitionSet) super.removeTarget(targetName);
     }
 
-    @NonNull
     @Override
-    public Transition excludeTarget(@NonNull View target, boolean exclude) {
+    public @NonNull Transition excludeTarget(@NonNull View target, boolean exclude) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).excludeTarget(target, exclude);
         }
         return super.excludeTarget(target, exclude);
     }
 
-    @NonNull
     @Override
-    public Transition excludeTarget(@NonNull String targetName, boolean exclude) {
+    public @NonNull Transition excludeTarget(@NonNull String targetName, boolean exclude) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).excludeTarget(targetName, exclude);
         }
         return super.excludeTarget(targetName, exclude);
     }
 
-    @NonNull
     @Override
-    public Transition excludeTarget(int targetId, boolean exclude) {
+    public @NonNull Transition excludeTarget(int targetId, boolean exclude) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).excludeTarget(targetId, exclude);
         }
         return super.excludeTarget(targetId, exclude);
     }
 
-    @NonNull
     @Override
-    public Transition excludeTarget(@NonNull Class<?> type, boolean exclude) {
+    public @NonNull Transition excludeTarget(@NonNull Class<?> type, boolean exclude) {
         for (int i = 0; i < mTransitions.size(); i++) {
             mTransitions.get(i).excludeTarget(type, exclude);
         }
         return super.excludeTarget(type, exclude);
     }
 
-    @NonNull
     @Override
-    public TransitionSet removeListener(@NonNull TransitionListener listener) {
+    public @NonNull TransitionSet removeListener(@NonNull TransitionListener listener) {
         return (TransitionSet) super.removeListener(listener);
     }
 
@@ -402,8 +384,7 @@ public class TransitionSet extends Transition {
      * @param transition The transition to be removed.
      * @return This transitionSet object.
      */
-    @NonNull
-    public TransitionSet removeTransition(@NonNull Transition transition) {
+    public @NonNull TransitionSet removeTransition(@NonNull Transition transition) {
         mTransitions.remove(transition);
         transition.mParent = null;
         return this;
@@ -516,6 +497,133 @@ public class TransitionSet extends Transition {
     }
 
     @Override
+    boolean hasAnimators() {
+        for (int i = 0; i < mTransitions.size(); i++) {
+            Transition child = mTransitions.get(i);
+            if (child.hasAnimators()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    void prepareAnimatorsForSeeking() {
+        mTotalDuration = 0;
+        TransitionListenerAdapter listener = new TransitionListenerAdapter() {
+            @Override
+            public void onTransitionCancel(@NonNull Transition transition) {
+                mTransitions.remove(transition);
+                if (!hasAnimators()) {
+                    notifyListeners(TransitionNotification.ON_CANCEL, false);
+                    mEnded = true;
+                    notifyListeners(TransitionNotification.ON_END, false);
+                }
+            }
+        };
+        for (int i = 0; i < mTransitions.size(); ++i) {
+            Transition transition = mTransitions.get(i);
+            transition.addListener(listener);
+            transition.prepareAnimatorsForSeeking();
+            long duration = transition.getTotalDurationMillis();
+            if (mPlayTogether) {
+                mTotalDuration = Math.max(mTotalDuration, duration);
+            } else {
+                transition.mSeekOffsetInParent = mTotalDuration;
+                mTotalDuration += duration;
+            }
+        }
+    }
+
+    /**
+     * Returns the index of the Transition that is playing at playTime. If no such transition
+     * exists, either because that Transition has been canceled or the TransitionSet is empty,
+     * the index of the one prior, or 0 will be returned.
+     */
+    private int indexOfTransition(long playTime) {
+        for (int i = 1; i < mTransitions.size(); i++) {
+            Transition transition = mTransitions.get(i);
+            if (transition.mSeekOffsetInParent > playTime) {
+                return i - 1;
+            }
+        }
+        return mTransitions.size() - 1;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Override
+    void setCurrentPlayTimeMillis(long playTimeMillis, long lastPlayTimeMillis) {
+        long duration = getTotalDurationMillis();
+        if (mParent != null && ((playTimeMillis < 0 && lastPlayTimeMillis < 0)
+                || (playTimeMillis > duration && lastPlayTimeMillis > duration))
+        ) {
+            return;
+        }
+        boolean isReverse = playTimeMillis < lastPlayTimeMillis;
+        if ((playTimeMillis >= 0 && lastPlayTimeMillis < 0)
+                || (playTimeMillis <= duration && lastPlayTimeMillis > duration)
+            ) {
+            mEnded = false;
+            notifyListeners(TransitionNotification.ON_START, isReverse);
+        }
+        if (mPlayTogether) {
+            for (int i = 0; i < mTransitions.size(); i++) {
+                Transition transition = mTransitions.get(i);
+                transition.setCurrentPlayTimeMillis(playTimeMillis, lastPlayTimeMillis);
+            }
+        } else {
+            // find the Transition that lastPlayTimeMillis was using
+            int startIndex = indexOfTransition(lastPlayTimeMillis);
+
+            if (playTimeMillis >= lastPlayTimeMillis) {
+                // move forward through transitions
+                for (int i = startIndex; i < mTransitions.size(); i++) {
+                    Transition transition = mTransitions.get(i);
+                    long transitionStart = transition.mSeekOffsetInParent;
+                    long playTime = playTimeMillis - transitionStart;
+                    if (playTime < 0) {
+                        break; // went past
+                    }
+                    long lastPlayTime = lastPlayTimeMillis - transitionStart;
+                    transition.setCurrentPlayTimeMillis(playTime, lastPlayTime);
+                }
+            } else {
+                // move backwards through transitions
+                for (int i = startIndex; i >= 0; i--) {
+                    Transition transition = mTransitions.get(i);
+                    long transitionStart = transition.mSeekOffsetInParent;
+                    long playTime = playTimeMillis - transitionStart;
+                    long lastPlayTime = lastPlayTimeMillis - transitionStart;
+                    transition.setCurrentPlayTimeMillis(playTime, lastPlayTime);
+                    if (playTime >= 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (mParent != null && ((playTimeMillis > duration && lastPlayTimeMillis <= duration)
+                || (playTimeMillis < 0 && lastPlayTimeMillis >= 0))
+        ) {
+            if (playTimeMillis > duration) {
+                mEnded = true;
+            }
+            notifyListeners(TransitionNotification.ON_END, isReverse);
+        }
+    }
+
+    @Override
+    public boolean isSeekingSupported() {
+        int numTransitions = mTransitions.size();
+        for (int i = 0; i < numTransitions; i++) {
+            if (!mTransitions.get(i).isSeekingSupported()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public void captureStartValues(@NonNull TransitionValues transitionValues) {
         if (isValidTarget(transitionValues.view)) {
             for (Transition childTransition : mTransitions) {
@@ -561,35 +669,71 @@ public class TransitionSet extends Transition {
     }
 
     /**
+     * Used to capture all the transitions so that they can be iterated over, even if
+     * the mTransitions has been mutated during the iteration. This is safe for reentrancy
+     * because the cached array is cleared before returning and a reentrant call will need
+     * to create a new array.
+     *
+     * The length of the array could be larger than the number of transitions with the extra
+     * elements being null.
+     *
+     * The returned array should be returned after iterating over it so that it may be reused
+     * by calling {@link #returnTransitionArrayToCache(Transition[])}.
+     */
+    private Transition[] transitionsAsArray() {
+        Transition[] transitions = mTransitionsCache;
+        mTransitionsCache = null;
+        if (transitions == null) {
+            transitions = new Transition[mTransitions.size()];
+        }
+        return mTransitions.toArray(transitions);
+    }
+
+    /**
+     * Returns the array returned in {@link #transitionsAsArray()} to the cache, clearing
+     * all values so that it can be used again the next time {@link #transitionsAsArray} is called.
+     */
+    private void returnTransitionArrayToCache(Transition[] transitions) {
+        Arrays.fill(transitions, null);
+        mTransitionsCache = transitions;
+    }
+
+    /**
      * @param sceneRoot */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     public void resume(@Nullable View sceneRoot) {
         super.resume(sceneRoot);
+        Transition[] transitions = transitionsAsArray();
         int numTransitions = mTransitions.size();
-        for (int i = 0; i < numTransitions; ++i) {
-            mTransitions.get(i).resume(sceneRoot);
+        for (int i = 0; i < numTransitions; i++) {
+            transitions[i].resume(sceneRoot);
         }
+        returnTransitionArrayToCache(transitions);
     }
 
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     protected void cancel() {
         super.cancel();
+        Transition[] transitions = transitionsAsArray();
         int numTransitions = mTransitions.size();
-        for (int i = 0; i < numTransitions; ++i) {
-            mTransitions.get(i).cancel();
+        for (int i = 0; i < numTransitions; i++) {
+            transitions[i].cancel();
         }
+        returnTransitionArrayToCache(transitions);
     }
 
     @RestrictTo(LIBRARY_GROUP_PREFIX)
     @Override
     void forceToEnd(ViewGroup sceneRoot) {
         super.forceToEnd(sceneRoot);
+        Transition[] transitions = transitionsAsArray();
         int numTransitions = mTransitions.size();
-        for (int i = 0; i < numTransitions; ++i) {
-            mTransitions.get(i).forceToEnd(sceneRoot);
+        for (int i = 0; i < numTransitions; i++) {
+            transitions[i].forceToEnd(sceneRoot);
         }
+        returnTransitionArrayToCache(transitions);
     }
 
     @Override
@@ -630,9 +774,8 @@ public class TransitionSet extends Transition {
         return result;
     }
 
-    @NonNull
     @Override
-    public Transition clone() {
+    public @NonNull Transition clone() {
         TransitionSet clone = (TransitionSet) super.clone();
         clone.mTransitions = new ArrayList<>();
         int numTransitions = mTransitions.size();

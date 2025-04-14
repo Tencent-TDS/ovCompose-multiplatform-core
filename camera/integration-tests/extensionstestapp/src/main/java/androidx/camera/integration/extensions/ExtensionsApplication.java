@@ -19,18 +19,35 @@ package androidx.camera.integration.extensions;
 import android.app.Application;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.camera.camera2.Camera2Config;
 import androidx.camera.core.CameraXConfig;
+
+import org.jspecify.annotations.NonNull;
 
 /** The application. */
 public class ExtensionsApplication extends Application implements CameraXConfig.Provider {
     private static final String TAG = "ExtensionApplication";
 
-    @NonNull
+    private CameraXConfig mCameraXConfig = Camera2Config.defaultConfig();
+
     @Override
-    public CameraXConfig getCameraXConfig() {
+    @SuppressWarnings("ObjectToString")
+    public @NonNull CameraXConfig getCameraXConfig() {
         Log.d(TAG, "Providing custom CameraXConfig through Application");
-        return Camera2Config.defaultConfig();
+        return mCameraXConfig;
+    }
+
+    /**
+     * Sets the {@link CameraXConfig} we provide when CameraX invokes
+     * {@link CameraXConfig.Provider#getCameraXConfig}.
+     *
+     * @param cameraXConfig the CameraX config to set.
+     */
+    @SuppressWarnings("ObjectToString")
+    public void setCameraXConfig(@NonNull CameraXConfig cameraXConfig) {
+        if (cameraXConfig != mCameraXConfig) {
+            Log.d(TAG, "CameraXConfig changed through Application");
+            mCameraXConfig = cameraXConfig;
+        }
     }
 }

@@ -16,7 +16,6 @@
 
 package androidx.car.app.model.constraints;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.RequiresCarApi;
@@ -26,7 +25,11 @@ import androidx.car.app.model.ListTemplate;
 import androidx.car.app.model.MessageTemplate;
 import androidx.car.app.model.PaneTemplate;
 import androidx.car.app.model.SearchTemplate;
+import androidx.car.app.model.SectionedItemTemplate;
 import androidx.car.app.model.Template;
+import androidx.car.app.navigation.model.NavigationTemplate;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -35,16 +38,16 @@ import java.util.List;
 /**
  * Encapsulates the constraints to apply when creating {@link TabContents}.
  *
- * @hide
  */
-@ExperimentalCarApi
 @RequiresCarApi(6)
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class TabContentsConstraints {
 
-    /** Allow restricted set of templates as contents for a tab **/
-    @NonNull
-    public static final TabContentsConstraints DEFAULT =
+    /**
+     * The set of allowed templates as content within a tab template since the introduction of the
+     * tab template (API 6).
+     */
+    public static final @NonNull TabContentsConstraints DEFAULT =
             new TabContentsConstraints(Arrays.asList(
                     ListTemplate.class,
                     PaneTemplate.class,
@@ -52,6 +55,31 @@ public class TabContentsConstraints {
                     MessageTemplate.class,
                     SearchTemplate.class
             ));
+
+    /** The set of allowed templates as content within a tab template since API 7. */
+    public static final @NonNull TabContentsConstraints API_7 =
+            new TabContentsConstraints(Arrays.asList(
+                    ListTemplate.class,
+                    PaneTemplate.class,
+                    GridTemplate.class,
+                    MessageTemplate.class,
+                    SearchTemplate.class,
+                    NavigationTemplate.class
+            ));
+
+    /** The set of allowed templates as content within a tab template since API 8. */
+    @ExperimentalCarApi
+    public static final @NonNull TabContentsConstraints API_8 =
+            new TabContentsConstraints(Arrays.asList(
+                    ListTemplate.class,
+                    PaneTemplate.class,
+                    GridTemplate.class,
+                    MessageTemplate.class,
+                    SearchTemplate.class,
+                    NavigationTemplate.class,
+                    SectionedItemTemplate.class
+            ));
+
     private HashSet<Class<? extends Template>> mAllowedTemplateTypes;
 
     /**

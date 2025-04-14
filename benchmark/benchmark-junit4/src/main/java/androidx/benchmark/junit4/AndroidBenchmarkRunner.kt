@@ -17,6 +17,7 @@
 package androidx.benchmark.junit4
 
 import androidx.annotation.CallSuper
+import androidx.benchmark.Arguments
 import androidx.benchmark.IsolationActivity
 import androidx.benchmark.Shell
 import androidx.test.runner.AndroidJUnitRunner
@@ -26,8 +27,7 @@ import androidx.test.runner.AndroidJUnitRunner
  * interference.
  *
  * To use this runner, put the following in your module level `build.gradle`:
- *
- * ```
+ * ```groovy
  * android {
  *     defaultConfig {
  *         testInstrumentationRunner "androidx.benchmark.junit4.AndroidBenchmarkRunner"
@@ -79,10 +79,9 @@ public open class AndroidBenchmarkRunner : AndroidJUnitRunner() {
         // Before/After each test, from the test thread, synchronously launch
         // our IsolationActivity if it's not already resumed
         var isResumed = false
-        runOnMainSync {
-            isResumed = IsolationActivity.resumed
-        }
-        if (!isResumed) {
+        runOnMainSync { isResumed = IsolationActivity.resumed }
+        // dryRunMode doesn't care about isolation or sustained perf mode, so skip launch cost
+        if (!isResumed && !Arguments.dryRunMode) {
             IsolationActivity.launchSingleton()
         }
     }

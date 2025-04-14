@@ -16,31 +16,59 @@
 
 package androidx.benchmark.junit4
 
+import android.os.Looper
+import androidx.test.annotation.UiThreadTest
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
-import org.junit.Assert
+import androidx.test.filters.SmallTest
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.TimeUnit
 
 @LargeTest
 @RunWith(AndroidJUnit4::class)
-public class BenchmarkRuleTest {
-    @get:Rule
-    public val benchmarkRule: BenchmarkRule = BenchmarkRule(enableReport = false)
+class BenchmarkRuleTest {
+    @get:Rule val benchmarkRule: BenchmarkRule = BenchmarkRule()
 
     @Test
-    public fun runWithTimingDisabled() {
-        benchmarkRule.measureRepeated {
-            runWithTimingDisabled {
-                Thread.sleep(5)
+    fun measureRepeatedMainThread() {
+        var scheduledOnMain = false
+
+        // validate rethrow behavior
+        assertFailsWith<IllegalStateException> {
+            benchmarkRule.measureRepeatedOnMainThread {
+                scheduledOnMain = Looper.myLooper() == Looper.getMainLooper()
+
+                throw IllegalStateException("just a test")
             }
         }
-        val min = benchmarkRule.getState().getMinTimeNanos()
-        Assert.assertTrue(
-            "minimum $min should be less than 1ms",
-            min < TimeUnit.MILLISECONDS.toNanos(1)
+
+        // validate work done on main thread
+        assertTrue(scheduledOnMain)
+
+        // let a benchmark actually run, so "benchmark hasn't finished" isn't thrown
+        benchmarkRule.measureRepeatedOnMainThread {}
+    }
+
+    @SmallTest
+    @Test
+    @UiThreadTest
+    fun measureRepeatedOnMainThread_throwOnMain() {
+        assertEquals(Looper.myLooper(), Looper.getMainLooper())
+        // validate rethrow behavior
+        val exception =
+            assertFailsWith<IllegalStateException> {
+                benchmarkRule.measureRepeatedOnMainThread {
+                    // Doesn't matter
+                }
+            }
+        assertTrue(
+            exception.message!!.contains(
+                "Cannot invoke measureRepeatedOnMainThread from the main thread"
+            )
         )
     }
 }

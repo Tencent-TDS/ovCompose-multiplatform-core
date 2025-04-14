@@ -35,6 +35,7 @@ open class BasicAppWidget : GlanceAppWidget() {
         // Ensure tracing is enabled before starting updates.
         Tracing.enabled.set(true)
     }
+
     override val sizeMode: SizeMode = SizeMode.Single
 
     override suspend fun provideGlance(
@@ -53,12 +54,6 @@ open class BasicAppWidget : GlanceAppWidget() {
     }
 }
 
-class BasicAppWidgetWithSession : BasicAppWidget()
-
 class BasicAppWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = BasicAppWidget()
-}
-
-class BasicAppWidgetWithSessionReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget: GlanceAppWidget = BasicAppWidgetWithSession()
 }

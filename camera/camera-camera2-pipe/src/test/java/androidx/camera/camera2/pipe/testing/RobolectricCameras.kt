@@ -32,7 +32,7 @@ import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.compat.Camera2CameraMetadata
 import androidx.test.core.app.ApplicationProvider
-import com.google.common.truth.Truth
+import com.google.common.truth.Truth.assertThat
 import kotlinx.atomicfu.atomic
 import org.junit.After
 import org.junit.Test
@@ -104,19 +104,18 @@ public object RobolectricCameras {
                 cameraId,
                 false,
                 characteristics,
-                FakeCameraMetadataProvider(),
+                FakeCamera2MetadataProvider(),
                 emptyMap(),
                 emptySet()
             )
 
-        @Suppress("SyntheticAccessor") val callback = CameraStateCallback(cameraId)
+        val callback = CameraStateCallback(cameraId)
         cameraManager.openCamera(cameraId.value, callback, Handler())
 
         // Wait until the camera is "opened" by robolectric.
         shadowOf(Looper.myLooper()).idle()
         val cameraDevice = callback.camera!!
 
-        @Suppress("SyntheticAccessor")
         return FakeCamera(cameraId, characteristics, metadata, cameraDevice)
     }
 
@@ -144,6 +143,7 @@ public object RobolectricCameras {
     private class CameraStateCallback(private val cameraId: CameraId) :
         CameraDevice.StateCallback() {
         var camera: CameraDevice? = null
+
         override fun onOpened(cameraDevice: CameraDevice) {
             check(cameraDevice.id == cameraId.value)
             this.camera = cameraDevice
@@ -164,7 +164,6 @@ public object RobolectricCameras {
 @RunWith(RobolectricCameraPipeTestRunner::class)
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class RobolectricCamerasTest {
-    private val context = ApplicationProvider.getApplicationContext() as Context
     private val mainLooper = shadowOf(Looper.getMainLooper())
 
     @Test
@@ -175,13 +174,13 @@ class RobolectricCamerasTest {
             )
         val fakeCamera = RobolectricCameras.open(fakeCameraId)
 
-        Truth.assertThat(fakeCamera).isNotNull()
-        Truth.assertThat(fakeCamera.cameraId).isEqualTo(fakeCameraId)
-        Truth.assertThat(fakeCamera.cameraDevice).isNotNull()
-        Truth.assertThat(fakeCamera.characteristics).isNotNull()
-        Truth.assertThat(fakeCamera.characteristics[CameraCharacteristics.LENS_FACING]).isNotNull()
-        Truth.assertThat(fakeCamera.metadata).isNotNull()
-        Truth.assertThat(fakeCamera.metadata[CameraCharacteristics.LENS_FACING]).isNotNull()
+        assertThat(fakeCamera).isNotNull()
+        assertThat(fakeCamera.cameraId).isEqualTo(fakeCameraId)
+        assertThat(fakeCamera.cameraDevice).isNotNull()
+        assertThat(fakeCamera.characteristics).isNotNull()
+        assertThat(fakeCamera.characteristics[CameraCharacteristics.LENS_FACING]).isNotNull()
+        assertThat(fakeCamera.metadata).isNotNull()
+        assertThat(fakeCamera.metadata[CameraCharacteristics.LENS_FACING]).isNotNull()
     }
 
     @After

@@ -21,18 +21,18 @@ import android.app.Service
 import android.content.ComponentName
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
+import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.tiles.RequestBuilders
-import androidx.wear.tiles.ResourceBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
 import androidx.wear.tiles.client.TileClient
 import androidx.wear.tiles.connection.DefaultTileClient
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.Executor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
-import java.util.concurrent.Executor
 
 /**
  * [TileClient] for testing purposes. This will pass calls through to the given instance of
@@ -41,13 +41,12 @@ import java.util.concurrent.Executor
  *
  * Note that this class will not drive the full service lifecycle for the passed service instance.
  * On the first call to any of these methods, it will call your service's [Service.onCreate] method,
- * however, it will never call [Service.onDestroy]. Equally, where [DefaultTileClient] will
- * unbind after a period of time, potentially destroying the service, this class wil Client will
- * unbind, but not destroy the service. If you wish to test service destruction, you can instead
- * call [Service.onDestroy] on the passed in `service` instance.
+ * however, it will never call [Service.onDestroy]. Equally, where [DefaultTileClient] will unbind
+ * after a period of time, potentially destroying the service, this class wil Client will unbind,
+ * but not destroy the service. If you wish to test service destruction, you can instead call
+ * [Service.onDestroy] on the passed in `service` instance.
  */
-public class TestTileClient<T : TileService> :
-    TileClient {
+public class TestTileClient<T : TileService> : TileClient {
     private val controller: ServiceController<T>
     private val componentName: ComponentName
     private val innerTileService: DefaultTileClient
@@ -57,9 +56,8 @@ public class TestTileClient<T : TileService> :
      * Build a [TestTileClient] for use with a coroutine dispatcher.
      *
      * @param service An instance of the [TileService] class to bind to.
-     * @param coroutineScope A [CoroutineScope] to use when dispatching calls to the
-     *   [TileService]. Cancelling the passed [CoroutineScope] will also cancel any pending
-     *   work in this class.
+     * @param coroutineScope A [CoroutineScope] to use when dispatching calls to the [TileService].
+     *   Cancelling the passed [CoroutineScope] will also cancel any pending work in this class.
      * @param coroutineDispatcher A [CoroutineDispatcher] to use when dispatching work from this
      *   class.
      */
@@ -74,12 +72,13 @@ public class TestTileClient<T : TileService> :
         bindIntent.component = componentName
         this.controller = ServiceController.of(service, bindIntent)
 
-        this.innerTileService = DefaultTileClient(
-            getApplicationContext(),
-            componentName,
-            coroutineScope,
-            coroutineDispatcher
-        )
+        this.innerTileService =
+            DefaultTileClient(
+                getApplicationContext(),
+                componentName,
+                coroutineScope,
+                coroutineDispatcher
+            )
     }
 
     /**
@@ -95,11 +94,7 @@ public class TestTileClient<T : TileService> :
         bindIntent.component = componentName
         this.controller = ServiceController.of(service, bindIntent)
 
-        this.innerTileService = DefaultTileClient(
-            getApplicationContext(),
-            componentName,
-            executor
-        )
+        this.innerTileService = DefaultTileClient(getApplicationContext(), componentName, executor)
     }
 
     override fun requestApiVersion(): ListenableFuture<Int> {
@@ -114,9 +109,21 @@ public class TestTileClient<T : TileService> :
         return innerTileService.requestTile(requestParams)
     }
 
-    override fun requestResources(
+    override fun requestTileResourcesAsync(
         requestParams: RequestBuilders.ResourcesRequest
     ): ListenableFuture<ResourceBuilders.Resources> {
+        maybeBind()
+        return innerTileService.requestTileResourcesAsync(requestParams)
+    }
+
+    @Deprecated(
+        "Use requestTileResourcesAsync instead.",
+        replaceWith = ReplaceWith("requestTileResourcesAsync")
+    )
+    @Suppress("deprecation")
+    override fun requestResources(
+        requestParams: RequestBuilders.ResourcesRequest
+    ): ListenableFuture<androidx.wear.tiles.ResourceBuilders.Resources> {
         maybeBind()
         return innerTileService.requestResources(requestParams)
     }

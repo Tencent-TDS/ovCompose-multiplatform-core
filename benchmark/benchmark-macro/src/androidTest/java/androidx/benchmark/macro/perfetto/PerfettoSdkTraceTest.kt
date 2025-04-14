@@ -18,9 +18,10 @@ package androidx.benchmark.macro.perfetto
 
 import android.os.Build
 import androidx.benchmark.junit4.PerfettoTraceRule
+import androidx.benchmark.macro.runSingleSessionServer
 import androidx.benchmark.perfetto.ExperimentalPerfettoCaptureApi
 import androidx.benchmark.perfetto.PerfettoHelper
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.tracing.trace
@@ -33,7 +34,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
 /**
- * Tests for Perfetto SDK tracing [androidx.tracing.perfetto.Tracing] verifying that:
+ * Tests for Perfetto SDK tracing [androidx.tracing.perfetto.PerfettoSdkTrace] verifying that:
  * - it works in conjunction with android.os.Trace
  * - it can handle non-ASCII characters, including unicode surrogate pairs
  * - it can handle whitespace at the start/end of the traced string
@@ -49,19 +50,26 @@ import org.junit.runners.Parameterized
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R) // TODO(234351579): Support API < 30
 class PerfettoSdkTraceTest(enableAppTagTracing: Boolean, enableUserspaceTracing: Boolean) {
     @get:Rule
-    val rule = PerfettoTraceRule(
-        enableAppTagTracing = enableAppTagTracing,
-        enableUserspaceTracing = enableUserspaceTracing
-    ) { trace ->
-        val expectedSlices = sequence {
-            if (enableAppTagTracing) yield(StringSource.appTagTraceStrings)
-            if (enableUserspaceTracing) yield(StringSource.userspaceTraceStrings)
-        }.flatMap { it }.toList()
-        val actualSlices = PerfettoTraceProcessor.runSingleSessionServer(trace.path) {
-            StringSource.allTraceStrings.flatMap { querySlices(it).map { s -> s.name } }
+    val rule =
+        PerfettoTraceRule(
+            enableAppTagTracing = enableAppTagTracing,
+            enableUserspaceTracing = enableUserspaceTracing
+        ) { trace ->
+            val expectedSlices =
+                sequence {
+                        if (enableAppTagTracing) yield(StringSource.appTagTraceStrings)
+                        if (enableUserspaceTracing) yield(StringSource.userspaceTraceStrings)
+                    }
+                    .flatMap { it }
+                    .toList()
+            val actualSlices =
+                TraceProcessor.runSingleSessionServer(trace.path) {
+                    StringSource.allTraceStrings.flatMap {
+                        querySlices(it, packageName = null).map { s -> s.name }
+                    }
+                }
+            assertThat(actualSlices).containsExactlyElementsIn(expectedSlices)
         }
-        assertThat(actualSlices).containsExactlyElementsIn(expectedSlices)
-    }
 
     @Ignore // b/260715950
     @Test
@@ -72,22 +80,23 @@ class PerfettoSdkTraceTest(enableAppTagTracing: Boolean, enableUserspaceTracing:
         }
 
         assumeTrue(PerfettoHelper.isAbiSupported())
-        StringSource.appTagTraceStrings.forEach { trace(it) { } }
-        StringSource.userspaceTraceStrings.forEachIndexed { ix, str ->
-            androidx.tracing.perfetto.Tracing.traceEventStart(123 + ix, str)
-            androidx.tracing.perfetto.Tracing.traceEventEnd()
+        StringSource.appTagTraceStrings.forEach { trace(it) {} }
+        StringSource.userspaceTraceStrings.forEach { str ->
+            androidx.tracing.perfetto.PerfettoSdkTrace.beginSection(str)
+            androidx.tracing.perfetto.PerfettoSdkTrace.endSection()
         }
     }
 
     companion object {
         @Parameterized.Parameters(name = "appTagEnabled={0},userspaceEnabled={1}")
         @JvmStatic
-        fun data() = listOf(
-            arrayOf(false, false),
-            arrayOf(true, false),
-            arrayOf(true, true),
-            arrayOf(false, true),
-        )
+        fun data() =
+            listOf(
+                arrayOf(false, false),
+                arrayOf(true, false),
+                arrayOf(true, true),
+                arrayOf(false, true),
+            )
     }
 }
 
@@ -98,11 +107,12 @@ private object StringSource {
     /** Keep in sync with [android.os.Trace] */
     private const val appTagLimit = 127
 
-    private const val nonAscii = "  ośmiornica" + // non-ASCII string
-        " \uD800\uDC00" + // known high surrogate + known low surrogate
-        " \uD83D\uDC19" + // 🐙
-        " 蛸" + // kanji character
-        " {}()'-_\$  " // tricky characters and trailing spaces
+    private const val nonAscii =
+        "  ośmiornica" + // non-ASCII string
+            " \uD800\uDC00" + // known high surrogate + known low surrogate
+            " \uD83D\uDC19" + // 🐙
+            " 蛸" + // kanji character
+            " {}()'-_\$  " // tricky characters and trailing spaces
 
     private val overFastLimit = String(CharArray(fastPathLimit + 1) { 'a' })
     private val atFastLimit = overFastLimit.take(fastPathLimit)

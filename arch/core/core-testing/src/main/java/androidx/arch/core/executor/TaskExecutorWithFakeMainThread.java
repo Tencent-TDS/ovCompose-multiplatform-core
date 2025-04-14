@@ -16,10 +16,9 @@
 
 package androidx.arch.core.executor;
 
-import android.annotation.SuppressLint;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
-@SuppressLint("SyntheticAccessor")
 public class TaskExecutorWithFakeMainThread extends TaskExecutor {
     @SuppressWarnings("WeakerAccess") /* synthetic access */
     List<Throwable> mCaughtExceptions = Collections.synchronizedList(new ArrayList<>());

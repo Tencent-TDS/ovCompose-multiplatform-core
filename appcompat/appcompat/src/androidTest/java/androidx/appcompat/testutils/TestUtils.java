@@ -36,13 +36,14 @@ import android.view.ViewParent;
 import android.view.ViewTreeObserver.OnDrawListener;
 
 import androidx.annotation.ColorInt;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.widget.TintTypedArray;
 import androidx.core.util.Pair;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -308,7 +309,6 @@ public class TestUtils {
      * @param offsetX extra X offset for the tap
      * @param offsetY extra Y offset for the tap
      */
-    @RequiresApi(16)
     public static void emulateTapOnView(Instrumentation instrumentation,
             ActivityTestRule<?> activityTestRule, View anchorView,
             int offsetX, int offsetY) {
@@ -372,9 +372,8 @@ public class TestUtils {
      * @param runner the runnable to run on the main thread, or {@code null} to
      *               simply force invalidation and a draw pass
      */
-    @RequiresApi(16)
-    public static void runOnMainAndDrawSync(@NonNull final ActivityTestRule activityTestRule,
-            @NonNull final View view, @Nullable final Runnable runner) {
+    public static void runOnMainAndDrawSync(final @NonNull ActivityTestRule activityTestRule,
+            final @NonNull View view, final @Nullable Runnable runner) {
         final CountDownLatch latch = new CountDownLatch(1);
 
         try {

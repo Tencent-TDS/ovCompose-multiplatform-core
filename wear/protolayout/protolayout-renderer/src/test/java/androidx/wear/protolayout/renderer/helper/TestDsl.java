@@ -19,7 +19,6 @@ package androidx.wear.protolayout.renderer.helper;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 
-import androidx.annotation.Nullable;
 import androidx.wear.protolayout.expression.proto.DynamicProto.DynamicString;
 import androidx.wear.protolayout.expression.proto.FixedProto.FixedString;
 import androidx.wear.protolayout.proto.AlignmentProto.HorizontalAlignment;
@@ -37,6 +36,7 @@ import androidx.wear.protolayout.proto.FingerprintProto.NodeFingerprint;
 import androidx.wear.protolayout.proto.FingerprintProto.TreeFingerprint;
 import androidx.wear.protolayout.proto.LayoutElementProto;
 import androidx.wear.protolayout.proto.LayoutElementProto.Arc;
+import androidx.wear.protolayout.proto.LayoutElementProto.ArcAdapter;
 import androidx.wear.protolayout.proto.LayoutElementProto.ArcLayoutElement;
 import androidx.wear.protolayout.proto.LayoutElementProto.ArcText;
 import androidx.wear.protolayout.proto.LayoutElementProto.Box;
@@ -54,6 +54,8 @@ import androidx.wear.protolayout.proto.ModifiersProto;
 import androidx.wear.protolayout.proto.TypesProto.BoolProp;
 import androidx.wear.protolayout.proto.TypesProto.Int32Prop;
 import androidx.wear.protolayout.proto.TypesProto.StringProp;
+
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
@@ -123,7 +125,7 @@ public class TestDsl {
 
         private LayoutElementProto.FontStyle toProto() {
             return LayoutElementProto.FontStyle.newBuilder()
-                    .setSize(sp(sizeSp))
+                    .addSize(sp(sizeSp))
                     .setItalic(bool(italic))
                     .setColor(color(colorArgb))
                     .build();
@@ -347,11 +349,20 @@ public class TestDsl {
     }
 
     public static LayoutNode dynamicFixedText(String fixedText) {
-        return dynamicFixedText(/* propsConsumer= */ null, fixedText);
+        return dynamicFixedText(/* propsConsumer= */ null, fixedText, /* valueForLayout= */ null);
+    }
+
+    public static LayoutNode dynamicFixedText(String fixedText, @Nullable String valueForLayout) {
+        return dynamicFixedText(/* propsConsumer= */ null, fixedText, valueForLayout);
     }
 
     public static LayoutNode dynamicFixedText(Consumer<TextProps> propsConsumer, String fixedText) {
-        return textInternal(propsConsumer, dynamicStr(fixedText));
+        return textInternal(propsConsumer, dynamicStr(fixedText, /* valueForLayout= */ null));
+    }
+
+    public static LayoutNode dynamicFixedText(
+            Consumer<TextProps> propsConsumer, String fixedText, @Nullable String valueForLayout) {
+        return textInternal(propsConsumer, dynamicStr(fixedText, valueForLayout));
     }
 
     public static LayoutNode text(String text) {
@@ -433,6 +444,10 @@ public class TestDsl {
         return arcInternal(/* propsConsumer= */ null, nodes);
     }
 
+    public static LayoutNode arcAdapter(LayoutNode layoutNode) {
+        return arcAdapterInternal(layoutNode);
+    }
+
     private static LayoutNode arcInternal(
             @Nullable Consumer<ArcProps> propsConsumer, LayoutNode... nodes) {
         LayoutNode element = new LayoutNode();
@@ -446,6 +461,15 @@ public class TestDsl {
         }
         element.mLayoutElement = LayoutElement.newBuilder().setArc(builder.build());
         element.mFingerprint = fingerprint("arc", selfPropsFingerprint, nodes);
+        return element;
+    }
+
+    private static LayoutNode arcAdapterInternal(LayoutNode node) {
+        LayoutNode element = new LayoutNode();
+        ArcAdapter.Builder builder = ArcAdapter.newBuilder().setContent(node.mLayoutElement);
+        int selfPropsFingerprint = 0;
+        element.mArcLayoutElement = ArcLayoutElement.newBuilder().setAdapter(builder.build());
+        element.mFingerprint = fingerprint("arcAdapter", selfPropsFingerprint, node);
         return element;
     }
 
@@ -564,11 +588,15 @@ public class TestDsl {
         return StringProp.newBuilder().setValue(value).build();
     }
 
-    private static StringProp dynamicStr(String fixedValue) {
-        return StringProp.newBuilder()
-                .setDynamicValue(
-                        DynamicString.newBuilder()
-                                .setFixed(FixedString.newBuilder().setValue(fixedValue)))
-                .build();
+    private static StringProp dynamicStr(String fixedValue, @Nullable String valueForLayout) {
+        StringProp.Builder builder =
+                StringProp.newBuilder()
+                        .setDynamicValue(
+                                DynamicString.newBuilder()
+                                        .setFixed(FixedString.newBuilder().setValue(fixedValue)));
+        if (valueForLayout != null) {
+            builder.setValueForLayout(valueForLayout);
+        }
+        return builder.build();
     }
 }

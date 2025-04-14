@@ -23,14 +23,15 @@ import androidx.room.compiler.processing.XType
 import androidx.room.compiler.processing.ksp.KspAnnotated.UseSiteFilter.Companion.NO_USE_SITE_OR_FIELD
 import androidx.room.compiler.processing.ksp.synthetic.KspSyntheticPropertyMethodElement
 import com.google.devtools.ksp.isPrivate
+import com.google.devtools.ksp.symbol.KSPropertyAccessor
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
 
 internal class KspFieldElement(
     env: KspProcessingEnv,
     override val declaration: KSPropertyDeclaration,
-) : KspElement(env, declaration),
+) :
+    KspElement(env, declaration),
     XFieldElement,
     XHasModifiers by KspHasModifiers.create(declaration),
     XAnnotated by KspAnnotated.create(env, declaration, NO_USE_SITE_OR_FIELD) {
@@ -39,71 +40,71 @@ internal class KspFieldElement(
         declaration.requireEnclosingMemberContainer(env)
     }
 
-    override val closestMemberContainer: KspMemberContainer by lazy {
-        enclosingElement
-    }
+    override val closestMemberContainer: KspMemberContainer by lazy { enclosingElement }
 
-    override val name: String by lazy {
-        declaration.simpleName.asString()
-    }
+    override val name: String by lazy { declaration.simpleName.asString() }
 
-    override val type: KspType by lazy {
-        asMemberOf(enclosingElement.type?.ksType)
-    }
+    override val type: KspType by lazy { createAsMemberOf(closestMemberContainer.type) }
 
     override val jvmDescriptor: String
         get() = this.jvmDescriptor()
 
     val syntheticAccessors: List<KspSyntheticPropertyMethodElement> by lazy {
-        when {
-            declaration.hasJvmFieldAnnotation() -> {
-                // jvm fields cannot have accessors but KSP generates synthetic accessors for
-                // them. We check for JVM field first before checking the getter
-                emptyList()
-            }
-            declaration.isPrivate() -> emptyList()
-            declaration.modifiers.contains(Modifier.CONST) -> {
+        listOfNotNull(getter, setter)
+    }
+
+    override val getter: KspSyntheticPropertyMethodElement? by lazy {
+        declaration.getter?.let { createSyntheticMethod(it) }
+    }
+
+    override val setter: KspSyntheticPropertyMethodElement? by lazy {
+        declaration.setter?.let { createSyntheticMethod(it) }
+    }
+
+    private fun createSyntheticMethod(
+        accessor: KSPropertyAccessor
+    ): KspSyntheticPropertyMethodElement? {
+        return if (
+            // jvm fields cannot have accessors but KSP generates synthetic accessors for
+            // them. We check for JVM field first before checking the getter
+            declaration.hasJvmFieldAnnotation() ||
+                declaration.isPrivate() ||
                 // No accessors are needed for const properties:
                 // https://kotlinlang.org/docs/java-to-kotlin-interop.html#static-fields
-                emptyList()
-            }
-            else -> {
-                sequenceOf(declaration.getter, declaration.setter)
-                    .filterNotNull()
-                    .filterNot {
-                        // KAPT does not generate methods for privates, KSP does so we filter
-                        // them out.
-                        it.modifiers.contains(Modifier.PRIVATE)
-                    }
-                    .map { accessor ->
-                        KspSyntheticPropertyMethodElement.create(
-                            env = env,
-                            field = this,
-                            accessor = accessor
-                        )
-                    }.toList()
-            }
+                declaration.modifiers.contains(Modifier.CONST) ||
+                accessor.modifiers.contains(Modifier.PRIVATE)
+        ) {
+            null
+        } else {
+            KspSyntheticPropertyMethodElement.create(
+                env = env,
+                field = this,
+                accessor = accessor,
+                isSyntheticStatic = false
+            )
         }
     }
-
-    val syntheticSetter
-        get() = syntheticAccessors.firstOrNull {
-            it.parameters.size == 1
-        }
 
     override fun asMemberOf(other: XType): KspType {
-        if (enclosingElement.type?.isSameType(other) != false) {
-            return type
+        return if (closestMemberContainer.type?.isSameType(other) != false) {
+            type
+        } else {
+            return createAsMemberOf(other)
         }
-        check(other is KspType)
-        return asMemberOf(other.ksType)
     }
 
-    private fun asMemberOf(ksType: KSType?): KspType {
+    private fun createAsMemberOf(container: XType?): KspType {
+        check(container is KspType?)
         return env.wrap(
-            originatingReference = declaration.type,
-            ksType = declaration.typeAsMemberOf(ksType)
-        )
+                originatingReference = declaration.type,
+                ksType = declaration.typeAsMemberOf(container?.ksType)
+            )
+            .copyWithScope(
+                KSTypeVarianceResolverScope.PropertyType(
+                    field = this,
+                    asMemberOf = container,
+                )
+            )
     }
 
     companion object {

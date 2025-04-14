@@ -16,14 +16,15 @@
 
 package com.example.androidx.mediarouting.player;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.SurfaceView;
+import android.view.View;
+import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 import androidx.mediarouter.media.MediaItemStatus;
 import androidx.mediarouter.media.MediaRouter.ControlRequestCallback;
@@ -34,11 +35,15 @@ import androidx.mediarouter.media.RemotePlaybackClient.ItemActionCallback;
 import androidx.mediarouter.media.RemotePlaybackClient.SessionActionCallback;
 import androidx.mediarouter.media.RemotePlaybackClient.StatusCallback;
 
+import com.example.androidx.mediarouting.R;
 import com.example.androidx.mediarouting.data.PlaylistItem;
 import com.example.androidx.mediarouting.providers.SampleMediaRouteProvider;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,10 +58,12 @@ import java.util.List;
 public class RemotePlayer extends Player {
     private static final String TAG = "RemotePlayer";
     private static final boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
+    private final SurfaceView mSurfaceView;
+    private final FrameLayout mLayout;
     private RouteInfo mRoute;
     private boolean mEnqueuePending;
     private Bitmap mSnapshot;
-    private List<PlaylistItem> mTempQueue = new ArrayList<PlaylistItem>();
+    private List<PlaylistItem> mTempQueue = new ArrayList<>();
 
     private RemotePlaybackClient mClient;
     private StatusCallback mStatusCallback = new StatusCallback() {
@@ -93,8 +100,10 @@ public class RemotePlayer extends Player {
         }
     };
 
-    public RemotePlayer(@NonNull Context context) {
-        mContext = context;
+    public RemotePlayer(@NonNull Activity activity) {
+        mContext = activity;
+        mLayout = activity.findViewById(R.id.player);
+        mSurfaceView = activity.findViewById(R.id.surface_view);
     }
 
     @Override
@@ -121,12 +130,20 @@ public class RemotePlayer extends Player {
     }
 
     @Override
+    public void updatePresentation() {
+        mSurfaceView.setVisibility(View.GONE);
+        mLayout.setVisibility(View.GONE);
+    }
+
+    @Override
     public void release() {
         mClient.release();
 
         if (DEBUG) {
             Log.d(TAG, "released.");
         }
+
+        super.release();
     }
 
     // basic playback operations that are always supported
@@ -312,9 +329,8 @@ public class RemotePlayer extends Player {
         }
     }
 
-    @NonNull
     @Override
-    public PlaylistItem remove(@NonNull String itemId) {
+    public @NonNull PlaylistItem remove(@NonNull String itemId) {
         throwIfNoSession();
         throwIfQueuingUnsupported();
 
@@ -367,9 +383,8 @@ public class RemotePlayer extends Player {
         }
     }
 
-    @NonNull
     @Override
-    public Bitmap getSnapshot() {
+    public @NonNull Bitmap getSnapshot() {
         return mSnapshot;
     }
 
@@ -377,8 +392,7 @@ public class RemotePlayer extends Player {
      * Caches the remote state of the given playlist item and returns an updated copy through a
      * {@link ListenableFuture}.
      */
-    @NonNull
-    public ListenableFuture<PlaylistItem> cacheRemoteState(@NonNull PlaylistItem item) {
+    public @NonNull ListenableFuture<PlaylistItem> cacheRemoteState(@NonNull PlaylistItem item) {
         ListenableFuture<MediaItemStatus> remoteStatus = getRemoteItemStatus(item);
 
         return Futures.transform(

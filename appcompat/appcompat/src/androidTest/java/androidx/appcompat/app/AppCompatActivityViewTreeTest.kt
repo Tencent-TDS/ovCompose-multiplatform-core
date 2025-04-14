@@ -16,10 +16,10 @@
 
 package androidx.appcompat.app
 
-import androidx.lifecycle.findViewTreeLifecycleOwner
-import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.activity.findViewTreeOnBackPressedDispatcherOwner
+import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
+import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
@@ -32,9 +32,10 @@ import org.junit.runner.RunWith
 class AppCompatActivityViewTreeTest {
     @Suppress("DEPRECATION")
     @get:Rule
-    val activityRule = androidx.test.rule.ActivityTestRule<AppCompatInflaterDefaultActivity>(
-        AppCompatInflaterDefaultActivity::class.java
-    )
+    val activityRule =
+        androidx.test.rule.ActivityTestRule<AppCompatInflaterDefaultActivity>(
+            AppCompatInflaterDefaultActivity::class.java
+        )
 
     @Test
     fun queryViewTreeLifecycleTest() {

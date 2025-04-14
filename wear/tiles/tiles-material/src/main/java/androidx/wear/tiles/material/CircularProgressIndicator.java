@@ -17,37 +17,16 @@
 package androidx.wear.tiles.material;
 
 import static androidx.annotation.Dimension.DP;
-import static androidx.wear.tiles.DimensionBuilders.degrees;
-import static androidx.wear.tiles.DimensionBuilders.dp;
-import static androidx.wear.tiles.material.Helper.checkNotNull;
-import static androidx.wear.tiles.material.Helper.checkTag;
-import static androidx.wear.tiles.material.Helper.getMetadataTagName;
-import static androidx.wear.tiles.material.Helper.getTagBytes;
-import static androidx.wear.tiles.material.ProgressIndicatorDefaults.DEFAULT_COLORS;
-import static androidx.wear.tiles.material.ProgressIndicatorDefaults.DEFAULT_END_ANGLE;
-import static androidx.wear.tiles.material.ProgressIndicatorDefaults.DEFAULT_PADDING;
-import static androidx.wear.tiles.material.ProgressIndicatorDefaults.DEFAULT_START_ANGLE;
-import static androidx.wear.tiles.material.ProgressIndicatorDefaults.DEFAULT_STROKE_WIDTH;
 
 import androidx.annotation.Dimension;
 import androidx.annotation.FloatRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
-import androidx.wear.tiles.DimensionBuilders.DegreesProp;
-import androidx.wear.tiles.DimensionBuilders.DpProp;
-import androidx.wear.tiles.LayoutElementBuilders;
-import androidx.wear.tiles.LayoutElementBuilders.Arc;
-import androidx.wear.tiles.LayoutElementBuilders.ArcLine;
-import androidx.wear.tiles.LayoutElementBuilders.ArcSpacer;
-import androidx.wear.tiles.LayoutElementBuilders.LayoutElement;
-import androidx.wear.tiles.ModifiersBuilders;
-import androidx.wear.tiles.ModifiersBuilders.ElementMetadata;
-import androidx.wear.tiles.ModifiersBuilders.Modifiers;
-import androidx.wear.tiles.ModifiersBuilders.Padding;
-import androidx.wear.tiles.ModifiersBuilders.Semantics;
+import androidx.wear.protolayout.expression.Fingerprint;
 import androidx.wear.protolayout.proto.LayoutElementProto;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tiles component {@link CircularProgressIndicator} that represents circular progress indicator
@@ -83,31 +62,51 @@ import androidx.wear.protolayout.proto.LayoutElementProto;
  * CircularProgressIndicator myCpi =
  *   CircularProgressIndicator.fromLayoutElement(box.getContents().get(0));
  * }</pre>
+ *
+ * @deprecated Use the new class {@link
+ *     androidx.wear.protolayout.material.CircularProgressIndicator} which provides the same API and
+ *     functionality.
  */
-public class CircularProgressIndicator implements LayoutElement {
+@Deprecated
+@SuppressWarnings("deprecation")
+public class CircularProgressIndicator
+        implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement {
     /**
-     * Tool tag for Metadata in Modifiers, so we know that Arc is actually a
-     * CircularProgressIndicator.
+     * Tool tag for Metadata in androidx.wear.tiles.ModifiersBuilders.Modifiers, so we know that Arc
+     * is actually a CircularProgressIndicator.
      */
     static final String METADATA_TAG = "CPI";
 
-    @NonNull private final Arc mElement;
-    @NonNull private final ArcLine mProgress;
-    @NonNull private final ArcLine mBackground;
+    private final androidx.wear.tiles.LayoutElementBuilders.@NonNull Arc mElement;
+    private final androidx.wear.tiles.LayoutElementBuilders.@NonNull ArcLine mProgress;
+    private final androidx.wear.tiles.LayoutElementBuilders.@NonNull ArcLine mBackground;
 
-    CircularProgressIndicator(@NonNull Arc element) {
+    CircularProgressIndicator(androidx.wear.tiles.LayoutElementBuilders.@NonNull Arc element) {
         this.mElement = element;
-        this.mBackground = (ArcLine) element.getContents().get(0);
-        this.mProgress = (ArcLine) element.getContents().get(2);
+        this.mBackground =
+                (androidx.wear.tiles.LayoutElementBuilders.ArcLine) element.getContents().get(0);
+        this.mProgress =
+                (androidx.wear.tiles.LayoutElementBuilders.ArcLine) element.getContents().get(2);
     }
 
     /** Builder class for {@link CircularProgressIndicator} */
-    public static final class Builder implements LayoutElement.Builder {
-        @NonNull private ProgressIndicatorColors mCircularProgressIndicatorColors = DEFAULT_COLORS;
-        @NonNull private DpProp mStrokeWidth = DEFAULT_STROKE_WIDTH;
-        @NonNull private CharSequence mContentDescription = "";
-        @NonNull private DegreesProp mStartAngle = degrees(DEFAULT_START_ANGLE);
-        @NonNull private DegreesProp mEndAngle = degrees(DEFAULT_END_ANGLE);
+    public static final class Builder
+            implements androidx.wear.tiles.LayoutElementBuilders.LayoutElement.Builder {
+        private @NonNull ProgressIndicatorColors mCircularProgressIndicatorColors =
+                ProgressIndicatorDefaults.DEFAULT_COLORS;
+
+        private androidx.wear.tiles.DimensionBuilders.@NonNull DpProp mStrokeWidth =
+                ProgressIndicatorDefaults.DEFAULT_STROKE_WIDTH;
+
+        private @NonNull CharSequence mContentDescription = "";
+
+        private androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp mStartAngle =
+                androidx.wear.tiles.DimensionBuilders.degrees(
+                        ProgressIndicatorDefaults.DEFAULT_START_ANGLE);
+
+        private androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp mEndAngle =
+                androidx.wear.tiles.DimensionBuilders.degrees(
+                        ProgressIndicatorDefaults.DEFAULT_END_ANGLE);
 
         @FloatRange(from = 0, to = 1)
         private float mProgress = 0;
@@ -120,8 +119,8 @@ public class CircularProgressIndicator implements LayoutElement {
          * from 0 to 1. Progress will be colored in {@link ProgressIndicatorColors#getTrackColor}.
          * If not set, 0 will be used.
          */
-        @NonNull
-        public Builder setProgress(@FloatRange(from = 0, to = 1) float progressPercentage) {
+        public @NonNull Builder setProgress(
+                @FloatRange(from = 0, to = 1) float progressPercentage) {
             this.mProgress = progressPercentage;
             return this;
         }
@@ -132,9 +131,8 @@ public class CircularProgressIndicator implements LayoutElement {
          * start arc from the 9 o'clock. If not set 0 will be used and the indicator will have full
          * length.
          */
-        @NonNull
-        public Builder setStartAngle(float startAngle) {
-            this.mStartAngle = degrees(startAngle);
+        public @NonNull Builder setStartAngle(float startAngle) {
+            this.mStartAngle = androidx.wear.tiles.DimensionBuilders.degrees(startAngle);
             return this;
         }
 
@@ -143,9 +141,8 @@ public class CircularProgressIndicator implements LayoutElement {
          * 0 is 12 o'clock. End angle doesn't need to be within 0-360 range, but it must be larger
          * than start angle. If not set 360 will be used and the indicator will have full length.
          */
-        @NonNull
-        public Builder setEndAngle(float endAngle) {
-            this.mEndAngle = degrees(endAngle);
+        public @NonNull Builder setEndAngle(float endAngle) {
+            this.mEndAngle = androidx.wear.tiles.DimensionBuilders.degrees(endAngle);
             return this;
         }
 
@@ -153,8 +150,7 @@ public class CircularProgressIndicator implements LayoutElement {
          * Sets the content description of the {@link CircularProgressIndicator} to be used for
          * accessibility support.
          */
-        @NonNull
-        public Builder setContentDescription(@NonNull CharSequence contentDescription) {
+        public @NonNull Builder setContentDescription(@NonNull CharSequence contentDescription) {
             this.mContentDescription = contentDescription;
             return this;
         }
@@ -165,8 +161,7 @@ public class CircularProgressIndicator implements LayoutElement {
          * made, while {@link ProgressIndicatorColors#getTrackColor()} will be used for a background
          * full size arc. If not set, {@link ProgressIndicatorDefaults#DEFAULT_COLORS} will be used.
          */
-        @NonNull
-        public Builder setCircularProgressIndicatorColors(
+        public @NonNull Builder setCircularProgressIndicatorColors(
                 @NonNull ProgressIndicatorColors circularProgressIndicatorColors) {
             this.mCircularProgressIndicatorColors = circularProgressIndicatorColors;
             return this;
@@ -176,8 +171,8 @@ public class CircularProgressIndicator implements LayoutElement {
          * Sets the stroke width of the {@link CircularProgressIndicator}. Strongly recommended
          * value is {@link ProgressIndicatorDefaults#DEFAULT_STROKE_WIDTH}.
          */
-        @NonNull
-        public Builder setStrokeWidth(@NonNull DpProp strokeWidth) {
+        public @NonNull Builder setStrokeWidth(
+                androidx.wear.tiles.DimensionBuilders.@NonNull DpProp strokeWidth) {
             this.mStrokeWidth = strokeWidth;
             return this;
         }
@@ -186,9 +181,8 @@ public class CircularProgressIndicator implements LayoutElement {
          * Sets the stroke width of the {@link CircularProgressIndicator}. Strongly recommended
          * value is {@link ProgressIndicatorDefaults#DEFAULT_STROKE_WIDTH}.
          */
-        @NonNull
-        public Builder setStrokeWidth(@Dimension(unit = DP) float strokeWidth) {
-            this.mStrokeWidth = dp(strokeWidth);
+        public @NonNull Builder setStrokeWidth(@Dimension(unit = DP) float strokeWidth) {
+            this.mStrokeWidth = androidx.wear.tiles.DimensionBuilders.dp(strokeWidth);
             return this;
         }
 
@@ -196,34 +190,40 @@ public class CircularProgressIndicator implements LayoutElement {
          * Constructs and returns {@link CircularProgressIndicator} with the provided field and
          * look.
          */
-        @NonNull
         @Override
-        public CircularProgressIndicator build() {
+        public @NonNull CircularProgressIndicator build() {
             checkAngles();
 
-            DegreesProp length = getLength();
-            Modifiers.Builder modifiers =
-                    new Modifiers.Builder()
-                            .setPadding(new Padding.Builder().setAll(DEFAULT_PADDING).build())
+            androidx.wear.tiles.DimensionBuilders.DegreesProp length = getLength();
+            androidx.wear.tiles.ModifiersBuilders.Modifiers.Builder modifiers =
+                    new androidx.wear.tiles.ModifiersBuilders.Modifiers.Builder()
+                            .setPadding(
+                                    new androidx.wear.tiles.ModifiersBuilders.Padding.Builder()
+                                            .setAll(ProgressIndicatorDefaults.DEFAULT_PADDING)
+                                            .build())
                             .setMetadata(
-                                    new ElementMetadata.Builder()
-                                            .setTagData(getTagBytes(METADATA_TAG))
+                                    new androidx.wear.tiles.ModifiersBuilders.ElementMetadata
+                                                    .Builder()
+                                            .setTagData(
+                                                    androidx.wear.tiles.material.Helper.getTagBytes(
+                                                            METADATA_TAG))
                                             .build());
 
             if (mContentDescription.length() > 0) {
                 modifiers.setSemantics(
-                        new ModifiersBuilders.Semantics.Builder()
+                        new androidx.wear.tiles.ModifiersBuilders.Semantics.Builder()
                                 .setContentDescription(mContentDescription.toString())
                                 .build());
             }
 
-            Arc.Builder element =
-                    new Arc.Builder()
-                            .setAnchorType(LayoutElementBuilders.ARC_ANCHOR_START)
+            androidx.wear.tiles.LayoutElementBuilders.Arc.Builder element =
+                    new androidx.wear.tiles.LayoutElementBuilders.Arc.Builder()
+                            .setAnchorType(
+                                    androidx.wear.tiles.LayoutElementBuilders.ARC_ANCHOR_START)
                             .setAnchorAngle(mStartAngle)
                             .setModifiers(modifiers.build())
                             .addContent(
-                                    new ArcLine.Builder()
+                                    new androidx.wear.tiles.LayoutElementBuilders.ArcLine.Builder()
                                             .setColor(
                                                     mCircularProgressIndicatorColors
                                                             .getTrackColor())
@@ -233,16 +233,21 @@ public class CircularProgressIndicator implements LayoutElement {
                             .addContent(
                                     // Fill in the space to make a full circle, so that progress is
                                     // correctly aligned.
-                                    new ArcSpacer.Builder()
-                                            .setLength(degrees(360 - length.getValue()))
+                                    new androidx.wear.tiles.LayoutElementBuilders.ArcSpacer
+                                                    .Builder()
+                                            .setLength(
+                                                    androidx.wear.tiles.DimensionBuilders.degrees(
+                                                            360 - length.getValue()))
                                             .build())
                             .addContent(
-                                    new ArcLine.Builder()
+                                    new androidx.wear.tiles.LayoutElementBuilders.ArcLine.Builder()
                                             .setColor(
                                                     mCircularProgressIndicatorColors
                                                             .getIndicatorColor())
                                             .setThickness(mStrokeWidth)
-                                            .setLength(degrees(mProgress * length.getValue()))
+                                            .setLength(
+                                                    androidx.wear.tiles.DimensionBuilders.degrees(
+                                                            mProgress * length.getValue()))
                                             .build());
             return new CircularProgressIndicator(element.build());
         }
@@ -253,53 +258,52 @@ public class CircularProgressIndicator implements LayoutElement {
             }
         }
 
-        @NonNull
-        private DegreesProp getLength() {
+        private androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp getLength() {
             float startAngle = mStartAngle.getValue();
             float endAngle = mEndAngle.getValue();
             if (endAngle <= startAngle) {
                 endAngle += 360;
             }
-            return degrees(endAngle - startAngle);
+            return androidx.wear.tiles.DimensionBuilders.degrees(endAngle - startAngle);
         }
     }
 
     /** Returns angle representing progressed part of this CircularProgressIndicator. */
-    @NonNull
-    public DegreesProp getProgress() {
-        return checkNotNull(mProgress.getLength());
+    public androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp getProgress() {
+        return androidx.wear.tiles.material.Helper.checkNotNull(mProgress.getLength());
     }
 
     /** Returns stroke width of this CircularProgressIndicator. */
-    @NonNull
-    public DpProp getStrokeWidth() {
-        return checkNotNull(mProgress.getThickness());
+    public androidx.wear.tiles.DimensionBuilders.@NonNull DpProp getStrokeWidth() {
+        return androidx.wear.tiles.material.Helper.checkNotNull(mProgress.getThickness());
     }
 
     /** Returns start angle of this CircularProgressIndicator. */
-    @NonNull
-    public DegreesProp getStartAngle() {
-        return checkNotNull(mElement.getAnchorAngle());
+    public androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp getStartAngle() {
+        return androidx.wear.tiles.material.Helper.checkNotNull(mElement.getAnchorAngle());
     }
 
     /** Returns start angle of this CircularProgressIndicator. */
-    @NonNull
-    public DegreesProp getEndAngle() {
-        float backArcLength = checkNotNull(mBackground.getLength()).getValue();
-        return degrees(getStartAngle().getValue() + backArcLength);
+    public androidx.wear.tiles.DimensionBuilders.@NonNull DegreesProp getEndAngle() {
+        float backArcLength =
+                androidx.wear.tiles.material.Helper.checkNotNull(mBackground.getLength())
+                        .getValue();
+        return androidx.wear.tiles.DimensionBuilders.degrees(
+                getStartAngle().getValue() + backArcLength);
     }
 
     /** Returns main arc color of this CircularProgressIndicator. */
-    @NonNull
-    public ProgressIndicatorColors getCircularProgressIndicatorColors() {
+    public @NonNull ProgressIndicatorColors getCircularProgressIndicatorColors() {
         return new ProgressIndicatorColors(
-                checkNotNull(mProgress.getColor()), checkNotNull(mBackground.getColor()));
+                androidx.wear.tiles.material.Helper.checkNotNull(mProgress.getColor()),
+                androidx.wear.tiles.material.Helper.checkNotNull(mBackground.getColor()));
     }
 
     /** Returns content description of this CircularProgressIndicator. */
-    @Nullable
-    public CharSequence getContentDescription() {
-        Semantics semantics = checkNotNull(mElement.getModifiers()).getSemantics();
+    public @Nullable CharSequence getContentDescription() {
+        androidx.wear.tiles.ModifiersBuilders.Semantics semantics =
+                androidx.wear.tiles.material.Helper.checkNotNull(mElement.getModifiers())
+                        .getSemantics();
         if (semantics == null) {
             return null;
         }
@@ -310,37 +314,46 @@ public class CircularProgressIndicator implements LayoutElement {
      * Returns metadata tag set to this CircularProgressIndicator, which should be {@link
      * #METADATA_TAG}.
      */
-    @NonNull
-    String getMetadataTag() {
-        return getMetadataTagName(
-                checkNotNull(checkNotNull(mElement.getModifiers()).getMetadata()));
+    @NonNull String getMetadataTag() {
+        return androidx.wear.tiles.material.Helper.getMetadataTagName(
+                androidx.wear.tiles.material.Helper.checkNotNull(
+                        androidx.wear.tiles.material.Helper.checkNotNull(mElement.getModifiers())
+                                .getMetadata()));
     }
 
     /**
-     * Returns CircularProgressIndicator object from the given LayoutElement (e.g. one retrieved
-     * from a container's content with {@code container.getContents().get(index)}) if that element
-     * can be converted to CircularProgressIndicator. Otherwise, it will return null.
+     * Returns CircularProgressIndicator object from the given
+     * androidx.wear.tiles.LayoutElementBuilders.LayoutElement (e.g. one retrieved from a
+     * container's content with {@code container.getContents().get(index)}) if that element can be
+     * converted to CircularProgressIndicator. Otherwise, it will return null.
      */
-    @Nullable
-    public static CircularProgressIndicator fromLayoutElement(@NonNull LayoutElement element) {
+    public static @Nullable CircularProgressIndicator fromLayoutElement(
+            androidx.wear.tiles.LayoutElementBuilders.@NonNull LayoutElement element) {
         if (element instanceof CircularProgressIndicator) {
             return (CircularProgressIndicator) element;
         }
-        if (!(element instanceof Arc)) {
+        if (!(element instanceof androidx.wear.tiles.LayoutElementBuilders.Arc)) {
             return null;
         }
-        Arc arcElement = (Arc) element;
-        if (!checkTag(arcElement.getModifiers(), METADATA_TAG)) {
+        androidx.wear.tiles.LayoutElementBuilders.Arc arcElement =
+                (androidx.wear.tiles.LayoutElementBuilders.Arc) element;
+        if (!androidx.wear.tiles.material.Helper.checkTag(
+                arcElement.getModifiers(), METADATA_TAG)) {
             return null;
         }
         // Now we are sure that this element is a CircularProgressIndicator.
         return new CircularProgressIndicator(arcElement);
     }
 
-    @NonNull
     @Override
     @RestrictTo(Scope.LIBRARY_GROUP)
-    public LayoutElementProto.LayoutElement toLayoutElementProto() {
+    public LayoutElementProto.@NonNull LayoutElement toLayoutElementProto() {
         return mElement.toLayoutElementProto();
+    }
+
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    @Override
+    public @Nullable Fingerprint getFingerprint() {
+        return mElement.getFingerprint();
     }
 }

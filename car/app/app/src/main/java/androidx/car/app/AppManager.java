@@ -34,8 +34,6 @@ import android.os.RemoteException;
 import android.util.Log;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.car.app.annotations.RequiresCarApi;
@@ -49,19 +47,18 @@ import androidx.car.app.utils.RemoteUtils;
 import androidx.core.location.LocationListenerCompat;
 import androidx.lifecycle.Lifecycle;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 /** Manages the communication between the app and the host. */
 public class AppManager implements Manager {
     private static final int LOCATION_UPDATE_MIN_INTERVAL_MILLIS = 1000;
     private static final int LOCATION_UPDATE_MIN_DISTANCE_METER = 1;
 
-    @NonNull
-    private final CarContext mCarContext;
-    @NonNull
-    private final IAppManager.Stub mAppManager;
-    @NonNull
-    private final HostDispatcher mHostDispatcher;
-    @NonNull
-    private final Lifecycle mLifecycle;
+    private final @NonNull CarContext mCarContext;
+    private final IAppManager.@NonNull Stub mAppManager;
+    private final @NonNull HostDispatcher mHostDispatcher;
+    private final @NonNull Lifecycle mLifecycle;
 
     /**
      * Listener for getting location updates within the app and sends them over to the car host.
@@ -193,10 +190,8 @@ public class AppManager implements Manager {
         );
     }
 
-    /** @hide */
-    @Nullable
     @RestrictTo(LIBRARY_GROUP)
-    public OpenMicrophoneResponse openMicrophone(@NonNull OpenMicrophoneRequest request) {
+    public @Nullable OpenMicrophoneResponse openMicrophone(@NonNull OpenMicrophoneRequest request) {
         try {
             return mHostDispatcher.dispatchForResult(
                     CarContext.APP_SERVICE,
@@ -223,8 +218,7 @@ public class AppManager implements Manager {
         return mAppManager;
     }
 
-    @NonNull
-    Lifecycle getLifecycle() {
+    @NonNull Lifecycle getLifecycle() {
         return mLifecycle;
     }
 
@@ -266,7 +260,6 @@ public class AppManager implements Manager {
         return new AppManager(carContext, hostDispatcher, lifecycle);
     }
 
-    /** @hide */
     @RestrictTo(LIBRARY_GROUP) // Restrict to testing library
     protected AppManager(@NonNull CarContext carContext, @NonNull HostDispatcher hostDispatcher,
             @NonNull Lifecycle lifecycle) {

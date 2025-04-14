@@ -17,12 +17,11 @@
 package androidx.compose.runtime.samples
 
 import androidx.annotation.Sampled
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -30,7 +29,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
-@OptIn(ExperimentalFoundationApi::class)
 @Sampled
 fun stateMapSample() {
     @Composable
@@ -47,20 +45,10 @@ fun stateMapSample() {
 
         Column {
             Row {
-                BasicTextField(
-                    value = name,
-                    onValueChange = { name = it }
-                )
-                BasicTextField(
-                    value = saying,
-                    onValueChange = { saying = it }
-                )
-                Button(onClick = { sayings[name] = saying }) {
-                    Text("Add")
-                }
-                Button(onClick = { sayings.remove(name) }) {
-                    Text("Remove")
-                }
+                BasicTextField(value = name, onValueChange = { name = it })
+                BasicTextField(value = saying, onValueChange = { saying = it })
+                Button(onClick = { sayings[name] = saying }) { Text("Add") }
+                Button(onClick = { sayings.remove(name) }) { Text("Remove") }
             }
             Text("Sayings:")
             Column {

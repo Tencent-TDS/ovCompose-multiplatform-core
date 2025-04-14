@@ -31,18 +31,15 @@ import com.google.devtools.ksp.symbol.KSNode
  * KSP implementation of a [XBasicAnnotationProcessor] with built-in support for validating and
  * deferring symbols.
  */
-abstract class KspBasicAnnotationProcessor @JvmOverloads constructor(
+abstract class KspBasicAnnotationProcessor
+@JvmOverloads
+constructor(
     symbolProcessorEnvironment: SymbolProcessorEnvironment,
     config: XProcessingEnvConfig = XProcessingEnvConfig.DEFAULT,
 ) : SymbolProcessor, XBasicAnnotationProcessor {
     private val logger = DelegateLogger(symbolProcessorEnvironment.logger)
 
-    private val xEnv = KspProcessingEnv(
-        options = symbolProcessorEnvironment.options,
-        codeGenerator = symbolProcessorEnvironment.codeGenerator,
-        logger = logger,
-        config = config
-    )
+    private val xEnv = KspProcessingEnv(delegate = symbolProcessorEnvironment, config = config)
 
     // Cache and lazily get steps during the initial process() so steps initialization is done once.
     private val steps by lazy { processingSteps().toList() }
@@ -51,7 +48,8 @@ abstract class KspBasicAnnotationProcessor @JvmOverloads constructor(
 
     private var initialized = false
 
-    final override val xProcessingEnv: XProcessingEnv get() = xEnv
+    final override val xProcessingEnv: XProcessingEnv
+        get() = xEnv
 
     final override fun process(resolver: Resolver): List<KSAnnotated> {
         xEnv.resolver = resolver // Set the resolver at the beginning of each round
@@ -59,7 +57,8 @@ abstract class KspBasicAnnotationProcessor @JvmOverloads constructor(
             initialize(xEnv)
             initialized = true
         }
-        val xRoundEnv = KspRoundEnv(xEnv, false)
+        val xRoundEnv = KspRoundEnv(env = xEnv)
+        preRound(xEnv, xRoundEnv)
         commonDelegate.processRound(xRoundEnv)
         postRound(xEnv, xRoundEnv)
         xEnv.clearCache() // Reset cache after every round to avoid leaking elements across rounds
@@ -71,12 +70,17 @@ abstract class KspBasicAnnotationProcessor @JvmOverloads constructor(
         return emptyList()
     }
 
-    final override fun finish() {
-        val xRoundEnv = KspRoundEnv(xEnv, true)
+    final override fun finish() = runLastRound(reportMissingElements = true)
+
+    // Don't report missing elements when there's an error to avoid being too noisy.
+    final override fun onError() = runLastRound(reportMissingElements = false)
+
+    private fun runLastRound(reportMissingElements: Boolean) {
+        val xRoundEnv = KspRoundEnv(env = null)
+        preRound(xEnv, xRoundEnv)
         val missingElements = commonDelegate.processLastRound()
         postRound(xEnv, xRoundEnv)
-        if (!xProcessingEnv.config.disableAnnotatedElementValidation && !logger.hasError) {
-            // Report missing elements if no error was raised to avoid being noisy.
+        if (!xProcessingEnv.config.disableAnnotatedElementValidation && reportMissingElements) {
             commonDelegate.reportMissingElements(missingElements)
         }
     }
@@ -84,10 +88,12 @@ abstract class KspBasicAnnotationProcessor @JvmOverloads constructor(
     // KSPLogger delegate to keep track if an error was raised or not.
     private class DelegateLogger(val delegate: KSPLogger) : KSPLogger by delegate {
         var hasError = false
+
         override fun error(message: String, symbol: KSNode?) {
             hasError = true
             delegate.error(message, symbol)
         }
+
         override fun exception(e: Throwable) {
             hasError = true
             delegate.exception(e)

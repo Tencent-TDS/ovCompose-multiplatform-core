@@ -27,10 +27,10 @@ import androidx.camera.core.imagecapture.Utils.SENSOR_TO_BUFFER
 import androidx.camera.core.imagecapture.Utils.WIDTH
 import androidx.camera.core.internal.utils.ImageUtil.jpegImageToJpegByteArray
 import androidx.camera.core.processing.Packet
-import androidx.camera.testing.ExifUtil.createExif
-import androidx.camera.testing.TestImageUtil.createJpegBytes
-import androidx.camera.testing.TestImageUtil.createJpegFakeImageProxy
-import androidx.camera.testing.TestImageUtil.getAverageDiff
+import androidx.camera.testing.impl.ExifUtil.createExif
+import androidx.camera.testing.impl.TestImageUtil.createJpegBytes
+import androidx.camera.testing.impl.TestImageUtil.createJpegFakeImageProxy
+import androidx.camera.testing.impl.TestImageUtil.getAverageDiff
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,9 +38,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
-/**
- * Unit tests for [JpegImage2Result].
- */
+/** Unit tests for [JpegImage2Result]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
@@ -54,14 +52,15 @@ class JpegImage2ResultTest {
         val jpegBytes = createJpegBytes(WIDTH, HEIGHT)
         val exif = createExif(jpegBytes)
         val image = createJpegFakeImageProxy(jpegBytes) as ImageProxy
-        val input = Packet.of(
-            image,
-            exif,
-            CROP_RECT,
-            ROTATION_DEGREES,
-            SENSOR_TO_BUFFER,
-            CAMERA_CAPTURE_RESULT
-        )
+        val input =
+            Packet.of(
+                image,
+                exif,
+                CROP_RECT,
+                ROTATION_DEGREES,
+                SENSOR_TO_BUFFER,
+                CAMERA_CAPTURE_RESULT
+            )
         // Act.
         val output = operation.apply(input)
 

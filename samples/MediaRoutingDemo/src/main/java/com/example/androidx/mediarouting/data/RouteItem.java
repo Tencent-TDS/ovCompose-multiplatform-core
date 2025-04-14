@@ -17,9 +17,10 @@
 package com.example.androidx.mediarouting.data;
 
 import android.media.AudioManager;
-import android.media.MediaRouter;
 
-import androidx.annotation.NonNull;
+import androidx.mediarouter.media.MediaRouter;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,7 @@ public final class RouteItem {
     private int mVolumeMax;
     private DeviceType mDeviceType;
     private List<String> mGroupMemberIds;
+    private boolean mIsSenderDriven;
 
     public RouteItem() {
         this.mId = UUID.randomUUID().toString();
@@ -54,6 +56,7 @@ public final class RouteItem {
         this.mDeviceType = DeviceType.UNKNOWN;
         this.mCanDisconnect = false;
         this.mGroupMemberIds = new ArrayList<>();
+        this.mIsSenderDriven = false;
     }
 
     public RouteItem(
@@ -68,7 +71,8 @@ public final class RouteItem {
             int volume,
             int volumeMax,
             @NonNull DeviceType deviceType,
-            @NonNull List<String> groupMemberIds) {
+            @NonNull List<String> groupMemberIds,
+            boolean isSenderDriven) {
         mId = id;
         mName = name;
         mDescription = description;
@@ -81,11 +85,11 @@ public final class RouteItem {
         mVolumeMax = volumeMax;
         mDeviceType = deviceType;
         mGroupMemberIds = groupMemberIds;
+        mIsSenderDriven = isSenderDriven;
     }
 
     /** Returns a deep copy of an existing {@link RouteItem}. */
-    @NonNull
-    public static RouteItem copyOf(@NonNull RouteItem routeItem) {
+    public static @NonNull RouteItem copyOf(@NonNull RouteItem routeItem) {
         return new RouteItem(
                 routeItem.getId(),
                 routeItem.getName(),
@@ -98,7 +102,8 @@ public final class RouteItem {
                 routeItem.getVolume(),
                 routeItem.getVolumeMax(),
                 routeItem.getDeviceType(),
-                routeItem.getGroupMemberIds());
+                routeItem.getGroupMemberIds(),
+                routeItem.isSenderDriven());
     }
 
     public enum ControlFilter {
@@ -148,8 +153,17 @@ public final class RouteItem {
 
     public enum DeviceType {
         TV(MediaRouter.RouteInfo.DEVICE_TYPE_TV),
-        SPEAKER(MediaRouter.RouteInfo.DEVICE_TYPE_SPEAKER),
-        BLUETOOTH(MediaRouter.RouteInfo.DEVICE_TYPE_BLUETOOTH),
+        SPEAKER(MediaRouter.RouteInfo.DEVICE_TYPE_REMOTE_SPEAKER),
+        BLUETOOTH(MediaRouter.RouteInfo.DEVICE_TYPE_BLUETOOTH_A2DP),
+        AUDIO_VIDEO_RECEIVER(MediaRouter.RouteInfo.DEVICE_TYPE_AUDIO_VIDEO_RECEIVER),
+        TABLET(MediaRouter.RouteInfo.DEVICE_TYPE_TABLET),
+        TABLET_DOCKED(MediaRouter.RouteInfo.DEVICE_TYPE_TABLET_DOCKED),
+        COMPUTER(MediaRouter.RouteInfo.DEVICE_TYPE_COMPUTER),
+        GAME_CONSOLE(MediaRouter.RouteInfo.DEVICE_TYPE_GAME_CONSOLE),
+        CAR(MediaRouter.RouteInfo.DEVICE_TYPE_CAR),
+        SMARTWATCH(MediaRouter.RouteInfo.DEVICE_TYPE_SMARTWATCH),
+        SMARTPHONE(MediaRouter.RouteInfo.DEVICE_TYPE_SMARTPHONE),
+        GROUP(MediaRouter.RouteInfo.DEVICE_TYPE_GROUP),
         UNKNOWN(MediaRouter.RouteInfo.DEVICE_TYPE_UNKNOWN);
 
         public final int mIntConstant;
@@ -159,8 +173,7 @@ public final class RouteItem {
         }
     }
 
-    @NonNull
-    public String getId() {
+    public @NonNull String getId() {
         return mId;
     }
 
@@ -168,8 +181,7 @@ public final class RouteItem {
         mId = id;
     }
 
-    @NonNull
-    public String getName() {
+    public @NonNull String getName() {
         return mName;
     }
 
@@ -177,8 +189,7 @@ public final class RouteItem {
         mName = name;
     }
 
-    @NonNull
-    public String getDescription() {
+    public @NonNull String getDescription() {
         return mDescription;
     }
 
@@ -186,8 +197,7 @@ public final class RouteItem {
         mDescription = description;
     }
 
-    @NonNull
-    public ControlFilter getControlFilter() {
+    public @NonNull ControlFilter getControlFilter() {
         return mControlFilter;
     }
 
@@ -195,8 +205,7 @@ public final class RouteItem {
         mControlFilter = controlFilter;
     }
 
-    @NonNull
-    public PlaybackStream getPlaybackStream() {
+    public @NonNull PlaybackStream getPlaybackStream() {
         return mPlaybackStream;
     }
 
@@ -204,8 +213,7 @@ public final class RouteItem {
         mPlaybackStream = playbackStream;
     }
 
-    @NonNull
-    public PlaybackType getPlaybackType() {
+    public @NonNull PlaybackType getPlaybackType() {
         return mPlaybackType;
     }
 
@@ -221,8 +229,7 @@ public final class RouteItem {
         mCanDisconnect = canDisconnect;
     }
 
-    @NonNull
-    public VolumeHandling getVolumeHandling() {
+    public @NonNull VolumeHandling getVolumeHandling() {
         return mVolumeHandling;
     }
 
@@ -246,8 +253,7 @@ public final class RouteItem {
         mVolumeMax = volumeMax;
     }
 
-    @NonNull
-    public DeviceType getDeviceType() {
+    public @NonNull DeviceType getDeviceType() {
         return mDeviceType;
     }
 
@@ -255,12 +261,19 @@ public final class RouteItem {
         mDeviceType = deviceType;
     }
 
-    @NonNull
-    public List<String> getGroupMemberIds() {
+    public @NonNull List<String> getGroupMemberIds() {
         return mGroupMemberIds;
     }
 
     public void setGroupMemberIds(@NonNull List<String> groupMemberIds) {
         mGroupMemberIds = groupMemberIds;
+    }
+
+    public boolean isSenderDriven() {
+        return mIsSenderDriven;
+    }
+
+    public void setSenderDriven(boolean isSenderDriven) {
+        mIsSenderDriven = isSenderDriven;
     }
 }

@@ -21,6 +21,7 @@ import androidx.compose.ui.inspection.rules.sendCommand
 import androidx.compose.ui.inspection.testdata.ComposeViewTestActivity
 import androidx.compose.ui.inspection.util.GetComposablesCommand
 import androidx.compose.ui.inspection.util.GetParametersByIdCommand
+import androidx.compose.ui.inspection.util.GetUpdateSettingsCommand
 import androidx.compose.ui.inspection.util.flatten
 import androidx.compose.ui.inspection.util.toMap
 import androidx.test.filters.LargeTest
@@ -32,14 +33,18 @@ import org.junit.Test
 
 @LargeTest
 class ComposeViewTest {
-    @get:Rule
-    val rule = ComposeInspectionRule(ComposeViewTestActivity::class)
+    @get:Rule val rule = ComposeInspectionRule(ComposeViewTestActivity::class)
 
     @Test
     fun composeView(): Unit = runBlocking {
-        val response = rule.inspectorTester.sendCommand(
-            GetComposablesCommand(rule.rootId, skipSystemComposables = false)
-        ).getComposablesResponse
+        rule.inspectorTester
+            .sendCommand(GetUpdateSettingsCommand(reduceChildNesting = true))
+            .updateSettingsResponse
+
+        val response =
+            rule.inspectorTester
+                .sendCommand(GetComposablesCommand(rule.rootId, skipSystemComposables = false))
+                .getComposablesResponse
         val strings = response.stringsList.toMap()
         val roots = response.rootsList
         assertThat(roots).hasSize(3)
@@ -49,6 +54,23 @@ class ComposeViewTest {
         assertThat(firstText?.textParameter).isEqualTo("one")
         assertThat(secondText?.textParameter).isEqualTo("two")
         assertThat(thirdText?.textParameter).isEqualTo("three")
+
+        val thirdRoot = roots[2].nodesList.single()
+        assertThat(strings[thirdRoot.name]).isEqualTo("createAndroidViewNodeFactory")
+        assertThat(thirdRoot.flags)
+            .isEqualTo(
+                ComposableNode.Flags.NESTED_SINGLE_CHILDREN_VALUE or
+                    ComposableNode.Flags.SYSTEM_CREATED_VALUE
+            )
+        assertThat(thirdRoot.childrenList.size).isAtLeast(4)
+        val nested1 = thirdRoot.childrenList[0]
+        assertThat(strings[nested1.name]).isEqualTo("Nested")
+        val nested2 = thirdRoot.childrenList[1]
+        assertThat(nested2.name).isEqualTo(nested1.name)
+        val nested3 = thirdRoot.childrenList[2]
+        assertThat(nested3.name).isEqualTo(nested1.name)
+        val text = thirdRoot.childrenList[3]
+        assertThat(text.name).isEqualTo(thirdText?.name)
     }
 
     private fun Iterable<ComposableNode>.findNode(
@@ -58,15 +80,18 @@ class ComposeViewTest {
 
     private val ComposableNode.textParameter: String?
         get() = runBlocking {
-            val params = rule.inspectorTester.sendCommand(
-                GetParametersByIdCommand(
-                    rule.rootId,
-                    skipSystemComposables = false,
-                    composableId = id
-                )
-            ).getParametersResponse
+            val params =
+                rule.inspectorTester
+                    .sendCommand(
+                        GetParametersByIdCommand(
+                            rule.rootId,
+                            skipSystemComposables = false,
+                            composableId = id
+                        )
+                    )
+                    .getParametersResponse
             val strings = params.stringsList.toMap()
-            val param = params.parameterGroup.parameterList.single { strings[it.name] == "text" }
+            val param = params.parameterGroup.parameterList.single { strings[it.name] == "$0" }
             strings[param.int32Value]
         }
 }

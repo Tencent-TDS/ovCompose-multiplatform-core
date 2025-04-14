@@ -24,7 +24,15 @@ import androidx.wear.watchface.client.WatchFaceMetadataClient.ServiceStartFailur
 import androidx.wear.watchface.control.WatchFaceControlService
 import com.google.common.util.concurrent.ListenableFuture
 
-/** [ListenableFuture]-based compatibility wrapper around [WatchFaceMetadataClient.create]. */
+/**
+ * [ListenableFuture]-based compatibility wrapper around [WatchFaceMetadataClient.create].
+ *
+ * @deprecated use Watch Face Format instead
+ */
+@Deprecated(
+    message =
+        "AndroidX watchface libraries are deprecated, use Watch Face Format instead. For more info see: https://developer.android.com/training/wearables/wff"
+)
 public class ListenableWatchFaceMetadataClient private constructor() {
     public companion object {
         /**
@@ -52,6 +60,38 @@ public class ListenableWatchFaceMetadataClient private constructor() {
                 watchFaceName,
                 WatchFaceMetadataClient.Companion.ParserProvider()
             )
+
+        /**
+         * Constructs a [WatchFaceMetadataClient] for fetching metadata for the specified resource
+         * only watch face runtime. A resource only watch face runtime, is a special kind of watch
+         * face that is the runtime for a watch face defined by another package that contains only
+         * resources and no executable code.
+         *
+         * @param context Calling application's [Context].
+         * @param watchFaceName The [ComponentName] of the watch face to fetch meta data from.
+         * @param resourceOnlyWatchFacePackageName The package the runtime should load the resources
+         *   from.
+         * @return A [ListenableFuture] which resolves with [WatchFaceMetadataClient] if there is
+         *   one, otherwise it throws a [ServiceNotBoundException] if the underlying watch face
+         *   control service can not be bound or a [ServiceStartFailureException] if the watch face
+         *   dies during startup.
+         */
+        @Suppress("AsyncSuffixFuture")
+        @JvmStatic
+        public fun createForRuntime(
+            context: Context,
+            watchFaceName: ComponentName,
+            resourceOnlyWatchFacePackageName: String
+        ) =
+            ListenableWatchFaceControlClient.launchFutureCoroutine(
+                "ListenableWatchFaceMetadataClient.create"
+            ) {
+                WatchFaceMetadataClient.createForRuntime(
+                    context,
+                    watchFaceName,
+                    resourceOnlyWatchFacePackageName
+                )
+            }
 
         internal fun createImpl(
             context: Context,

@@ -19,36 +19,31 @@ package androidx.work.testing
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import androidx.concurrent.futures.await
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SmallTest
+import androidx.work.ListenableWorker
 import androidx.work.ListenableWorker.Result
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkerFactory
 import androidx.work.WorkerParameters
-import androidx.work.await
 import androidx.work.testing.workers.TestListenableWorker
 import androidx.work.testing.workers.TestWorker
+import java.util.UUID
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import kotlinx.coroutines.runBlocking
-import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.hasItems
+import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.containsInAnyOrder
 import org.hamcrest.Matchers.notNullValue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyString
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
-import java.util.UUID
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
-import kotlin.jvm.Throws
 
 @RunWith(AndroidJUnit4::class)
 class TestWorkerBuilderTest {
@@ -91,19 +86,17 @@ class TestWorkerBuilderTest {
     @Test
     @SmallTest
     fun testBuilder() {
-        val request = OneTimeWorkRequestBuilder<TestWorker>()
-            .addTag("test")
-            .build()
+        val request = OneTimeWorkRequestBuilder<TestWorker>().addTag("test").build()
 
         val contentUris = arrayOf(Uri.parse("android.test://1"))
         val authorities = arrayOf("android.test")
 
-        val builder = TestListenableWorkerBuilder.from(context, request)
-            .setRunAttemptCount(2)
+        val builder = TestListenableWorkerBuilder.from(context, request).setRunAttemptCount(2)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            builder.setTriggeredContentAuthorities(authorities.toList())
-            .setTriggeredContentUris(contentUris.toList())
+            builder
+                .setTriggeredContentAuthorities(authorities.toList())
+                .setTriggeredContentUris(contentUris.toList())
         }
 
         val worker = builder.build()
@@ -143,13 +136,11 @@ class TestWorkerBuilderTest {
     @Test
     @SmallTest
     fun testWorkerBuilder_returnsExpectedType2() {
-        val listenableWorker: TestWorker = TestListenableWorkerBuilder<TestWorker>(context)
-            .setId(UUID.randomUUID())
-            .build()
+        val listenableWorker: TestWorker =
+            TestListenableWorkerBuilder<TestWorker>(context).setId(UUID.randomUUID()).build()
 
-        val worker: TestWorker = TestWorkerBuilder<TestWorker>(context, executor)
-            .setId(UUID.randomUUID())
-            .build()
+        val worker: TestWorker =
+            TestWorkerBuilder<TestWorker>(context, executor).setId(UUID.randomUUID()).build()
 
         assertThat(listenableWorker, notNullValue())
         assertThat(worker, notNullValue())
@@ -175,17 +166,24 @@ class TestWorkerBuilderTest {
     @Test
     @MediumTest
     fun testWorkerBuilder_usesWorkerFactory() {
-        val workerFactory = mock(WorkerFactory::class.java)
-        val worker = TestListenableWorkerBuilder<TestWorker>(context)
-            .setWorkerFactory(workerFactory)
-            .build()
+        var callCounter = 0
+        val workerFactory =
+            object : WorkerFactory() {
+                override fun createWorker(
+                    appContext: Context,
+                    workerClassName: String,
+                    workerParameters: WorkerParameters
+                ): ListenableWorker? {
+                    callCounter++
+                    return null
+                }
+            }
+        val worker =
+            TestListenableWorkerBuilder<TestWorker>(context).setWorkerFactory(workerFactory).build()
 
         runBlocking {
             val result = worker.startWork().await()
-            verify(workerFactory, times(1))
-                .createWorker(
-                    any(Context::class.java), anyString(), any(WorkerParameters::class.java)
-                )
+            assertThat(callCounter, `is`(1))
             assertThat(result, `is`(Result.success()))
         }
     }

@@ -16,25 +16,22 @@
 
 package androidx.wear.protolayout.expression;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 
-/**
- * Preconditions for use within this library.
- *
- */
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+/** Preconditions for use within this library. */
 @RestrictTo(Scope.LIBRARY_GROUP)
 public final class Preconditions {
-  private Preconditions() {}
+    private Preconditions() {}
 
-  @RestrictTo(Scope.LIBRARY_GROUP)
-  @NonNull
-  public static <T> T checkNotNull(@Nullable T value) {
-    if (value == null) {
-      throw new NullPointerException();
+    @RestrictTo(Scope.LIBRARY_GROUP)
+    public static <T> @NonNull T checkNotNull(@Nullable T value) {
+        if (value == null) {
+            throw new NullPointerException();
+        }
+        return value;
     }
-    return value;
-  }
 }

@@ -27,11 +27,11 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.testutils.withActivity
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
@@ -39,9 +39,7 @@ class ImmediateNavigationTest {
 
     @Suppress("DEPRECATION")
     @get:Rule
-    var activityRule = ActivityScenarioRule(
-        ImmediateNavigationActivity::class.java
-    )
+    var activityRule = ActivityScenarioRule(ImmediateNavigationActivity::class.java)
 
     @Test
     fun testNavigateInOnResume() {
@@ -63,9 +61,7 @@ class ImmediateNavigationTest {
                 }
             }
         }
-        activityRule.withActivity {
-            navController.navigate(R.id.immediate_test)
-        }
+        activityRule.withActivity { navController.navigate(R.id.immediate_test) }
         countDownLatch.await(1, TimeUnit.SECONDS)
     }
 }

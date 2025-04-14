@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import androidx.build.*
+/**
+ * This file was created using the `create_project.py` script located in the
+ * `<AndroidX root>/development/project-creator` directory.
+ *
+ * Please use that script when creating a new project, rather than copying an existing project and
+ * modifying its settings.
+ */
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -22,12 +29,24 @@ plugins {
     id("java-gradle-plugin")
 }
 
+// This custom configuration ensures that dependencies used in tests with gradle test kit with
+// generated build.gradle are considered when determining which tests to run on CI due to a change.
+// For reference: b/281515796
+configurations {
+    neededForGradleTestKit {
+        canBeResolved = true
+    }
+    neededForGradleTestKitAgp81 {
+        canBeResolved = true
+    }
+}
+
 dependencies {
+    compileOnly(libs.androidGradlePlugin)
+    compileOnly(libs.kotlinGradlePlugin)
+
     implementation(gradleApi())
-    implementation(libs.androidGradlePluginz)
-    implementation(libs.kotlinGradlePluginz)
-    implementation(libs.kotlinStdlib)
-    implementation(libs.protobuf)
+    implementation("com.google.protobuf:protobuf-java:3.22.3")
     implementation(libs.agpTestingPlatformCoreProto)
 
     testImplementation(gradleTestKit())
@@ -35,9 +54,21 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinTest)
     testImplementation(libs.truth)
+
+    neededForGradleTestKit(libs.androidGradlePlugin)
+    neededForGradleTestKit(libs.kotlinGradlePlugin)
+    neededForGradleTestKit(libs.kotlinStdlib)
+
+    neededForGradleTestKitAgp81("com.android.tools.build:gradle:8.1.1")
+    neededForGradleTestKitAgp81("com.android.tools.build:aapt2:8.1.1-10154469")
+    neededForGradleTestKitAgp81("com.android.tools.build:aapt2:8.1.1-10154469:linux")
+    neededForGradleTestKitAgp81("com.android.tools.build:aapt2:8.1.1-10154469:osx")
 }
 
-SdkResourceGenerator.generateForHostTest(project)
+tasks.withType(Test).configureEach {
+    it.dependsOn(configurations.neededForGradleTestKit)
+    it.dependsOn(configurations.neededForGradleTestKitAgp81)
+}
 
 gradlePlugin {
     plugins {
@@ -61,16 +92,18 @@ gradlePlugin {
 }
 
 androidx {
-    name = "Android Baseline Profile Gradle Plugin"
-    publish = Publish.SNAPSHOT_ONLY
-    type = LibraryType.GRADLE_PLUGIN
+    name = "Baseline Profile Gradle Plugin"
+    type = SoftwareType.GRADLE_PLUGIN
     inceptionYear = "2022"
     description = "Android Baseline Profile Gradle Plugin"
 }
 
-tasks {
-    validatePlugins {
-        failOnWarning.set(true)
-        enableStricterValidation.set(true)
+tasks.withType(Test).configureEach { test ->
+    test.maxParallelForks = 2
+    test.javaLauncher = javaToolchains.launcherFor {
+        // Test on JDK 17 which supports lower versions of AGP. This can be removed
+        // once we move to AGP 8.2.1+
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
+afterEvaluate { tasks.named("test") { it.dependsOn(tasks.named("publish")) } }

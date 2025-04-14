@@ -16,76 +16,25 @@
 
 package androidx.camera.extensions.impl.advanced;
 
-import android.annotation.SuppressLint;
-import android.hardware.camera2.CameraCharacteristics;
-import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.CaptureResult;
-import android.util.Range;
-import android.util.Size;
-
-import java.util.List;
-import java.util.Map;
+import android.graphics.ImageFormat;
 
 /**
- * Stub advanced extender implementation for hdr.
- *
- * <p>This class should be implemented by OEM and deployed to the target devices.
+ * A sample HDR implementation for testing long processing capture. It is capable of outputting
+ * the postview(JPEG format) and the process progress event. ImageAnalysis is not supported.
  *
  * @since 1.2
  */
-@SuppressLint("UnknownNullness")
-public class HdrAdvancedExtenderImpl implements AdvancedExtenderImpl {
+public class HdrAdvancedExtenderImpl extends ConfigurableAdvancedExtenderImpl {
     public HdrAdvancedExtenderImpl() {
+        super(/* longDurationCapture */ false,
+                /* postviewFormat */ ImageFormat.JPEG,
+                /* invokeOnCaptureCompleted */ true);
     }
 
-    @Override
-    public boolean isExtensionAvailable(String cameraId,
-            Map<String, CameraCharacteristics> characteristicsMap) {
-        return false;
-    }
-
-    @Override
-    public void init(String cameraId,
-            Map<String, CameraCharacteristics> characteristicsMap) {
-    }
-
-    @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(
-            String cameraId, Size size, int imageFormat) {
-        return null;
-    }
-
-    @Override
-    public Map<Integer, List<Size>> getSupportedPreviewOutputResolutions(
-            String cameraId) {
-        return null;
-    }
-
-
-    @Override
-    public Map<Integer, List<Size>> getSupportedCaptureOutputResolutions(
-            String cameraId) {
-        return null;
-    }
-
-    @Override
-    public List<Size> getSupportedYuvAnalysisResolutions(
-            String cameraId) {
-        return null;
-    }
-
-    @Override
-    public SessionProcessorImpl createSessionProcessor() {
-        return null;
-    }
-
-    @Override
-    public List<CaptureRequest.Key> getAvailableCaptureRequestKeys() {
-        return null;
-    }
-
-    @Override
-    public List<CaptureResult.Key> getAvailableCaptureResultKeys() {
-        return null;
-    }
+    /**
+     * This method is used to check if test lib is running. If OEM implementation exists, invoking
+     * this method will throw {@link NoSuchMethodError}. This can be used to determine if OEM
+     * implementation is used or not.
+     */
+    public static void checkTestlibRunning() {}
 }

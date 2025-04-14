@@ -30,9 +30,10 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,7 +85,7 @@ import java.util.HashMap;
  *
  * <p>Here is an example implementation of this class:</p>
  *
- * {@sample frameworks/support/samples/Support4Demos/src/main/java/com/example/android/supportv4/app/SimpleJobIntentService.java
+ * {@sample samples/Support4Demos/src/main/java/com/example/android/supportv4/app/SimpleJobIntentService.java
  *      complete}
  * @deprecated This class has been deprecated in favor of the Android Jetpack
  * <a href="https://developer.android.com/topic/libraries/architecture/workmanager">WorkManager</a> 

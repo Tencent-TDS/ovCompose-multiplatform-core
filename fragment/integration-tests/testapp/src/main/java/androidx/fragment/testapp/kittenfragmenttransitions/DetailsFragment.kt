@@ -22,21 +22,21 @@ import androidx.annotation.IntRange
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.testapp.R
+import androidx.transition.Fade
 
-/**
- * Display details for a given kitten
- */
+/** Display details for a given kitten */
 class DetailsFragment : Fragment(R.layout.kitten_details_fragment) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val image = view.findViewById<ImageView>(R.id.image)
         val args = arguments
-        val kittenNumber = when {
-            args == null -> 0
-            args.containsKey(ARG_KITTEN_NUMBER) -> args.getInt(ARG_KITTEN_NUMBER)
-            else -> 1
-        }
+        val kittenNumber =
+            when {
+                args == null -> 0
+                args.containsKey(ARG_KITTEN_NUMBER) -> args.getInt(ARG_KITTEN_NUMBER)
+                else -> 1
+            }
         when (kittenNumber) {
             1 -> image.setImageResource(R.drawable.placekitten_1)
             2 -> image.setImageResource(R.drawable.placekitten_2)
@@ -45,10 +45,14 @@ class DetailsFragment : Fragment(R.layout.kitten_details_fragment) {
             5 -> image.setImageResource(R.drawable.placekitten_5)
             6 -> image.setImageResource(R.drawable.placekitten_6)
         }
+
+        enterTransition = Fade()
+        exitTransition = Fade()
     }
 
     companion object {
         private const val ARG_KITTEN_NUMBER = "argKittenNumber"
+
         /**
          * Create a new DetailsFragment
          *
@@ -56,8 +60,6 @@ class DetailsFragment : Fragment(R.layout.kitten_details_fragment) {
          */
         @JvmStatic
         fun newInstance(@IntRange(from = 1, to = 6) kittenNumber: Int) =
-            DetailsFragment().apply {
-                arguments = bundleOf(ARG_KITTEN_NUMBER to kittenNumber)
-            }
+            DetailsFragment().apply { arguments = bundleOf(ARG_KITTEN_NUMBER to kittenNumber) }
     }
 }

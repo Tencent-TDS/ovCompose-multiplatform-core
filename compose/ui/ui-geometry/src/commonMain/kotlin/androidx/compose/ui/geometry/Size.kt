@@ -14,82 +14,70 @@
  * limitations under the License.
  */
 
+@file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
+
 package androidx.compose.ui.geometry
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.util.packFloats
+import androidx.compose.ui.util.unpackAbsFloat1
+import androidx.compose.ui.util.unpackAbsFloat2
 import androidx.compose.ui.util.unpackFloat1
 import androidx.compose.ui.util.unpackFloat2
-import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
-/**
- * Constructs a [Size] from the given width and height
- */
-@Stable
-fun Size(width: Float, height: Float) = Size(packFloats(width, height))
+/** Constructs a [Size] from the given width and height */
+@Stable inline fun Size(width: Float, height: Float) = Size(packFloats(width, height))
 
 /**
  * Holds a 2D floating-point size.
  *
  * You can think of this as an [Offset] from the origin.
+ *
+ * To create a [Size], call the top-level function that accepts a width/height pair of dimensions:
+ * ```
+ * val size = Size(width, height)
+ * ```
+ *
+ * The primary constructor of [Size] is intended to be used with the [packedValue] property to allow
+ * storing sizes in arrays or collections of primitives without boxing.
+ *
+ * @param packedValue [Long] value encoding the [width] and [height] components of the [Size].
+ *   Encoded values can be obtained by using the [packedValue] property of existing [Size]
+ *   instances.
  */
 @Immutable
 @kotlin.jvm.JvmInline
-value class Size internal constructor(@PublishedApi internal val packedValue: Long) {
+value class Size(val packedValue: Long) {
+    @Stable
+    inline val width: Float
+        get() = unpackFloat1(packedValue)
 
     @Stable
-    val width: Float
-        get() {
-            // Explicitly compare against packed values to avoid auto-boxing of Size.Unspecified
-            check(this.packedValue != Unspecified.packedValue) {
-                "Size is unspecified"
-            }
-            return unpackFloat1(packedValue)
-        }
+    inline val height: Float
+        get() = unpackFloat2(packedValue)
 
-    @Stable
-    val height: Float
-        get() {
-            // Explicitly compare against packed values to avoid auto-boxing of Size.Unspecified
-            check(this.packedValue != Unspecified.packedValue) {
-                "Size is unspecified"
-            }
-            return unpackFloat2(packedValue)
-        }
+    @Stable inline operator fun component1(): Float = width
 
-    @Suppress("NOTHING_TO_INLINE")
-    @Stable
-    inline operator fun component1(): Float = width
+    @Stable inline operator fun component2(): Float = height
 
-    @Suppress("NOTHING_TO_INLINE")
-    @Stable
-    inline operator fun component2(): Float = height
-
-    /**
-     * Returns a copy of this Size instance optionally overriding the
-     * width or height parameter
-     */
-    fun copy(width: Float = this.width, height: Float = this.height) = Size(width, height)
+    /** Returns a copy of this Size instance optionally overriding the width or height parameter */
+    fun copy(width: Float = unpackFloat1(packedValue), height: Float = unpackFloat2(packedValue)) =
+        Size(packFloats(width, height))
 
     companion object {
+        /** An empty size, one with a zero width and a zero height. */
+        @Stable val Zero = Size(0x0L)
 
         /**
-         * An empty size, one with a zero width and a zero height.
+         * A size whose [width] and [height] are unspecified. This is a sentinel value used to
+         * initialize a non-null parameter. Access to width or height on an unspecified size is not
+         * allowed.
          */
-        @Stable
-        val Zero = Size(0.0f, 0.0f)
-
-        /**
-         * A size whose [width] and [height] are unspecified. This is a sentinel
-         * value used to initialize a non-null parameter.
-         * Access to width or height on an unspecified size is not allowed.
-         */
-        @Stable
-        val Unspecified = Size(Float.NaN, Float.NaN)
+        @Stable val Unspecified = Size(UnspecifiedPackedFloats)
     }
 
     /**
@@ -98,41 +86,51 @@ value class Size internal constructor(@PublishedApi internal val packedValue: Lo
      * Negative areas are considered empty.
      */
     @Stable
-    fun isEmpty() = width <= 0.0f || height <= 0.0f
+    fun isEmpty(): Boolean {
+        // Mask the sign bits, shift them to the right and replicate them by multiplying by -1.
+        // This will give us a mask of 0xffff_ffff for negative packed floats, and 0x0000_0000
+        // for positive packed floats. We invert the mask and do an and operation with the
+        // original value to set any negative float to 0.0f.
+        val v = packedValue and ((packedValue and DualFloatSignBit ushr 31) * -0x1).inv()
+        // At this point any negative float is set to 0, so the sign bit is always 0.
+        // We take the 2 packed floats and "and" them together: if any of the two floats
+        // is 0.0f (either because the original value is 0.0f or because it was negative and
+        // we turned it into 0.0f with the line above), the result of the and operation will
+        // be 0 and we know our Size is empty.
+        val w = (v ushr 32) and (v and 0xffffffffL)
+        // We treat Size.Unspecified as being empty
+        return (w == 0L) or (packedValue == UnspecifiedPackedFloats)
+    }
 
     /**
      * Multiplication operator.
      *
-     * Returns a [Size] whose dimensions are the dimensions of the left-hand-side
-     * operand (a [Size]) multiplied by the scalar right-hand-side operand (a
-     * [Float]).
+     * Returns a [Size] whose dimensions are the dimensions of the left-hand-side operand (a [Size])
+     * multiplied by the scalar right-hand-side operand (a [Float]).
      */
     @Stable
-    operator fun times(operand: Float) = Size(width * operand, height * operand)
+    operator fun times(operand: Float): Size =
+        Size(packFloats(unpackFloat1(packedValue) * operand, unpackFloat2(packedValue) * operand))
 
     /**
      * Division operator.
      *
-     * Returns a [Size] whose dimensions are the dimensions of the left-hand-side
-     * operand (a [Size]) divided by the scalar right-hand-side operand (a
-     * [Float]).
+     * Returns a [Size] whose dimensions are the dimensions of the left-hand-side operand (a [Size])
+     * divided by the scalar right-hand-side operand (a [Float]).
      */
     @Stable
-    operator fun div(operand: Float) = Size(width / operand, height / operand)
+    operator fun div(operand: Float): Size =
+        Size(packFloats(unpackFloat1(packedValue) / operand, unpackFloat2(packedValue) / operand))
 
-    /**
-     * The lesser of the magnitudes of the [width] and the [height].
-     */
+    /** The lesser of the magnitudes of the [width] and the [height]. */
     @Stable
     val minDimension: Float
-        get() = min(width.absoluteValue, height.absoluteValue)
+        get() = min(unpackAbsFloat1(packedValue), unpackAbsFloat2(packedValue))
 
-    /**
-     * The greater of the magnitudes of the [width] and the [height].
-     */
+    /** The greater of the magnitudes of the [width] and the [height]. */
     @Stable
     val maxDimension: Float
-        get() = max(width.absoluteValue, height.absoluteValue)
+        get() = max(unpackAbsFloat1(packedValue), unpackAbsFloat2(packedValue))
 
     override fun toString() =
         if (isSpecified) {
@@ -144,82 +142,57 @@ value class Size internal constructor(@PublishedApi internal val packedValue: Lo
         }
 }
 
-/**
- * `false` when this is [Size.Unspecified].
- */
+/** `false` when this is [Size.Unspecified]. */
 @Stable
 inline val Size.isSpecified: Boolean
-    get() = packedValue != Size.Unspecified.packedValue
+    get() = packedValue != 0x7fc00000_7fc00000L // NaN_NaN, see UnspecifiedPackedFloats
 
-/**
- * `true` when this is [Size.Unspecified].
- */
+/** `true` when this is [Size.Unspecified]. */
 @Stable
 inline val Size.isUnspecified: Boolean
-    get() = packedValue == Size.Unspecified.packedValue
+    get() = packedValue == 0x7fc00000_7fc00000L // NaN_NaN, see UnspecifiedPackedFloats
 
 /**
- * If this [Size]&nbsp;[isSpecified] then this is returned, otherwise [block] is executed
- * and its result is returned.
+ * If this [Size]&nbsp;[isSpecified] then this is returned, otherwise [block] is executed and its
+ * result is returned.
  */
-inline fun Size.takeOrElse(block: () -> Size): Size =
-    if (isSpecified) this else block()
+inline fun Size.takeOrElse(block: () -> Size): Size = if (isSpecified) this else block()
 
 /**
  * Linearly interpolate between two sizes
  *
- * The [fraction] argument represents position on the timeline, with 0.0 meaning
- * that the interpolation has not started, returning [start] (or something
- * equivalent to [start]), 1.0 meaning that the interpolation has finished,
- * returning [stop] (or something equivalent to [stop]), and values in between
- * meaning that the interpolation is at the relevant point on the timeline
- * between [start] and [stop]. The interpolation can be extrapolated beyond 0.0 and
- * 1.0, so negative values and values greater than 1.0 are valid (and can
- * easily be generated by curves).
+ * The [fraction] argument represents position on the timeline, with 0.0 meaning that the
+ * interpolation has not started, returning [start] (or something equivalent to [start]), 1.0
+ * meaning that the interpolation has finished, returning [stop] (or something equivalent to
+ * [stop]), and values in between meaning that the interpolation is at the relevant point on the
+ * timeline between [start] and [stop]. The interpolation can be extrapolated beyond 0.0 and 1.0, so
+ * negative values and values greater than 1.0 are valid (and can easily be generated by curves).
  *
- * Values for [fraction] are usually obtained from an [Animation<Float>], such as
- * an `AnimationController`.
+ * Values for [fraction] are usually obtained from an [Animation<Float>], such as an
+ * `AnimationController`.
  */
 @Stable
-fun lerp(start: Size, stop: Size, fraction: Float): Size {
-    return Size(
-        lerp(start.width, stop.width, fraction),
-        lerp(start.height, stop.height, fraction)
+fun lerp(start: Size, stop: Size, fraction: Float): Size =
+    Size(
+        packFloats(
+            lerp(unpackFloat1(start.packedValue), unpackFloat1(stop.packedValue), fraction),
+            lerp(unpackFloat2(start.packedValue), unpackFloat2(stop.packedValue), fraction)
+        )
     )
-}
 
-/**
- * Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this]
- */
-@Suppress("NOTHING_TO_INLINE")
-@Stable
-inline operator fun Int.times(size: Size) = size * this.toFloat()
+/** Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this] */
+@Stable inline operator fun Int.times(size: Size) = size * this.toFloat()
 
-/**
- * Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this]
- */
-@Suppress("NOTHING_TO_INLINE")
-@Stable
-inline operator fun Double.times(size: Size) = size * this.toFloat()
+/** Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this] */
+@Stable inline operator fun Double.times(size: Size) = size * this.toFloat()
 
-/**
- * Convert a [Size] to a [Rect].
- */
-@Stable
-fun Size.toRect(): Rect {
-    return Rect(Offset.Zero, this)
-}
+/** Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this] */
+@Stable inline operator fun Float.times(size: Size) = size * this
 
-/**
- * Returns a [Size] with [size]'s [Size.width] and [Size.height] multiplied by [this]
- */
-@Suppress("NOTHING_TO_INLINE")
-@Stable
-inline operator fun Float.times(size: Size) = size * this
+/** Convert a [Size] to a [Rect]. */
+@Stable fun Size.toRect(): Rect = Rect(Offset.Zero, this)
 
-/**
- * Returns the [Offset] of the center of the rect from the point of [0, 0]
- * with this [Size].
- */
+/** Returns the [Offset] of the center of the rect from the point of [0, 0] with this [Size]. */
 @Stable
-val Size.center: Offset get() = Offset(width / 2f, height / 2f)
+val Size.center: Offset
+    get() = Offset(unpackFloat1(packedValue) / 2f, unpackFloat2(packedValue) / 2f)

@@ -19,7 +19,6 @@ package androidx.transition;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
@@ -28,10 +27,10 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.core.content.res.TypedArrayUtils;
-import androidx.core.view.ViewCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * This transition tracks changes to the visibility of target views in the
@@ -99,8 +98,6 @@ public class Fade extends Visibility {
     public Fade() {
     }
 
-    @SuppressLint("RestrictedApi") // remove once core lib would be released with the new
-    // LIBRARY_GROUP_PREFIX restriction. tracking in b/127286008
     public Fade(@NonNull Context context, @NonNull AttributeSet attrs) {
         super(context, attrs);
         TypedArray a = context.obtainStyledAttributes(attrs, Styleable.FADE);
@@ -114,8 +111,20 @@ public class Fade extends Visibility {
     @Override
     public void captureStartValues(@NonNull TransitionValues transitionValues) {
         super.captureStartValues(transitionValues);
-        transitionValues.values.put(PROPNAME_TRANSITION_ALPHA,
-                ViewUtils.getTransitionAlpha(transitionValues.view));
+        Float alpha = (Float) transitionValues.view.getTag(R.id.transition_pause_alpha);
+        if (alpha == null) {
+            if (transitionValues.view.getVisibility() == View.VISIBLE) {
+                alpha = ViewUtils.getTransitionAlpha(transitionValues.view);
+            } else {
+                alpha = 0f;
+            }
+        }
+        transitionValues.values.put(PROPNAME_TRANSITION_ALPHA, alpha);
+    }
+
+    @Override
+    public boolean isSeekingSupported() {
+        return true;
     }
 
     /**
@@ -133,40 +142,33 @@ public class Fade extends Visibility {
         }
         FadeAnimatorListener listener = new FadeAnimatorListener(view);
         anim.addListener(listener);
-        addListener(new TransitionListenerAdapter() {
-            @Override
-            public void onTransitionEnd(@NonNull Transition transition) {
-                ViewUtils.setTransitionAlpha(view, 1);
-                ViewUtils.clearNonTransitionAlpha(view);
-                transition.removeListener(this);
-            }
-        });
+        getRootTransition().addListener(listener);
         return anim;
     }
 
-    @Nullable
     @Override
-    public Animator onAppear(@NonNull ViewGroup sceneRoot, @NonNull View view,
+    public @Nullable Animator onAppear(@NonNull ViewGroup sceneRoot, @NonNull View view,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         if (DBG) {
             View startView = (startValues != null) ? startValues.view : null;
             Log.d(LOG_TAG, "Fade.onAppear: startView, startVis, endView, endVis = "
                     + startView + ", " + view);
         }
+        ViewUtils.saveNonTransitionAlpha(view);
         float startAlpha = getStartAlpha(startValues, 0);
-        if (startAlpha == 1) {
-            startAlpha = 0;
-        }
         return createAnimation(view, startAlpha, 1);
     }
 
-    @Nullable
     @Override
-    public Animator onDisappear(@NonNull ViewGroup sceneRoot, @NonNull final View view,
+    public @Nullable Animator onDisappear(@NonNull ViewGroup sceneRoot, final @NonNull View view,
             @Nullable TransitionValues startValues, @Nullable TransitionValues endValues) {
         ViewUtils.saveNonTransitionAlpha(view);
         float startAlpha = getStartAlpha(startValues, 1);
-        return createAnimation(view, startAlpha, 0);
+        Animator animator = createAnimation(view, startAlpha, 0);
+        if (animator == null) {
+            ViewUtils.setTransitionAlpha(view, getStartAlpha(endValues, 1f));
+        }
+        return animator;
     }
 
     private static float getStartAlpha(TransitionValues startValues, float fallbackValue) {
@@ -180,7 +182,8 @@ public class Fade extends Visibility {
         return startAlpha;
     }
 
-    private static class FadeAnimatorListener extends AnimatorListenerAdapter {
+    private static class FadeAnimatorListener extends AnimatorListenerAdapter implements
+            TransitionListener {
 
         private final View mView;
         private boolean mLayerTypeChanged = false;
@@ -191,7 +194,7 @@ public class Fade extends Visibility {
 
         @Override
         public void onAnimationStart(Animator animation) {
-            if (ViewCompat.hasOverlappingRendering(mView)
+            if (mView.hasOverlappingRendering()
                     && mView.getLayerType() == View.LAYER_TYPE_NONE) {
                 mLayerTypeChanged = true;
                 mView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
@@ -200,12 +203,52 @@ public class Fade extends Visibility {
 
         @Override
         public void onAnimationEnd(Animator animation) {
-            ViewUtils.setTransitionAlpha(mView, 1);
+            onAnimationEnd(animation, false);
+        }
+
+        @Override
+        public void onAnimationEnd(@NonNull Animator animation, boolean isReverse) {
             if (mLayerTypeChanged) {
                 mView.setLayerType(View.LAYER_TYPE_NONE, null);
             }
+            if (!isReverse) {
+                ViewUtils.setTransitionAlpha(mView, 1);
+                ViewUtils.clearNonTransitionAlpha(mView);
+            }
         }
 
+        @Override
+        public void onAnimationCancel(Animator animation) {
+            ViewUtils.setTransitionAlpha(mView, 1);
+        }
+
+        @Override
+        public void onTransitionStart(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionStart(@NonNull Transition transition, boolean isReverse) {
+        }
+
+        @Override
+        public void onTransitionEnd(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionCancel(@NonNull Transition transition) {
+        }
+
+        @Override
+        public void onTransitionPause(@NonNull Transition transition) {
+            float pauseAlpha = (mView.getVisibility() == View.VISIBLE)
+                    ? ViewUtils.getTransitionAlpha(mView) : 0f;
+            mView.setTag(R.id.transition_pause_alpha, pauseAlpha);
+        }
+
+        @Override
+        public void onTransitionResume(@NonNull Transition transition) {
+            mView.setTag(R.id.transition_pause_alpha, null);
+        }
     }
 
 }

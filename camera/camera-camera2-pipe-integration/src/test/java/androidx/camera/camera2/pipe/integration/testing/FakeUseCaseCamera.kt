@@ -19,24 +19,52 @@ package androidx.camera.camera2.pipe.integration.testing
 import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.params.MeteringRectangle
 import androidx.camera.camera2.pipe.AeMode
+import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.CameraStream
+import androidx.camera.camera2.pipe.Lock3ABehavior
 import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.RequestTemplate
 import androidx.camera.camera2.pipe.Result3A
 import androidx.camera.camera2.pipe.StreamId
 import androidx.camera.camera2.pipe.integration.adapter.CameraStateAdapter
+import androidx.camera.camera2.pipe.integration.adapter.SessionConfigAdapter
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraComponent
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraConfig
+import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
 import androidx.camera.camera2.pipe.integration.impl.UseCaseCamera
 import androidx.camera.camera2.pipe.integration.impl.UseCaseCameraRequestControl
-import androidx.camera.core.UseCase
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.imagecapture.CameraCapturePipeline
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.Config
+import androidx.camera.core.impl.DeferrableSurface
+import androidx.camera.core.impl.SessionConfig
+import androidx.camera.testing.impl.FakeCameraCapturePipeline
+import java.util.concurrent.TimeUnit.MILLISECONDS
+import java.util.concurrent.TimeUnit.NANOSECONDS
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class FakeUseCaseCameraComponentBuilder : UseCaseCameraComponent.Builder {
-    private var config: UseCaseCameraConfig = UseCaseCameraConfig(emptyList(), CameraStateAdapter())
+    var buildInvocationCount = 0
+    private var sessionConfigAdapter = SessionConfigAdapter(emptyList())
+    private var cameraGraph = FakeCameraGraph()
+    private var streamConfigMap = mutableMapOf<CameraStream.Config, DeferrableSurface>()
+
+    private var config: UseCaseCameraConfig =
+        UseCaseCameraConfig(
+            emptyList(),
+            sessionConfigAdapter,
+            CameraStateAdapter(),
+            cameraGraph,
+            streamConfigMap,
+            sessionProcessorManager = null
+        )
 
     override fun config(config: UseCaseCameraConfig): UseCaseCameraComponent.Builder {
         this.config = config
@@ -44,33 +72,43 @@ class FakeUseCaseCameraComponentBuilder : UseCaseCameraComponent.Builder {
     }
 
     override fun build(): UseCaseCameraComponent {
-        return FakeUseCaseCameraComponent(config.provideUseCaseList())
+        buildInvocationCount++
+        return FakeUseCaseCameraComponent()
     }
 }
 
-class FakeUseCaseCameraComponent(useCases: List<UseCase>) : UseCaseCameraComponent {
-    private val fakeUseCaseCamera = FakeUseCaseCamera(useCases.toSet())
+class FakeUseCaseCameraComponent() : UseCaseCameraComponent {
+    private val fakeUseCaseCamera = FakeUseCaseCamera()
+    private val cameraGraph = FakeCameraGraph()
+    private val cameraStateAdapter = CameraStateAdapter()
 
     override fun getUseCaseCamera(): UseCaseCamera {
         return fakeUseCaseCamera
     }
+
+    override fun getUseCaseGraphConfig(): UseCaseGraphConfig {
+        // TODO: Implement this properly once we need to use it with SessionProcessor enabled.
+        return UseCaseGraphConfig(cameraGraph, emptyMap(), cameraStateAdapter)
+    }
 }
 
 // TODO: Further implement the methods in this class as needed
-open class FakeUseCaseCameraRequestControl : UseCaseCameraRequestControl {
-
+open class FakeUseCaseCameraRequestControl(
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob()),
+) : UseCaseCameraRequestControl {
     val addParameterCalls = mutableListOf<Map<CaptureRequest.Key<*>, Any>>()
     var addParameterResult = CompletableDeferred(Unit)
     var setConfigCalls = mutableListOf<RequestParameters>()
     var setConfigResult = CompletableDeferred(Unit)
     var setTorchResult = CompletableDeferred(Result3A(status = Result3A.Status.OK))
 
-    override fun addParametersAsync(
+    // TODO - Implement thread-safety in the functions annotated with @AnyThread in
+    //  UseCaseCameraRequestControl
+
+    override fun setParametersAsync(
         type: UseCaseCameraRequestControl.Type,
         values: Map<CaptureRequest.Key<*>, Any>,
         optionPriority: Config.OptionPriority,
-        tags: Map<String, Any>,
-        listeners: Set<Request.Listener>
     ): Deferred<Unit> {
         addParameterCalls.add(values)
         return addParameterResult
@@ -82,52 +120,117 @@ open class FakeUseCaseCameraRequestControl : UseCaseCameraRequestControl {
         tags: Map<String, Any>,
         streams: Set<StreamId>?,
         template: RequestTemplate?,
-        listeners: Set<Request.Listener>
+        listeners: Set<Request.Listener>,
+        sessionConfig: SessionConfig?,
     ): Deferred<Unit> {
         setConfigCalls.add(RequestParameters(type, config, tags))
         return CompletableDeferred(Unit)
     }
 
-    override suspend fun setTorchAsync(enabled: Boolean): Deferred<Result3A> {
+    override fun setTorchOnAsync(): Deferred<Result3A> {
         return setTorchResult
     }
+
+    override fun setTorchOffAsync(aeMode: AeMode): Deferred<Result3A> {
+        return setTorchResult
+    }
+
+    var aeRegions: List<MeteringRectangle>? = null
+    var afRegions: List<MeteringRectangle>? = null
+    var awbRegions: List<MeteringRectangle>? = null
 
     val focusMeteringCalls = mutableListOf<FocusMeteringParams>()
     var focusMeteringResult = CompletableDeferred(Result3A(status = Result3A.Status.OK))
     var cancelFocusMeteringCallCount = 0
     var cancelFocusMeteringResult = CompletableDeferred(Result3A(status = Result3A.Status.OK))
 
-    override suspend fun startFocusAndMeteringAsync(
+    var focusAutoCompletesAfterTimeout = true
+
+    override fun startFocusAndMeteringAsync(
         aeRegions: List<MeteringRectangle>?,
         afRegions: List<MeteringRectangle>?,
         awbRegions: List<MeteringRectangle>?,
-        afTriggerStartAeMode: AeMode?
+        aeLockBehavior: Lock3ABehavior?,
+        afLockBehavior: Lock3ABehavior?,
+        awbLockBehavior: Lock3ABehavior?,
+        afTriggerStartAeMode: AeMode?,
+        timeLimitNs: Long,
     ): Deferred<Result3A> {
+        this.aeRegions = aeRegions
+        this.afRegions = afRegions
+        this.awbRegions = awbRegions
+
         focusMeteringCalls.add(
-            FocusMeteringParams(aeRegions, afRegions, awbRegions, afTriggerStartAeMode)
+            FocusMeteringParams(
+                aeRegions,
+                afRegions,
+                awbRegions,
+                aeLockBehavior,
+                afLockBehavior,
+                awbLockBehavior,
+                afTriggerStartAeMode,
+                timeLimitNs
+            )
         )
+
+        if (focusAutoCompletesAfterTimeout) {
+            scope.launch {
+                withTimeoutOrNull(MILLISECONDS.convert(timeLimitNs, NANOSECONDS)) {
+                        focusMeteringResult.await()
+                    }
+                    .let { result3A ->
+                        if (result3A == null) {
+                            focusMeteringResult.complete(
+                                Result3A(status = Result3A.Status.TIME_LIMIT_REACHED)
+                            )
+                        }
+                    }
+            }
+        }
+
         return focusMeteringResult
     }
 
-    override suspend fun cancelFocusAndMeteringAsync(): Deferred<Result3A> {
+    override fun cancelFocusAndMeteringAsync(): Deferred<Result3A> {
         cancelFocusMeteringCallCount++
         return cancelFocusMeteringResult
     }
 
-    override suspend fun issueSingleCaptureAsync(
+    override fun issueSingleCaptureAsync(
         captureSequence: List<CaptureConfig>,
-        captureMode: Int,
-        flashType: Int,
-        flashMode: Int,
+        @ImageCapture.CaptureMode captureMode: Int,
+        @ImageCapture.FlashType flashType: Int,
+        @ImageCapture.FlashMode flashMode: Int,
     ): List<Deferred<Void?>> {
-        return listOf(CompletableDeferred(null))
+        return captureSequence.map { CompletableDeferred<Void?>(null).apply { complete(null) } }
     }
+
+    override fun update3aRegions(
+        aeRegions: List<MeteringRectangle>?,
+        afRegions: List<MeteringRectangle>?,
+        awbRegions: List<MeteringRectangle>?
+    ): Deferred<Result3A> {
+        this.aeRegions = aeRegions
+        this.afRegions = afRegions
+        this.awbRegions = awbRegions
+        return CompletableDeferred(Result3A(status = Result3A.Status.OK))
+    }
+
+    override suspend fun awaitSurfaceSetup(): Boolean {
+        return true
+    }
+
+    override fun close() {}
 
     data class FocusMeteringParams(
         val aeRegions: List<MeteringRectangle>? = null,
         val afRegions: List<MeteringRectangle>? = null,
         val awbRegions: List<MeteringRectangle>? = null,
-        val afTriggerStartAeMode: AeMode? = null
+        val aeLockBehavior: Lock3ABehavior? = null,
+        val afLockBehavior: Lock3ABehavior? = null,
+        val awbLockBehavior: Lock3ABehavior? = null,
+        val afTriggerStartAeMode: AeMode? = null,
+        val timeLimitNs: Long = CameraGraph.Constants3A.DEFAULT_TIME_LIMIT_NS,
     )
 
     data class RequestParameters(
@@ -139,24 +242,13 @@ open class FakeUseCaseCameraRequestControl : UseCaseCameraRequestControl {
 
 // TODO: Further implement the methods in this class as needed
 class FakeUseCaseCamera(
-    override var runningUseCases: Set<UseCase> = emptySet(),
     override var requestControl: UseCaseCameraRequestControl = FakeUseCaseCameraRequestControl(),
 ) : UseCaseCamera {
-
-    override fun <T> setParameterAsync(
-        key: CaptureRequest.Key<T>,
-        value: T,
-        priority: Config.OptionPriority
-    ): Deferred<Unit> {
-        return CompletableDeferred(Unit)
-    }
-
-    override fun setParametersAsync(
-        values: Map<CaptureRequest.Key<*>, Any>,
-        priority: Config.OptionPriority
-    ): Deferred<Unit> {
-        return CompletableDeferred(Unit)
-    }
+    override suspend fun getCameraCapturePipeline(
+        captureMode: Int,
+        flashMode: Int,
+        flashType: Int
+    ): CameraCapturePipeline = FakeCameraCapturePipeline()
 
     override fun close(): Job {
         return CompletableDeferred(Unit)

@@ -34,12 +34,11 @@ import org.junit.runner.RunWith
 @LargeTest
 @RunWith(AndroidJUnit4::class)
 open class VectorBenchmark {
-    @get:Rule
-    val benchmarkRule = ComposeBenchmarkRule()
+    @get:Rule val benchmarkRule = ComposeBenchmarkRule()
 
     @Test
     fun xml_compose() {
-        benchmarkRule.benchmarkFirstCompose({ XmlVectorTestCase() })
+        benchmarkRule.benchmarkFirstCompose { XmlVectorTestCase() }
     }
 
     @Test
@@ -59,7 +58,7 @@ open class VectorBenchmark {
 
     @Test
     fun programmatic_compose() {
-        benchmarkRule.benchmarkFirstCompose({ ProgrammaticVectorTestCase() })
+        benchmarkRule.benchmarkFirstCompose { ProgrammaticVectorTestCase() }
     }
 
     @Test

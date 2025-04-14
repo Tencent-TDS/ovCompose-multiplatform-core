@@ -25,10 +25,10 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.os.Build;
 
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.camera.camera2.internal.Camera2CameraInfoImpl;
 import androidx.camera.camera2.internal.compat.CameraCharacteristicsCompat;
 import androidx.camera.core.impl.CameraInfoInternal;
+import androidx.test.filters.SdkSuppress;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,6 +83,7 @@ public final class Camera2CameraInfoTest {
         Camera2CameraInfo camera2CameraInfo = mock(Camera2CameraInfo.class);
         Camera2CameraInfoImpl cameraInfoImpl = mock(Camera2CameraInfoImpl.class);
         when(cameraInfoImpl.getCamera2CameraInfo()).thenAnswer(ignored -> camera2CameraInfo);
+        when(cameraInfoImpl.getImplementation()).thenAnswer(ignored -> cameraInfoImpl);
         Camera2CameraInfo resultCamera2CameraInfo = Camera2CameraInfo.from(cameraInfoImpl);
 
         assertThat(resultCamera2CameraInfo).isEqualTo(camera2CameraInfo);
@@ -95,7 +96,7 @@ public final class Camera2CameraInfoTest {
     }
 
     @Config(minSdk = 28)
-    @RequiresApi(28)
+    @SdkSuppress(minSdkVersion = 28)
     @Test
     public void canGetCameraCharacteristicsMap_fromCamera2CameraInfo() {
         Camera2CameraInfoImpl impl = mock(Camera2CameraInfoImpl.class);

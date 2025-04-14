@@ -16,48 +16,34 @@
 
 package androidx.room.compiler.processing
 
+import androidx.kruth.assertThat
 import androidx.room.compiler.processing.util.runProcessorTest
-import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class XProcessingEnvConfigTest {
     @Test
     fun testConfig() {
         val myConfig = XProcessingEnvConfig.Builder().build()
-        runProcessorTest(
-            config = myConfig
-        ) {
-            assertThat(
-                it.processingEnv.config
-            ).isSameInstanceAs(myConfig)
+        runProcessorTest(config = myConfig) {
+            assertThat(it.processingEnv.config).isSameInstanceAs(myConfig)
         }
     }
 
     @Test
     fun callItLikeJava() {
-        val myConfig = XProcessingEnvConfig.Builder().excludeMethodsWithInvalidJvmSourceNames(
-            true
-        ).build()
-        runProcessorTest(
-            config = myConfig
-        ) {
-            assertThat(
-                it.processingEnv.config.excludeMethodsWithInvalidJvmSourceNames
-            ).isTrue()
+        val myConfig =
+            XProcessingEnvConfig.Builder().excludeMethodsWithInvalidJvmSourceNames(true).build()
+        runProcessorTest(config = myConfig) {
+            assertThat(it.processingEnv.config.excludeMethodsWithInvalidJvmSourceNames).isTrue()
         }
     }
 
     @Test
     fun callItLikeKotlin() {
-        val myConfig = XProcessingEnvConfig.DEFAULT.copy(
-            excludeMethodsWithInvalidJvmSourceNames = true
-        )
-        runProcessorTest(
-            config = myConfig
-        ) {
-            assertThat(
-                it.processingEnv.config.excludeMethodsWithInvalidJvmSourceNames
-            ).isTrue()
+        val myConfig =
+            XProcessingEnvConfig.DEFAULT.copy(excludeMethodsWithInvalidJvmSourceNames = true)
+        runProcessorTest(config = myConfig) {
+            assertThat(it.processingEnv.config.excludeMethodsWithInvalidJvmSourceNames).isTrue()
         }
     }
 }

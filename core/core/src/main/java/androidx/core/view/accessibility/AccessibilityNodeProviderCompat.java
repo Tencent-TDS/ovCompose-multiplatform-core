@@ -21,22 +21,28 @@ import android.os.Bundle;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeProvider;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Helper for accessing {@link android.view.accessibility.AccessibilityNodeProvider}.
+ * <p>
+ * <aside class="note">
+ * <b>Note:</b> Consider using a {@link androidx.customview.widget.ExploreByTouchHelper}, a utility
+ * extension of AccessibilityNodeProvider, to simplify many aspects of providing information to
+ * accessibility services and managing accessibility focus. </aside>
  */
 public class AccessibilityNodeProviderCompat {
-    @RequiresApi(16)
-    static class AccessibilityNodeProviderApi16 extends AccessibilityNodeProvider {
+
+    static class AccessibilityNodeProviderApi19 extends AccessibilityNodeProvider {
         final AccessibilityNodeProviderCompat mCompat;
 
-        AccessibilityNodeProviderApi16(AccessibilityNodeProviderCompat compat) {
+        AccessibilityNodeProviderApi19(AccessibilityNodeProviderCompat compat) {
             mCompat = compat;
         }
 
@@ -73,13 +79,6 @@ public class AccessibilityNodeProviderCompat {
         public boolean performAction(int virtualViewId, int action, Bundle arguments) {
             return mCompat.performAction(virtualViewId, action, arguments);
         }
-    }
-
-    @RequiresApi(19)
-    static class AccessibilityNodeProviderApi19 extends AccessibilityNodeProviderApi16 {
-        AccessibilityNodeProviderApi19(AccessibilityNodeProviderCompat compat) {
-            super(compat);
-        }
 
         @Override
         public AccessibilityNodeInfo findFocus(int focus) {
@@ -111,8 +110,7 @@ public class AccessibilityNodeProviderCompat {
      */
     public static final int HOST_VIEW_ID = -1;
 
-    @Nullable
-    private final Object mProvider;
+    private final @Nullable Object mProvider;
 
     /**
      * Creates a new instance.
@@ -120,12 +118,8 @@ public class AccessibilityNodeProviderCompat {
     public AccessibilityNodeProviderCompat() {
         if (Build.VERSION.SDK_INT >= 26) {
             mProvider = new AccessibilityNodeProviderApi26(this);
-        } else if (Build.VERSION.SDK_INT >= 19) {
-            mProvider = new AccessibilityNodeProviderApi19(this);
-        } else if (Build.VERSION.SDK_INT >= 16) {
-            mProvider = new AccessibilityNodeProviderApi16(this);
         } else {
-            mProvider = null;
+            mProvider = new AccessibilityNodeProviderApi19(this);
         }
     }
 
@@ -142,8 +136,7 @@ public class AccessibilityNodeProviderCompat {
     /**
      * @return The wrapped {@link android.view.accessibility.AccessibilityNodeProvider}.
      */
-    @Nullable
-    public Object getProvider() {
+    public @Nullable Object getProvider() {
         return mProvider;
     }
 
@@ -169,8 +162,7 @@ public class AccessibilityNodeProviderCompat {
      *
      * @see AccessibilityNodeInfoCompat
      */
-    @Nullable
-    public AccessibilityNodeInfoCompat createAccessibilityNodeInfo(int virtualViewId) {
+    public @Nullable AccessibilityNodeInfoCompat createAccessibilityNodeInfo(int virtualViewId) {
         return null;
     }
 
@@ -207,9 +199,8 @@ public class AccessibilityNodeProviderCompat {
      * @see AccessibilityNodeInfoCompat
      */
     @SuppressWarnings("unused")
-    @Nullable
-    public List<AccessibilityNodeInfoCompat> findAccessibilityNodeInfosByText(@NonNull String text,
-            int virtualViewId) {
+    public @Nullable List<AccessibilityNodeInfoCompat> findAccessibilityNodeInfosByText(
+            @NonNull String text, int virtualViewId) {
         return null;
     }
 
@@ -225,8 +216,7 @@ public class AccessibilityNodeProviderCompat {
      * @see AccessibilityNodeInfoCompat#FOCUS_ACCESSIBILITY
      */
     @SuppressWarnings("unused")
-    @Nullable
-    public AccessibilityNodeInfoCompat findFocus(int focus) {
+    public @Nullable AccessibilityNodeInfoCompat findFocus(int focus) {
         return null;
     }
 

@@ -18,7 +18,6 @@ package androidx.constraintlayout.core.state;
 
 import static androidx.constraintlayout.core.state.ConstraintSetParser.parseColorString;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.constraintlayout.core.motion.CustomVariable;
 import androidx.constraintlayout.core.motion.utils.TypedBundle;
@@ -31,6 +30,8 @@ import androidx.constraintlayout.core.parser.CLNumber;
 import androidx.constraintlayout.core.parser.CLObject;
 import androidx.constraintlayout.core.parser.CLParsingException;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * Contains code for Parsing Transitions
  */
@@ -38,7 +39,7 @@ public class TransitionParser {
     /**
      * Parse a JSON string of a Transition and insert it into the Transition object
      *
-     * @deprecated dpToPixel is unused now
+     * @deprecated dpToPixel is not necessary, use {@link #parse(CLObject, Transition)} instead.
      * @param json       Transition Object to parse.
      * @param transition Transition Object to write transition to
      */
@@ -57,6 +58,7 @@ public class TransitionParser {
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static void parse(@NonNull CLObject json, @NonNull Transition transition)
             throws CLParsingException {
+        transition.resetProperties();
         String pathMotionArc = json.getStringOrNull("pathMotionArc");
         TypedBundle bundle = new TypedBundle();
         boolean setBundle = false;

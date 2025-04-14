@@ -16,20 +16,21 @@
 // @exportToFramework:skipFile()
 package androidx.appsearch.localstorage;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 
 import com.google.android.icing.proto.GetOptimizeInfoResultProto;
 
+import org.jspecify.annotations.NonNull;
+
 /**
  * An implementation of {@link androidx.appsearch.localstorage.OptimizeStrategy} will
  * determine when to trigger {@link androidx.appsearch.localstorage.AppSearchImpl#optimize()} in
  * Jetpack environment.
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public class JetpackOptimizeStrategy implements OptimizeStrategy{
+public class JetpackOptimizeStrategy implements OptimizeStrategy {
 
     @VisibleForTesting
     static final int DOC_COUNT_OPTIMIZE_THRESHOLD = 1000;

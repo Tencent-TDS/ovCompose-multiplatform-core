@@ -29,17 +29,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import android.os.Build;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.TouchDelegate;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.rule.ActivityTestRule;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -556,15 +555,10 @@ public class CoordinatorLayoutTouchEventTest {
             return event.getAction() == mAction;
         }
 
-        @NonNull
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             String message = "MotionEvent#getAction() == ";
-            if (Build.VERSION.SDK_INT >= 19) {
-                return message + MotionEvent.actionToString(mAction);
-            } else {
-                return message + mAction;
-            }
+            return message + MotionEvent.actionToString(mAction);
         }
     }
 

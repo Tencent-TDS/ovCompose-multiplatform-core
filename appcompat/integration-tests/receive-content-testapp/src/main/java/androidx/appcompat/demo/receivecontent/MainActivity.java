@@ -16,7 +16,6 @@
 
 package androidx.appcompat.demo.receivecontent;
 
-import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,8 +23,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.appcompat.widget.LinearLayoutCompat;
@@ -37,6 +34,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** Main activity for the app. */
 public class MainActivity extends AppCompatActivity {
@@ -89,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
             return null;
         });
         Futures.addCallback(deleteAllFuture, new FutureCallback<Void>() {
-            @SuppressLint("SyntheticAccessor")
             @Override
             public void onSuccess(@Nullable Void result) {
                 mAttachmentsRecyclerViewAdapter.clearAttachments();

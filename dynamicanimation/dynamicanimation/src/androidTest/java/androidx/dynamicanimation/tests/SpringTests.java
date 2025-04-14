@@ -40,7 +40,6 @@ import android.os.SystemClock;
 import android.util.AndroidRuntimeException;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.view.ViewCompat;
 import androidx.dynamicanimation.animation.AnimationHandler;
@@ -58,6 +57,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -126,6 +126,7 @@ public class SpringTests {
      * Test that spring animation can work with a single property without an object.
      */
     @Test
+    @Ignore("b/280665072")
     public void testFloatValueHolder() {
         final FloatValueHolder floatValueHolder = new FloatValueHolder(0f);
         DynamicAnimation.OnAnimationUpdateListener updateListener =
@@ -354,6 +355,7 @@ public class SpringTests {
      */
     @LargeTest
     @Test
+    @Ignore("b/280665072")
     public void testStiffness() {
         float[] dampingRatios = {0.3f, 0.5f, 1f, 5f};
         final float[] stiffness = {50f, 500f, 1500f, 5000f};

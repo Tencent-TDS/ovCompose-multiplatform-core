@@ -16,10 +16,13 @@
 
 package androidx.appsearch.builtintypes;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -42,13 +45,15 @@ public class StopwatchLap extends Thing {
     @Document.LongProperty
     private final long mAccumulatedLapDurationMillis;
 
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     StopwatchLap(@NonNull String namespace, @NonNull String id, int documentScore,
             long creationTimestampMillis, long documentTtlMillis, @Nullable String name,
             @Nullable List<String> alternateNames, @Nullable String description,
-            @Nullable String image, @Nullable String url, int lapNumber,
-            long lapDurationMillis, long accumulatedLapDurationMillis) {
+            @Nullable String image, @Nullable String url,
+            @NonNull List<PotentialAction> potentialActions,
+            int lapNumber, long lapDurationMillis, long accumulatedLapDurationMillis) {
         super(namespace, id, documentScore, creationTimestampMillis, documentTtlMillis, name,
-                alternateNames, description, image, url);
+                alternateNames, description, image, url, potentialActions);
         mLapNumber = lapNumber;
         mLapDurationMillis = lapDurationMillis;
         mAccumulatedLapDurationMillis = accumulatedLapDurationMillis;
@@ -75,6 +80,7 @@ public class StopwatchLap extends Thing {
     }
 
     /** Builder for {@link StopwatchLap}. */
+    @Document.BuilderProducer
     public static final class Builder extends BuilderImpl<Builder> {
         /**
          * Constructor for {@link StopwatchLap.Builder}.
@@ -114,8 +120,7 @@ public class StopwatchLap extends Thing {
         }
 
         /** Sets the position of the current {@link StopwatchLap}, starting at 1. */
-        @NonNull
-        public T setLapNumber(int lapNumber) {
+        public @NonNull T setLapNumber(int lapNumber) {
             Preconditions.checkArgument(lapNumber >= 1, "Lap number must start at 1");
             mLapNumber = lapNumber;
             return (T) this;
@@ -124,8 +129,7 @@ public class StopwatchLap extends Thing {
         /**
          * Sets the total duration in milliseconds accumulated by the current {@link StopwatchLap}.
          */
-        @NonNull
-        public T setLapDurationMillis(long lapDurationMillis) {
+        public @NonNull T setLapDurationMillis(long lapDurationMillis) {
             mLapDurationMillis = lapDurationMillis;
             return (T) this;
         }
@@ -134,18 +138,17 @@ public class StopwatchLap extends Thing {
          * Sets the total duration in milliseconds accumulated by all the {@link StopwatchLap}
          * instances up to and including this one.
          */
-        @NonNull
-        public T setAccumulatedLapDurationMillis(long accumulatedLapDurationMillis) {
+        public @NonNull T setAccumulatedLapDurationMillis(long accumulatedLapDurationMillis) {
             mAccumulatedLapDurationMillis = accumulatedLapDurationMillis;
             return (T) this;
         }
 
         /** Builds the {@link StopwatchLap}. */
-        @NonNull
         @Override
-        public StopwatchLap build() {
+        public @NonNull StopwatchLap build() {
             return new StopwatchLap(mNamespace, mId, mDocumentScore, mCreationTimestampMillis,
                     mDocumentTtlMillis, mName, mAlternateNames, mDescription, mImage, mUrl,
+                    mPotentialActions,
                     mLapNumber, mLapDurationMillis, mAccumulatedLapDurationMillis);
         }
     }

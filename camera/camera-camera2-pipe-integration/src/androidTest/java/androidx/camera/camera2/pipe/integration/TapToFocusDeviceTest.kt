@@ -26,13 +26,14 @@ import androidx.camera.camera2.pipe.integration.adapter.CameraControlAdapter
 import androidx.camera.camera2.pipe.integration.impl.ComboRequestListener
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
 import androidx.camera.camera2.pipe.testing.VerifyResultListener
+import androidx.camera.camera2.pipe.testing.toCameraControlAdapter
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.internal.CameraUseCaseAdapter
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.CameraXUtil
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.CameraXUtil
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -58,9 +59,10 @@ import org.junit.runner.RunWith
 @SdkSuppress(minSdkVersion = 21)
 class TapToFocusDeviceTest {
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(CameraPipeConfig.defaultConfig())
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(CameraPipeConfig.defaultConfig())
+        )
 
     private lateinit var cameraSelector: CameraSelector
     private lateinit var context: Context
@@ -79,27 +81,23 @@ class TapToFocusDeviceTest {
 
         assumeTrue(
             "CONTROL_AE_MODE_ON not available on device",
-            CameraUtil.getCameraCharacteristics(CameraSelector.LENS_FACING_BACK)?.get(
-                CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES
-            )?.contains(CONTROL_AE_MODE_ON) ?: false
+            CameraUtil.getCameraCharacteristics(CameraSelector.LENS_FACING_BACK)
+                ?.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES)
+                ?.contains(CONTROL_AE_MODE_ON) ?: false
         )
 
         context = ApplicationProvider.getApplicationContext()
-        CameraXUtil.initialize(
-            context,
-            CameraPipeConfig.defaultConfig()
-        )
+        CameraXUtil.initialize(context, CameraPipeConfig.defaultConfig())
 
-        cameraSelector = CameraSelector.Builder().requireLensFacing(
-            CameraSelector.LENS_FACING_BACK
-        ).build()
+        cameraSelector =
+            CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
     }
 
     @After
     fun tearDown(): Unit = runBlocking {
         withContext(Dispatchers.Main) {
             if (::camera.isInitialized) {
-                camera.detachUseCases()
+                camera.removeUseCases(camera.useCases)
             }
         }
 
@@ -109,13 +107,9 @@ class TapToFocusDeviceTest {
     private fun bindUseCase(@ImageCapture.FlashMode flashMode: Int) {
         val imageCapture = ImageCapture.Builder().setFlashMode(flashMode).build()
 
-        camera = CameraUtil.createCameraAndAttachUseCase(
-            context,
-            cameraSelector,
-            imageCapture
-        )
+        camera = CameraUtil.createCameraAndAttachUseCase(context, cameraSelector, imageCapture)
 
-        cameraControl = camera.cameraControl as CameraControlAdapter
+        cameraControl = camera.cameraControl.toCameraControlAdapter()
 
         @OptIn(ExperimentalCamera2Interop::class)
         comboListener = cameraControl.camera2cameraControl.requestListener
@@ -137,30 +131,37 @@ class TapToFocusDeviceTest {
 
         assumeTrue(
             "Device can not start AF trigger",
-            !TimeoutCancellationException::class.java.isInstance(
-                runCatching {
-                    verifyResultListener.verify(
-                        { captureRequest, _ ->
-                            if (captureRequest[CONTROL_AF_TRIGGER] == CONTROL_AF_TRIGGER_START) {
-                                assumeThat(
-                                    "No AE mode in the CONTROL_AF_TRIGGER_START request",
-                                    captureRequest[CONTROL_AE_MODE],
-                                    CoreMatchers.notNullValue()
-                                )
+            !TimeoutCancellationException::class
+                .java
+                .isInstance(
+                    runCatching {
+                            verifyResultListener.verify(
+                                { captureRequest, _ ->
+                                    if (
+                                        captureRequest[CONTROL_AF_TRIGGER] ==
+                                            CONTROL_AF_TRIGGER_START
+                                    ) {
+                                        assumeThat(
+                                            "No AE mode in the CONTROL_AF_TRIGGER_START request",
+                                            captureRequest[CONTROL_AE_MODE],
+                                            CoreMatchers.notNullValue()
+                                        )
 
-                                Truth.assertWithMessage(
-                                    "AE mode in CONTROL_AF_TRIGGER_START request is not as expected"
-                                ).that(captureRequest[CONTROL_AE_MODE])
-                                    .isEqualTo(CONTROL_AE_MODE_ON)
+                                        Truth.assertWithMessage(
+                                                "AE mode in CONTROL_AF_TRIGGER_START request is not as expected"
+                                            )
+                                            .that(captureRequest[CONTROL_AE_MODE])
+                                            .isEqualTo(CONTROL_AE_MODE_ON)
 
-                                return@verify true
-                            }
-                            return@verify false
-                        },
-                        5000
-                    )
-                }.exceptionOrNull()
-            )
+                                        return@verify true
+                                    }
+                                    return@verify false
+                                },
+                                5000
+                            )
+                        }
+                        .exceptionOrNull()
+                )
         )
     }
 

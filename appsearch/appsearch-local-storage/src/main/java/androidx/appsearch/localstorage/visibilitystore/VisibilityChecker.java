@@ -15,13 +15,14 @@
  */
 package androidx.appsearch.localstorage.visibilitystore;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * An interface for classes that validate document visibility data.
  *
- * @hide
+ * @exportToFramework:hide
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public interface VisibilityChecker {
@@ -38,4 +39,11 @@ public interface VisibilityChecker {
             @NonNull String packageName,
             @NonNull String prefixedSchema,
             @NonNull VisibilityStore visibilityStore);
+
+    /**
+     * Checks whether the given package has access to system-surfaceable schemas.
+     *
+     * @param callerPackageName Package name of the caller.
+     */
+    boolean doesCallerHaveSystemAccess(@NonNull String callerPackageName);
 }

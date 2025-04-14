@@ -20,8 +20,13 @@ plugins {
 }
 
 dependencies {
-    implementation("com.gradle:gradle-enterprise-gradle-plugin:3.10.2")
-    implementation("com.gradle:common-custom-user-data-gradle-plugin:1.7.2")
+    implementation(project(":shared"))
+    implementation("com.gradle:develocity-gradle-plugin:3.19.1")
+    implementation("com.gradle:common-custom-user-data-gradle-plugin:2.1")
+    implementation("supportBuildSrc:private")
+    implementation("supportBuildSrc:public")
+    implementation("supportBuildSrc:plugins")
+    implementation(libs.androidGradleSettingsPlugin)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
 }
@@ -33,8 +38,8 @@ gradlePlugin {
             implementationClass = "androidx.playground.PlaygroundPlugin"
         }
         gradleEnterpriseConventions {
-            id = "playground-ge-conventions"
-            implementationClass = "androidx.playground.GradleEnterpriseConventionsPlugin"
+            id = "playground-develocity-conventions"
+            implementationClass = "androidx.playground.GradleDevelocityConventionsPlugin"
         }
     }
 }

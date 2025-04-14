@@ -23,19 +23,27 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchSchema;
+import androidx.appsearch.app.DocumentClassFactoryRegistry;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.app.Migrator;
 import androidx.appsearch.app.PackageIdentifier;
+import androidx.appsearch.app.SchemaVisibilityConfig;
 import androidx.appsearch.app.SetSchemaRequest;
+import androidx.appsearch.exceptions.AppSearchException;
+import androidx.appsearch.flags.Flags;
 import androidx.appsearch.testutil.AppSearchEmail;
+import androidx.appsearch.testutil.AppSearchTestUtils;
+import androidx.appsearch.testutil.flags.RequiresFlagsEnabled;
 import androidx.collection.ArrayMap;
 
 import com.google.common.collect.ImmutableSet;
 
+import org.jspecify.annotations.NonNull;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -46,6 +54,9 @@ import java.util.Map;
 import java.util.Set;
 
 public class SetSchemaRequestCtsTest {
+    @Rule
+    public final RuleChain mRuleChain = AppSearchTestUtils.createCommonTestRules();
+
     @Test
     public void testBuildSetSchemaRequest() {
         AppSearchSchema.StringPropertyConfig prop1 =
@@ -102,66 +113,9 @@ public class SetSchemaRequestCtsTest {
         AppSearchSchema schema3 =
                 new AppSearchSchema.Builder("type3").addProperty(requiredProp).build();
 
-        Migrator expectedMigrator1 = new Migrator() {
-            @Override
-            public boolean shouldMigrate(int currentVersion, int finalVersion) {
-                return true;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onUpgrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onDowngrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-        };
-        Migrator expectedMigrator2 = new Migrator() {
-            @Override
-            public boolean shouldMigrate(int currentVersion, int finalVersion) {
-                return true;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onUpgrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onDowngrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-        };
-        Migrator expectedMigrator3 = new Migrator() {
-            @Override
-            public boolean shouldMigrate(int currentVersion, int finalVersion) {
-                return true;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onUpgrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-
-            @NonNull
-            @Override
-            public GenericDocument onDowngrade(int currentVersion, int finalVersion,
-                    @NonNull GenericDocument document) {
-                return document;
-            }
-        };
+        Migrator expectedMigrator1 = new NoOpMigrator();
+        Migrator expectedMigrator2 = new NoOpMigrator();
+        Migrator expectedMigrator3 = new NoOpMigrator();
         Map<String, Migrator> migratorMap = new ArrayMap<>();
         migratorMap.put("type1", expectedMigrator1);
         migratorMap.put("type2", expectedMigrator2);
@@ -195,6 +149,32 @@ public class SetSchemaRequestCtsTest {
                 () -> new SetSchemaRequest.Builder().setSchemaTypeVisibilityForPackage(
                         "InvalidSchema", /*visible=*/ true, new PackageIdentifier(
                                 "com.foo.package", /*sha256Certificate=*/ new byte[]{})).build());
+        assertThat(expected).hasMessageThat().contains("referenced, but were not added");
+    }
+
+    @Test
+    public void testInvalidSchemaReferences_fromPubliclyVisible() {
+        IllegalArgumentException expected = assertThrows(IllegalArgumentException.class,
+                () -> new SetSchemaRequest.Builder().setPubliclyVisibleSchema("InvalidSchema",
+                        new PackageIdentifier("com.foo.package",
+                                /*sha256Certificate=*/ new byte[]{})).build());
+        assertThat(expected).hasMessageThat().contains("referenced, but were not added");
+    }
+
+    @Test
+    public void testInvalidSchemaReferences_fromVisibleToConfigs() {
+        byte[] sha256cert1 = new byte[32];
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("Email", sha256cert1);
+        SchemaVisibilityConfig config = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+
+        IllegalArgumentException expected = assertThrows(IllegalArgumentException.class,
+                () -> new SetSchemaRequest.Builder()
+                        .addSchemaTypeVisibleToConfig("InvalidSchema", config)
+                        .build());
         assertThat(expected).hasMessageThat().contains("referenced, but were not added");
     }
 
@@ -274,7 +254,7 @@ public class SetSchemaRequestCtsTest {
                         "Schema2", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
 
         // Clear the permissions in the builder
         setSchemaRequestBuilder.clearRequiredPermissionsForSchemaTypeVisibility("Schema1");
@@ -285,7 +265,7 @@ public class SetSchemaRequestCtsTest {
                         "Schema2", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
 
         // Old object should remain unchanged
         assertThat(request.getRequiredPermissionsForSchemaTypeVisibility())
@@ -298,7 +278,7 @@ public class SetSchemaRequestCtsTest {
                         "Schema2", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
     }
 
     @Test
@@ -373,8 +353,134 @@ public class SetSchemaRequestCtsTest {
         assertThat(request.getSchemasVisibleToPackages()).isEmpty();
     }
 
+    @Test
+    public void testPubliclyVisibleSchemaType() {
+        AppSearchSchema schema = new AppSearchSchema.Builder("Schema").build();
 
-// @exportToFramework:startStrip()
+        PackageIdentifier packageIdentifier =
+                new PackageIdentifier("com.package.foo", /*sha256Certificate=*/ new byte[]{});
+        SetSchemaRequest request =
+                new SetSchemaRequest.Builder().addSchemas(schema).setPubliclyVisibleSchema(
+                        "Schema", packageIdentifier).build();
+        assertThat(request.getPubliclyVisibleSchemas())
+                .containsExactly("Schema", packageIdentifier);
+    }
+
+    @Test
+    public void testPubliclyVisibleSchemaType_removal() {
+        AppSearchSchema schema = new AppSearchSchema.Builder("Schema").build();
+
+        PackageIdentifier packageIdentifier =
+                new PackageIdentifier("com.package.foo", /*sha256Certificate=*/ new byte[]{});
+        SetSchemaRequest request =
+                new SetSchemaRequest.Builder().addSchemas(schema).setPubliclyVisibleSchema(
+                        "Schema", packageIdentifier).build();
+        assertThat(request.getPubliclyVisibleSchemas())
+                .containsExactly("Schema", packageIdentifier);
+
+        // Removed Schema
+        request = new SetSchemaRequest.Builder().addSchemas(schema)
+                .setPubliclyVisibleSchema("Schema", packageIdentifier)
+                .setPubliclyVisibleSchema("Schema", null)
+                .build();
+        assertThat(request.getPubliclyVisibleSchemas()).isEmpty();
+    }
+
+    @Test
+    public void testPubliclyVisibleSchemaType_deduped() {
+        AppSearchSchema schema = new AppSearchSchema.Builder("Schema").build();
+
+        PackageIdentifier packageIdentifier =
+                new PackageIdentifier("com.package.foo", /*sha256Certificate=*/ new byte[]{});
+        PackageIdentifier packageIdentifier2 =
+                new PackageIdentifier("com.package.bar", /*sha256Certificate=*/ new byte[]{});
+        SetSchemaRequest request =
+                new SetSchemaRequest.Builder().addSchemas(schema).setPubliclyVisibleSchema(
+                        "Schema", packageIdentifier).build();
+        assertThat(request.getPubliclyVisibleSchemas())
+                .containsExactly("Schema", packageIdentifier);
+
+        // Deduped schema
+        request = new SetSchemaRequest.Builder().addSchemas(schema)
+                .setPubliclyVisibleSchema("Schema", packageIdentifier2)
+                .setPubliclyVisibleSchema("Schema", packageIdentifier)
+                .build();
+        assertThat(request.getPubliclyVisibleSchemas())
+                .containsExactly("Schema", packageIdentifier);
+    }
+
+    @Test
+    public void testSetSchemaTypeVisibleForConfigs() {
+        AppSearchSchema schema = new AppSearchSchema.Builder("Schema").build();
+
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("com.package.foo",
+                new byte[]{100});
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("com.package.bar",
+                new byte[]{100});
+
+        SchemaVisibilityConfig config1 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+        SchemaVisibilityConfig config2 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier2)
+                .addRequiredPermissions(ImmutableSet.of(
+                        SetSchemaRequest.READ_HOME_APP_SEARCH_DATA,
+                        SetSchemaRequest.READ_CALENDAR))
+                .build();
+
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addSchemas(schema)
+                .addSchemaTypeVisibleToConfig("Schema", config1)
+                .addSchemaTypeVisibleToConfig("Schema", config2)
+                .build();
+
+        assertThat(request.getSchemasVisibleToConfigs()).containsExactly("Schema",
+                ImmutableSet.of(config1, config2));
+    }
+
+    @Test
+    public void testClearSchemaTypeVisibleForConfigs() {
+        AppSearchSchema schema = new AppSearchSchema.Builder("Schema").build();
+
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("com.package.foo",
+                new byte[]{100});
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("com.package.bar",
+                new byte[]{100});
+
+        SchemaVisibilityConfig config1 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+        SchemaVisibilityConfig config2 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier2)
+                .addRequiredPermissions(ImmutableSet.of(
+                        SetSchemaRequest.READ_HOME_APP_SEARCH_DATA,
+                        SetSchemaRequest.READ_CALENDAR))
+                .build();
+
+        SetSchemaRequest.Builder builder = new SetSchemaRequest.Builder()
+                .addSchemas(schema)
+                .addSchemaTypeVisibleToConfig("Schema", config1)
+                .addSchemaTypeVisibleToConfig("Schema", config2);
+
+        SetSchemaRequest original = builder.build();
+        assertThat(original.getSchemasVisibleToConfigs()).containsExactly("Schema",
+                ImmutableSet.of(config1, config2));
+
+        builder.clearSchemaTypeVisibleToConfigs("Schema");
+        SetSchemaRequest rebuild = builder.build();
+
+        // rebuild has empty visible to configs
+        assertThat(rebuild.getSchemasVisibleToConfigs()).isEmpty();
+        // original keep in the same state
+        assertThat(original.getSchemasVisibleToConfigs()).containsExactly("Schema",
+                ImmutableSet.of(config1, config2));
+    }
+
+    // @exportToFramework:startStrip()
     @Document
     static class Card {
         @Document.Namespace
@@ -473,7 +579,7 @@ public class SetSchemaRequestCtsTest {
                 .addRequiredPermissionsForDocumentClassVisibility(Card.class,
                         ImmutableSet.of(SetSchemaRequest.READ_SMS, SetSchemaRequest.READ_CALENDAR))
                 .addRequiredPermissionsForDocumentClassVisibility(Card.class,
-                ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA));
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA));
         request = setSchemaRequestBuilder.build();
 
         assertThat(request.getRequiredPermissionsForSchemaTypeVisibility())
@@ -609,7 +715,7 @@ public class SetSchemaRequestCtsTest {
                         "Queen", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
 
         // Clear the permissions in the builder
         setSchemaRequestBuilder.clearRequiredPermissionsForDocumentClassVisibility(King.class);
@@ -620,7 +726,7 @@ public class SetSchemaRequestCtsTest {
                         "Queen", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
 
         // Old object should remain unchanged
         assertThat(request.getRequiredPermissionsForSchemaTypeVisibility())
@@ -633,7 +739,76 @@ public class SetSchemaRequestCtsTest {
                         "Queen", ImmutableSet.of(
                                 ImmutableSet.of(SetSchemaRequest.READ_EXTERNAL_STORAGE)
                         )
-            );
+                );
+    }
+
+    @Test
+    public void testSetDocumentClassVisibleForConfigs() throws Exception {
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("com.package.foo",
+                new byte[]{100});
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("com.package.bar",
+                new byte[]{100});
+
+        SchemaVisibilityConfig config1 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+        SchemaVisibilityConfig config2 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier2)
+                .addRequiredPermissions(ImmutableSet.of(
+                        SetSchemaRequest.READ_HOME_APP_SEARCH_DATA,
+                        SetSchemaRequest.READ_CALENDAR))
+                .build();
+
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addDocumentClasses(King.class, Queen.class)
+                .addDocumentClassVisibleToConfig(King.class, config1)
+                .addDocumentClassVisibleToConfig(King.class, config2)
+                .build();
+
+        assertThat(request.getSchemasVisibleToConfigs()).containsExactly("King",
+                ImmutableSet.of(config1, config2));
+    }
+
+    @Test
+    public void testClearDocumentClassVisibleForConfigs() throws Exception {
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("com.package.foo",
+                new byte[]{100});
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("com.package.bar",
+                new byte[]{100});
+
+        SchemaVisibilityConfig config1 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+        SchemaVisibilityConfig config2 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier2)
+                .addRequiredPermissions(ImmutableSet.of(
+                        SetSchemaRequest.READ_HOME_APP_SEARCH_DATA,
+                        SetSchemaRequest.READ_CALENDAR))
+                .build();
+
+        SetSchemaRequest.Builder builder = new SetSchemaRequest.Builder()
+                .addDocumentClasses(King.class, Queen.class)
+                .addDocumentClassVisibleToConfig(King.class, config1)
+                .addDocumentClassVisibleToConfig(King.class, config2);
+
+        SetSchemaRequest original = builder.build();
+
+        assertThat(original.getSchemasVisibleToConfigs()).containsExactly("King",
+                ImmutableSet.of(config1, config2));
+
+        // Clear the visbleToConfigs
+        builder.clearDocumentClassVisibleToConfigs(King.class);
+        SetSchemaRequest rebuild = builder.build();
+
+        // rebuild object has empty visibleToConfigs
+        assertThat(rebuild.getSchemasVisibleToConfigs()).isEmpty();
+        // original keep in same state.
+        assertThat(original.getSchemasVisibleToConfigs()).containsExactly("King",
+                ImmutableSet.of(config1, config2));
     }
 // @exportToFramework:endStrip()
 
@@ -738,6 +913,91 @@ public class SetSchemaRequestCtsTest {
     }
 
     @Test
+    public void testRebuild_visibleConfigs() {
+        byte[] sha256cert1 = new byte[32];
+        byte[] sha256cert2 = new byte[32];
+        Arrays.fill(sha256cert1, (byte) 1);
+        Arrays.fill(sha256cert2, (byte) 2);
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("Email", sha256cert1);
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("Email", sha256cert2);
+
+        SchemaVisibilityConfig config1 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier1)
+                .addRequiredPermissions(
+                        ImmutableSet.of(SetSchemaRequest.READ_HOME_APP_SEARCH_DATA))
+                .build();
+        SchemaVisibilityConfig config2 = new SchemaVisibilityConfig.Builder()
+                .addAllowedPackage(packageIdentifier2)
+                .addRequiredPermissions(ImmutableSet.of(
+                        SetSchemaRequest.READ_HOME_APP_SEARCH_DATA,
+                        SetSchemaRequest.READ_CALENDAR))
+                .build();
+
+        AppSearchSchema schema1 = new AppSearchSchema.Builder("Email1")
+                .addProperty(new AppSearchSchema.StringPropertyConfig.Builder("subject")
+                        .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+                        .setIndexingType(
+                                AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+                        .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+                        .build()
+                ).build();
+        AppSearchSchema schema2 = new AppSearchSchema.Builder("Email2")
+                .addProperty(new AppSearchSchema.StringPropertyConfig.Builder("subject")
+                        .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+                        .setIndexingType(
+                                AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+                        .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+                        .build()
+                ).build();
+
+        SetSchemaRequest.Builder builder = new SetSchemaRequest.Builder()
+                .addSchemas(schema1)
+                .addSchemaTypeVisibleToConfig("Email1", config1);
+
+        SetSchemaRequest original = builder.build();
+        SetSchemaRequest rebuild = builder
+                .addSchemas(schema2)
+                .addSchemaTypeVisibleToConfig("Email2", config2)
+                .build();
+
+        assertThat(original.getSchemas()).containsExactly(schema1);
+        assertThat(original.getSchemasVisibleToConfigs()).containsExactly(
+                "Email1", ImmutableSet.of(config1));
+
+        assertThat(rebuild.getSchemas()).containsExactly(schema1, schema2);
+        assertThat(rebuild.getSchemasVisibleToConfigs()).containsExactly(
+                "Email1", ImmutableSet.of(config1),
+                "Email2", ImmutableSet.of(config2));
+    }
+
+    @Test
+    public void testSetVisibility_publicVisibility_rebuild() {
+        byte[] sha256cert1 = new byte[32];
+        byte[] sha256cert2 = new byte[32];
+        Arrays.fill(sha256cert1, (byte) 1);
+        Arrays.fill(sha256cert2, (byte) 2);
+        PackageIdentifier packageIdentifier1 = new PackageIdentifier("Email", sha256cert1);
+        PackageIdentifier packageIdentifier2 = new PackageIdentifier("Email", sha256cert2);
+        AppSearchSchema schema1 = new AppSearchSchema.Builder("Email1").build();
+        AppSearchSchema schema2 = new AppSearchSchema.Builder("Email2").build();
+
+        SetSchemaRequest.Builder builder = new SetSchemaRequest.Builder()
+                .addSchemas(schema1).setPubliclyVisibleSchema("Email1", packageIdentifier1);
+
+        SetSchemaRequest original = builder.build();
+        SetSchemaRequest rebuild = builder.addSchemas(schema2)
+                .setPubliclyVisibleSchema("Email2", packageIdentifier2).build();
+
+        assertThat(original.getSchemas()).containsExactly(schema1);
+        assertThat(original.getPubliclyVisibleSchemas())
+                .containsExactly("Email1", packageIdentifier1);
+
+        assertThat(rebuild.getSchemas()).containsExactly(schema1, schema2);
+        assertThat(original.getPubliclyVisibleSchemas())
+                .containsExactly("Email1", packageIdentifier1);
+    }
+
+    @Test
     public void getAndModify() {
         byte[] sha256cert1 = new byte[32];
         byte[] sha256cert2 = new byte[32];
@@ -767,7 +1027,8 @@ public class SetSchemaRequestCtsTest {
                 .build();
 
         // get the visibility setting and modify the output object.
-        // skip getSchemasNotDisplayedBySystem since it returns an unmodifiable object.
+        // skip getSchemasNotDisplayedBySystem and getPubliclyVisibleSchemas since they return
+        // unmodifiable objects.
         request.getSchemasVisibleToPackages().put("Email2", ImmutableSet.of(packageIdentifier2));
         request.getRequiredPermissionsForSchemaTypeVisibility().put("Email2",
                 ImmutableSet.of(ImmutableSet.of(SetSchemaRequest.READ_CALENDAR)));
@@ -833,4 +1094,383 @@ public class SetSchemaRequestCtsTest {
         assertThat(((AppSearchSchema.StringPropertyConfig) properties.get(0)).getTokenizerType())
                 .isEqualTo(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_RFC822);
     }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+    public void testSetSchemaRequestBuilder_copyConstructor() {
+        AppSearchSchema.StringPropertyConfig prop1 =
+                new AppSearchSchema.StringPropertyConfig.Builder("prop1")
+                        .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+                        .setIndexingType(
+                                AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+                        .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+                        .build();
+        AppSearchSchema schema1 =
+                new AppSearchSchema.Builder("type1").addProperty(prop1).build();
+        AppSearchSchema schema2 =
+                new AppSearchSchema.Builder("type2").addProperty(prop1).build();
+        AppSearchSchema schema3 =
+                new AppSearchSchema.Builder("type3").addProperty(prop1).build();
+        AppSearchSchema schema4 =
+                new AppSearchSchema.Builder("type4").addProperty(prop1).build();
+
+        PackageIdentifier packageIdentifier =
+                new PackageIdentifier("com.package.foo", new byte[]{100});
+
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addSchemas(schema1, schema2)
+                .addSchemas(Arrays.asList(schema3, schema4))
+                .setSchemaTypeDisplayedBySystem("type2", /*displayed=*/ false)
+                .setSchemaTypeVisibilityForPackage("type1", /*visible=*/ true,
+                        packageIdentifier)
+                .addRequiredPermissionsForSchemaTypeVisibility("type3",
+                        Collections.singleton(SetSchemaRequest.READ_CONTACTS))
+                .setPubliclyVisibleSchema("type4", packageIdentifier)
+                .addSchemaTypeVisibleToConfig("type1", new SchemaVisibilityConfig.Builder().build())
+                .setMigrator("type2", new NoOpMigrator())
+                .setForceOverride(true)
+                .setVersion(142857)
+                .build();
+
+        SetSchemaRequest requestCopy = new SetSchemaRequest.Builder(request).build();
+        assertThat(requestCopy.getSchemas()).isEqualTo(request.getSchemas());
+        assertThat(requestCopy.getSchemasNotDisplayedBySystem()).isEqualTo(
+                request.getSchemasNotDisplayedBySystem());
+        assertThat(requestCopy.getSchemasVisibleToPackages()).isEqualTo(
+                request.getSchemasVisibleToPackages());
+        assertThat(requestCopy.getRequiredPermissionsForSchemaTypeVisibility()).isEqualTo(
+                request.getRequiredPermissionsForSchemaTypeVisibility());
+        assertThat(requestCopy.getPubliclyVisibleSchemas()).isEqualTo(
+                request.getPubliclyVisibleSchemas());
+        assertThat(requestCopy.getSchemasVisibleToConfigs()).isEqualTo(
+                request.getSchemasVisibleToConfigs());
+        assertThat(requestCopy.getMigrators()).isEqualTo(request.getMigrators());
+        assertThat(requestCopy.getVersion()).isEqualTo(request.getVersion());
+        assertThat(requestCopy.isForceOverride()).isEqualTo(request.isForceOverride());
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+    public void testSetSchemaRequestBuilder_copyConstructor_usesDeepCopies() {
+        // Previously, the copy constructor did not make deep copies of all fields, so modifying the
+        // builder could affect the request that the builder was created from
+        AppSearchSchema.StringPropertyConfig prop1 =
+                new AppSearchSchema.StringPropertyConfig.Builder("prop1")
+                        .setCardinality(AppSearchSchema.PropertyConfig.CARDINALITY_OPTIONAL)
+                        .setIndexingType(
+                                AppSearchSchema.StringPropertyConfig.INDEXING_TYPE_PREFIXES)
+                        .setTokenizerType(AppSearchSchema.StringPropertyConfig.TOKENIZER_TYPE_PLAIN)
+                        .build();
+        AppSearchSchema schema1 =
+                new AppSearchSchema.Builder("type1").addProperty(prop1).build();
+        AppSearchSchema schema2 =
+                new AppSearchSchema.Builder("type2").addProperty(prop1).build();
+        AppSearchSchema schema3 =
+                new AppSearchSchema.Builder("type3").addProperty(prop1).build();
+        AppSearchSchema schema4 =
+                new AppSearchSchema.Builder("type4").addProperty(prop1).build();
+
+        PackageIdentifier packageIdentifier =
+                new PackageIdentifier("com.package.foo", new byte[]{100});
+
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addSchemas(schema1, schema2, schema3, schema4)
+                .setSchemaTypeVisibilityForPackage("type1", /*visible=*/ true,
+                        packageIdentifier)
+                .addRequiredPermissionsForSchemaTypeVisibility("type3",
+                        Collections.singleton(SetSchemaRequest.READ_CONTACTS))
+                .addSchemaTypeVisibleToConfig("type1", new SchemaVisibilityConfig.Builder().build())
+                .build();
+
+        PackageIdentifier otherPackageIdentifier =
+                new PackageIdentifier("com.package.bar", new byte[]{100});
+
+        // Create a copy builder and modify the visibility settings
+        SetSchemaRequest.Builder unused = new SetSchemaRequest.Builder(request)
+                .setSchemaTypeVisibilityForPackage("type1", /*visible=*/ true,
+                        otherPackageIdentifier)
+                .addRequiredPermissionsForSchemaTypeVisibility("type3", Collections.singleton(
+                        SetSchemaRequest.READ_SMS))
+                .addSchemaTypeVisibleToConfig("type1",
+                        new SchemaVisibilityConfig.Builder().addAllowedPackage(
+                                otherPackageIdentifier).build());
+
+        // Validate that changing the copy builder did not affect the original request
+        assertThat(request.getSchemasVisibleToPackages()).containsExactly("type1",
+                Collections.singleton(packageIdentifier));
+        assertThat(request.getRequiredPermissionsForSchemaTypeVisibility()).containsExactly("type3",
+                Collections.singleton(Collections.singleton(SetSchemaRequest.READ_CONTACTS)));
+        assertThat(request.getSchemasVisibleToConfigs()).containsExactly("type1",
+                Collections.singleton(new SchemaVisibilityConfig.Builder().build()));
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+    public void testSetSchemaRequestBuilder_clearSchemas() {
+        AppSearchSchema schema1 = new AppSearchSchema.Builder("type1").build();
+        AppSearchSchema schema2 = new AppSearchSchema.Builder("type2").build();
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addSchemas(schema1, schema2)
+                .clearSchemas()
+                .build();
+        assertThat(request.getSchemas()).isEmpty();
+    }
+
+    @Test
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+    public void testSetSchemaRequestBuilder_clearMigrators() {
+        AppSearchSchema schema1 = new AppSearchSchema.Builder("type1").build();
+        AppSearchSchema schema2 = new AppSearchSchema.Builder("type2").build();
+        Migrator migrator = new NoOpMigrator();
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addSchemas(schema1, schema2)
+                .setMigrator("type1", migrator)
+                .setMigrator("type2", migrator)
+                .clearMigrators()
+                .build();
+        assertThat(request.getMigrators()).isEmpty();
+    }
+
+    @Test
+    public void testSetSchemaEquals() {
+        AppSearchSchema schema1 = new AppSearchSchema.Builder("type1").build();
+        Migrator migrator = new NoOpMigrator();
+        SetSchemaRequest request1 = new SetSchemaRequest.Builder()
+                .addSchemas(schema1)
+                .setMigrator("type1", migrator)
+                .setForceOverride(true)
+                .setVersion(1)
+                .build();
+        SetSchemaRequest request2 = new SetSchemaRequest.Builder()
+                .addSchemas(schema1)
+                .setMigrator("type1", migrator)
+                .setForceOverride(true)
+                .setVersion(1)
+                .build();
+        SetSchemaRequest request3 = new SetSchemaRequest.Builder()
+                .setForceOverride(true)
+                .setVersion(1)
+                .build();
+        // All parameters same.
+        assertThat(request1).isEqualTo(request2);
+        assertThat(request1.hashCode()).isEqualTo(request2.hashCode());
+        // Migrator not set.
+        assertThat(request1).isNotEqualTo(request3);
+        assertThat(request1.hashCode()).isNotEqualTo(request3.hashCode());
+    }
+
+    /** Migrator that does nothing. */
+    private static class NoOpMigrator extends Migrator {
+        @Override
+        public boolean shouldMigrate(int currentVersion, int finalVersion) {
+            return false;
+        }
+
+        @NonNull
+        @Override
+        public GenericDocument onUpgrade(int currentVersion, int finalVersion,
+                @NonNull GenericDocument document) {
+            return document;
+        }
+
+        @NonNull
+        @Override
+        public GenericDocument onDowngrade(int currentVersion, int finalVersion,
+                @NonNull GenericDocument document) {
+            return document;
+        }
+    }
+
+    // @exportToFramework:startStrip()
+    @Document
+    static class Outer {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.DocumentProperty Middle mMiddle;
+    }
+
+    @Document
+    static class Middle {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.DocumentProperty Inner mInner;
+    }
+
+    @Document
+    static class Inner {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.StringProperty String mContents;
+    }
+
+    @Test
+    public void testNestedSchemas() throws AppSearchException {
+        SetSchemaRequest request = new SetSchemaRequest.Builder().addDocumentClasses(Outer.class)
+                .setForceOverride(true).build();
+        DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+
+        Set<AppSearchSchema> schemas = request.getSchemas();
+        assertThat(schemas).hasSize(3);
+        assertThat(schemas).contains(registry.getOrCreateFactory(Outer.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(Middle.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(Inner.class).getSchema());
+    }
+
+    @Document
+    static class Parent {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.DocumentProperty Person mPerson;
+        @Document.DocumentProperty Organization mOrganization;
+    }
+
+    @Document
+    static class Person {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.DocumentProperty Common mCommon;
+    }
+
+    @Document
+    static class Organization {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.DocumentProperty Common mCommon;
+    }
+
+    @Document
+    static class Common {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.StringProperty String mContents;
+    }
+
+
+    @Test
+    public void testNestedSchemasMultiplePaths() throws AppSearchException {
+        SetSchemaRequest request = new SetSchemaRequest.Builder().addDocumentClasses(Parent.class)
+                .setForceOverride(true).build();
+        DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+
+        Set<AppSearchSchema> schemas = request.getSchemas();
+        assertThat(schemas).hasSize(4);
+        assertThat(schemas).contains(registry.getOrCreateFactory(Common.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(Organization.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(Person.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(Parent.class).getSchema());
+    }
+
+    @Document
+    static class ArtType {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.StringProperty String mType;
+    }
+
+    @Document(name = "Artist", parent = {Person.class})
+    static class Artist extends Person {
+        @Document.StringProperty String mCompany;
+        @Document.DocumentProperty ArtType mArtType;
+    }
+
+    @Test
+    public void testSchemaPolymorphism() throws AppSearchException {
+        SetSchemaRequest request = new SetSchemaRequest.Builder().addDocumentClasses(Artist.class)
+                .setForceOverride(true).build();
+        DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+
+        Set<AppSearchSchema> schemas = request.getSchemas();
+        // Artist's dependencies should be automatically added.
+        assertThat(schemas).containsExactly(
+                registry.getOrCreateFactory(Common.class).getSchema(),
+                registry.getOrCreateFactory(Person.class).getSchema(),
+                registry.getOrCreateFactory(ArtType.class).getSchema(),
+                registry.getOrCreateFactory(Artist.class).getSchema()
+        );
+    }
+
+    @Document
+    static class Thing {
+        @Document.Id String mId;
+        @Document.Namespace String mNamespace;
+        @Document.StringProperty String mHash;
+    }
+
+    @Document(name = "Email", parent = Thing.class)
+    static class Email extends Thing {
+        @Document.StringProperty String mSender;
+    }
+
+    @Document(name = "Message", parent = Thing.class)
+    static class Message extends Thing {
+        @Document.StringProperty String mContent;
+    }
+
+    // EmailMessage can choose any class to "extends" from, since Java's type relationship is
+    // independent on AppSearch's. In this case, EmailMessage extends Thing to avoid redefining
+    // mId, mNamespace and mHash, but it still needs to specify mSender and mContent coming from
+    // Email and Message.
+    @Document(name = "EmailMessage", parent = {Email.class, Message.class})
+    static class EmailMessage extends Thing {
+        @Document.StringProperty String mSender;
+        @Document.StringProperty String mContent;
+    }
+
+    @Test
+    public void testSchemaDiamondPolymorphism() throws AppSearchException {
+        SetSchemaRequest request = new SetSchemaRequest.Builder().addDocumentClasses(
+                        EmailMessage.class)
+                .setForceOverride(true).build();
+        DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+
+        Set<AppSearchSchema> schemas = request.getSchemas();
+        // EmailMessage's dependencies should be automatically added.
+        assertThat(schemas).containsExactly(
+                registry.getOrCreateFactory(Thing.class).getSchema(),
+                registry.getOrCreateFactory(Email.class).getSchema(),
+                registry.getOrCreateFactory(Message.class).getSchema(),
+                registry.getOrCreateFactory(EmailMessage.class).getSchema()
+        );
+    }
+
+    @Document
+    static class ClassA {
+        @Document.Id
+        String mId;
+
+        @Document.Namespace
+        String mNamespace;
+
+        @Document.DocumentProperty
+        ClassB mClassB;
+    }
+
+    @Document
+    static class ClassB {
+        @Document.Id
+        String mId;
+
+        @Document.Namespace
+        String mNamespace;
+
+        @Document.DocumentProperty
+        ClassA mClassA;
+    }
+
+    @Test
+    public void testNestedSchemasCyclicalReference() throws AppSearchException {
+        SetSchemaRequest request = new SetSchemaRequest.Builder()
+                .addDocumentClasses(ClassA.class, ClassB.class)
+                .setForceOverride(true)
+                .build();
+
+        DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
+
+        Set<AppSearchSchema> schemas = request.getSchemas();
+        assertThat(schemas).hasSize(2);
+        assertThat(schemas).contains(registry.getOrCreateFactory(ClassA.class).getSchema());
+        assertThat(schemas).contains(registry.getOrCreateFactory(ClassB.class).getSchema());
+    }
+
+// @exportToFramework:endStrip()
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Android Open Source Project
+ * Copyright 2021 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,15 +20,16 @@ import android.content.res.Resources;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.drawable.Drawable;
 
-import androidx.annotation.NonNull;
 import androidx.wear.protolayout.proto.ResourceProto.AndroidImageResourceByResId;
 import androidx.wear.protolayout.renderer.inflater.ResourceResolvers.AndroidImageResourceByResIdResolver;
 import androidx.wear.protolayout.renderer.inflater.ResourceResolvers.ResourceAccessException;
 
+import org.jspecify.annotations.NonNull;
+
 /** Resource resolver for Android resources. */
 public class DefaultAndroidImageResourceByResIdResolver
         implements AndroidImageResourceByResIdResolver {
-    @NonNull private final Resources mAndroidResources;
+    private final @NonNull Resources mAndroidResources;
 
     /**
      * Constructor.
@@ -40,9 +41,8 @@ public class DefaultAndroidImageResourceByResIdResolver
         this.mAndroidResources = androidResources;
     }
 
-    @NonNull
     @Override
-    public Drawable getDrawableOrThrow(@NonNull AndroidImageResourceByResId resource)
+    public @NonNull Drawable getDrawableOrThrow(@NonNull AndroidImageResourceByResId resource)
             throws ResourceAccessException {
         try {
             return mAndroidResources.getDrawable(resource.getResourceId(), /* theme= */ null);

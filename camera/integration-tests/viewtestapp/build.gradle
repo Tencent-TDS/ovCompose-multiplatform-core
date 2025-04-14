@@ -1,3 +1,5 @@
+import androidx.build.ApkCopyHelperKt
+
 /*
  * Copyright (C) 2019 The Android Open Source Project
  *
@@ -14,22 +16,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("AndroidXComposePlugin")
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
-        applicationId "androidx.camera.integration.view"
-        minSdkVersion 21
-        versionCode 1
-        multiDexEnabled true
+        applicationId = "androidx.camera.integration.view"
     }
 
     sourceSets {
@@ -42,20 +39,18 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro")
         }
     }
 
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-    namespace "androidx.camera.integration.view"
+    namespace = "androidx.camera.integration.view"
 }
 
 dependencies {
+    api(libs.jspecify)
     // Internal library
     implementation(project(":camera:camera-camera2"))
     implementation(project(":camera:camera-camera2-pipe-integration"))
@@ -64,8 +59,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime:2.3.1")
     implementation(project(":camera:camera-view"))
     implementation(project(":camera:camera-video"))
+    implementation(project(":camera:camera-effects"))
+    implementation(project(":camera:media3:media3-effect"))
     implementation(libs.guavaAndroid)
-    implementation('com.google.mlkit:barcode-scanning:17.0.2')
+    implementation("com.google.mlkit:barcode-scanning:17.0.2")
     implementation("androidx.exifinterface:exifinterface:1.3.2")
     implementation(libs.mlkitBarcode)
     // old version of common-java8 conflicts with newer version, because both have
@@ -73,7 +70,7 @@ dependencies {
     // Outside of androidx this is resolved via constraint added to lifecycle-common,
     // but it doesn't work in androidx.
     implementation("androidx.lifecycle:lifecycle-common-java8:2.5.1")
-    compileOnly(libs.kotlinCompiler)
+    api(libs.constraintLayout)
 
     // Lifecycle and LiveData
     implementation("androidx.lifecycle:lifecycle-livedata:2.2.0")
@@ -82,11 +79,15 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.3.0")
 
     // Compose UI
-    implementation(project(":compose:runtime:runtime"))
-    implementation("androidx.compose.ui:ui:1.0.5")
-    implementation("androidx.compose.material:material:1.0.5")
-    implementation("androidx.compose.ui:ui-tooling:1.0.5")
-    implementation("androidx.activity:activity-compose:1.3.1")
+    implementation("androidx.compose.runtime:runtime:1.4.0")
+    implementation("androidx.compose.material:material:1.4.0")
+    implementation("androidx.compose.ui:ui:1.4.0")
+    implementation("androidx.compose.foundation:foundation:1.4.0")
+    implementation(libs.media3Common)
+    implementation(libs.media3Effect)
+
+    // Align dependencies in debugRuntimeClasspath and debugAndroidTestRuntimeClasspath.
+    androidTestImplementation("androidx.annotation:annotation-experimental:1.4.1")
 
     // Testing framework
     androidTestImplementation(libs.testExtJunit)
@@ -99,9 +100,16 @@ dependencies {
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime:2.3.1")
     androidTestImplementation("androidx.lifecycle:lifecycle-livedata-ktx:2.2.0")
     androidTestImplementation(project(":concurrent:concurrent-futures"))
+    androidTestImplementation(project(":concurrent:concurrent-futures-ktx"))
     androidTestImplementation(libs.truth)
     debugImplementation(libs.testCore)
     debugImplementation("androidx.fragment:fragment-testing:1.2.3")
     // camera-testing added as 'implementation' dependency to include camera-testing activity in APK
-    debugImplementation(project(":camera:camera-testing"))
+    implementation(project(":camera:camera-testing")) {
+        // Ensure camera-testing does not pull in androidx.test dependencies
+        exclude(group:"androidx.test")
+    }
 }
+
+// Publish the APK to dist/apk for testing.
+ApkCopyHelperKt.setupAppApkCopy(project, "release")

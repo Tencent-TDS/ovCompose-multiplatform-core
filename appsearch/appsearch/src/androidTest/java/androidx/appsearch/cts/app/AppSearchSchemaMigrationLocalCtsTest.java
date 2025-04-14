@@ -18,16 +18,15 @@ package androidx.appsearch.cts.app;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.appsearch.app.AppSearchSession;
 import androidx.appsearch.localstorage.LocalStorage;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.filters.FlakyTest;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
-@FlakyTest(bugId = 242761389)
-public class AppSearchSchemaMigrationLocalCtsTest extends AppSearchSchemaMigrationCtsTestBase{
+import org.jspecify.annotations.NonNull;
+
+public class AppSearchSchemaMigrationLocalCtsTest extends AppSearchSchemaMigrationCtsTestBase {
     @Override
     protected ListenableFuture<AppSearchSession> createSearchSessionAsync(@NonNull String dbName) {
         Context context = ApplicationProvider.getApplicationContext();

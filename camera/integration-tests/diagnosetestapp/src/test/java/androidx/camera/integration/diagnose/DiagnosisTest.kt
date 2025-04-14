@@ -20,9 +20,10 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
-import androidx.camera.testing.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.camera.view.LifecycleCameraController
 import androidx.test.core.app.ApplicationProvider
+import com.google.common.truth.Truth.assertThat
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -31,7 +32,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import com.google.common.truth.Truth.assertThat
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -55,9 +55,7 @@ class DiagnosisTest {
     fun diagnoseAndIsAggregated_returnsOneTextFileOneJEPG() {
         // Act: running aggregated diagnose on taskList
         val file: File?
-        runBlocking {
-            file = Diagnosis().diagnose(context, taskList, cameraController, true)
-        }
+        runBlocking { file = Diagnosis().diagnose(context, taskList, cameraController, true) }
 
         // Assert: file exits with correct contents
         if (file != null) {
@@ -78,9 +76,11 @@ class DiagnosisTest {
                     val textRead = readText(br)
 
                     assertThat(it.name).isEqualTo(AGGREGATED_TEXT_FILENAME)
-                    assertThat(textRead).isEqualTo(FAKE_TEXT_SAVING_TASK_STRING +
-                        FAKE_TEXT_AND_IMAGE_SAVING_TASK_STRING)
-                    correctTextFileCount ++
+                    assertThat(textRead)
+                        .isEqualTo(
+                            FAKE_TEXT_SAVING_TASK_STRING + FAKE_TEXT_AND_IMAGE_SAVING_TASK_STRING
+                        )
+                    correctTextFileCount++
                 } else if (it.name.endsWith(".jpeg")) {
                     assertThat(it.name).isEqualTo(FAKE_IMAGE_NAME)
                     val bitmap = BitmapFactory.decodeStream(inputStream)
@@ -100,9 +100,7 @@ class DiagnosisTest {
     fun diagnoseAndIsNotAggregated_returnsTwoTextFileOneJPEG() {
         // Act: running non-aggregated diagnose on taskList
         val file: File?
-        runBlocking {
-            file = Diagnosis().diagnose(context, taskList, cameraController, false)
-        }
+        runBlocking { file = Diagnosis().diagnose(context, taskList, cameraController, false) }
 
         // Assert: file exits with correct contents
         if (file != null) {

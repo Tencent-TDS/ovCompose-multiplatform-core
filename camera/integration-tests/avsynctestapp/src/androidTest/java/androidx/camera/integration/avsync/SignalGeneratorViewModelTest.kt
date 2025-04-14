@@ -35,9 +35,11 @@ package androidx.camera.integration.avsync
 import android.content.Context
 import android.os.Build
 import androidx.camera.camera2.Camera2Config
-import androidx.camera.testing.CameraUtil
-import androidx.camera.testing.CameraXUtil
-import androidx.camera.testing.fakes.FakeLifecycleOwner
+import androidx.camera.core.CameraSelector
+import androidx.camera.integration.avsync.model.CameraHelper.Companion.CameraImplementation
+import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.CameraXUtil
+import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
@@ -65,26 +67,29 @@ class SignalGeneratorViewModelTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
     private lateinit var viewModel: SignalGeneratorViewModel
     private lateinit var lifecycleOwner: FakeLifecycleOwner
-    private val fakeViewModelStoreOwner = object : ViewModelStoreOwner {
-        private val vmStore = ViewModelStore()
+    private val fakeViewModelStoreOwner =
+        object : ViewModelStoreOwner {
+            private val vmStore = ViewModelStore()
 
-        override val viewModelStore = vmStore
+            override val viewModelStore = vmStore
 
-        fun clear() {
-            vmStore.clear()
+            fun clear() {
+                vmStore.clear()
+            }
         }
-    }
 
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(Camera2Config.defaultConfig())
+        )
 
     @get:Rule
-    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule.grant(
-        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        android.Manifest.permission.RECORD_AUDIO
-    )
+    val grantPermissionRule: GrantPermissionRule =
+        GrantPermissionRule.grant(
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            android.Manifest.permission.RECORD_AUDIO
+        )
 
     @Before
     fun setUp(): Unit = runBlocking {
@@ -121,7 +126,9 @@ class SignalGeneratorViewModelTest {
 
     @Test
     fun initialRecorder_canMakeRecorderReady(): Unit = runBlocking {
-        viewModel.initialRecorder(context, lifecycleOwner)
+        Assume.assumeTrue(CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_FRONT))
+
+        viewModel.initialRecorder(context, lifecycleOwner, CameraImplementation.CAMERA2)
 
         assertThat(viewModel.isRecorderReady).isTrue()
     }
@@ -167,8 +174,10 @@ class SignalGeneratorViewModelTest {
 
     @Test
     fun startAndStopRecording_canWorkCorrectlyAfterRecorderReady(): Unit = runBlocking {
+        Assume.assumeTrue(CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_FRONT))
+
         // Arrange.
-        viewModel.initialRecorder(context, lifecycleOwner)
+        viewModel.initialRecorder(context, lifecycleOwner, CameraImplementation.CAMERA2)
 
         assertThat(viewModel.isRecorderReady).isTrue()
 

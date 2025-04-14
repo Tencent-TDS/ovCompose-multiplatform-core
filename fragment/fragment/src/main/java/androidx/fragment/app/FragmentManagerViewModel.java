@@ -18,11 +18,12 @@ package androidx.fragment.app;
 
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,17 +39,15 @@ final class FragmentManagerViewModel extends ViewModel {
     private static final String TAG = FragmentManager.TAG;
 
     private static final ViewModelProvider.Factory FACTORY = new ViewModelProvider.Factory() {
-        @NonNull
         @Override
         @SuppressWarnings("unchecked")
-        public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+        public <T extends ViewModel> @NonNull T create(@NonNull Class<T> modelClass) {
             FragmentManagerViewModel viewModel = new FragmentManagerViewModel(true);
             return (T) viewModel;
         }
     };
 
-    @NonNull
-    static FragmentManagerViewModel getInstance(ViewModelStore viewModelStore) {
+    static @NonNull FragmentManagerViewModel getInstance(ViewModelStore viewModelStore) {
         ViewModelProvider viewModelProvider = new ViewModelProvider(viewModelStore,
                 FACTORY);
         return viewModelProvider.get(FragmentManagerViewModel.class);
@@ -124,13 +123,11 @@ final class FragmentManagerViewModel extends ViewModel {
         }
     }
 
-    @Nullable
-    Fragment findRetainedFragmentByWho(String who) {
+    @Nullable Fragment findRetainedFragmentByWho(String who) {
         return mRetainedFragments.get(who);
     }
 
-    @NonNull
-    Collection<Fragment> getRetainedFragments() {
+    @NonNull Collection<Fragment> getRetainedFragments() {
         return new ArrayList<>(mRetainedFragments.values());
     }
 
@@ -163,8 +160,7 @@ final class FragmentManagerViewModel extends ViewModel {
         }
     }
 
-    @NonNull
-    FragmentManagerViewModel getChildNonConfig(@NonNull Fragment f) {
+    @NonNull FragmentManagerViewModel getChildNonConfig(@NonNull Fragment f) {
         FragmentManagerViewModel childNonConfig = mChildNonConfigs.get(f.mWho);
         if (childNonConfig == null) {
             childNonConfig = new FragmentManagerViewModel(mStateAutomaticallySaved);
@@ -173,8 +169,7 @@ final class FragmentManagerViewModel extends ViewModel {
         return childNonConfig;
     }
 
-    @NonNull
-    ViewModelStore getViewModelStore(@NonNull Fragment f) {
+    @NonNull ViewModelStore getViewModelStore(@NonNull Fragment f) {
         ViewModelStore viewModelStore = mViewModelStores.get(f.mWho);
         if (viewModelStore == null) {
             viewModelStore = new ViewModelStore();
@@ -183,24 +178,32 @@ final class FragmentManagerViewModel extends ViewModel {
         return viewModelStore;
     }
 
-    void clearNonConfigState(@NonNull Fragment f) {
+    void clearNonConfigState(@NonNull Fragment f, boolean destroyChildNonConfig) {
         if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
             Log.d(TAG, "Clearing non-config state for " + f);
         }
-        clearNonConfigStateInternal(f.mWho);
+        clearNonConfigStateInternal(f.mWho, destroyChildNonConfig);
     }
 
-    void clearNonConfigState(@NonNull String who) {
+    void clearNonConfigState(@NonNull String who, boolean destroyChildNonConfig) {
         if (FragmentManager.isLoggingEnabled(Log.DEBUG)) {
             Log.d(TAG, "Clearing non-config state for saved state of Fragment " + who);
         }
-        clearNonConfigStateInternal(who);
+        clearNonConfigStateInternal(who, destroyChildNonConfig);
     }
 
-    private void clearNonConfigStateInternal(@NonNull String who) {
+    private void clearNonConfigStateInternal(@NonNull String who, boolean destroyChildNonConfig) {
         // Clear and remove the Fragment's child non config state
         FragmentManagerViewModel childNonConfig = mChildNonConfigs.get(who);
         if (childNonConfig != null) {
+            // destroy child nonConfig immediately if it hasn't gone through init
+            if (destroyChildNonConfig) {
+                ArrayList<String> clearList = new ArrayList<>();
+                clearList.addAll(childNonConfig.mChildNonConfigs.keySet());
+                for (String childWho : clearList) {
+                    childNonConfig.clearNonConfigState(childWho, true);
+                }
+            }
             childNonConfig.onCleared();
             mChildNonConfigs.remove(who);
         }
@@ -255,8 +258,7 @@ final class FragmentManagerViewModel extends ViewModel {
      * code, alongside {@link FragmentController#retainNestedNonConfig()}.
      */
     @Deprecated
-    @Nullable
-    FragmentManagerNonConfig getSnapshot() {
+    @Nullable FragmentManagerNonConfig getSnapshot() {
         if (mRetainedFragments.isEmpty() && mChildNonConfigs.isEmpty()
                 && mViewModelStores.isEmpty()) {
             return null;
@@ -300,9 +302,8 @@ final class FragmentManagerViewModel extends ViewModel {
         return result;
     }
 
-    @NonNull
     @Override
-    public String toString() {
+    public @NonNull String toString() {
         StringBuilder sb = new StringBuilder("FragmentManagerViewModel{");
         sb.append(Integer.toHexString(System.identityHashCode(this)));
         sb.append("} Fragments (");

@@ -20,12 +20,12 @@ import androidx.paging.PagingSource.LoadParams
 import androidx.paging.PagingSource.LoadResult.Page
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 
 @RunWith(JUnit4::class)
 class ListenableFuturePagingSourceTest {
@@ -40,27 +40,31 @@ class ListenableFuturePagingSourceTest {
         )
     }
 
-    private val pagingSource = object : PagingSource<Int, Int>() {
-        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Int> {
-            return loadInternal(params)
-        }
-
-        override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
-    }
-
-    private val listenableFuturePagingSource = object : ListenableFuturePagingSource<Int, Int>() {
-        override fun loadFuture(params: LoadParams<Int>): ListenableFuture<LoadResult<Int, Int>> {
-            val future = SettableFuture.create<LoadResult<Int, Int>>()
-            try {
-                future.set(loadInternal(params))
-            } catch (e: IllegalArgumentException) {
-                future.setException(e)
+    private val pagingSource =
+        object : PagingSource<Int, Int>() {
+            override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Int> {
+                return loadInternal(params)
             }
-            return future
+
+            override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
         }
 
-        override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
-    }
+    private val listenableFuturePagingSource =
+        object : ListenableFuturePagingSource<Int, Int>() {
+            override fun loadFuture(
+                params: LoadParams<Int>
+            ): ListenableFuture<LoadResult<Int, Int>> {
+                val future = SettableFuture.create<LoadResult<Int, Int>>()
+                try {
+                    future.set(loadInternal(params))
+                } catch (e: IllegalArgumentException) {
+                    future.setException(e)
+                }
+                return future
+            }
+
+            override fun getRefreshKey(state: PagingState<Int, Int>): Int? = null
+        }
 
     @Test
     fun basic() = runBlocking {

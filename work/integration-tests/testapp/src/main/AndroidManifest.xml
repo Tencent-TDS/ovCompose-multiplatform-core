@@ -17,6 +17,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+
     <application
         android:name=".TestApplication"
         android:allowBackup="true"
@@ -47,6 +52,11 @@
             tools:node="remove" />
 
         <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync|location"
+            tools:node="merge" />
+
+        <service
             android:name="androidx.work.multiprocess.RemoteWorkerService"
             android:exported="false"
             android:process=":worker1"
@@ -63,6 +73,15 @@
             android:exported="false"
             android:process=":remote"
             tools:ignore="MissingServiceExportedEqualsTrue" />
+        <receiver
+            android:name=".DirectBootReceiver"
+            android:directBootAware="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
+
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 </manifest>

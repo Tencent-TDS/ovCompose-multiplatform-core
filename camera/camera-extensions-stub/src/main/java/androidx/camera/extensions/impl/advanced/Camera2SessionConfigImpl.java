@@ -16,8 +16,11 @@
 
 package androidx.camera.extensions.impl.advanced;
 
-import android.annotation.SuppressLint;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.ColorSpaceProfiles;
+import android.hardware.camera2.params.SessionConfiguration;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 import java.util.Map;
@@ -27,22 +30,46 @@ import java.util.Map;
  *
  * @since 1.2
  */
-@SuppressLint("UnknownNullness")
 public interface Camera2SessionConfigImpl {
     /**
      * Returns all the {@link Camera2OutputConfigImpl}s that will be used to create
      * {@link android.hardware.camera2.params.OutputConfiguration}.
      */
-    List<Camera2OutputConfigImpl> getOutputConfigs();
+    @NonNull List<Camera2OutputConfigImpl> getOutputConfigs();
 
     /**
      * Gets all the parameters to create the session parameters with.
      */
-    Map<CaptureRequest.Key<?>, Object> getSessionParameters();
+    @NonNull Map<CaptureRequest.Key<?>, Object> getSessionParameters();
 
     /**
      * Gets the template id used for creating {@link CaptureRequest}s to be passed in
      * {@link android.hardware.camera2.params.SessionConfiguration#setSessionParameters}.
      */
     int getSessionTemplateId();
+
+
+    /**
+     * Retrieves the session type to be used when initializing the
+     * {@link android.hardware.camera2.CameraCaptureSession}.
+     *
+     * @return Camera capture session type. Regular and vendor specific types are supported but
+     * not high speed values. The extension can return -1 in which case the camera capture session
+     * will be configured to use the default regular type.
+     *
+     * @since 1.4
+     */
+    default int getSessionType() {
+        return SessionConfiguration.SESSION_REGULAR;
+    }
+
+    /**
+     * Gets the color space.
+     *
+     * @since 1.5
+     * @return {@link android.graphics.ColorSpace.Named} set for session configuration
+     */
+    default int getColorSpace() {
+        return ColorSpaceProfiles.UNSPECIFIED;
+    }
 }

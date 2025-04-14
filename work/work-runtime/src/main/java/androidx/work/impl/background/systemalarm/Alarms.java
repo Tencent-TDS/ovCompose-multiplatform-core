@@ -26,9 +26,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.work.Logger;
 import androidx.work.impl.WorkDatabase;
@@ -37,6 +34,8 @@ import androidx.work.impl.model.SystemIdInfoDao;
 import androidx.work.impl.model.WorkGenerationalId;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.utils.IdGenerator;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A common class for managing Alarms.
@@ -128,27 +127,10 @@ class Alarms {
         Intent delayMet = CommandHandler.createDelayMetIntent(context, id);
         PendingIntent pendingIntent = PendingIntent.getService(context, alarmId, delayMet, flags);
         if (alarmManager != null) {
-            if (Build.VERSION.SDK_INT >= 19) {
-                Api19Impl.setExact(alarmManager, RTC_WAKEUP, triggerAtMillis, pendingIntent);
-            } else {
-                alarmManager.set(RTC_WAKEUP, triggerAtMillis, pendingIntent);
-            }
+            alarmManager.setExact(RTC_WAKEUP, triggerAtMillis, pendingIntent);
         }
     }
 
     private Alarms() {
-    }
-
-    @RequiresApi(19)
-    static class Api19Impl {
-        private Api19Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static void setExact(AlarmManager alarmManager, int type, long triggerAtMillis,
-                PendingIntent operation) {
-            alarmManager.setExact(type, triggerAtMillis, operation);
-        }
     }
 }

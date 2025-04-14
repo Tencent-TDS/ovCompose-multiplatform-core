@@ -15,12 +15,8 @@
  */
 package androidx.core.util;
 
-import android.os.Build;
-
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -51,11 +47,7 @@ public class ObjectsCompat {
      */
     @SuppressWarnings("EqualsReplaceableByObjectsCall")
     public static boolean equals(@Nullable Object a, @Nullable Object b) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return Api19Impl.equals(a, b);
-        } else {
-            return (a == b) || (a != null && a.equals(b));
-        }
+        return Objects.equals(a, b);
     }
 
     /**
@@ -92,12 +84,8 @@ public class ObjectsCompat {
      * @return a hash value of the sequence of input values
      * @see Arrays#hashCode(Object[])
      */
-    public static int hash(@Nullable Object... values) {
-        if (Build.VERSION.SDK_INT >= 19) {
-            return Api19Impl.hash(values);
-        } else {
-            return Arrays.hashCode(values);
-        }
+    public static int hash(Object @Nullable ... values) {
+        return Objects.hash(values);
     }
 
     /**
@@ -109,8 +97,7 @@ public class ObjectsCompat {
      * @return the result of calling {@code toString} on the first argument if it is not {@code
      * null} and the second argument otherwise.
      */
-    @Nullable
-    public static String toString(@Nullable Object o, @Nullable String nullDefault) {
+    public static @Nullable String toString(@Nullable Object o, @Nullable String nullDefault) {
         return (o != null) ? o.toString() : nullDefault;
     }
 
@@ -129,8 +116,7 @@ public class ObjectsCompat {
      * @return {@code obj} if not {@code null}
      * @throws NullPointerException if {@code obj} is {@code null}
      */
-    @NonNull
-    public static <T> T requireNonNull(@Nullable T obj) {
+    public static <T> @NonNull T requireNonNull(@Nullable T obj) {
         if (obj == null) throw new NullPointerException();
         return obj;
     }
@@ -154,26 +140,8 @@ public class ObjectsCompat {
      * @return {@code obj} if not {@code null}
      * @throws NullPointerException if {@code obj} is {@code null}
      */
-    @NonNull
-    public static <T> T requireNonNull(@Nullable T obj, @NonNull String message) {
+    public static <T> @NonNull T requireNonNull(@Nullable T obj, @NonNull String message) {
         if (obj == null) throw new NullPointerException(message);
         return obj;
-    }
-
-    @RequiresApi(19)
-    static class Api19Impl {
-        private Api19Impl() {
-            // This class is not instantiable.
-        }
-
-        @DoNotInline
-        static boolean equals(Object a, Object b) {
-            return Objects.equals(a, b);
-        }
-
-        @DoNotInline
-        static int hash(Object... values) {
-            return Objects.hash(values);
-        }
     }
 }

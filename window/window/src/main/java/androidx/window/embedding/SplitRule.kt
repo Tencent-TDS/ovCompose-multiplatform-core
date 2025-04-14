@@ -20,34 +20,31 @@ import android.content.Context
 import android.graphics.Rect
 import android.os.Build
 import android.view.WindowMetrics
-import androidx.annotation.DoNotInline
 import androidx.annotation.IntRange
-import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
-import androidx.core.os.BuildCompat
 import androidx.core.util.Preconditions
 import androidx.window.embedding.EmbeddingAspectRatio.Companion.ALWAYS_ALLOW
 import androidx.window.embedding.EmbeddingAspectRatio.Companion.ratio
 import androidx.window.embedding.SplitRule.Companion.SPLIT_MAX_ASPECT_RATIO_LANDSCAPE_DEFAULT
 import androidx.window.embedding.SplitRule.Companion.SPLIT_MAX_ASPECT_RATIO_PORTRAIT_DEFAULT
+import androidx.window.embedding.SplitRule.Companion.SPLIT_MIN_DIMENSION_ALWAYS_ALLOW
 import androidx.window.embedding.SplitRule.Companion.SPLIT_MIN_DIMENSION_DP_DEFAULT
 import androidx.window.embedding.SplitRule.FinishBehavior.Companion.ADJACENT
 import kotlin.math.min
 
 /**
- * Split configuration rules for activities that are launched to side in a split.
- * Define the visual properties of the split. Can be set either via [RuleController.setRules] or
- * via [RuleController.addRule]. The rules are always applied only to activities that will be
- * started after the rules were set.
+ * Split configuration rules for activities that are launched to side in a split. Define the visual
+ * properties of the split. Can be set either via [RuleController.setRules] or via
+ * [RuleController.addRule]. The rules are always applied only to activities that will be started
+ * after the rules were set.
  *
  * Note that regardless of whether the minimal requirements ([minWidthDp], [minHeightDp] and
  * [minSmallestWidthDp]) are met or not, the callback set in
  * [SplitController.setSplitAttributesCalculator] will still be called for the rule if the
- * calculator is registered via [SplitController.setSplitAttributesCalculator].
- * Whether this [SplitRule]'s minimum requirements are satisfied is dispatched in
- * [SplitAttributesCalculatorParams.areDefaultConstraintsSatisfied] instead.
- * The width and height could be verified in the [SplitAttributes] calculator callback
- * as the sample linked below shows.
+ * calculator is registered via [SplitController.setSplitAttributesCalculator]. Whether this
+ * [SplitRule]'s minimum requirements are satisfied is dispatched in
+ * [SplitAttributesCalculatorParams.areDefaultConstraintsSatisfied] instead. The width and height
+ * could be verified in the [SplitAttributes] calculator callback as the sample linked below shows.
  *
  * It is useful if this [SplitRule] is supported to split the parent container in different
  * directions with different device states.
@@ -56,7 +53,8 @@ import kotlin.math.min
  * @see androidx.window.embedding.SplitPairRule
  * @see androidx.window.embedding.SplitPlaceholderRule
  */
-open class SplitRule internal constructor(
+open class SplitRule
+internal constructor(
     tag: String? = null,
     /**
      * The smallest value of width of the parent task window when the split should be used, in DP.
@@ -66,14 +64,13 @@ open class SplitRule internal constructor(
      * The default is [SPLIT_MIN_DIMENSION_DP_DEFAULT] if the app doesn't set.
      * [SPLIT_MIN_DIMENSION_ALWAYS_ALLOW] means to always allow split.
      */
-    @IntRange(from = 0)
-    val minWidthDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
+    @IntRange(from = 0) val minWidthDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
 
     /**
      * The smallest value of height of the parent task window when the split should be used, in DP.
      * When the window size is smaller than requested here, activities in the secondary container
-     * will be stacked on top of the activities in the primary one, completely overlapping them.
-     * It is useful if it's necessary to split the parent window horizontally for this [SplitRule].
+     * will be stacked on top of the activities in the primary one, completely overlapping them. It
+     * is useful if it's necessary to split the parent window horizontally for this [SplitRule].
      *
      * The default is [SPLIT_MIN_DIMENSION_DP_DEFAULT] if the app doesn't set.
      * [SPLIT_MIN_DIMENSION_ALWAYS_ALLOW] means to always allow split.
@@ -81,8 +78,7 @@ open class SplitRule internal constructor(
      * @see SplitAttributes.LayoutDirection.TOP_TO_BOTTOM
      * @see SplitAttributes.LayoutDirection.BOTTOM_TO_TOP
      */
-    @IntRange(from = 0)
-    val minHeightDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
+    @IntRange(from = 0) val minHeightDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
 
     /**
      * The smallest value of the smallest possible width of the parent task window in any rotation
@@ -93,8 +89,7 @@ open class SplitRule internal constructor(
      * The default is [SPLIT_MIN_DIMENSION_DP_DEFAULT] if the app doesn't set.
      * [SPLIT_MIN_DIMENSION_ALWAYS_ALLOW] means to always allow split.
      */
-    @IntRange(from = 0)
-    val minSmallestWidthDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
+    @IntRange(from = 0) val minSmallestWidthDp: Int = SPLIT_MIN_DIMENSION_DP_DEFAULT,
 
     /**
      * The largest value of the aspect ratio, expressed as `height / width` in decimal form, of the
@@ -132,8 +127,10 @@ open class SplitRule internal constructor(
 
     /**
      * The default [SplitAttributes] to apply on the activity containers pair when the host task
-     * bounds satisfy [minWidthDp], [minHeightDp], [minSmallestWidthDp],
-     * [maxAspectRatioInPortrait] and [maxAspectRatioInLandscape] requirements.
+     * bounds satisfy [minWidthDp], [minHeightDp], [minSmallestWidthDp], [maxAspectRatioInPortrait]
+     * and [maxAspectRatioInLandscape] requirements.
+     *
+     * It is set to split the host parent task vertically and equally by default.
      */
     val defaultSplitAttributes: SplitAttributes,
 ) : EmbeddingRule(tag) {
@@ -150,6 +147,7 @@ open class SplitRule internal constructor(
     companion object {
         /**
          * When the min dimension is set to this value, it means to always allow split.
+         *
          * @see SplitRule.minWidthDp
          * @see SplitRule.minSmallestWidthDp
          */
@@ -163,33 +161,34 @@ open class SplitRule internal constructor(
 
         /**
          * The default max aspect ratio for allowing split when the parent window is in portrait.
+         *
          * @see SplitRule.maxAspectRatioInPortrait
          */
-        @JvmField
-        val SPLIT_MAX_ASPECT_RATIO_PORTRAIT_DEFAULT = ratio(1.4f)
+        @JvmField val SPLIT_MAX_ASPECT_RATIO_PORTRAIT_DEFAULT = ratio(1.4f)
 
         /**
          * The default max aspect ratio for allowing split when the parent window is in landscape.
+         *
          * @see SplitRule.maxAspectRatioInLandscape
          */
-        @JvmField
-        val SPLIT_MAX_ASPECT_RATIO_LANDSCAPE_DEFAULT = ALWAYS_ALLOW
+        @JvmField val SPLIT_MAX_ASPECT_RATIO_LANDSCAPE_DEFAULT = ALWAYS_ALLOW
     }
 
     /**
-     * Determines what happens with the associated container when all activities are finished in
-     * one of the containers in a split.
+     * Determines what happens with the associated container when all activities are finished in one
+     * of the containers in a split.
      *
      * For example, given that [SplitPairRule.finishPrimaryWithSecondary] is [ADJACENT] and
-     * secondary container finishes. The primary associated container is finished if it's
-     * adjacent to the secondary container. The primary associated container is not finished
-     * if it occupies entire task bounds.
+     * secondary container finishes. The primary associated container is finished if it's adjacent
+     * to the secondary container. The primary associated container is not finished if it occupies
+     * entire task bounds.
      *
      * @see SplitPairRule.finishPrimaryWithSecondary
      * @see SplitPairRule.finishSecondaryWithPrimary
      * @see SplitPlaceholderRule.finishPrimaryWithPlaceholder
      */
-    class FinishBehavior private constructor(
+    class FinishBehavior
+    private constructor(
         /** The description of this [FinishBehavior] */
         private val description: String,
         /** The enum value defined in `splitLayoutDirection` attributes in `attrs.xml` */
@@ -197,22 +196,26 @@ open class SplitRule internal constructor(
     ) {
         override fun toString(): String = description
 
+        // Override #hashCode to return consistent value every time.
+        @Suppress("EqualsAndHashCode")
+        override fun hashCode(): Int {
+            var result = description.hashCode()
+            return 31 * result + value
+        }
+
         companion object {
             /** Never finish the associated container. */
-            @JvmField
-            val NEVER = FinishBehavior("NEVER", 0)
+            @JvmField val NEVER = FinishBehavior("NEVER", 0)
             /**
              * Always finish the associated container independent of the current presentation mode.
              */
-            @JvmField
-            val ALWAYS = FinishBehavior("ALWAYS", 1)
+            @JvmField val ALWAYS = FinishBehavior("ALWAYS", 1)
             /**
              * Only finish the associated container when displayed adjacent to the one being
              * finished. Does not finish the associated one when containers are stacked on top of
              * each other.
              */
-            @JvmField
-            val ADJACENT = FinishBehavior("ADJACENT", 2)
+            @JvmField val ADJACENT = FinishBehavior("ADJACENT", 2)
 
             @JvmStatic
             internal fun getFinishBehaviorFromValue(
@@ -231,21 +234,21 @@ open class SplitRule internal constructor(
      * Verifies if the provided parent bounds satisfy the dimensions and aspect ratio requirements
      * to apply the rule.
      */
-    // TODO(b/265089843) remove after Build.VERSION_CODES.U released.
-    @OptIn(markerClass = [BuildCompat.PrereleaseSdkCheck::class])
     internal fun checkParentMetrics(context: Context, parentMetrics: WindowMetrics): Boolean {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
             return false
         }
         val bounds = Api30Impl.getBounds(parentMetrics)
-        // TODO(b/265089843) replace with Build.VERSION.SDK_INT >= Build.VERSION_CODES.U
-        val density = context.resources.displayMetrics.density
+        val density =
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.TIRAMISU) {
+                context.resources.displayMetrics.density
+            } else {
+                Api34Impl.getDensity(parentMetrics, context)
+            }
         return checkParentBounds(density, bounds)
     }
 
-    /**
-     * @see checkParentMetrics
-     */
+    /** @see checkParentMetrics */
     internal fun checkParentBounds(density: Float, bounds: Rect): Boolean {
         val width = bounds.width()
         val height = bounds.height()
@@ -257,34 +260,45 @@ open class SplitRule internal constructor(
         val minSmallestWidthPx = convertDpToPx(density, minSmallestWidthDp)
         // Always allow split if the min dimensions are 0.
         val validMinWidth = minWidthDp == SPLIT_MIN_DIMENSION_ALWAYS_ALLOW || width >= minWidthPx
-        val validMinHeight = minHeightDp == SPLIT_MIN_DIMENSION_ALWAYS_ALLOW ||
-            height >= minHeightPx
-        val validSmallestMinWidth = minSmallestWidthDp == SPLIT_MIN_DIMENSION_ALWAYS_ALLOW ||
-            min(width, height) >= minSmallestWidthPx
-        val validAspectRatio = if (height >= width) {
-            // Portrait
-            maxAspectRatioInPortrait == ALWAYS_ALLOW ||
-                height * 1f / width <= maxAspectRatioInPortrait.value
-        } else {
-            // Landscape
-            maxAspectRatioInLandscape == ALWAYS_ALLOW ||
-                width * 1f / height <= maxAspectRatioInLandscape.value
-        }
+        val validMinHeight =
+            minHeightDp == SPLIT_MIN_DIMENSION_ALWAYS_ALLOW || height >= minHeightPx
+        val validSmallestMinWidth =
+            minSmallestWidthDp == SPLIT_MIN_DIMENSION_ALWAYS_ALLOW ||
+                min(width, height) >= minSmallestWidthPx
+        val validAspectRatio =
+            if (height >= width) {
+                // Portrait
+                maxAspectRatioInPortrait == ALWAYS_ALLOW ||
+                    height * 1f / width <= maxAspectRatioInPortrait.value
+            } else {
+                // Landscape
+                maxAspectRatioInLandscape == ALWAYS_ALLOW ||
+                    width * 1f / height <= maxAspectRatioInLandscape.value
+            }
         return validMinWidth && validMinHeight && validSmallestMinWidth && validAspectRatio
     }
 
-    /**
-     * Converts the dimension from Dp to pixels.
-     */
+    /** Converts the dimension from Dp to pixels. */
     private fun convertDpToPx(density: Float, @IntRange(from = 0) dimensionDp: Int): Int {
         return (dimensionDp * density + 0.5f).toInt()
     }
 
     @RequiresApi(30)
     internal object Api30Impl {
-        @DoNotInline
         fun getBounds(windowMetrics: WindowMetrics): Rect {
             return windowMetrics.bounds
+        }
+    }
+
+    @RequiresApi(34)
+    internal object Api34Impl {
+        fun getDensity(windowMetrics: WindowMetrics, context: Context): Float {
+            // TODO(b/265089843) remove the try catch after U is finalized.
+            return try {
+                windowMetrics.density
+            } catch (e: NoSuchMethodError) {
+                context.resources.displayMetrics.density
+            }
         }
     }
 

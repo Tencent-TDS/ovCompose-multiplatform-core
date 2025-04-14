@@ -16,11 +16,14 @@
 
 package androidx.camera.core.imagecapture;
 
+import android.graphics.Bitmap;
+
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.ImageProxy;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * A callback for a {@link TakePictureRequest}.
@@ -31,7 +34,19 @@ import androidx.camera.core.ImageProxy;
 interface TakePictureCallback {
 
     /**
-     * Invoked when the capture is complete..
+     * Invoked when the capture is started.
+     */
+    void onCaptureStarted();
+
+    /**
+     * Invoked when there is some progress in the processing stage.
+     *
+     * @param progress the progress ranging from 0 to 100.
+     */
+    void onCaptureProcessProgressed(int progress);
+
+    /**
+     * Invoked when the capture is complete.
      *
      * <p>Once invoked, {@link TakePictureManager} can submit the next request to camera.
      *
@@ -47,7 +62,7 @@ interface TakePictureCallback {
      * <p>After invoked, the {@link TakePictureCallback} will never be invoked again.
      */
     @MainThread
-    void onFinalResult(@NonNull ImageCapture.OutputFileResults outputFileResults);
+    void onFinalResult(ImageCapture.@NonNull OutputFileResults outputFileResults);
 
     /**
      * Invoked when the final in-memory result is ready.
@@ -56,6 +71,11 @@ interface TakePictureCallback {
      */
     @MainThread
     void onFinalResult(@NonNull ImageProxy imageProxy);
+
+    /**
+     * Invoked when the postview bitmap is available.
+     */
+    void onPostviewBitmapAvailable(@NonNull Bitmap bitmap);
 
     /**
      * Invoked when camera fails to return the image.

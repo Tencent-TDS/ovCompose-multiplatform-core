@@ -18,14 +18,20 @@ package androidx.compose.ui
 
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.internal.JvmDefaultWithCompatibility
+import androidx.compose.ui.internal.PlatformOptimizedCancellationException
+import androidx.compose.ui.internal.checkPrecondition
 import androidx.compose.ui.node.DelegatableNode
-import androidx.compose.ui.node.ModifierNodeOwnerScope
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.NodeCoordinator
 import androidx.compose.ui.node.NodeKind
+import androidx.compose.ui.node.ObserverNodeOwnerScope
 import androidx.compose.ui.node.requireOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+
+internal class ModifierNodeDetachedCancellationException :
+    PlatformOptimizedCancellationException("The Modifier.Node was detached")
 
 /**
  * An ordered, immutable collection of [modifier elements][Modifier.Element] that decorate or add
@@ -43,23 +49,22 @@ import kotlinx.coroutines.cancel
  * appear first will be applied first.
  *
  * Composables that accept a [Modifier] as a parameter to be applied to the whole component
- * represented by the composable function should name the parameter `modifier` and
- * assign the parameter a default value of [Modifier]. It should appear as the first
- * optional parameter in the parameter list; after all required parameters (except for trailing
- * lambda parameters) but before any other parameters with default values. Any default modifiers
- * desired by a composable function should come after the `modifier` parameter's value in the
- * composable function's implementation, keeping [Modifier] as the default parameter value.
- * For example:
+ * represented by the composable function should name the parameter `modifier` and assign the
+ * parameter a default value of [Modifier]. It should appear as the first optional parameter in the
+ * parameter list; after all required parameters (except for trailing lambda parameters) but before
+ * any other parameters with default values. Any default modifiers desired by a composable function
+ * should come after the `modifier` parameter's value in the composable function's implementation,
+ * keeping [Modifier] as the default parameter value. For example:
  *
  * @sample androidx.compose.ui.samples.ModifierParameterSample
  *
- * The pattern above allows default modifiers to still be applied as part of the chain
- * if a caller also supplies unrelated modifiers.
+ * The pattern above allows default modifiers to still be applied as part of the chain if a caller
+ * also supplies unrelated modifiers.
  *
- * Composables that accept modifiers to be applied to a specific subcomponent `foo`
- * should name the parameter `fooModifier` and follow the same guidelines above for default values
- * and behavior. Subcomponent modifiers should be grouped together and follow the parent
- * composable's modifier. For example:
+ * Composables that accept modifiers to be applied to a specific subcomponent `foo` should name the
+ * parameter `fooModifier` and follow the same guidelines above for default values and behavior.
+ * Subcomponent modifiers should be grouped together and follow the parent composable's modifier.
+ * For example:
  *
  * @sample androidx.compose.ui.samples.SubcomponentModifierSample
  */
@@ -69,35 +74,33 @@ import kotlinx.coroutines.cancel
 interface Modifier {
 
     /**
-     * Accumulates a value starting with [initial] and applying [operation] to the current value
-     * and each element from outside in.
+     * Accumulates a value starting with [initial] and applying [operation] to the current value and
+     * each element from outside in.
      *
      * Elements wrap one another in a chain from left to right; an [Element] that appears to the
-     * left of another in a `+` expression or in [operation]'s parameter order affects all
-     * of the elements that appear after it. [foldIn] may be used to accumulate a value starting
-     * from the parent or head of the modifier chain to the final wrapped child.
+     * left of another in a `+` expression or in [operation]'s parameter order affects all of the
+     * elements that appear after it. [foldIn] may be used to accumulate a value starting from the
+     * parent or head of the modifier chain to the final wrapped child.
      */
     fun <R> foldIn(initial: R, operation: (R, Element) -> R): R
 
     /**
-     * Accumulates a value starting with [initial] and applying [operation] to the current value
-     * and each element from inside out.
+     * Accumulates a value starting with [initial] and applying [operation] to the current value and
+     * each element from inside out.
      *
      * Elements wrap one another in a chain from left to right; an [Element] that appears to the
-     * left of another in a `+` expression or in [operation]'s parameter order affects all
-     * of the elements that appear after it. [foldOut] may be used to accumulate a value starting
-     * from the child or tail of the modifier chain up to the parent or head of the chain.
+     * left of another in a `+` expression or in [operation]'s parameter order affects all of the
+     * elements that appear after it. [foldOut] may be used to accumulate a value starting from the
+     * child or tail of the modifier chain up to the parent or head of the chain.
      */
     fun <R> foldOut(initial: R, operation: (Element, R) -> R): R
 
-    /**
-     * Returns `true` if [predicate] returns true for any [Element] in this [Modifier].
-     */
+    /** Returns `true` if [predicate] returns true for any [Element] in this [Modifier]. */
     fun any(predicate: (Element) -> Boolean): Boolean
 
     /**
-     * Returns `true` if [predicate] returns true for all [Element]s in this [Modifier] or if
-     * this [Modifier] contains no [Element]s.
+     * Returns `true` if [predicate] returns true for all [Element]s in this [Modifier] or if this
+     * [Modifier] contains no [Element]s.
      */
     fun all(predicate: (Element) -> Boolean): Boolean
 
@@ -109,9 +112,7 @@ interface Modifier {
     infix fun then(other: Modifier): Modifier =
         if (other === Modifier) this else CombinedModifier(this, other)
 
-    /**
-     * A single element contained within a [Modifier] chain.
-     */
+    /** A single element contained within a [Modifier] chain. */
     @JvmDefaultWithCompatibility
     interface Element : Modifier {
         override fun <R> foldIn(initial: R, operation: (R, Element) -> R): R =
@@ -157,11 +158,11 @@ interface Modifier {
      * @see androidx.compose.ui.node.DrawModifierNode
      * @see androidx.compose.ui.node.SemanticsModifierNode
      * @see androidx.compose.ui.node.PointerInputModifierNode
-     * @see androidx.compose.ui.modifier.ModifierLocalNode
+     * @see androidx.compose.ui.modifier.ModifierLocalModifierNode
      * @see androidx.compose.ui.node.ParentDataModifierNode
      * @see androidx.compose.ui.node.LayoutAwareModifierNode
      * @see androidx.compose.ui.node.GlobalPositionAwareModifierNode
-     * @see androidx.compose.ui.node.IntermediateLayoutModifierNode
+     * @see androidx.compose.ui.node.ApproachLayoutModifierNode
      */
     abstract class Node : DelegatableNode {
         @Suppress("LeakingThis")
@@ -169,38 +170,74 @@ interface Modifier {
             private set
 
         private var scope: CoroutineScope? = null
-        // CoroutineScope(baseContext + Job(parent = baseContext[Job]))
+
+        /**
+         * A [CoroutineScope] that can be used to launch tasks that should run while the node is
+         * attached.
+         *
+         * The scope is accessible between [onAttach] and [onDetach] calls, and will be cancelled
+         * after the node is detached (after [onDetach] returns).
+         *
+         * @sample androidx.compose.ui.samples.ModifierNodeCoroutineScopeSample
+         * @throws IllegalStateException If called while the node is not attached.
+         */
         val coroutineScope: CoroutineScope
-            get() = scope ?: CoroutineScope(
-                requireOwner().coroutineContext +
-                    Job(parent = requireOwner().coroutineContext[Job])
-            ).also {
-                scope = it
-            }
+            get() =
+                scope
+                    ?: CoroutineScope(
+                            requireOwner().coroutineContext +
+                                Job(parent = requireOwner().coroutineContext[Job])
+                        )
+                        .also { scope = it }
 
         internal var kindSet: Int = 0
+
         // NOTE: We use an aggregate mask that or's all of the type masks of the children of the
         // chain so that we can quickly prune a subtree. This INCLUDES the kindSet of this node
-        // as well
-        internal var aggregateChildKindSet: Int = 0
+        // as well. Initialize this to "every node" so that before it is set it doesn't
+        // accidentally cause a truncated traversal.
+        internal var aggregateChildKindSet: Int = 0.inv()
         internal var parent: Node? = null
         internal var child: Node? = null
-        internal var ownerScope: ModifierNodeOwnerScope? = null
+        internal var ownerScope: ObserverNodeOwnerScope? = null
         internal var coordinator: NodeCoordinator? = null
             private set
+
         internal var insertedNodeAwaitingAttachForInvalidation = false
         internal var updatedNodeAwaitingAttachForInvalidation = false
+        private var onAttachRunExpected = false
+        private var onDetachRunExpected = false
+
+        internal var detachedListener: (() -> Unit)? = null
+
         /**
          * Indicates that the node is attached to a [androidx.compose.ui.layout.Layout] which is
-         * part of the UI tree.
-         * This will get set to true right before [onAttach] is called, and set to false right
-         * after [onDetach] is called.
+         * part of the UI tree. This will get set to true right before [onAttach] is called, and set
+         * to false right after [onDetach] is called.
          *
          * @see onAttach
          * @see onDetach
          */
         var isAttached: Boolean = false
             private set
+
+        /**
+         * If this property returns `true`, then nodes will be automatically invalidated after the
+         * modifier update completes (For example, if the returned Node is a [DrawModifierNode], its
+         * [DrawModifierNode.invalidateDraw] function will be invoked automatically as part of auto
+         * invalidation).
+         *
+         * This is enabled by default, and provides a convenient mechanism to schedule invalidation
+         * and apply changes made to the modifier. You may choose to set this to `false` if your
+         * modifier has auto-invalidatable properties that do not frequently require invalidation to
+         * improve performance by skipping unnecessary invalidation. If `autoInvalidate` is set to
+         * `false`, you must call the appropriate invalidate functions manually when the modifier is
+         * updated or else the updates may not be reflected in the UI appropriately.
+         */
+        @Suppress("GetterSetterNames")
+        @get:Suppress("GetterSetterNames")
+        open val shouldAutoInvalidate: Boolean
+            get() = true
 
         internal open fun updateCoordinator(coordinator: NodeCoordinator?) {
             this.coordinator = coordinator
@@ -209,38 +246,71 @@ interface Modifier {
         @Suppress("NOTHING_TO_INLINE")
         internal inline fun isKind(kind: NodeKind<*>) = kindSet and kind.mask != 0
 
-        internal open fun attach() {
-            check(!isAttached)
-            check(coordinator != null)
+        internal open fun markAsAttached() {
+            checkPrecondition(!isAttached) { "node attached multiple times" }
+            checkPrecondition(coordinator != null) {
+                "attach invoked on a node without a coordinator"
+            }
             isAttached = true
-            onAttach()
-            // TODO(lmr): run side effects?
+            onAttachRunExpected = true
         }
 
-        internal open fun detach() {
-            check(isAttached)
-            check(coordinator != null)
+        internal open fun runAttachLifecycle() {
+            checkPrecondition(isAttached) {
+                "Must run markAsAttached() prior to runAttachLifecycle"
+            }
+            checkPrecondition(onAttachRunExpected) {
+                "Must run runAttachLifecycle() only once " + "after markAsAttached()"
+            }
+            onAttachRunExpected = false
+            onAttach()
+            onDetachRunExpected = true
+        }
+
+        internal open fun runDetachLifecycle() {
+            checkPrecondition(isAttached) { "node detached multiple times" }
+            checkPrecondition(coordinator != null) {
+                "detach invoked on a node without a coordinator"
+            }
+            checkPrecondition(onDetachRunExpected) {
+                "Must run runDetachLifecycle() once after runAttachLifecycle() and before " +
+                    "markAsDetached()"
+            }
+            onDetachRunExpected = false
+            detachedListener?.invoke()
             onDetach()
+        }
+
+        internal open fun markAsDetached() {
+            checkPrecondition(isAttached) { "Cannot detach a node that is not attached" }
+            checkPrecondition(!onAttachRunExpected) {
+                "Must run runAttachLifecycle() before markAsDetached()"
+            }
+            checkPrecondition(!onDetachRunExpected) {
+                "Must run runDetachLifecycle() before markAsDetached()"
+            }
             isAttached = false
 
             scope?.let {
-                it.cancel("Modifier.Node was detached")
+                it.cancel(ModifierNodeDetachedCancellationException())
                 scope = null
             }
-            // coordinator = null
-            // TODO(lmr): cancel jobs / side effects?
         }
 
         internal open fun reset() {
-            check(isAttached)
+            checkPrecondition(isAttached) { "reset() called on an unattached node" }
             onReset()
         }
 
         /**
-         * Called when the node is attached to a [androidx.compose.ui.layout.Layout] which is
-         * part of the UI tree.
-         * When called, `node` is guaranteed to be non-null. You can call sideEffect,
-         * coroutineScope, etc.
+         * Called when the node is attached to a [androidx.compose.ui.layout.Layout] which is part
+         * of the UI tree. When called, `node` is guaranteed to be non-null. You can call
+         * sideEffect, coroutineScope, etc. This is not guaranteed to get called at a time where the
+         * rest of the Modifier.Nodes in the hierarchy are "up to date". For instance, at the time
+         * of calling onAttach for this node, another node may be in the tree that will be detached
+         * by the time Compose has finished applying changes. As a result, if you need to guarantee
+         * that the state of the tree is "final" for this round of changes, you should use the
+         * [sideEffect] API to schedule the calculation to be done at that time.
          */
         open fun onAttach() {}
 
@@ -255,13 +325,14 @@ interface Modifier {
         open fun onDetach() {}
 
         /**
-         * Called when the node is about to be moved to a pool of layouts ready to be reused.
-         * For example it happens when the node is part of the item of LazyColumn after this item
-         * is scrolled out of the viewport. This means this node could be in future reused for a
-         * [androidx.compose.ui.layout.Layout] displaying a semantically different content when
-         * the list will be populating a new item.
+         * Called when the node is about to be moved to a pool of layouts ready to be reused. For
+         * example it happens when the node is part of the item of LazyColumn after this item is
+         * scrolled out of the viewport. This means this node could be in future reused for a
+         * [androidx.compose.ui.layout.Layout] displaying a semantically different content when the
+         * list will be populating a new item.
          *
-         * Use this callback to reset some local item specific state, like "is my component focused".
+         * Use this callback to reset some local item specific state, like "is my component
+         * focused".
          *
          * This callback is called while the node is attached. Right after this callback the node
          * will be detached and later reattached when reused.
@@ -280,15 +351,15 @@ interface Modifier {
             requireOwner().registerOnEndApplyChangesListener(effect)
         }
 
-        internal fun setAsDelegateTo(owner: Node) {
+        internal open fun setAsDelegateTo(owner: Node) {
             node = owner
         }
     }
 
     /**
-     * The companion object `Modifier` is the empty, default, or starter [Modifier]
-     * that contains no [elements][Element]. Use it to create a new [Modifier] using
-     * modifier extension factory functions:
+     * The companion object `Modifier` is the empty, default, or starter [Modifier] that contains no
+     * [elements][Element]. Use it to create a new [Modifier] using modifier extension factory
+     * functions:
      *
      * @sample androidx.compose.ui.samples.ModifierUsageSample
      *
@@ -300,22 +371,24 @@ interface Modifier {
     // modifier extension factory expression.
     companion object : Modifier {
         override fun <R> foldIn(initial: R, operation: (R, Element) -> R): R = initial
+
         override fun <R> foldOut(initial: R, operation: (Element, R) -> R): R = initial
+
         override fun any(predicate: (Element) -> Boolean): Boolean = false
+
         override fun all(predicate: (Element) -> Boolean): Boolean = true
+
         override infix fun then(other: Modifier): Modifier = other
+
         override fun toString() = "Modifier"
     }
 }
 
 /**
- * A node in a [Modifier] chain. A CombinedModifier always contains at least two elements;
- * a Modifier [outer] that wraps around the Modifier [inner].
+ * A node in a [Modifier] chain. A CombinedModifier always contains at least two elements; a
+ * Modifier [outer] that wraps around the Modifier [inner].
  */
-class CombinedModifier(
-    internal val outer: Modifier,
-    internal val inner: Modifier
-) : Modifier {
+class CombinedModifier(internal val outer: Modifier, internal val inner: Modifier) : Modifier {
     override fun <R> foldIn(initial: R, operation: (R, Modifier.Element) -> R): R =
         inner.foldIn(outer.foldIn(initial, operation), operation)
 
@@ -333,7 +406,10 @@ class CombinedModifier(
 
     override fun hashCode(): Int = outer.hashCode() + 31 * inner.hashCode()
 
-    override fun toString() = "[" + foldIn("") { acc, element ->
-        if (acc.isEmpty()) element.toString() else "$acc, $element"
-    } + "]"
+    override fun toString() =
+        "[" +
+            foldIn("") { acc, element ->
+                if (acc.isEmpty()) element.toString() else "$acc, $element"
+            } +
+            "]"
 }

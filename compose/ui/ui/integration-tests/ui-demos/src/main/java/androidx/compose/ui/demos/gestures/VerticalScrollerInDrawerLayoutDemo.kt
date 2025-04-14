@@ -18,6 +18,7 @@ package androidx.compose.ui.demos.gestures
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberScrollableState
 import androidx.compose.foundation.gestures.scrollable
@@ -28,19 +29,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.DrawModifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -53,9 +56,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
-/**
- * Demonstration for how multiple DragGestureDetectors interact.
- */
+/** Demonstration for how multiple DragGestureDetectors interact. */
 @Composable
 fun VerticalScrollerInDrawerDemo() {
     Column {
@@ -66,11 +67,7 @@ fun VerticalScrollerInDrawerDemo() {
         )
         DrawerLayout(280.dp) {
             Scrollable(Orientation.Vertical) {
-                RepeatingColumn(repetitions = 10) {
-                    Pressable(
-                        height = 96.dp
-                    )
-                }
+                RepeatingColumn(repetitions = 10) { Pressable(height = 96.dp) }
             }
         }
     }
@@ -79,92 +76,87 @@ fun VerticalScrollerInDrawerDemo() {
 @Composable
 private fun DrawerLayout(drawerWidth: Dp, content: @Composable ColumnScope.() -> Unit) {
 
-    val minOffset =
-        with(LocalDensity.current) {
-            -drawerWidth.toPx()
-        }
+    val minOffset = with(LocalDensity.current) { -drawerWidth.toPx() }
 
-    val currentOffset = remember { mutableStateOf(minOffset) }
+    var currentOffset by remember { mutableFloatStateOf(minOffset) }
     val maxOffset = 0f
 
     Box(
         Modifier.scrollable(
             orientation = Orientation.Horizontal,
-            state = rememberScrollableState { scrollDistance ->
-                val originalOffset = currentOffset.value
-                currentOffset.value =
-                    (currentOffset.value + scrollDistance).coerceIn(minOffset, maxOffset)
-                currentOffset.value - originalOffset
-            }
+            state =
+                rememberScrollableState { scrollDistance ->
+                    val originalOffset = currentOffset
+                    currentOffset = (currentOffset + scrollDistance).coerceIn(minOffset, maxOffset)
+                    currentOffset - originalOffset
+                }
         )
     ) {
         Column(content = content)
         Box(
-            Modifier
-                .fillMaxHeight()
+            Modifier.fillMaxHeight()
                 .requiredWidth(drawerWidth)
-                .offset { IntOffset(currentOffset.value.roundToInt(), 0) }
+                .offset { IntOffset(currentOffset.roundToInt(), 0) }
                 .background(color = DefaultBackgroundColor)
         ) {
             Text(
                 "This is empty drawer content",
-                Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.Center)
+                Modifier.fillMaxSize().wrapContentSize(Alignment.Center)
             )
         }
     }
 }
 
-/**
- * A very simple ScrollView like implementation that allows for vertical scrolling.
- */
+/** A very simple ScrollView like implementation that allows for vertical scrolling. */
 @Composable
 private fun Scrollable(orientation: Orientation, content: @Composable () -> Unit) {
     val maxOffset = 0f
-    val offset = remember { mutableStateOf(maxOffset) }
-    val minOffset = remember { mutableStateOf(0f) }
+    var offset by remember { mutableFloatStateOf(maxOffset) }
+    var minOffset by remember { mutableFloatStateOf(0f) }
 
     Layout(
         content = content,
-        modifier = Modifier.scrollable(
-            orientation = orientation,
-            state = rememberScrollableState { scrollDistance ->
-                val resultingOffset = offset.value + scrollDistance
-                val toConsume =
-                    when {
-                        resultingOffset > maxOffset -> {
-                            maxOffset - offset.value
+        modifier =
+            Modifier.scrollable(
+                    orientation = orientation,
+                    state =
+                        rememberScrollableState { scrollDistance ->
+                            val resultingOffset = offset + scrollDistance
+                            val toConsume =
+                                when {
+                                    resultingOffset > maxOffset -> {
+                                        maxOffset - offset
+                                    }
+                                    resultingOffset < minOffset -> {
+                                        minOffset - offset
+                                    }
+                                    else -> {
+                                        scrollDistance
+                                    }
+                                }
+                            offset += toConsume
+                            toConsume
                         }
-                        resultingOffset < minOffset.value -> {
-                            minOffset.value - offset.value
-                        }
-                        else -> {
-                            scrollDistance
-                        }
-                    }
-                offset.value = offset.value + toConsume
-                toConsume
-            }
-        ).then(ClipModifier),
+                )
+                .then(ClipModifier),
         measurePolicy = { measurables, constraints ->
             val placeable =
                 when (orientation) {
-                    Orientation.Horizontal -> measurables.first().measure(
-                        constraints.copy(
-                            minWidth = 0,
-                            maxWidth = Constraints.Infinity
-                        )
-                    )
-                    Orientation.Vertical -> measurables.first().measure(
-                        constraints.copy(
-                            minHeight = 0,
-                            maxHeight = Constraints.Infinity
-                        )
-                    )
+                    Orientation.Horizontal ->
+                        measurables
+                            .first()
+                            .measure(
+                                constraints.copy(minWidth = 0, maxWidth = Constraints.Infinity)
+                            )
+                    Orientation.Vertical ->
+                        measurables
+                            .first()
+                            .measure(
+                                constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+                            )
                 }
 
-            minOffset.value =
+            minOffset =
                 when (orientation) {
                     Orientation.Horizontal -> constraints.maxWidth.toFloat() - placeable.width
                     Orientation.Vertical -> constraints.maxHeight.toFloat() - placeable.height
@@ -184,29 +176,24 @@ private fun Scrollable(orientation: Orientation, content: @Composable () -> Unit
 
             layout(width, height) {
                 when (orientation) {
-                    Orientation.Horizontal -> placeable.placeRelative(offset.value.roundToInt(), 0)
-                    Orientation.Vertical -> placeable.placeRelative(0, offset.value.roundToInt())
+                    Orientation.Horizontal -> placeable.placeRelative(offset.roundToInt(), 0)
+                    Orientation.Vertical -> placeable.placeRelative(0, offset.roundToInt())
                 }
             }
         }
     )
 }
 
-private val ClipModifier = object : DrawModifier {
-    override fun ContentDrawScope.draw() {
-        clipRect {
-            this@draw.drawContent()
+private val ClipModifier =
+    object : DrawModifier {
+        override fun ContentDrawScope.draw() {
+            clipRect { this@draw.drawContent() }
         }
     }
-}
 
-/**
- * A very simple Button like implementation that visually indicates when it is being pressed.
- */
+/** A very simple Button like implementation that visually indicates when it is being pressed. */
 @Composable
-private fun Pressable(
-    height: Dp
-) {
+private fun Pressable(height: Dp) {
 
     val pressedColor = PressedColor
     val defaultColor = Red
@@ -214,21 +201,13 @@ private fun Pressable(
     val color = remember { mutableStateOf(defaultColor) }
     val showPressed = remember { mutableStateOf(false) }
 
-    val onPress: (Offset) -> Unit = {
-        showPressed.value = true
-    }
+    val onPress: (Offset) -> Unit = { showPressed.value = true }
 
-    val onRelease = {
-        showPressed.value = false
-    }
+    val onRelease = { showPressed.value = false }
 
-    val onTap: (Offset) -> Unit = {
-        color.value = color.value.next()
-    }
+    val onTap: (Offset) -> Unit = { color.value = color.value.next() }
 
-    val onDoubleTap: (Offset) -> Unit = {
-        color.value = color.value.prev()
-    }
+    val onDoubleTap: (Offset) -> Unit = { color.value = color.value.prev() }
 
     val onLongPress = { _: Offset ->
         color.value = defaultColor
@@ -236,8 +215,7 @@ private fun Pressable(
     }
 
     val gestureDetectors =
-        Modifier
-            .pointerInput(Unit) {
+        Modifier.pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
                         onPress.invoke(it)
@@ -258,12 +236,12 @@ private fun Pressable(
         if (showPressed.value) Modifier.background(color = pressedColor) else Modifier
 
     Box(
-        Modifier
-            .fillMaxWidth()
+        Modifier.fillMaxWidth()
             .height(height)
             .border(1.dp, Color.Black)
             .background(color = color.value)
-            .then(pressOverlay).then(gestureDetectors)
+            .then(pressOverlay)
+            .then(gestureDetectors)
     )
 }
 

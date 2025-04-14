@@ -19,34 +19,54 @@ package androidx.privacysandbox.ads.adservices.java.endtoend.appsetid;
 import static com.google.common.truth.Truth.assertThat;
 
 import androidx.privacysandbox.ads.adservices.appsetid.AppSetId;
-import androidx.privacysandbox.ads.adservices.internal.AdServicesInfo;
+import androidx.privacysandbox.ads.adservices.java.VersionCompatUtil;
 import androidx.privacysandbox.ads.adservices.java.appsetid.AppSetIdManagerFutures;
 import androidx.privacysandbox.ads.adservices.java.endtoend.TestUtil;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.concurrent.TimeUnit;
+
 @RunWith(JUnit4.class)
+@SdkSuppress(minSdkVersion = 28) // API 28 required for device_config used by this test
 // TODO: Consider refactoring so that we're not duplicating code.
 public class AppSetIdManagerTest {
     private static final String TAG = "AppSetIdManagerTest";
     TestUtil mTestUtil = new TestUtil(InstrumentationRegistry.getInstrumentation(), TAG);
+
+    @BeforeClass
+    public static void presuite() {
+        TestUtil testUtil = new TestUtil(InstrumentationRegistry.getInstrumentation(), TAG);
+        testUtil.disableDeviceConfigSyncForTests(true);
+    }
+
+    @AfterClass
+    public static void postsuite() {
+        TestUtil testUtil = new TestUtil(InstrumentationRegistry.getInstrumentation(), TAG);
+        testUtil.disableDeviceConfigSyncForTests(false);
+    }
 
     @Before
     public void setup() throws Exception {
         mTestUtil.overrideAppSetIdKillSwitch(true);
         mTestUtil.overrideKillSwitches(true);
         mTestUtil.overrideAllowlists(true);
+        mTestUtil.enableVerboseLogging();
 
         // Put in a short sleep to make sure the updated config propagates
         // before starting the tests
-        Thread.sleep(100);
+        TimeUnit.SECONDS.sleep(1);
     }
 
     @After
@@ -56,10 +76,13 @@ public class AppSetIdManagerTest {
         mTestUtil.overrideAllowlists(false);
     }
 
+    @Ignore("Flaky test. b/316167204")
     @Test
     public void testAppSetId() throws Exception {
-        // Skip the test if SDK extension 4 is not present.
-        Assume.assumeTrue(AdServicesInfo.INSTANCE.version() >= 4);
+        // Skip the test if the right SDK extension is not present.
+        Assume.assumeTrue(
+                VersionCompatUtil.INSTANCE.isTestableVersion(
+                        /* minAdServicesVersion= */ 4, /* minExtServicesVersion= */ 9));
 
         AppSetIdManagerFutures appSetIdManager =
                 AppSetIdManagerFutures.from(ApplicationProvider.getApplicationContext());

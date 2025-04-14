@@ -40,8 +40,6 @@ import android.view.Menu;
 import android.view.View;
 import android.view.WindowManager;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.custom.FitWindowsContentLayout;
 import androidx.appcompat.test.R;
 import androidx.appcompat.testutils.BaseTestActivity;
@@ -56,6 +54,7 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 import androidx.test.rule.ActivityTestRule;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -136,7 +135,6 @@ public abstract class BaseBasicsTestCase<A extends BaseTestActivity> {
 
     @UiThreadTest
     @Test
-    @SdkSuppress(minSdkVersion = 19)
     public void testSetActionBarTitleByActionBar() {
         final String newTitle = "hello";
         mActivityTestRule.getActivity().getSupportActionBar().setTitle(newTitle);
@@ -149,8 +147,7 @@ public abstract class BaseBasicsTestCase<A extends BaseTestActivity> {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 16, maxSdkVersion = 20)
-    @RequiresApi(16)
+    @SdkSuppress(maxSdkVersion = 20)
     public void testFitSystemWindowsReachesContent() throws Throwable {
         final A activity = mActivityTestRule.getActivity();
         if (!canShowSystemUi(activity)) {
@@ -186,7 +183,6 @@ public abstract class BaseBasicsTestCase<A extends BaseTestActivity> {
 
     @Test
     @SdkSuppress(minSdkVersion = 21)
-    @RequiresApi(21)
     public void testOnApplyWindowInsetsReachesContent() throws Throwable {
         final A activity = mActivityTestRule.getActivity();
         if (!canShowSystemUi(activity)) {
@@ -224,8 +220,7 @@ public abstract class BaseBasicsTestCase<A extends BaseTestActivity> {
     }
 
     @Test
-    @SdkSuppress(minSdkVersion = 28)
-    @RequiresApi(28)
+    @SdkSuppress(minSdkVersion = 28, maxSdkVersion = 33) // maxSdk 33 b/322355781
     public void testOnApplyWindowInsetsReachesContent_withDisplayCutout() throws Throwable {
         final A activity = mActivityTestRule.getActivity();
         if (!canShowSystemUi(activity)) {
@@ -388,8 +383,7 @@ public abstract class BaseBasicsTestCase<A extends BaseTestActivity> {
         verify(apCallback).onSupportActionModeFinished(any(ActionMode.class));
     }
 
-    @RequiresApi(16)
-    private WindowInsetsCompat waitForWindowInsets(@NonNull final View view) throws Throwable {
+    private WindowInsetsCompat waitForWindowInsets(final @NonNull View view) throws Throwable {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<WindowInsetsCompat> received = new AtomicReference<>();
         // Set a listener to catch WindowInsets

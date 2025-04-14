@@ -17,23 +17,22 @@
 package androidx.compose.foundation.lazy
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.internal.checkPrecondition
+import androidx.compose.foundation.internal.requirePrecondition
+import androidx.compose.foundation.lazy.layout.LazyLayoutNearestRangeState
 import androidx.compose.foundation.lazy.layout.findIndexByKey
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.Snapshot
 
 /**
  * Contains the current scroll position represented by the first visible item index and the first
  * visible item scroll offset.
  */
-internal class LazyListScrollPosition(
-    initialIndex: Int = 0,
-    initialScrollOffset: Int = 0
-) {
-    var index by mutableStateOf(DataIndex(initialIndex))
+internal class LazyListScrollPosition(initialIndex: Int = 0, initialScrollOffset: Int = 0) {
+    var index by mutableIntStateOf(initialIndex)
 
-    var scrollOffset by mutableStateOf(initialScrollOffset)
+    var scrollOffset by mutableIntStateOf(initialScrollOffset)
         private set
 
     private var hadFirstNotEmptyLayout = false
@@ -41,9 +40,14 @@ internal class LazyListScrollPosition(
     /** The last know key of the item at [index] position. */
     private var lastKnownFirstItemKey: Any? = null
 
-    /**
-     * Updates the current scroll position based on the results of the last measurement.
-     */
+    val nearestRangeState =
+        LazyLayoutNearestRangeState(
+            initialIndex,
+            NearestItemsSlidingWindowSize,
+            NearestItemsExtraItemCount
+        )
+
+    /** Updates the current scroll position based on the results of the last measurement. */
     fun updateFromMeasureResult(measureResult: LazyListMeasureResult) {
         lastKnownFirstItemKey = measureResult.firstVisibleItem?.key
         // we ignore the index and offset from measureResult until we get at least one
@@ -52,29 +56,29 @@ internal class LazyListScrollPosition(
         if (hadFirstNotEmptyLayout || measureResult.totalItemsCount > 0) {
             hadFirstNotEmptyLayout = true
             val scrollOffset = measureResult.firstVisibleItemScrollOffset
-            check(scrollOffset >= 0f) { "scrollOffset should be non-negative ($scrollOffset)" }
+            checkPrecondition(scrollOffset >= 0f) { "scrollOffset should be non-negative" }
 
-            Snapshot.withoutReadObservation {
-                update(
-                    DataIndex(measureResult.firstVisibleItem?.index ?: 0),
-                    scrollOffset
-                )
-            }
+            val firstIndex = measureResult.firstVisibleItem?.index ?: 0
+            update(firstIndex, scrollOffset)
         }
+    }
+
+    fun updateScrollOffset(scrollOffset: Int) {
+        checkPrecondition(scrollOffset >= 0f) { "scrollOffset should be non-negative" }
+        this.scrollOffset = scrollOffset
     }
 
     /**
      * Updates the scroll position - the passed values will be used as a start position for
-     * composing the items during the next measure pass and will be updated by the real
-     * position calculated during the measurement. This means that there is no guarantee that
-     * exactly this index and offset will be applied as it is possible that:
-     * a) there will be no item at this index in reality
-     * b) item at this index will be smaller than the asked scrollOffset, which means we would
-     * switch to the next item
-     * c) there will be not enough items to fill the viewport after the requested index, so we
-     * would have to compose few elements before the asked index, changing the first visible item.
+     * composing the items during the next measure pass and will be updated by the real position
+     * calculated during the measurement. This means that there is no guarantee that exactly this
+     * index and offset will be applied as it is possible that: a) there will be no item at this
+     * index in reality b) item at this index will be smaller than the asked scrollOffset, which
+     * means we would switch to the next item c) there will be not enough items to fill the viewport
+     * after the requested index, so we would have to compose few elements before the asked index,
+     * changing the first visible item.
      */
-    fun requestPosition(index: DataIndex, scrollOffset: Int) {
+    fun requestPositionAndForgetLastKnownKey(index: Int, scrollOffset: Int) {
         update(index, scrollOffset)
         // clear the stored key as we have a direct request to scroll to [index] position and the
         // next [checkIfFirstVisibleItemWasMoved] shouldn't override this.
@@ -82,28 +86,37 @@ internal class LazyListScrollPosition(
     }
 
     /**
-     * In addition to keeping the first visible item index we also store the key of this item.
-     * When the user provided custom keys for the items this mechanism allows us to detect when
-     * there were items added or removed before our current first visible item and keep this item
-     * as the first visible one even given that its index has been changed.
+     * In addition to keeping the first visible item index we also store the key of this item. When
+     * the user provided custom keys for the items this mechanism allows us to detect when there
+     * were items added or removed before our current first visible item and keep this item as the
+     * first visible one even given that its index has been changed.
      */
-    @ExperimentalFoundationApi
-    fun updateScrollPositionIfTheFirstItemWasMoved(itemProvider: LazyListItemProvider) {
-        Snapshot.withoutReadObservation {
-            update(
-                DataIndex(itemProvider.findIndexByKey(lastKnownFirstItemKey, index.value)),
-                scrollOffset
-            )
+    @OptIn(ExperimentalFoundationApi::class)
+    fun updateScrollPositionIfTheFirstItemWasMoved(
+        itemProvider: LazyListItemProvider,
+        index: Int
+    ): Int {
+        val newIndex = itemProvider.findIndexByKey(lastKnownFirstItemKey, index)
+        if (index != newIndex) {
+            this.index = newIndex
+            nearestRangeState.update(index)
         }
+        return newIndex
     }
 
-    private fun update(index: DataIndex, scrollOffset: Int) {
-        require(index.value >= 0f) { "Index should be non-negative (${index.value})" }
-        if (index != this.index) {
-            this.index = index
-        }
-        if (scrollOffset != this.scrollOffset) {
-            this.scrollOffset = scrollOffset
-        }
+    private fun update(index: Int, scrollOffset: Int) {
+        requirePrecondition(index >= 0f) { "Index should be non-negative ($index)" }
+        this.index = index
+        nearestRangeState.update(index)
+        this.scrollOffset = scrollOffset
     }
 }
+
+/**
+ * We use the idea of sliding window as an optimization, so user can scroll up to this number of
+ * items until we have to regenerate the key to index map.
+ */
+internal const val NearestItemsSlidingWindowSize = 30
+
+/** The minimum amount of items near the current first visible item we want to have mapping for. */
+internal const val NearestItemsExtraItemCount = 100

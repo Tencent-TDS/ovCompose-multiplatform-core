@@ -17,12 +17,12 @@
 package androidx.compose.foundation.benchmark.text.empirical
 
 import androidx.compose.foundation.benchmark.text.DoFullBenchmark
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.testutils.LayeredComposeTestCase
 import androidx.compose.testutils.ToggleableTestCase
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.test.filters.LargeTest
 import org.junit.Assume.assumeTrue
@@ -36,7 +36,6 @@ import org.junit.runners.Parameterized
  * usage of spans as text formatting).
  *
  * Spans are intentionally limited to
- *
  * 1) Not MetricsAffectingSpans (usage is very low)
  * 2) Not inlineContent (usage is very low).
  *
@@ -44,14 +43,15 @@ import org.junit.runners.Parameterized
  * frequency of spans that use the full length. This is not verified in the data set that produced
  * this benchmark. This assumption does not, currently, impact the performance of Compose.
  */
-class SetTextWithSpans(
-    private val text: AnnotatedString
-) : LayeredComposeTestCase(), ToggleableTestCase {
+class SetTextWithSpans(private val text: AnnotatedString) :
+    LayeredComposeTestCase(), ToggleableTestCase {
     private var toggleText = mutableStateOf(AnnotatedString(""))
+
+    private val style = TextStyle.Default.copy(fontFamily = FontFamily.Monospace)
 
     @Composable
     override fun MeasuredContent() {
-        Text(toggleText.value, fontFamily = FontFamily.Monospace)
+        Subject(toggleText.value, style = style)
     }
 
     override fun toggleState() {
@@ -65,10 +65,8 @@ class SetTextWithSpans(
 
 @LargeTest
 @RunWith(Parameterized::class)
-open class SetTextWithSpansParent(
-    private val size: Int,
-    private val spanCount: Int
-) : EmpiricalBench<SetTextWithSpans>() {
+open class SetTextWithSpansParent(private val size: Int, private val spanCount: Int) :
+    EmpiricalBench<SetTextWithSpans>() {
     override val caseFactory = {
         val text = generateCacheableStringOf(size)
         SetTextWithSpans(text.annotateWithSpans(spanCount))

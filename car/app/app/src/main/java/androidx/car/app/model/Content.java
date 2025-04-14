@@ -16,14 +16,13 @@
 
 package androidx.car.app.model;
 
-import androidx.annotation.NonNull;
 import androidx.car.app.annotations.CarProtocol;
-import androidx.car.app.annotations.ExperimentalCarApi;
 import androidx.car.app.annotations.RequiresCarApi;
+
+import org.jspecify.annotations.NonNull;
 
 /** Interface implemented by models that can be invalidated and refreshed individually. */
 @CarProtocol
-@ExperimentalCarApi
 @RequiresCarApi(6)
 public interface Content {
 
@@ -32,7 +31,6 @@ public interface Content {
      * invalidation and refresh of the component, and can not change.
      *
      */
-    @NonNull
-    String getContentId();
+    @NonNull String getContentId();
 }
 

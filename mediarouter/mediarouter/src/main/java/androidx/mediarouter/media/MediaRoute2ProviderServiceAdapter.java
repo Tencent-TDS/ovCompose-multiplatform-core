@@ -53,6 +53,7 @@ import androidx.collection.ArrayMap;
 import androidx.mediarouter.media.MediaRouteProvider.DynamicGroupRouteController;
 import androidx.mediarouter.media.MediaRouteProvider.DynamicGroupRouteController.DynamicRouteDescriptor;
 import androidx.mediarouter.media.MediaRouteProvider.RouteController;
+import androidx.mediarouter.media.MediaRouteProvider.RouteControllerOptions;
 import androidx.mediarouter.media.MediaRouteProviderService.MediaRouteProviderServiceImplApi30;
 import androidx.mediarouter.media.MediaRouteProviderService.MediaRouteProviderServiceImplApi30.ClientRecord;
 
@@ -135,7 +136,10 @@ class MediaRoute2ProviderServiceAdapter extends MediaRoute2ProviderService {
         int sessionFlags = SessionRecord.SESSION_FLAG_MR2;
         DynamicGroupRouteController controller;
         if (mProviderDescriptor.supportsDynamicGroupRoute()) {
-            controller = provider.onCreateDynamicGroupRouteController(routeId);
+            RouteControllerOptions routeControllerOptions =
+                    new RouteControllerOptions.Builder().setControlHints(sessionHints).build();
+            controller =
+                    provider.onCreateDynamicGroupRouteController(routeId, routeControllerOptions);
             sessionFlags |= SessionRecord.SESSION_FLAG_GROUP | SessionRecord.SESSION_FLAG_DYNAMIC;
             if (controller == null) {
                 Log.w(TAG, "onCreateSession: Couldn't create a dynamic controller");
@@ -177,13 +181,20 @@ class MediaRoute2ProviderServiceAdapter extends MediaRoute2ProviderService {
         RoutingSessionInfo sessionInfo = builder.build();
         sessionRecord.setSessionInfo(sessionInfo);
 
-        // Create member route controllers if it's a static group. Member route controllers
-        // for a dynamic group will be created after the group route is created.
-        // (DynamicGroupRouteController#notifyDynamicRoutesChanged is called)
-        if ((sessionFlags & (SessionRecord.SESSION_FLAG_GROUP | SessionRecord.SESSION_FLAG_DYNAMIC))
-                == SessionRecord.SESSION_FLAG_GROUP) {
-            sessionRecord.updateMemberRouteControllers(routeId, /*oldSession=*/null,
-                    sessionInfo);
+        if ((sessionFlags & SessionRecord.SESSION_FLAG_DYNAMIC) == 0) {
+            if ((sessionFlags & SessionRecord.SESSION_FLAG_GROUP) != 0) {
+                // Create member route controllers if it's a static group. Member route controllers
+                // for a dynamic group will be created after the group route is created.
+                // (DynamicGroupRouteController#notifyDynamicRoutesChanged is called).
+                sessionRecord.updateMemberRouteControllers(
+                        routeId, /* oldSession= */ null, sessionInfo);
+            } else {
+                // The session has a non-group static route controller, whose proxy route
+                // controller has already been created. We just need to map the route id to said
+                // controller, for the controller to be found by its corresponding route id via
+                // findControllerByRouteId (needed, for example, for route volume adjustment).
+                sessionRecord.setStaticMemberRouteId(routeId);
+            }
         }
 
         mServiceImpl.setDynamicRoutesChangedListener(controller);
@@ -665,6 +676,19 @@ class MediaRoute2ProviderServiceAdapter extends MediaRoute2ProviderService {
             mClientRecord = new WeakReference<>(clientRecord);
         }
 
+        /**
+         * Maps the provided {@code routeId} to the top level route controller of this session.
+         *
+         * <p>This method can be used for mapping a route id to a non-group static route controller.
+         * The session record takes care of the creation of the member route controllers, but not of
+         * the top level route controller, which is provided via the constructor. In the case of
+         * non-group static routes, the top level route controller is the single route controller,
+         * and has already been created, so we only need to map the corresponding route id to it.
+         */
+        public void setStaticMemberRouteId(String routeId) {
+            mRouteIdToControllerMap.put(routeId, mController);
+        }
+
         public int getFlags() {
             return mFlags;
         }
@@ -833,7 +857,9 @@ class MediaRoute2ProviderServiceAdapter extends MediaRoute2ProviderService {
                 RouteController controller = findControllerByRouteId(routeId);
                 if (controller == null) {
                     controller = getOrCreateRouteController(routeId, groupId);
-                    controller.onSelect();
+                    if (controller != null) {
+                        controller.onSelect();
+                    }
                 }
             }
             for (String routeId : oldRouteIds) {
@@ -852,6 +878,7 @@ class MediaRoute2ProviderServiceAdapter extends MediaRoute2ProviderService {
             MediaRoute2ProviderServiceAdapter.this.notifySessionCreated(mRequestId, mSessionInfo);
         }
 
+        @Nullable
         private RouteController getOrCreateRouteController(String routeId, String routeGroupId) {
             RouteController controller = mRouteIdToControllerMap.get(routeId);
             if (controller != null) {

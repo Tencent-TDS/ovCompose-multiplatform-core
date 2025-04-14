@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-@file:RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
-
 package androidx.camera.camera2.pipe.compat
 
-import android.hardware.camera2.CameraAccessException
-import android.hardware.camera2.CameraAccessException.CAMERA_ERROR
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraConstrainedHighSpeedCaptureSession
 import android.hardware.camera2.CaptureRequest
@@ -27,10 +23,11 @@ import android.hardware.camera2.params.OutputConfiguration
 import android.os.Build
 import android.os.Handler
 import android.view.Surface
-import androidx.annotation.DoNotInline
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.UnsafeWrapper
+import androidx.camera.camera2.pipe.core.Debug
 import androidx.camera.camera2.pipe.core.Log
+import androidx.camera.camera2.pipe.internal.CameraErrorListener
 import kotlin.reflect.KClass
 import kotlinx.atomicfu.atomic
 
@@ -62,81 +59,59 @@ internal interface CameraCaptureSessionWrapper : UnsafeWrapper, AutoCloseable {
     val inputSurface: Surface?
 
     /** @see [CameraCaptureSession.abortCaptures]. */
-    @Throws(ObjectUnavailableException::class)
-    fun abortCaptures()
+    fun abortCaptures(): Boolean
 
     /**
      * @param request The settings for this exposure
      * @param listener The callback object to notify once this request has been processed.
-     * @param handler The handler on which the listener should be invoked, or null to use the
-     *   current thread's looper.
      * @return An unique capture sequence id.
      * @see [CameraCaptureSession.capture].
      */
-    @Throws(ObjectUnavailableException::class)
-    fun capture(
-        request: CaptureRequest,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int
+    fun capture(request: CaptureRequest, listener: CameraCaptureSession.CaptureCallback): Int?
 
     /**
      * @param requests A list of CaptureRequest(s) for this sequence of exposures
      * @param listener A callback object to notify each time one of the requests in the burst has
      *   been processed.
-     * @param handler The handler on which the listener should be invoked, or null to use the
-     *   current thread's looper.
      * @return An unique capture sequence id.
      * @see [CameraCaptureSession.captureBurst].
      */
-    @Throws(ObjectUnavailableException::class)
     fun captureBurst(
         requests: List<CaptureRequest>,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int?
 
     /**
      * @param requests A list of settings to cycle through indefinitely.
      * @param listener A callback object to notify each time one of the requests in the repeating
      *   bursts has finished processing.
-     * @param handler The handler on which the listener should be invoked, or null to use the
-     *   current thread's looper.
      * @return An unique capture sequence ID.
      * @see [CameraCaptureSession.setRepeatingBurst]
      */
-    @Throws(ObjectUnavailableException::class)
     fun setRepeatingBurst(
         requests: List<CaptureRequest>,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int?
 
     /**
      * @param request The request to repeat indefinitely.
      * @param listener The callback object to notify every time the request finishes processing.
-     * @param handler The handler on which the listener should be invoked, or null to use the
-     *   current thread's looper.
      * @return An unique capture sequence ID.
      * @see [CameraCaptureSession.setRepeatingRequest].
      */
-    @Throws(ObjectUnavailableException::class)
     fun setRepeatingRequest(
         request: CaptureRequest,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int?
 
     /** @see [CameraCaptureSession.stopRepeating]. */
-    @Throws(ObjectUnavailableException::class)
-    fun stopRepeating()
+    fun stopRepeating(): Boolean
 
     /** Forwards to CameraCaptureSession#finalizeOutputConfigurations */
-    @Throws(ObjectUnavailableException::class)
-    fun finalizeOutputConfigurations(outputConfigs: List<OutputConfigurationWrapper>)
+    fun finalizeOutputConfigurations(outputConfigs: List<OutputConfigurationWrapper>): Boolean
 
     /** @see CameraCaptureSession.StateCallback */
-    interface StateCallback {
+    interface StateCallback : SessionStateCallback {
         /** @see CameraCaptureSession.StateCallback.onActive */
         fun onActive(session: CameraCaptureSessionWrapper)
 
@@ -154,16 +129,6 @@ internal interface CameraCaptureSessionWrapper : UnsafeWrapper, AutoCloseable {
 
         /** @see CameraCaptureSession.StateCallback.onReady */
         fun onCaptureQueueEmpty(session: CameraCaptureSessionWrapper)
-
-        /**
-         * Artificial event indicating the session is no longer in use and may be called several
-         * times. [onClosed] and [onConfigureFailed] will call this method directly. This method
-         * should also be called whenever the underlying camera devices is closed, and whenever a
-         * subsequent capture session is configured on the same camera device.
-         *
-         * See b/249258992 for more details.
-         */
-        fun onSessionFinalized()
     }
 }
 
@@ -174,22 +139,22 @@ internal interface CameraConstrainedHighSpeedCaptureSessionWrapper : CameraCaptu
      * @param request A capture list.
      * @return A list of high speed requests.
      */
-    @Throws(ObjectUnavailableException::class)
-    fun createHighSpeedRequestList(request: CaptureRequest): List<CaptureRequest>
+    fun createHighSpeedRequestList(request: CaptureRequest): List<CaptureRequest>?
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal class AndroidCaptureSessionStateCallback(
     private val device: CameraDeviceWrapper,
     private val stateCallback: CameraCaptureSessionWrapper.StateCallback,
-    lastStateCallback: CameraCaptureSessionWrapper.StateCallback?,
-    private val interopSessionStateCallback: CameraCaptureSession.StateCallback? = null
+    lastStateCallback: SessionStateCallback?,
+    private val cameraErrorListener: CameraErrorListener,
+    private val interopSessionStateCallback: CameraCaptureSession.StateCallback? = null,
+    private val callbackHandler: Handler
 ) : CameraCaptureSession.StateCallback() {
     private val _lastStateCallback = atomic(lastStateCallback)
     private val captureSession = atomic<CameraCaptureSessionWrapper?>(null)
 
     override fun onConfigured(session: CameraCaptureSession) {
-        stateCallback.onConfigured(getWrapped(session))
+        stateCallback.onConfigured(getWrapped(session, cameraErrorListener))
 
         // b/249258992 - This is a workaround to ensure previous CameraCaptureSession.StateCallback
         //   instances receive some kind of "finalization" signal if onClosed is not fired by the
@@ -199,58 +164,69 @@ internal class AndroidCaptureSessionStateCallback(
     }
 
     override fun onConfigureFailed(session: CameraCaptureSession) {
-        stateCallback.onConfigureFailed(getWrapped(session))
+        stateCallback.onConfigureFailed(getWrapped(session, cameraErrorListener))
         finalizeSession()
         interopSessionStateCallback?.onConfigureFailed(session)
     }
 
     override fun onReady(session: CameraCaptureSession) {
-        stateCallback.onReady(getWrapped(session))
+        stateCallback.onReady(getWrapped(session, cameraErrorListener))
         interopSessionStateCallback?.onReady(session)
     }
 
     override fun onActive(session: CameraCaptureSession) {
-        stateCallback.onActive(getWrapped(session))
+        stateCallback.onActive(getWrapped(session, cameraErrorListener))
         interopSessionStateCallback?.onActive(session)
     }
 
     override fun onClosed(session: CameraCaptureSession) {
-        stateCallback.onClosed(getWrapped(session))
+        stateCallback.onClosed(getWrapped(session, cameraErrorListener))
         finalizeSession()
         interopSessionStateCallback?.onClosed(session)
     }
 
     override fun onCaptureQueueEmpty(session: CameraCaptureSession) {
-        stateCallback.onCaptureQueueEmpty(getWrapped(session))
+        stateCallback.onCaptureQueueEmpty(getWrapped(session, cameraErrorListener))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Api26CompatImpl.onCaptureQueueEmpty(session, interopSessionStateCallback)
+            Api26Compat.onCaptureQueueEmpty(interopSessionStateCallback, session)
         }
     }
 
-    private fun getWrapped(session: CameraCaptureSession): CameraCaptureSessionWrapper {
+    private fun getWrapped(
+        session: CameraCaptureSession,
+        cameraErrorListener: CameraErrorListener,
+    ): CameraCaptureSessionWrapper {
         var local = captureSession.value
         if (local != null) {
             return local
         }
 
-        local = wrapSession(session)
+        local = wrapSession(session, cameraErrorListener)
         if (captureSession.compareAndSet(null, local)) {
             return local
         }
         return captureSession.value!!
     }
 
-    private fun wrapSession(session: CameraCaptureSession): CameraCaptureSessionWrapper {
+    private fun wrapSession(
+        session: CameraCaptureSession,
+        cameraErrorListener: CameraErrorListener,
+    ): CameraCaptureSessionWrapper {
         // Starting in Android P, it's possible for the standard "createCaptureSession" method to
         // return a CameraConstrainedHighSpeedCaptureSession depending on the configuration. If
         // this happens, several methods are not allowed, the behavior is different, and interacting
         // with the session requires several behavior changes for these interactions to work well.
-        return if (Build.VERSION.SDK_INT >= 23 &&
-            session is CameraConstrainedHighSpeedCaptureSession
+        return if (
+            Build.VERSION.SDK_INT >= 23 && session is CameraConstrainedHighSpeedCaptureSession
         ) {
-            AndroidCameraConstrainedHighSpeedCaptureSession(device, session)
+            AndroidCameraConstrainedHighSpeedCaptureSession(
+                device,
+                session,
+                cameraErrorListener,
+                callbackHandler
+            )
         } else {
-            AndroidCameraCaptureSession(device, session)
+            AndroidCameraCaptureSession(device, session, cameraErrorListener, callbackHandler)
         }
     }
 
@@ -264,70 +240,51 @@ internal class AndroidCaptureSessionStateCallback(
         val previousSession = _lastStateCallback.getAndSet(null)
         previousSession?.let { previousSession.onSessionFinalized() }
     }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private object Api26CompatImpl {
-        @DoNotInline
-        @JvmStatic
-        fun onCaptureQueueEmpty(
-            session: CameraCaptureSession,
-            interopSessionStateCallback: CameraCaptureSession.StateCallback?
-        ) {
-            interopSessionStateCallback?.onCaptureQueueEmpty(session)
-        }
-    }
 }
 
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 internal open class AndroidCameraCaptureSession(
     override val device: CameraDeviceWrapper,
-    private val cameraCaptureSession: CameraCaptureSession
+    private val cameraCaptureSession: CameraCaptureSession,
+    private val cameraErrorListener: CameraErrorListener,
+    private val callbackHandler: Handler
 ) : CameraCaptureSessionWrapper {
-    override fun abortCaptures() {
-        rethrowCamera2Exceptions { cameraCaptureSession.abortCaptures() }
-    }
+    override fun abortCaptures(): Boolean =
+        instrumentAndCatch("abortCaptures") { cameraCaptureSession.abortCaptures() } != null
 
     override fun capture(
         request: CaptureRequest,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int {
-        return rethrowCamera2Exceptions { cameraCaptureSession.capture(request, listener, handler) }
-    }
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int? =
+        instrumentAndCatch("capture") {
+            cameraCaptureSession.capture(request, listener, callbackHandler)
+        }
 
     override fun captureBurst(
         requests: List<CaptureRequest>,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int {
-        return rethrowCamera2Exceptions {
-            cameraCaptureSession.captureBurst(requests, listener, handler)
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int? =
+        instrumentAndCatch("captureBurst") {
+            cameraCaptureSession.captureBurst(requests, listener, callbackHandler)
         }
-    }
 
     override fun setRepeatingBurst(
         requests: List<CaptureRequest>,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int {
-        return rethrowCamera2Exceptions {
-            cameraCaptureSession.setRepeatingBurst(requests, listener, handler)
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int? =
+        instrumentAndCatch("setRepeatingBurst") {
+            cameraCaptureSession.setRepeatingBurst(requests, listener, callbackHandler)
         }
-    }
 
     override fun setRepeatingRequest(
         request: CaptureRequest,
-        listener: CameraCaptureSession.CaptureCallback,
-        handler: Handler?
-    ): Int {
-        return rethrowCamera2Exceptions {
-            cameraCaptureSession.setRepeatingRequest(request, listener, handler)
+        listener: CameraCaptureSession.CaptureCallback
+    ): Int? =
+        instrumentAndCatch("setRepeatingRequest") {
+            cameraCaptureSession.setRepeatingRequest(request, listener, callbackHandler)
         }
-    }
 
-    override fun stopRepeating() {
-        rethrowCamera2Exceptions { cameraCaptureSession.stopRepeating() }
-    }
+    override fun stopRepeating(): Boolean =
+        instrumentAndCatch("stopRepeating") { cameraCaptureSession.stopRepeating() } != null
 
     override val isReprocessable: Boolean
         get() {
@@ -349,30 +306,21 @@ internal open class AndroidCameraCaptureSession(
         }
 
     @RequiresApi(26)
-    override fun finalizeOutputConfigurations(outputConfigs: List<OutputConfigurationWrapper>) {
+    override fun finalizeOutputConfigurations(
+        outputConfigs: List<OutputConfigurationWrapper>
+    ): Boolean {
         check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             "Attempting to call finalizeOutputConfigurations before O is not supported and may " +
                 "lead to to unexpected behavior if an application is expects this call to " +
                 "succeed."
         }
 
-        var exceptionToThrow: Throwable? = null
-        try {
+        return instrumentAndCatch("finalizeOutputConfigurations") {
             Api26Compat.finalizeOutputConfigurations(
                 cameraCaptureSession,
-                outputConfigs.map { it.unwrapAs(OutputConfiguration::class) })
-        } catch (e: CameraAccessException) {
-            // TODO(b/266734799): There is a possibility that we might finalize output
-            //  configurations on a camera that's been disconnected. In such cases, we'll receive
-            //  CameraAccessException.CAMERA_ERROR. Catch it for now, until we properly report and
-            //  handle capture session errors.
-            if (e.reason != CAMERA_ERROR) {
-                exceptionToThrow = e
-            }
-        } catch (e: Throwable) {
-            exceptionToThrow = e
-        }
-        exceptionToThrow?.let { rethrowCamera2Exceptions { throw it } }
+                outputConfigs.map { it.unwrapAs(OutputConfiguration::class) }
+            )
+        } != null
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -385,6 +333,13 @@ internal open class AndroidCameraCaptureSession(
     override fun close() {
         return cameraCaptureSession.close()
     }
+
+    /** Utility function to trace, measure, and suppress exceptions for expensive method calls. */
+    @Throws(ObjectUnavailableException::class)
+    internal inline fun <T> instrumentAndCatch(fnName: String, crossinline block: () -> T) =
+        Debug.instrument("CXCP#$fnName-${device.cameraId.value}") {
+            catchAndReportCameraExceptions(device.cameraId, cameraErrorListener, block)
+        }
 }
 
 /**
@@ -395,14 +350,19 @@ internal open class AndroidCameraCaptureSession(
 internal class AndroidCameraConstrainedHighSpeedCaptureSession
 internal constructor(
     device: CameraDeviceWrapper,
-    private val session: CameraConstrainedHighSpeedCaptureSession
-) : AndroidCameraCaptureSession(device, session), CameraConstrainedHighSpeedCaptureSessionWrapper {
-    @Throws(ObjectUnavailableException::class)
-    override fun createHighSpeedRequestList(request: CaptureRequest): List<CaptureRequest> {
-        return try {
+    private val session: CameraConstrainedHighSpeedCaptureSession,
+    cameraErrorListener: CameraErrorListener,
+    callbackHandler: Handler
+) :
+    AndroidCameraCaptureSession(device, session, cameraErrorListener, callbackHandler),
+    CameraConstrainedHighSpeedCaptureSessionWrapper {
+    override fun createHighSpeedRequestList(request: CaptureRequest): List<CaptureRequest>? =
+        try {
             // This converts a single CaptureRequest into a list of CaptureRequest(s) that must be
             // submitted together during high speed recording.
-            session.createHighSpeedRequestList(request)
+            Debug.trace("CXCP#createHighSpeedRequestList") {
+                session.createHighSpeedRequestList(request)
+            }
         } catch (e: IllegalStateException) {
 
             // b/111749845: If the camera device is closed before calling
@@ -410,7 +370,7 @@ internal constructor(
             // happen during normal operation of the camera, log and rethrow the error as a standard
             // exception that can be ignored.
             Log.warn { "Failed to createHighSpeedRequestList. $device may be closed." }
-            throw ObjectUnavailableException(e)
+            null
         } catch (e: IllegalArgumentException) {
 
             // b/111749845: If the surface (such as the viewfinder) is destroyed before calling
@@ -421,9 +381,19 @@ internal constructor(
                 "Failed to createHighSpeedRequestList from $device because the output surface" +
                     " was destroyed before calling createHighSpeedRequestList."
             }
-            throw ObjectUnavailableException(e)
+            null
+        } catch (e: UnsupportedOperationException) {
+
+            // b/358592149: When a high speed session is closed, and then another high speed session
+            // is opened, the resources from the previous session might not be available yet.
+            // Since Camera2CaptureSequenceProcessor will try to create the session again, log
+            // and rethrow the error as a standard exception that can be ignored.
+            Log.warn {
+                "Failed to createHighSpeedRequestList from $device because the output surface" +
+                    " was not available."
+            }
+            null
         }
-    }
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : Any> unwrapAs(type: KClass<T>): T? =

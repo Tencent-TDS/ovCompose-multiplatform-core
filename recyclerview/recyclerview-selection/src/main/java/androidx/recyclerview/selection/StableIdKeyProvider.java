@@ -24,13 +24,14 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.collection.LongSparseArray;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.OnChildAttachStateChangeListener;
 import androidx.recyclerview.widget.RecyclerView.RecyclerListener;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An {@link ItemKeyProvider} that provides item keys by way of native
@@ -151,7 +152,7 @@ public final class StableIdKeyProvider extends ItemKeyProvider<Long> {
      * A wrapper interface for RecyclerView allowing for easy unit testing.
      */
     interface ViewHost {
-        /** Registers View{Holder} lifecycle event listener. **/
+        /** Registers View{Holder} lifecycle event listener. */
         void registerLifecycleListener(@NonNull LifecycleListener listener);
 
         /**

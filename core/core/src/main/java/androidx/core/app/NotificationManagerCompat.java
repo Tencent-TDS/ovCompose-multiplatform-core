@@ -16,7 +16,7 @@
 
 package androidx.core.app;
 
-import static androidx.annotation.RestrictTo.Scope.TESTS;
+import static androidx.annotation.RestrictTo.Scope.LIBRARY_GROUP_PREFIX;
 
 import android.Manifest;
 import android.app.AppOpsManager;
@@ -24,12 +24,14 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationChannelGroup;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ShortcutInfo;
 import android.os.Build;
@@ -42,23 +44,28 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.provider.Settings;
 import android.service.notification.NotificationListenerService;
+import android.service.notification.StatusBarNotification;
 import android.support.v4.app.INotificationSideChannel;
 import android.util.Log;
 
-import androidx.annotation.DoNotInline;
 import androidx.annotation.GuardedBy;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.annotation.IntDef;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -122,6 +129,48 @@ public final class NotificationManagerCompat {
     @GuardedBy("sLock")
     private static SideChannelManager sSideChannelManager;
 
+    @RestrictTo(LIBRARY_GROUP_PREFIX)
+    @IntDef({INTERRUPTION_FILTER_UNKNOWN, INTERRUPTION_FILTER_ALL, INTERRUPTION_FILTER_PRIORITY,
+            INTERRUPTION_FILTER_NONE, INTERRUPTION_FILTER_ALARMS})
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface InterruptionFilter {
+    }
+
+    /**
+     * {@link #getCurrentInterruptionFilter() Interruption filter} constant -
+     *     Normal interruption filter - no notifications are suppressed.
+     */
+    public static final int INTERRUPTION_FILTER_ALL = 1;
+
+    /**
+     * {@link #getCurrentInterruptionFilter() Interruption filter} constant -
+     *     Priority interruption filter - all notifications are suppressed except those that match
+     *     the priority criteria. Some audio streams are muted. See
+     *     {@link Policy#priorityCallSenders}, {@link Policy#priorityCategories},
+     *     {@link Policy#priorityMessageSenders} to define or query this criteria. Users can
+     *     additionally specify packages that can bypass this interruption filter.
+     */
+    public static final int INTERRUPTION_FILTER_PRIORITY = 2;
+
+    /**
+     * {@link #getCurrentInterruptionFilter() Interruption filter} constant -
+     *     No interruptions filter - all notifications are suppressed and all audio streams (except
+     *     those used for phone calls) and vibrations are muted.
+     */
+    public static final int INTERRUPTION_FILTER_NONE = 3;
+
+    /**
+     * {@link #getCurrentInterruptionFilter() Interruption filter} constant -
+     *     Alarms only interruption filter - all notifications except those of category
+     *     {@link Notification#CATEGORY_ALARM} are suppressed. Some audio streams are muted.
+     */
+    public static final int INTERRUPTION_FILTER_ALARMS = 4;
+
+    /** {@link #getCurrentInterruptionFilter() Interruption filter} constant -
+     *     returned when the value is unavailable for any reason.
+     */
+    public static final int INTERRUPTION_FILTER_UNKNOWN = 0;
+
     /**
      * Value signifying that the user has not expressed an importance.
      *
@@ -163,8 +212,7 @@ public final class NotificationManagerCompat {
     public static final int IMPORTANCE_MAX = 5;
 
     /** Get a {@link NotificationManagerCompat} instance for a provided context. */
-    @NonNull
-    public static NotificationManagerCompat from(@NonNull Context context) {
+    public static @NonNull NotificationManagerCompat from(@NonNull Context context) {
         return new NotificationManagerCompat(context);
     }
 
@@ -174,9 +222,8 @@ public final class NotificationManagerCompat {
                 Context.NOTIFICATION_SERVICE);
     }
 
-    @RestrictTo(TESTS)
     @VisibleForTesting
-    protected NotificationManagerCompat(@NonNull NotificationManager notificationManager,
+    NotificationManagerCompat(@NonNull NotificationManager notificationManager,
             @NonNull Context context) {
         mContext = context;
         mNotificationManager = notificationManager;
@@ -284,12 +331,41 @@ public final class NotificationManagerCompat {
     }
 
     /**
+     * Recover a list of active notifications: ones that have been posted by the calling app that
+     * have not yet been dismissed by the user or {@link #cancel(String, int)}ed by the app.
+     *
+     * <p><Each notification is embedded in a {@link StatusBarNotification} object, including the
+     * original <code>tag</code> and <code>id</code> supplied to
+     * {@link #notify(String, int, Notification) notify()}
+     * (via {@link StatusBarNotification#getTag() getTag()} and
+     * {@link StatusBarNotification#getId() getId()}) as well as a copy of the original
+     * {@link Notification} object (via {@link StatusBarNotification#getNotification()}).
+     * </p>
+     * <p>From {@link Build.VERSION_CODES#Q}, will also return notifications you've posted as an
+     * app's notification delegate via
+     * {@link NotificationManager#notifyAsPackage(String, String, int, Notification)}.
+     * </p>
+     * <p>
+     *     Returns an empty list on {@link Build.VERSION_CODES#LOLLIPOP_MR1} and earlier.
+     * </p>
+     *
+     * @return A list of {@link StatusBarNotification}.
+     */
+    public @NonNull List<StatusBarNotification> getActiveNotifications() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            return Api23Impl.getActiveNotifications(mNotificationManager);
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+    /**
      * Returns whether notifications from the calling package are not blocked.
      */
     public boolean areNotificationsEnabled() {
         if (Build.VERSION.SDK_INT >= 24) {
             return Api24Impl.areNotificationsEnabled(mNotificationManager);
-        } else if (Build.VERSION.SDK_INT >= 19) {
+        } else {
             AppOpsManager appOps =
                     (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
             ApplicationInfo appInfo = mContext.getApplicationInfo();
@@ -307,8 +383,6 @@ public final class NotificationManagerCompat {
                     | InvocationTargetException | IllegalAccessException | RuntimeException e) {
                 return true;
             }
-        } else {
-            return true;
         }
     }
 
@@ -527,8 +601,7 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannel getNotificationChannel(@NonNull String channelId) {
+    public @Nullable NotificationChannel getNotificationChannel(@NonNull String channelId) {
         if (Build.VERSION.SDK_INT >= 26) {
             return Api26Impl.getNotificationChannel(mNotificationManager, channelId);
         }
@@ -540,8 +613,8 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannelCompat getNotificationChannelCompat(@NonNull String channelId) {
+    public @Nullable NotificationChannelCompat getNotificationChannelCompat(
+            @NonNull String channelId) {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel channel = getNotificationChannel(channelId);
             if (channel != null) {
@@ -559,8 +632,7 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannel getNotificationChannel(@NonNull String channelId,
+    public @Nullable NotificationChannel getNotificationChannel(@NonNull String channelId,
             @NonNull String conversationId) {
         if (Build.VERSION.SDK_INT >= 30) {
             return Api30Impl.getNotificationChannel(mNotificationManager, channelId,
@@ -577,9 +649,8 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannelCompat getNotificationChannelCompat(@NonNull String channelId,
-            @NonNull String conversationId) {
+    public @Nullable NotificationChannelCompat getNotificationChannelCompat(
+            @NonNull String channelId, @NonNull String conversationId) {
         if (Build.VERSION.SDK_INT >= 26) {
             NotificationChannel channel = getNotificationChannel(channelId, conversationId);
             if (channel != null) {
@@ -594,8 +665,8 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannelGroup getNotificationChannelGroup(@NonNull String channelGroupId) {
+    public @Nullable NotificationChannelGroup getNotificationChannelGroup(
+            @NonNull String channelGroupId) {
         if (Build.VERSION.SDK_INT >= 28) {
             return Api28Impl.getNotificationChannelGroup(mNotificationManager, channelGroupId);
         } else if (Build.VERSION.SDK_INT >= 26) {
@@ -615,8 +686,7 @@ public final class NotificationManagerCompat {
      *
      * Returns {@code null} on older SDKs which don't support Notification Channels.
      */
-    @Nullable
-    public NotificationChannelGroupCompat getNotificationChannelGroupCompat(
+    public @Nullable NotificationChannelGroupCompat getNotificationChannelGroupCompat(
             @NonNull String channelGroupId) {
         if (Build.VERSION.SDK_INT >= 28) {
             NotificationChannelGroup group = getNotificationChannelGroup(channelGroupId);
@@ -636,8 +706,7 @@ public final class NotificationManagerCompat {
      * Returns all notification channels belonging to the calling app
      * or an empty list on older SDKs which don't support Notification Channels.
      */
-    @NonNull
-    public List<NotificationChannel> getNotificationChannels() {
+    public @NonNull List<NotificationChannel> getNotificationChannels() {
         if (Build.VERSION.SDK_INT >= 26) {
             return Api26Impl.getNotificationChannels(mNotificationManager);
         }
@@ -648,9 +717,8 @@ public final class NotificationManagerCompat {
      * Returns all notification channels belonging to the calling app
      * or an empty list on older SDKs which don't support Notification Channels.
      */
-    @NonNull
     @SuppressWarnings("MixedMutabilityReturnType")
-    public List<NotificationChannelCompat> getNotificationChannelsCompat() {
+    public @NonNull List<NotificationChannelCompat> getNotificationChannelsCompat() {
         if (Build.VERSION.SDK_INT >= 26) {
             List<NotificationChannel> channels = getNotificationChannels();
             if (!channels.isEmpty()) {
@@ -668,8 +736,7 @@ public final class NotificationManagerCompat {
      * Returns all notification channel groups belonging to the calling app
      * or an empty list on older SDKs which don't support Notification Channels.
      */
-    @NonNull
-    public List<NotificationChannelGroup> getNotificationChannelGroups() {
+    public @NonNull List<NotificationChannelGroup> getNotificationChannelGroups() {
         if (Build.VERSION.SDK_INT >= 26) {
             return Api26Impl.getNotificationChannelGroups(mNotificationManager);
         }
@@ -680,9 +747,8 @@ public final class NotificationManagerCompat {
      * Returns all notification channel groups belonging to the calling app
      * or an empty list on older SDKs which don't support Notification Channels.
      */
-    @NonNull
     @SuppressWarnings("MixedMutabilityReturnType")
-    public List<NotificationChannelGroupCompat> getNotificationChannelGroupsCompat() {
+    public @NonNull List<NotificationChannelGroupCompat> getNotificationChannelGroupsCompat() {
         if (Build.VERSION.SDK_INT >= 26) {
             List<NotificationChannelGroup> groups = getNotificationChannelGroups();
             if (!groups.isEmpty()) {
@@ -707,8 +773,7 @@ public final class NotificationManagerCompat {
     /**
      * Get the set of packages that have an enabled notification listener component within them.
      */
-    @NonNull
-    public static Set<String> getEnabledListenerPackages(@NonNull Context context) {
+    public static @NonNull Set<String> getEnabledListenerPackages(@NonNull Context context) {
         final String enabledNotificationListeners = Settings.Secure.getString(
                 context.getContentResolver(),
                 SETTING_ENABLED_NOTIFICATION_LISTENERS);
@@ -732,11 +797,62 @@ public final class NotificationManagerCompat {
     }
 
     /**
+     * Returns whether the calling app can send fullscreen intents.
+     *
+     * <p>Fullscreen intents were introduced in Android
+     * {@link android.os.Build.VERSION_CODES#HONEYCOMB}, where apps could always attach a full
+     * screen intent to their notification via
+     * {@link Notification.Builder#setFullScreenIntent(PendingIntent, boolean)}}.
+     *
+     * <p>Android {@link android.os.Build.VERSION_CODES#Q} introduced the
+     * {@link android.Manifest.permission#USE_FULL_SCREEN_INTENT}
+     * permission, where SystemUI will only show the full screen intent attached to a notification
+     * if the permission is declared in the manifest.
+     *
+     * <p>Starting from Android {@link android.os.Build.VERSION_CODES#UPSIDE_DOWN_CAKE}, apps
+     * may not have permission to use {@link android.Manifest.permission#USE_FULL_SCREEN_INTENT}. If
+     * the FSI permission is denied, SystemUI will show the notification as an expanded heads up
+     * notification on lockscreen.
+     *
+     * <p>To request access, add the {@link android.Manifest.permission#USE_FULL_SCREEN_INTENT}
+     * permission to your manifest, and use
+     * {@link android.provider.Settings#ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT} to send the user
+     * to the settings page where they can grant your app the FSI permission.
+     */
+    public boolean canUseFullScreenIntent() {
+        if (Build.VERSION.SDK_INT < 29) {
+            return true;
+        }
+        if (Build.VERSION.SDK_INT < 34) {
+            final int permissionState =
+                    mContext.checkSelfPermission(Manifest.permission.USE_FULL_SCREEN_INTENT);
+            return permissionState == PackageManager.PERMISSION_GRANTED;
+        }
+        return Api34Impl.canUseFullScreenIntent(mNotificationManager);
+    }
+
+    /**
      * Returns true if this notification should use the side channel for delivery.
      */
     private static boolean useSideChannelForNotification(Notification notification) {
         Bundle extras = NotificationCompat.getExtras(notification);
         return extras != null && extras.getBoolean(EXTRA_USE_SIDE_CHANNEL);
+    }
+
+    /**
+     * Gets the current notification interruption filter.
+     * <p>
+     * The interruption filter defines which notifications are allowed to
+     * interrupt the user (e.g. via sound &amp; vibration) and is applied
+     * globally.
+     */
+    public @InterruptionFilter int getCurrentInterruptionFilter() {
+        if (Build.VERSION.SDK_INT < 23) {
+            // Prior to API 23, Interruption Filters were not implemented, so we return
+            // unknown filter level.
+            return INTERRUPTION_FILTER_UNKNOWN;
+        }
+        return Api23Impl.getCurrentInterruptionFilter(mNotificationManager);
     }
 
     /**
@@ -1056,9 +1172,8 @@ public final class NotificationManagerCompat {
             service.notify(packageName, id, tag, notif);
         }
 
-        @NonNull
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             StringBuilder sb = new StringBuilder("NotifyTask[");
             sb.append("packageName:").append(packageName);
             sb.append(", id:").append(id);
@@ -1097,9 +1212,8 @@ public final class NotificationManagerCompat {
             }
         }
 
-        @NonNull
         @Override
-        public String toString() {
+        public @NonNull String toString() {
             StringBuilder sb = new StringBuilder("CancelTask[");
             sb.append("packageName:").append(packageName);
             sb.append(", id:").append(id);
@@ -1111,7 +1225,31 @@ public final class NotificationManagerCompat {
     }
 
     /**
-     * A class for wrapping calls to {@link Notification.Builder} methods which
+     * A class for wrapping calls to {@link NotificationManager} methods which
+     * were added in API 23; these calls must be wrapped to avoid performance issues.
+     * See the UnsafeNewApiCall lint rule for more details.
+     */
+    @RequiresApi(23)
+    static class Api23Impl {
+        private Api23Impl() { }
+
+        static List<StatusBarNotification> getActiveNotifications(
+                NotificationManager notificationManager) {
+            StatusBarNotification[] notifs = notificationManager.getActiveNotifications();
+            if (notifs == null) {
+                return new ArrayList<>();
+            }
+            return Arrays.asList(notifs);
+        }
+
+        static int getCurrentInterruptionFilter(
+                NotificationManager notificationManager) {
+            return notificationManager.getCurrentInterruptionFilter();
+        }
+    }
+
+    /**
+     * A class for wrapping calls to {@link NotificationManager} methods which
      * were added in API 24; these calls must be wrapped to avoid performance issues.
      * See the UnsafeNewApiCall lint rule for more details.
      */
@@ -1119,12 +1257,10 @@ public final class NotificationManagerCompat {
     static class Api24Impl {
         private Api24Impl() { }
 
-        @DoNotInline
         static boolean areNotificationsEnabled(NotificationManager notificationManager) {
             return notificationManager.areNotificationsEnabled();
         }
 
-        @DoNotInline
         static int getImportance(NotificationManager notificationManager) {
             return notificationManager.getImportance();
         }
@@ -1141,67 +1277,56 @@ public final class NotificationManagerCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void createNotificationChannel(NotificationManager notificationManager,
                 NotificationChannel channel) {
             notificationManager.createNotificationChannel(channel);
         }
 
-        @DoNotInline
         static NotificationChannel getNotificationChannel(NotificationManager notificationManager,
                 String channelId) {
             return notificationManager.getNotificationChannel(channelId);
         }
 
-        @DoNotInline
         static void createNotificationChannels(
                 NotificationManager notificationManager, List<NotificationChannel> channels) {
             notificationManager.createNotificationChannels(channels);
         }
 
-        @DoNotInline
         static List<NotificationChannel> getNotificationChannels(
                 NotificationManager notificationManager) {
             return notificationManager.getNotificationChannels();
         }
 
-        @DoNotInline
         static void createNotificationChannelGroup(NotificationManager notificationManager,
                 NotificationChannelGroup group) {
             notificationManager.createNotificationChannelGroup(group);
         }
 
-        @DoNotInline
         static void createNotificationChannelGroups(NotificationManager notificationManager,
                 List<NotificationChannelGroup> groups) {
             notificationManager.createNotificationChannelGroups(groups);
         }
 
-        @DoNotInline
         static List<NotificationChannelGroup> getNotificationChannelGroups(
                 NotificationManager notificationManager) {
             return notificationManager.getNotificationChannelGroups();
         }
 
-        @DoNotInline
         static void deleteNotificationChannel(NotificationManager notificationManager,
                 String channelId) {
             notificationManager.deleteNotificationChannel(channelId);
         }
 
-        @DoNotInline
         static void deleteNotificationChannelGroup(NotificationManager notificationManager,
                 String groupId) {
             notificationManager.deleteNotificationChannelGroup(groupId);
         }
 
 
-        @DoNotInline
         static String getId(NotificationChannel notificationChannel) {
             return notificationChannel.getId();
         }
 
-        @DoNotInline
         static String getId(NotificationChannelGroup notificationChannelGroup) {
             return notificationChannelGroup.getId();
         }
@@ -1216,7 +1341,6 @@ public final class NotificationManagerCompat {
     static class Api28Impl {
         private Api28Impl() { }
 
-        @DoNotInline
         static NotificationChannelGroup getNotificationChannelGroup(
                 NotificationManager notificationManager, String channelGroupId) {
             return notificationManager.getNotificationChannelGroup(channelGroupId);
@@ -1232,16 +1356,27 @@ public final class NotificationManagerCompat {
     static class Api30Impl {
         private Api30Impl() { }
 
-        @DoNotInline
         static String getParentChannelId(NotificationChannel notificationChannel) {
             return notificationChannel.getParentChannelId();
         }
 
-        @DoNotInline
         static NotificationChannel getNotificationChannel(NotificationManager notificationManager,
                 String channelId, String conversationId) {
             return notificationManager.getNotificationChannel(channelId, conversationId);
         }
     }
 
+    /**
+     * A class for wrapping calls to {@link Notification.Builder} methods which
+     * were added in API 34; these calls must be wrapped to avoid performance issues.
+     * See the UnsafeNewApiCall lint rule for more details.
+     */
+    @RequiresApi(34)
+    static class Api34Impl {
+        private Api34Impl() { }
+
+        static boolean canUseFullScreenIntent(NotificationManager notificationManager) {
+            return notificationManager.canUseFullScreenIntent();
+        }
+    }
 }

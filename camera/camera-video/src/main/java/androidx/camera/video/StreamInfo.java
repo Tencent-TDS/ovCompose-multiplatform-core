@@ -18,14 +18,15 @@ package androidx.camera.video;
 
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.camera.core.SurfaceRequest;
 import androidx.camera.core.impl.ConstantObservable;
 import androidx.camera.core.impl.Observable;
 
 import com.google.auto.value.AutoValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,7 +37,6 @@ import java.util.Set;
  * A class that contains the information of an video output stream.
  *
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 @AutoValue
 public abstract class StreamInfo {
@@ -73,9 +73,13 @@ public abstract class StreamInfo {
 
     }
 
-    @NonNull
-    static StreamInfo of(int id, @NonNull StreamState streamState) {
-        return new AutoValue_StreamInfo(id, streamState);
+    static @NonNull StreamInfo of(int id, @NonNull StreamState streamState) {
+        return new AutoValue_StreamInfo(id, streamState, null);
+    }
+
+    static @NonNull StreamInfo of(int id, @NonNull StreamState streamState,
+            SurfaceRequest.@Nullable TransformationInfo inProgressTransformationInfo) {
+        return new AutoValue_StreamInfo(id, streamState, inProgressTransformationInfo);
     }
 
     /**
@@ -108,6 +112,13 @@ public abstract class StreamInfo {
      * as a performance improvement. The default implementation returns an {@link Observable}
      * which is always {@link StreamState#ACTIVE}.
      */
-    @NonNull
-    public abstract StreamState getStreamState();
+    public abstract @NonNull StreamState getStreamState();
+
+    /**
+     * Returns the existing transformation information if there's an in-processing surface.
+     *
+     * @return the in-progress transformation information, or {@code null} if there's no
+     * in-processing surface.
+     */
+    public abstract SurfaceRequest.@Nullable TransformationInfo getInProgressTransformationInfo();
 }

@@ -19,13 +19,11 @@ package androidx.camera.extensions.internal.sessionprocessor;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
-import androidx.camera.camera2.impl.Camera2ImplConfig;
-import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.impl.Config;
 import androidx.camera.core.impl.RequestProcessor;
+import androidx.camera.extensions.internal.RequestOptionConfig;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,8 +33,6 @@ import java.util.Map;
 /**
  * A builder for building {@link androidx.camera.core.impl.RequestProcessor.Request}.
  */
-@OptIn(markerClass = ExperimentalCamera2Interop.class)
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 class RequestBuilder {
     private List<Integer> mTargetOutputConfigIds = new ArrayList<>();
     private Map<CaptureRequest.Key<?>, Object> mParameters = new HashMap<>();
@@ -46,33 +42,28 @@ class RequestBuilder {
     RequestBuilder() {
     }
 
-    @NonNull
-    RequestBuilder addTargetOutputConfigIds(int targetOutputConfigId) {
+    @NonNull RequestBuilder addTargetOutputConfigIds(int targetOutputConfigId) {
         mTargetOutputConfigIds.add(targetOutputConfigId);
         return this;
     }
 
-    @NonNull
-    RequestBuilder setParameters(@NonNull CaptureRequest.Key<?> key,
+    @NonNull RequestBuilder setParameters(CaptureRequest.@NonNull Key<?> key,
             @NonNull Object value) {
         mParameters.put(key, value);
         return this;
     }
 
-    @NonNull
-    RequestBuilder setTemplateId(int templateId) {
+    @NonNull RequestBuilder setTemplateId(int templateId) {
         mTemplateId = templateId;
         return this;
     }
 
-    @NonNull
-    public RequestBuilder setCaptureStageId(int captureStageId) {
+    public @NonNull RequestBuilder setCaptureStageId(int captureStageId) {
         mCaptureStageId = captureStageId;
         return this;
     }
 
-    @NonNull
-    RequestProcessor.Request build() {
+    RequestProcessor.@NonNull Request build() {
         return new RequestProcessorRequest(
                 mTargetOutputConfigIds, mParameters, mTemplateId, mCaptureStageId);
     }
@@ -91,25 +82,23 @@ class RequestBuilder {
             mTemplateId = templateId;
             mCaptureStageId = captureStageId;
 
-            Camera2ImplConfig.Builder camera2ConfigBuilder = new Camera2ImplConfig.Builder();
+            RequestOptionConfig.Builder requestOptionBuilder = new RequestOptionConfig.Builder();
             for (CaptureRequest.Key<?> key : parameters.keySet()) {
                 @SuppressWarnings("unchecked")
                 CaptureRequest.Key<Object> objKey = (CaptureRequest.Key<Object>) key;
-                camera2ConfigBuilder.setCaptureRequestOption(objKey,
+                requestOptionBuilder.setCaptureRequestOption(objKey,
                         parameters.get(objKey));
             }
-            mParameterConfig = camera2ConfigBuilder.build();
+            mParameterConfig = requestOptionBuilder.build();
         }
 
         @Override
-        @NonNull
-        public List<Integer> getTargetOutputConfigIds() {
+        public @NonNull List<Integer> getTargetOutputConfigIds() {
             return mTargetOutputConfigIds;
         }
 
         @Override
-        @NonNull
-        public Config getParameters() {
+        public @NonNull Config getParameters() {
             return mParameterConfig;
         }
 

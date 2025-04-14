@@ -23,11 +23,11 @@ import android.os.Build;
 import android.util.Log;
 import android.widget.CompoundButton;
 
-import androidx.annotation.DoNotInline;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.graphics.drawable.DrawableCompat;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.reflect.Field;
 
@@ -50,6 +50,7 @@ public final class CompoundButtonCompat {
      * automatically mutate the drawable and apply the specified tint and tint
      * mode using {@link DrawableCompat#setTintList(Drawable, ColorStateList)}.
      *
+     * @param button button for which to apply the tint.
      * @param tint the tint to apply, may be {@code null} to clear tint
      *
      * @see #setButtonTintList(CompoundButton, ColorStateList)
@@ -68,8 +69,7 @@ public final class CompoundButtonCompat {
      *
      * @see #setButtonTintList(CompoundButton, ColorStateList)
      */
-    @Nullable
-    public static ColorStateList getButtonTintList(@NonNull CompoundButton button) {
+    public static @Nullable ColorStateList getButtonTintList(@NonNull CompoundButton button) {
         if (Build.VERSION.SDK_INT >= 21) {
             return Api21Impl.getButtonTintList(button);
         }
@@ -84,6 +84,7 @@ public final class CompoundButtonCompat {
      * {@link #setButtonTintList(CompoundButton, ColorStateList)}} to the button drawable. The
      * default mode is {@link PorterDuff.Mode#SRC_IN}.
      *
+     * @param button button for which to apply the tint mode.
      * @param tintMode the blending mode used to apply the tint, may be
      *                 {@code null} to clear tint
      *
@@ -91,7 +92,7 @@ public final class CompoundButtonCompat {
      * @see DrawableCompat#setTintMode(Drawable, PorterDuff.Mode)
      */
     public static void setButtonTintMode(@NonNull CompoundButton button,
-            @Nullable PorterDuff.Mode tintMode) {
+            PorterDuff.@Nullable Mode tintMode) {
         if (Build.VERSION.SDK_INT >= 21) {
             Api21Impl.setButtonTintMode(button, tintMode);
         } else if (button instanceof TintableCompoundButton) {
@@ -104,8 +105,7 @@ public final class CompoundButtonCompat {
      * @attr name android:buttonTintMode
      * @see #setButtonTintMode(CompoundButton, PorterDuff.Mode)
      */
-    @Nullable
-    public static PorterDuff.Mode getButtonTintMode(@NonNull CompoundButton button) {
+    public static PorterDuff.@Nullable Mode getButtonTintMode(@NonNull CompoundButton button) {
         if (Build.VERSION.SDK_INT >= 21) {
             return Api21Impl.getButtonTintMode(button);
         }
@@ -120,8 +120,7 @@ public final class CompoundButtonCompat {
      *
      * @see CompoundButton#setButtonDrawable(Drawable)
      */
-    @Nullable
-    public static Drawable getButtonDrawable(@NonNull CompoundButton button) {
+    public static @Nullable Drawable getButtonDrawable(@NonNull CompoundButton button) {
         if (Build.VERSION.SDK_INT >= 23) {
             return Api23Impl.getButtonDrawable(button);
         }
@@ -153,22 +152,18 @@ public final class CompoundButtonCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static void setButtonTintList(CompoundButton compoundButton, ColorStateList tint) {
             compoundButton.setButtonTintList(tint);
         }
 
-        @DoNotInline
         static ColorStateList getButtonTintList(CompoundButton compoundButton) {
             return compoundButton.getButtonTintList();
         }
 
-        @DoNotInline
         static void setButtonTintMode(CompoundButton compoundButton, PorterDuff.Mode tintMode) {
             compoundButton.setButtonTintMode(tintMode);
         }
 
-        @DoNotInline
         static PorterDuff.Mode getButtonTintMode(CompoundButton compoundButton) {
             return compoundButton.getButtonTintMode();
         }
@@ -180,7 +175,6 @@ public final class CompoundButtonCompat {
             // This class is not instantiable.
         }
 
-        @DoNotInline
         static Drawable getButtonDrawable(CompoundButton compoundButton) {
             return compoundButton.getButtonDrawable();
         }

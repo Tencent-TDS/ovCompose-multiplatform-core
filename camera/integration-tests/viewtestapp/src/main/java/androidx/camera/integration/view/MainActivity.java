@@ -28,8 +28,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.camera2.Camera2Config;
@@ -39,6 +37,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /** The main activity. */
 public class MainActivity extends AppCompatActivity {
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String COMPOSE_UI_FRAGMENT = "ComposeUi";
 
     private static final String[] REQUIRED_PERMISSIONS;
+
     static {
         // From Android T, skips the permission check of WRITE_EXTERNAL_STORAGE since it won't be
         // granted any more.
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
             };
         }
     }
+
     private static final int REQUEST_CODE_PERMISSIONS = 10;
 
     // Possible values for this intent key are the name values of LensFacing encoded as
@@ -103,12 +106,7 @@ public class MainActivity extends AppCompatActivity {
         // Get extra option for checking whether it needs to be implemented with PreviewView
         Bundle bundle = getIntent().getExtras();
         if (bundle != null) {
-            final String viewTypeString = bundle.getString(INTENT_FRAGMENT_TYPE);
-            if (PREVIEW_VIEW_FRAGMENT.equalsIgnoreCase(viewTypeString)) {
-                mFragmentType = FragmentType.PREVIEW_VIEW;
-            } else if (COMPOSE_UI_FRAGMENT.equalsIgnoreCase(viewTypeString)) {
-                mFragmentType = FragmentType.COMPOSE_UI;
-            }
+            parseFragmentType(bundle);
             // Update the app UI according to the e2e test case.
             String testItem = bundle.getString(INTENT_EXTRA_E2E_TEST_CASE);
             if (testItem != null) {
@@ -153,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(
-            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+            int requestCode, String @NonNull [] permissions, int @NonNull [] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
@@ -174,22 +172,23 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("NonConstantResourceId")
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.preview_view:
-                mFragmentType = FragmentType.PREVIEW_VIEW;
-                break;
-            case R.id.camera_controller:
-                mFragmentType = FragmentType.CAMERA_CONTROLLER;
-                break;
-            case R.id.transform:
-                mFragmentType = FragmentType.TRANSFORM;
-                break;
-            case R.id.compose_ui:
-                mFragmentType = FragmentType.COMPOSE_UI;
-                break;
-            case R.id.mlkit:
-                mFragmentType = FragmentType.MLKIT;
-                break;
+        int itemId = item.getItemId();
+        if (itemId == R.id.preview_view) {
+            mFragmentType = FragmentType.PREVIEW_VIEW;
+        } else if (itemId == R.id.camera_controller) {
+            mFragmentType = FragmentType.CAMERA_CONTROLLER;
+        } else if (itemId == R.id.transform) {
+            mFragmentType = FragmentType.TRANSFORM;
+        } else if (itemId == R.id.compose_ui) {
+            mFragmentType = FragmentType.COMPOSE_UI;
+        } else if (itemId == R.id.mlkit) {
+            mFragmentType = FragmentType.MLKIT;
+        } else if (itemId == R.id.effects) {
+            mFragmentType = FragmentType.EFFECTS;
+        } else if (itemId == R.id.overlay_effect) {
+            mFragmentType = FragmentType.OVERLAY_EFFECTS;
+        } else if (itemId == R.id.media3effect) {
+            mFragmentType = FragmentType.MEDIA3_EFFECT;
         }
         startFragment();
         return true;
@@ -203,6 +202,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return true;
+    }
+
+    private void parseFragmentType(@NonNull Bundle bundle) {
+        final String viewTypeString = bundle.getString(INTENT_FRAGMENT_TYPE);
+        if (PREVIEW_VIEW_FRAGMENT.equalsIgnoreCase(viewTypeString)) {
+            mFragmentType = FragmentType.PREVIEW_VIEW;
+        } else if (COMPOSE_UI_FRAGMENT.equalsIgnoreCase(viewTypeString)) {
+            mFragmentType = FragmentType.COMPOSE_UI;
+        }
     }
 
     private void startFragment() {
@@ -221,6 +229,15 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case MLKIT:
                 startFragment(R.string.mlkit, new MlKitFragment());
+                break;
+            case EFFECTS:
+                startFragment(R.string.effects, new EffectsFragment());
+                break;
+            case OVERLAY_EFFECTS:
+                startFragment(R.string.overlay_effect, new OverlayEffectFragment());
+                break;
+            case MEDIA3_EFFECT:
+                startFragment(R.string.media3_effect, new Media3EffectsFragment());
                 break;
         }
     }
@@ -243,6 +260,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private enum FragmentType {
-        PREVIEW_VIEW, CAMERA_CONTROLLER, TRANSFORM, COMPOSE_UI, MLKIT
+        PREVIEW_VIEW, CAMERA_CONTROLLER, TRANSFORM, COMPOSE_UI, MLKIT, EFFECTS, OVERLAY_EFFECTS,
+        MEDIA3_EFFECT
     }
 }

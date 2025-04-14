@@ -16,20 +16,15 @@
 
 package androidx.compose.foundation.gestures.snapping
 
-import androidx.compose.animation.core.DecayAnimationSpec
-import androidx.compose.animation.core.calculateTargetValue
-import androidx.compose.animation.splineBasedDecay
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.layout.LazyLayoutMeasuredItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastForEach
-import androidx.compose.ui.util.fastSumBy
 import kotlin.math.absoluteValue
 import kotlin.math.sign
 
@@ -37,94 +32,113 @@ import kotlin.math.sign
  * A [SnapLayoutInfoProvider] for LazyLists.
  *
  * @param lazyListState The [LazyListState] with information about the current state of the list
- * @param positionInLayout The desired positioning of the snapped item within the main layout.
- * This position should be considered with regard to the start edge of the item and the placement
- * within the viewport.
- *
- * @return A [SnapLayoutInfoProvider] that can be used with [SnapFlingBehavior]
+ * @param snapPosition The desired positioning of the snapped item within the main layout. This
+ *   position should be considered with regard to the start edge of the item and the placement
+ *   within the viewport.
+ * @return A [SnapLayoutInfoProvider] that can be used with [snapFlingBehavior]
  */
-@ExperimentalFoundationApi
 fun SnapLayoutInfoProvider(
     lazyListState: LazyListState,
-    positionInLayout: Density.(layoutSize: Float, itemSize: Float) -> Float =
-        { layoutSize, itemSize -> (layoutSize / 2f - itemSize / 2f) }
-): SnapLayoutInfoProvider = object : SnapLayoutInfoProvider {
+    snapPosition: SnapPosition = SnapPosition.Center
+): SnapLayoutInfoProvider =
+    object : SnapLayoutInfoProvider {
 
-    private val layoutInfo: LazyListLayoutInfo
-        get() = lazyListState.layoutInfo
+        private val layoutInfo: LazyListLayoutInfo
+            get() = lazyListState.layoutInfo
 
-    // Decayed page snapping is the default
-    override fun Density.calculateApproachOffset(initialVelocity: Float): Float {
-        val decayAnimationSpec: DecayAnimationSpec<Float> = splineBasedDecay(this)
-        val offset =
-            decayAnimationSpec.calculateTargetValue(NoDistance, initialVelocity).absoluteValue
-        val finalDecayOffset = (offset - calculateSnapStepSize()).coerceAtLeast(0f)
-        return if (finalDecayOffset == 0f) {
-            finalDecayOffset
-        } else {
-            finalDecayOffset * initialVelocity.sign
-        }
-    }
-
-    override fun Density.calculateSnappingOffsetBounds(): ClosedFloatingPointRange<Float> {
-        var lowerBoundOffset = Float.NEGATIVE_INFINITY
-        var upperBoundOffset = Float.POSITIVE_INFINITY
-
-        layoutInfo.visibleItemsInfo.fastForEach { item ->
-            val offset =
-                calculateDistanceToDesiredSnapPosition(layoutInfo, item, positionInLayout)
-
-            // Find item that is closest to the center
-            if (offset <= 0 && offset > lowerBoundOffset) {
-                lowerBoundOffset = offset
+        private val averageItemSize: Int
+            get() {
+                val layoutInfo = layoutInfo
+                return if (layoutInfo.visibleItemsInfo.isEmpty()) {
+                    0
+                } else {
+                    val numberOfItems = layoutInfo.visibleItemsInfo.size
+                    layoutInfo.visibleItemsInfo.sumOf { it.size } / numberOfItems
+                }
             }
 
-            // Find item that is closest to center, but after it
-            if (offset >= 0 && offset < upperBoundOffset) {
-                upperBoundOffset = offset
+        override fun calculateApproachOffset(velocity: Float, decayOffset: Float): Float {
+            return (decayOffset.absoluteValue - averageItemSize).coerceAtLeast(0.0f) *
+                decayOffset.sign
+        }
+
+        override fun calculateSnapOffset(velocity: Float): Float {
+            var lowerBoundOffset = Float.NEGATIVE_INFINITY
+            var upperBoundOffset = Float.POSITIVE_INFINITY
+
+            layoutInfo.visibleItemsInfo.fastForEach { item ->
+                if ((item as? LazyLayoutMeasuredItem)?.nonScrollableItem == true) return@fastForEach
+                val offset =
+                    calculateDistanceToDesiredSnapPosition(
+                        mainAxisViewPortSize = layoutInfo.singleAxisViewportSize,
+                        beforeContentPadding = layoutInfo.beforeContentPadding,
+                        afterContentPadding = layoutInfo.afterContentPadding,
+                        itemSize = item.size,
+                        itemOffset = item.offset,
+                        itemIndex = item.index,
+                        snapPosition = snapPosition,
+                        itemCount = layoutInfo.totalItemsCount
+                    )
+
+                // Find item that is closest to the center
+                if (offset <= 0 && offset > lowerBoundOffset) {
+                    lowerBoundOffset = offset
+                }
+
+                // Find item that is closest to center, but after it
+                if (offset >= 0 && offset < upperBoundOffset) {
+                    upperBoundOffset = offset
+                }
             }
-        }
 
-        return lowerBoundOffset.rangeTo(upperBoundOffset)
-    }
-
-    override fun Density.calculateSnapStepSize(): Float = with(layoutInfo) {
-        if (visibleItemsInfo.isNotEmpty()) {
-            visibleItemsInfo.fastSumBy { it.size } / visibleItemsInfo.size.toFloat()
-        } else {
-            0f
+            return calculateFinalOffset(
+                with(lazyListState.density) { calculateFinalSnappingItem(velocity) },
+                lowerBoundOffset,
+                upperBoundOffset
+            )
         }
     }
-}
 
 /**
- * Create and remember a FlingBehavior for decayed snapping in Lazy Lists. This will snap
- * the item's center to the center of the viewport.
+ * Create and remember a FlingBehavior for decayed snapping in Lazy Lists. This will snap the item
+ * according to [snapPosition].
  *
- * @param lazyListState The [LazyListState] from the LazyList where this [FlingBehavior] will
- * be used.
+ * @param lazyListState The [LazyListState] from the LazyList where this [FlingBehavior] will be
+ *   used.
+ * @param snapPosition The desired positioning of the snapped item within the main layout. This
+ *   position should be considered with regards to the start edge of the item and the placement
+ *   within the viewport.
  */
-@ExperimentalFoundationApi
 @Composable
-fun rememberSnapFlingBehavior(lazyListState: LazyListState): FlingBehavior {
-    val snappingLayout = remember(lazyListState) { SnapLayoutInfoProvider(lazyListState) }
+fun rememberSnapFlingBehavior(
+    lazyListState: LazyListState,
+    snapPosition: SnapPosition = SnapPosition.Center
+): FlingBehavior {
+    val snappingLayout =
+        remember(lazyListState) { SnapLayoutInfoProvider(lazyListState, snapPosition) }
     return rememberSnapFlingBehavior(snappingLayout)
 }
 
-internal fun Density.calculateDistanceToDesiredSnapPosition(
-    layoutInfo: LazyListLayoutInfo,
-    item: LazyListItemInfo,
-    positionInLayout: Density.(layoutSize: Float, itemSize: Float) -> Float
-): Float {
-    val containerSize =
-        with(layoutInfo) { singleAxisViewportSize - beforeContentPadding - afterContentPadding }
+internal val LazyListLayoutInfo.singleAxisViewportSize: Int
+    get() = if (orientation == Orientation.Vertical) viewportSize.height else viewportSize.width
 
-    val desiredDistance =
-        positionInLayout(containerSize.toFloat(), item.size.toFloat())
+@kotlin.jvm.JvmInline
+internal value class FinalSnappingItem
+internal constructor(@Suppress("unused") private val value: Int) {
+    companion object {
 
-    val itemCurrentPosition = item.offset
-    return itemCurrentPosition - desiredDistance
+        val ClosestItem: FinalSnappingItem = FinalSnappingItem(0)
+
+        val NextItem: FinalSnappingItem = FinalSnappingItem(1)
+
+        val PreviousItem: FinalSnappingItem = FinalSnappingItem(2)
+    }
 }
 
-private val LazyListLayoutInfo.singleAxisViewportSize: Int
-    get() = if (orientation == Orientation.Vertical) viewportSize.height else viewportSize.width
+internal fun Density.calculateFinalSnappingItem(velocity: Float): FinalSnappingItem {
+    return if (velocity.absoluteValue < MinFlingVelocityDp.toPx()) {
+        FinalSnappingItem.ClosestItem
+    } else {
+        if (velocity > 0) FinalSnappingItem.NextItem else FinalSnappingItem.PreviousItem
+    }
+}

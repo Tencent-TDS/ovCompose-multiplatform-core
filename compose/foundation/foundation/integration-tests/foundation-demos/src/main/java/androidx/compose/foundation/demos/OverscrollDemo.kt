@@ -20,9 +20,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.samples.OverscrollRenderedOnTopOfLazyListDecorations
+import androidx.compose.foundation.samples.OverscrollSample
 import androidx.compose.foundation.samples.OverscrollWithDraggable_After
 import androidx.compose.foundation.samples.OverscrollWithDraggable_Before
-import androidx.compose.foundation.samples.OverscrollSample
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,5 +43,7 @@ fun OverscrollDemo() {
         OverscrollWithDraggable_Before()
         Spacer(Modifier.height(50.dp))
         OverscrollWithDraggable_After()
+        Spacer(Modifier.height(50.dp))
+        OverscrollRenderedOnTopOfLazyListDecorations()
     }
 }

@@ -14,41 +14,41 @@
  * limitations under the License.
  */
 
+
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
-    id 'com.android.application'
+    id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
+    compileSdk = 35
     defaultConfig {
-        applicationId "androidx.wear.compose.integration.demos"
-        minSdk 25
-        targetSdk 30
-        versionCode 13
-        versionName "1.13"
-        // Change the APK name to match the *testapp regex we use to pick up APKs for testing as
-        // part of CI.
-        archivesBaseName = "wear-compose-demos-testapp"
+        applicationId = "androidx.wear.compose.integration.demos"
+        minSdk = 25
+        versionCode = 76
+        versionName = "1.76"
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    namespace "androidx.wear.compose.integration.demos"
+    namespace = "androidx.wear.compose.integration.demos"
 }
 
 dependencies {
 
     implementation("androidx.wear:wear:1.1.0")
+
+    implementation("androidx.tracing:tracing:1.1.0")
 
     implementation(project(":compose:foundation:foundation"))
     implementation(project(":compose:foundation:foundation-layout"))
@@ -57,19 +57,33 @@ dependencies {
     implementation(project(":compose:ui:ui"))
     implementation(project(":compose:ui:ui-util"))
     implementation(project(":compose:ui:ui:ui-samples"))
-    implementation(project(":compose:material:material-icons-core"))
+    implementation("androidx.compose.material:material-icons-core:1.6.7")
 
-    implementation(project(':wear:compose:compose-foundation'))
+    implementation(project(":wear:compose:compose-foundation"))
     implementation(project(":wear:compose:compose-foundation-samples"))
-    implementation(project(':wear:compose:compose-material'))
+    implementation(project(":wear:compose:compose-material"))
     implementation(project(":wear:compose:compose-material-samples"))
+    implementation(project(":wear:compose:compose-material3"))
+    implementation(project(":wear:compose:integration-tests:demos:common"))
+    implementation(project(":wear:compose:compose-material3-integration-tests"))
 
+    androidTestImplementation("androidx.activity:activity:1.8.2")
+    androidTestImplementation("androidx.activity:activity-compose:1.8.2")
+    androidTestImplementation("androidx.activity:activity-ktx:1.8.2")
+    androidTestImplementation(project(":compose:runtime:runtime"))
     androidTestImplementation(project(":compose:ui:ui-test-junit4"))
-    androidTestImplementation(project(":emoji2:emoji2"))
+    androidTestImplementation("androidx.lifecycle:lifecycle-runtime:2.7.0")
+    androidTestImplementation("androidx.lifecycle:lifecycle-common:2.7.0")
+    androidTestImplementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    androidTestImplementation("androidx.core:core:1.15.0")
+    androidTestImplementation("androidx.core:core-ktx:1.15.0")
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.truth)
+}
+
+androidx {
 }

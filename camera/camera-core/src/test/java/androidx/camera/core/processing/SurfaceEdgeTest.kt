@@ -34,16 +34,19 @@ import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.DeferrableSurface.SurfaceClosedException
 import androidx.camera.core.impl.DeferrableSurface.SurfaceUnavailableException
 import androidx.camera.core.impl.ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE
+import androidx.camera.core.impl.ImageOutputConfig.ROTATION_NOT_SPECIFIED
 import androidx.camera.core.impl.StreamSpec
 import androidx.camera.core.impl.utils.TransformUtils.sizeToRect
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor
 import androidx.camera.core.impl.utils.futures.FutureCallback
 import androidx.camera.core.impl.utils.futures.Futures
 import androidx.camera.testing.fakes.FakeCamera
-import androidx.camera.testing.fakes.FakeDeferrableSurface
+import androidx.camera.testing.impl.fakes.FakeDeferrableSurface
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.ListenableFuture
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -53,9 +56,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
 
-/**
- * Unit tests for [SurfaceEdge].
- */
+/** Unit tests for [SurfaceEdge]. */
 @RunWith(RobolectricTestRunner::class)
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
@@ -66,6 +67,7 @@ class SurfaceEdgeTest {
         private val FRAME_RATE = Range.create(30, 30)
         private val FRAME_SPEC =
             StreamSpec.builder(INPUT_SIZE).setExpectedFrameRateRange(FRAME_RATE).build()
+        private val SENSOR_TO_BUFFER = Matrix().apply { setScale(-1f, 1f) }
     }
 
     private lateinit var surfaceEdge: SurfaceEdge
@@ -75,10 +77,18 @@ class SurfaceEdgeTest {
 
     @Before
     fun setUp() {
-        surfaceEdge = SurfaceEdge(
-            PREVIEW, INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
-            StreamSpec.builder(INPUT_SIZE).build(), Matrix(), true, Rect(), 0, false
-        )
+        surfaceEdge =
+            SurfaceEdge(
+                PREVIEW,
+                INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                StreamSpec.builder(INPUT_SIZE).build(),
+                SENSOR_TO_BUFFER,
+                true,
+                Rect(),
+                0,
+                ROTATION_NOT_SPECIFIED,
+                false
+            )
         fakeSurfaceTexture = SurfaceTexture(0)
         fakeSurface = Surface(fakeSurfaceTexture)
         provider = FakeDeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE)
@@ -93,12 +103,27 @@ class SurfaceEdgeTest {
     }
 
     @Test
+    fun closeProviderAfterInvalidate_newConnectionNotAffected() {
+        // Arrange: set provider and keep a copy of the old connection.
+        surfaceEdge.setProvider(provider)
+        val oldConnection = surfaceEdge.deferrableSurfaceForTesting
+
+        // Act: invalidate to reset, then close the provider.
+        surfaceEdge.invalidate()
+        provider.close()
+        shadowOf(getMainLooper()).idle()
+
+        // Assert: the new connection is not affected.
+        val newConnection = surfaceEdge.deferrableSurfaceForTesting
+        assertThat(oldConnection.isClosed).isTrue()
+        assertThat(newConnection.isClosed).isFalse()
+    }
+
+    @Test
     fun closeEdgeThenInvalidate_callbackNotInvoked() {
         // Arrange.
         var invalidated = false
-        surfaceEdge.addOnInvalidatedListener {
-            invalidated = true
-        }
+        surfaceEdge.addOnInvalidatedListener { invalidated = true }
         val surfaceRequest = surfaceEdge.createSurfaceRequest(FakeCamera())
         // Act.
         surfaceEdge.close()
@@ -137,16 +162,18 @@ class SurfaceEdgeTest {
 
     @Test
     fun createWithStreamSpec_canGetStreamSpec() {
-        val edge = SurfaceEdge(
-            PREVIEW,
-            INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
-            FRAME_SPEC,
-            Matrix(),
-            true,
-            Rect(),
-            0,
-            false
-        )
+        val edge =
+            SurfaceEdge(
+                PREVIEW,
+                INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                FRAME_SPEC,
+                Matrix(),
+                true,
+                Rect(),
+                0,
+                ROTATION_NOT_SPECIFIED,
+                false
+            )
         assertThat(edge.streamSpec).isEqualTo(FRAME_SPEC)
     }
 
@@ -175,20 +202,79 @@ class SurfaceEdgeTest {
     }
 
     @Test
+    fun closeProviderOnNonUiThread_noCrash() {
+        // Arrange.
+        val providerDeferrableSurface = FakeDeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE)
+        surfaceEdge.setProvider(providerDeferrableSurface)
+        val nonUiExecutor = Executors.newSingleThreadExecutor()
+        // Act.
+        nonUiExecutor.execute { providerDeferrableSurface.close() }
+        nonUiExecutor.shutdown()
+        assertThat(nonUiExecutor.awaitTermination(1, TimeUnit.SECONDS)).isTrue()
+        // Assert.
+        assertThat(providerDeferrableSurface.isClosed).isTrue()
+    }
+
+    @Test
+    fun closeProviderOnClosedEdge_noCrash() {
+        // Arrange: create SurfaceRequest and close the edge.
+        val providerDeferrableSurface = FakeDeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE)
+        val edgeDeferrableSurface = surfaceEdge.deferrableSurface
+        surfaceEdge.setProvider(providerDeferrableSurface)
+        surfaceEdge.close()
+        // Act: close the provider.
+        providerDeferrableSurface.close()
+        shadowOf(getMainLooper()).idle()
+        // Assert.
+        assertThat(edgeDeferrableSurface.isClosed).isTrue()
+    }
+
+    @Test
+    fun closeSurfaceRequestProviderOnClosedEdge_noCrash() {
+        // Arrange: create SurfaceRequest and close the edge.
+        val surfaceRequest = surfaceEdge.createSurfaceRequest(FakeCamera())
+        val edgeDeferrableSurface = surfaceEdge.deferrableSurface
+        surfaceEdge.close()
+        // Act: close the provider.
+        surfaceRequest.deferrableSurface.close()
+        shadowOf(getMainLooper()).idle()
+        // Assert.
+        assertThat(edgeDeferrableSurface.isClosed).isTrue()
+    }
+
+    @Test
+    fun createSurfaceRequest_transformationInfoContainsSensorToBufferTransform() {
+        // Act.
+        val surfaceRequest = surfaceEdge.createSurfaceRequest(FakeCamera())
+        var transformationInfo: TransformationInfo? = null
+        surfaceRequest.setTransformationInfoListener(mainThreadExecutor()) {
+            transformationInfo = it
+        }
+        shadowOf(getMainLooper()).idle()
+
+        // Assert.
+        assertThat(transformationInfo!!.sensorToBufferTransform).isEqualTo(SENSOR_TO_BUFFER)
+    }
+
+    @Test
     fun provideSurfaceThenImmediatelyInvalidate_surfaceOutputFails() {
         // Arrange: create SurfaceOutput and set provider.
         var succeeded = false
         var failed = false
         val surfaceOutput = createSurfaceOutputFuture(surfaceEdge)
-        Futures.addCallback(surfaceOutput, object : FutureCallback<SurfaceOutput> {
-            override fun onSuccess(result: SurfaceOutput?) {
-                succeeded = true
-            }
+        Futures.addCallback(
+            surfaceOutput,
+            object : FutureCallback<SurfaceOutput> {
+                override fun onSuccess(result: SurfaceOutput?) {
+                    succeeded = true
+                }
 
-            override fun onFailure(t: Throwable) {
-                failed = true
-            }
-        }, mainThreadExecutor())
+                override fun onFailure(t: Throwable) {
+                    failed = true
+                }
+            },
+            mainThreadExecutor()
+        )
         surfaceEdge.setProvider(provider)
 
         // Act: Provides Surface then immediately invalidate. The mSettableSurface is recreated
@@ -209,18 +295,50 @@ class SurfaceEdgeTest {
     }
 
     @Test
-    fun closeProviderAfterConnected_surfaceNotReleased() {
-        // Arrange.
+    fun closeProvider_surfaceReleasedWhenRefCountingReaches0() {
+        // Arrange: create edge with ref counting incremented.
         val surfaceRequest = surfaceEdge.createSurfaceRequest(FakeCamera())
         var result: SurfaceRequest.Result? = null
-        surfaceRequest.provideSurface(fakeSurface, mainThreadExecutor()) {
-            result = it
-        }
+        surfaceRequest.provideSurface(fakeSurface, mainThreadExecutor()) { result = it }
+        val parentDeferrableSurface = surfaceEdge.deferrableSurface
+        parentDeferrableSurface.incrementUseCount()
         // Act: close the provider
         surfaceRequest.deferrableSurface.close()
         shadowOf(getMainLooper()).idle()
-        // Assert: the surface is not released because the parent is not closed.
+        // Assert: the surface is not released because the parent has ref counting.
         assertThat(result).isNull()
+        // Act: decrease ref counting
+        parentDeferrableSurface.decrementUseCount()
+        shadowOf(getMainLooper()).idle()
+        // Assert: the surface is released because the parent has not ref counting.
+        assertThat(result!!.resultCode)
+            .isEqualTo(SurfaceRequest.Result.RESULT_SURFACE_USED_SUCCESSFULLY)
+    }
+
+    @Test
+    fun closeChildProvider_parentEdgeClosed() {
+        // Arrange.
+        val parentEdge =
+            SurfaceEdge(
+                PREVIEW,
+                INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                StreamSpec.builder(INPUT_SIZE).build(),
+                SENSOR_TO_BUFFER,
+                true,
+                Rect(),
+                0,
+                ROTATION_NOT_SPECIFIED,
+                false
+            )
+        val childDeferrableSurface = surfaceEdge.deferrableSurface
+        parentEdge.setProvider(childDeferrableSurface)
+        // Act.
+        childDeferrableSurface.close()
+        shadowOf(getMainLooper()).idle()
+        // Assert.
+        assertThat(parentEdge.deferrableSurface.isClosed).isTrue()
+        // Clean up.
+        parentEdge.close()
     }
 
     @Test(expected = SurfaceClosedException::class)
@@ -264,9 +382,7 @@ class SurfaceEdgeTest {
 
         // Act: provide a Surface and get the result.
         var result: SurfaceRequest.Result? = null
-        surfaceRequest.provideSurface(fakeSurface, mainThreadExecutor()) {
-            result = it
-        }
+        surfaceRequest.provideSurface(fakeSurface, mainThreadExecutor()) { result = it }
         shadowOf(getMainLooper()).idle()
 
         // Assert: the Surface is never used.
@@ -275,25 +391,26 @@ class SurfaceEdgeTest {
 
     @Test
     fun createSurfaceOutputWithDisconnectedEdge_surfaceOutputNotCreated() {
-        // Arrange: create a SurfaceOutput future from a closed LinkableSurface
+        // Arrange: create a SurfaceOutput future from a closed Edge
+        surfaceEdge.setProvider(provider)
+        provider.setSurface(fakeSurface)
         surfaceEdge.disconnect()
-        val surfaceOutput = createSurfaceOutputFuture(surfaceEdge)
-
         // Act: wait for the SurfaceOutput to return.
-        var successful: Boolean? = null
-        Futures.addCallback(surfaceOutput, object : FutureCallback<SurfaceOutput> {
-            override fun onSuccess(result: SurfaceOutput?) {
-                successful = true
-            }
-
-            override fun onFailure(t: Throwable) {
-                successful = false
-            }
-        }, mainThreadExecutor())
-        shadowOf(getMainLooper()).idle()
+        val surfaceOutput = getSurfaceOutputFromFuture(createSurfaceOutputFuture(surfaceEdge))
 
         // Assert: the SurfaceOutput is not created.
-        assertThat(successful!!).isEqualTo(false)
+        assertThat(surfaceOutput).isNull()
+    }
+
+    @Test
+    fun createSurfaceOutput_inheritSurfaceEdgeTransformation() {
+        // Arrange: set the provider and create a SurfaceOutput future.
+        surfaceEdge.setProvider(provider)
+        provider.setSurface(fakeSurface)
+        // Act: create a SurfaceOutput from the SurfaceEdge
+        val surfaceOutput = getSurfaceOutputFromFuture(createSurfaceOutputFuture(surfaceEdge))
+        // Assert: the SurfaceOutput inherits the transformation from the SurfaceEdge.
+        assertThat(surfaceOutput!!.sensorToBufferTransform).isEqualTo(SENSOR_TO_BUFFER)
     }
 
     @Test
@@ -334,16 +451,18 @@ class SurfaceEdgeTest {
      */
     private fun getSurfaceRequestHasTransform(hasCameraTransform: Boolean): Boolean {
         // Arrange.
-        val surface = SurfaceEdge(
-            PREVIEW,
-            INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
-            StreamSpec.builder(Size(640, 480)).build(),
-            Matrix(),
-            hasCameraTransform,
-            Rect(),
-            0,
-            false
-        )
+        val surface =
+            SurfaceEdge(
+                PREVIEW,
+                INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                StreamSpec.builder(Size(640, 480)).build(),
+                Matrix(),
+                hasCameraTransform,
+                Rect(),
+                0,
+                ROTATION_NOT_SPECIFIED,
+                false
+            )
         var transformationInfo: TransformationInfo? = null
 
         // Act: get the hasCameraTransform bit from the SurfaceRequest.
@@ -361,15 +480,18 @@ class SurfaceEdgeTest {
     fun setSourceSurfaceFutureAndProvide_surfaceIsPropagated() {
         // Arrange: set a ListenableFuture<Surface> as the source.
         var completer: CallbackToFutureAdapter.Completer<Surface>? = null
-        val surfaceFuture = CallbackToFutureAdapter.getFuture {
-            completer = it
-            return@getFuture null
-        }
-        surfaceEdge.setProvider(object : DeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE) {
-            override fun provideSurface(): ListenableFuture<Surface> {
-                return surfaceFuture
+        val surfaceFuture =
+            CallbackToFutureAdapter.getFuture {
+                completer = it
+                return@getFuture null
             }
-        })
+        surfaceEdge.setProvider(
+            object : DeferrableSurface(INPUT_SIZE, ImageFormat.PRIVATE) {
+                override fun provideSurface(): ListenableFuture<Surface> {
+                    return surfaceFuture
+                }
+            }
+        )
         // Act: provide Surface.
         completer!!.set(fakeSurface)
         shadowOf(getMainLooper()).idle()
@@ -385,9 +507,7 @@ class SurfaceEdgeTest {
         val surfaceRequest = surfaceEdge.createSurfaceRequest(FakeCamera())
         val surfaceOutputFuture = createSurfaceOutputFuture(surfaceEdge)
         var surfaceOutput: SurfaceOutput? = null
-        Futures.transform(surfaceOutputFuture, {
-            surfaceOutput = it
-        }, mainThreadExecutor())
+        Futures.transform(surfaceOutputFuture, { surfaceOutput = it }, mainThreadExecutor())
 
         // Act: provide a Surface via the SurfaceRequest.
         var isSurfaceReleased = false
@@ -399,9 +519,8 @@ class SurfaceEdgeTest {
         // Assert: SurfaceOutput is received and it contains the right Surface
         assertThat(surfaceOutput).isNotNull()
         var surfaceOutputCloseRequested = false
-        val surface = surfaceOutput!!.getSurface(mainThreadExecutor()) {
-            surfaceOutputCloseRequested = true
-        }
+        val surface =
+            surfaceOutput!!.getSurface(mainThreadExecutor()) { surfaceOutputCloseRequested = true }
         shadowOf(getMainLooper()).idle()
         assertThat(surface).isEqualTo(fakeSurface)
         assertThat(isSurfaceReleased).isEqualTo(false)
@@ -515,7 +634,7 @@ class SurfaceEdgeTest {
         }
 
         // Act.
-        surfaceEdge.rotationDegrees = 90
+        surfaceEdge.updateTransformation(90)
         shadowOf(getMainLooper()).idle()
 
         // Assert.
@@ -523,13 +642,35 @@ class SurfaceEdgeTest {
         assertThat(transformationInfo!!.rotationDegrees).isEqualTo(90)
     }
 
+    private fun getSurfaceOutputFromFuture(
+        future: ListenableFuture<SurfaceOutput>
+    ): SurfaceOutput? {
+        var surfaceOutput: SurfaceOutput? = null
+        Futures.addCallback(
+            future,
+            object : FutureCallback<SurfaceOutput> {
+                override fun onSuccess(result: SurfaceOutput?) {
+                    surfaceOutput = result
+                }
+
+                override fun onFailure(t: Throwable) {}
+            },
+            mainThreadExecutor()
+        )
+        shadowOf(getMainLooper()).idle()
+        return surfaceOutput
+    }
+
     private fun createSurfaceOutputFuture(surfaceEdge: SurfaceEdge) =
         surfaceEdge.createSurfaceOutputFuture(
-            INPUT_SIZE,
             INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
-            sizeToRect(INPUT_SIZE),
-            /*rotationDegrees=*/0,
-            /*mirroring=*/false,
-            FakeCamera()
+            SurfaceOutput.CameraInputInfo.of(
+                INPUT_SIZE,
+                sizeToRect(INPUT_SIZE),
+                FakeCamera(),
+                /*rotationDegrees=*/ 0,
+                /*mirroring=*/ false
+            ),
+            null
         )
 }

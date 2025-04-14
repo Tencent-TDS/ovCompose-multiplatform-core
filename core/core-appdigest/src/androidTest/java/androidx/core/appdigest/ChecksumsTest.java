@@ -49,8 +49,6 @@ import android.content.pm.Signature;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.concurrent.futures.ResolvableFuture;
 import androidx.test.core.app.ApplicationProvider;
@@ -60,8 +58,11 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.filters.SmallTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -214,8 +215,8 @@ public class ChecksumsTest {
     }
 
     private static String executeShellCommand(String command) throws IOException {
-        if (Build.VERSION.SDK_INT >= 24) {
-            return InstallerApi24.executeShellCommand(command);
+        if (Build.VERSION.SDK_INT >= 29) {
+            return InstallerApi29.executeShellCommand(command);
         }
         return "";
     }
@@ -224,8 +225,7 @@ public class ChecksumsTest {
         executeShellCommand("pm uninstall " + packageName);
     }
 
-    @NonNull
-    private static String bytesToHexString(byte[] array) {
+    private static @NonNull String bytesToHexString(byte[] array) {
         int offset = 0;
         int length = array.length;
 
@@ -242,8 +242,7 @@ public class ChecksumsTest {
         return new String(buf);
     }
 
-    @NonNull
-    private static byte[] hexStringToBytes(String s) {
+    private static byte @NonNull [] hexStringToBytes(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -255,6 +254,8 @@ public class ChecksumsTest {
 
     @Before
     public void onBefore() throws Exception {
+        // b/331664452
+        Assume.assumeFalse(Build.VERSION.SDK_INT >= 35);
         mContext = ApplicationProvider.getApplicationContext();
         mExecutor = Executors.newCachedThreadPool();
     }
@@ -1022,8 +1023,8 @@ public class ChecksumsTest {
     }
 
     void installSplits(String[] names) throws Exception {
-        if (Build.VERSION.SDK_INT >= 24) {
-            new InstallerApi24(mContext).installSplits(names);
+        if (Build.VERSION.SDK_INT >= 29) {
+            new InstallerApi29(mContext).installSplits(names);
         }
     }
 
@@ -1035,17 +1036,17 @@ public class ChecksumsTest {
     }
 
     private boolean isAppInstalled(String packageName) throws IOException {
-        if (Build.VERSION.SDK_INT >= 24) {
-            return InstallerApi24.isAppInstalled(packageName);
+        if (Build.VERSION.SDK_INT >= 29) {
+            return InstallerApi29.isAppInstalled(packageName);
         }
         return false;
     }
 
-    @RequiresApi(24)
-    static class InstallerApi24 {
+    @RequiresApi(29)
+    static class InstallerApi29 {
         protected Context mContext;
 
-        InstallerApi24(Context context) {
+        InstallerApi29(Context context) {
             mContext = context;
         }
 
@@ -1120,9 +1121,10 @@ public class ChecksumsTest {
             final String action = "androidx.core.appdigest.COMMIT_COMPLETE." + resultId;
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(action);
-            mContext.registerReceiver(broadcastReceiver, intentFilter);
+            mContext.registerReceiver(broadcastReceiver, intentFilter, Context.RECEIVER_EXPORTED);
 
             Intent intent = new Intent(action);
+            intent.setPackage(mContext.getPackageName());
             PendingIntent sender = PendingIntent.getBroadcast(mContext, resultId, intent,
                     PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_UPDATE_CURRENT
                             | PendingIntent.FLAG_MUTABLE);
@@ -1139,7 +1141,7 @@ public class ChecksumsTest {
     }
 
     @RequiresApi(31)
-    static class InstallerApi31 extends InstallerApi24 {
+    static class InstallerApi31 extends InstallerApi29 {
         InstallerApi31(Context context) {
             super(context);
         }
@@ -1155,7 +1157,7 @@ public class ChecksumsTest {
                         new android.content.pm.Checksum(android.content.pm.Checksum.TYPE_WHOLE_MD5,
                                 hexStringToBytes(TEST_FIXED_APK_MD5))};
 
-        static @NonNull android.content.pm.Checksum readFromStream(@NonNull DataInputStream dis)
+        static android.content.pm.@NonNull Checksum readFromStream(@NonNull DataInputStream dis)
                 throws IOException {
             final int type = dis.readInt();
 
@@ -1165,7 +1167,7 @@ public class ChecksumsTest {
         }
 
         private static void writeToStream(@NonNull DataOutputStream dos,
-                @NonNull android.content.pm.Checksum checksum) throws IOException {
+                android.content.pm.@NonNull Checksum checksum) throws IOException {
             dos.writeInt(checksum.getType());
 
             final byte[] valueBytes = checksum.getValue();

@@ -17,28 +17,31 @@
 package androidx.work.impl.background.systemalarm;
 
 import static androidx.work.impl.background.systemalarm.CommandHandler.WORK_PROCESSING_TIME_IN_MS;
-import static androidx.work.impl.model.WorkSpecKt.generationalId;
+import static androidx.work.impl.constraints.WorkConstraintsTrackerKt.listen;
 
 import android.content.Context;
 import android.content.Intent;
 import android.os.PowerManager;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.WorkerThread;
 import androidx.work.Logger;
 import androidx.work.impl.StartStopToken;
-import androidx.work.impl.constraints.WorkConstraintsCallback;
-import androidx.work.impl.constraints.WorkConstraintsTrackerImpl;
+import androidx.work.impl.constraints.ConstraintsState;
+import androidx.work.impl.constraints.OnConstraintsStateChangedListener;
+import androidx.work.impl.constraints.WorkConstraintsTracker;
 import androidx.work.impl.constraints.trackers.Trackers;
 import androidx.work.impl.model.WorkGenerationalId;
 import androidx.work.impl.model.WorkSpec;
 import androidx.work.impl.utils.WakeLocks;
 import androidx.work.impl.utils.WorkTimer;
 
-import java.util.Collections;
-import java.util.List;
+import kotlinx.coroutines.CoroutineDispatcher;
+import kotlinx.coroutines.Job;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.concurrent.Executor;
 
 /**
@@ -48,7 +51,7 @@ import java.util.concurrent.Executor;
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public class DelayMetCommandHandler implements
-        WorkConstraintsCallback,
+        OnConstraintsStateChangedListener,
         WorkTimer.TimeLimitExceededListener {
 
     private static final String TAG = Logger.tagWithPrefix("DelayMetCommandHandler");
@@ -87,16 +90,19 @@ public class DelayMetCommandHandler implements
     private final int mStartId;
     private final WorkGenerationalId mWorkGenerationalId;
     private final SystemAlarmDispatcher mDispatcher;
-    private final WorkConstraintsTrackerImpl mWorkConstraintsTracker;
+    private final WorkConstraintsTracker mWorkConstraintsTracker;
     private final Object mLock;
     // should be accessed only from SerialTaskExecutor
     private int mCurrentState;
     private final Executor mSerialExecutor;
     private final Executor mMainThreadExecutor;
 
-    @Nullable private PowerManager.WakeLock mWakeLock;
+    private PowerManager.@Nullable WakeLock mWakeLock;
     private boolean mHasConstraints;
     private final StartStopToken mToken;
+    private final CoroutineDispatcher mCoroutineDispatcher;
+
+    private volatile Job mJob;
 
     DelayMetCommandHandler(
             @NonNull Context context,
@@ -111,22 +117,20 @@ public class DelayMetCommandHandler implements
         Trackers trackers = dispatcher.getWorkManager().getTrackers();
         mSerialExecutor = dispatcher.getTaskExecutor().getSerialTaskExecutor();
         mMainThreadExecutor = dispatcher.getTaskExecutor().getMainThreadExecutor();
-        mWorkConstraintsTracker = new WorkConstraintsTrackerImpl(trackers, this);
+        mCoroutineDispatcher = dispatcher.getTaskExecutor().getTaskCoroutineDispatcher();
+        mWorkConstraintsTracker = new WorkConstraintsTracker(trackers);
         mHasConstraints = false;
         mCurrentState = STATE_INITIAL;
         mLock = new Object();
     }
 
     @Override
-    public void onAllConstraintsMet(@NonNull List<WorkSpec> workSpecs) {
-        // WorkConstraintsTracker will call onAllConstraintsMet with list of workSpecs whose
-        // constraints are met. Ensure the workSpecId we are interested is part of the list
-        // before we call Processor#startWork().
-        for (WorkSpec spec: workSpecs) {
-            if (generationalId(spec).equals(mWorkGenerationalId)) {
-                mSerialExecutor.execute(this::startWork);
-                return;
-            }
+    public void onConstraintsStateChanged(@NonNull WorkSpec workSpec,
+            @NonNull ConstraintsState state) {
+        if (state instanceof ConstraintsState.ConstraintsMet) {
+            mSerialExecutor.execute(this::startWork);
+        } else {
+            mSerialExecutor.execute(this::stopWork);
         }
     }
 
@@ -183,11 +187,6 @@ public class DelayMetCommandHandler implements
         mSerialExecutor.execute(this::stopWork);
     }
 
-    @Override
-    public void onAllConstraintsNotMet(@NonNull List<WorkSpec> workSpecs) {
-        mSerialExecutor.execute(this::stopWork);
-    }
-
     @WorkerThread
     void handleProcessWork() {
         String workSpecId = mWorkGenerationalId.getWorkSpecId();
@@ -214,10 +213,10 @@ public class DelayMetCommandHandler implements
 
         if (!mHasConstraints) {
             Logger.get().debug(TAG, "No constraints for " + workSpecId);
-            onAllConstraintsMet(Collections.singletonList(workSpec));
+            mSerialExecutor.execute(this::startWork);
         } else {
             // Allow tracker to report constraint changes
-            mWorkConstraintsTracker.replace(Collections.singletonList(workSpec));
+            mJob = listen(mWorkConstraintsTracker, workSpec, mCoroutineDispatcher, this);
         }
     }
 
@@ -261,7 +260,9 @@ public class DelayMetCommandHandler implements
         // To avoid calling mWakeLock.release() twice, we are synchronizing here.
         synchronized (mLock) {
             // clean up constraint trackers
-            mWorkConstraintsTracker.reset();
+            if (mJob != null) {
+                mJob.cancel(null);
+            }
             // stop timers
             mDispatcher.getWorkTimer().stopTimer(mWorkGenerationalId);
 

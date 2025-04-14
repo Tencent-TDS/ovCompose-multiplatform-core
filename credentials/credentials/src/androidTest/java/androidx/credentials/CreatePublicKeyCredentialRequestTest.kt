@@ -19,10 +19,10 @@ package androidx.credentials
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.os.Parcelable
+import androidx.credentials.CreateCredentialRequest.Companion.BUNDLE_KEY_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
 import androidx.credentials.CreateCredentialRequest.Companion.createFrom
-import androidx.credentials.CreatePublicKeyCredentialRequest.Companion.BUNDLE_KEY_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS
 import androidx.credentials.CreatePublicKeyCredentialRequest.Companion.BUNDLE_KEY_REQUEST_JSON
-import androidx.credentials.internal.FrameworkImplHelper.Companion.getFinalCreateCredentialData
+import androidx.credentials.internal.getFinalCreateCredentialData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
@@ -36,35 +36,49 @@ import org.junit.runner.RunWith
 @SmallTest
 class CreatePublicKeyCredentialRequestTest {
     private val mContext = InstrumentationRegistry.getInstrumentation().context
+
     companion object Constant {
         private const val TEST_USERNAME = "test-user-name@gmail.com"
         private const val TEST_USER_DISPLAYNAME = "Test User"
-        private const val TEST_REQUEST_JSON = "{\"rp\":{\"name\":true,\"id\":\"app-id\"}," +
-            "\"user\":{\"name\":\"$TEST_USERNAME\",\"id\":\"id-value\",\"displayName" +
-            "\":\"$TEST_USER_DISPLAYNAME\",\"icon\":true}, \"challenge\":true," +
-            "\"pubKeyCredParams\":true,\"excludeCredentials\":true," + "\"attestation\":true}"
+        private const val TEST_REQUEST_JSON =
+            "{\"rp\":{\"name\":true,\"id\":\"app-id\"}," +
+                "\"user\":{\"name\":\"$TEST_USERNAME\",\"id\":\"id-value\",\"displayName" +
+                "\":\"$TEST_USER_DISPLAYNAME\",\"icon\":true}, \"challenge\":true," +
+                "\"pubKeyCredParams\":true,\"excludeCredentials\":true," +
+                "\"attestation\":true}"
     }
 
     @Test
     fun constructor_emptyJson_throwsIllegalArgumentException() {
-        assertThrows(
-            "Expected empty Json to throw error",
-            IllegalArgumentException::class.java
-        ) { CreatePublicKeyCredentialRequest("") }
+        assertThrows("Expected empty Json to throw error", IllegalArgumentException::class.java) {
+            CreatePublicKeyCredentialRequest("")
+        }
+    }
+
+    @Test
+    fun constructor_invalidJson_throwsIllegalArgumentException() {
+        assertThrows("Expected empty Json to throw error", IllegalArgumentException::class.java) {
+            CreatePublicKeyCredentialRequest("invalid")
+        }
     }
 
     @Test
     fun constructor_jsonMissingUserName_throwsIllegalArgumentException() {
-        assertThrows(
-            IllegalArgumentException::class.java
-        ) { CreatePublicKeyCredentialRequest("json") }
+        assertThrows(IllegalArgumentException::class.java) {
+            CreatePublicKeyCredentialRequest("{\"hey\":{\"hi\":{\"hello\":\"hii\"}}}")
+        }
+    }
+
+    @Test
+    fun constructor_setsAutoSelectToFalseByDefault() {
+        val createPublicKeyCredentialRequest = CreatePublicKeyCredentialRequest(TEST_REQUEST_JSON)
+
+        assertThat(createPublicKeyCredentialRequest.isAutoSelectAllowed).isFalse()
     }
 
     @Test
     fun constructor_setPreferImmediatelyAvailableCredentialsToFalseByDefault() {
-        val createPublicKeyCredentialRequest = CreatePublicKeyCredentialRequest(
-            TEST_REQUEST_JSON
-        )
+        val createPublicKeyCredentialRequest = CreatePublicKeyCredentialRequest(TEST_REQUEST_JSON)
         val preferImmediatelyAvailableCredentialsActual =
             createPublicKeyCredentialRequest.preferImmediatelyAvailableCredentials
         assertThat(preferImmediatelyAvailableCredentialsActual).isFalse()
@@ -74,18 +88,48 @@ class CreatePublicKeyCredentialRequestTest {
     fun constructor_setPreferImmediatelyAvailableCredentialsToTrue() {
         val preferImmediatelyAvailableCredentialsExpected = true
         val origin = "origin"
-        val clientDataHash = "hash"
-        val createPublicKeyCredentialRequest = CreatePublicKeyCredentialRequest(
-            TEST_REQUEST_JSON,
-            clientDataHash,
-            preferImmediatelyAvailableCredentialsExpected,
-            origin
-        )
+        val clientDataHash = "hash".toByteArray()
+
+        val createPublicKeyCredentialRequest =
+            CreatePublicKeyCredentialRequest(
+                TEST_REQUEST_JSON,
+                clientDataHash,
+                preferImmediatelyAvailableCredentialsExpected,
+                origin
+            )
+
         val preferImmediatelyAvailableCredentialsActual =
             createPublicKeyCredentialRequest.preferImmediatelyAvailableCredentials
         assertThat(preferImmediatelyAvailableCredentialsActual)
             .isEqualTo(preferImmediatelyAvailableCredentialsExpected)
         assertThat(createPublicKeyCredentialRequest.origin).isEqualTo(origin)
+    }
+
+    @Test
+    fun constructor_defaultProviderVariant() {
+        val clientDataHashExpected = "hash".toByteArray()
+        val originExpected = "origin"
+        val preferImmediatelyAvailableCredentialsExpected = true
+        val defaultProviderExpected = "com.test/com.test.TestProviderComponent"
+        val isAutoSelectAllowedExpected = true
+
+        val request =
+            CreatePublicKeyCredentialRequest(
+                TEST_REQUEST_JSON,
+                clientDataHashExpected,
+                preferImmediatelyAvailableCredentialsExpected,
+                originExpected,
+                defaultProviderExpected,
+                isAutoSelectAllowedExpected,
+            )
+
+        assertThat(request.displayInfo.preferDefaultProvider).isEqualTo(defaultProviderExpected)
+        assertThat(request.clientDataHash).isEqualTo(clientDataHashExpected)
+        assertThat(request.origin).isEqualTo(originExpected)
+        assertThat(request.requestJson).isEqualTo(TEST_REQUEST_JSON)
+        assertThat(request.preferImmediatelyAvailableCredentials)
+            .isEqualTo(preferImmediatelyAvailableCredentialsExpected)
+        assertThat(request.isAutoSelectAllowed).isEqualTo(isAutoSelectAllowedExpected)
     }
 
     @Test
@@ -96,108 +140,189 @@ class CreatePublicKeyCredentialRequestTest {
         assertThat(testJsonActual).isEqualTo(testJsonExpected)
     }
 
-    @SdkSuppress(minSdkVersion = 28)
+    @SdkSuppress(minSdkVersion = 34)
     @Suppress("DEPRECATION") // bundle.get(key)
     @Test
     fun getter_frameworkProperties_success() {
         val requestJsonExpected = TEST_REQUEST_JSON
-        val preferImmediatelyAvailableCredentialsExpected = false
-        val expectedAutoSelect = true
-        val origin = "origin"
-        val clientDataHash = "hash"
-        val expectedData = Bundle()
-        expectedData.putString(
+        val clientDataHash = "hash".toByteArray()
+        val preferImmediatelyAvailableCredentialsExpected = true
+        val autoSelectExpected = true
+        val expectedCandidateQueryData = Bundle()
+        expectedCandidateQueryData.putString(
             PublicKeyCredential.BUNDLE_KEY_SUBTYPE,
             CreatePublicKeyCredentialRequest
                 .BUNDLE_VALUE_SUBTYPE_CREATE_PUBLIC_KEY_CREDENTIAL_REQUEST
         )
-        expectedData.putString(
-            BUNDLE_KEY_REQUEST_JSON, requestJsonExpected
+        expectedCandidateQueryData.putString(BUNDLE_KEY_REQUEST_JSON, requestJsonExpected)
+        expectedCandidateQueryData.putByteArray(
+            CreatePublicKeyCredentialRequest.BUNDLE_KEY_CLIENT_DATA_HASH,
+            clientDataHash
         )
-        expectedData.putString(CreatePublicKeyCredentialRequest.BUNDLE_KEY_CLIENT_DATA_HASH,
-            clientDataHash)
-        expectedData.putBoolean(
+        expectedCandidateQueryData.putBoolean(
+            CreateCredentialRequest.BUNDLE_KEY_IS_AUTO_SELECT_ALLOWED,
+            autoSelectExpected
+        )
+        val expectedCredentialData = expectedCandidateQueryData.deepCopy()
+        expectedCredentialData.putBoolean(
             BUNDLE_KEY_PREFER_IMMEDIATELY_AVAILABLE_CREDENTIALS,
             preferImmediatelyAvailableCredentialsExpected
         )
-        expectedData.putBoolean(
-            CreateCredentialRequest.BUNDLE_KEY_IS_AUTO_SELECT_ALLOWED,
-            expectedAutoSelect
-        )
 
-        val expectedCandidateQueryBundle = expectedData.deepCopy()
-        expectedCandidateQueryBundle.remove(
-            CreateCredentialRequest.BUNDLE_KEY_IS_AUTO_SELECT_ALLOWED
-        )
-
-        val request = CreatePublicKeyCredentialRequest(
-            requestJsonExpected,
-            clientDataHash,
-            preferImmediatelyAvailableCredentialsExpected,
-            origin
-        )
+        val request =
+            CreatePublicKeyCredentialRequest(
+                requestJsonExpected,
+                clientDataHash,
+                preferImmediatelyAvailableCredentialsExpected,
+                origin = null,
+                autoSelectExpected
+            )
 
         assertThat(request.type).isEqualTo(PublicKeyCredential.TYPE_PUBLIC_KEY_CREDENTIAL)
-        assertThat(equals(request.candidateQueryData, expectedCandidateQueryBundle)).isTrue()
+        assertThat(equals(request.candidateQueryData, expectedCandidateQueryData)).isTrue()
         assertThat(request.isSystemProviderRequired).isFalse()
-        assertThat(request.origin).isEqualTo(origin)
-        val credentialData = getFinalCreateCredentialData(
-            request, mContext
-        )
+        val credentialData = getFinalCreateCredentialData(request, mContext)
         assertThat(credentialData.keySet())
-            .hasSize(expectedData.size() + /* added request info */1)
-        for (key in expectedData.keySet()) {
-            assertThat(credentialData[key]).isEqualTo(credentialData[key])
+            .hasSize(expectedCredentialData.size() + /* added request info */ 1)
+        for (key in expectedCredentialData.keySet()) {
+            assertThat(credentialData[key]).isEqualTo(expectedCredentialData[key])
         }
-        val displayInfoBundle = credentialData.getBundle(
-            CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_REQUEST_DISPLAY_INFO
-        )!!
-        assertThat(displayInfoBundle.keySet()).hasSize(3)
-        assertThat(
-            displayInfoBundle.getString(
-                CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_USER_ID
+        val displayInfoBundle =
+            credentialData.getBundle(
+                CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_REQUEST_DISPLAY_INFO
             )
-        ).isEqualTo(TEST_USERNAME)
+        assertThat(displayInfoBundle!!.keySet()).hasSize(3)
         assertThat(
-            displayInfoBundle.getString(
-                CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_USER_DISPLAY_NAME
+                displayInfoBundle.getString(CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_USER_ID)
             )
-        ).isEqualTo(TEST_USER_DISPLAYNAME)
+            .isEqualTo(TEST_USERNAME)
         assertThat(
-            (displayInfoBundle.getParcelable<Parcelable>(
-                CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_CREDENTIAL_TYPE_ICON
-            ) as Icon?)!!.resId
-        ).isEqualTo(R.drawable.ic_passkey)
+                displayInfoBundle.getString(
+                    CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_USER_DISPLAY_NAME
+                )
+            )
+            .isEqualTo(TEST_USER_DISPLAYNAME)
+        assertThat(
+                (displayInfoBundle.getParcelable<Parcelable>(
+                        CreateCredentialRequest.DisplayInfo.BUNDLE_KEY_CREDENTIAL_TYPE_ICON
+                    ) as Icon?)!!
+                    .resId
+            )
+            .isEqualTo(R.drawable.ic_passkey)
     }
 
     @SdkSuppress(minSdkVersion = 28)
     @Test
     fun frameworkConversion_success() {
-        val origin = "origin"
-        val clientDataHash = "hash"
-        val request = CreatePublicKeyCredentialRequest(TEST_REQUEST_JSON, clientDataHash,
-            true, origin)
+        val clientDataHashExpected = "hash".toByteArray()
+        val originExpected = "origin"
+        val preferImmediatelyAvailableCredentialsExpected = true
+        val isAutoSelectAllowedExpected = true
+        val request =
+            CreatePublicKeyCredentialRequest(
+                TEST_REQUEST_JSON,
+                clientDataHashExpected,
+                preferImmediatelyAvailableCredentialsExpected,
+                originExpected,
+                isAutoSelectAllowedExpected
+            )
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        val credentialData = getFinalCreateCredentialData(request, mContext)
+        val customRequestDataKey = "customRequestDataKey"
+        val customRequestDataValue = "customRequestDataValue"
+        credentialData.putString(customRequestDataKey, customRequestDataValue)
+        val candidateQueryData = request.candidateQueryData
+        val customCandidateQueryDataKey = "customRequestDataKey"
+        val customCandidateQueryDataValue = true
+        candidateQueryData.putBoolean(customCandidateQueryDataKey, customCandidateQueryDataValue)
 
-        val convertedRequest = createFrom(
-            request.type, getFinalCreateCredentialData(
-                request, mContext
-            ),
-            request.candidateQueryData, request.isSystemProviderRequired,
-            request.origin
-        )
+        val convertedRequest =
+            createFrom(
+                request.type,
+                credentialData,
+                candidateQueryData,
+                request.isSystemProviderRequired,
+                request.origin
+            )
 
-        assertThat(convertedRequest).isInstanceOf(
-            CreatePublicKeyCredentialRequest::class.java
-        )
-        assertThat(convertedRequest?.origin).isEqualTo(origin)
+        assertThat(convertedRequest).isInstanceOf(CreatePublicKeyCredentialRequest::class.java)
         val convertedSubclassRequest = convertedRequest as CreatePublicKeyCredentialRequest
         assertThat(convertedSubclassRequest.requestJson).isEqualTo(request.requestJson)
+        assertThat(convertedSubclassRequest.origin).isEqualTo(originExpected)
+        assertThat(convertedSubclassRequest.clientDataHash).isEqualTo(clientDataHashExpected)
         assertThat(convertedSubclassRequest.preferImmediatelyAvailableCredentials)
-            .isEqualTo(request.preferImmediatelyAvailableCredentials)
-        val displayInfo = convertedRequest.displayInfo
+            .isEqualTo(preferImmediatelyAvailableCredentialsExpected)
+        assertThat(convertedSubclassRequest.isAutoSelectAllowed)
+            .isEqualTo(isAutoSelectAllowedExpected)
+        val displayInfo = convertedSubclassRequest.displayInfo
         assertThat(displayInfo.userDisplayName).isEqualTo(TEST_USER_DISPLAYNAME)
         assertThat(displayInfo.userId).isEqualTo(TEST_USERNAME)
-        assertThat(displayInfo.credentialTypeIcon?.resId)
-            .isEqualTo(R.drawable.ic_passkey)
+        assertThat(displayInfo.credentialTypeIcon!!.resId).isEqualTo(R.drawable.ic_passkey)
+        assertThat(convertedRequest.credentialData.getString(customRequestDataKey))
+            .isEqualTo(customRequestDataValue)
+        assertThat(convertedRequest.candidateQueryData.getBoolean(customCandidateQueryDataKey))
+            .isEqualTo(customCandidateQueryDataValue)
+    }
+
+    @SdkSuppress(minSdkVersion = 34)
+    @Test
+    fun frameworkConversion_frameworkClass_success() {
+        val clientDataHashExpected = "hash".toByteArray()
+        val originExpected = "origin"
+        val preferImmediatelyAvailableCredentialsExpected = true
+        val isAutoSelectAllowedExpected = true
+        val request =
+            CreatePublicKeyCredentialRequest(
+                TEST_REQUEST_JSON,
+                clientDataHashExpected,
+                preferImmediatelyAvailableCredentialsExpected,
+                originExpected,
+                isAutoSelectAllowedExpected
+            )
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        // Add additional data to the request data and candidate query data to make sure
+        // they persist after the conversion
+        val credentialData = getFinalCreateCredentialData(request, mContext)
+        val customRequestDataKey = "customRequestDataKey"
+        val customRequestDataValue = "customRequestDataValue"
+        credentialData.putString(customRequestDataKey, customRequestDataValue)
+        val candidateQueryData = request.candidateQueryData
+        val customCandidateQueryDataKey = "customRequestDataKey"
+        val customCandidateQueryDataValue = true
+        candidateQueryData.putBoolean(customCandidateQueryDataKey, customCandidateQueryDataValue)
+
+        val convertedRequest =
+            createFrom(
+                android.credentials.CreateCredentialRequest.Builder(
+                        request.type,
+                        credentialData,
+                        candidateQueryData
+                    )
+                    .setOrigin(originExpected)
+                    .setIsSystemProviderRequired(request.isSystemProviderRequired)
+                    .build()
+            )
+
+        assertThat(convertedRequest).isInstanceOf(CreatePublicKeyCredentialRequest::class.java)
+        val convertedSubclassRequest = convertedRequest as CreatePublicKeyCredentialRequest
+        assertThat(convertedSubclassRequest.requestJson).isEqualTo(request.requestJson)
+        assertThat(convertedSubclassRequest.origin).isEqualTo(originExpected)
+        assertThat(convertedSubclassRequest.clientDataHash).isEqualTo(clientDataHashExpected)
+        assertThat(convertedSubclassRequest.preferImmediatelyAvailableCredentials)
+            .isEqualTo(preferImmediatelyAvailableCredentialsExpected)
+        assertThat(convertedSubclassRequest.isAutoSelectAllowed)
+            .isEqualTo(isAutoSelectAllowedExpected)
+        val displayInfo = convertedSubclassRequest.displayInfo
+        assertThat(displayInfo.userDisplayName).isEqualTo(TEST_USER_DISPLAYNAME)
+        assertThat(displayInfo.userId).isEqualTo(TEST_USERNAME)
+        assertThat(displayInfo.credentialTypeIcon!!.resId).isEqualTo(R.drawable.ic_passkey)
+        assertThat(convertedRequest.credentialData.getString(customRequestDataKey))
+            .isEqualTo(customRequestDataValue)
+        assertThat(convertedRequest.candidateQueryData.getBoolean(customCandidateQueryDataKey))
+            .isEqualTo(customCandidateQueryDataValue)
     }
 }

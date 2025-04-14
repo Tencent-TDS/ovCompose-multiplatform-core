@@ -4,7 +4,7 @@
 
 # Sets the minimum version of CMake required to build the native library.
 
-cmake_minimum_required(VERSION 3.18.1)
+cmake_minimum_required(VERSION 3.22.1)
 
 # Declares and names the project.
 
@@ -30,7 +30,6 @@ add_library( # Sets the name of the library.
              graphics-core.cpp
              egl_utils.cpp
              sync_fence.cpp
-             buffer_transform_hint_resolver.cpp
              sc_test_utils.cpp
         )
 
@@ -60,4 +59,8 @@ target_link_libraries( # Specifies the target library.
                        EGL
                        GLESv2
                        android)
+
+target_link_options(graphics-core
+                    PRIVATE
+                    "-Wl,-z,max-page-size=16384")
 

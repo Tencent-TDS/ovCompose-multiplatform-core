@@ -18,6 +18,7 @@ package androidx.privacysandbox.tools.core.generator
 
 import androidx.privacysandbox.tools.core.generator.AidlGenerator.Companion.parcelableStackFrameName
 import androidx.privacysandbox.tools.core.generator.AidlGenerator.Companion.throwableParcelName
+import androidx.privacysandbox.tools.core.generator.SpecNames.cancellationExceptionClass
 import androidx.privacysandbox.tools.core.generator.SpecNames.stackTraceElementClass
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -25,17 +26,17 @@ import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.TypeSpec
 
-class ThrowableParcelConverterFileGenerator(private val basePackageName: String) {
+class ThrowableParcelConverterFileGenerator(
+    private val basePackageName: String,
+) {
     companion object {
         const val converterName = "${throwableParcelName}Converter"
-        fun toThrowableParcelNameSpec(packageName: String) = MemberName(ClassName(
-            packageName,
-            converterName
-        ), "toThrowableParcel")
-        fun fromThrowableParcelNameSpec(packageName: String) = MemberName(ClassName(
-            packageName,
-            converterName
-        ), "fromThrowableParcel")
+
+        fun toThrowableParcelNameSpec(packageName: String) =
+            MemberName(ClassName(packageName, converterName), "toThrowableParcel")
+
+        fun fromThrowableParcelNameSpec(packageName: String) =
+            MemberName(ClassName(packageName, converterName), "fromThrowableParcel")
     }
 
     private val throwableParcelNameSpec = ClassName(basePackageName, throwableParcelName)
@@ -43,19 +44,16 @@ class ThrowableParcelConverterFileGenerator(private val basePackageName: String)
     private val toThrowableParcelNameSpec = toThrowableParcelNameSpec(basePackageName)
     private val fromThrowableParcelNameSpec = fromThrowableParcelNameSpec(basePackageName)
 
-    fun generate(convertToParcel: Boolean = false, convertFromParcel: Boolean = false) =
-        FileSpec.builder(
-            basePackageName,
-            converterName
-        ).build {
+    fun generate() =
+        FileSpec.builder(basePackageName, converterName).build {
             addCommonSettings()
-            addType(generateConverter(convertToParcel, convertFromParcel))
+            addType(generateConverter())
         }
 
-    private fun generateConverter(convertToParcel: Boolean, convertFromParcel: Boolean) =
+    private fun generateConverter() =
         TypeSpec.objectBuilder(ClassName(basePackageName, converterName)).build {
-            if (convertToParcel) addFunction(generateToThrowableParcel())
-            if (convertFromParcel) addFunction(generateFromThrowableParcel())
+            addFunction(generateFromThrowableParcel())
+            addFunction(generateToThrowableParcel())
         }
 
     private fun generateToThrowableParcel() =
@@ -83,10 +81,13 @@ class ThrowableParcelConverterFileGenerator(private val basePackageName: String)
                         throwable.suppressedExceptions.map {
                             ${toThrowableParcelNameSpec.simpleName}(it)
                         }.toTypedArray()
+                    parcel.isCancellationException = throwable is %T
                     return parcel
-                """.trimIndent(),
+                """
+                        .trimIndent(),
                     throwableParcelNameSpec,
                     parcelableStackFrameNameSpec,
+                    cancellationExceptionClass,
                 )
             }
         }
@@ -99,14 +100,16 @@ class ThrowableParcelConverterFileGenerator(private val basePackageName: String)
                 add(
                     """
                     val exceptionClass = throwableParcel.exceptionClass
-                    val errorMessage = throwableParcel.errorMessage
                     val stackTrace = throwableParcel.stackTrace
-                    val exception = PrivacySandboxException(
-                        "[${'$'}exceptionClass] ${'$'}errorMessage",
-                        throwableParcel.cause?.firstOrNull()?.let {
-                            ${fromThrowableParcelNameSpec.simpleName}(it)
-                        }
-                    )
+                    val errorMessage = "[${'$'}exceptionClass] ${'$'}{throwableParcel.errorMessage}"
+                    val cause = throwableParcel.cause?.firstOrNull()?.let {
+                        ${fromThrowableParcelNameSpec.simpleName}(it)
+                    }
+                    val exception = if (throwableParcel.isCancellationException) {
+                        PrivacySandboxCancellationException(errorMessage, cause)
+                    } else {
+                        PrivacySandboxException(errorMessage, cause)
+                    }
                     for (suppressed in throwableParcel.suppressedExceptions) {
                         exception.addSuppressed(${fromThrowableParcelNameSpec.simpleName}(suppressed))
                     }
@@ -120,7 +123,8 @@ class ThrowableParcelConverterFileGenerator(private val basePackageName: String)
                             )
                         }.toTypedArray()
                     return exception
-                """.trimIndent(),
+                """
+                        .trimIndent(),
                     stackTraceElementClass,
                 )
             }

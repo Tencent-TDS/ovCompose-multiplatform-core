@@ -25,9 +25,10 @@ import android.content.Context;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.MainThread;
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.lifecycle.LiveData;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -55,7 +56,6 @@ public final class CarConnection {
     /**
      * Represents the types of connections that exist to a car head unit.
      *
-     * @hide
      */
     @IntDef({CONNECTION_TYPE_NOT_CONNECTED, CONNECTION_TYPE_NATIVE, CONNECTION_TYPE_PROJECTION})
     @Retention(RetentionPolicy.SOURCE)
@@ -107,8 +107,7 @@ public final class CarConnection {
      *     <li>{@link #CONNECTION_TYPE_PROJECTION}
      * </ol>
      */
-    @NonNull
-    public LiveData<@ConnectionType Integer> getType() {
+    public @NonNull LiveData<@ConnectionType Integer> getType() {
         return mConnectionTypeLiveData;
     }
 }

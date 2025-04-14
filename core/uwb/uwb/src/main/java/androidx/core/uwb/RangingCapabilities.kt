@@ -16,14 +16,37 @@
 
 package androidx.core.uwb
 
+import androidx.annotation.RestrictTo
+
 /**
  * Describes UWB ranging capabilities for the current device.
+ *
  * @property isDistanceSupported - Whether distance ranging is supported
  * @property isAzimuthalAngleSupported - Whether azimuthal angle of arrival is supported
  * @property isElevationAngleSupported - Whether elevation angle of arrival is supported
- **/
-class RangingCapabilities(
-    val isDistanceSupported: Boolean,
-    val isAzimuthalAngleSupported: Boolean,
-    val isElevationAngleSupported: Boolean
+ * @property minRangingInterval - Minimum ranging interval
+ * @property supportedChannels - Set of supported channels
+ * @property supportedNtfConfigs - Set of supported notification config
+ * @property supportedConfigIds - Set of supported config ids
+ * @property supportedSlotDurations - Set of supported slot durations
+ * @property supportedRangingUpdateRates - Set of supported update rates
+ * @property isRangingIntervalReconfigureSupported - Whether ranging interval reconfiguration is
+ *   supported
+ * @property isBackgroundRangingSupported - Whether a ranging can be started when the app is in
+ *   background
+ */
+public class RangingCapabilities
+@RestrictTo(RestrictTo.Scope.LIBRARY)
+constructor(
+    public val isDistanceSupported: Boolean,
+    public val isAzimuthalAngleSupported: Boolean,
+    public val isElevationAngleSupported: Boolean,
+    public val minRangingInterval: Int,
+    public val supportedChannels: Set<Int>,
+    public val supportedNtfConfigs: Set<Int>,
+    public val supportedConfigIds: Set<Int>,
+    public val supportedSlotDurations: Set<Int>,
+    public val supportedRangingUpdateRates: Set<Int>,
+    public val isRangingIntervalReconfigureSupported: Boolean,
+    public val isBackgroundRangingSupported: Boolean
 )

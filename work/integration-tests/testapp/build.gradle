@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-buildscript {
-    // TODO: Remove this when this test app no longer depends on 1.0.0 of vectordrawable-animated.
-    // vectordrawable and vectordrawable-animated were accidentally using the same package name
-    // which is no longer valid in namespaced resource world.
-    project.ext["android.uniquePackageNames"] = false
-}
-
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
@@ -33,6 +26,7 @@ android {
             minifyEnabled = true
         }
     }
+    compileSdk = 35
     defaultConfig {
         javaCompileOptions {
             annotationProcessorOptions {
@@ -46,23 +40,24 @@ android {
             useSupportLibrary = true
         }
     }
-    namespace "androidx.work.integration.testapp"
+    namespace = "androidx.work.integration.testapp"
 }
 
 dependencies {
-    annotationProcessor(projectOrArtifact(":room:room-compiler"))
-    implementation(projectOrArtifact(":room:room-runtime"))
+    api(libs.jspecify)
+    annotationProcessor(project(":room:room-compiler"))
+    implementation(project(":room:room-runtime"))
+    implementation(project(":room:room-ktx"))
 
     implementation(libs.constraintLayout)
-    // Fix for BuildCompat.isAtleastS()
-    implementation("androidx.core:core:1.7.0-alpha01")
-    implementation("androidx.lifecycle:lifecycle-service:2.2.0")
+    implementation("androidx.core:core:1.12.0")
+    implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     implementation(project(":work:work-runtime-ktx"))
     implementation(project(":work:work-multiprocess"))
     implementation(project(":work:work-gcm"))
     implementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
-    implementation("androidx.arch.core:core-runtime:2.1.0")
-    implementation("androidx.recyclerview:recyclerview:1.1.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.activity:activity:1.8.2")
     implementation(libs.material)
 }
 

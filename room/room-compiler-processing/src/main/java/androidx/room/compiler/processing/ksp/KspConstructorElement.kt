@@ -16,16 +16,27 @@
 
 package androidx.room.compiler.processing.ksp
 
+import androidx.room.compiler.processing.XAnnotated
 import androidx.room.compiler.processing.XConstructorElement
 import androidx.room.compiler.processing.XConstructorType
 import androidx.room.compiler.processing.XExecutableParameterElement
 import androidx.room.compiler.processing.XType
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 
-internal class KspConstructorElement(
+internal open class KspConstructorElement(
     env: KspProcessingEnv,
     declaration: KSFunctionDeclaration
-) : KspExecutableElement(env, declaration), XConstructorElement {
+) :
+    KspExecutableElement(env, declaration),
+    XAnnotated by KspAnnotated.create(
+        env = env,
+        delegate = declaration,
+        filter = KspAnnotated.UseSiteFilter.NO_USE_SITE_OR_CONSTRUCTOR
+    ),
+    XConstructorElement {
+
+    override fun isSyntheticConstructorForJvmOverloads() = false
+
     override val name: String
         get() = "<init>"
 
@@ -46,19 +57,11 @@ internal class KspConstructorElement(
     }
 
     override val executableType: XConstructorType by lazy {
-        KspConstructorType(
-            env = env,
-            origin = this,
-            containing = this.enclosingElement.type
-        )
+        KspConstructorType(env = env, origin = this, containing = this.enclosingElement.type)
     }
 
     override fun asMemberOf(other: XType): XConstructorType {
         check(other is KspType)
-        return KspConstructorType(
-            env = env,
-            origin = this,
-            containing = other
-        )
+        return KspConstructorType(env = env, origin = this, containing = other)
     }
 }

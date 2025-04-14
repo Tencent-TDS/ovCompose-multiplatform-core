@@ -30,16 +30,16 @@ import androidx.viewpager2.integration.testapp.R
 import androidx.viewpager2.widget.ViewPager2
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_HORIZONTAL
 import androidx.viewpager2.widget.ViewPager2.ORIENTATION_VERTICAL
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.hamcrest.CoreMatchers
+import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.closeTo
 import org.hamcrest.Matchers.equalTo
 import org.hamcrest.Matchers.greaterThan
-import org.hamcrest.MatcherAssert.assertThat
 import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 private const val LABEL_NONE = "None"
 private const val LABEL_50_PX = "Margin 50px"
@@ -75,9 +75,7 @@ class MarginPageTransformerTest :
     }
 
     // TODO: break down / refactor
-    /**
-     * @param offscreenLimit <code>null</code> for no change. Otherwise an explicit value.
-     */
+    /** @param offscreenLimit <code>null</code> for no change. Otherwise an explicit value. */
     private fun testMargin(offscreenLimit: Int?) {
 
         // given
@@ -94,38 +92,44 @@ class MarginPageTransformerTest :
         val height = viewPager.measuredHeight.toDouble()
         val width = viewPager.measuredWidth.toDouble()
 
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageScrolled(
-                position: Int,
-                positionOffset: Float,
-                positionOffsetPixels: Int
-            ) {
-                // then
-                val pageA = layoutManager.getChildAt(layoutManager.findFirstVisibleItemPosition())
-                val pageB = layoutManager.getChildAt(layoutManager.findLastVisibleItemPosition())
-                if (pageA == null || pageB == null || pageA == pageB) return
+        viewPager.registerOnPageChangeCallback(
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageScrolled(
+                    position: Int,
+                    positionOffset: Float,
+                    positionOffsetPixels: Int
+                ) {
+                    // then
+                    val pageA =
+                        layoutManager.getChildAt(layoutManager.findFirstVisibleItemPosition())
+                    val pageB =
+                        layoutManager.getChildAt(layoutManager.findLastVisibleItemPosition())
+                    if (pageA == null || pageB == null || pageA == pageB) return
 
-                if (firstPass) { // first pass is before a transformer has a chance to be applied
-                    firstPass = false
-                    return
-                }
+                    if (
+                        firstPass
+                    ) { // first pass is before a transformer has a chance to be applied
+                        firstPass = false
+                        return
+                    }
 
-                when (viewPager.orientation) {
-                    ORIENTATION_HORIZONTAL -> {
-                        // TODO: move assertions from UiThread to TestThread
-                        assertThat(Math.abs(pageB.x - pageA.x) - width, closeTo(marginPx, 1.0))
-                        assertThat(pageA.translationY, equalTo(0f))
-                        assertThat(pageB.translationY, equalTo(0f))
+                    when (viewPager.orientation) {
+                        ORIENTATION_HORIZONTAL -> {
+                            // TODO: move assertions from UiThread to TestThread
+                            assertThat(Math.abs(pageB.x - pageA.x) - width, closeTo(marginPx, 1.0))
+                            assertThat(pageA.translationY, equalTo(0f))
+                            assertThat(pageB.translationY, equalTo(0f))
+                        }
+                        ORIENTATION_VERTICAL -> {
+                            assertThat(pageB.y - pageA.y - height, closeTo(marginPx, 1.0))
+                            assertThat(pageA.translationX, equalTo(0f))
+                            assertThat(pageB.translationX, equalTo(0f))
+                        }
+                        else -> throw IllegalArgumentException()
                     }
-                    ORIENTATION_VERTICAL -> {
-                        assertThat(pageB.y - pageA.y - height, closeTo(marginPx, 1.0))
-                        assertThat(pageA.translationX, equalTo(0f))
-                        assertThat(pageB.translationX, equalTo(0f))
-                    }
-                    else -> throw IllegalArgumentException()
                 }
             }
-        })
+        )
 
         // when
         listOf(LABEL_NONE, LABEL_50_PX, LABEL_32_DP).forEach { transformer ->
@@ -165,11 +169,13 @@ class MarginPageTransformerTest :
         return when (label) {
             LABEL_NONE -> 0.0
             LABEL_50_PX -> 50.0
-            LABEL_32_DP -> TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                32f,
-                viewPager.resources.displayMetrics
-            ).toDouble()
+            LABEL_32_DP ->
+                TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        32f,
+                        viewPager.resources.displayMetrics
+                    )
+                    .toDouble()
             else -> throw IllegalArgumentException()
         }
     }

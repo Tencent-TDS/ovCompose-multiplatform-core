@@ -16,6 +16,7 @@
 
 // OutcomeReceiver was added in API 31
 @file:RequiresApi(31)
+
 package androidx.core.os
 
 import android.os.OutcomeReceiver
@@ -30,7 +31,6 @@ import kotlin.coroutines.resumeWithException
  *
  * Useful for writing `suspend` bindings to async Android platform methods that accept
  * [OutcomeReceiver]:
- *
  * ```
  * public suspend fun FancinessManager.query(
  *     query: FancinessManager.Query
@@ -61,7 +61,7 @@ public fun <R, E : Throwable> Continuation<R>.asOutcomeReceiver(): OutcomeReceiv
 private class ContinuationOutcomeReceiver<R, E : Throwable>(
     private val continuation: Continuation<R>
 ) : OutcomeReceiver<R, E>, AtomicBoolean(false) {
-    override fun onResult(result: R & Any) {
+    override fun onResult(result: R) {
         // Do not attempt to resume more than once, even if the caller of the returned
         // OutcomeReceiver is buggy and tries anyway.
         if (compareAndSet(false, true)) {

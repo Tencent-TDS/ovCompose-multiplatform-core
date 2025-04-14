@@ -18,6 +18,8 @@ package androidx.test.uiautomator;
 
 import android.graphics.Point;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -29,13 +31,14 @@ class PointerGesture {
     private final Deque<PointerAction> mActions = new ArrayDeque<>();
     private final long mDelay;
     private final int mDisplayId;
+    private final int mWindowId;
     private long mDuration;
 
     /**
      * Constructs a PointerGesture which touches down at the given start point on the given display.
      */
-    public PointerGesture(Point startPoint, int displayId) {
-        this(startPoint, 0, displayId);
+    PointerGesture(Point startPoint, int displayId, int windowId) {
+        this(startPoint, 0, displayId, windowId);
     }
 
     /**
@@ -43,17 +46,22 @@ class PointerGesture {
      * after a given delay.  Used in multi-point gestures when the pointers do not all touch down at
      * the same time.
      */
-    public PointerGesture(Point startPoint, long initialDelay, int displayId) {
+    PointerGesture(Point startPoint, long initialDelay, int displayId, int windowId) {
         if (initialDelay < 0) {
             throw new IllegalArgumentException("initialDelay cannot be negative");
         }
         mActions.addFirst(new PointerPauseAction(startPoint, 0));
         mDelay = initialDelay;
         mDisplayId = displayId;
+        mWindowId = windowId;
     }
 
     public int displayId() {
         return mDisplayId;
+    }
+
+    public int windowId() {
+        return mWindowId;
     }
 
     /** Adds an action which pauses for the specified amount of {@code time} in milliseconds. */
@@ -108,6 +116,10 @@ class PointerGesture {
         return mActions.peekLast().end;
     }
 
+    @Override
+    public @NonNull String toString() {
+        return mActions.toString();
+    }
 
     /** A {@link PointerAction} represents part of a {@link PointerGesture}. */
     private static abstract class PointerAction {
@@ -135,6 +147,11 @@ class PointerGesture {
         public Point interpolate(float fraction) {
             return new Point(start);
         }
+
+        @Override
+        public @NonNull String toString() {
+            return String.format("Pause(point=%s, duration=%dms)", start, duration);
+        }
     }
 
     /** Action that moves the pointer between two points at a constant speed. */
@@ -149,6 +166,11 @@ class PointerGesture {
             Point ret = new Point(start);
             ret.offset((int)(fraction * (end.x - start.x)), (int)(fraction * (end.y - start.y)));
             return ret;
+        }
+
+        @Override
+        public @NonNull String toString() {
+            return String.format("Move(start=%s, end=%s, duration=%dms)", start, end, duration);
         }
 
         private static double calcDistance(final Point a, final Point b) {

@@ -16,15 +16,22 @@
 
 package androidx.constraintlayout.compose
 
-import android.annotation.SuppressLint
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerInputChange
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Velocity
 import kotlinx.coroutines.channels.Channel
@@ -37,89 +44,94 @@ import kotlinx.coroutines.isActive
  * @see Modifier.pointerInput
  * @see TransitionHandler
  */
-@SuppressLint("UnnecessaryComposedModifier")
-@Suppress("NOTHING_TO_INLINE")
-@PublishedApi
 @ExperimentalMotionApi
-internal inline fun Modifier.motionPointerInput(
+internal fun Modifier.motionPointerInput(
     key: Any,
-    motionProgress: MotionProgress,
+    motionProgress: MutableFloatState,
     measurer: MotionMeasurer
-): Modifier = composed(
-    inspectorInfo = debugInspectorInfo {
-        name = "motionPointerInput"
-        properties["key"] = key
-        properties["measurer"] = measurer
-    }
-) {
-    if (!measurer.transition.hasOnSwipe()) {
-        return@composed this
-    }
-    val swipeHandler = remember(key) {
-        TransitionHandler(motionMeasurer = measurer, motionProgress = motionProgress)
-    }
-    val dragChannel = remember(key) { Channel<MotionDragState>(Channel.CONFLATED) }
+): Modifier =
+    composed(
+        inspectorInfo =
+            debugInspectorInfo {
+                name = "motionPointerInput"
+                properties["key"] = key
+                properties["motionProgress"] = motionProgress
+                properties["measurer"] = measurer
+            }
+    ) {
+        if (!measurer.transition.hasOnSwipe()) {
+            return@composed this
+        }
+        val swipeHandler =
+            remember(key) {
+                TransitionHandler(motionMeasurer = measurer, motionProgress = motionProgress)
+            }
+        val dragChannel = remember(key) { Channel<MotionDragState>(Channel.CONFLATED) }
 
-    LaunchedEffect(key1 = key) effectScope@{
-        var isTouchUp = false
-        var dragState: MotionDragState? = null
-        while (coroutineContext.isActive) {
-            if (isTouchUp && swipeHandler.pendingProgressWhileTouchUp()) {
-                // Loop until there's no need to update the progress or the there's a touch down
-                swipeHandler.updateProgressWhileTouchUp()
-            } else {
-                if (dragState == null) {
-                    dragState = dragChannel.receive()
-                }
-                coroutineContext.ensureActive()
-                isTouchUp = !dragState.isDragging
-                if (isTouchUp) {
-                    swipeHandler.onTouchUp(velocity = dragState.velocity)
+        LaunchedEffect(key1 = key) effectScope@{
+            var isTouchUp = false
+            var dragState: MotionDragState? = null
+            while (coroutineContext.isActive) {
+                if (isTouchUp && swipeHandler.pendingProgressWhileTouchUp()) {
+                    // Loop until there's no need to update the progress or the there's a touch down
+                    swipeHandler.updateProgressWhileTouchUp()
                 } else {
-                    swipeHandler.updateProgressOnDrag(dragAmount = dragState.dragAmount)
+                    if (dragState == null) {
+                        dragState = dragChannel.receive()
+                    }
+                    coroutineContext.ensureActive()
+                    isTouchUp = !dragState.isDragging
+                    if (isTouchUp) {
+                        swipeHandler.onTouchUp(velocity = dragState.velocity)
+                    } else {
+                        swipeHandler.updateProgressOnDrag(dragAmount = dragState.dragAmount)
+                    }
+                    dragState = null
                 }
-                dragState = null
-            }
 
-            // To be able to interrupt the free-form progress of 'isUp', check if there's another
-            // dragState that initiated a new drag
-            val channelResult = dragChannel.tryReceive()
-            if (channelResult.isSuccess) {
-                val receivedState = channelResult.getOrThrow()
-                if (receivedState.isDragging) {
-                    // If another drag is initiated, switching 'isUp' interrupts the
-                    // 'getTouchUpProgress' loop
-                    isTouchUp = false
+                // To be able to interrupt the free-form progress of 'isUp', check if there's
+                // another
+                // dragState that initiated a new drag
+                val channelResult = dragChannel.tryReceive()
+                if (channelResult.isSuccess) {
+                    val receivedState = channelResult.getOrThrow()
+                    if (receivedState.isDragging) {
+                        // If another drag is initiated, switching 'isUp' interrupts the
+                        // 'getTouchUpProgress' loop
+                        isTouchUp = false
+                    }
+                    // Just save the received state, don't 'consume' it
+                    dragState = receivedState
                 }
-                // Just save the received state, don't 'consume' it
-                dragState = receivedState
             }
         }
-    }
-    return@composed this.pointerInput(key) {
-        val velocityTracker = VelocityTracker()
-        detectDragGestures(
-            onDragStart = {
-                velocityTracker.resetTracking()
-            },
-            onDragEnd = {
-                dragChannel.trySend(
-                    // Indicate that the swipe has ended, MotionLayout should animate the rest.
-                    MotionDragState.onDragEnd(velocityTracker.calculateVelocity())
-                )
-            }
-        ) { change, dragAmount ->
-            velocityTracker.addPosition(change.uptimeMillis, change.position)
-            // As dragging is done, pass the dragAmount to update the MotionLayout progress.
-            dragChannel.trySend(MotionDragState.onDrag(dragAmount))
+        return@composed this.pointerInput(key) {
+            val velocityTracker = VelocityTracker()
+            detectDragGesturesWhenNeeded(
+                onAcceptFirstDown = { offset -> swipeHandler.onAcceptFirstDownForOnSwipe(offset) },
+                onDragStart = { _ -> velocityTracker.resetTracking() },
+                onDragEnd = {
+                    dragChannel.trySend(
+                        // Indicate that the swipe has ended, MotionLayout should animate the rest.
+                        MotionDragState.onDragEnd(velocityTracker.calculateVelocity())
+                    )
+                },
+                onDragCancel = {
+                    dragChannel.trySend(
+                        // Indicate that the swipe has ended, MotionLayout should animate the rest.
+                        MotionDragState.onDragEnd(velocityTracker.calculateVelocity())
+                    )
+                },
+                onDrag = { change, dragAmount ->
+                    velocityTracker.addPointerInputChange(change)
+                    // As dragging is done, pass the dragAmount to update the MotionLayout progress.
+                    dragChannel.trySend(MotionDragState.onDrag(dragAmount))
+                }
+            )
         }
     }
-}
 
-/**
- * Data class with the relevant values of a touch input event used for OnSwipe support.
- */
-@PublishedApi
+/** Data class with the relevant values of a touch input event used for OnSwipe support. */
 internal data class MotionDragState(
     val isDragging: Boolean,
     val dragAmount: Offset,
@@ -128,11 +140,7 @@ internal data class MotionDragState(
     companion object {
 
         fun onDrag(dragAmount: Offset) =
-            MotionDragState(
-                isDragging = true,
-                dragAmount = dragAmount,
-                velocity = Velocity.Zero
-            )
+            MotionDragState(isDragging = true, dragAmount = dragAmount, velocity = Velocity.Zero)
 
         fun onDragEnd(velocity: Velocity) =
             MotionDragState(
@@ -140,5 +148,47 @@ internal data class MotionDragState(
                 dragAmount = Offset.Unspecified,
                 velocity = velocity
             )
+    }
+}
+
+/**
+ * Copy of [androidx.compose.foundation.gestures.detectDragGestures] with the opportunity to decide
+ * whether we consume the rest of the drag with [onAcceptFirstDown].
+ */
+private suspend fun PointerInputScope.detectDragGesturesWhenNeeded(
+    onAcceptFirstDown: (Offset) -> Boolean,
+    onDragStart: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
+    onDrag: (change: PointerInputChange, dragAmount: Offset) -> Unit
+) {
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = true)
+        if (!onAcceptFirstDown(down.position)) {
+            return@awaitEachGesture
+        }
+        var drag: PointerInputChange?
+        var overSlop = Offset.Zero
+        do {
+            drag =
+                awaitTouchSlopOrCancellation(pointerId = down.id) { change, over ->
+                    change.consume()
+                    overSlop = over
+                }
+        } while (drag != null && !drag.isConsumed)
+        if (drag != null) {
+            onDragStart.invoke(drag.position)
+            onDrag(drag, overSlop)
+            if (
+                !drag(drag.id) {
+                    onDrag(it, it.positionChange())
+                    it.consume()
+                }
+            ) {
+                onDragCancel()
+            } else {
+                onDragEnd()
+            }
+        }
     }
 }

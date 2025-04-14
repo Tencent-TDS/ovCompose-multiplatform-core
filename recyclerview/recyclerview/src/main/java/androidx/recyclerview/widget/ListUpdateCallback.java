@@ -15,7 +15,7 @@
  */
 package androidx.recyclerview.widget;
 
-import androidx.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An interface that can receive Update operations that are applied to a list.
@@ -52,6 +52,7 @@ public interface ListUpdateCallback {
      *
      * @param position The position of the item which has been updated.
      * @param count    The number of items which has changed.
+     * @param payload  The payload for the changed items.
      */
     void onChanged(int position, int count, @Nullable Object payload);
 }

@@ -16,23 +16,20 @@
 
 package androidx.work.benchmark
 
+import java.util.concurrent.Executor
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.concurrent.Executor
 
-/**
- * An [Executor] where we can await termination of all commands.
- */
+/** An [Executor] where we can await termination of all commands. */
 class DispatchingExecutor : Executor {
     private val job = CompletableDeferred<Unit>()
     private val scope = CoroutineScope(Dispatchers.Default + job)
+
     override fun execute(command: Runnable) {
-        scope.launch {
-            command.run()
-        }
+        scope.launch { command.run() }
     }
 
     fun runAllCommands() {

@@ -22,19 +22,18 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 import androidx.annotation.VisibleForTesting;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.HashMap;
 import java.util.Map;
-
 
 /**
  * Manages connections to a service in a different process.
  *
- * @hide
  */
 @RestrictTo(Scope.LIBRARY)
 public final class ConnectionManager implements Handler.Callback, ServiceConnection.Callback {

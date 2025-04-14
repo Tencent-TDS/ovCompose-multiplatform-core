@@ -18,8 +18,8 @@ package androidx.compose.material.demos
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -29,10 +29,10 @@ import androidx.compose.material.samples.FancyIndicatorContainerTabs
 import androidx.compose.material.samples.FancyIndicatorTabs
 import androidx.compose.material.samples.FancyTabs
 import androidx.compose.material.samples.IconTabs
+import androidx.compose.material.samples.LeadingIconTabs
 import androidx.compose.material.samples.ScrollingFancyIndicatorContainerTabs
 import androidx.compose.material.samples.ScrollingTextTabs
 import androidx.compose.material.samples.TextAndIconTabs
-import androidx.compose.material.samples.LeadingIconTabs
 import androidx.compose.material.samples.TextTabs
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -71,9 +71,7 @@ fun TabDemo() {
         Spacer(Modifier.requiredHeight(24.dp))
         Button(
             modifier = Modifier.align(Alignment.CenterHorizontally),
-            onClick = {
-                showingSimple.value = !showingSimple.value
-            },
+            onClick = { showingSimple.value = !showingSimple.value },
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.Cyan)
         ) {
             Text(buttonText)

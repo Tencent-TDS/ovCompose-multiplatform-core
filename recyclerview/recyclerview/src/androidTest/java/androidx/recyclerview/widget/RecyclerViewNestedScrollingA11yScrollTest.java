@@ -34,16 +34,15 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.core.view.NestedScrollingParent3;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.SdkSuppress;
 import androidx.testutils.ActivityScenarioResetRule;
 import androidx.testutils.ResettableActivityScenarioRule;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -63,7 +62,6 @@ import java.util.concurrent.TimeUnit;
  */
 @RunWith(Parameterized.class)
 @LargeTest
-@SdkSuppress(minSdkVersion = 16)
 public class RecyclerViewNestedScrollingA11yScrollTest {
 
 
@@ -190,7 +188,7 @@ public class RecyclerViewNestedScrollingA11yScrollTest {
                     }
                 });
 
-                ViewCompat.performAccessibilityAction(mRecyclerView, action, null);
+                mRecyclerView.performAccessibilityAction(action, null);
             }
         });
         assertThat(countDownLatch.await(2, TimeUnit.SECONDS), is(true));
@@ -299,14 +297,14 @@ public class RecyclerViewNestedScrollingA11yScrollTest {
         }
 
         @Override
-        public void onNestedPreScroll(@NonNull View target, int dx, int dy, @NonNull int[] consumed,
-                int type) {
+        public void onNestedPreScroll(@NonNull View target, int dx, int dy,
+                int @NonNull [] consumed, int type) {
 
         }
 
         @Override
         public void onNestedScroll(@NonNull View target, int dxConsumed, int dyConsumed,
-                int dxUnconsumed, int dyUnconsumed, int type, @Nullable int[] consumed) {
+                int dxUnconsumed, int dyUnconsumed, int type, int @Nullable [] consumed) {
         }
 
         @Override
@@ -380,7 +378,7 @@ public class RecyclerViewNestedScrollingA11yScrollTest {
 
         @Override
         public void onNestedPreScroll(@NonNull View target, int dx, int dy,
-                @NonNull int[] consumed) {
+                int @NonNull [] consumed) {
 
         }
 
@@ -419,9 +417,8 @@ public class RecyclerViewNestedScrollingA11yScrollTest {
             mVertical = vertical;
         }
 
-        @NonNull
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
+        public RecyclerView.@NonNull ViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
                 int viewType) {
             View view = new View(mContext);
 
@@ -441,7 +438,7 @@ public class RecyclerViewNestedScrollingA11yScrollTest {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        public void onBindViewHolder(RecyclerView.@NonNull ViewHolder holder, int position) {
 
         }
 

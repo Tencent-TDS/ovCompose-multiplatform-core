@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
@@ -41,16 +41,12 @@ import kotlin.random.Random
 @Preview
 @Composable
 fun CrossfadeDemo() {
-    var current by rememberSaveable { mutableStateOf(0) }
+    var current by rememberSaveable { mutableIntStateOf(0) }
     Column {
         Row {
             tabs.forEachIndexed { index, tab ->
                 Box(
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures {
-                            current = index
-                        }
-                    }
+                    Modifier.pointerInput(Unit) { detectTapGestures { current = index } }
                         .weight(1f, true)
                         .height(48.dp)
                         .background(tab.color)
@@ -69,11 +65,7 @@ fun CrossfadeDemo() {
     }
 }
 
-private val tabs = listOf(
-    Tab(Color(1f, 0f, 0f)),
-    Tab(Color(0f, 1f, 0f)),
-    Tab(Color(0f, 0f, 1f))
-)
+private val tabs = listOf(Tab(Color(1f, 0f, 0f)), Tab(Color(0f, 1f, 0f)), Tab(Color(0f, 0f, 1f)))
 
 private data class Tab(val color: Color) {
     var lastInt: Int = 0

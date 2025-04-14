@@ -1,5 +1,5 @@
 // Baseline format: 1.0
-RemovedClass: androidx.wear.watchface.editor.EditorSessionKt:
-    Removed class androidx.wear.watchface.editor.EditorSessionKt
-RemovedClass: androidx.wear.watchface.editor.WatchFaceEditorContractKt:
-    Removed class androidx.wear.watchface.editor.WatchFaceEditorContractKt
+InvalidNullConversion: androidx.wear.watchface.editor.EditorSession#complicationsDataSourceInfo:
+    Attempted to change nullability of androidx.wear.watchface.complications.ComplicationDataSourceInfo (from NONNULL to NULLABLE) in property EditorSession.complicationsDataSourceInfo
+InvalidNullConversion: androidx.wear.watchface.editor.EditorSession#getComplicationsDataSourceInfo():
+    Attempted to change nullability of androidx.wear.watchface.complications.ComplicationDataSourceInfo (from NONNULL to NULLABLE) in method androidx.wear.watchface.editor.EditorSession.getComplicationsDataSourceInfo()

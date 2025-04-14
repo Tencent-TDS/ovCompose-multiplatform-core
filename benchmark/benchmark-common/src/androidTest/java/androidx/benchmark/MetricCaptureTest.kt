@@ -16,23 +16,25 @@
 
 package androidx.benchmark
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SmallTest
+import kotlin.test.assertEquals
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @SmallTest
 @RunWith(AndroidJUnit4::class)
-public class AllocationCountCaptureTest {
+class MetricCaptureTest {
     @Test
-    public fun simple() {
-        AllocationCountCapture().verifyMedian(100..110) {
-            allocate(100)
-        }
+    fun allocationCountCapture_simple() {
+        AllocationCountCapture().verifyMedian(100..110) { allocate(100) }
     }
 
     @Test
-    public fun pauseResume() {
+    fun allocationCountCapture_pauseResume() {
         AllocationCountCapture().verifyMedian(100..110) {
             allocate(100)
 
@@ -40,6 +42,52 @@ public class AllocationCountCaptureTest {
             // these 1000 allocations shouldn't be counted, capture is paused!
             allocate(1000)
             captureResumed()
+        }
+    }
+
+    @Test
+    fun cpuEventCounterCapture_outputName() {
+        CpuEventCounter().use {
+            assertEquals(
+                listOf("instructions", "cpuCycles"),
+                CpuEventCounterCapture(
+                        it,
+                        listOf(CpuEventCounter.Event.Instructions, CpuEventCounter.Event.CpuCycles)
+                    )
+                    .names
+            )
+        }
+    }
+
+    @Test
+    fun cpuEventCounterCapture_multi() {
+        assumeFalse(DeviceInfo.isEmulator && Build.VERSION.SDK_INT == 28) // see b/357101113
+
+        try {
+            // skip test if need root, or event fails to enable
+            CpuEventCounter.forceEnable()?.let { errorMessage -> assumeTrue(errorMessage, false) }
+
+            CpuEventCounter().use { counter ->
+                val firstEvents = listOf(CpuEventCounter.Event.Instructions)
+                val secondEvents =
+                    listOf(CpuEventCounter.Event.Instructions, CpuEventCounter.Event.CpuCycles)
+
+                val firstCapture = CpuEventCounterCapture(counter, firstEvents)
+                val secondCapture = CpuEventCounterCapture(counter, secondEvents)
+
+                val checkCapture: (CpuEventCounterCapture, List<CpuEventCounter.Event>) -> Unit =
+                    { capture, events ->
+                        capture.captureStart(0)
+                        assertEquals(events.getFlags(), counter.currentEventFlags)
+                        capture.captureStop(1, LongArray(events.size), 0)
+                    }
+
+                checkCapture(firstCapture, firstEvents)
+                checkCapture(secondCapture, secondEvents)
+                checkCapture(firstCapture, firstEvents)
+            }
+        } finally {
+            CpuEventCounter.reset()
         }
     }
 }
@@ -50,12 +98,16 @@ public class AllocationCountCaptureTest {
  * This is done to reduce variance, e.g. from random background allocations
  */
 private fun MetricCapture.verifyMedian(expected: IntRange, block: MetricCapture.() -> Unit) {
-    val results = List(200) {
-        captureStart(System.nanoTime())
-        block()
-        captureStop(System.nanoTime()) * 1.0
-    }
-    val median = MetricResult(name, results).median.toInt()
+    assertEquals(1, names.size)
+    val longArray = longArrayOf(0L)
+    val results =
+        List(200) {
+            captureStart(System.nanoTime())
+            block()
+            captureStop(System.nanoTime(), longArray, 0)
+            longArray[0] * 1.0
+        }
+    val median = MetricResult(names[0], results).median.toInt()
     if (median !in expected) {
         throw AssertionError(
             "observed median $median, expected $expected, saw: " + results.joinToString()
