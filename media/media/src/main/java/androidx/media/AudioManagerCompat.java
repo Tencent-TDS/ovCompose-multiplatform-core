@@ -21,11 +21,18 @@ import android.media.AudioManager;
 import android.os.Build;
 
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat.StreamType;
 
-/** Compatibility library for {@link AudioManager} with fallbacks for older platforms. */
+import org.jspecify.annotations.NonNull;
+
+/**
+ * Compatibility library for {@link AudioManager} with fallbacks for older platforms.
+ *
+ * @deprecated androidx.media is deprecated. Please migrate to <a
+ *     href="https://developer.android.com/media/media3">androidx.media3</a>.
+ */
+@Deprecated
 public final class AudioManagerCompat {
 
     private static final String TAG = "AudioManCompat";

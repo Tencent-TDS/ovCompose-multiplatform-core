@@ -174,6 +174,16 @@ interface Applier<N> {
      * root to be used as the target of a new composition in the future.
      */
     fun clear()
+
+    /** Apply a change to the current node. */
+    fun apply(block: N.(Any?) -> Unit, value: Any?) {
+        current.block(value)
+    }
+
+    /** Notify [current] is is being reused in reusable content. */
+    fun reuse() {
+        (current as? ComposeNodeLifecycleCallback)?.onReuse()
+    }
 }
 
 /**
@@ -186,18 +196,18 @@ interface Applier<N> {
  * @see ComposeNode
  */
 abstract class AbstractApplier<T>(val root: T) : Applier<T> {
-    private val stack = mutableListOf<T>()
+    private val stack = Stack<T>()
+
     override var current: T = root
         protected set
 
     override fun down(node: T) {
-        stack.add(current)
+        stack.push(current)
         current = node
     }
 
     override fun up() {
-        checkPrecondition(stack.isNotEmpty()) { "empty stack" }
-        current = stack.removeAt(stack.size - 1)
+        current = stack.pop()
     }
 
     final override fun clear() {
@@ -273,6 +283,6 @@ internal class OffsetApplier<N>(private val applier: Applier<N>, private val off
     }
 
     override fun clear() {
-        runtimeCheck(false) { "Clear is not valid on OffsetApplier" }
+        composeImmediateRuntimeError("Clear is not valid on OffsetApplier")
     }
 }

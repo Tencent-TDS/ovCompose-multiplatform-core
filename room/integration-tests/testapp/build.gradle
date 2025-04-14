@@ -63,12 +63,13 @@ android {
         // For testing Java records
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
-        coreLibraryDesugaringEnabled true
+        coreLibraryDesugaringEnabled = true
     }
-    namespace "androidx.room.integration.testapp"
+    namespace = "androidx.room.integration.testapp"
 }
 
 dependencies {
+    implementation(libs.jspecify)
     coreLibraryDesugaring(libs.desugarJdkLibs)
     implementation(project(":room:room-common"))
     implementation(project(":room:room-runtime"))
@@ -77,8 +78,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-livedata:2.6.1")
     implementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
 
-    // Workaround for b/191286558.
-    implementation(project(":annotation:annotation-experimental"))
+    implementation("androidx.annotation:annotation-experimental:1.4.1")
 
     // libs.findbugs dependency resolves an app/testapp version conflict.
     implementation(libs.findbugs)
@@ -86,14 +86,13 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.3.1")
 
     // Annotation processor / compiler dependencies:
-    withoutExpandProjectionAnnotationProcessor(project(path: ":room:room-compiler"))
+    withoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
     withNullAwareTypeConverterAnnotationProcessor(project(":room:room-compiler"))
     withPreKmpCompilerAnnotationProcessor("androidx.room:room-compiler:2.6.1")
     androidTestWithoutExpandProjectionAnnotationProcessor(project(":room:room-compiler"))
     androidTestWithNullAwareTypeConverterAnnotationProcessor(project(":room:room-compiler"))
     androidTestWithPreKmpCompilerAnnotationProcessor("androidx.room:room-compiler:2.6.1")
 
-    androidTestImplementation(project(":annotation:annotation-experimental"))
     androidTestImplementation("androidx.arch.core:core-runtime:2.2.0")
     androidTestImplementation("androidx.arch.core:core-common:2.2.0")
     androidTestImplementation(project(":room:room-testing"))
@@ -102,7 +101,7 @@ dependencies {
     androidTestImplementation(project(":room:room-guava"))
     androidTestImplementation(project(":room:room-paging"))
     androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
-    androidTestImplementation(projectOrArtifact(":paging:paging-runtime"))
+    androidTestImplementation(project(":paging:paging-runtime"))
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime:2.6.1")
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime-testing:2.6.1")
     androidTestImplementation("androidx.lifecycle:lifecycle-livedata:2.6.1")
@@ -126,7 +125,7 @@ dependencies {
 
 room {
     schemaDirectory(
-        provider { layout.projectDirectory.dir("schemas").getAsFile().getAbsolutePath() }
+        layout.projectDirectory.dir("schemas")
     )
 }
 

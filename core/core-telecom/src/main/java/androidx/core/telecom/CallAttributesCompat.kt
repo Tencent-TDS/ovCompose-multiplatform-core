@@ -30,19 +30,25 @@ import java.util.Objects
  * an instance of this class and use [CallsManager.addCall] to start a new call with Telecom.
  *
  * @param displayName Display name of the person on the other end of the call
- * @param address Address of the call. Note, this can be extended to a meeting link
+ * @param address Address of the call. Note, this can be extended to a meeting link or a custom
+ *   scheme. On sdks 26 & 27, the address should start with the "sip:" prefix (e.g
+ *   Uri.parse("sip:")), otherwise the address will be replaced with "sip:" + packageName.
  * @param direction The direction (Outgoing/Incoming) of the new Call
  * @param callType Information related to data being transmitted (voice, video, etc. )
  * @param callCapabilities Allows a package to opt into capabilities on the telecom side, on a
  *   per-call basis
+ * @param preferredStartingCallEndpoint allows clients to specify a [CallEndpointCompat] to start a
+ *   new call on. The [preferredStartingCallEndpoint] should be a value returned from
+ *   [CallsManager.getAvailableStartingCallEndpoints]. Once the call is started, Core-Telecom will
+ *   switch to the [preferredStartingCallEndpoint] before running the [CallControlScope].
  */
-public class CallAttributesCompat
-constructor(
+public class CallAttributesCompat(
     public val displayName: CharSequence,
     public val address: Uri,
     @Direction public val direction: Int,
     @CallType public val callType: Int = CALL_TYPE_AUDIO_CALL,
-    @CallCapability public val callCapabilities: Int = SUPPORTS_SET_INACTIVE
+    @CallCapability public val callCapabilities: Int = SUPPORTS_SET_INACTIVE,
+    public val preferredStartingCallEndpoint: CallEndpointCompat? = null
 ) {
     internal var mHandle: PhoneAccountHandle? = null
 

@@ -86,9 +86,6 @@ private constructor(
     private val existingLayoutIds: MutableSet<Int> = mutableSetOf(),
 ) {
 
-    @VisibleForTesting
-    internal val dataStoreFile = context.dataStoreFile(layoutDatastoreKey(appWidgetId))
-
     internal companion object {
 
         /** Creates a [LayoutConfiguration] retrieving known layouts from file, if they exist. */
@@ -275,6 +272,7 @@ private fun LayoutNode.Builder.setImageNode(element: EmittableImage) {
         }
     hasImageDescription = !element.isDecorative()
     hasImageColorFilter = element.colorFilterParams != null
+    hasImageAlpha = element.alpha != null
 }
 
 private fun LayoutNode.Builder.setColumnNode(element: EmittableColumn) {
@@ -300,7 +298,8 @@ private val GlanceModifier.widthModifier: Dimension
 private val GlanceModifier.heightModifier: Dimension
     get() = findModifier<HeightModifier>()?.height ?: Dimension.Wrap
 
-private fun layoutDatastoreKey(appWidgetId: Int): String = "appWidgetLayout-$appWidgetId"
+@VisibleForTesting
+internal fun layoutDatastoreKey(appWidgetId: Int): String = "appWidgetLayout-$appWidgetId"
 
 private object LayoutStateDefinition : GlanceStateDefinition<LayoutProto.LayoutConfig> {
     override fun getLocation(context: Context, fileKey: String): File =

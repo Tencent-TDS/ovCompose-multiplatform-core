@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.foundation.layout
 
 import androidx.compose.foundation.background
@@ -545,7 +547,7 @@ class ContextualFlowRowColumnTest {
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                     maxItemsInEachRow = 3,
-                ) {
+                ) { index ->
                     Box(
                         Modifier.onSizeChanged { listOfHeights.add(it.height) }
                             .width(100.dp)
@@ -553,7 +555,7 @@ class ContextualFlowRowColumnTest {
                             .background(Color.Green)
                             .fillMaxRowHeight()
                     ) {
-                        val height = Random.Default.nextInt(1, 200) - it
+                        val height = 200 - index
                         Box(modifier = Modifier.height(height.dp))
                     }
                 }
@@ -3732,7 +3734,7 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }
@@ -3753,14 +3755,14 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }
 
         rule.runOnIdle {
             mainAxisSize.value = 150.dp
-            maxItemsInMainAxis.value = 2
+            maxItemsInMainAxis.intValue = 2
             list.clear()
         }
 
@@ -3775,7 +3777,7 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }
@@ -3855,7 +3857,7 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }
@@ -3875,7 +3877,7 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }
@@ -3883,7 +3885,7 @@ class ContextualFlowRowColumnTest {
         rule.runOnIdle {
             list.clear()
             mainAxisSize.value = 150.dp
-            maxItemsInMainAxis.value = 2
+            maxItemsInMainAxis.intValue = 2
         }
 
         advanceClock()
@@ -3897,7 +3899,7 @@ class ContextualFlowRowColumnTest {
                 lineOneItemSize,
                 itemSize,
                 spacing,
-                maxItemsInMainAxis.value,
+                maxItemsInMainAxis.intValue,
                 crossAxisSpacing
             )
         }

@@ -24,12 +24,15 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiContext
 import androidx.core.util.Consumer
-import androidx.test.ext.junit.rules.ActivityScenarioRule
+import androidx.test.ext.junit.rules.activityScenarioRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import androidx.window.TestActivity
 import androidx.window.TestConsumer
 import androidx.window.WindowTestUtils
-import androidx.window.WindowTestUtils.Companion.assumeAtLeastVendorApiLevel
-import androidx.window.WindowTestUtils.Companion.assumeBeforeVendorApiLevel
+import androidx.window.WindowTestUtils.Companion.assumeAtLeastWindowExtensionVersion
+import androidx.window.WindowTestUtils.Companion.assumeBeforeWindowExtensionVersion
 import androidx.window.core.ConsumerAdapter
 import androidx.window.core.ExtensionsUtil
 import androidx.window.extensions.core.util.function.Consumer as OEMConsumer
@@ -54,19 +57,20 @@ import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 
+@LargeTest
+@RunWith(AndroidJUnit4::class)
 class ExtensionWindowBackendTest {
 
-    @get:Rule
-    public val activityScenario: ActivityScenarioRule<TestActivity> =
-        ActivityScenarioRule(TestActivity::class.java)
+    @get:Rule val activityScenario = activityScenarioRule<TestActivity>()
 
     private val consumerAdapter =
         ConsumerAdapter(ExtensionWindowBackendTest::class.java.classLoader!!)
@@ -77,8 +81,8 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_delegatesToWindowLayoutComponent() {
-        assumeAtLeastVendorApiLevel(1)
+    fun testExtensionWindowBackend_delegatesToWindowLayoutComponent() {
+        assumeAtLeastWindowExtensionVersion(1)
         val component = RequestTrackingWindowComponent()
 
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -92,11 +96,11 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_delegatesToWindowLayoutComponentWithContext() {
+    fun testExtensionWindowBackend_delegatesToWindowLayoutComponentWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = RequestTrackingWindowComponent()
 
@@ -119,8 +123,8 @@ class ExtensionWindowBackendTest {
      */
     @Suppress("Deprecation")
     @Test
-    public fun testExtensionWindowBackend_registerAtMostOnce() {
-        assumeBeforeVendorApiLevel(2)
+    fun testExtensionWindowBackend_registerAtMostOnce() {
+        assumeBeforeWindowExtensionVersion(2)
         val component = mock<WindowLayoutComponent>()
 
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -136,11 +140,11 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_registerAtMostOnceWithContext() {
+    fun testExtensionWindowBackend_registerAtMostOnceWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = mock<WindowLayoutComponent>()
 
@@ -171,19 +175,19 @@ class ExtensionWindowBackendTest {
     @Ignore // b/260647675, b/260648288
     @Suppress("NewApi", "Deprecation") // java.util.function.Consumer was added in API 24 (N)
     @Test
-    public fun testExtensionWindowBackend_translateValues() {
+    fun testExtensionWindowBackend_translateValues() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
 
-        val component = mock<WindowLayoutComponent>()
-        whenever(
-                component.addWindowLayoutInfoListener(
-                    any(),
-                    any<JavaConsumer<OEMWindowLayoutInfo>>()
-                )
-            )
-            .thenAnswer { invocation ->
-                val consumer = invocation.getArgument(1) as JavaConsumer<OEMWindowLayoutInfo>
-                consumer.accept(OEMWindowLayoutInfo(emptyList()))
+        val component =
+            mock<WindowLayoutComponent> {
+                on {
+                    addWindowLayoutInfoListener(any(), any<JavaConsumer<OEMWindowLayoutInfo>>())
+                } doAnswer
+                    { invocation ->
+                        val consumer =
+                            invocation.getArgument(1) as JavaConsumer<OEMWindowLayoutInfo>
+                        consumer.accept(OEMWindowLayoutInfo(emptyList()))
+                    }
             }
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
 
@@ -196,11 +200,11 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_translateValuesWithContext() {
+    fun testExtensionWindowBackend_translateValuesWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = FakeWindowComponent()
         val windowContext = WindowTestUtils.createOverlayWindowContext()
@@ -224,19 +228,19 @@ class ExtensionWindowBackendTest {
     @Suppress("NewApi", "Deprecation") // java.util.function.Consumer was added in API 24 (N)
     @Test
     fun testExtensionWindowBackend_infoReplayedForAdditionalListener() {
-        assumeBeforeVendorApiLevel(2)
+        assumeBeforeWindowExtensionVersion(2)
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
 
-        val component = mock<WindowLayoutComponent>()
-        whenever(
-                component.addWindowLayoutInfoListener(
-                    any(),
-                    any<JavaConsumer<OEMWindowLayoutInfo>>()
-                )
-            )
-            .thenAnswer { invocation ->
-                val consumer = invocation.getArgument(1) as JavaConsumer<OEMWindowLayoutInfo>
-                consumer.accept(OEMWindowLayoutInfo(emptyList()))
+        val component =
+            mock<WindowLayoutComponent> {
+                on {
+                    addWindowLayoutInfoListener(any(), any<JavaConsumer<OEMWindowLayoutInfo>>())
+                } doAnswer
+                    { invocation ->
+                        val consumer =
+                            invocation.getArgument(1) as JavaConsumer<OEMWindowLayoutInfo>
+                        consumer.accept(OEMWindowLayoutInfo(emptyList()))
+                    }
             }
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
 
@@ -250,32 +254,21 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_infoReplayedForAdditionalListenerWithContext() {
+    fun testExtensionWindowBackend_infoReplayedForAdditionalListenerWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
-        val component = mock<WindowLayoutComponent>()
-        whenever(
-                component.addWindowLayoutInfoListener(
-                    any(),
-                    any<OEMConsumer<OEMWindowLayoutInfo>>()
-                )
-            )
-            .thenAnswer { invocation ->
-                val consumer = invocation.getArgument(1) as OEMConsumer<OEMWindowLayoutInfo>
-                consumer.accept(OEMWindowLayoutInfo(emptyList()))
-            }
-        whenever(
-                component.addWindowLayoutInfoListener(
-                    any(),
-                    any<OEMConsumer<OEMWindowLayoutInfo>>()
-                )
-            )
-            .thenAnswer { invocation ->
-                val consumer = invocation.getArgument(1) as OEMConsumer<OEMWindowLayoutInfo>
-                consumer.accept(OEMWindowLayoutInfo(emptyList()))
+        val component =
+            mock<WindowLayoutComponent> {
+                on {
+                    addWindowLayoutInfoListener(any(), any<OEMConsumer<OEMWindowLayoutInfo>>())
+                } doAnswer
+                    { invocation ->
+                        val consumer = invocation.getArgument(1) as OEMConsumer<OEMWindowLayoutInfo>
+                        consumer.accept(OEMWindowLayoutInfo(emptyList()))
+                    }
             }
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
 
@@ -297,7 +290,7 @@ class ExtensionWindowBackendTest {
     @Suppress("Deprecation")
     @Test
     fun testExtensionWindowBackend_removeMatchingCallback() {
-        assumeBeforeVendorApiLevel(2)
+        assumeBeforeWindowExtensionVersion(2)
         val component = mock<WindowLayoutComponent>()
 
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -317,7 +310,7 @@ class ExtensionWindowBackendTest {
     @Suppress("Deprecation")
     @Test
     fun testExtensionWindowBackend_removesMultipleCallback() {
-        assumeBeforeVendorApiLevel(2)
+        assumeBeforeWindowExtensionVersion(2)
         val component = mock<WindowLayoutComponent>()
 
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -349,7 +342,7 @@ class ExtensionWindowBackendTest {
             // createWindowContext is available after R.
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = mock<WindowLayoutComponent>()
 
@@ -385,7 +378,7 @@ class ExtensionWindowBackendTest {
             // createWindowContext is available after R.
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = mock<WindowLayoutComponent>()
 
@@ -429,7 +422,7 @@ class ExtensionWindowBackendTest {
     @Suppress("Deprecation")
     @Test
     fun testExtensionWindowBackend_reRegisterCallback() {
-        assumeBeforeVendorApiLevel(2)
+        assumeBeforeWindowExtensionVersion(2)
         val component = mock<WindowLayoutComponent>()
 
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -456,7 +449,7 @@ class ExtensionWindowBackendTest {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = mock<WindowLayoutComponent>()
 
@@ -487,8 +480,8 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testRegisterLayoutChangeCallback_clearListeners() {
-        assumeBeforeVendorApiLevel(2)
+    fun testRegisterLayoutChangeCallback_clearListeners() {
+        assumeBeforeWindowExtensionVersion(2)
         activityScenario.scenario.onActivity { activity ->
             val component = FakeWindowComponent()
             val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -522,11 +515,11 @@ class ExtensionWindowBackendTest {
      * WindowExtensions#VENDOR_API_LEVEL_2}
      */
     @Test
-    public fun testRegisterLayoutChangeCallback_clearListenersWithContext() {
+    fun testRegisterLayoutChangeCallback_clearListenersWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         activityScenario.scenario.onActivity { activity ->
             val component = FakeWindowComponent()
@@ -555,10 +548,10 @@ class ExtensionWindowBackendTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     @Test
-    public fun testLayoutChangeCallback_emitNewValue() {
-        assumeBeforeVendorApiLevel(2)
+    fun testLayoutChangeCallback_emitNewValue() {
+        assumeBeforeWindowExtensionVersion(2)
         activityScenario.scenario.onActivity { activity ->
             val component = FakeWindowComponent()
             val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -575,11 +568,11 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testExtensionWindowBackend_emitNewValueWithContext() {
+    fun testExtensionWindowBackend_emitNewValueWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = FakeWindowComponent()
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -594,10 +587,10 @@ class ExtensionWindowBackendTest {
         verify(consumer).accept(translate(windowContext, windowLayoutInfo))
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
     @Test
-    public fun testWindowLayoutInfo_updatesOnSubsequentRegistration() {
-        assumeAtLeastVendorApiLevel(1)
+    fun testWindowLayoutInfo_updatesOnSubsequentRegistration() {
+        assumeAtLeastWindowExtensionVersion(1)
         activityScenario.scenario.onActivity { activity ->
             val component = FakeWindowComponent()
             val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -620,11 +613,11 @@ class ExtensionWindowBackendTest {
     }
 
     @Test
-    public fun testWindowLayoutInfo_updatesOnSubsequentRegistrationWithContext() {
+    fun testWindowLayoutInfo_updatesOnSubsequentRegistrationWithContext() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return
         }
-        assumeAtLeastVendorApiLevel(2)
+        assumeAtLeastWindowExtensionVersion(2)
 
         val component = FakeWindowComponent()
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -651,7 +644,7 @@ class ExtensionWindowBackendTest {
 
     @Test
     fun testSupportedFeatures_throwsBeforeApi6() {
-        assumeBeforeVendorApiLevel(6)
+        assumeBeforeWindowExtensionVersion(6)
 
         val component = FakeWindowComponent()
         val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
@@ -661,7 +654,7 @@ class ExtensionWindowBackendTest {
 
     @Test
     fun testSupportedFeatures_emptyListReturnsNoFeatures() {
-        assumeAtLeastVendorApiLevel(6)
+        assumeAtLeastWindowExtensionVersion(6)
 
         val supportedWindowFeatures = SupportedWindowFeatures.Builder(listOf()).build()
         val component = FakeWindowComponent(windowFeatures = supportedWindowFeatures)
@@ -673,7 +666,7 @@ class ExtensionWindowBackendTest {
 
     @Test
     fun testSupportedFeatures_halfOpenedReturnsTabletopSupport() {
-        assumeAtLeastVendorApiLevel(6)
+        assumeAtLeastWindowExtensionVersion(6)
 
         val foldFeature =
             DisplayFoldFeature.Builder(DisplayFoldFeature.TYPE_SCREEN_FOLD_IN)
@@ -685,6 +678,51 @@ class ExtensionWindowBackendTest {
 
         val actual = backend.supportedPostures
         assertEquals(listOf(SupportedPosture.TABLETOP), actual)
+    }
+
+    @Test
+    fun testGetCurrentWindowLayoutInfo_throwsBeforeApi9() {
+        assumeBeforeWindowExtensionVersion(9)
+        val component = FakeWindowComponent()
+        val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+        activityScenario.scenario.onActivity { activity ->
+            assertThrows(UnsupportedOperationException::class.java) {
+                backend.getCurrentWindowLayoutInfo(activity)
+            }
+        }
+    }
+
+    @Test
+    fun testGetCurrentWindowLayoutInfo_activityContext_returnsWindowLayoutInfo() {
+        assumeAtLeastWindowExtensionVersion(9)
+        activityScenario.scenario.onActivity { activity ->
+            val windowLayoutInfoFromActivity = newTestOEMWindowLayoutInfo(activity)
+            val expected = translate(activity, windowLayoutInfoFromActivity)
+            val component =
+                FakeWindowComponent(currentWindowLayoutInfo = windowLayoutInfoFromActivity)
+            val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+            val actual = backend.getCurrentWindowLayoutInfo(activity)
+
+            assertEquals(expected, actual)
+        }
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.R)
+    fun testGetCurrentWindowLayoutInfo_overlayWindowContext_returnsWindowLayoutInfo() {
+        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        assumeAtLeastWindowExtensionVersion(9)
+        val windowContext = WindowTestUtils.createOverlayWindowContext()
+        val windowLayoutInfoFromContext = newTestOEMWindowLayoutInfo(windowContext)
+        val expected = translate(windowContext, windowLayoutInfoFromContext)
+        val component = FakeWindowComponent(currentWindowLayoutInfo = windowLayoutInfoFromContext)
+        val backend = ExtensionWindowBackend.newInstance(component, consumerAdapter)
+
+        val actual = backend.getCurrentWindowLayoutInfo(windowContext)
+
+        assertEquals(expected, actual)
     }
 
     internal companion object {
@@ -716,6 +754,7 @@ class ExtensionWindowBackendTest {
 
         val records = mutableListOf<AddCall>()
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407501611
         override fun addWindowLayoutInfoListener(
             activity: Activity,
             consumer: JavaConsumer<OEMWindowLayoutInfo>
@@ -730,6 +769,7 @@ class ExtensionWindowBackendTest {
             records.add(AddCall(context))
         }
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407501611
         override fun removeWindowLayoutInfoListener(consumer: JavaConsumer<OEMWindowLayoutInfo>) {}
 
         class AddCall(val context: Context)
@@ -739,12 +779,15 @@ class ExtensionWindowBackendTest {
         }
     }
 
-    private class FakeWindowComponent(private val windowFeatures: SupportedWindowFeatures? = null) :
-        WindowLayoutComponent {
+    private class FakeWindowComponent(
+        private val windowFeatures: SupportedWindowFeatures? = null,
+        private val currentWindowLayoutInfo: OEMWindowLayoutInfo = OEMWindowLayoutInfo(emptyList()),
+    ) : WindowLayoutComponent {
 
         val consumers = mutableListOf<JavaConsumer<OEMWindowLayoutInfo>>()
         val oemConsumers = mutableListOf<OEMConsumer<OEMWindowLayoutInfo>>()
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407501611
         override fun addWindowLayoutInfoListener(
             activity: Activity,
             consumer: JavaConsumer<OEMWindowLayoutInfo>
@@ -759,6 +802,7 @@ class ExtensionWindowBackendTest {
             oemConsumers.add(consumer)
         }
 
+        @Suppress("OVERRIDE_DEPRECATION") // b/407501611
         override fun removeWindowLayoutInfoListener(consumer: JavaConsumer<OEMWindowLayoutInfo>) {
             consumers.remove(consumer)
         }
@@ -773,6 +817,10 @@ class ExtensionWindowBackendTest {
                     "Window features are not set. Either the vendor API level is too low or value " +
                         "was not set"
                 )
+        }
+
+        override fun getCurrentWindowLayoutInfo(context: Context): OEMWindowLayoutInfo {
+            return currentWindowLayoutInfo
         }
 
         @SuppressLint("NewApi")

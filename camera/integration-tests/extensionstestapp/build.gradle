@@ -27,29 +27,32 @@ import androidx.build.ApkCopyHelperKt
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
-        applicationId "androidx.camera.integration.extensions"
+        applicationId = "androidx.camera.integration.extensions"
     }
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             testProguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-    namespace "androidx.camera.integration.extensions"
+    namespace = "androidx.camera.integration.extensions"
 }
 
 dependencies {
+    api(libs.jspecify)
     // Internal library
     implementation(project(":camera:camera-camera2"))
-    implementation(project(':camera:camera-camera2-pipe-integration'))
+    implementation(project(":camera:camera-camera2-pipe-integration"))
     implementation(project(":camera:camera-extensions"))
     implementation(project(":camera:camera-lifecycle"))
     implementation(project(":camera:camera-view"))

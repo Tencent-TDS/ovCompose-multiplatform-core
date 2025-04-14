@@ -21,15 +21,16 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.versionedparcelable:versionedparcelable:1.1.0")
     api(project(":wear:watchface:watchface-complications-data"))
@@ -39,9 +40,17 @@ dependencies {
     annotationProcessor(project(":versionedparcelable:versionedparcelable-compiler"))
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.suppressWarnings = true
+}
+
+tasks.withType(JavaCompile){
+    options.compilerArgs <<"-Xlint:-deprecation"
+}
+
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
 
     buildFeatures {
@@ -51,13 +60,14 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.wear.watchface.data"
+    namespace = "androidx.wear.watchface.data"
 }
 
 androidx {
     name = "Android Wear Watchface Data"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Android Wear Watchface hidden AIDL implementaion details"
     legacyDisableKotlinStrictApiMode = true
+    failOnDeprecationWarnings = false
 }

@@ -37,8 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 
 /**
- * <a href="https://m3.material.io/components/date-pickers/overview" class="external"
- * target="_blank">Material Design date picker dialog</a>.
+ * [Material Design date picker dialog](https://m3.material.io/components/date-pickers/overview)
  *
  * A dialog for displaying a [DatePicker]. Date pickers let people select a date.
  *
@@ -63,15 +62,15 @@ import androidx.compose.ui.window.DialogProperties
  */
 @ExperimentalMaterial3Api
 @Composable
-fun DatePickerDialog(
+actual fun DatePickerDialog(
     onDismissRequest: () -> Unit,
     confirmButton: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    dismissButton: @Composable (() -> Unit)? = null,
-    shape: Shape = DatePickerDefaults.shape,
-    tonalElevation: Dp = DatePickerDefaults.TonalElevation,
-    colors: DatePickerColors = DatePickerDefaults.colors(),
-    properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
+    modifier: Modifier,
+    dismissButton: @Composable (() -> Unit)?,
+    shape: Shape,
+    tonalElevation: Dp,
+    colors: DatePickerColors,
+    properties: DialogProperties,
     content: @Composable ColumnScope.() -> Unit
 ) {
     BasicAlertDialog(

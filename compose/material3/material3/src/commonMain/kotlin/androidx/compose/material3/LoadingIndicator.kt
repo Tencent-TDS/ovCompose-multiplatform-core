@@ -56,6 +56,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.fastForEach
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
@@ -94,7 +95,7 @@ import kotlinx.coroutines.launch
 fun LoadingIndicator(
     progress: () -> Float,
     modifier: Modifier = Modifier,
-    color: Color = LoadingIndicatorDefaults.IndicatorColor,
+    color: Color = LoadingIndicatorDefaults.indicatorColor,
     polygons: List<RoundedPolygon> = LoadingIndicatorDefaults.DeterminateIndicatorPolygons
 ) =
     LoadingIndicatorImpl(
@@ -102,7 +103,7 @@ fun LoadingIndicator(
         modifier = modifier,
         containerColor = Color.Unspecified,
         indicatorColor = color,
-        containerShape = LoadingIndicatorDefaults.ContainerShape,
+        containerShape = LoadingIndicatorDefaults.containerShape,
         indicatorPolygons = polygons,
     )
 
@@ -129,14 +130,14 @@ fun LoadingIndicator(
 @Composable
 fun LoadingIndicator(
     modifier: Modifier = Modifier,
-    color: Color = LoadingIndicatorDefaults.IndicatorColor,
+    color: Color = LoadingIndicatorDefaults.indicatorColor,
     polygons: List<RoundedPolygon> = LoadingIndicatorDefaults.IndeterminateIndicatorPolygons,
 ) =
     LoadingIndicatorImpl(
         modifier = modifier,
         containerColor = Color.Unspecified,
         indicatorColor = color,
-        containerShape = LoadingIndicatorDefaults.ContainerShape,
+        containerShape = LoadingIndicatorDefaults.containerShape,
         indicatorPolygons = polygons,
     )
 
@@ -175,9 +176,9 @@ fun LoadingIndicator(
 fun ContainedLoadingIndicator(
     progress: () -> Float,
     modifier: Modifier = Modifier,
-    containerColor: Color = LoadingIndicatorDefaults.ContainedContainerColor,
-    indicatorColor: Color = LoadingIndicatorDefaults.ContainedIndicatorColor,
-    containerShape: Shape = LoadingIndicatorDefaults.ContainerShape,
+    containerColor: Color = LoadingIndicatorDefaults.containedContainerColor,
+    indicatorColor: Color = LoadingIndicatorDefaults.containedIndicatorColor,
+    containerShape: Shape = LoadingIndicatorDefaults.containerShape,
     polygons: List<RoundedPolygon> = LoadingIndicatorDefaults.DeterminateIndicatorPolygons
 ) =
     LoadingIndicatorImpl(
@@ -215,9 +216,9 @@ fun ContainedLoadingIndicator(
 @Composable
 fun ContainedLoadingIndicator(
     modifier: Modifier = Modifier,
-    containerColor: Color = LoadingIndicatorDefaults.ContainedContainerColor,
-    indicatorColor: Color = LoadingIndicatorDefaults.ContainedIndicatorColor,
-    containerShape: Shape = LoadingIndicatorDefaults.ContainerShape,
+    containerColor: Color = LoadingIndicatorDefaults.containedContainerColor,
+    indicatorColor: Color = LoadingIndicatorDefaults.containedIndicatorColor,
+    containerShape: Shape = LoadingIndicatorDefaults.containerShape,
     polygons: List<RoundedPolygon> = LoadingIndicatorDefaults.IndeterminateIndicatorPolygons,
 ) =
     LoadingIndicatorImpl(
@@ -257,7 +258,7 @@ private fun LoadingIndicatorImpl(
     require(indicatorPolygons.size > 1) {
         "indicatorPolygons should have, at least, two RoundedPolygons"
     }
-    val coercedProgress = { progress().coerceIn(0f, 1f) }
+    val coercedProgress = { progress().fastCoerceIn(0f, 1f) }
     val path = remember { Path() }
     val scaleMatrix = remember { Matrix() }
     val morphSequence =
@@ -277,7 +278,12 @@ private fun LoadingIndicatorImpl(
         modifier =
             modifier
                 .semantics(mergeDescendants = true) {
-                    progressBarRangeInfo = ProgressBarRangeInfo(coercedProgress(), 0f..1f)
+                    // Check for NaN, as the ProgressBarRangeInfo will throw an exception.
+                    progressBarRangeInfo =
+                        ProgressBarRangeInfo(
+                            coercedProgress().takeUnless { it.isNaN() } ?: 0f,
+                            0f..1f
+                        )
                 }
                 .size(
                     width = LoadingIndicatorDefaults.ContainerWidth,
@@ -473,25 +479,25 @@ object LoadingIndicatorDefaults {
     val IndicatorSize = LoadingIndicatorTokens.ActiveSize
 
     /** A [LoadingIndicator] default container [Shape]. */
-    val ContainerShape: Shape
+    val containerShape: Shape
         @Composable get() = LoadingIndicatorTokens.ContainerShape.value
 
     /**
      * A [LoadingIndicator] default active indicator [Color] when using an uncontained
      * [LoadingIndicator].
      */
-    val IndicatorColor: Color
+    val indicatorColor: Color
         @Composable get() = LoadingIndicatorTokens.ActiveIndicatorColor.value
 
     /**
      * A [LoadingIndicator] default active indicator [Color] when using a
      * [ContainedLoadingIndicator].
      */
-    val ContainedIndicatorColor: Color
+    val containedIndicatorColor: Color
         @Composable get() = LoadingIndicatorTokens.ContainedActiveColor.value
 
     /** A [LoadingIndicator] default container [Color] when using a [ContainedLoadingIndicator]. */
-    val ContainedContainerColor: Color
+    val containedContainerColor: Color
         @Composable get() = LoadingIndicatorTokens.ContainedContainerColor.value
 
     /**
@@ -591,28 +597,6 @@ private fun calculateScaleFactor(indicatorPolygons: List<RoundedPolygon>): Float
         scaleFactor = min(scaleFactor, max(scaleX, scaleY))
     }
     return scaleFactor
-}
-
-/**
- * Calculates a scale factor that will be used when scaling the provided [Morph] into a specified
- * sized container.
- *
- * Since the morph may rotate, a simple [Morph.calculateBounds] is not enough to determine the size
- * the morph will occupy as it rotates. Using the simple bounds calculation may result in a clipped
- * shape.
- *
- * This function calculates and returns a scale factor by utilizing the [Morph.calculateMaxBounds]
- * and comparing its result to the [Morph.calculateBounds]. The scale factor can later be used when
- * calling [processPath].
- */
-private fun calculateScaleFactor(morph: Morph): Float {
-    val bounds = morph.calculateBounds()
-    val maxBounds = morph.calculateMaxBounds()
-    val scaleX = bounds.width() / maxBounds.width()
-    val scaleY = bounds.height() / maxBounds.height()
-    // We use max(scaleX, scaleY) to handle cases like a pill-shape that can throw off the
-    // entire calculation.
-    return max(scaleX, scaleY)
 }
 
 /**

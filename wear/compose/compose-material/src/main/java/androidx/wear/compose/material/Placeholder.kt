@@ -59,7 +59,6 @@ import androidx.compose.ui.platform.debugInspectorInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.lerp
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.LocalReduceMotion
 import androidx.wear.compose.materialcore.screenHeightDp
 import androidx.wear.compose.materialcore.screenWidthDp
@@ -362,13 +361,12 @@ internal constructor(
  * @param isContentReady a lambda to determine whether all of the data/content has been loaded for a
  *   given component and is ready to be displayed.
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @ExperimentalWearMaterialApi
 @Composable
 public fun rememberPlaceholderState(isContentReady: () -> Boolean): PlaceholderState {
     val maxScreenDimension =
         with(LocalDensity.current) { Dp(max(screenHeightDp(), screenWidthDp()).toFloat()).toPx() }
-    val isReduceMotionEnabled = LocalReduceMotion.current.enabled()
+    val isReduceMotionEnabled = LocalReduceMotion.current
     val myLambdaState = rememberUpdatedState(isContentReady)
     return remember { PlaceholderState(myLambdaState, maxScreenDimension, isReduceMotionEnabled) }
 }
@@ -452,7 +450,6 @@ public fun Modifier.placeholder(
  * @param color the color to use in the shimmer.
  */
 @ExperimentalWearMaterialApi
-@OptIn(ExperimentalWearFoundationApi::class)
 @Composable
 public fun Modifier.placeholderShimmer(
     placeholderState: PlaceholderState,
@@ -460,7 +457,7 @@ public fun Modifier.placeholderShimmer(
     color: Color = MaterialTheme.colors.onSurface,
 ): Modifier =
     this.then(
-        if (LocalReduceMotion.current.enabled()) {
+        if (LocalReduceMotion.current) {
             Modifier
         } else {
             PlaceholderShimmerElement(

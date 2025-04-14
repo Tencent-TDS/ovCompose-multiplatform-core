@@ -19,8 +19,10 @@ package androidx.compose.ui.platform
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.input.pointer.EmptyPointerKeyboardModifiers
 import androidx.compose.ui.input.pointer.PointerKeyboardModifiers
@@ -43,9 +45,14 @@ interface WindowInfo {
     val keyboardModifiers: PointerKeyboardModifiers
         get() = WindowInfoImpl.GlobalKeyboardModifiers.value
 
-    /** Size of the window's content container in pixels. */
+    /**
+     * Size of the window. This size excludes insets, such as any system bars, so it is not safe to
+     * assume that this size matches the available space of the compose hierarchy hosted inside this
+     * window. Instead this size should be used as a breakpoint when changing between UI
+     * configurations, or similar window-dependent configuration.
+     */
     val containerSize: IntSize
-        get() = IntSize.Zero
+        get() = IntSize(Int.MIN_VALUE, Int.MIN_VALUE)
 }
 
 @Composable
@@ -58,16 +65,10 @@ internal fun WindowFocusObserver(onWindowFocusChanged: (isWindowFocused: Boolean
 }
 
 internal class WindowInfoImpl : WindowInfo {
-    private val _isWindowFocused = mutableStateOf(false)
     private val _containerSize = mutableStateOf(IntSize.Zero)
 
-    override var isWindowFocused: Boolean
-        get() = _isWindowFocused.value
-        set(value) {
-            _isWindowFocused.value = value
-        }
+    override var isWindowFocused: Boolean by mutableStateOf(false)
 
-    @Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
     override var keyboardModifiers: PointerKeyboardModifiers
         get() = GlobalKeyboardModifiers.value
         set(value) {

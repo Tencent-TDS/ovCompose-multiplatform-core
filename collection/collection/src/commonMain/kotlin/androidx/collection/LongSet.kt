@@ -23,11 +23,14 @@
     "PrivatePropertyName",
     "NOTHING_TO_INLINE"
 )
+@file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
 import androidx.annotation.IntRange
 import androidx.collection.internal.requirePrecondition
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
@@ -97,6 +100,38 @@ public fun mutableLongSetOf(element1: Long, element2: Long, element3: Long): Mut
 /** Returns a new [MutableLongSet] with the specified elements. */
 public fun mutableLongSetOf(vararg elements: Long): MutableLongSet =
     MutableLongSet(elements.size).apply { plusAssign(elements) }
+
+/**
+ * Builds a new [LongSet] by populating a [MutableLongSet] using the given [builderAction].
+ *
+ * The set passed as a receiver to the [builderAction] is valid only inside that function. Using it
+ * outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutableLongSet] can be populated.
+ */
+public inline fun buildLongSet(
+    builderAction: MutableLongSet.() -> Unit,
+): LongSet {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableLongSet().apply(builderAction)
+}
+
+/**
+ * Builds a new [LongSet] by populating a [MutableLongSet] using the given [builderAction].
+ *
+ * The set passed as a receiver to the [builderAction] is valid only inside that function. Using it
+ * outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of elements added in the [builderAction].
+ * @param builderAction Lambda in which the [MutableLongSet] can be populated.
+ */
+public inline fun buildLongSet(
+    initialCapacity: Int,
+    builderAction: MutableLongSet.() -> Unit,
+): LongSet {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableLongSet(initialCapacity).apply(builderAction)
+}
 
 /**
  * [LongSet] is a container with a [Set]-like interface designed to avoid allocations, including
@@ -738,7 +773,6 @@ public class MutableLongSet(initialCapacity: Int = DefaultScatterCapacity) : Lon
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -746,7 +780,6 @@ public class MutableLongSet(initialCapacity: Int = DefaultScatterCapacity) : Lon
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -790,21 +823,15 @@ public class MutableLongSet(initialCapacity: Int = DefaultScatterCapacity) : Lon
 
                 elements[targetIndex] = elements[index]
                 elements[index] = 0L
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                elements[swapIndex] = elements[targetIndex]
+                val oldElement = elements[targetIndex]
                 elements[targetIndex] = elements[index]
-                elements[index] = elements[swapIndex]
+                elements[index] = oldElement
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location

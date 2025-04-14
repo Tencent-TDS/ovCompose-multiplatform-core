@@ -21,7 +21,6 @@ import androidx.room.compiler.codegen.VisibilityModifier
 import androidx.room.compiler.codegen.XClassName
 import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XFunSpec
-import androidx.room.compiler.codegen.XFunSpec.Builder.Companion.apply
 import androidx.room.compiler.codegen.XMemberName
 import androidx.room.compiler.codegen.XMemberName.Companion.companionMember
 import androidx.room.compiler.codegen.XMemberName.Companion.packageMember
@@ -29,6 +28,8 @@ import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.XTypeSpec
 import androidx.room.compiler.codegen.asClassName
 import androidx.room.compiler.codegen.asMutableClassName
+import androidx.room.compiler.codegen.buildCodeBlock
+import androidx.room.compiler.codegen.compat.XConverters.applyToJavaPoet
 import androidx.room.ext.RoomGuavaTypeNames.GUAVA_ROOM
 import androidx.room.solver.CodeGenScope
 import com.squareup.kotlinpoet.javapoet.JTypeName
@@ -90,6 +91,7 @@ object RoomTypeNames {
     val FLOW_UTIL = XClassName.get("$ROOM_PACKAGE.coroutines", "FlowUtil")
     val RAW_QUERY = XClassName.get(ROOM_PACKAGE, "RoomRawQuery")
     val ROOM_DB_CONSTRUCTOR = XClassName.get(ROOM_PACKAGE, "RoomDatabaseConstructor")
+    val BYTE_ARRAY_WRAPPER = XClassName.get("$ROOM_PACKAGE.util", "ByteArrayWrapper")
 }
 
 object RoomAnnotationTypeNames {
@@ -301,6 +303,7 @@ object RoomMemberNames {
     val DB_UTIL_DROP_FTS_SYNC_TRIGGERS = RoomTypeNames.DB_UTIL.packageMember("dropFtsSyncTriggers")
     val DB_UTIL_PERFORM_SUSPENDING = RoomTypeNames.DB_UTIL.packageMember("performSuspending")
     val DB_UTIL_PERFORM_BLOCKING = RoomTypeNames.DB_UTIL.packageMember("performBlocking")
+    val DB_UTIL_SUPPORT_DB_TO_CONNECTION = RoomTypeNames.DB_UTIL.packageMember("toSQLiteConnection")
     val DB_UTIL_PERFORM_IN_TRANSACTION_SUSPENDING =
         RoomTypeNames.DB_UTIL.packageMember("performInTransactionSuspending")
     val CURSOR_UTIL_GET_COLUMN_INDEX = RoomTypeNames.CURSOR_UTIL.packageMember("getColumnIndex")
@@ -337,7 +340,8 @@ val DEFERRED_TYPES =
         RxJava3TypeNames.COMPLETABLE,
         GuavaUtilConcurrentTypeNames.LISTENABLE_FUTURE,
         KotlinTypeNames.FLOW,
-        ReactiveStreamsTypeNames.PUBLISHER
+        ReactiveStreamsTypeNames.PUBLISHER,
+        PagingTypeNames.PAGING_SOURCE
     )
 
 fun XTypeName.defaultValue(): String {
@@ -354,16 +358,11 @@ fun XTypeName.defaultValue(): String {
     }
 }
 
-fun CallableTypeSpecBuilder(
-    language: CodeLanguage,
-    parameterTypeName: XTypeName,
-    callBody: XFunSpec.Builder.() -> Unit
-) =
-    XTypeSpec.anonymousClassBuilder(language, "").apply {
+fun CallableTypeSpecBuilder(parameterTypeName: XTypeName, callBody: XFunSpec.Builder.() -> Unit) =
+    XTypeSpec.anonymousClassBuilder("").apply {
         addSuperinterface(CommonTypeNames.CALLABLE.parametrizedBy(parameterTypeName))
         addFunction(
             XFunSpec.builder(
-                    language = language,
                     name = "call",
                     visibility = VisibilityModifier.PUBLIC,
                     isOverride = true
@@ -372,35 +371,30 @@ fun CallableTypeSpecBuilder(
                     returns(parameterTypeName)
                     callBody()
                 }
-                .apply(
-                    javaMethodBuilder = { addException(JTypeName.get(Exception::class.java)) },
-                    kotlinFunctionBuilder = {}
-                )
+                .applyToJavaPoet { addException(JTypeName.get(Exception::class.java)) }
                 .build()
         )
     }
 
 fun Function1TypeSpec(
-    language: CodeLanguage,
     parameterTypeName: XTypeName,
     parameterName: String,
     returnTypeName: XTypeName,
     callBody: XFunSpec.Builder.() -> Unit
 ) =
-    XTypeSpec.anonymousClassBuilder(language, "")
+    XTypeSpec.anonymousClassBuilder("")
         .apply {
             superclass(
                 Function1::class.asClassName().parametrizedBy(parameterTypeName, returnTypeName)
             )
             addFunction(
                 XFunSpec.builder(
-                        language = language,
                         name = "invoke",
                         visibility = VisibilityModifier.PUBLIC,
                         isOverride = true
                     )
                     .apply {
-                        addParameter(parameterTypeName, parameterName)
+                        addParameter(parameterName, parameterTypeName)
                         returns(returnTypeName)
                         callBody()
                     }
@@ -421,7 +415,7 @@ fun InvokeWithLambdaParameter(
     continuationParamName: String? = null,
     lambdaSpec: LambdaSpec
 ): XCodeBlock {
-    val functionCall = XCodeBlock.of(scope.language, "%M", functionName)
+    val functionCall = XCodeBlock.of("%M", functionName)
     return InvokeWithLambdaParameter(
         scope,
         functionCall,
@@ -464,92 +458,88 @@ fun InvokeWithLambdaParameter(
     args: List<Any>,
     continuationParamName: String? = null,
     lambdaSpec: LambdaSpec
-): XCodeBlock =
-    XCodeBlock.builder(scope.language)
-        .apply {
-            check(argFormat.size == args.size)
-            when (language) {
-                CodeLanguage.JAVA -> {
-                    if (lambdaSpec.javaLambdaSyntaxAvailable) {
-                        val argsFormatString = argFormat.joinToString(separator = ", ")
-                        add(
-                            "%L($argsFormatString, (%L) -> {\n",
-                            functionCall,
-                            *args.toTypedArray(),
-                            lambdaSpec.parameterName
-                        )
-                        indent()
-                        val bodyScope = scope.fork()
-                        with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
-                        add(bodyScope.generate())
-                        unindent()
-                        add("}")
-                        if (continuationParamName != null) {
-                            add(", %L", continuationParamName)
-                        }
-                        add(");\n")
-                    } else {
-                        val adjustedArgsFormatString =
-                            buildList {
-                                    addAll(argFormat)
-                                    add("%L") // the anonymous function
-                                    if (continuationParamName != null) {
-                                        add("%L")
-                                    }
-                                }
-                                .joinToString(separator = ", ")
-                        val adjustedArgs = buildList {
-                            addAll(args)
-                            add(
-                                Function1TypeSpec(
-                                    language = language,
-                                    parameterTypeName = lambdaSpec.parameterTypeName,
-                                    parameterName = lambdaSpec.parameterName,
-                                    returnTypeName = lambdaSpec.returnTypeName,
-                                    callBody = {
-                                        val bodyScope = scope.fork()
-                                        with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
-                                        addCode(bodyScope.generate())
-                                    }
-                                )
-                            )
+) = buildCodeBlock { language ->
+    check(argFormat.size == args.size)
+    when (language) {
+        CodeLanguage.JAVA -> {
+            if (lambdaSpec.javaLambdaSyntaxAvailable) {
+                val argsFormatString = argFormat.joinToString(separator = ", ")
+                add(
+                    "%L($argsFormatString, (%L) -> {\n",
+                    functionCall,
+                    *args.toTypedArray(),
+                    lambdaSpec.parameterName
+                )
+                indent()
+                val bodyScope = scope.fork()
+                with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
+                add(bodyScope.generate())
+                unindent()
+                add("}")
+                if (continuationParamName != null) {
+                    add(", %L", continuationParamName)
+                }
+                add(");\n")
+            } else {
+                val adjustedArgsFormatString =
+                    buildList {
+                            addAll(argFormat)
+                            add("%L") // the anonymous function
                             if (continuationParamName != null) {
-                                add(continuationParamName)
+                                add("%L")
                             }
                         }
-                        add(
-                            "%L($adjustedArgsFormatString);\n",
-                            functionCall,
-                            *adjustedArgs.toTypedArray(),
+                        .joinToString(separator = ", ")
+                val adjustedArgs = buildList {
+                    addAll(args)
+                    add(
+                        Function1TypeSpec(
+                            parameterTypeName = lambdaSpec.parameterTypeName,
+                            parameterName = lambdaSpec.parameterName,
+                            returnTypeName = lambdaSpec.returnTypeName,
+                            callBody = {
+                                val bodyScope = scope.fork()
+                                with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
+                                addCode(bodyScope.generate())
+                            }
                         )
+                    )
+                    if (continuationParamName != null) {
+                        add(continuationParamName)
                     }
                 }
-                CodeLanguage.KOTLIN -> {
-                    val argsFormatString = argFormat.joinToString(separator = ", ")
-                    if (lambdaSpec.parameterTypeName.rawTypeName != KotlinTypeNames.CONTINUATION) {
-                        add(
-                            "%L($argsFormatString) { %L ->\n",
-                            functionCall,
-                            *args.toTypedArray(),
-                            lambdaSpec.parameterName
-                        )
-                    } else {
-                        add(
-                            "%L($argsFormatString) {\n",
-                            functionCall,
-                            *args.toTypedArray(),
-                        )
-                    }
-                    indent()
-                    val bodyScope = scope.fork()
-                    with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
-                    add(bodyScope.generate())
-                    unindent()
-                    add("}\n")
-                }
+                add(
+                    "%L($adjustedArgsFormatString);\n",
+                    functionCall,
+                    *adjustedArgs.toTypedArray(),
+                )
             }
         }
-        .build()
+        CodeLanguage.KOTLIN -> {
+            val argsFormatString = argFormat.joinToString(separator = ", ")
+            if (lambdaSpec.parameterTypeName.rawTypeName != KotlinTypeNames.CONTINUATION) {
+                add(
+                    "%L($argsFormatString) { %L ->\n",
+                    functionCall,
+                    *args.toTypedArray(),
+                    lambdaSpec.parameterName
+                )
+            } else {
+                add(
+                    "%L($argsFormatString) {\n",
+                    functionCall,
+                    *args.toTypedArray(),
+                )
+            }
+            indent()
+            val bodyScope = scope.fork()
+            with(lambdaSpec) { bodyScope.builder.body(bodyScope) }
+            add(bodyScope.generate())
+            unindent()
+            add("}\n")
+        }
+    }
+}
 
 /** Describes the lambda to be generated with [InvokeWithLambdaParameter]. */
 abstract class LambdaSpec(
@@ -570,7 +560,7 @@ abstract class LambdaSpec(
  *
  * For Kotlin will produce: `intArrayOf(1, 2, 3)`,
  */
-fun ArrayLiteral(language: CodeLanguage, type: XTypeName, vararg values: Any): XCodeBlock {
+fun ArrayLiteral(type: XTypeName, vararg values: Any) = buildCodeBlock { language ->
     val space =
         when (language) {
             CodeLanguage.JAVA -> "%W"
@@ -578,8 +568,8 @@ fun ArrayLiteral(language: CodeLanguage, type: XTypeName, vararg values: Any): X
         }
     val initExpr =
         when (language) {
-            CodeLanguage.JAVA -> XCodeBlock.of(language, "new %T[] ", type)
-            CodeLanguage.KOTLIN -> XCodeBlock.of(language, getArrayOfFunction(type))
+            CodeLanguage.JAVA -> XCodeBlock.of("new %T[] ", type)
+            CodeLanguage.KOTLIN -> XCodeBlock.of(getArrayOfFunction(type))
         }
     val openingChar =
         when (language) {
@@ -591,19 +581,14 @@ fun ArrayLiteral(language: CodeLanguage, type: XTypeName, vararg values: Any): X
             CodeLanguage.JAVA -> "}"
             CodeLanguage.KOTLIN -> ")"
         }
-    return XCodeBlock.of(
-        language,
+    add(
         "%L$openingChar%L$closingChar",
         initExpr,
-        XCodeBlock.builder(language)
+        XCodeBlock.builder()
             .apply {
                 val joining =
                     Array(values.size) { i ->
-                        XCodeBlock.of(
-                            language,
-                            if (type == CommonTypeNames.STRING) "%S" else "%L",
-                            values[i]
-                        )
+                        XCodeBlock.of(if (type == CommonTypeNames.STRING) "%S" else "%L", values[i])
                     }
                 val placeholders = joining.joinToString(separator = ",$space") { "%L" }
                 add(placeholders, *joining)
@@ -636,12 +621,11 @@ fun ArrayLiteral(language: CodeLanguage, type: XTypeName, vararg values: Any): X
  * ```
  */
 fun DoubleArrayLiteral(
-    language: CodeLanguage,
     type: XTypeName,
     rowSize: Int,
     columnSizeProducer: (Int) -> Int,
     valueProducer: (Int, Int) -> Any
-): XCodeBlock {
+) = buildCodeBlock { language ->
     val space =
         when (language) {
             CodeLanguage.JAVA -> "%W"
@@ -649,13 +633,13 @@ fun DoubleArrayLiteral(
         }
     val outerInit =
         when (language) {
-            CodeLanguage.JAVA -> XCodeBlock.of(language, "new %T[][] ", type)
-            CodeLanguage.KOTLIN -> XCodeBlock.of(language, "arrayOf")
+            CodeLanguage.JAVA -> XCodeBlock.of("new %T[][] ", type)
+            CodeLanguage.KOTLIN -> XCodeBlock.of("arrayOf")
         }
     val innerInit =
         when (language) {
-            CodeLanguage.JAVA -> XCodeBlock.of(language, "", type)
-            CodeLanguage.KOTLIN -> XCodeBlock.of(language, getArrayOfFunction(type))
+            CodeLanguage.JAVA -> XCodeBlock.of("", type)
+            CodeLanguage.KOTLIN -> XCodeBlock.of(getArrayOfFunction(type))
         }
     val openingChar =
         when (language) {
@@ -667,24 +651,21 @@ fun DoubleArrayLiteral(
             CodeLanguage.JAVA -> "}"
             CodeLanguage.KOTLIN -> ")"
         }
-    return XCodeBlock.of(
-        language,
+    add(
         "%L$openingChar%L$closingChar",
         outerInit,
-        XCodeBlock.builder(language)
+        XCodeBlock.builder()
             .apply {
                 val joining =
                     Array(rowSize) { i ->
                         XCodeBlock.of(
-                            language,
                             "%L$openingChar%L$closingChar",
                             innerInit,
-                            XCodeBlock.builder(language)
+                            XCodeBlock.builder()
                                 .apply {
                                     val joining =
                                         Array(columnSizeProducer(i)) { j ->
                                             XCodeBlock.of(
-                                                language,
                                                 if (type == CommonTypeNames.STRING) "%S" else "%L",
                                                 valueProducer(i, j)
                                             )
@@ -730,34 +711,34 @@ fun getToArrayFunction(type: XTypeName) =
     }
 
 /** Code of expression for [Collection.size] in Kotlin, and [java.util.Collection.size] for Java. */
-fun CollectionsSizeExprCode(language: CodeLanguage, varName: String) =
-    XCodeBlock.of(
-        language,
+fun CollectionsSizeExprCode(varName: String) = buildCodeBlock { language ->
+    add(
         when (language) {
             CodeLanguage.JAVA -> "%L.size()" // java.util.Collections.size()
             CodeLanguage.KOTLIN -> "%L.size" // kotlin.collections.Collection.size
         },
         varName
     )
+}
 
 /** Code of expression for [Array.size] in Kotlin, and `arr.length` for Java. */
-fun ArraySizeExprCode(language: CodeLanguage, varName: String) =
-    XCodeBlock.of(
-        language,
+fun ArraySizeExprCode(varName: String) = buildCodeBlock { language ->
+    add(
         when (language) {
             CodeLanguage.JAVA -> "%L.length" // Just `arr.length`
             CodeLanguage.KOTLIN -> "%L.size" // kotlin.Array.size and primitives (e.g. IntArray)
         },
         varName
     )
+}
 
 /** Code of expression for [Map.keys] in Kotlin, and [java.util.Map.keySet] for Java. */
-fun MapKeySetExprCode(language: CodeLanguage, varName: String) =
-    XCodeBlock.of(
-        language,
+fun MapKeySetExprCode(varName: String) = buildCodeBlock { language ->
+    add(
         when (language) {
             CodeLanguage.JAVA -> "%L.keySet()" // java.util.Map.keySet()
             CodeLanguage.KOTLIN -> "%L.keys" // kotlin.collections.Map.keys
         },
         varName
     )
+}

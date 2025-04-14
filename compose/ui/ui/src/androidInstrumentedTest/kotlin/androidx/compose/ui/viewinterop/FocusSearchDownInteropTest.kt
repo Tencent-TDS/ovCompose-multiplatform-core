@@ -23,6 +23,7 @@ import android.widget.LinearLayout.VERTICAL
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -134,6 +135,40 @@ class FocusSearchDownInteropTest(private val moveFocusProgrammatically: Boolean)
     }
 
     @Test
+    fun viewViewInLinearLayout2() {
+        // Arrange.
+        setContent {
+            Row {
+                Column {
+                    FocusableComponent(composable1)
+                    FocusableComponent(composable2)
+                }
+                Column {
+                    FocusableComponent(composable)
+                    AndroidView({
+                        LinearLayout(it).apply {
+                            orientation = VERTICAL
+                            addView(FocusableView(it).apply { view1 = this })
+                            addView(FocusableView(it).apply { view2 = this })
+                        }
+                    })
+                }
+            }
+        }
+        rule.onNodeWithTag(composable).requestFocus()
+        rule.focusSearchDown()
+
+        // Act.
+        rule.focusSearchDown()
+
+        // Assert.
+        rule.runOnIdle {
+            assertThat(view1.isFocused).isFalse()
+            assertThat(view2.isFocused).isTrue()
+        }
+    }
+
+    @Test
     fun focusedViewViewInLinearLayout() {
         // Arrange.
         setContent {
@@ -181,6 +216,12 @@ class FocusSearchDownInteropTest(private val moveFocusProgrammatically: Boolean)
 
     @Test
     fun focusedComposableWithFocusableView_view_inLinearLayout() {
+
+        // TODO(b/354025981) This test is flaky when moving focus programmatically.
+        //  Note: Moving focus programmatically among views is a stretch goal,
+        //  as the view system does not have a moveFocus() API.
+        if (!moveFocusProgrammatically) return
+
         // Arrange.
         var isComposableFocused = false
         setContent {

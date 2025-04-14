@@ -54,6 +54,9 @@ object IntentExtraKey {
     /** Launches the activity with the specified extension mode. */
     const val INTENT_EXTRA_KEY_EXTENSION_MODE = "extension_mode"
 
+    /** Takes the still image with the specified output format. */
+    const val INTENT_EXTRA_KEY_OUTPUT_FORMAT = "still_image_output_format"
+
     /**
      * The captured image will be deleted automatically if the intent used to launch the activity
      * includes the setting as true.
@@ -75,6 +78,9 @@ object IntentExtraKey {
      * image in correct orientation.
      */
     const val INTENT_EXTRA_KEY_IMAGE_ROTATION_DEGREES = "ImageRotationDegrees"
+
+    /** Used to pass the info that whether VideoCapture should be enabled. */
+    const val INTENT_EXTRA_KEY_VIDEO_CAPTURE_ENABLED = "VideoCaptureEnabled"
 
     /** Used to pass the request code to the callee activity. */
     const val INTENT_EXTRA_KEY_REQUEST_CODE = "RequestCode"

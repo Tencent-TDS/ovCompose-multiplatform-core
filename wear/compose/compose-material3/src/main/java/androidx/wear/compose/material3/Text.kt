@@ -88,7 +88,7 @@ import androidx.compose.ui.unit.TextUnit
  * @param style Style configuration for the text such as color, font, line height etc.
  */
 @Composable
-fun Text(
+public fun Text(
     text: String,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
@@ -98,11 +98,11 @@ fun Text(
     fontFamily: FontFamily? = null,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = LocalTextAlign.current,
+    textAlign: TextAlign? = LocalTextConfiguration.current.textAlign,
     lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = LocalTextOverflow.current,
+    overflow: TextOverflow = LocalTextConfiguration.current.overflow,
     softWrap: Boolean = true,
-    maxLines: Int = LocalTextMaxLines.current,
+    maxLines: Int = LocalTextConfiguration.current.maxLines,
     minLines: Int = 1,
     onTextLayout: (TextLayoutResult) -> Unit = {},
     style: TextStyle = LocalTextStyle.current
@@ -182,7 +182,7 @@ fun Text(
  * @param style Style configuration for the text such as color, font, line height etc.
  */
 @Composable
-fun Text(
+public fun Text(
     text: AnnotatedString,
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
@@ -192,11 +192,11 @@ fun Text(
     fontFamily: FontFamily? = null,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textDecoration: TextDecoration? = null,
-    textAlign: TextAlign? = LocalTextAlign.current,
+    textAlign: TextAlign? = LocalTextConfiguration.current.textAlign,
     lineHeight: TextUnit = TextUnit.Unspecified,
-    overflow: TextOverflow = LocalTextOverflow.current,
+    overflow: TextOverflow = LocalTextConfiguration.current.overflow,
     softWrap: Boolean = true,
-    maxLines: Int = LocalTextMaxLines.current,
+    maxLines: Int = LocalTextConfiguration.current.maxLines,
     minLines: Int = 1,
     inlineContent: Map<String, InlineTextContent> = mapOf(),
     onTextLayout: (TextLayoutResult) -> Unit = {},
@@ -233,7 +233,7 @@ fun Text(
  *
  * @see ProvideTextStyle
  */
-val LocalTextStyle: ProvidableCompositionLocal<TextStyle> =
+public val LocalTextStyle: ProvidableCompositionLocal<TextStyle> =
     compositionLocalOf(structuralEqualityPolicy()) { DefaultTextStyle }
 
 /**
@@ -244,33 +244,66 @@ val LocalTextStyle: ProvidableCompositionLocal<TextStyle> =
  * @see LocalTextStyle
  */
 @Composable
-fun ProvideTextStyle(value: TextStyle, content: @Composable () -> Unit) {
+public fun ProvideTextStyle(value: TextStyle, content: @Composable () -> Unit) {
     val mergedStyle = LocalTextStyle.current.merge(value)
     CompositionLocalProvider(LocalTextStyle provides mergedStyle, content = content)
 }
 
 /**
- * CompositionLocal containing the preferred max lines that will be used by [Text] components by
- * default. Material3 components related to text such as [Button], [CheckboxButton], [SwitchButton],
- * [RadioButton] will use [LocalTextMaxLines] to set values with which to style child text
+ * CompositionLocal containing the preferred [TextConfiguration] that will be used by [Text]
+ * components by default consisting of text alignment, overflow specification and max lines.
+ * Material3 components related to text such as [Button], [CheckboxButton], [SwitchButton],
+ * [RadioButton] use [LocalTextConfiguration] to set values with which to style child text
  * components.
  */
-val LocalTextMaxLines: ProvidableCompositionLocal<Int> =
-    compositionLocalOf(structuralEqualityPolicy()) { Int.MAX_VALUE }
+public val LocalTextConfiguration: ProvidableCompositionLocal<TextConfiguration> =
+    compositionLocalOf(structuralEqualityPolicy()) {
+        TextConfiguration(
+            TextConfigurationDefaults.TextAlign,
+            TextConfigurationDefaults.Overflow,
+            TextConfigurationDefaults.MaxLines
+        )
+    }
 
 /**
- * CompositionLocal containing the preferred [TextOverflow] that will be used by [Text] components
- * by default. Material3 components related to text such as [Button], [CheckboxButton],
- * [SwitchButton], [RadioButton] will use [LocalTextOverflow] to set values with which to style
- * child text components.
+ * Class representing aspects of [Text] that can be configured with [LocalTextConfiguration].
+ *
+ * @param textAlign The alignment of the text within the lines of the paragraph.
+ * @param overflow How visual overflow should be handled.
+ * @param maxLines The maximum number of lines for the text to span, wrapping if necessary.
  */
-val LocalTextOverflow: ProvidableCompositionLocal<TextOverflow> =
-    compositionLocalOf(structuralEqualityPolicy()) { TextOverflow.Clip }
+public class TextConfiguration(
+    public val textAlign: TextAlign?,
+    public val overflow: TextOverflow,
+    public val maxLines: Int,
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || other !is TextConfiguration) return false
 
-/**
- * CompositionLocal containing the preferred [TextAlign] that will be used by [Text] components by
- * default. Material3 components related to text such as [Button], [CheckboxButton], [SwitchButton],
- * [RadioButton] will use [LocalTextAlign] to set values with which to style child text components.
- */
-val LocalTextAlign: ProvidableCompositionLocal<TextAlign?> =
-    compositionLocalOf(structuralEqualityPolicy()) { null }
+        if (textAlign != other.textAlign) return false
+        if (overflow != other.overflow) return false
+        if (maxLines != other.maxLines) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = textAlign.hashCode()
+        result = 31 * result + overflow.hashCode()
+        result = 31 * result + maxLines.hashCode()
+        return result
+    }
+}
+
+/** Default values for [TextConfiguration] */
+public object TextConfigurationDefaults {
+    /** Default text alignment for [Text] */
+    public val TextAlign: TextAlign? = null
+
+    /** Default visual text overflow for [Text] */
+    public val Overflow: TextOverflow = TextOverflow.Clip
+
+    /** Default max lines for [Text] */
+    public val MaxLines: Int = Int.MAX_VALUE
+}

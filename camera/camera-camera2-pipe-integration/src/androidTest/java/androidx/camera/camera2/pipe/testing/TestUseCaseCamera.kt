@@ -19,8 +19,10 @@ package androidx.camera.camera2.pipe.testing
 import android.content.Context
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
-import android.hardware.camera2.CaptureRequest
+import android.hardware.camera2.params.SessionConfiguration.SESSION_HIGH_SPEED
+import android.hardware.camera2.params.SessionConfiguration.SESSION_REGULAR
 import androidx.camera.camera2.pipe.CameraGraph
+import androidx.camera.camera2.pipe.CameraGraph.OperatingMode
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraStream
@@ -36,7 +38,6 @@ import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCor
 import androidx.camera.camera2.pipe.integration.config.CameraConfig
 import androidx.camera.camera2.pipe.integration.config.UseCaseCameraConfig
 import androidx.camera.camera2.pipe.integration.config.UseCaseGraphConfig
-import androidx.camera.camera2.pipe.integration.impl.Camera2ImplConfig
 import androidx.camera.camera2.pipe.integration.impl.CameraCallbackMap
 import androidx.camera.camera2.pipe.integration.impl.CameraInteropStateCallbackRepository
 import androidx.camera.camera2.pipe.integration.impl.CapturePipeline
@@ -51,10 +52,11 @@ import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.camera2.pipe.integration.impl.toMap
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.UseCase
+import androidx.camera.core.imagecapture.CameraCapturePipeline
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.Config
 import androidx.camera.core.impl.DeferrableSurface
-import androidx.camera.core.impl.SessionConfig
+import androidx.camera.testing.impl.FakeCameraCapturePipeline
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -72,6 +74,7 @@ class TestUseCaseCamera(
             threads,
             cameraPipe,
             NoOpInactiveSurfaceCloser,
+            SessionConfigAdapter(useCases = useCases),
         ),
 ) : UseCaseCamera {
     val cameraMetadata =
@@ -95,15 +98,22 @@ class TestUseCaseCamera(
         val requestListener = ComboRequestListener()
         val cameraGraphConfig =
             createCameraGraphConfig(
+                sessionConfigAdapter.getValidSessionConfigOrNull()?.let { sessionConfig ->
+                    when (sessionConfig.sessionType) {
+                        SESSION_REGULAR -> OperatingMode.NORMAL
+                        SESSION_HIGH_SPEED -> OperatingMode.HIGH_SPEED
+                        else -> OperatingMode.custom(sessionConfig.sessionType)
+                    }
+                } ?: OperatingMode.NORMAL,
                 sessionConfigAdapter,
                 streamConfigMap,
                 callbackMap,
                 requestListener,
                 cameraConfig,
                 cameraQuirks,
-                null,
                 ZslControlNoOpImpl(),
                 NoOpTemplateParamsOverride,
+                cameraMetadata,
             )
         val cameraGraph = cameraPipe.create(cameraGraphConfig)
 
@@ -138,6 +148,12 @@ class TestUseCaseCamera(
                         ): List<Deferred<Void?>> {
                             throw NotImplementedError("Not implemented")
                         }
+
+                        override suspend fun getCameraCapturePipeline(
+                            captureMode: Int,
+                            flashMode: Int,
+                            flashType: Int
+                        ): CameraCapturePipeline = FakeCameraCapturePipeline()
                     },
                 state =
                     UseCaseCameraState(
@@ -147,6 +163,8 @@ class TestUseCaseCamera(
                         templateParamsOverride = NoOpTemplateParamsOverride,
                     ),
                 useCaseGraphConfig = useCaseCameraGraphConfig,
+                useCaseSurfaceManager = useCaseSurfaceManager,
+                threads = threads,
             )
             .apply {
                 SessionConfigAdapter(useCases).getValidSessionConfigOrNull()?.let { sessionConfig ->
@@ -172,38 +190,16 @@ class TestUseCaseCamera(
                 }
             }
 
-    override var runningUseCases = useCases.toSet()
-
-    override var isPrimary: Boolean = true
-        set(value) {
-            field = value
-        }
-
-    override fun <T> setParameterAsync(
-        key: CaptureRequest.Key<T>,
-        value: T,
-        priority: Config.OptionPriority
-    ): Deferred<Unit> {
-        throw NotImplementedError("Not implemented")
-    }
-
-    override fun setParametersAsync(
-        values: Map<CaptureRequest.Key<*>, Any>,
-        priority: Config.OptionPriority
-    ): Deferred<Unit> {
-        throw NotImplementedError("Not implemented")
-    }
+    override suspend fun getCameraCapturePipeline(
+        captureMode: Int,
+        flashMode: Int,
+        flashType: Int
+    ): CameraCapturePipeline = FakeCameraCapturePipeline()
 
     override fun close(): Job {
         return threads.scope.launch {
             useCaseCameraGraphConfig.graph.close()
             useCaseSurfaceManager.stopAsync().await()
-        }
-    }
-
-    companion object {
-        fun SessionConfig.toCamera2ImplConfig(): Camera2ImplConfig {
-            return Camera2ImplConfig(implementationOptions)
         }
     }
 }

@@ -16,14 +16,13 @@
 
 package androidx.ink.geometry
 
-import androidx.annotation.RestrictTo
 import androidx.ink.nativeloader.NativeLoader
+import androidx.ink.nativeloader.UsedByNative
 
 /**
  * Contains functions for intersection of ink geometry classes. For Kotlin callers, these are
  * available as extension functions on the geometry classes themselves.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
 public object Intersection {
 
     init {
@@ -117,17 +116,17 @@ public object Intersection {
      * intersection of the point in [mesh]’s object coordinates.
      */
     @JvmStatic
-    public fun Vec.intersects(mesh: ModeledShape, meshToPoint: AffineTransform): Boolean {
+    public fun Vec.intersects(mesh: PartitionedMesh, meshToPoint: AffineTransform): Boolean {
         return nativeMeshVecIntersects(
-            nativeMeshAddress = mesh.getNativeAddress(),
+            nativeMeshAddress = mesh.nativePointer,
             vecX = this.x,
             vecY = this.y,
-            meshToVecA = meshToPoint.a,
-            meshToVecB = meshToPoint.b,
-            meshToVecC = meshToPoint.c,
-            meshToVecD = meshToPoint.d,
-            meshToVecE = meshToPoint.e,
-            meshToVecF = meshToPoint.f,
+            meshToVecA = meshToPoint.m00,
+            meshToVecB = meshToPoint.m10,
+            meshToVecC = meshToPoint.m20,
+            meshToVecD = meshToPoint.m01,
+            meshToVecE = meshToPoint.m11,
+            meshToVecF = meshToPoint.m21,
         )
     }
 
@@ -218,19 +217,19 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun Segment.intersects(mesh: ModeledShape, meshToSegment: AffineTransform): Boolean {
+    public fun Segment.intersects(mesh: PartitionedMesh, meshToSegment: AffineTransform): Boolean {
         return nativeMeshSegmentIntersects(
-            nativeMeshAddress = mesh.getNativeAddress(),
+            nativeMeshAddress = mesh.nativePointer,
             segmentStartX = this.start.x,
             segmentStartY = this.start.y,
             segmentEndX = this.end.x,
             segmentEndY = this.end.y,
-            meshToSegmentA = meshToSegment.a,
-            meshToSegmentB = meshToSegment.b,
-            meshToSegmentC = meshToSegment.c,
-            meshToSegmentD = meshToSegment.d,
-            meshToSegmentE = meshToSegment.e,
-            meshToSegmentF = meshToSegment.f,
+            meshToSegmentA = meshToSegment.m00,
+            meshToSegmentB = meshToSegment.m10,
+            meshToSegmentC = meshToSegment.m20,
+            meshToSegmentD = meshToSegment.m01,
+            meshToSegmentE = meshToSegment.m11,
+            meshToSegmentF = meshToSegment.m21,
         )
     }
 
@@ -310,21 +309,24 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun Triangle.intersects(mesh: ModeledShape, meshToTriangle: AffineTransform): Boolean {
+    public fun Triangle.intersects(
+        mesh: PartitionedMesh,
+        meshToTriangle: AffineTransform
+    ): Boolean {
         return nativeMeshTriangleIntersects(
-            nativeMeshAddress = mesh.getNativeAddress(),
+            nativeMeshAddress = mesh.nativePointer,
             triangleP0X = this.p0.x,
             triangleP0Y = this.p0.y,
             triangleP1X = this.p1.x,
             triangleP1Y = this.p1.y,
             triangleP2X = this.p2.x,
             triangleP2Y = this.p2.y,
-            meshToTriangleA = meshToTriangle.a,
-            meshToTriangleB = meshToTriangle.b,
-            meshToTriangleC = meshToTriangle.c,
-            meshToTriangleD = meshToTriangle.d,
-            meshToTriangleE = meshToTriangle.e,
-            meshToTriangleF = meshToTriangle.f,
+            meshToTriangleA = meshToTriangle.m00,
+            meshToTriangleB = meshToTriangle.m10,
+            meshToTriangleC = meshToTriangle.m20,
+            meshToTriangleD = meshToTriangle.m01,
+            meshToTriangleE = meshToTriangle.m11,
+            meshToTriangleF = meshToTriangle.m21,
         )
     }
 
@@ -377,19 +379,19 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun Box.intersects(mesh: ModeledShape, meshToBox: AffineTransform): Boolean {
+    public fun Box.intersects(mesh: PartitionedMesh, meshToBox: AffineTransform): Boolean {
         return nativeMeshBoxIntersects(
-            nativeMeshAddress = mesh.getNativeAddress(),
+            nativeMeshAddress = mesh.nativePointer,
             boxXMin = this.xMin,
             boxYMin = this.yMin,
             boxXMax = this.xMax,
             boxYMax = this.yMax,
-            meshToBoxA = meshToBox.a,
-            meshToBoxB = meshToBox.b,
-            meshToBoxC = meshToBox.c,
-            meshToBoxD = meshToBox.d,
-            meshToBoxE = meshToBox.e,
-            meshToBoxF = meshToBox.f,
+            meshToBoxA = meshToBox.m00,
+            meshToBoxB = meshToBox.m10,
+            meshToBoxC = meshToBox.m20,
+            meshToBoxD = meshToBox.m01,
+            meshToBoxE = meshToBox.m11,
+            meshToBoxF = meshToBox.m21,
         )
     }
 
@@ -431,23 +433,23 @@ public object Intersection {
      */
     @JvmStatic
     public fun Parallelogram.intersects(
-        mesh: ModeledShape,
+        mesh: PartitionedMesh,
         meshToParallelogram: AffineTransform,
     ): Boolean {
         return nativeMeshParallelogramIntersects(
-            nativeMeshAddress = mesh.getNativeAddress(),
+            nativeMeshAddress = mesh.nativePointer,
             parallelogramCenterX = this.center.x,
             parallelogramCenterY = this.center.y,
             parallelogramWidth = this.width,
             parallelogramHeight = this.height,
             parallelogramAngleInRadian = this.rotation,
             parallelogramShearFactor = this.shearFactor,
-            meshToParallelogramA = meshToParallelogram.a,
-            meshToParallelogramB = meshToParallelogram.b,
-            meshToParallelogramC = meshToParallelogram.c,
-            meshToParallelogramD = meshToParallelogram.d,
-            meshToParallelogramE = meshToParallelogram.e,
-            meshToParallelogramF = meshToParallelogram.f,
+            meshToParallelogramA = meshToParallelogram.m00,
+            meshToParallelogramB = meshToParallelogram.m10,
+            meshToParallelogramC = meshToParallelogram.m20,
+            meshToParallelogramD = meshToParallelogram.m01,
+            meshToParallelogramE = meshToParallelogram.m11,
+            meshToParallelogramF = meshToParallelogram.m21,
         )
     }
 
@@ -460,26 +462,26 @@ public object Intersection {
      * coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(
-        other: ModeledShape,
+    public fun PartitionedMesh.intersects(
+        other: PartitionedMesh,
         thisToCommonTransForm: AffineTransform,
         otherToCommonTransform: AffineTransform,
     ): Boolean {
-        return nativeMeshModeledShapeIntersects(
-            thisModeledShapeAddress = this.getNativeAddress(),
-            otherModeledShapeAddress = other.getNativeAddress(),
-            thisToCommonTransformA = thisToCommonTransForm.a,
-            thisToCommonTransformB = thisToCommonTransForm.b,
-            thisToCommonTransformC = thisToCommonTransForm.c,
-            thisToCommonTransformD = thisToCommonTransForm.d,
-            thisToCommonTransformE = thisToCommonTransForm.e,
-            thisToCommonTransformF = thisToCommonTransForm.f,
-            otherToCommonTransformA = otherToCommonTransform.a,
-            otherToCommonTransformB = otherToCommonTransform.b,
-            otherToCommonTransformC = otherToCommonTransform.c,
-            otherToCommonTransformD = otherToCommonTransform.d,
-            otherToCommonTransformE = otherToCommonTransform.e,
-            otherToCommonTransformF = otherToCommonTransform.f,
+        return nativeMeshPartitionedMeshIntersects(
+            thisPartitionedMeshAddress = this.nativePointer,
+            otherPartitionedMeshAddress = other.nativePointer,
+            thisToCommonTransformA = thisToCommonTransForm.m00,
+            thisToCommonTransformB = thisToCommonTransForm.m10,
+            thisToCommonTransformC = thisToCommonTransForm.m20,
+            thisToCommonTransformD = thisToCommonTransForm.m01,
+            thisToCommonTransformE = thisToCommonTransForm.m11,
+            thisToCommonTransformF = thisToCommonTransForm.m21,
+            otherToCommonTransformA = otherToCommonTransform.m00,
+            otherToCommonTransformB = otherToCommonTransform.m10,
+            otherToCommonTransformC = otherToCommonTransform.m20,
+            otherToCommonTransformD = otherToCommonTransform.m01,
+            otherToCommonTransformE = otherToCommonTransform.m11,
+            otherToCommonTransformF = otherToCommonTransform.m21,
         )
     }
 
@@ -558,7 +560,7 @@ public object Intersection {
      * intersection of the point in [mesh]’s object coordinates.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(point: Vec, meshToPoint: AffineTransform): Boolean =
+    public fun PartitionedMesh.intersects(point: Vec, meshToPoint: AffineTransform): Boolean =
         point.intersects(this, meshToPoint)
 
     /**
@@ -569,8 +571,10 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(segment: Segment, meshToSegment: AffineTransform): Boolean =
-        segment.intersects(this, meshToSegment)
+    public fun PartitionedMesh.intersects(
+        segment: Segment,
+        meshToSegment: AffineTransform
+    ): Boolean = segment.intersects(this, meshToSegment)
 
     /**
      * Returns true when a [PartitionedMesh] intersects with a [Triangle].
@@ -580,9 +584,9 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(
+    public fun PartitionedMesh.intersects(
         triangle: Triangle,
-        meshToTriangle: AffineTransform
+        meshToTriangle: AffineTransform,
     ): Boolean = triangle.intersects(this, meshToTriangle)
 
     /**
@@ -593,7 +597,7 @@ public object Intersection {
      * coordinate space to the coordinate space that the intersection should be checked in.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(box: Box, meshToBox: AffineTransform): Boolean =
+    public fun PartitionedMesh.intersects(box: Box, meshToBox: AffineTransform): Boolean =
         box.intersects(this, meshToBox)
 
     /**
@@ -605,12 +609,12 @@ public object Intersection {
      * checked in.
      */
     @JvmStatic
-    public fun ModeledShape.intersects(
+    public fun PartitionedMesh.intersects(
         parallelogram: Parallelogram,
         meshToParallelogram: AffineTransform,
     ): Boolean = parallelogram.intersects(this, meshToParallelogram)
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeVecSegmentIntersects(
         vecX: Float,
         vecY: Float,
@@ -620,7 +624,7 @@ public object Intersection {
         segmentEndY: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeVecTriangleIntersects(
         vecX: Float,
         vecY: Float,
@@ -632,7 +636,7 @@ public object Intersection {
         triangleP2Y: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeVecParallelogramIntersects(
         vecX: Float,
         vecY: Float,
@@ -644,7 +648,7 @@ public object Intersection {
         parallelogramShearFactor: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeVecBoxIntersects(
         vecX: Float,
         vecY: Float,
@@ -654,7 +658,7 @@ public object Intersection {
         boxYMax: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeSegmentSegmentIntersects(
         segment1StartX: Float,
         segment1StartY: Float,
@@ -666,7 +670,7 @@ public object Intersection {
         segment2EndY: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeSegmentTriangleIntersects(
         segmentStartX: Float,
         segmentStartY: Float,
@@ -680,7 +684,7 @@ public object Intersection {
         triangleP2Y: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeSegmentBoxIntersects(
         segmentStartX: Float,
         segmentStartY: Float,
@@ -692,7 +696,7 @@ public object Intersection {
         boxYMax: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeSegmentParallelogramIntersects(
         segmentStartX: Float,
         segmentStartY: Float,
@@ -706,7 +710,7 @@ public object Intersection {
         parallelogramShearFactor: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeTriangleTriangleIntersects(
         triangle1P0X: Float,
         triangle1P0Y: Float,
@@ -722,7 +726,7 @@ public object Intersection {
         triangle2P2Y: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeTriangleBoxIntersects(
         triangleP0X: Float,
         triangleP0Y: Float,
@@ -736,7 +740,7 @@ public object Intersection {
         boxYMax: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeTriangleParallelogramIntersects(
         triangleP0X: Float,
         triangleP0Y: Float,
@@ -752,7 +756,7 @@ public object Intersection {
         parallelogramShearFactor: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeBoxBoxIntersects(
         box1XMin: Float,
         box1YMin: Float,
@@ -764,7 +768,7 @@ public object Intersection {
         box2YMax: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeBoxParallelogramIntersects(
         boxXMin: Float,
         boxYMin: Float,
@@ -778,7 +782,7 @@ public object Intersection {
         parallelogramShearFactor: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeParallelogramParallelogramIntersects(
         parallelogram1CenterX: Float,
         parallelogram1CenterY: Float,
@@ -794,7 +798,7 @@ public object Intersection {
         parallelogram2ShearFactor: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeMeshVecIntersects(
         nativeMeshAddress: Long,
         vecX: Float,
@@ -807,7 +811,7 @@ public object Intersection {
         meshToVecF: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeMeshSegmentIntersects(
         nativeMeshAddress: Long,
         segmentStartX: Float,
@@ -822,7 +826,7 @@ public object Intersection {
         meshToSegmentF: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeMeshTriangleIntersects(
         nativeMeshAddress: Long,
         triangleP0X: Float,
@@ -839,7 +843,7 @@ public object Intersection {
         meshToTriangleF: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeMeshBoxIntersects(
         nativeMeshAddress: Long,
         boxXMin: Float,
@@ -854,7 +858,7 @@ public object Intersection {
         meshToBoxF: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+    @UsedByNative
     private external fun nativeMeshParallelogramIntersects(
         nativeMeshAddress: Long,
         parallelogramCenterX: Float,
@@ -871,10 +875,10 @@ public object Intersection {
         meshToParallelogramF: Float,
     ): Boolean
 
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    private external fun nativeMeshModeledShapeIntersects(
-        thisModeledShapeAddress: Long,
-        otherModeledShapeAddress: Long,
+    @UsedByNative
+    private external fun nativeMeshPartitionedMeshIntersects(
+        thisPartitionedMeshAddress: Long,
+        otherPartitionedMeshAddress: Long,
         thisToCommonTransformA: Float,
         thisToCommonTransformB: Float,
         thisToCommonTransformC: Float,

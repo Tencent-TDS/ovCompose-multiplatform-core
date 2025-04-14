@@ -21,6 +21,8 @@ import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraCharacteristics.CONTROL_VIDEO_STABILIZATION_MODE_OFF
 import android.hardware.camera2.CameraCharacteristics.CONTROL_VIDEO_STABILIZATION_MODE_ON
 import android.hardware.camera2.CameraCharacteristics.CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION
+import android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_OFF
+import android.hardware.camera2.CameraMetadata.CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY
 import android.os.Build
 import android.util.Range
 import android.util.Size
@@ -29,15 +31,16 @@ import androidx.camera.camera2.pipe.CameraBackendId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.integration.adapter.CameraInfoAdapter.Companion.unwrapAs
+import androidx.camera.camera2.pipe.integration.config.CameraConfig
+import androidx.camera.camera2.pipe.integration.impl.CameraPipeCameraProperties
 import androidx.camera.camera2.pipe.integration.impl.ZoomControl
 import androidx.camera.camera2.pipe.integration.internal.DOLBY_VISION_10B_UNCONSTRAINED
 import androidx.camera.camera2.pipe.integration.internal.HLG10_UNCONSTRAINED
 import androidx.camera.camera2.pipe.integration.interop.Camera2CameraInfo
 import androidx.camera.camera2.pipe.integration.interop.ExperimentalCamera2Interop
 import androidx.camera.camera2.pipe.integration.testing.FakeCameraInfoAdapterCreator.createCameraInfoAdapter
-import androidx.camera.camera2.pipe.integration.testing.FakeCameraInfoAdapterCreator.useCaseThreads
 import androidx.camera.camera2.pipe.integration.testing.FakeCameraProperties
-import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCamera
+import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCameraRequestControl
 import androidx.camera.camera2.pipe.integration.testing.FakeZoomCompat
 import androidx.camera.camera2.pipe.testing.FakeCameraDevices
 import androidx.camera.camera2.pipe.testing.FakeCameraMetadata
@@ -51,9 +54,9 @@ import androidx.camera.core.DynamicRange.HLG_10_BIT
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.core.ZoomState
+import androidx.camera.core.impl.AdapterCameraInfo
 import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.ImageFormatConstants
-import androidx.camera.core.impl.RestrictedCameraInfo
 import androidx.camera.testing.impl.fakes.FakeCameraConfig
 import androidx.testutils.MainDispatcherRule
 import androidx.testutils.assertThrows
@@ -73,7 +76,7 @@ import org.robolectric.annotation.internal.DoNotInstrument
 @DoNotInstrument
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 class CameraInfoAdapterTest {
-    private val zoomControl = ZoomControl(useCaseThreads, FakeZoomCompat())
+    private val zoomControl = ZoomControl(FakeZoomCompat())
     private val cameraInfoAdapter = createCameraInfoAdapter(zoomControl = zoomControl)
 
     @get:Rule
@@ -153,7 +156,7 @@ class CameraInfoAdapterTest {
     @Test
     fun canReturnDefaultZoomState() {
         // make new ZoomControl to test first-time initialization scenario
-        val zoomControl = ZoomControl(useCaseThreads, FakeZoomCompat())
+        val zoomControl = ZoomControl(FakeZoomCompat())
         val cameraInfoAdapter = createCameraInfoAdapter(zoomControl = zoomControl)
 
         assertWithMessage("zoomState did not return default zoom ratio successfully")
@@ -167,7 +170,7 @@ class CameraInfoAdapterTest {
         cameraInfoAdapter.zoomState.observeForever { currentZoomState = it }
 
         // if useCaseCamera is null, zoom setting operation will be cancelled
-        zoomControl.useCaseCamera = FakeUseCaseCamera()
+        zoomControl.requestControl = FakeUseCaseCameraRequestControl()
 
         val expectedZoomState = ZoomValue(3.0f, 1.0f, 10.0f)
         zoomControl.applyZoomState(expectedZoomState)[3, TimeUnit.SECONDS]
@@ -183,7 +186,7 @@ class CameraInfoAdapterTest {
         cameraInfoAdapter.zoomState.observeForever { currentZoomState = it }
 
         // if useCaseCamera is null, zoom setting operation will be cancelled
-        zoomControl.useCaseCamera = FakeUseCaseCamera()
+        zoomControl.requestControl = FakeUseCaseCameraRequestControl()
 
         zoomControl.reset()
 
@@ -718,11 +721,55 @@ class CameraInfoAdapterTest {
     }
 
     @Test
-    fun canUnwrapRestrictedCameraInfoAsCameraMetadata() {
+    fun canUnwrapAdapterCameraInfoAsCameraMetadata() {
         val fakeCameraConfig = FakeCameraConfig()
-        val restrictedCameraInfo = RestrictedCameraInfo(cameraInfoAdapter, fakeCameraConfig)
+        val adapterCameraInfo = AdapterCameraInfo(cameraInfoAdapter, fakeCameraConfig)
 
-        val cameraMetadata = restrictedCameraInfo.unwrapAs(CameraMetadata::class)
+        val cameraMetadata = adapterCameraInfo.unwrapAs(CameraMetadata::class)
         assertThat(cameraMetadata).isNotNull()
+    }
+
+    @Test
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun returnLowLightBoostSupported_whenAeModeOnLowLightBoostBrightnessPriorityAvailable() {
+        val cameraInfo: CameraInfo =
+            createCameraInfoAdapter(
+                cameraProperties =
+                    CameraPipeCameraProperties(
+                        CameraConfig(CameraId(defaultCameraId)),
+                        FakeCameraMetadata(
+                            characteristics =
+                                mapOf(
+                                    CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES to
+                                        intArrayOf(
+                                            CONTROL_AE_MODE_ON_LOW_LIGHT_BOOST_BRIGHTNESS_PRIORITY
+                                        )
+                                )
+                        )
+                    )
+            )
+
+        assertThat(cameraInfo.isLowLightBoostSupported).isTrue()
+    }
+
+    @Test
+    @Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    fun returnLowLightBoostSupported_whenAeModeOnLowLightBoostBrightnessPriorityUnavailable() {
+        val cameraInfo: CameraInfo =
+            createCameraInfoAdapter(
+                cameraProperties =
+                    CameraPipeCameraProperties(
+                        CameraConfig(CameraId(defaultCameraId)),
+                        FakeCameraMetadata(
+                            characteristics =
+                                mapOf(
+                                    CameraCharacteristics.CONTROL_AE_AVAILABLE_MODES to
+                                        intArrayOf(CONTROL_AE_MODE_OFF)
+                                )
+                        )
+                    )
+            )
+
+        assertThat(cameraInfo.isLowLightBoostSupported).isFalse()
     }
 }

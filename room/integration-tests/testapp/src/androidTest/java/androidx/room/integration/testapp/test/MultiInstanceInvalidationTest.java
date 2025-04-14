@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.arch.core.executor.ArchTaskExecutor;
 import androidx.arch.core.executor.testing.CountingTaskExecutorRule;
 import androidx.collection.SimpleArrayMap;
@@ -43,8 +42,10 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ServiceTestRule;
 
+import org.jspecify.annotations.NonNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -119,6 +120,7 @@ public class MultiInstanceInvalidationTest {
                 .isTrue();
     }
 
+    @Ignore("Due to b/366106924")
     @Test
     public void invalidateInAnotherInstance() throws Exception {
         final SampleDatabase db1 = openDatabase(true);
@@ -200,6 +202,7 @@ public class MultiInstanceInvalidationTest {
     }
 
     @Test
+    @Ignore // Flaky test, b/363246309.
     public void invalidationInAnotherInstance_closed() throws Exception {
         final SampleDatabase db1 = openDatabase(true);
         final SampleDatabase db2 = openDatabase(true);
@@ -223,6 +226,7 @@ public class MultiInstanceInvalidationTest {
                 .isFalse();
     }
 
+    @Ignore("Due to b/366106924")
     @Test
     public void invalidatedByAnotherProcess() throws Exception {
         bindTestService();

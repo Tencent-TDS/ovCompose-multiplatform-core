@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.input.internal
 import android.graphics.Typeface
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setSelectionCoerced
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -320,7 +321,6 @@ class TextFieldLayoutStateCacheTest {
      * To fix this, we manually record reads done by the transformation function and re-read them
      * explicitly when checking for a full cache hit.
      */
-    @Ignore("b/306198696")
     @Test
     fun invalidatesAllReaders_whenTransformationDependenciesChanged_producingSameVisualText() {
         var transformationState by mutableStateOf(1)
@@ -494,7 +494,7 @@ class TextFieldLayoutStateCacheTest {
         }
         assertLayoutChange(
             change = {
-                textFieldState.editAsUser(inputTransformation = null) { setComposingRegion(2, 3) }
+                textFieldState.editAsUser(inputTransformation = null) { setComposition(2, 3) }
             },
         ) { old, new ->
             assertThat(
@@ -516,7 +516,7 @@ class TextFieldLayoutStateCacheTest {
     fun value_returnsCachedLayout_whenCompositionDoesNotChange() {
         textFieldState.editAsUser(inputTransformation = null) {
             replace(0, length, "hello")
-            setSelection(0, 0)
+            setSelectionCoerced(0)
             setComposition(0, 5)
         }
         updateNonMeasureInputs()
@@ -568,7 +568,7 @@ class TextFieldLayoutStateCacheTest {
     fun value_returnsCachedLayout_whenComposingAnnotationsDoNotChange() {
         textFieldState.editAsUser(inputTransformation = null) {
             replace(0, length, "hello")
-            setSelection(0, 0)
+            setSelectionCoerced(0)
             setComposition(
                 0,
                 5,

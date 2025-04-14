@@ -85,6 +85,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import java.util.UUID
+import kotlin.math.max
 import kotlinx.coroutines.isActive
 import org.jetbrains.annotations.TestOnly
 
@@ -436,14 +437,15 @@ private inline fun SimpleStack(modifier: Modifier, noinline content: @Composable
                 layout(p.width, p.height) { p.placeRelative(0, 0) }
             }
             else -> {
-                val placeables = measurables.fastMap { it.measure(constraints) }
                 var width = 0
                 var height = 0
-                for (i in 0..placeables.lastIndex) {
-                    val p = placeables[i]
-                    width = maxOf(width, p.width)
-                    height = maxOf(height, p.height)
-                }
+                val placeables =
+                    measurables.fastMap {
+                        it.measure(constraints).apply {
+                            width = max(width, this.width)
+                            height = max(height, this.height)
+                        }
+                    }
                 layout(width, height) {
                     for (i in 0..placeables.lastIndex) {
                         val p = placeables[i]
@@ -593,8 +595,11 @@ internal class PopupLayout(
             // platform default. Therefore, we create a new measure spec for width, which
             // corresponds to the full screen width. We do the same for height, even if
             // ViewRootImpl gives it to us from the first measure.
-            val displayWidthMeasureSpec = makeMeasureSpec(displayWidth, MeasureSpec.AT_MOST)
-            val displayHeightMeasureSpec = makeMeasureSpec(displayHeight, MeasureSpec.AT_MOST)
+            val visibleDisplayBounds = getVisibleDisplayBounds()
+            val displayWidthMeasureSpec =
+                makeMeasureSpec(visibleDisplayBounds.width, MeasureSpec.AT_MOST)
+            val displayHeightMeasureSpec =
+                makeMeasureSpec(visibleDisplayBounds.height, MeasureSpec.AT_MOST)
             super.internalOnMeasure(displayWidthMeasureSpec, displayHeightMeasureSpec)
         }
     }
@@ -610,18 +615,6 @@ internal class PopupLayout(
             popupLayoutHelper.updateViewLayout(windowManager, this, params)
         }
     }
-
-    private val displayWidth: Int
-        get() {
-            val density = context.resources.displayMetrics.density
-            return (context.resources.configuration.screenWidthDp * density).fastRoundToInt()
-        }
-
-    private val displayHeight: Int
-        get() {
-            val density = context.resources.displayMetrics.density
-            return (context.resources.configuration.screenHeightDp * density).fastRoundToInt()
-        }
 
     /** Taken from PopupWindow */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -748,11 +741,7 @@ internal class PopupLayout(
         val popupContentSize = popupContentSize ?: return
 
         val windowSize =
-            previousWindowVisibleFrame.let {
-                popupLayoutHelper.getWindowVisibleDisplayFrame(composeView, it)
-                val bounds = it.toIntBounds()
-                IntSize(width = bounds.width, height = bounds.height)
-            }
+            getVisibleDisplayBounds().let { IntSize(width = it.width, height = it.height) }
 
         var popupPosition = IntOffset.Zero
         snapshotStateObserver.observeReads(this, onCommitAffectingPopupPosition) {
@@ -848,6 +837,12 @@ internal class PopupLayout(
             title = composeView.context.resources.getString(R.string.default_popup_window_title)
         }
     }
+
+    private fun getVisibleDisplayBounds(): IntRect =
+        previousWindowVisibleFrame.let {
+            popupLayoutHelper.getWindowVisibleDisplayFrame(composeView, it)
+            it.toIntBounds()
+        }
 
     private companion object {
         private val onCommitAffectingPopupPosition = { popupLayout: PopupLayout ->

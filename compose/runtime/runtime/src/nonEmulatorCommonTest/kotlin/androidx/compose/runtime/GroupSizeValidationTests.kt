@@ -23,6 +23,7 @@ import androidx.compose.runtime.mock.View
 import androidx.compose.runtime.mock.compositionTest
 import androidx.compose.runtime.tooling.CompositionData
 import androidx.compose.runtime.tooling.CompositionGroup
+import kotlin.jvm.JvmInline
 import kotlin.test.Test
 
 class GroupSizeValidationTests {
@@ -51,19 +52,19 @@ class GroupSizeValidationTests {
 
     @Test
     fun textLikeSize() = compositionTest {
-        slotExpect(name = "TextLike", noMoreGroupsThan = 4, noMoreSlotsThan = 4) { TextLike("") }
+        slotExpect(name = "TextLike", noMoreGroupsThan = 4, noMoreSlotsThan = 5) { TextLike("") }
     }
 
     @Test
     fun basicTextLikeSize() = compositionTest {
-        slotExpect(name = "TextLike", noMoreGroupsThan = 5, noMoreSlotsThan = 13) {
+        slotExpect(name = "TextLike", noMoreGroupsThan = 5, noMoreSlotsThan = 14) {
             BasicTextLike("")
         }
     }
 
     @Test
     fun checkboxLike() = compositionTest {
-        slotExpect(name = "CheckboxLike", noMoreGroupsThan = 8, noMoreSlotsThan = 17) {
+        slotExpect(name = "CheckboxLike", noMoreGroupsThan = 8, noMoreSlotsThan = 18) {
             CheckboxLike(checked = false, onCheckedChange = {})
         }
     }
@@ -86,7 +87,9 @@ private val LocalViewConfiguration = staticCompositionLocalOf { 0 }
 
 private object ViewHelper {
     val Constructor = ::View
-    val SetCompositeKeyHash: View.(Int) -> Unit = { attributes["compositeKeyHash"] = it }
+    val SetCompositeKeyHashCode: View.(CompositeKeyHashCode) -> Unit = {
+        attributes["compositeKeyHash"] = it
+    }
     val SetModifier: View.(Modifier) -> Unit = { attributes["modifier"] = it }
     val SetMeasurePolicy: View.(MeasurePolicy) -> Unit = { attributes["measurePolicy"] = it }
     val SetDensity: View.(Int) -> Unit = { attributes["density"] = it }
@@ -100,14 +103,14 @@ private inline fun LayoutLike(
     modifier: Modifier = Modifier,
     measurePolicy: MeasurePolicy
 ) {
-    val compositeKeyHash = currentCompositeKeyHash
+    val compositeKeyHash = currentCompositeKeyHashCode
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val viewConfiguration = LocalViewConfiguration.current
     ReusableComposeNode<View, Applier<Any>>(
         factory = ViewHelper.Constructor,
         update = {
-            set(compositeKeyHash, ViewHelper.SetCompositeKeyHash)
+            set(compositeKeyHash, ViewHelper.SetCompositeKeyHashCode)
             set(modifier, ViewHelper.SetModifier)
             set(measurePolicy, ViewHelper.SetMeasurePolicy)
             set(density, ViewHelper.SetDensity)
@@ -121,14 +124,14 @@ private inline fun LayoutLike(
 @Composable
 @NonRestartableComposable
 private fun LayoutLike(modifier: Modifier, measurePolicy: MeasurePolicy) {
-    val compositeKeyHash = currentCompositeKeyHash
+    val compositeKeyHash = currentCompositeKeyHashCode
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
     val viewConfiguration = LocalViewConfiguration.current
     ReusableComposeNode<View, Applier<Any>>(
         factory = ViewHelper.Constructor,
         update = {
-            set(compositeKeyHash, ViewHelper.SetCompositeKeyHash)
+            set(compositeKeyHash, ViewHelper.SetCompositeKeyHashCode)
             set(modifier, ViewHelper.SetModifier)
             set(measurePolicy, ViewHelper.SetMeasurePolicy)
             set(density, ViewHelper.SetDensity)

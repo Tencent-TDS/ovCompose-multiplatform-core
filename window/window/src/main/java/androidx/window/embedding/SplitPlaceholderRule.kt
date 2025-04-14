@@ -120,6 +120,21 @@ class SplitPlaceholderRule : SplitRule {
         private var isSticky = false
         private var defaultSplitAttributes = SplitAttributes.Builder().build()
 
+        /** Creates a Builder with values initialized from the original [SplitPlaceholderRule] */
+        internal constructor(
+            original: SplitPlaceholderRule
+        ) : this(original.filters, original.placeholderIntent) {
+            this.setTag(original.tag)
+                .setMinWidthDp(original.minWidthDp)
+                .setMinHeightDp(original.minHeightDp)
+                .setMinSmallestWidthDp(original.minSmallestWidthDp)
+                .setMaxAspectRatioInPortrait(original.maxAspectRatioInPortrait)
+                .setMaxAspectRatioInLandscape(original.maxAspectRatioInLandscape)
+                .setFinishPrimaryWithPlaceholder(original.finishPrimaryWithPlaceholder)
+                .setSticky(original.isSticky)
+                .setDefaultSplitAttributes(original.defaultSplitAttributes)
+        }
+
         /**
          * Sets the smallest value of width of the parent window when the split should be used, in
          * DP. When the window size is smaller than requested here, activities in the secondary
@@ -311,7 +326,7 @@ class SplitPlaceholderRule : SplitRule {
         if (other !is SplitPlaceholderRule) return false
         if (!super.equals(other)) return false
 
-        if (placeholderIntent != other.placeholderIntent) return false
+        if (!placeholderIntent.filterEquals(other.placeholderIntent)) return false
         if (isSticky != other.isSticky) return false
         if (finishPrimaryWithPlaceholder != other.finishPrimaryWithPlaceholder) return false
         if (filters != other.filters) return false
@@ -321,7 +336,7 @@ class SplitPlaceholderRule : SplitRule {
 
     override fun hashCode(): Int {
         var result = super.hashCode()
-        result = 31 * result + placeholderIntent.hashCode()
+        result = 31 * result + placeholderIntent.filterHashCode()
         result = 31 * result + isSticky.hashCode()
         result = 31 * result + finishPrimaryWithPlaceholder.hashCode()
         result = 31 * result + filters.hashCode()

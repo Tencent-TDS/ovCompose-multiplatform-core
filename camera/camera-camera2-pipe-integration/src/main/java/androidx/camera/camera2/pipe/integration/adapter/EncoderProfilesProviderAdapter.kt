@@ -21,30 +21,23 @@ import android.media.CamcorderProfile.QUALITY_HIGH
 import android.media.CamcorderProfile.QUALITY_LOW
 import android.media.EncoderProfiles
 import android.os.Build
-import android.util.Size
 import androidx.annotation.Nullable
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.integration.compat.quirk.CamcorderProfileResolutionQuirk
 import androidx.camera.camera2.pipe.integration.compat.quirk.DeviceQuirks
 import androidx.camera.camera2.pipe.integration.compat.quirk.InvalidVideoProfilesQuirk
-import androidx.camera.camera2.pipe.integration.config.CameraScope
 import androidx.camera.core.Logger
 import androidx.camera.core.impl.EncoderProfilesProvider
 import androidx.camera.core.impl.EncoderProfilesProvider.QUALITY_HIGH_TO_LOW
 import androidx.camera.core.impl.EncoderProfilesProxy
 import androidx.camera.core.impl.Quirks
 import androidx.camera.core.impl.compat.EncoderProfilesProxyCompat
-import javax.inject.Inject
-import javax.inject.Named
 
 /** Adapt the [EncoderProfilesProvider] interface to [CameraPipe]. */
-@CameraScope
-public class EncoderProfilesProviderAdapter
-@Inject
-constructor(
-    @Named("CameraId") private val cameraIdString: String,
-    @Named("cameraQuirksValues") private val cameraQuirks: Quirks,
+public class EncoderProfilesProviderAdapter(
+    private val cameraIdString: String,
+    private val cameraQuirks: Quirks,
 ) : EncoderProfilesProvider {
     private val hasValidCameraId: Boolean
     private val cameraId: Int
@@ -178,7 +171,7 @@ constructor(
         val videoProfile = videoProfiles[0]
         return camcorderProfileResolutionQuirk
             .getSupportedResolutions()
-            .contains(Size(videoProfile.width, videoProfile.height))
+            .contains(videoProfile.resolution)
     }
 
     @RequiresApi(31)

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("UnstableApiUsage") // KotlinMultiplatformAndroidTarget
+@file:Suppress("UnstableApiUsage") // b/393137152
 
 package androidx.build
 
@@ -22,30 +22,21 @@ import androidx.build.clang.AndroidXClang
 import androidx.build.clang.MultiTargetNativeCompilation
 import androidx.build.clang.NativeLibraryBundler
 import androidx.build.clang.configureCinterop
-import androidx.build.uptodatedness.cacheEvenIfNoOutputs
-import com.android.build.api.dsl.KotlinMultiplatformAndroidTarget
+import com.android.build.api.dsl.KotlinMultiplatformAndroidLibraryTarget
 import com.android.build.gradle.api.KotlinMultiplatformAndroidPlugin
 import groovy.lang.Closure
 import java.io.File
+import javax.inject.Inject
 import org.gradle.api.Action
-import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.NamedDomainObjectCollection
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
-import org.gradle.api.file.FileCollection
+import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.plugins.ExtensionAware
-import org.gradle.api.provider.Property
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
-import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.options.Option
 import org.gradle.kotlin.dsl.findByType
-import org.gradle.kotlin.dsl.withType
-import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
@@ -56,15 +47,16 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCompilation
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTargetWithHostTests
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.binaryen.BinaryenRootExtension
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinJsTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.dsl.KotlinWasmTargetDsl
 import org.jetbrains.kotlin.gradle.targets.js.ir.DefaultIncrementalSyncTask
-import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension
-import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
+import org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnLockMismatchReport
 import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
 
 /**
  * [AndroidXMultiplatformExtension] is an extension that wraps specific functionality of the Kotlin
@@ -72,7 +64,9 @@ import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
  * of wrapping is to prevent targets from being added when the platform has not been enabled. e.g.
  * the `macosX64` target is gated on a `project.enableMac` check.
  */
-open class AndroidXMultiplatformExtension(val project: Project) {
+abstract class AndroidXMultiplatformExtension(val project: Project) {
+
+    @get:Inject abstract val buildFeatures: BuildFeatures
 
     var enableBinaryCompatibilityValidator = true
 
@@ -87,10 +81,10 @@ open class AndroidXMultiplatformExtension(val project: Project) {
         // make sure to initialize the kotlin extension by accessing the property
         val extension = (kotlinExtension as ExtensionAware)
         project.plugins.apply(KotlinMultiplatformAndroidPlugin::class.java)
-        extension.extensions.getByType(KotlinMultiplatformAndroidTarget::class.java)
+        extension.extensions.getByType(KotlinMultiplatformAndroidLibraryTarget::class.java)
     }
 
-    val agpKmpExtension: KotlinMultiplatformAndroidTarget by agpKmpExtensionDelegate
+    val agpKmpExtension: KotlinMultiplatformAndroidLibraryTarget by agpKmpExtensionDelegate
 
     /**
      * The list of platforms that have been declared as supported in the build configuration.
@@ -362,7 +356,7 @@ open class AndroidXMultiplatformExtension(val project: Project) {
 
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     @JvmOverloads
-    fun android(block: Action<KotlinAndroidTarget>? = null): KotlinAndroidTarget? {
+    fun androidTarget(block: Action<KotlinAndroidTarget>? = null): KotlinAndroidTarget? {
         supportedPlatforms.add(PlatformIdentifier.ANDROID)
         return if (project.enableJvm()) {
             kotlinExtension.androidTarget {
@@ -429,8 +423,8 @@ open class AndroidXMultiplatformExtension(val project: Project) {
 
     @JvmOverloads
     fun androidLibrary(
-        block: Action<KotlinMultiplatformAndroidTarget>? = null
-    ): KotlinMultiplatformAndroidTarget? {
+        block: Action<KotlinMultiplatformAndroidLibraryTarget>? = null
+    ): KotlinMultiplatformAndroidLibraryTarget? {
         supportedPlatforms.add(PlatformIdentifier.ANDROID)
         return if (project.enableJvm()) {
             agpKmpExtension.also { block?.execute(it) }
@@ -528,6 +522,7 @@ open class AndroidXMultiplatformExtension(val project: Project) {
             watchosX64(block),
             watchosArm32(block),
             watchosArm64(block),
+            watchosDeviceArm64(block),
             watchosSimulatorArm64(block)
         )
     }
@@ -547,6 +542,16 @@ open class AndroidXMultiplatformExtension(val project: Project) {
         supportedPlatforms.add(PlatformIdentifier.WATCHOS_ARM_64)
         return if (project.enableMac()) {
             kotlinExtension.watchosArm64 { block?.execute(this) }
+        } else {
+            null
+        }
+    }
+
+    @JvmOverloads
+    fun watchosDeviceArm64(block: Action<KotlinNativeTarget>? = null): KotlinNativeTarget? {
+        supportedPlatforms.add(PlatformIdentifier.WATCHOS_DEVICE_ARM_64)
+        return if (project.enableMac()) {
+            kotlinExtension.watchosDeviceArm64 { block?.execute(this) }
         } else {
             null
         }
@@ -638,8 +643,6 @@ open class AndroidXMultiplatformExtension(val project: Project) {
 
     @JvmOverloads
     fun linuxX64Stubs(block: Action<KotlinNativeTarget>? = null): KotlinNativeTarget? {
-        // don't enable binary compatibility validator for stubs
-        enableBinaryCompatibilityValidator = false
         supportedPlatforms.add(PlatformIdentifier.LINUX_X_64_STUBS)
         return if (project.enableLinux()) {
             kotlinExtension.linuxX64("linuxx64Stubs") {
@@ -656,9 +659,16 @@ open class AndroidXMultiplatformExtension(val project: Project) {
 
     @JvmOverloads
     fun js(block: Action<KotlinJsTargetDsl>? = null): KotlinJsTargetDsl? {
+        if (buildFeatures.isIsolatedProjectsEnabled()) return null
         supportedPlatforms.add(PlatformIdentifier.JS)
         return if (project.enableJs()) {
-            kotlinExtension.js { block?.execute(this) }
+            kotlinExtension.js() {
+                block?.execute(this)
+                binaries.library()
+                project.configureJs()
+                project.configureKotlinJsTests()
+                configureBrowserForTests(project)
+            }
         } else {
             null
         }
@@ -667,89 +677,135 @@ open class AndroidXMultiplatformExtension(val project: Project) {
     @OptIn(ExperimentalWasmDsl::class)
     @JvmOverloads
     fun wasmJs(block: Action<KotlinJsTargetDsl>? = null): KotlinWasmTargetDsl? {
+        if (buildFeatures.isIsolatedProjectsEnabled()) return null
         supportedPlatforms.add(PlatformIdentifier.WASM_JS)
         return if (project.enableWasmJs()) {
             kotlinExtension.wasmJs("wasmJs") {
                 block?.execute(this)
-                binaries.executable()
-                browser {}
+                binaries.library()
                 project.configureWasm()
+                project.configureKotlinJsTests()
+                configureBrowserForTests(project)
             }
         } else {
             null
         }
     }
 
+    private fun KotlinJsTargetDsl.configureBrowserForTests(project: Project) {
+        browser {
+            testTask {
+                it.useKarma {
+                    useChromeHeadless()
+                    useConfigDirectory(File(project.getSupportRootFolder(), "buildSrc/karmaconfig"))
+                }
+            }
+        }
+    }
+
+    /** Locates a project by path. */
+    // This method is needed for Gradle project isolation to avoid calls to parent projects due to
+    // androidx { samples(project(":foo")) }
+    // Without this method, the call above results into a call to the parent object, because
+    // AndroidXExtension has `val project: Project`, which from groovy `project` call within
+    // `androidx` block tries retrieves that project object and calls to look for :foo property
+    // on it, then checking all the parents for it.
+    fun project(name: String): Project = project.project(name)
+
     companion object {
         const val EXTENSION_NAME = "androidXMultiplatform"
     }
 }
 
-private fun Project.configureWasm() {
-    rootProject.extensions.findByType<NodeJsRootExtension>()?.version = getVersionByName("node")
-    rootProject.extensions.findByType(YarnRootExtension::class.java)?.let {
-        it.version = getVersionByName("yarn")
-        it.lockFileDirectory =
-            File(project.getPrebuiltsRoot(), "androidx/external/wasm/yarn-offline-mirror")
-        it.yarnLockMismatchReport = YarnLockMismatchReport.WARNING
-    }
-
-    val offlineMirrorStorage =
-        File(getPrebuiltsRoot(), "androidx/external/wasm/yarn-offline-mirror")
-    val createYarnRcFileTask =
-        rootProject.tasks.register("createYarnRcFile", CreateYarnRcFileTask::class.java) {
-            it.offlineMirrorStorage.set(offlineMirrorStorage)
-            it.yarnrcFile.set(rootProject.layout.buildDirectory.file("js/.yarnrc"))
-        }
-    rootProject.tasks.withType<KotlinNpmInstallTask>().configureEach {
-        it.dependsOn(createYarnRcFileTask)
-        it.args.addAll(listOf("--ignore-engines", "--verbose"))
-
-        println(
-            """
-             Yarn packages will be fetched from the offline mirror: ${offlineMirrorStorage.path}.
-             If yarn has a dependency that is not there, your build will fail. To fix, re-run your
-             Gradle task with -Pandroidx.yarnOfflineMode=false to download the dependencies from the
-             internet into the offline mirror. Don't forget to upload the changes from that repo to
-             Gerrit as well!   
-            """
-                .trimIndent()
-                .replace("\n", " ")
-        )
-
-        if (project.useYarnOffline()) {
-            it.args.add("--offline")
-        }
-    }
-
+private fun Project.configureJs() {
+    configureNode()
+    configureBinaryen()
     // Use DSL API when https://youtrack.jetbrains.com/issue/KT-70029 is closed for all tasks below
-    tasks.named("wasmJsDevelopmentExecutableCompileSync", DefaultIncrementalSyncTask::class.java) {
+    tasks.named("jsDevelopmentLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
+        it.destinationDirectory.set(file(layout.buildDirectory.dir("js/packages/js/dev/kotlin")))
+    }
+    tasks.named("jsProductionLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
+        it.destinationDirectory.set(file(layout.buildDirectory.dir("js/packages/js/prod/kotlin")))
+    }
+}
+
+private fun Project.configureWasm() {
+    configureNode()
+    configureBinaryen()
+    // Use DSL API when https://youtrack.jetbrains.com/issue/KT-70029 is closed for all tasks below
+    tasks.named("wasmJsDevelopmentLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
         it.destinationDirectory.set(
             file(layout.buildDirectory.dir("js/packages/wasm-js/dev/kotlin"))
         )
     }
-    tasks.named("wasmJsProductionExecutableCompileSync", DefaultIncrementalSyncTask::class.java) {
+    tasks.named("wasmJsProductionLibraryCompileSync", DefaultIncrementalSyncTask::class.java) {
         it.destinationDirectory.set(
             file(layout.buildDirectory.dir("js/packages/wasm-js/prod/kotlin"))
         )
     }
-    tasks.named(
-        "wasmJsTestTestDevelopmentExecutableCompileSync",
-        DefaultIncrementalSyncTask::class.java
-    ) {
-        it.destinationDirectory.set(
-            file(layout.buildDirectory.dir("js/packages/wasm-js-test/dev/kotlin"))
-        )
-    }
-    tasks.named(
-        "wasmJsTestTestProductionExecutableCompileSync",
-        DefaultIncrementalSyncTask::class.java
-    ) {
-        it.destinationDirectory.set(
-            file(layout.buildDirectory.dir("js/packages/wasm-js-test/prod/kotlin"))
-        )
+
+    // Compiler Arg needed for tests only: https://youtrack.jetbrains.com/issue/KT-59081
+    tasks.withType(Kotlin2JsCompile::class.java).configureEach { task ->
+        if (task.name.lowercase().contains("test")) {
+            task.compilerOptions.freeCompilerArgs.add("-Xwasm-enable-array-range-checks")
+        }
     }
 }
+
+private fun Project.configureNode() {
+    extensions.findByType<NodeJsEnvSpec>()?.let { nodeJs ->
+        nodeJs.version.set(getVersionByName("node"))
+        if (!ProjectLayoutType.isPlayground(this)) {
+            nodeJs.downloadBaseUrl.set(
+                File(project.getPrebuiltsRoot(), "androidx/external/org/nodejs/node")
+                    .toURI()
+                    .toString()
+            )
+        }
+    }
+
+    // https://youtrack.jetbrains.com/issue/KT-73913/K-Wasm-yarn-version-per-project
+    rootProject.extensions.findByType(YarnRootExtension::class.java)?.let { yarn ->
+        @Suppress("DEPRECATION")
+        yarn.version = getVersionByName("yarn")
+        yarn.yarnLockMismatchReport = YarnLockMismatchReport.FAIL
+        if (!ProjectLayoutType.isPlayground(this)) {
+            yarn.lockFileDirectory =
+                File(project.getPrebuiltsRoot(), "androidx/javascript-for-kotlin")
+        }
+    }
+}
+
+private fun Project.configureBinaryen() {
+    // https://youtrack.jetbrains.com/issue/KT-74840
+    rootProject.extensions.findByType<BinaryenRootExtension>()?.let { binaryen ->
+        @Suppress("DEPRECATION")
+        binaryen.downloadBaseUrl =
+            File(project.getPrebuiltsRoot(), "androidx/javascript-for-kotlin/binaryen")
+                .toURI()
+                .toString()
+    }
+}
+
+private fun Project.configureKotlinJsTests() =
+    tasks.withType(KotlinJsTest::class.java).configureEach { task ->
+        if (!ProjectLayoutType.isPlayground(this)) {
+            val unzipChromeBuildServiceProvider =
+                gradle.sharedServices.registrations.getByName("unzipChrome").service
+            task.usesService(unzipChromeBuildServiceProvider)
+            // Remove doFirst and switch to FileProperty property to set browser path when issue
+            // https://youtrack.jetbrains.com/issue/KT-72514 is resolved
+            task.doFirst {
+                task.environment(
+                    "CHROME_BIN",
+                    (unzipChromeBuildServiceProvider.get() as UnzipChromeBuildService).chromePath
+                )
+            }
+        }
+        task.testLogging.showStandardStreams = true
+        // From: https://nodejs.org/api/cli.html
+        task.nodeJsArgs.addAll(listOf("--trace-warnings", "--trace-uncaught", "--trace-sigint"))
+    }
 
 fun Project.validatePublishedMultiplatformHasDefault() {
     val extension = project.extensions.getByType(AndroidXMultiplatformExtension::class.java)
@@ -763,125 +819,3 @@ fun Project.validatePublishedMultiplatformHasDefault() {
         )
     }
 }
-
-/**
- * Ensures that multiplatform sources are suffixed with their target platform, ex. `MyClass.jvm.kt`.
- *
- * Must be called in afterEvaluate().
- */
-fun Project.registerValidateMultiplatformSourceSetNamingTask() {
-    val targets = multiplatformExtension?.targets?.filterNot { target -> target.name == "metadata" }
-    if (targets == null || targets.size <= 1) {
-        // We only care about multiplatform projects with more than one target platform.
-        return
-    }
-
-    tasks
-        .register(
-            "validateMultiplatformSourceSetNaming",
-            ValidateMultiplatformSourceSetNaming::class.java
-        ) { task ->
-            targets
-                .filterNot { target -> target.platformType.name == "common" }
-                .forEach { target -> task.addTarget(project, target) }
-            task.rootDir.set(rootDir.path)
-            task.cacheEvenIfNoOutputs()
-        }
-        .also { validateTask ->
-            // Multiplatform projects with no enabled platforms do not actually apply the Kotlin
-            // plugin
-            // and therefore do not have the check task. They are skipped unless a platform is
-            // enabled.
-            if (project.tasks.findByName("check") != null) {
-                project.addToCheckTask(validateTask)
-                project.addToBuildOnServer(validateTask)
-            }
-        }
-}
-
-@DisableCachingByDefault(because = "Doesn't benefit from caching")
-abstract class ValidateMultiplatformSourceSetNaming : DefaultTask() {
-
-    @get:Input abstract val rootDir: Property<String>
-
-    @InputFiles
-    @PathSensitive(PathSensitivity.RELATIVE)
-    fun getInputFiles(): Collection<FileCollection> = sourceSetMap.values
-
-    private val sourceSetMap: MutableMap<String, FileCollection> = mutableMapOf()
-
-    @set:Option(
-        option = "autoFix",
-        description = "Whether to automatically rename files instead of throwing an exception",
-    )
-    @get:Input
-    var autoFix: Boolean = false
-
-    @TaskAction
-    fun validate() {
-        // Files or entire source sets may duplicated shared across compilations, but it's more
-        // expensive to de-dupe them than to check the suffixes for everything multiple times.
-        for ((sourceFileSuffix, kotlinSourceSet) in sourceSetMap) {
-            for (fileOrDir in kotlinSourceSet) {
-                for (file in fileOrDir.walk()) {
-                    // Kotlin source files must be uniquely-named across platforms.
-                    if (
-                        file.isFile &&
-                            file.name.endsWith(".kt") &&
-                            !file.name.endsWith(".$sourceFileSuffix.kt")
-                    ) {
-                        val actualPath = file.toRelativeString(File(rootDir.get()))
-                        val expectedName = "${file.name.substringBefore('.')}.$sourceFileSuffix.kt"
-                        if (autoFix) {
-                            val destFile = File(file.parentFile, expectedName)
-                            file.renameTo(destFile)
-                            logger.info("Applied fix: $actualPath -> $expectedName")
-                        } else {
-                            throw GradleException(
-                                "Source files for non-common platforms must be suffixed with " +
-                                    "their target platform. Found '$actualPath' but expected " +
-                                    "'$expectedName'."
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fun addTarget(project: Project, target: KotlinTarget) {
-        sourceSetMap[target.preferredSourceFileSuffix] =
-            project.files(
-                target.compilations
-                    .filterNot { compilation ->
-                        // Don't enforce suffixes for test source sets.
-                        compilation.name == "test" || compilation.name.endsWith("Test")
-                    }
-                    .flatMap { compilation -> compilation.kotlinSourceSets }
-                    .map { kotlinSourceSet -> kotlinSourceSet.kotlin.sourceDirectories }
-                    .toTypedArray()
-            )
-    }
-
-    /**
-     * List of Kotlin target names which may be used as source file suffixes. Any target whose name
-     * does not appear in this list will use its [KotlinPlatformType] name.
-     */
-    private val allowedTargetNameSuffixes =
-        setOf("android", "desktop", "jvm", "commonStubs", "jvmStubs", "linuxx64Stubs", "wasmJs")
-
-    /** The preferred source file suffix for the target's platform type. */
-    private val KotlinTarget.preferredSourceFileSuffix: String
-        get() =
-            if (allowedTargetNameSuffixes.contains(name)) {
-                name
-            } else {
-                platformType.name
-            }
-}
-
-/**
- * Set of targets are there to serve as stubs, but are not expected to be consumed by library
- * consumers.
- */
-internal val setOfStubTargets = setOf("commonStubs", "jvmStubs", "linuxx64Stubs")

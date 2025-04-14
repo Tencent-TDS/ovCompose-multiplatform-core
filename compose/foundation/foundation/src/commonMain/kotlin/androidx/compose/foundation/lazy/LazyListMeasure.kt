@@ -16,6 +16,7 @@
 
 package androidx.compose.foundation.lazy
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.foundation.internal.requirePrecondition
@@ -48,6 +49,7 @@ import kotlinx.coroutines.CoroutineScope
  * Measures and calculates the positions for the requested items. The result is produced as a
  * [LazyListMeasureResult] which contains all the calculations.
  */
+@OptIn(ExperimentalFoundationApi::class)
 internal fun measureLazyList(
     itemsCount: Int,
     measuredItemProvider: LazyListMeasuredItemProvider,
@@ -67,9 +69,9 @@ internal fun measureLazyList(
     itemAnimator: LazyLayoutItemAnimator<LazyListMeasuredItem>,
     beyondBoundsItemCount: Int,
     pinnedItems: List<Int>,
-    hasLookaheadPassOccurred: Boolean,
+    hasLookaheadOccurred: Boolean,
     isLookingAhead: Boolean,
-    postLookaheadLayoutInfo: LazyListLayoutInfo?,
+    approachLayoutInfo: LazyListLayoutInfo?,
     coroutineScope: CoroutineScope,
     placementScopeInvalidator: ObservableScopeInvalidator,
     graphicsContext: GraphicsContext,
@@ -93,7 +95,7 @@ internal fun measureLazyList(
             isVertical = isVertical,
             laneCount = 1,
             isLookingAhead = isLookingAhead,
-            hasLookaheadOccurred = hasLookaheadPassOccurred,
+            hasLookaheadOccurred = hasLookaheadOccurred,
             layoutMinOffset = 0,
             layoutMaxOffset = 0,
             coroutineScope = coroutineScope,
@@ -330,7 +332,7 @@ internal fun measureLazyList(
                 pinnedItems = pinnedItems,
                 consumedScroll = consumedScroll,
                 isLookingAhead = isLookingAhead,
-                lastPostLookaheadLayoutInfo = postLookaheadLayoutInfo
+                lastApproachLayoutInfo = approachLayoutInfo
             )
 
         // Update maxCrossAxis with extra items
@@ -373,7 +375,7 @@ internal fun measureLazyList(
             isVertical = isVertical,
             laneCount = 1,
             isLookingAhead = isLookingAhead,
-            hasLookaheadOccurred = hasLookaheadPassOccurred,
+            hasLookaheadOccurred = hasLookaheadOccurred,
             coroutineScope = coroutineScope,
             layoutMinOffset = currentFirstItemScrollOffset,
             layoutMaxOffset = currentMainAxisOffset,
@@ -408,6 +410,13 @@ internal fun measureLazyList(
                 measuredItemProvider.getAndMeasure(it)
             }
 
+        val firstVisibleIndex =
+            if (noExtraItems) positionedItems.firstOrNull()?.index
+            else visibleItems.firstOrNull()?.index
+        val lastVisibleIndex =
+            if (noExtraItems) positionedItems.lastOrNull()?.index
+            else visibleItems.lastOrNull()?.index
+
         return LazyListMeasureResult(
             firstVisibleItem = firstItem,
             firstVisibleItemScrollOffset = currentFirstItemScrollOffset,
@@ -415,10 +424,17 @@ internal fun measureLazyList(
             consumedScroll = consumedScroll,
             measureResult =
                 layout(layoutWidth, layoutHeight) {
-                    // place normal items
-                    positionedItems.fastForEach { it.place(this, isLookingAhead) }
-                    // stickingItems should be placed after all other items
-                    stickingItems.fastForEach { it.place(this, isLookingAhead) }
+                    // Tagging as motion frame of reference placement, meaning the placement
+                    // contains scrolling. This allows the consumer of this placement offset to
+                    // differentiate this offset vs. offsets from structural changes. Generally
+                    // speaking, this signals a preference to directly apply changes rather than
+                    // animating, to avoid a chasing effect to scrolling.
+                    withMotionFrameOfReferencePlacement {
+                        // place normal items
+                        positionedItems.fastForEach { it.place(this, isLookingAhead) }
+                        // stickingItems should be placed after all other items
+                        stickingItems.fastForEach { it.place(this, isLookingAhead) }
+                    }
 
                     // we attach it during the placement so LazyListState can trigger re-placement
                     placementScopeInvalidator.attachToScope()
@@ -426,8 +442,8 @@ internal fun measureLazyList(
             scrollBackAmount = scrollBackAmount,
             visibleItemsInfo =
                 updatedVisibleItems(
-                    noExtraItems = noExtraItems,
-                    currentVisibleItems = visibleItems,
+                    firstVisibleIndex = firstVisibleIndex ?: 0,
+                    lastVisibleIndex = lastVisibleIndex ?: 0,
                     positionedItems = positionedItems,
                     stickingItems = stickingItems
                 ),
@@ -454,7 +470,7 @@ private fun createItemsAfterList(
     pinnedItems: List<Int>,
     consumedScroll: Float,
     isLookingAhead: Boolean,
-    lastPostLookaheadLayoutInfo: LazyListLayoutInfo?
+    lastApproachLayoutInfo: LazyListLayoutInfo?
 ): List<LazyListMeasuredItem> {
     var list: MutableList<LazyListMeasuredItem>? = null
 
@@ -468,15 +484,14 @@ private fun createItemsAfterList(
     }
 
     if (isLookingAhead) {
-        // Check if there's any item that needs to be composed based on last postLookaheadLayoutInfo
+        // Check if there's any item that needs to be composed based on last approachLayoutInfo
         if (
-            lastPostLookaheadLayoutInfo != null &&
-                lastPostLookaheadLayoutInfo.visibleItemsInfo.isNotEmpty()
+            lastApproachLayoutInfo != null && lastApproachLayoutInfo.visibleItemsInfo.isNotEmpty()
         ) {
             // Find first item with index > end. Note that `visibleItemsInfo.last()` may not have
             // the largest index as the last few items could be added to animate item placement.
             val firstItem =
-                lastPostLookaheadLayoutInfo.visibleItemsInfo.run {
+                lastApproachLayoutInfo.visibleItemsInfo.run {
                     var found: LazyListItemInfo? = null
                     for (i in size - 1 downTo 0) {
                         if (this[i].index > end && (i == 0 || this[i - 1].index <= end)) {
@@ -486,7 +501,7 @@ private fun createItemsAfterList(
                     }
                     found
                 }
-            val lastVisibleItem = lastPostLookaheadLayoutInfo.visibleItemsInfo.last()
+            val lastVisibleItem = lastApproachLayoutInfo.visibleItemsInfo.last()
             if (firstItem != null) {
                 for (i in firstItem.index..min(lastVisibleItem.index, itemsCount - 1)) {
                     // Only add to the list items that are _not_ already in the list.
@@ -500,7 +515,7 @@ private fun createItemsAfterList(
             // Calculate the additional offset to subcompose based on what was shown in the
             // previous post-loookahead pass and the scroll consumed.
             val additionalOffset =
-                lastPostLookaheadLayoutInfo.viewportEndOffset -
+                lastApproachLayoutInfo.viewportEndOffset -
                     lastVisibleItem.offset -
                     lastVisibleItem.size -
                     consumedScroll
@@ -603,7 +618,7 @@ private fun calculateItemsOffsets(
         fun Int.reverseAware() = if (!reverseLayout) this else itemsCount - this - 1
 
         val sizes = IntArray(itemsCount) { index -> items[index.reverseAware()].size }
-        val offsets = IntArray(itemsCount) { 0 }
+        val offsets = IntArray(itemsCount)
         if (isVertical) {
             with(
                 requirePreconditionNotNull(verticalArrangement) {

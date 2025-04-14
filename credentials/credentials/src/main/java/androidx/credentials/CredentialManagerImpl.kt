@@ -27,8 +27,10 @@ import androidx.credentials.exceptions.ClearCredentialException
 import androidx.credentials.exceptions.ClearCredentialProviderConfigurationException
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.CreateCredentialProviderConfigurationException
+import androidx.credentials.exceptions.CreateCredentialUnsupportedException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
+import androidx.credentials.internal.FormFactorHelper
 import java.util.concurrent.Executor
 
 /**
@@ -246,6 +248,17 @@ internal class CredentialManagerImpl internal constructor(private val context: C
             )
             return
         }
+
+        // Check if this is a Wearable device, creation is not supported.
+        if (FormFactorHelper.isWear(context)) {
+            callback.onError(
+                CreateCredentialUnsupportedException(
+                    "createCredential is not supported on this device"
+                )
+            )
+            return
+        }
+
         provider.onCreateCredential(context, request, cancellationSignal, executor, callback)
     }
 
@@ -263,8 +276,8 @@ internal class CredentialManagerImpl internal constructor(private val context: C
      * app and in order to get the holistic sign-in options the next time, you should call this API
      * to let the provider clear any stored credential session.
      *
-     * If the API is called with [ClearCredentialRequestTypes.CLEAR_RESTORE_CREDENTIAL] then any
-     * restore credential stored on device will be cleared.
+     * If the API is called with [ClearCredentialStateRequest.TYPE_CLEAR_RESTORE_CREDENTIAL] then
+     * any restore credential stored on device will be cleared.
      *
      * @param request the request for clearing the app user's credential state
      * @param cancellationSignal an optional signal that allows for cancelling this call

@@ -17,9 +17,8 @@
 package androidx.wear.compose.material3
 
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -56,7 +55,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -66,7 +69,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
-import androidx.wear.compose.material3.tokens.MotionTokens
 import androidx.wear.compose.material3.tokens.ShapeTokens
 import androidx.wear.compose.material3.tokens.SplitSwitchButtonTokens
 import androidx.wear.compose.material3.tokens.SwitchButtonTokens
@@ -109,6 +111,8 @@ import androidx.wear.compose.materialcore.isLayoutDirectionRtl
  *   emitting [Interaction]s for this button's "toggleable" tap area. You can use this to change the
  *   button's appearance or preview the button in different states. Note that if `null` is provided,
  *   interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param icon An optional slot for providing an icon to indicate the purpose of the button. The
  *   contents are expected to be a horizontally and vertically center aligned icon of size 24.dp.
  * @param secondaryLabel A slot for providing the button's secondary label. The contents are
@@ -117,7 +121,7 @@ import androidx.wear.compose.materialcore.isLayoutDirectionRtl
  *   which is "start" aligned and no more than 3 lines of text.
  */
 @Composable
-fun SwitchButton(
+public fun SwitchButton(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -126,20 +130,31 @@ fun SwitchButton(
     colors: SwitchButtonColors = SwitchButtonDefaults.switchButtonColors(),
     contentPadding: PaddingValues = SwitchButtonDefaults.ContentPadding,
     interactionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     icon: @Composable (BoxScope.() -> Unit)? = null,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
     label: @Composable RowScope.() -> Unit
-) =
+) {
+    val hapticFeedback = LocalHapticFeedback.current
+
     androidx.wear.compose.materialcore.ToggleButton(
         checked = checked,
-        onCheckedChange = onCheckedChange,
+        onCheckedChange = {
+            hapticFeedback.performHapticFeedback(
+                if (it) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff
+            )
+            onCheckedChange(it)
+        },
         label =
             provideScopeContent(
                 contentColor = colors.contentColor(enabled = enabled, checked),
                 textStyle = SwitchButtonTokens.LabelFont.value,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 3,
-                textAlign = TextAlign.Start,
+                textConfiguration =
+                    TextConfiguration(
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 3,
+                        textAlign = TextAlign.Start,
+                    ),
                 content = label
             ),
         toggleControl = {
@@ -171,16 +186,23 @@ fun SwitchButton(
             provideNullableScopeContent(
                 contentColor = colors.secondaryContentColor(enabled = enabled, checked),
                 textStyle = SwitchButtonTokens.SecondaryLabelFont.value,
-                overflow = TextOverflow.Ellipsis,
-                maxLines = 2,
-                textAlign = TextAlign.Start,
+                textConfiguration =
+                    TextConfiguration(
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                        textAlign = TextAlign.Start,
+                    ),
                 content = secondaryLabel
             ),
         background = { isEnabled, isChecked ->
             val backgroundColor =
                 colors.containerColor(enabled = isEnabled, checked = isChecked).value
 
-            Modifier.background(backgroundColor)
+            Modifier.surface(
+                transformation = transformation,
+                shape = shape,
+                painter = ColorPainter(backgroundColor)
+            )
         },
         enabled = enabled,
         interactionSource = interactionSource,
@@ -193,6 +215,7 @@ fun SwitchButton(
         iconSpacing = ICON_SPACING,
         ripple = ripple()
     )
+}
 
 /**
  * The Wear Material [SplitSwitchButton] offers slots and a specific layout for a label and
@@ -242,6 +265,8 @@ fun SwitchButton(
  *   and emitting [Interaction]s for this button's main body "clickable" tap area. You can use this
  *   to change the button's appearance or preview the button in different states. Note that if
  *   `null` is provided, interactions will still happen internally.
+ * @param transformation Transformation to be used when button appears inside a container that needs
+ *   to dynamically change its content separately from the background.
  * @param containerClickLabel Optional click label on the main body of the button for accessibility.
  * @param contentPadding The spacing values to apply internally between the container and the
  *   content.
@@ -251,7 +276,7 @@ fun SwitchButton(
  *   which is "start" aligned.
  */
 @Composable
-fun SplitSwitchButton(
+public fun SplitSwitchButton(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     toggleContentDescription: String?,
@@ -262,6 +287,7 @@ fun SplitSwitchButton(
     colors: SplitSwitchButtonColors = SwitchButtonDefaults.splitSwitchButtonColors(),
     toggleInteractionSource: MutableInteractionSource? = null,
     containerInteractionSource: MutableInteractionSource? = null,
+    transformation: SurfaceTransformation? = null,
     containerClickLabel: String? = null,
     contentPadding: PaddingValues = SwitchButtonDefaults.ContentPadding,
     secondaryLabel: @Composable (RowScope.() -> Unit)? = null,
@@ -276,7 +302,12 @@ fun SplitSwitchButton(
                 .defaultMinSize(minHeight = MIN_HEIGHT)
                 .height(IntrinsicSize.Min)
                 .width(IntrinsicSize.Max)
-                .clip(shape = shape)
+                .graphicsLayer {
+                    clip = true
+                    this.shape = shape
+                    val transformation = transformation ?: return@graphicsLayer
+                    with(transformation) { applyContainerTransformation() }
+                }
     ) {
         Row(
             modifier =
@@ -300,9 +331,12 @@ fun SplitSwitchButton(
                     provideScopeContent(
                         contentColor = colors.contentColor(enabled = enabled, checked = checked),
                         textStyle = SplitSwitchButtonTokens.LabelFont.value,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 3,
-                        textAlign = TextAlign.Start,
+                        textConfiguration =
+                            TextConfiguration(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 3,
+                                textAlign = TextAlign.Start,
+                            ),
                         content = label
                     ),
                 secondaryLabel =
@@ -310,9 +344,12 @@ fun SplitSwitchButton(
                         contentColor =
                             colors.secondaryContentColor(enabled = enabled, checked = checked),
                         textStyle = SplitSwitchButtonTokens.SecondaryLabelFont.value,
-                        overflow = TextOverflow.Ellipsis,
-                        maxLines = 2,
-                        textAlign = TextAlign.Start,
+                        textConfiguration =
+                            TextConfiguration(
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 2,
+                                textAlign = TextAlign.Start,
+                            ),
                         content = secondaryLabel
                     ),
                 spacerSize = SwitchButtonDefaults.LabelSpacerSize
@@ -321,23 +358,31 @@ fun SplitSwitchButton(
 
         Spacer(modifier = Modifier.size(2.dp))
 
-        val splitBackground = colors.splitContainerColor(enabled, checked).value
+        val splitBackground = if (enabled) containerColor else Color.Black
+        val splitBackgroundOverlay = colors.splitContainerColor(enabled, checked).value
+        val hapticFeedback = LocalHapticFeedback.current
         Box(
             contentAlignment = Alignment.Center,
             modifier =
                 Modifier.toggleable(
                         enabled = enabled,
                         value = checked,
-                        onValueChange = onCheckedChange,
+                        onValueChange = {
+                            hapticFeedback.performHapticFeedback(
+                                if (it) HapticFeedbackType.ToggleOn
+                                else HapticFeedbackType.ToggleOff
+                            )
+                            onCheckedChange(it)
+                        },
                         indication = ripple(),
                         interactionSource = toggleInteractionSource
                     )
                     .fillMaxHeight()
                     .clip(SPLIT_SECTIONS_SHAPE)
-                    .background(containerColor)
+                    .background(splitBackground)
                     .drawWithCache {
                         onDrawWithContent {
-                            drawRect(color = splitBackground)
+                            drawRect(color = splitBackgroundOverlay)
                             drawContent()
                         }
                     }
@@ -372,17 +417,19 @@ fun SplitSwitchButton(
 }
 
 /** Contains the default values used by [SwitchButton]s and [SplitSwitchButton]s */
-object SwitchButtonDefaults {
+public object SwitchButtonDefaults {
     /** Recommended [Shape] for [SwitchButton]. */
-    val switchButtonShape: Shape
+    public val switchButtonShape: Shape
         @Composable get() = SwitchButtonTokens.ContainerShape.value
 
     /** Recommended [Shape] for [SplitSwitchButton]. */
-    val splitSwitchButtonShape: Shape
+    public val splitSwitchButtonShape: Shape
         @Composable get() = SplitSwitchButtonTokens.ContainerShape.value
 
     /** Creates a [SwitchButtonColors] for use in a [SwitchButton]. */
-    @Composable fun switchButtonColors() = MaterialTheme.colorScheme.defaultSwitchButtonColors
+    @Composable
+    public fun switchButtonColors(): SwitchButtonColors =
+        MaterialTheme.colorScheme.defaultSwitchButtonColors
 
     /**
      * Creates a [SwitchButtonColors] for use in a [SwitchButton].
@@ -440,7 +487,7 @@ object SwitchButtonDefaults {
      *   disabled and unchecked
      */
     @Composable
-    fun switchButtonColors(
+    public fun switchButtonColors(
         checkedContainerColor: Color = Color.Unspecified,
         checkedContentColor: Color = Color.Unspecified,
         checkedSecondaryContentColor: Color = Color.Unspecified,
@@ -470,7 +517,7 @@ object SwitchButtonDefaults {
         disabledUncheckedIconColor: Color = Color.Unspecified,
         disabledUncheckedThumbColor: Color = Color.Unspecified,
         disabledUncheckedTrackBorderColor: Color = Color.Unspecified,
-    ) =
+    ): SwitchButtonColors =
         MaterialTheme.colorScheme.defaultSwitchButtonColors.copy(
             checkedContainerColor = checkedContainerColor,
             checkedContentColor = checkedContentColor,
@@ -505,7 +552,8 @@ object SwitchButtonDefaults {
 
     /** Creates a [SplitSwitchButtonColors] for use in a [SplitSwitchButton]. */
     @Composable
-    fun splitSwitchButtonColors() = MaterialTheme.colorScheme.defaultSplitSwitchButtonColors
+    public fun splitSwitchButtonColors(): SplitSwitchButtonColors =
+        MaterialTheme.colorScheme.defaultSplitSwitchButtonColors
 
     /**
      * Creates a [SplitSwitchButtonColors] for use in a [SplitSwitchButton].
@@ -568,7 +616,7 @@ object SwitchButtonDefaults {
      *   when disabled and unchecked
      */
     @Composable
-    fun splitSwitchButtonColors(
+    public fun splitSwitchButtonColors(
         checkedContainerColor: Color = Color.Unspecified,
         checkedContentColor: Color = Color.Unspecified,
         checkedSecondaryContentColor: Color = Color.Unspecified,
@@ -598,7 +646,7 @@ object SwitchButtonDefaults {
         disabledUncheckedSplitContainerColor: Color = Color.Unspecified,
         disabledUncheckedThumbColor: Color = Color.Unspecified,
         disabledUncheckedTrackBorderColor: Color = Color.Unspecified,
-    ) =
+    ): SplitSwitchButtonColors =
         MaterialTheme.colorScheme.defaultSplitSwitchButtonColors.copy(
             checkedContainerColor = checkedContainerColor,
             checkedContentColor = checkedContentColor,
@@ -631,12 +679,12 @@ object SwitchButtonDefaults {
             disabledUncheckedTrackBorderColor = disabledUncheckedTrackBorderColor,
         )
 
-    internal val LabelSpacerSize = 2.dp
+    internal val LabelSpacerSize = 1.dp
     private val HorizontalPadding = 14.dp
     private val VerticalPadding = 8.dp
 
     /** The default content padding used by [SwitchButton] */
-    val ContentPadding: PaddingValues =
+    public val ContentPadding: PaddingValues =
         PaddingValues(
             start = HorizontalPadding,
             top = VerticalPadding,
@@ -784,8 +832,8 @@ object SwitchButtonDefaults {
                             fromToken(SplitSwitchButtonTokens.UncheckedTrackBorderColor),
                         disabledCheckedContainerColor =
                             fromToken(SplitSwitchButtonTokens.DisabledCheckedContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha = SplitSwitchButtonTokens.DisabledOpacity
+                                .copy(
+                                    alpha = SplitSwitchButtonTokens.DisabledCheckedContainerOpacity
                                 ),
                         disabledCheckedContentColor =
                             fromToken(SplitSwitchButtonTokens.DisabledCheckedContentColor)
@@ -794,10 +842,6 @@ object SwitchButtonDefaults {
                                 ),
                         disabledCheckedSecondaryContentColor =
                             fromToken(SplitSwitchButtonTokens.DisabledCheckedSecondaryLabelColor)
-                                .copy(
-                                    alpha =
-                                        SplitSwitchButtonTokens.DisabledCheckedSecondaryLabelOpacity
-                                )
                                 .toDisabledColor(
                                     disabledAlpha = SplitSwitchButtonTokens.DisabledOpacity
                                 ),
@@ -806,9 +850,6 @@ object SwitchButtonDefaults {
                                 .copy(
                                     alpha =
                                         SplitSwitchButtonTokens.DisabledCheckedSplitContainerOpacity
-                                )
-                                .toDisabledColor(
-                                    disabledAlpha = SplitSwitchButtonTokens.DisabledOpacity
                                 ),
                         disabledCheckedThumbColor =
                             fromToken(SplitSwitchButtonTokens.DisabledCheckedThumbColor)
@@ -836,8 +877,9 @@ object SwitchButtonDefaults {
                                 ),
                         disabledUncheckedContainerColor =
                             fromToken(SplitSwitchButtonTokens.DisabledUncheckedContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha = SplitSwitchButtonTokens.DisabledOpacity
+                                .copy(
+                                    alpha =
+                                        SplitSwitchButtonTokens.DisabledUncheckedContainerOpacity
                                 ),
                         disabledUncheckedContentColor =
                             fromToken(SplitSwitchButtonTokens.DisabledUncheckedContentColor)
@@ -851,8 +893,10 @@ object SwitchButtonDefaults {
                                 ),
                         disabledUncheckedSplitContainerColor =
                             fromToken(SplitSwitchButtonTokens.DisabledUncheckedSplitContainerColor)
-                                .toDisabledColor(
-                                    disabledAlpha = SplitSwitchButtonTokens.DisabledOpacity
+                                .copy(
+                                    alpha =
+                                        SplitSwitchButtonTokens
+                                            .DisabledUncheckedSplitContainerOpacity
                                 ),
                         disabledUncheckedThumbColor =
                             fromToken(SplitSwitchButtonTokens.DisabledUncheckedThumbColor)
@@ -917,67 +961,116 @@ object SwitchButtonDefaults {
  *   and unchecked
  */
 @Immutable
-class SwitchButtonColors(
-    val checkedContainerColor: Color,
-    val checkedContentColor: Color,
-    val checkedSecondaryContentColor: Color,
-    val checkedIconColor: Color,
-    val checkedThumbColor: Color,
-    val checkedThumbIconColor: Color,
-    val checkedTrackBorderColor: Color,
-    val checkedTrackColor: Color,
-    val uncheckedContainerColor: Color,
-    val uncheckedContentColor: Color,
-    val uncheckedSecondaryContentColor: Color,
-    val uncheckedIconColor: Color,
-    val uncheckedThumbColor: Color,
-    val uncheckedTrackColor: Color,
-    val uncheckedTrackBorderColor: Color,
-    val disabledCheckedContainerColor: Color,
-    val disabledCheckedContentColor: Color,
-    val disabledCheckedSecondaryContentColor: Color,
-    val disabledCheckedIconColor: Color,
-    val disabledCheckedThumbColor: Color,
-    val disabledCheckedThumbIconColor: Color,
-    val disabledCheckedTrackColor: Color,
-    val disabledCheckedTrackBorderColor: Color,
-    val disabledUncheckedContainerColor: Color,
-    val disabledUncheckedContentColor: Color,
-    val disabledUncheckedSecondaryContentColor: Color,
-    val disabledUncheckedIconColor: Color,
-    val disabledUncheckedThumbColor: Color,
-    val disabledUncheckedTrackBorderColor: Color
+public class SwitchButtonColors(
+    public val checkedContainerColor: Color,
+    public val checkedContentColor: Color,
+    public val checkedSecondaryContentColor: Color,
+    public val checkedIconColor: Color,
+    public val checkedThumbColor: Color,
+    public val checkedThumbIconColor: Color,
+    public val checkedTrackBorderColor: Color,
+    public val checkedTrackColor: Color,
+    public val uncheckedContainerColor: Color,
+    public val uncheckedContentColor: Color,
+    public val uncheckedSecondaryContentColor: Color,
+    public val uncheckedIconColor: Color,
+    public val uncheckedThumbColor: Color,
+    public val uncheckedTrackColor: Color,
+    public val uncheckedTrackBorderColor: Color,
+    public val disabledCheckedContainerColor: Color,
+    public val disabledCheckedContentColor: Color,
+    public val disabledCheckedSecondaryContentColor: Color,
+    public val disabledCheckedIconColor: Color,
+    public val disabledCheckedThumbColor: Color,
+    public val disabledCheckedThumbIconColor: Color,
+    public val disabledCheckedTrackColor: Color,
+    public val disabledCheckedTrackBorderColor: Color,
+    public val disabledUncheckedContainerColor: Color,
+    public val disabledUncheckedContentColor: Color,
+    public val disabledUncheckedSecondaryContentColor: Color,
+    public val disabledUncheckedIconColor: Color,
+    public val disabledUncheckedThumbColor: Color,
+    public val disabledUncheckedTrackBorderColor: Color
 ) {
-    internal fun copy(
-        checkedContainerColor: Color,
-        checkedContentColor: Color,
-        checkedSecondaryContentColor: Color,
-        checkedIconColor: Color,
-        checkedThumbColor: Color,
-        checkedThumbIconColor: Color,
-        checkedTrackColor: Color,
-        checkedTrackBorderColor: Color,
-        uncheckedContainerColor: Color,
-        uncheckedContentColor: Color,
-        uncheckedSecondaryContentColor: Color,
-        uncheckedIconColor: Color,
-        uncheckedThumbColor: Color,
-        uncheckedTrackColor: Color,
-        uncheckedTrackBorderColor: Color,
-        disabledCheckedContainerColor: Color,
-        disabledCheckedContentColor: Color,
-        disabledCheckedSecondaryContentColor: Color,
-        disabledCheckedIconColor: Color,
-        disabledCheckedThumbColor: Color,
-        disabledCheckedThumbIconColor: Color,
-        disabledCheckedTrackColor: Color,
-        disabledCheckedTrackBorderColor: Color,
-        disabledUncheckedContainerColor: Color,
-        disabledUncheckedContentColor: Color,
-        disabledUncheckedSecondaryContentColor: Color,
-        disabledUncheckedIconColor: Color,
-        disabledUncheckedThumbColor: Color,
-        disabledUncheckedTrackBorderColor: Color,
+    /**
+     * Returns a copy of this SwitchButtonColors optionally overriding some of the values.
+     *
+     * @param checkedContainerColor Container or background color when the [SwitchButton] is checked
+     * @param checkedContentColor Color of the content like label when the [SwitchButton] is checked
+     * @param checkedSecondaryContentColor Color of the secondary content like secondary label when
+     *   the [SwitchButton] is checked
+     * @param checkedIconColor Color of the icon when the [SwitchButton] is checked
+     * @param checkedThumbColor Color of the thumb when the [SwitchButton] is checked
+     * @param checkedThumbIconColor Color of the thumb icon when the [SwitchButton] is checked
+     * @param checkedTrackColor Color of the track when the [SwitchButton] is checked
+     * @param checkedTrackBorderColor Color of the track boarder when the [SwitchButton] is checked
+     * @param uncheckedContainerColor Container or background color when the [SwitchButton] is
+     *   unchecked
+     * @param uncheckedContentColor Color of the content like label when the [SwitchButton] is
+     *   unchecked
+     * @param uncheckedSecondaryContentColor Color of the secondary content like secondary label
+     *   when the [SwitchButton] is unchecked
+     * @param uncheckedIconColor Color of the icon when the [SwitchButton] is unchecked
+     * @param uncheckedThumbColor Color of the thumb when the [SwitchButton] is unchecked
+     * @param uncheckedTrackColor Color of the track when the [SwitchButton] is unchecked
+     * @param uncheckedTrackBorderColor Color of the track border when the [SwitchButton] is
+     *   unchecked
+     * @param disabledCheckedContainerColor Container or background color when the [SwitchButton] is
+     *   disabled and checked
+     * @param disabledCheckedContentColor Color of content like label when the [SwitchButton] is
+     *   disabled and checked
+     * @param disabledCheckedSecondaryContentColor Color of the secondary content like secondary
+     *   label when the [SwitchButton] is disabled and checked
+     * @param disabledCheckedIconColor Icon color when the [SwitchButton] is disabled and checked
+     * @param disabledCheckedThumbColor Thumb color when the [SwitchButton] is disabled and checked
+     * @param disabledCheckedThumbIconColor Thumb icon color when the [SwitchButton] is disabled and
+     *   checked
+     * @param disabledCheckedTrackColor Track color when the [SwitchButton] is disabled and checked
+     * @param disabledCheckedTrackBorderColor Track border color when the [SwitchButton] is disabled
+     *   and checked
+     * @param disabledUncheckedContainerColor Container or background color when the [SwitchButton]
+     *   is disabled and unchecked
+     * @param disabledUncheckedContentColor Color of the content like label when the [SwitchButton]
+     *   is disabled and unchecked
+     * @param disabledUncheckedSecondaryContentColor Color of the secondary content like secondary
+     *   label when the [SwitchButton] is disabled and unchecked
+     * @param disabledUncheckedIconColor Icon color when the [SwitchButton] is disabled and
+     *   unchecked
+     * @param disabledUncheckedThumbColor Thumb color when the [SwitchButton] is disabled and
+     *   unchecked
+     * @param disabledUncheckedTrackBorderColor Track border color when the [SwitchButton] is
+     *   disabled and unchecked
+     */
+    public fun copy(
+        checkedContainerColor: Color = this.checkedContainerColor,
+        checkedContentColor: Color = this.checkedContentColor,
+        checkedSecondaryContentColor: Color = this.checkedSecondaryContentColor,
+        checkedIconColor: Color = this.checkedIconColor,
+        checkedThumbColor: Color = this.checkedThumbColor,
+        checkedThumbIconColor: Color = this.checkedThumbIconColor,
+        checkedTrackColor: Color = this.checkedTrackColor,
+        checkedTrackBorderColor: Color = this.checkedTrackBorderColor,
+        uncheckedContainerColor: Color = this.uncheckedContainerColor,
+        uncheckedContentColor: Color = this.uncheckedContentColor,
+        uncheckedSecondaryContentColor: Color = this.uncheckedSecondaryContentColor,
+        uncheckedIconColor: Color = this.uncheckedIconColor,
+        uncheckedThumbColor: Color = this.uncheckedThumbColor,
+        uncheckedTrackColor: Color = this.uncheckedTrackColor,
+        uncheckedTrackBorderColor: Color = this.uncheckedTrackBorderColor,
+        disabledCheckedContainerColor: Color = this.disabledCheckedContainerColor,
+        disabledCheckedContentColor: Color = this.disabledCheckedContentColor,
+        disabledCheckedSecondaryContentColor: Color = this.disabledCheckedSecondaryContentColor,
+        disabledCheckedIconColor: Color = this.disabledCheckedIconColor,
+        disabledCheckedThumbColor: Color = this.disabledCheckedThumbColor,
+        disabledCheckedThumbIconColor: Color = this.disabledCheckedThumbIconColor,
+        disabledCheckedTrackColor: Color = this.disabledCheckedTrackColor,
+        disabledCheckedTrackBorderColor: Color = this.disabledCheckedTrackBorderColor,
+        disabledUncheckedContainerColor: Color = this.disabledUncheckedContainerColor,
+        disabledUncheckedContentColor: Color = this.disabledUncheckedContentColor,
+        disabledUncheckedSecondaryContentColor: Color = this.disabledUncheckedSecondaryContentColor,
+        disabledUncheckedIconColor: Color = this.disabledUncheckedIconColor,
+        disabledUncheckedThumbColor: Color = this.disabledUncheckedThumbColor,
+        disabledUncheckedTrackBorderColor: Color = this.disabledUncheckedTrackBorderColor,
     ): SwitchButtonColors =
         SwitchButtonColors(
             checkedContainerColor = checkedContainerColor.takeOrElse { this.checkedContainerColor },
@@ -1318,67 +1411,124 @@ class SwitchButtonColors(
  * @param disabledUncheckedTrackBorderColor Color of the track border when the [SplitSwitchButton]
  *   is disabled and unchecked
  */
-class SplitSwitchButtonColors(
-    val checkedContainerColor: Color,
-    val checkedContentColor: Color,
-    val checkedSecondaryContentColor: Color,
-    val checkedSplitContainerColor: Color,
-    val checkedThumbColor: Color,
-    val checkedThumbIconColor: Color,
-    val checkedTrackColor: Color,
-    val checkedTrackBorderColor: Color,
-    val uncheckedContainerColor: Color,
-    val uncheckedContentColor: Color,
-    val uncheckedSecondaryContentColor: Color,
-    val uncheckedSplitContainerColor: Color,
-    val uncheckedThumbColor: Color,
-    val uncheckedTrackColor: Color,
-    val uncheckedTrackBorderColor: Color,
-    val disabledCheckedContainerColor: Color,
-    val disabledCheckedContentColor: Color,
-    val disabledCheckedSecondaryContentColor: Color,
-    val disabledCheckedSplitContainerColor: Color,
-    val disabledCheckedThumbColor: Color,
-    val disabledCheckedThumbIconColor: Color,
-    val disabledCheckedTrackColor: Color,
-    val disabledCheckedTrackBorderColor: Color,
-    val disabledUncheckedContainerColor: Color,
-    val disabledUncheckedContentColor: Color,
-    val disabledUncheckedSecondaryContentColor: Color,
-    val disabledUncheckedSplitContainerColor: Color,
-    val disabledUncheckedThumbColor: Color,
-    val disabledUncheckedTrackBorderColor: Color,
+public class SplitSwitchButtonColors(
+    public val checkedContainerColor: Color,
+    public val checkedContentColor: Color,
+    public val checkedSecondaryContentColor: Color,
+    public val checkedSplitContainerColor: Color,
+    public val checkedThumbColor: Color,
+    public val checkedThumbIconColor: Color,
+    public val checkedTrackColor: Color,
+    public val checkedTrackBorderColor: Color,
+    public val uncheckedContainerColor: Color,
+    public val uncheckedContentColor: Color,
+    public val uncheckedSecondaryContentColor: Color,
+    public val uncheckedSplitContainerColor: Color,
+    public val uncheckedThumbColor: Color,
+    public val uncheckedTrackColor: Color,
+    public val uncheckedTrackBorderColor: Color,
+    public val disabledCheckedContainerColor: Color,
+    public val disabledCheckedContentColor: Color,
+    public val disabledCheckedSecondaryContentColor: Color,
+    public val disabledCheckedSplitContainerColor: Color,
+    public val disabledCheckedThumbColor: Color,
+    public val disabledCheckedThumbIconColor: Color,
+    public val disabledCheckedTrackColor: Color,
+    public val disabledCheckedTrackBorderColor: Color,
+    public val disabledUncheckedContainerColor: Color,
+    public val disabledUncheckedContentColor: Color,
+    public val disabledUncheckedSecondaryContentColor: Color,
+    public val disabledUncheckedSplitContainerColor: Color,
+    public val disabledUncheckedThumbColor: Color,
+    public val disabledUncheckedTrackBorderColor: Color,
 ) {
-    internal fun copy(
-        checkedContainerColor: Color,
-        checkedContentColor: Color,
-        checkedSecondaryContentColor: Color,
-        checkedSplitContainerColor: Color,
-        checkedThumbColor: Color,
-        checkedThumbIconColor: Color,
-        checkedTrackColor: Color,
-        checkedTrackBorderColor: Color,
-        uncheckedContainerColor: Color,
-        uncheckedContentColor: Color,
-        uncheckedSecondaryContentColor: Color,
-        uncheckedSplitContainerColor: Color,
-        uncheckedThumbColor: Color,
-        uncheckedTrackColor: Color,
-        uncheckedTrackBorderColor: Color,
-        disabledCheckedContainerColor: Color,
-        disabledCheckedContentColor: Color,
-        disabledCheckedSecondaryContentColor: Color,
-        disabledCheckedSplitContainerColor: Color,
-        disabledCheckedThumbColor: Color,
-        disabledCheckedThumbIconColor: Color,
-        disabledCheckedTrackColor: Color,
-        disabledCheckedTrackBorderColor: Color,
-        disabledUncheckedContainerColor: Color,
-        disabledUncheckedContentColor: Color,
-        disabledUncheckedSecondaryContentColor: Color,
-        disabledUncheckedSplitContainerColor: Color,
-        disabledUncheckedThumbColor: Color,
-        disabledUncheckedTrackBorderColor: Color,
+    /**
+     * Returns a copy of this SplitSwitchButtonColors optionally overriding some of the values.
+     *
+     * @param checkedContainerColor Container or background color when the [SplitSwitchButton] is
+     *   checked
+     * @param checkedContentColor Color of the content like label when the [SplitSwitchButton] is
+     *   checked
+     * @param checkedSecondaryContentColor Color of the secondary content like secondary label when
+     *   the [SplitSwitchButton] is checked
+     * @param checkedSplitContainerColor Split container color when the split toggle button is
+     *   checked
+     * @param checkedThumbColor Color of the thumb when the [SplitSwitchButton] is checked
+     * @param checkedThumbIconColor Color of the thumb icon when the [SplitSwitchButton] is checked
+     * @param checkedTrackColor Color of the track when the [SplitSwitchButton] is checked
+     * @param checkedTrackBorderColor Color of the track border when the [SplitSwitchButton] is
+     *   checked
+     * @param uncheckedContainerColor Container or background color when the [SplitSwitchButton] is
+     *   unchecked
+     * @param uncheckedContentColor Color of the content like label when the [SplitSwitchButton] is
+     *   unchecked
+     * @param uncheckedSecondaryContentColor Color of the secondary content like secondary label
+     *   when the split toggle button is unchecked
+     * @param uncheckedSplitContainerColor Split container color when the split toggle button is
+     *   unchecked
+     * @param uncheckedThumbColor Color of the thumb when the [SplitSwitchButton] is unchecked
+     * @param uncheckedTrackColor Color of the track when the [SplitSwitchButton] is unchecked
+     * @param uncheckedTrackBorderColor Color of the track border when the [SplitSwitchButton] is
+     *   unchecked
+     * @param disabledCheckedContainerColor Container color when the split toggle button is disabled
+     *   and checked
+     * @param disabledCheckedContentColor Color of the content like label when the split toggle
+     *   button is disabled and checked
+     * @param disabledCheckedSecondaryContentColor Color of the secondary content like secondary
+     *   label when the split toggle button is disabled and checked
+     * @param disabledCheckedSplitContainerColor Split container color when the split toggle button
+     *   is disabled and checked
+     * @param disabledCheckedThumbColor Color of the thumb when the [SplitSwitchButton] is disabled
+     *   and checked
+     * @param disabledCheckedThumbIconColor Color of the thumb icon when the [SplitSwitchButton] is
+     *   disabled and checked
+     * @param disabledCheckedTrackColor Color of the track when the [SplitSwitchButton] is disabled
+     *   and checked
+     * @param disabledCheckedTrackBorderColor Color of the track border when the [SplitSwitchButton]
+     *   is disabled and checked
+     * @param disabledUncheckedContainerColor Container color when the split toggle button is
+     *   unchecked and disabled
+     * @param disabledUncheckedContentColor Color of the content like label when the split toggle
+     *   button is unchecked and disabled
+     * @param disabledUncheckedSecondaryContentColor Color of the secondary content like secondary
+     *   label when the split toggle button is unchecked and disabled
+     * @param disabledUncheckedSplitContainerColor Split container color when the split toggle
+     *   button is unchecked and disabled
+     * @param disabledUncheckedThumbColor Color of the thumb when the [SplitSwitchButton] is
+     *   disabled and unchecked
+     * @param disabledUncheckedTrackBorderColor Color of the track border when the
+     *   [SplitSwitchButton] is disabled and unchecked
+     */
+    public fun copy(
+        checkedContainerColor: Color = this.checkedContainerColor,
+        checkedContentColor: Color = this.checkedContentColor,
+        checkedSecondaryContentColor: Color = this.checkedSecondaryContentColor,
+        checkedSplitContainerColor: Color = this.checkedSplitContainerColor,
+        checkedThumbColor: Color = this.checkedThumbColor,
+        checkedThumbIconColor: Color = this.checkedThumbIconColor,
+        checkedTrackColor: Color = this.checkedTrackColor,
+        checkedTrackBorderColor: Color = this.checkedTrackBorderColor,
+        uncheckedContainerColor: Color = this.uncheckedContainerColor,
+        uncheckedContentColor: Color = this.uncheckedContentColor,
+        uncheckedSecondaryContentColor: Color = this.uncheckedSecondaryContentColor,
+        uncheckedSplitContainerColor: Color = this.uncheckedSplitContainerColor,
+        uncheckedThumbColor: Color = this.uncheckedThumbColor,
+        uncheckedTrackColor: Color = this.uncheckedTrackColor,
+        uncheckedTrackBorderColor: Color = this.uncheckedTrackBorderColor,
+        disabledCheckedContainerColor: Color = this.disabledCheckedContainerColor,
+        disabledCheckedContentColor: Color = this.disabledCheckedContentColor,
+        disabledCheckedSecondaryContentColor: Color = this.disabledCheckedSecondaryContentColor,
+        disabledCheckedSplitContainerColor: Color = this.disabledCheckedSplitContainerColor,
+        disabledCheckedThumbColor: Color = this.disabledCheckedThumbColor,
+        disabledCheckedThumbIconColor: Color = this.disabledCheckedThumbIconColor,
+        disabledCheckedTrackColor: Color = this.disabledCheckedTrackColor,
+        disabledCheckedTrackBorderColor: Color = this.disabledCheckedTrackBorderColor,
+        disabledUncheckedContainerColor: Color = this.disabledUncheckedContainerColor,
+        disabledUncheckedContentColor: Color = this.disabledUncheckedContentColor,
+        disabledUncheckedSecondaryContentColor: Color = this.disabledUncheckedSecondaryContentColor,
+        disabledUncheckedSplitContainerColor: Color = this.disabledUncheckedSplitContainerColor,
+        disabledUncheckedThumbColor: Color = this.disabledUncheckedThumbColor,
+        disabledUncheckedTrackBorderColor: Color = this.disabledUncheckedTrackBorderColor,
     ): SplitSwitchButtonColors =
         SplitSwitchButtonColors(
             checkedContainerColor = checkedContainerColor.takeOrElse { this.checkedContainerColor },
@@ -1825,7 +1975,7 @@ private val MIN_HEIGHT = 52.dp
 private val SPLIT_MIN_WIDTH = 48.dp
 private val SPLIT_SECTIONS_SHAPE = ShapeTokens.CornerExtraSmall
 
-private val COLOR_ANIMATION_SPEC: AnimationSpec<Color> =
-    tween(MotionTokens.DurationMedium1, 0, MotionTokens.EasingStandardDecelerate)
-private val SWITCH_PROGRESS_ANIMATION_SPEC: TweenSpec<Float> =
-    tween(MotionTokens.DurationMedium2, 0, MotionTokens.EasingStandardDecelerate)
+private val COLOR_ANIMATION_SPEC: AnimationSpec<Color>
+    @Composable get() = MaterialTheme.motionScheme.slowEffectsSpec()
+private val SWITCH_PROGRESS_ANIMATION_SPEC: FiniteAnimationSpec<Float>
+    @Composable get() = MaterialTheme.motionScheme.fastEffectsSpec()

@@ -26,9 +26,9 @@ import android.hardware.camera2.CameraDevice.TEMPLATE_PREVIEW
 import android.hardware.camera2.CameraDevice.TEMPLATE_RECORD
 import android.os.Build
 import android.os.Looper.getMainLooper
+import android.util.Range
 import android.util.Size
 import android.view.Surface
-import androidx.annotation.RequiresApi
 import androidx.camera.camera2.impl.Camera2ImplConfig
 import androidx.camera.camera2.internal.Camera2UseCaseConfigFactory
 import androidx.camera.camera2.interop.Camera2Interop
@@ -52,6 +52,7 @@ import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.DeferrableSurface
 import androidx.camera.core.impl.MutableOptionsBundle
 import androidx.camera.core.impl.SessionConfig
+import androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED
 import androidx.camera.core.impl.StreamSpec
 import androidx.camera.core.impl.UseCaseConfig
 import androidx.camera.core.impl.UseCaseConfigFactory
@@ -65,8 +66,8 @@ import androidx.camera.core.internal.TargetConfig.OPTION_TARGET_NAME
 import androidx.camera.core.processing.DefaultSurfaceProcessor
 import androidx.camera.core.processing.SurfaceProcessorWithExecutor
 import androidx.camera.testing.fakes.FakeCamera
+import androidx.camera.testing.fakes.FakeCameraCaptureResult
 import androidx.camera.testing.fakes.FakeCameraInfoInternal
-import androidx.camera.testing.impl.fakes.FakeCameraCaptureResult
 import androidx.camera.testing.impl.fakes.FakeSurfaceEffect
 import androidx.camera.testing.impl.fakes.FakeSurfaceProcessorInternal
 import androidx.camera.testing.impl.fakes.FakeUseCase
@@ -75,6 +76,7 @@ import androidx.camera.testing.impl.fakes.FakeUseCaseConfigFactory
 import androidx.camera.video.Recorder
 import androidx.camera.video.VideoCapture
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CompletableDeferred
@@ -274,7 +276,7 @@ class StreamSharingTest {
     }
 
     @Test
-    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
     fun invokeParentSessionCaptureCallbacks_receivedByChildren() {
         // Arrange.
         val streamUseCaseIntDef = 3L
@@ -528,6 +530,34 @@ class StreamSharingTest {
     }
 
     @Test
+    fun sessionConfigMatchesStreamSpec() {
+        streamSharing =
+            StreamSharing(
+                camera,
+                secondaryCamera,
+                CompositionSettings.DEFAULT,
+                CompositionSettings.DEFAULT,
+                setOf(child1),
+                useCaseConfigFactory
+            )
+        streamSharing.bindToCamera(camera, null, null, defaultConfig)
+
+        // Act: update stream specification.
+        streamSharing.onSuggestedStreamSpecUpdated(
+            StreamSpec.builder(size)
+                .setSessionType(SESSION_TYPE_HIGH_SPEED)
+                .setExpectedFrameRateRange(Range.create(30, 60))
+                .build(),
+            null
+        )
+
+        // Assert: the session config gets the correct values from stream specification.
+        val sessionConfig = streamSharing.sessionConfig
+        assertThat(sessionConfig.sessionType).isEqualTo(SESSION_TYPE_HIGH_SPEED)
+        assertThat(sessionConfig.expectedFrameRateRange).isEqualTo(Range.create(30, 60))
+    }
+
+    @Test
     fun sessionConfigHasStreamSpecImplementationOptions_whenCreatePipeline() {
         // Arrange: set up StreamSharing with ImageCapture as child
         val imageCapture = ImageCapture.Builder().build()
@@ -708,7 +738,13 @@ class StreamSharingTest {
         streamSharing.bindToCamera(camera, null, null, defaultConfig)
 
         // Act: update suggested specs.
-        streamSharing.onSuggestedStreamSpecUpdated(StreamSpec.builder(size).build(), null)
+        streamSharing.onSuggestedStreamSpecUpdated(
+            StreamSpec.builder(size)
+                .setSessionType(SESSION_TYPE_HIGH_SPEED)
+                .setExpectedFrameRateRange(Range(30, 60))
+                .build(),
+            null
+        )
 
         // Assert: StreamSharing pipeline created.
         val node = streamSharing.sharingNode!!
@@ -718,7 +754,11 @@ class StreamSharingTest {
         assertThat(streamSharing.sessionConfig.repeatingCameraCaptureCallbacks).isNotEmpty()
         // Assert: specs propagated to children.
         assertThat(child1.attachedStreamSpec).isNotNull()
+        assertThat(child1.attachedStreamSpec!!.sessionType).isEqualTo(SESSION_TYPE_HIGH_SPEED)
+        assertThat(child1.attachedStreamSpec!!.expectedFrameRateRange).isEqualTo(Range(30, 60))
         assertThat(child2.attachedStreamSpec).isNotNull()
+        assertThat(child2.attachedStreamSpec!!.sessionType).isEqualTo(SESSION_TYPE_HIGH_SPEED)
+        assertThat(child2.attachedStreamSpec!!.expectedFrameRateRange).isEqualTo(Range(30, 60))
 
         // Act: unbind StreamSharing.
         streamSharing.unbindFromCamera(camera)
@@ -964,5 +1004,85 @@ class StreamSharingTest {
 
         // Assert:
         assertThat(streamSharing.sessionConfig.templateType).isEqualTo(TEMPLATE_RECORD)
+    }
+
+    @Test
+    fun getParentTargetFrameRate_whenBothChildrenTargetFrameRateNotSpecified() =
+        getParentTargetFrameRate_fromChildrenTargetFrameRates(
+            null,
+            null,
+            StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED
+        )
+
+    @Test
+    fun getParentTargetFrameRate_whenFirstChildTargetFrameRateNotSpecified() =
+        getParentTargetFrameRate_fromChildrenTargetFrameRates(
+            null,
+            Range.create(15, 30),
+            Range.create(15, 30)
+        )
+
+    @Test
+    fun getParentTargetFrameRate_whenSecondChildTargetFrameRateNotSpecified() =
+        getParentTargetFrameRate_fromChildrenTargetFrameRates(
+            Range.create(15, 30),
+            null,
+            Range.create(15, 30)
+        )
+
+    @Test
+    fun getParentTargetFrameRate_isIntersectionOfChildrenTargetFrameRates() =
+        getParentTargetFrameRate_fromChildrenTargetFrameRates(
+            Range.create(15, 30),
+            Range.create(25, 40),
+            Range.create(25, 30)
+        )
+
+    @Test
+    fun getParentTargetFrameRate_isExtendedRangeOfChildrenTargetFrameRates() =
+        getParentTargetFrameRate_fromChildrenTargetFrameRates(
+            Range.create(15, 30),
+            Range.create(60, 60),
+            Range.create(15, 60)
+        )
+
+    private fun getParentTargetFrameRate_fromChildrenTargetFrameRates(
+        targetFrameRate1: Range<Int>?,
+        targetFrameRate2: Range<Int>?,
+        expectedFrameRate: Range<Int>
+    ) {
+        val child1 =
+            FakeUseCase(
+                FakeUseCaseConfig.Builder()
+                    .setSurfaceOccupancyPriority(1)
+                    .apply { targetFrameRate1?.let { setTargetFrameRate(it) } }
+                    .useCaseConfig
+            )
+        val child2 =
+            FakeUseCase(
+                FakeUseCaseConfig.Builder()
+                    .setSurfaceOccupancyPriority(2)
+                    .apply { targetFrameRate2?.let { setTargetFrameRate(it) } }
+                    .useCaseConfig
+            )
+        streamSharing =
+            StreamSharing(
+                camera,
+                secondaryCamera,
+                CompositionSettings.DEFAULT,
+                CompositionSettings.DEFAULT,
+                setOf(child1, child2),
+                useCaseConfigFactory
+            )
+        assertThat(
+                streamSharing
+                    .mergeConfigs(
+                        camera.cameraInfoInternal, /*extendedConfig*/
+                        null, /*cameraDefaultConfig*/
+                        null
+                    )
+                    .targetFrameRate
+            )
+            .isEqualTo(expectedFrameRate)
     }
 }

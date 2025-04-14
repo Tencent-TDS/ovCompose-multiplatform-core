@@ -21,8 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
-import androidx.build.KotlinTarget
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -42,7 +41,6 @@ dependencies {
     implementation(libs.kspEmbeddable)
     // For Kotlin source compilation and KAPT
     implementation(libs.kotlinCompilerEmbeddable)
-    implementation(libs.kotlinDaemonEmbeddable)
     implementation(libs.kotlinAnnotationProcessingEmbeddable)
 }
 
@@ -94,8 +92,7 @@ afterEvaluate {
 
 androidx {
     name = "Room XProcessor Testing"
-    type = LibraryType.ANNOTATION_PROCESSOR_UTILS
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
+    type = SoftwareType.ANNOTATION_PROCESSOR_UTILS
     inceptionYear = "2020"
     description = "Testing helpers for Room XProcessing APIs"
 }

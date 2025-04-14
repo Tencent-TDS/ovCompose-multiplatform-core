@@ -20,7 +20,6 @@ import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.params.SessionConfiguration
 import androidx.camera.featurecombinationquery.CameraDeviceSetupCompat.SupportQueryResult
 import androidx.camera.featurecombinationquery.CameraDeviceSetupCompat.SupportQueryResult.SOURCE_PLAY_SERVICES
-import androidx.camera.featurecombinationquery.CameraDeviceSetupCompatFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
@@ -40,8 +39,7 @@ class PlayServicesCameraDeviceSetupCompatTest {
     @Test
     fun queryResult_resultSourceIsPlayServices() {
         // Arrange.
-        val factory = CameraDeviceSetupCompatFactory(instrumentation.context)
-        val impl = factory.getCameraDeviceSetupCompat("1")
+        val impl = PlayServicesCameraDeviceSetupCompat("0")
         val sessionConfiguration =
             SessionConfiguration(
                 SessionConfiguration.SESSION_REGULAR,
@@ -61,7 +59,7 @@ class PlayServicesCameraDeviceSetupCompatTest {
         val result = impl.isSessionConfigurationSupported(sessionConfiguration)
         // Assert.
         assertThat(result.source).isEqualTo(SOURCE_PLAY_SERVICES)
-        assertThat(result.supported).isEqualTo(SupportQueryResult.RESULT_UNSUPPORTED)
+        assertThat(result.supported).isEqualTo(SupportQueryResult.RESULT_UNDEFINED)
         assertThat(result.timestampMillis).isEqualTo(0)
     }
 }

@@ -26,6 +26,7 @@ import androidx.appsearch.app.InternalSetSchemaResponse;
 import androidx.appsearch.app.InternalVisibilityConfig;
 import androidx.appsearch.app.PackageIdentifier;
 import androidx.appsearch.app.SetSchemaRequest;
+import androidx.appsearch.localstorage.AppSearchConfig;
 import androidx.appsearch.localstorage.AppSearchConfigImpl;
 import androidx.appsearch.localstorage.AppSearchImpl;
 import androidx.appsearch.localstorage.LocalStorageIcingOptionsConfig;
@@ -54,6 +55,8 @@ public class VisibilityStoreMigrationHelperFromV1Test {
     @Rule
     public TemporaryFolder mTemporaryFolder = new TemporaryFolder();
     private File mFile;
+    private AppSearchConfig mConfig = new AppSearchConfigImpl(new UnlimitedLimitConfig(),
+                    new LocalStorageIcingOptionsConfig());
 
     @Before
     public void setUp() throws Exception {
@@ -62,6 +65,7 @@ public class VisibilityStoreMigrationHelperFromV1Test {
     }
 
     @Test
+    @SuppressWarnings("deprecation") // AppSearchImpl.putDocument
     public void testVisibilityMigration_from1() throws Exception {
         // Values for a "foo" client
         String packageNameFoo = "packageFoo";
@@ -77,13 +81,15 @@ public class VisibilityStoreMigrationHelperFromV1Test {
 
         // Create AppSearchImpl with visibility document version 1;
         AppSearchImpl appSearchImplInV1 = AppSearchImpl.create(mFile,
-                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
-                        new LocalStorageIcingOptionsConfig()), /*initStatsBuilder=*/ null,
+                mConfig,
+                /*initStatsBuilder=*/ null,
                 /*visibilityChecker=*/ null,
+                /*revocableFileDescriptorStore=*/ null,
+                /*icingSearchEngine=*/ null,
                 ALWAYS_OPTIMIZE);
         InternalSetSchemaResponse internalSetSchemaResponse = appSearchImplInV1.setSchema(
                 VisibilityStore.VISIBILITY_PACKAGE_NAME,
-                VisibilityStore.VISIBILITY_DATABASE_NAME,
+                VisibilityStore.DOCUMENT_VISIBILITY_DATABASE_NAME,
                 ImmutableList.of(VisibilityDocumentV1.SCHEMA),
                 /*prefixedVisibilityBundles=*/ Collections.emptyList(),
                 /*forceOverride=*/ true, // force push the old version into disk
@@ -119,7 +125,7 @@ public class VisibilityStoreMigrationHelperFromV1Test {
         // Put deprecated visibility documents in version 0 to AppSearchImpl
         appSearchImplInV1.putDocument(
                 VisibilityStore.VISIBILITY_PACKAGE_NAME,
-                VisibilityStore.VISIBILITY_DATABASE_NAME,
+                VisibilityStore.DOCUMENT_VISIBILITY_DATABASE_NAME,
                 visibilityDocumentV1,
                 /*sendChangeNotifications=*/ false,
                 /*logger=*/null);
@@ -127,16 +133,18 @@ public class VisibilityStoreMigrationHelperFromV1Test {
         // Persist to disk and re-open the AppSearchImpl
         appSearchImplInV1.close();
         AppSearchImpl appSearchImpl = AppSearchImpl.create(mFile,
-                new AppSearchConfigImpl(new UnlimitedLimitConfig(),
-                        new LocalStorageIcingOptionsConfig()), /*initStatsBuilder=*/ null,
+                mConfig,
+                /*initStatsBuilder=*/ null,
                 /*visibilityChecker=*/ null,
+                /*revocableFileDescriptorStore=*/ null,
+                /*icingSearchEngine=*/ null,
                 ALWAYS_OPTIMIZE);
 
         InternalVisibilityConfig actualConfig =
                 VisibilityToDocumentConverter.createInternalVisibilityConfig(
                         appSearchImpl.getDocument(
                                 VisibilityStore.VISIBILITY_PACKAGE_NAME,
-                                VisibilityStore.VISIBILITY_DATABASE_NAME,
+                                VisibilityStore.DOCUMENT_VISIBILITY_DATABASE_NAME,
                                 VisibilityToDocumentConverter.VISIBILITY_DOCUMENT_NAMESPACE,
                                 /*id=*/ prefix + "Schema",
                                 /*typePropertyPaths=*/ Collections.emptyMap()),

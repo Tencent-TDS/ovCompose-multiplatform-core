@@ -17,8 +17,10 @@
 package androidx.compose.ui.test.junit4
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.RestrictTo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.AndroidComposeUiTestEnvironment
+import androidx.compose.ui.test.ComposeAccessibilityValidator
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.IdlingResource
 import androidx.compose.ui.test.MainTestClock
@@ -31,9 +33,11 @@ import androidx.compose.ui.test.waitUntilExactlyOneExists
 import androidx.compose.ui.test.waitUntilNodeCount
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.rules.ActivityScenarioRule
-import com.google.android.apps.common.testing.accessibility.framework.integrations.espresso.AccessibilityValidator
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlin.time.Duration
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestDispatcher
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -83,6 +87,11 @@ inline fun <reified A : ComponentActivity> createAndroidComposeRule():
  * with your own launcher.
  *
  * If your test doesn't require a specific Activity, use [createComposeRule] instead.
+ *
+ * @param effectContext The [CoroutineContext] used to run the composition. The context for
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 inline fun <reified A : ComponentActivity> createAndroidComposeRule(
@@ -132,6 +141,12 @@ fun <A : ComponentActivity> createAndroidComposeRule(
  * with your own launcher.
  *
  * If your test doesn't require a specific Activity, use [createComposeRule] instead.
+ *
+ * @param activityClass The activity type to use in the activity scenario
+ * @param effectContext The [CoroutineContext] used to run the composition. The context for
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 fun <A : ComponentActivity> createAndroidComposeRule(
@@ -180,7 +195,9 @@ fun createEmptyComposeRule(): ComposeTestRule =
  * after one or more dependencies have been injected.
  *
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 fun createEmptyComposeRule(
@@ -249,7 +266,9 @@ private constructor(
      *
      * @param activityRule Test rule to use to launch the Activity.
      * @param effectContext The [CoroutineContext] used to run the composition. The context for
-     *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+     *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+     *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+     *   used for composition and the [MainTestClock].
      * @param activityProvider Function to retrieve the Activity from the given [activityRule].
      */
     @ExperimentalTestApi
@@ -259,7 +278,14 @@ private constructor(
         activityProvider: (R) -> A,
     ) : this(
         activityRule,
-        AndroidComposeUiTestEnvironment(effectContext) { activityProvider(activityRule) },
+        AndroidComposeUiTestEnvironment(
+            effectContext = effectContext,
+            // Since now it calls kotlinx.coroutines.test.runTest under the hood,
+            // to preserve the behaviour compatibility we set an Infinite timeout
+            testTimeout = Duration.INFINITE
+        ) {
+            activityProvider(activityRule)
+        },
     )
 
     /**
@@ -271,10 +297,25 @@ private constructor(
         get() = checkNotNull(composeTest.activity) { "Host activity not found" }
 
     override fun apply(base: Statement, description: Description): Statement {
-        val testStatement = activityRule.apply(base, description)
+        val testWithDisposal =
+            object : Statement() {
+                override fun evaluate() {
+                    var blockException: Throwable? = null
+                    try {
+                        // Run the test
+                        base.evaluate()
+                    } catch (t: Throwable) {
+                        blockException = t
+                    }
+
+                    // Throw the aggregate exception. May be from the test body or from the cleanup.
+                    blockException?.let { throw it }
+                }
+            }
+
         return object : Statement() {
             override fun evaluate() {
-                environment.runTest { testStatement.evaluate() }
+                environment.runTest { activityRule.apply(testWithDisposal, description).evaluate() }
             }
         }
     }
@@ -301,21 +342,13 @@ private constructor(
         get() = composeTest.mainClock
 
     /**
-     * The [AccessibilityValidator] that will be used to run Android accessibility checks before
-     * every action that is expected to change the UI.
-     *
-     * If no validator is set (`null`), no checks will be performed. You can either supply your own
-     * validator directly, or have one configured for you with [enableAccessibilityChecks].
-     *
-     * The default value is `null`.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeTestRule_sample
+     * Sets the [ComposeAccessibilityValidator] to perform the accessibility checks with. Providing
+     * `null` means disabling the accessibility checks
      */
-    var accessibilityValidator: AccessibilityValidator?
-        get() = composeTest.accessibilityValidator
-        set(value) {
-            composeTest.accessibilityValidator = value
-        }
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    fun setComposeAccessibilityValidator(validator: ComposeAccessibilityValidator?) {
+        composeTest.setComposeAccessibilityValidator(validator)
+    }
 
     override fun <T> runOnUiThread(action: () -> T): T = composeTest.runOnUiThread(action)
 
@@ -357,28 +390,6 @@ private constructor(
 
     override fun unregisterIdlingResource(idlingResource: IdlingResource) =
         composeTest.unregisterIdlingResource(idlingResource)
-
-    /**
-     * Enables accessibility checks that will be run before every action that is expected to change
-     * the UI.
-     *
-     * This will create and set an [accessibilityValidator] if there isn't one yet, or will do
-     * nothing if an `accessibilityValidator` is already set.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withComposeTestRule_sample
-     * @see disableAccessibilityChecks
-     */
-    override fun enableAccessibilityChecks() = composeTest.enableAccessibilityChecks()
-
-    /**
-     * Disables accessibility checks.
-     *
-     * This will set the [accessibilityValidator] back to `null`.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeTestRule_sample
-     * @see enableAccessibilityChecks
-     */
-    override fun disableAccessibilityChecks() = composeTest.disableAccessibilityChecks()
 
     override fun onNode(
         matcher: SemanticsMatcher,

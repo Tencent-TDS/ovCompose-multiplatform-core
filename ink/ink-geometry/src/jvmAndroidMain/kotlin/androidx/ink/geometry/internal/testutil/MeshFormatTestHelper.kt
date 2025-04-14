@@ -17,6 +17,7 @@
 package androidx.ink.geometry.internal.testutil
 
 import androidx.ink.geometry.MeshFormat
+import androidx.ink.nativeloader.UsedByNative
 
 internal fun BuildTestMeshFormatA(): MeshFormat {
     return MeshFormat(nativeBuildMeshFormatA())
@@ -26,8 +27,6 @@ internal fun BuildTestMeshFormatB(): MeshFormat {
     return MeshFormat(nativeBuildMeshFormatB())
 }
 
-private external fun nativeBuildMeshFormatA():
-    Long // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+@UsedByNative private external fun nativeBuildMeshFormatA(): Long
 
-private external fun nativeBuildMeshFormatB():
-    Long // TODO: b/355248266 - @Keep must go in Proguard config file instead.
+@UsedByNative private external fun nativeBuildMeshFormatB(): Long

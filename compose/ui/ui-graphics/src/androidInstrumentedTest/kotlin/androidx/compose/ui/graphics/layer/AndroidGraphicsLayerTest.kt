@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.graphics.layer
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.ColorFilter
 import android.graphics.PixelFormat
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PixelMap
 import androidx.compose.ui.graphics.TestActivity
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -149,7 +151,8 @@ class AndroidGraphicsLayerTest {
                     .toImageBitmap()
                     .toPixelMap()
                     .verifyQuadrants(Color.Red, Color.Red, Color.Red, Color.Red)
-            }
+            },
+            verifySoftwareRender = false // Only supported in hardware accelerated use cases
         )
     }
 
@@ -216,9 +219,6 @@ class AndroidGraphicsLayerTest {
         )
     }
 
-    // this test is failing on API 21 as there toImageBitmap() is using software rendering
-    // and we reverted the software rendering b/333866398
-    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.LOLLIPOP_MR1)
     @Test
     fun testPersistenceDrawAfterHwuiDiscardsDisplaylists() {
         // Layer persistence calls should not fail even if the DisplayList is discarded beforehand
@@ -235,7 +235,8 @@ class AndroidGraphicsLayerTest {
                     }
                 drawIntoCanvas { layer.drawForPersistence(it) }
             },
-            verify = { it.verifyQuadrants(Color.Red, Color.Red, Color.Red, Color.Red) }
+            verify = { it.verifyQuadrants(Color.Red, Color.Red, Color.Red, Color.Red) },
+            verifySoftwareRender = false
         )
     }
 
@@ -763,7 +764,8 @@ class AndroidGraphicsLayerTest {
                 }
                 assertTrue(shadowPixelCount > 0)
             },
-            usePixelCopy = true
+            usePixelCopy = true,
+            verifySoftwareRender = false // Elevation only supported with hardware acceleration
         )
     }
 
@@ -840,6 +842,7 @@ class AndroidGraphicsLayerTest {
                 }
             },
             usePixelCopy = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O,
+            verifySoftwareRender = false // Elevation only supported with hardware acceleration
         )
     }
 
@@ -897,7 +900,157 @@ class AndroidGraphicsLayerTest {
                 }
                 Assert.assertTrue(shadowPixelCount > 0)
             },
-            usePixelCopy = true
+            usePixelCopy = true,
+            verifySoftwareRender = false // Elevation only supported with hardware acceleration
+        )
+    }
+
+    @Test
+    fun testConcaveOutlineClipsOutsideBounds() {
+        val bgColor = Color.White
+        val targetColor = Color.Red
+        var layerSize = IntSize.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                layerSize = IntSize(size.width.toInt(), size.height.toInt() / 2)
+                val outlinePath =
+                    Path().apply {
+                        addRect(Rect(0f, 0f, layerSize.width.toFloat(), layerSize.height.toFloat()))
+
+                        addRect(
+                            Rect(
+                                layerSize.width / 4f,
+                                layerSize.height.toFloat(),
+                                layerSize.width / 2f + layerSize.width / 4f,
+                                layerSize.height + layerSize.height / 2f
+                            )
+                        )
+                    }
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) {
+                            drawRect(
+                                targetColor,
+                                size = Size(layerSize.width.toFloat(), layerSize.height * 2f)
+                            )
+                        }
+                        setPathOutline(outlinePath)
+                        clip = true
+                        shadowElevation = 20f
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                assertEquals(targetColor, pixmap[0, 0])
+                assertEquals(targetColor, pixmap[width - 2, 0])
+                assertEquals(targetColor, pixmap[0, layerSize.height - 2])
+                assertEquals(targetColor, pixmap[width - 2, layerSize.height - 2])
+
+                assertEquals(bgColor, pixmap[0, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width - 2, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width / 4 - 2, layerSize.height + 2])
+                assertEquals(bgColor, pixmap[width / 2 + width / 4, layerSize.height + 2])
+
+                assertEquals(targetColor, pixmap[width / 2, layerSize.height + 2])
+                assertEquals(targetColor, pixmap[width / 2 + width / 4 - 2, layerSize.height + 2])
+                assertEquals(targetColor, pixmap[width / 2, layerSize.height + 2])
+            }
+        )
+    }
+
+    @Test
+    fun testRectOutlineClipsOutsideBounds() {
+        val bgColor = Color.Black
+        val targetColor = Color.Red
+        var outlineSize = Size.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val containerSize = size
+                outlineSize = Size(containerSize.width, containerSize.height - 10f)
+                val layerSize = IntSize(size.width.toInt(), size.height.toInt() / 2)
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) {
+                            drawRect(
+                                targetColor,
+                                size = Size(layerSize.width.toFloat(), layerSize.height * 2f)
+                            )
+                        }
+                        setRectOutline(Offset.Zero, outlineSize)
+                        clip = true
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                val height = pixmap.height
+                assertEquals(targetColor, pixmap[0, 0])
+                assertEquals(targetColor, pixmap[width - 2, 0])
+                assertEquals(targetColor, pixmap[0, (outlineSize.height - 2).toInt()])
+                assertEquals(targetColor, pixmap[width - 2, (outlineSize.height - 2).toInt()])
+
+                assertEquals(bgColor, pixmap[0, height - 2])
+                assertEquals(bgColor, pixmap[width - 2, height - 2])
+            }
+        )
+    }
+
+    @Test
+    fun testConcaveOutlineClip() {
+        val bgColor = Color.White
+        val targetColor = Color.Red
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val rectPath =
+                    Path().apply {
+                        addRect(
+                            Rect(
+                                left = 0f,
+                                top = size.height / 2,
+                                right = size.width,
+                                bottom = size.height,
+                            )
+                        )
+                    }
+
+                val tabPath =
+                    Path().apply {
+                        addRect(
+                            Rect(
+                                left = size.width / 4,
+                                top = 0f,
+                                right = size.width / 2 + size.width / 4,
+                                bottom = size.height / 2,
+                            )
+                        )
+                    }
+
+                val layer =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record { drawRect(targetColor) }
+                        setPathOutline(rectPath + tabPath)
+                        clip = true
+                    }
+                drawRect(bgColor)
+                drawLayer(layer)
+            },
+            verify = { pixmap ->
+                val width = pixmap.width
+                val height = pixmap.height
+                assertEquals(bgColor, pixmap[0, 0])
+                assertEquals(bgColor, pixmap[width / 4 - 2, 0])
+                assertEquals(targetColor, pixmap[width / 4, 0])
+                assertEquals(targetColor, pixmap[width / 2 + width / 4 - 1, 0])
+                assertEquals(bgColor, pixmap[width / 2 + width / 4 + 2, 0])
+                assertEquals(bgColor, pixmap[width - 1, 0])
+                assertEquals(targetColor, pixmap[0, height - 1])
+                assertEquals(targetColor, pixmap[width - 1, height - 1])
+            }
         )
     }
 
@@ -952,7 +1105,16 @@ class AndroidGraphicsLayerTest {
                     return shadowCount > 0
                 }
                 with(pixmap) {
-                    assertTrue(
+                    // Verify that pixels above top edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left, top - 4, right, top))
+                    // Verify that pixels to the left of the left edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left - 4, top, left, bottom))
+                    // Verify that pixels to the right of the right edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, right, top, right + 4, bottom))
+                    // Verify that pixels to the below the bottom edge have some shadow
+                    assertTrue(hasShadowPixels(targetColor, left, bottom, right, bottom + 4))
+                    // Verify that interior top left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -961,7 +1123,8 @@ class AndroidGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior top right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -970,7 +1133,8 @@ class AndroidGraphicsLayerTest {
                             top + radius.toInt()
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom left region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             left,
@@ -979,7 +1143,8 @@ class AndroidGraphicsLayerTest {
                             bottom
                         )
                     )
-                    assertTrue(
+                    // Verify that interior bottom right region does not have shadow pixels
+                    assertFalse(
                         hasShadowPixels(
                             targetColor,
                             right - radius.toInt(),
@@ -990,7 +1155,8 @@ class AndroidGraphicsLayerTest {
                     )
                 }
             },
-            usePixelCopy = true
+            usePixelCopy = true,
+            verifySoftwareRender = false // Elevation only supported with hardware acceleration
         )
     }
 
@@ -1026,7 +1192,8 @@ class AndroidGraphicsLayerTest {
                 }
                 assertTrue(nonPureRedCount > 0)
             },
-            entireScene = false
+            entireScene = false,
+            verifySoftwareRender = false // RenderEffect only supported with hardware acceleration
         )
     }
 
@@ -1139,7 +1306,8 @@ class AndroidGraphicsLayerTest {
                     assertPixelColor(Color.Black, 0, height - 1)
                     assertPixelColor(expectedCenter, width / 2, height / 2)
                 }
-            }
+            },
+            verifySoftwareRender = false // ModulateAlpha only supported with hardware acceleration
         )
     }
 
@@ -1531,6 +1699,101 @@ class AndroidGraphicsLayerTest {
         )
     }
 
+    @Test
+    fun testChildLayerHasReferenceToParentLayer() {
+        lateinit var layer1: GraphicsLayer
+        lateinit var layer2: GraphicsLayer
+        graphicsLayerTest(
+            block = { context ->
+                // creating new layers will also schedule a persistence pass in Handler
+                layer1 = context.createGraphicsLayer()
+                layer2 = context.createGraphicsLayer()
+                layer2.record(Density(1f), Ltr, IntSize(10, 10)) {
+                    assertEquals(layer2, drawContext.graphicsLayer)
+                    drawRect(Color.Red)
+                }
+                layer1.record(Density(1f), Ltr, IntSize(10, 10)) {
+                    assertEquals(layer1, drawContext.graphicsLayer)
+                    drawLayer(layer2)
+                }
+                drawLayer(layer1)
+            },
+            verify = {
+                // just verifying there is no crash
+            }
+        )
+    }
+
+    @Test
+    fun testCanvasTransformStateRestore() {
+        val bg = Color.White
+        val layerColor1 = Color.Red
+        val layerColor2 = Color.Green
+        val layerColor3 = Color.Blue
+        val layerColor4 = Color.Black
+        var layerSize = IntSize.Zero
+        graphicsLayerTest(
+            block = { graphicsContext ->
+                val layerWidth = size.width / 4
+                val layerHeight = size.height / 4
+                layerSize = IntSize(layerWidth.toInt(), layerHeight.toInt())
+                val layer1 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) { drawRect(layerColor1) }
+                    }
+                val layer2 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        topLeft = IntOffset(layerWidth.toInt(), layerHeight.toInt())
+                        record(size = layerSize) { drawRect(layerColor2) }
+                    }
+                val layer3 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        topLeft = IntOffset((layerWidth * 2).toInt(), (layerHeight * 2).toInt())
+                        record(size = layerSize) { drawRect(layerColor3) }
+                    }
+                val layer4 =
+                    graphicsContext.createGraphicsLayer().apply {
+                        record(size = layerSize) { drawRect(layerColor4) }
+                    }
+                drawRect(bg)
+                translate(layerWidth / 2, layerHeight / 2) {
+                    translate(layerWidth / 2, layerHeight / 2) {
+                        drawLayer(layer1)
+                        translate(layerWidth / 2, layerHeight / 2) { drawLayer(layer2) }
+                        drawLayer(layer3)
+                    }
+                }
+
+                drawLayer(layer4)
+            },
+            verify = {
+                val row1centerX = layerSize.width + layerSize.width / 2
+                val row1centerY = layerSize.height + layerSize.height / 2
+
+                val row2centerX = layerSize.width + row1centerX
+                val row2centerY = layerSize.height + row1centerY
+
+                val row3centerX = layerSize.width + row2centerX
+                val row3centerY = layerSize.height + row2centerY
+
+                val row4centerX = layerSize.width + row3centerX
+
+                it.assertPixelColor(layerColor1, row1centerX, row1centerY)
+                it.assertPixelColor(bg, row2centerX, row1centerY)
+
+                it.assertPixelColor(bg, row1centerX, row2centerY)
+                it.assertPixelColor(layerColor2, row2centerX, row2centerY)
+                it.assertPixelColor(bg, row3centerX, row2centerY)
+
+                it.assertPixelColor(bg, row2centerX, row3centerY)
+                it.assertPixelColor(layerColor3, row3centerX, row3centerY)
+                it.assertPixelColor(bg, row4centerX, row3centerY)
+
+                it.assertPixelColor(layerColor4, layerSize.width / 2, layerSize.height / 2)
+            }
+        )
+    }
+
     private fun PixelMap.verifyQuadrants(
         topLeft: Color,
         topRight: Color,
@@ -1551,7 +1814,8 @@ class AndroidGraphicsLayerTest {
         block: DrawScope.(GraphicsContext) -> Unit,
         verify: (suspend (PixelMap) -> Unit)? = null,
         entireScene: Boolean = false,
-        usePixelCopy: Boolean = false
+        usePixelCopy: Boolean = false,
+        verifySoftwareRender: Boolean = true
     ) {
         var scenario: ActivityScenario<TestActivity>? = null
         var androidGraphicsContext: GraphicsContext? = null
@@ -1647,6 +1911,16 @@ class AndroidGraphicsLayerTest {
                         bitmap.toPixelMap()
                     }
                 runBlocking { verify(pixelMap) }
+                if (verifySoftwareRender) {
+                    val softwareRenderLatch = CountDownLatch(1)
+                    var softwareBitmap: Bitmap? = null
+                    testActivity!!.runOnUiThread {
+                        softwareBitmap = doSoftwareRender(target)
+                        softwareRenderLatch.countDown()
+                    }
+                    assertTrue(softwareRenderLatch.await(300, TimeUnit.MILLISECONDS))
+                    runBlocking { verify(softwareBitmap!!.asImageBitmap().toPixelMap()) }
+                }
             }
         } finally {
             val detachLatch = CountDownLatch(1)
@@ -1708,6 +1982,13 @@ class AndroidGraphicsLayerTest {
                 }
             }
         )
+    }
+
+    private fun doSoftwareRender(target: View): Bitmap {
+        val bitmap = Bitmap.createBitmap(target.width, target.height, Bitmap.Config.ARGB_8888)
+        val softwareCanvas = Canvas(bitmap)
+        target.draw(softwareCanvas)
+        return bitmap
     }
 
     private class GraphicsContextHostDrawable(

@@ -16,6 +16,11 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -648,6 +653,7 @@ class SieveCacheTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val cache = createStandardCache()
         cache["Hello"] = "World"
@@ -867,6 +873,54 @@ class SieveCacheTest {
         cache["2"] = "b"
         assertFalse("1" in cache)
         assertEquals("b", cache["2"])
+    }
+
+    @Test
+    fun sequentialHashCollisions() {
+        val cache = SieveCache<BadHashKey, Int>(24, 24)
+
+        for (x in 0..256) {
+            val i = x % 128
+            val key = BadHashKey(i.toString())
+            cache.put(key, i)
+            assertEquals(min(x + 1, 24), cache.count)
+            for (j in i downTo max(0, i - 24)) {
+                assertTrue(cache.contains(BadHashKey(i.toString())))
+            }
+        }
+    }
+
+    @Test
+    fun randomizedHashCollisions() {
+        val cache = SieveCache<BadHashKey, Int>(24, 24)
+
+        for (x in 0..1024) {
+            val i = abs(Random(6789).nextInt()) % 128
+            val key = BadHashKey(i.toString())
+            cache.put(key, i)
+            for (j in i downTo max(0, i - 24)) {
+                assertTrue(cache.contains(BadHashKey(i.toString())))
+            }
+        }
+    }
+
+    private class BadHashKey(val name: String) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other == null || this::class != other::class) return false
+
+            other as BadHashKey
+
+            return name == other.name
+        }
+
+        override fun hashCode(): Int {
+            return name.length
+        }
+
+        override fun toString(): String {
+            return "BadHashKey(name='$name')"
+        }
     }
 
     private fun createCreatingCache(): SieveCache<String, String> {

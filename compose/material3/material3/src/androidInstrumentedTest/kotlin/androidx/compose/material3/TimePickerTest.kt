@@ -24,13 +24,17 @@ import android.text.format.DateFormat
 import androidx.compose.material3.internal.Strings
 import androidx.compose.material3.internal.getString
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.SemanticsProperties.SelectableGroup
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsMatcher.Companion.expectValue
 import androidx.compose.ui.test.SemanticsMatcher.Companion.keyIsDefined
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -64,6 +68,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onSiblings
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.input.ImeAction
@@ -170,6 +175,26 @@ class TimePickerTest {
 
         // state updated
         assertThat(state.hour).isEqualTo(18)
+    }
+
+    @Test
+    fun timePicker_selectHour_a11y() {
+        rule.mainClock.autoAdvance = false
+        val state = TimePickerState(initialHour = 14, initialMinute = 23, is24Hour = false)
+        rule.setMaterialContent(lightColorScheme()) { TimePicker(state) }
+
+        rule
+            .onNodeWithTimeValue(number = 9, selection = TimePickerSelectionMode.Hour)
+            .assertHasClickAction()
+            .performSemanticsAction(SemanticsActions.OnClick)
+
+        rule.mainClock.advanceTimeBy(1000)
+
+        // switches to minutes
+        rule.onNodeWithText("23").assertIsSelected()
+
+        // state updated
+        assertThat(state.hour).isEqualTo(21)
     }
 
     @Test
@@ -379,6 +404,41 @@ class TimePickerTest {
         rule.onNodeWithText("23").assertContentDescriptionContains("for minutes")
     }
 
+    @Test
+    fun timeInput_userOverride_updates() {
+        val state = TimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
+
+        rule.setMaterialContent(lightColorScheme()) { TimeInput(state) }
+
+        rule.onNodeWithText("14").assert(isFocusable()).assertContentDescriptionContains("for hour")
+
+        rule.runOnIdle {
+            state.hour = 20
+            state.minute = 12
+        }
+
+        rule.waitForIdle()
+
+        rule.onNodeWithText("20").assertContentDescriptionContains("for hour")
+
+        rule.onAllNodesWithText("12").assertCountEquals(2)
+    }
+
+    @Test
+    fun timePicker_userOverride_updates() {
+        val state = TimePickerState(initialHour = 14, initialMinute = 0, is24Hour = true)
+
+        rule.setMaterialContent(lightColorScheme()) { TimePicker(state) }
+
+        rule.onNodeWithText("14").assertIsSelected()
+
+        rule.runOnIdle { state.hour = 20 }
+
+        rule.waitForIdle()
+
+        rule.onNodeWithText("20").assertIsSelected()
+    }
+
     @OptIn(ExperimentalTestApi::class)
     @Test
     fun timeInput_keyboardInput_valid() {
@@ -463,6 +523,22 @@ class TimePickerTest {
         rule.onNodeWithText("11").performKeyInput { pressKey(Key.Four) }
 
         assertThat(state.isPm).isTrue()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun timeInput_input12_maintainsAm() {
+        val state = TimePickerState(initialHour = 10, initialMinute = 0, is24Hour = false)
+
+        rule.setMaterialContent(lightColorScheme()) { TimeInput(state) }
+
+        rule.onNodeWithText("10").performKeyInput {
+            pressKey(Key.One)
+            pressKey(Key.Two)
+        }
+
+        assertThat(state.isPm).isFalse()
+        assertThat(state.hour).isEqualTo(0)
     }
 
     @OptIn(ExperimentalTestApi::class)
@@ -640,17 +716,27 @@ class TimePickerTest {
             )
 
         rule.setMaterialContent(lightColorScheme()) {
-            ClockFace(state, TimePickerDefaults.colors(), autoSwitchToMinute = true)
+            ClockFace(
+                modifier = Modifier,
+                state = state,
+                colors = TimePickerDefaults.colors(),
+                autoSwitchToMinute = true
+            )
         }
 
         repeat(24) { number ->
             rule
                 .onNodeWithTimeValue(number, TimePickerSelectionMode.Hour, is24Hour = true)
                 .performClick()
+
             rule.runOnIdle {
                 state.selection = TimePickerSelectionMode.Hour
                 assertThat(state.hour).isEqualTo(number)
             }
+
+            rule
+                .onNodeWithTimeValue(number, TimePickerSelectionMode.Hour, is24Hour = true)
+                .assertIsSelected()
         }
     }
 
@@ -662,7 +748,12 @@ class TimePickerTest {
             )
 
         rule.setMaterialContent(lightColorScheme()) {
-            ClockFace(state, TimePickerDefaults.colors(), autoSwitchToMinute = true)
+            ClockFace(
+                modifier = Modifier,
+                state = state,
+                colors = TimePickerDefaults.colors(),
+                autoSwitchToMinute = true
+            )
         }
 
         repeat(12) { number ->
@@ -673,6 +764,48 @@ class TimePickerTest {
                 }
 
             rule.onNodeWithTimeValue(hour, TimePickerSelectionMode.Hour).performClick()
+            rule.runOnIdle {
+                state.selection = TimePickerSelectionMode.Hour
+                assertThat(state.hour).isEqualTo(number)
+            }
+
+            rule
+                .onNodeWithTimeValue(hour, TimePickerSelectionMode.Hour, is24Hour = false)
+                .assertIsSelected()
+        }
+    }
+
+    @Test
+    fun clockFace_12Hour_traversalIndex() {
+        val state =
+            AnalogTimePickerState(
+                TimePickerState(initialHour = 0, initialMinute = 0, is24Hour = false)
+            )
+
+        rule.setMaterialContent(lightColorScheme()) {
+            ClockFace(
+                modifier = Modifier,
+                state = state,
+                colors = TimePickerDefaults.colors(),
+                autoSwitchToMinute = true
+            )
+        }
+
+        repeat(12) { number ->
+            val hour =
+                when {
+                    number == 0 -> 12
+                    else -> number
+                }
+
+            rule
+                .onNodeWithTimeValue(hour, TimePickerSelectionMode.Hour)
+                .assert(
+                    SemanticsMatcher("Index of nodes in timepicker") {
+                        it.config.getOrNull(SemanticsProperties.TraversalIndex) == number + 1f
+                    }
+                )
+                .performClick()
             rule.runOnIdle {
                 state.selection = TimePickerSelectionMode.Hour
                 assertThat(state.hour).isEqualTo(number)
@@ -697,7 +830,12 @@ class TimePickerTest {
             )
         state.selection = TimePickerSelectionMode.Minute
         rule.setMaterialContent(lightColorScheme()) {
-            ClockFace(state, TimePickerDefaults.colors(), autoSwitchToMinute = true)
+            ClockFace(
+                modifier = Modifier,
+                state = state,
+                colors = TimePickerDefaults.colors(),
+                autoSwitchToMinute = true
+            )
         }
 
         repeat(11) { number ->
@@ -716,7 +854,12 @@ class TimePickerTest {
             )
         state.selection = TimePickerSelectionMode.Minute
         rule.setMaterialContent(lightColorScheme()) {
-            ClockFace(state, TimePickerDefaults.colors(), autoSwitchToMinute = true)
+            ClockFace(
+                modifier = Modifier,
+                state = state,
+                colors = TimePickerDefaults.colors(),
+                autoSwitchToMinute = true
+            )
         }
 
         repeat(11) { number ->
@@ -724,38 +867,40 @@ class TimePickerTest {
             rule.runOnIdle { assertThat(state.minute).isEqualTo(number * 5) }
         }
     }
+}
 
-    private fun contentDescriptionForValue(
-        resources: Resources,
-        selection: TimePickerSelectionMode,
-        is24Hour: Boolean,
-        number: Int
-    ): String {
-
-        val id =
-            if (selection == TimePickerSelectionMode.Minute) {
-                R.string.m3c_time_picker_minute_suffix
-            } else if (is24Hour) {
-                R.string.m3c_time_picker_hour_24h_suffix
-            } else {
-                R.string.m3c_time_picker_hour_suffix
-            }
-
-        return resources.getString(id, number)
-    }
-
-    private fun SemanticsNodeInteractionsProvider.onNodeWithTimeValue(
-        number: Int,
-        selection: TimePickerSelectionMode,
-        is24Hour: Boolean = false,
-    ): SemanticsNodeInteraction =
-        onAllNodesWithContentDescription(
-                contentDescriptionForValue(
-                    InstrumentationRegistry.getInstrumentation().context.resources,
-                    selection,
-                    is24Hour,
-                    number
-                )
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun SemanticsNodeInteractionsProvider.onNodeWithTimeValue(
+    number: Int,
+    selection: TimePickerSelectionMode,
+    is24Hour: Boolean = false,
+): SemanticsNodeInteraction =
+    onAllNodesWithContentDescription(
+            contentDescriptionForValue(
+                InstrumentationRegistry.getInstrumentation().context.resources,
+                selection,
+                is24Hour,
+                number
             )
-            .onFirst()
+        )
+        .onFirst()
+
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun contentDescriptionForValue(
+    resources: Resources,
+    selection: TimePickerSelectionMode,
+    is24Hour: Boolean,
+    number: Int
+): String {
+
+    val id =
+        if (selection == TimePickerSelectionMode.Minute) {
+            R.string.m3c_time_picker_minute_suffix
+        } else if (is24Hour) {
+            R.string.m3c_time_picker_hour_24h_suffix
+        } else {
+            R.string.m3c_time_picker_hour_suffix
+        }
+
+    return resources.getString(id, number)
 }

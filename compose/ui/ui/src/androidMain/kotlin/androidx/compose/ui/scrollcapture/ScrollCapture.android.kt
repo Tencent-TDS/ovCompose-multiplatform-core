@@ -30,13 +30,13 @@ import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.platform.isVisible
 import androidx.compose.ui.semantics.SemanticsActions.ScrollByOffset
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsOwner
 import androidx.compose.ui.semantics.SemanticsProperties.Disabled
 import androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.isHidden
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.roundToIntRect
 import java.util.function.Consumer
@@ -96,7 +96,8 @@ internal class ScrollCapture : ComposeScrollCaptureCallback.ScrollCaptureSession
                 node = candidate.node,
                 viewportBoundsInWindow = candidate.viewportBoundsInWindow,
                 coroutineScope = coroutineScope,
-                listener = this
+                listener = this,
+                view
             )
         val localVisibleRectOfCandidate = candidate.coordinates.boundsInRoot()
         val windowOffsetOfCandidate = candidate.viewportBoundsInWindow.topLeft
@@ -130,8 +131,11 @@ private fun visitScrollCaptureCandidates(
     onCandidate: (ScrollCaptureCandidate) -> Unit
 ) {
     fromNode.visitDescendants { node ->
-        // Invisible/disabled nodes can't be candidates, nor can any of their descendants.
-        if (!node.isVisible || Disabled in node.unmergedConfig) {
+        // TODO(mnuzen): Verify `isHidden` is needed here.
+        //  See b/354723415 for more details.
+        // Transparent, unimportant for accessibility, and disabled nodes can't be candidates, nor
+        // can any of their descendants.
+        if (node.isHidden || Disabled in node.unmergedConfig) {
             return@visitDescendants false
         }
 

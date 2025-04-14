@@ -17,11 +17,13 @@
 package androidx.room.integration.kotlintestapp.dao
 
 import androidx.lifecycle.LiveData
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.RawQuery
+import androidx.room.Relation
 import androidx.room.RoomWarnings
 import androidx.room.Transaction
 import androidx.room.TypeConverters
@@ -230,6 +232,9 @@ interface BooksDao {
     fun getBookFlowable(bookId: String): Flowable<Book>
 
     @Query("SELECT * FROM book WHERE bookId = :bookId")
+    fun getBookObservable(bookId: String): Observable<Book>
+
+    @Query("SELECT * FROM book WHERE bookId = :bookId")
     fun getBookJavaOptional(bookId: String): java.util.Optional<Book>
 
     @Query("SELECT * FROM book WHERE bookId = :bookId")
@@ -250,28 +255,28 @@ interface BooksDao {
     @Query("SELECT * FROM book WHERE bookId = :bookId")
     fun getBookMaybe(bookId: String): Maybe<Book>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisher(): List<BookWithPublisher>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisherLiveData(): LiveData<List<BookWithPublisher>>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
     )
     fun getBooksWithPublisherFlowable(): Flowable<List<BookWithPublisher>>
 
-    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
+    @SuppressWarnings(RoomWarnings.QUERY_MISMATCH)
     @Query(
         "SELECT * FROM book INNER JOIN publisher " +
             "ON book.bookPublisherId = publisher.publisherId "
@@ -415,7 +420,7 @@ interface BooksDao {
     ): Book = action(input)
 
     // Commented out because of https://youtrack.jetbrains.com/issue/KT-48013
-    // This is a private method to validate b/194706278
+    // This is a private function to validate b/194706278
     // private fun getNullAuthor(): Author? = null
 
     @Query("SELECT * FROM Publisher JOIN Book ON (Publisher.publisherId == Book.bookPublisherId)")
@@ -471,4 +476,20 @@ interface BooksDao {
     @Upsert suspend fun upsertBookSuspendReturnId(book: Book): Long
 
     @Upsert suspend fun upsertBooksSuspendReturnIds(books: List<Book>): List<Long>
+
+    @Transaction
+    @Query("SELECT * FROM Publisher")
+    fun getPagingSourceRelation(): androidx.paging.PagingSource<Int, PublisherRelation>
+
+    data class PublisherRelation(
+        val publisherId: String,
+        @ColumnInfo(defaultValue = "0") val name: String,
+        @Relation(parentColumn = "publisherId", entityColumn = "publisherId")
+        val relationEntity: Publisher
+    )
+
+    @Transaction
+    fun executeTransaction(block: () -> Unit) {
+        block.invoke()
+    }
 }

@@ -27,8 +27,6 @@ import androidx.compose.ui.graphics.Fields
 import androidx.compose.ui.graphics.GraphicsContext
 import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -39,11 +37,11 @@ import androidx.compose.ui.graphics.layer.CompositingStrategy
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.layer.setOutline
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.internal.requirePrecondition
 import androidx.compose.ui.layout.GraphicLayerInfo
 import androidx.compose.ui.node.OwnedLayer
+import androidx.compose.ui.ui.FrameRateCategory
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -80,15 +78,11 @@ internal class GraphicsLayerOwnerLayer(
     private var mutatedFields: Int = 0
     private var transformOrigin: TransformOrigin = TransformOrigin.Center
     private var outline: Outline? = null
-    private var tmpPath: Path? = null
-    /**
-     * Optional paint used when the RenderNode is rendered on a software backed canvas and is
-     * somewhat transparent (i.e. alpha less than 1.0f)
-     */
-    private var softwareLayerPaint: Paint? = null
     private var isMatrixDirty = false
     private var isInverseMatrixDirty = false
     private var isIdentity = true
+    override var frameRate: Float = 0f
+    override var isFrameRateFromParent = false
 
     override fun updateLayerProperties(scope: ReusableGraphicsLayerScope) {
         val maybeChangedFields = scope.mutatedFields or mutatedFields
@@ -158,6 +152,12 @@ internal class GraphicsLayerOwnerLayer(
         if (maybeChangedFields and Fields.RenderEffect != 0) {
             graphicsLayer.renderEffect = scope.renderEffect
         }
+        if (maybeChangedFields and Fields.ColorFilter != 0) {
+            graphicsLayer.colorFilter = scope.colorFilter
+        }
+        if (maybeChangedFields and Fields.BlendMode != 0) {
+            graphicsLayer.blendMode = scope.blendMode
+        }
         if (maybeChangedFields and Fields.CompositingStrategy != 0) {
             graphicsLayer.compositingStrategy =
                 when (scope.compositingStrategy) {
@@ -183,6 +183,9 @@ internal class GraphicsLayerOwnerLayer(
         mutatedFields = scope.mutatedFields
         if (maybeChangedFields != 0 || outlineChanged) {
             triggerRepaint()
+            if (ownerView.isArrEnabled) {
+                ownerView.requestedFrameRate = frameRate
+            }
         }
     }
 
@@ -222,12 +225,18 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun move(position: IntOffset) {
+        if (ownerView.isArrEnabled) {
+            ownerView.requestedFrameRate = FrameRateCategory.High.value
+        }
         graphicsLayer.topLeft = position
         triggerRepaint()
     }
 
     override fun resize(size: IntSize) {
         if (size != this.size) {
+            if (ownerView.isArrEnabled) {
+                ownerView.requestedFrameRate = FrameRateCategory.High.value
+            }
             this.size = size
             invalidate()
         }
@@ -236,56 +245,19 @@ internal class GraphicsLayerOwnerLayer(
     private var drawnWithEnabledZ = false
 
     override fun drawLayer(canvas: Canvas, parentLayer: GraphicsLayer?) {
-        val androidCanvas = canvas.nativeCanvas
-        if (androidCanvas.isHardwareAccelerated) {
-            updateDisplayList()
-            drawnWithEnabledZ = graphicsLayer.shadowElevation > 0
-            scope.drawContext.also {
-                it.canvas = canvas
-                it.graphicsLayer = parentLayer
-            }
-            scope.drawLayer(graphicsLayer)
-        } else {
-            // TODO ideally there should be some solution for drawing a layer on a software
-            //  accelerated canvas built in right into GraphicsLayer, as this workaround is not
-            //  solving all the use cases. For example, some one can use layers directly via
-            //        drawWithContent {
-            //            layer.record {
-            //                this@drawWithContent.drawContent()
-            //            }
-            //            drawLayer(layer)
-            //        }
-            //  and if someone would try to draw the whole ComposeView on software accelerated
-            //  canvas it will just crash saying RenderNodes can't be drawn into this canvas.
-            //  This issue is tracked in b/333866398
-            val left = graphicsLayer.topLeft.x.toFloat()
-            val top = graphicsLayer.topLeft.y.toFloat()
-            val right = left + size.width
-            val bottom = top + size.height
-            // If there is alpha applied, we must render into an offscreen buffer to
-            // properly blend the contents of this layer against the background content
-            if (graphicsLayer.alpha < 1.0f) {
-                val paint =
-                    (softwareLayerPaint ?: Paint().also { softwareLayerPaint = it }).apply {
-                        alpha = graphicsLayer.alpha
-                    }
-                androidCanvas.saveLayer(left, top, right, bottom, paint.asFrameworkPaint())
-            } else {
-                canvas.save()
-            }
-            // If we are software rendered we must translate the canvas based on the offset provided
-            // in the move call which operates directly on the RenderNode
-            canvas.translate(left, top)
-            canvas.concat(getMatrix())
-            if (graphicsLayer.clip) {
-                clipManually(canvas)
-            }
-            drawBlock?.invoke(canvas, null)
-            canvas.restore()
+        updateDisplayList()
+        drawnWithEnabledZ = graphicsLayer.shadowElevation > 0
+        scope.drawContext.also {
+            it.canvas = canvas
+            it.graphicsLayer = parentLayer
         }
+        scope.drawLayer(graphicsLayer)
     }
 
     override fun updateDisplayList() {
+        if (ownerView.isArrEnabled && frameRate != 0f) {
+            ownerView.requestedFrameRate = frameRate
+        }
         if (isDirty) {
             if (transformOrigin != TransformOrigin.Center && graphicsLayer.size != size) {
                 graphicsLayer.pivotOffset =
@@ -313,6 +285,8 @@ internal class GraphicsLayerOwnerLayer(
     }
 
     override fun destroy() {
+        frameRate = 0f
+        isFrameRateFromParent = false
         drawBlock = null
         invalidateParentLayer = null
         isDestroyed = true
@@ -403,6 +377,9 @@ internal class GraphicsLayerOwnerLayer(
         return matrixCache
     }
 
+    override val underlyingMatrix: Matrix
+        get() = getMatrix()
+
     private fun getInverseMatrix(): Matrix? {
         val inverseMatrix = inverseMatrixCache ?: Matrix().also { inverseMatrixCache = it }
         if (!isInverseMatrixDirty) {
@@ -449,29 +426,6 @@ internal class GraphicsLayerOwnerLayer(
             }
             isMatrixDirty = false
             isIdentity = matrixCache.isIdentity()
-        }
-    }
-
-    /**
-     * Manually clips the content of the RenderNodeLayer in the provided canvas. This is used only
-     * in software rendered use cases
-     */
-    private fun clipManually(canvas: Canvas) {
-        if (graphicsLayer.clip) {
-            when (val outline = graphicsLayer.outline) {
-                is Outline.Rectangle -> {
-                    canvas.clipRect(outline.rect)
-                }
-                is Outline.Rounded -> {
-                    val path = tmpPath ?: Path().also { tmpPath = it }
-                    path.reset()
-                    path.addRoundRect(outline.roundRect)
-                    canvas.clipPath(path)
-                }
-                is Outline.Generic -> {
-                    canvas.clipPath(outline.path)
-                }
-            }
         }
     }
 }

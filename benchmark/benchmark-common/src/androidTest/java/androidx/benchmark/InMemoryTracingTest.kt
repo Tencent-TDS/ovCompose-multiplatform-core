@@ -22,6 +22,7 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -81,7 +82,7 @@ class InMemoryTracingTest {
 
         // verify events
         trace.packet[1].apply {
-            assert(timestamp in beforeTime..afterTime)
+            assertTrue(timestamp in beforeTime..afterTime)
             assertEquals(
                 TracePacket(
                     timestamp = timestamp,
@@ -99,7 +100,7 @@ class InMemoryTracingTest {
             )
         }
         trace.packet[2].apply {
-            assert(timestamp in beforeTime..afterTime)
+            assertTrue(timestamp in beforeTime..afterTime)
             assertEquals(
                 TracePacket(
                     timestamp = timestamp,
@@ -109,6 +110,92 @@ class InMemoryTracingTest {
                         TrackEvent(
                             type = TrackEvent.Type.TYPE_SLICE_END,
                             track_uuid = descriptor.uuid,
+                        )
+                ),
+                this
+            )
+        }
+    }
+
+    @Test
+    fun traceWithCounters() {
+        val beforeTime = 100L
+        val afterTime = 200L
+
+        // test counter embedded in beginSection
+        InMemoryTracing.beginSection(
+            "test trace section",
+            beforeTime,
+            counterNames = listOf("counterLabel"),
+            counterValues = listOf(0.1)
+        )
+        InMemoryTracing.endSection(afterTime)
+
+        // test counter on its own
+        InMemoryTracing.counter("counterLabel", 1.0, afterTime)
+
+        val trace = InMemoryTracing.commitToTrace("testLabel")
+
+        assertEquals(5, trace.packet.size)
+
+        // verify first track, for slices
+        val sliceDescriptor = trace.packet.first().track_descriptor
+        assertNotNull(sliceDescriptor)
+        assertEquals("testLabel", sliceDescriptor.name)
+        // verify second track, for counters
+        val counterDescriptor = trace.packet[1].track_descriptor
+        assertNotNull(counterDescriptor)
+        assertEquals("counterLabel", counterDescriptor.name)
+
+        // verify events
+        trace.packet[2].apply {
+            assertEquals(timestamp, beforeTime)
+            assertEquals(
+                TracePacket(
+                    timestamp = timestamp,
+                    timestamp_clock_id = 3,
+                    trusted_packet_sequence_id = trusted_packet_sequence_id,
+                    track_event =
+                        TrackEvent(
+                            type = TrackEvent.Type.TYPE_SLICE_BEGIN,
+                            track_uuid = sliceDescriptor.uuid,
+                            categories = listOf("benchmark"),
+                            name = "test trace section",
+                            extra_double_counter_track_uuids = listOf(counterDescriptor.uuid!!),
+                            extra_double_counter_values = listOf(0.1)
+                        )
+                ),
+                this
+            )
+        }
+        trace.packet[3].apply {
+            assertEquals(timestamp, afterTime)
+            assertEquals(
+                TracePacket(
+                    timestamp = timestamp,
+                    timestamp_clock_id = 3,
+                    trusted_packet_sequence_id = trusted_packet_sequence_id,
+                    track_event =
+                        TrackEvent(
+                            type = TrackEvent.Type.TYPE_SLICE_END,
+                            track_uuid = sliceDescriptor.uuid,
+                        )
+                ),
+                this
+            )
+        }
+        trace.packet[4].apply {
+            assertEquals(timestamp, afterTime)
+            assertEquals(
+                TracePacket(
+                    timestamp = timestamp,
+                    timestamp_clock_id = 3,
+                    trusted_packet_sequence_id = trusted_packet_sequence_id,
+                    track_event =
+                        TrackEvent(
+                            type = TrackEvent.Type.TYPE_COUNTER,
+                            track_uuid = counterDescriptor.uuid,
+                            double_counter_value = 1.0,
                         )
                 ),
                 this

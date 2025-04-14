@@ -250,6 +250,7 @@ class SelectionHandlePopupPositionTest {
                             isStartHandle = isStartHandle,
                             direction = ResolvedTextDirection.Ltr,
                             handlesCrossed = false,
+                            lineHeight = 0f,
                             modifier = Modifier.onGloballyPositioned { measureLatch.countDown() },
                         )
                     }
@@ -315,6 +316,7 @@ private class SingleSelectionHandleMatcher : TypeSafeMatcher<Root>() {
     override fun matchesSafely(item: Root?): Boolean {
         val matches = item != null && isPopupLayout(item.decorView)
         if (matches) {
+            @Suppress("DEPRECATION")
             lastSeenWindowParams = item!!.windowLayoutParams.get()
         }
         return matches

@@ -18,6 +18,10 @@ package androidx.testutils
 
 import android.content.Intent
 import android.os.Build
+import androidx.benchmark.ExperimentalBenchmarkConfigApi
+import androidx.benchmark.ExperimentalConfig
+import androidx.benchmark.StartupInsightsConfig
+import androidx.benchmark.macro.ArtMetric
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
 import androidx.benchmark.macro.ExperimentalMetricApi
@@ -28,6 +32,7 @@ import androidx.benchmark.macro.StartupTimingMetric
 import androidx.benchmark.macro.TraceSectionMetric
 import androidx.benchmark.macro.isSupportedWithVmSettings
 import androidx.benchmark.macro.junit4.MacrobenchmarkRule
+import androidx.benchmark.perfetto.ExperimentalPerfettoCaptureApi
 
 /** Compilation modes to sweep over for jetpack internal macrobenchmarks */
 val COMPILATION_MODES =
@@ -62,12 +67,14 @@ val STARTUP_MODES =
 /** Temporary, while transitioning to new metrics */
 @OptIn(ExperimentalMetricApi::class)
 fun getStartupMetrics() =
-    listOf(
+    listOfNotNull(
         StartupTimingMetric(),
+        if (Build.VERSION.SDK_INT >= 24) ArtMetric() else null,
         TraceSectionMetric("StartupTracingInitializer", TraceSectionMetric.Mode.First),
         MemoryUsageMetric(MemoryUsageMetric.Mode.Last)
     )
 
+@OptIn(ExperimentalBenchmarkConfigApi::class, ExperimentalPerfettoCaptureApi::class)
 fun MacrobenchmarkRule.measureStartup(
     compilationMode: CompilationMode,
     startupMode: StartupMode,
@@ -75,13 +82,15 @@ fun MacrobenchmarkRule.measureStartup(
     iterations: Int = 10,
     metrics: List<Metric> = getStartupMetrics(),
     setupIntent: Intent.() -> Unit = {}
-) =
+) {
     measureRepeated(
         packageName = packageName,
         metrics = metrics,
         compilationMode = compilationMode,
         iterations = iterations,
         startupMode = startupMode,
+        experimentalConfig =
+            ExperimentalConfig(startupInsightsConfig = StartupInsightsConfig(true)),
         setupBlock = { pressHome() }
     ) {
         val intent = Intent()
@@ -89,6 +98,7 @@ fun MacrobenchmarkRule.measureStartup(
         setupIntent(intent)
         startActivityAndWait(intent)
     }
+}
 
 /** Baseline Profile compilation mode is considered primary, and always worth measuring */
 private fun CompilationMode.isPrimary(): Boolean {
@@ -102,15 +112,21 @@ private fun CompilationMode.isPrimary(): Boolean {
     }
 }
 
+private val STARTUP_COMPILATION_MODES =
+    COMPILATION_MODES.filter {
+        // Skip full for startup specifically, as it's not representative
+        Build.VERSION.SDK_INT < 24 || it !is CompilationMode.Full
+    }
+
 fun createStartupCompilationParams(
     startupModes: List<StartupMode> = STARTUP_MODES,
-    compilationModes: List<CompilationMode> = COMPILATION_MODES
+    compilationModes: List<CompilationMode> = STARTUP_COMPILATION_MODES
 ): List<Array<Any>> =
     mutableListOf<Array<Any>>().apply {
         // To save CI resources, avoid measuring startup combinations which have non-primary
         // compilation or startup mode (BP, cold respectively) in the default case
         val minimalIntersection =
-            startupModes == STARTUP_MODES && compilationModes == COMPILATION_MODES
+            startupModes == STARTUP_MODES && compilationModes == STARTUP_COMPILATION_MODES
 
         for (startupMode in startupModes) {
             for (compilationMode in compilationModes) {

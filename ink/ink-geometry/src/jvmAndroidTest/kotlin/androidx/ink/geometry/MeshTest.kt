@@ -95,9 +95,9 @@ class MeshTest {
     fun fillPosition_shouldThrow() {
         val mesh = Mesh()
 
-        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(-1, MutablePoint()) }
-        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(0, MutablePoint()) }
-        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(1, MutablePoint()) }
+        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(-1, MutableVec()) }
+        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(0, MutableVec()) }
+        assertFailsWith<IllegalArgumentException> { mesh.fillPosition(1, MutableVec()) }
     }
 
     @Test
@@ -108,6 +108,6 @@ class MeshTest {
         assertThat(string).contains("Mesh")
         assertThat(string).contains("bounds")
         assertThat(string).contains("vertexCount")
-        assertThat(string).contains("nativeAddress")
+        assertThat(string).contains("nativePointer")
     }
 }

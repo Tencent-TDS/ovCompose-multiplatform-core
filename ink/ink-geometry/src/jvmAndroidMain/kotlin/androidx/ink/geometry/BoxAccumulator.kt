@@ -19,16 +19,13 @@ package androidx.ink.geometry
 import androidx.annotation.FloatRange
 import androidx.annotation.RestrictTo
 import androidx.ink.nativeloader.NativeLoader
-import kotlin.Deprecated
-import kotlin.jvm.JvmSynthetic
+import androidx.ink.nativeloader.UsedByNative
 
 /**
  * A helper class for accumulating the minimum bounding boxes of zero or more geometry objects. In
  * colloquial terms, this can be used to find the smallest Box that contains a set of objects.
  */
-// TODO: b/355248266 - @UsedByNative("envelope_jni_helper.cc") must go in Proguard config file
-// instead.
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+@UsedByNative
 public class BoxAccumulator {
     /**
      * The bounds, which are valid only if [hasBounds] is `true`. When [hasBounds] is `false`, this
@@ -59,9 +56,9 @@ public class BoxAccumulator {
     ) : this(
         true,
         MutableBox()
-            .fillFromTwoPoints(
-                ImmutablePoint(box.xMin, box.yMin),
-                ImmutablePoint(box.xMax, box.yMax)
+            .populateFromTwoPoints(
+                ImmutableVec(box.xMin, box.yMin),
+                ImmutableVec(box.xMax, box.yMax)
             ),
     )
 
@@ -82,9 +79,7 @@ public class BoxAccumulator {
     }
 
     /** Reset this object to have no bounds. Returns the same instance to chain function calls. */
-    // TODO: b/355248266 - @UsedByNative("envelope_jni_helper.cc") must go in Proguard config file
-    // instead.
-
+    @UsedByNative
     public fun reset(): BoxAccumulator {
         hasBounds = false
         _bounds.setXBounds(Float.NaN, Float.NaN).setYBounds(Float.NaN, Float.NaN)
@@ -94,9 +89,11 @@ public class BoxAccumulator {
     /**
      * Expands the accumulated bounding box (if necessary) such that it also contains [other]. If
      * [other] is null, this is a no-op.
+     *
+     * @return `this`
      */
     public fun add(other: BoxAccumulator?): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddOptionalBox(
+        BoxAccumulatorNative.addOptionalBox(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -113,11 +110,12 @@ public class BoxAccumulator {
     }
 
     /**
-     * Expands the accumulated bounding box (if necessary) such that it also contains [point]. If
-     * [point] is null, this is a no-op.
+     * Expands the accumulated bounding box (if necessary) such that it also contains [point].
+     *
+     * @return `this`
      */
     public fun add(point: Vec): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddPoint(
+        BoxAccumulatorNative.addPoint(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -131,11 +129,12 @@ public class BoxAccumulator {
     }
 
     /**
-     * Expands the accumulated bounding box (if necessary) such that it also contains [segment]. If
-     * [segment] is null, this is a no-op.
+     * Expands the accumulated bounding box (if necessary) such that it also contains [segment].
+     *
+     * @return `this`
      */
     public fun add(segment: Segment): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddSegment(
+        BoxAccumulatorNative.addSegment(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -151,11 +150,12 @@ public class BoxAccumulator {
     }
 
     /**
-     * Expands the accumulated bounding box (if necessary) such that it also contains [triangle]. If
-     * [triangle] is null, this is a no-op.
+     * Expands the accumulated bounding box (if necessary) such that it also contains [triangle].
+     *
+     * @return `this`
      */
     public fun add(triangle: Triangle): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddTriangle(
+        BoxAccumulatorNative.addTriangle(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -175,9 +175,11 @@ public class BoxAccumulator {
     /**
      * Expands the accumulated bounding box (if necessary) such that it also contains [box]. If
      * [box] is null, this is a no-op.
+     *
+     * @return `this`
      */
     public fun add(box: Box?): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddOptionalBox(
+        BoxAccumulatorNative.addOptionalBox(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -195,10 +197,12 @@ public class BoxAccumulator {
 
     /**
      * Expands the accumulated bounding box (if necessary) such that it also contains
-     * [parallelogram]. If [parallelogram] is null, this is a no-op.
+     * [parallelogram].
+     *
+     * @return `this`
      */
     public fun add(parallelogram: Parallelogram): BoxAccumulator {
-        BoxAccumulatorNative.nativeAddParallelogram(
+        BoxAccumulatorNative.addParallelogram(
             envelopeHasBounds = hasBounds,
             envelopeBoundsXMin = _bounds.xMin,
             envelopeBoundsYMin = _bounds.yMin,
@@ -217,9 +221,11 @@ public class BoxAccumulator {
 
     /**
      * Expands the accumulated bounding box (if necessary) such that it also contains [mesh]. If
-     * [mesh] is null or empty, this is a no-op.
+     * [mesh] is empty, this is a no-op.
+     *
+     * @return `this`
      */
-    public fun add(mesh: ModeledShape): BoxAccumulator = this.add(mesh.bounds)
+    public fun add(mesh: PartitionedMesh): BoxAccumulator = this.add(mesh.computeBoundingBox())
 
     /**
      * Compares this [BoxAccumulator] with [other], and returns true if either: Both this and
@@ -235,13 +241,12 @@ public class BoxAccumulator {
 
     /**
      * Overwrite the entries of this object with new values. This is useful for recycling an
-     * instance. Returns the same instance to chain function calls.
+     * instance.
+     *
+     * @return `this`
      */
-    // TODO: b/355248266 - @UsedByNative("envelope_jni_helper.cc") must go in Proguard config file
-    // instead.
-
-    @JvmSynthetic
-    @Deprecated("Prefer to use methods [reset] and [add]")
+    @UsedByNative
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // NonPublicApi
     public fun overwriteFrom(x1: Float, y1: Float, x2: Float, y2: Float): BoxAccumulator {
         hasBounds = true
         _bounds.setXBounds(x1, x2).setYBounds(y1, y2)
@@ -271,6 +276,7 @@ public class BoxAccumulator {
 }
 
 /** Helper object to contain native JNI calls */
+@UsedByNative
 private object BoxAccumulatorNative {
 
     init {
@@ -281,8 +287,8 @@ private object BoxAccumulatorNative {
      * Helper method to construct a native C++ [Envelope] and [Segment], add the native [Segment] to
      * the native [Envelope], and update [output] using the result.
      */
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    external fun nativeAddSegment(
+    @UsedByNative
+    external fun addSegment(
         envelopeHasBounds: Boolean,
         envelopeBoundsXMin: Float,
         envelopeBoundsYMin: Float,
@@ -299,8 +305,8 @@ private object BoxAccumulatorNative {
      * Helper method to construct a native C++ [Envelope] and [Triangle], add the native [Triangle]
      * to the native [Envelope], and update [output] using the result.
      */
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    external fun nativeAddTriangle(
+    @UsedByNative
+    external fun addTriangle(
         envelopeHasBounds: Boolean,
         envelopeBoundsXMin: Float,
         envelopeBoundsYMin: Float,
@@ -319,8 +325,8 @@ private object BoxAccumulatorNative {
      * Helper method to construct a native C++ [Envelope] and [Parallelogram], add the native
      * [Parallelogram] to the native [Envelope], and update [output] using the result.
      */
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    external fun nativeAddParallelogram(
+    @UsedByNative
+    external fun addParallelogram(
         envelopeHasBounds: Boolean,
         envelopeBoundsXMin: Float,
         envelopeBoundsYMin: Float,
@@ -339,8 +345,8 @@ private object BoxAccumulatorNative {
      * Helper method to construct a native C++ [Envelope] and [Point], add the native [Point] to the
      * native [Envelope], and update [output] using the result.
      */
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    external fun nativeAddPoint(
+    @UsedByNative
+    external fun addPoint(
         envelopeHasBounds: Boolean,
         envelopeBoundsXMin: Float,
         envelopeBoundsYMin: Float,
@@ -355,8 +361,8 @@ private object BoxAccumulatorNative {
      * Helper method to construct a native C++ [Envelope] using [this], add the optional box to the
      * native [Envelope], and update [output] using the result.
      */
-    // TODO: b/355248266 - @Keep must go in Proguard config file instead.
-    external fun nativeAddOptionalBox(
+    @UsedByNative
+    external fun addOptionalBox(
         envelopeHasBounds: Boolean,
         envelopeBoundsXMin: Float,
         envelopeBoundsYMin: Float,

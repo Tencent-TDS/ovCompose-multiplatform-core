@@ -23,6 +23,7 @@ import android.os.IBinder
 import androidx.privacysandbox.sdkruntime.core.AppOwnedSdkSandboxInterfaceCompat
 import androidx.privacysandbox.sdkruntime.core.LoadSdkCompatException
 import androidx.privacysandbox.sdkruntime.core.SandboxedSdkCompat
+import androidx.privacysandbox.sdkruntime.core.SdkSandboxClientImportanceListenerCompat
 import androidx.privacysandbox.sdkruntime.core.Versions
 import androidx.privacysandbox.sdkruntime.core.activity.ActivityHolder
 import androidx.privacysandbox.sdkruntime.core.activity.SdkSandboxActivityHandlerCompat
@@ -69,22 +70,7 @@ class SdkSandboxControllerCompatLocalTest {
     }
 
     @Test
-    fun loadSdk_whenNotAvailable_throwsLoadSdkNotFoundException() {
-        SdkSandboxControllerCompat.injectLocalImpl(TestStubImpl())
-        val controllerCompat = SdkSandboxControllerCompat.from(context)
-
-        val exception =
-            Assert.assertThrows(LoadSdkCompatException::class.java) {
-                runBlocking { controllerCompat.loadSdk("SDK", Bundle()) }
-            }
-
-        assertThat(exception.loadSdkErrorCode).isEqualTo(LoadSdkCompatException.LOAD_SDK_NOT_FOUND)
-    }
-
-    @Test
     fun loadSdk_returnsLoadedSdkFromLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.LOAD_SDK)
-
         val expectedResult = SandboxedSdkCompat(Binder())
         val stubLocalImpl = TestStubImpl(loadSdkResult = expectedResult)
         SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
@@ -101,8 +87,6 @@ class SdkSandboxControllerCompatLocalTest {
 
     @Test
     fun loadSdk_rethrowsExceptionFromLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.LOAD_SDK)
-
         val expectedError = LoadSdkCompatException(RuntimeException(), Bundle())
         SdkSandboxControllerCompat.injectLocalImpl(TestStubImpl(loadSdkError = expectedError))
         val controllerCompat = SdkSandboxControllerCompat.from(context)
@@ -127,8 +111,6 @@ class SdkSandboxControllerCompatLocalTest {
 
     @Test
     fun getAppOwnedSdkSandboxInterfaces_returnsListFromLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.APP_OWNED_INTERFACES)
-
         val expectedResult =
             listOf(
                 AppOwnedSdkSandboxInterfaceCompat(
@@ -146,8 +128,6 @@ class SdkSandboxControllerCompatLocalTest {
 
     @Test
     fun registerSdkSandboxActivityHandler_registerItInLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.SDK_ACTIVITY_HANDLER)
-
         val localImpl = TestStubImpl()
         SdkSandboxControllerCompat.injectLocalImpl(localImpl)
 
@@ -162,8 +142,6 @@ class SdkSandboxControllerCompatLocalTest {
 
     @Test
     fun unregisterSdkSandboxActivityHandler_unregisterItFromLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.SDK_ACTIVITY_HANDLER)
-
         val localImpl = TestStubImpl()
         SdkSandboxControllerCompat.injectLocalImpl(localImpl)
 
@@ -180,19 +158,7 @@ class SdkSandboxControllerCompatLocalTest {
     }
 
     @Test
-    fun getClientPackageName_whenNotAvailable_returnsContextPackageName() {
-        SdkSandboxControllerCompat.injectLocalImpl(TestStubImpl())
-        val controllerCompat = SdkSandboxControllerCompat.from(context)
-
-        val result = controllerCompat.getClientPackageName()
-
-        assertThat(result).isEqualTo(context.getPackageName())
-    }
-
-    @Test
     fun getClientPackageName_returnsPackageNameFromLocalImpl() {
-        clientHandShakeForVersionIncluding(ClientFeature.GET_CLIENT_PACKAGE_NAME)
-
         val expectedResult = "test.client.package.name"
         val stubLocalImpl = TestStubImpl(clientPackageName = expectedResult)
         SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
@@ -201,6 +167,81 @@ class SdkSandboxControllerCompatLocalTest {
         val result = controllerCompat.getClientPackageName()
 
         assertThat(result).isEqualTo(expectedResult)
+    }
+
+    @Test
+    fun registerSdkSandboxClientImportanceListener_whenNotAvailable_doNothing() {
+        val stubLocalImpl = TestStubImpl()
+        SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
+        val controllerCompat = SdkSandboxControllerCompat.from(context)
+
+        controllerCompat.registerSdkSandboxClientImportanceListener(
+            executor = Runnable::run,
+            listenerCompat =
+                object : SdkSandboxClientImportanceListenerCompat {
+                    override fun onForegroundImportanceChanged(isForeground: Boolean) {}
+                }
+        )
+
+        assertThat(stubLocalImpl.clientImportanceListeners).isEmpty()
+    }
+
+    @Test
+    fun unregisterSdkSandboxClientImportanceListener_whenNotAvailable_doNothing() {
+        val listenerCompat =
+            object : SdkSandboxClientImportanceListenerCompat {
+                override fun onForegroundImportanceChanged(isForeground: Boolean) {}
+            }
+        val stubLocalImpl = TestStubImpl()
+        stubLocalImpl.clientImportanceListeners[listenerCompat] = Executor { r -> r.run() }
+        SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
+
+        val controllerCompat = SdkSandboxControllerCompat.from(context)
+        controllerCompat.unregisterSdkSandboxClientImportanceListener(listenerCompat)
+
+        assertThat(stubLocalImpl.clientImportanceListeners).containsKey(listenerCompat)
+    }
+
+    @Test
+    fun registerSdkSandboxClientImportanceListener_registerItInLocalImpl() {
+        clientHandShakeForVersionIncluding(ClientFeature.CLIENT_IMPORTANCE_LISTENER)
+
+        val stubLocalImpl = TestStubImpl()
+        SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
+        val controllerCompat = SdkSandboxControllerCompat.from(context)
+
+        val listenerCompat =
+            object : SdkSandboxClientImportanceListenerCompat {
+                override fun onForegroundImportanceChanged(isForeground: Boolean) {}
+            }
+        controllerCompat.registerSdkSandboxClientImportanceListener(
+            executor = Runnable::run,
+            listenerCompat = listenerCompat
+        )
+
+        assertThat(stubLocalImpl.clientImportanceListeners).containsKey(listenerCompat)
+    }
+
+    @Test
+    fun unregisterSdkSandboxClientImportanceListener_unregisterItFromLocalImpl() {
+        clientHandShakeForVersionIncluding(ClientFeature.CLIENT_IMPORTANCE_LISTENER)
+
+        val stubLocalImpl = TestStubImpl()
+        SdkSandboxControllerCompat.injectLocalImpl(stubLocalImpl)
+        val controllerCompat = SdkSandboxControllerCompat.from(context)
+
+        val listenerCompat =
+            object : SdkSandboxClientImportanceListenerCompat {
+                override fun onForegroundImportanceChanged(isForeground: Boolean) {}
+            }
+        controllerCompat.registerSdkSandboxClientImportanceListener(
+            executor = Runnable::run,
+            listenerCompat = listenerCompat
+        )
+        assertThat(stubLocalImpl.clientImportanceListeners).containsKey(listenerCompat)
+
+        controllerCompat.unregisterSdkSandboxClientImportanceListener(listenerCompat)
+        assertThat(stubLocalImpl.clientImportanceListeners).isEmpty()
     }
 
     /**
@@ -213,10 +254,11 @@ class SdkSandboxControllerCompatLocalTest {
 
     /**
      * Call [Versions.handShake] to emulate loading via client lib. Using
-     * [ClientApiVersion.MIN_SUPPORTED] - to check features available in all client versions.
+     * [ClientApiVersion.MIN_SUPPORTED_CLIENT_VERSION] - to check features available in all client
+     * versions.
      */
     private fun clientHandShakeForMinSupportedVersion() {
-        Versions.handShake(ClientApiVersion.MIN_SUPPORTED.apiLevel)
+        Versions.handShake(ClientApiVersion.MIN_SUPPORTED_CLIENT_VERSION.apiLevel)
     }
 
     internal class TestStubImpl(
@@ -230,6 +272,10 @@ class SdkSandboxControllerCompatLocalTest {
 
         var lastLoadSdkName: String? = null
         var lastLoadSdkParams: Bundle? = null
+
+        val clientImportanceListeners:
+            MutableMap<SdkSandboxClientImportanceListenerCompat, Executor> =
+            mutableMapOf()
 
         override fun loadSdk(
             sdkName: String,
@@ -274,5 +320,18 @@ class SdkSandboxControllerCompatLocalTest {
         }
 
         override fun getClientPackageName(): String = clientPackageName
+
+        override fun registerSdkSandboxClientImportanceListener(
+            executor: Executor,
+            listenerCompat: SdkSandboxClientImportanceListenerCompat
+        ) {
+            clientImportanceListeners[listenerCompat] = executor
+        }
+
+        override fun unregisterSdkSandboxClientImportanceListener(
+            listenerCompat: SdkSandboxClientImportanceListenerCompat
+        ) {
+            clientImportanceListeners.remove(listenerCompat)
+        }
     }
 }

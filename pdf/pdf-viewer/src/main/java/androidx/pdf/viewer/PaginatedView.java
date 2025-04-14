@@ -18,21 +18,28 @@ package androidx.pdf.viewer;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.view.View;
+import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
+import androidx.annotation.VisibleForTesting;
+import androidx.core.os.ParcelCompat;
 import androidx.pdf.ViewState;
 import androidx.pdf.data.Range;
+import androidx.pdf.metrics.EventCallback;
 import androidx.pdf.util.PaginationUtils;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.util.ThreadUtils;
 import androidx.pdf.viewer.PageViewFactory.PageView;
 import androidx.pdf.viewer.loader.PdfLoader;
 import androidx.pdf.widget.ZoomView;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -45,14 +52,11 @@ import java.util.List;
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 @SuppressWarnings("WrongCall")
-public class PaginatedView extends AbstractPaginatedView {
-
-    private static final String TAG = PaginatedView.class.getSimpleName();
-
+public class PaginatedView extends ViewGroup implements PaginationModelObserver {
     /** Maps the current child views to pages. */
     private final SparseArray<PageView> mPageViews = new SparseArray<>();
 
-    private PaginationModel mPaginationModel;
+    private PaginationModel mModel;
 
     private PageRangeHandler mPageRangeHandler;
 
@@ -68,6 +72,11 @@ public class PaginatedView extends AbstractPaginatedView {
 
     private boolean mIsConfigurationChanged = false;
 
+    /** The current viewport in content coordinates */
+    private final Rect mViewArea = new Rect();
+
+    private EventCallback mEventCallback;
+
     public PaginatedView(@NonNull Context context) {
         this(context, null);
     }
@@ -78,29 +87,128 @@ public class PaginatedView extends AbstractPaginatedView {
 
     public PaginatedView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-
+        mModel = new PaginationModel(context);
+        mPageRangeHandler = new PageRangeHandler(mModel);
     }
 
-    /** Instantiate PaginationModel and PageRangeHandler */
-    @NonNull
-    public PaginationModel initPaginationModelAndPageRangeHandler(@NonNull Context context) {
-        mPaginationModel = new PaginationModel(context);
-        mPageRangeHandler = new PageRangeHandler(mPaginationModel);
-        return mPaginationModel;
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        mModel.addObserver(this);
     }
 
-    @NonNull
-    public PaginationModel getPaginationModel() {
-        return mPaginationModel;
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mModel.removeObserver(this);
     }
 
-    @NonNull
-    public PageRangeHandler getPageRangeHandler() {
+    @VisibleForTesting
+    public void setModel(@NonNull PaginationModel model) {
+        mModel = model;
+    }
+
+    public @NonNull PaginationModel getModel() {
+        return mModel;
+    }
+
+    public @NonNull PaginationModel resetModels() {
+        mModel = new PaginationModel(getContext());
+        mPageRangeHandler = new PageRangeHandler(mModel);
+        return mModel;
+    }
+
+    /** Requests a layout because this view has to grow now to accommodate the new page(s). */
+    @Override
+    public void onPageAdded() {
+        requestLayout();
+    }
+
+    protected boolean isInitialized() {
+        return mModel != null;
+    }
+
+    /**
+     * Measures this view in relation to the {@link #mModel} then asks all child views to measure
+     * themselves.
+     *
+     * <p>If the {@link #mModel} is not initialized, this view has nothing to display and will
+     * measure (0, 0). Otherwise, view will measure ({@link #mModel}'s width, {@link #mModel}'s
+     * estimated height).
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = 0;
+        int estimatedHeight = 0;
+
+        if (isInitialized()) {
+            width = mModel.getWidth();
+            estimatedHeight = mModel.getEstimatedFullHeight();
+        }
+
+        setMeasuredDimension(width, estimatedHeight);
+        measureChildren(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    /**
+     * Provides consistent layout behavior for subclasses.
+     *
+     * <p>Does not perform a layout if there aren't any child views. Otherwise asks the
+     * subclasses to
+     * layout each child by index.
+     */
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        int count = getChildCount();
+        if (count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < count; i++) {
+            layoutChild(i);
+        }
+    }
+
+    @Override
+    protected @Nullable Parcelable onSaveInstanceState() {
+        Parcelable superState = super.onSaveInstanceState();
+        return new SavedState(superState, mModel);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        SavedState savedState = (SavedState) state;
+        super.onRestoreInstanceState(((SavedState) state).getSuperState());
+        mModel = savedState.mModel;
+        mPageRangeHandler = new PageRangeHandler(mModel);
+        requestLayout();
+    }
+
+    /**
+     * Returns the current viewport in content coordinates
+     */
+    public @NonNull Rect getViewArea() {
+        return mViewArea;
+    }
+
+    /**
+     * Updates the current viewport
+     *
+     * @param viewArea the viewport in content coordinates
+     */
+    public void setViewArea(@NonNull Rect viewArea) {
+        if (!viewArea.equals(this.mViewArea)) {
+            this.mViewArea.set(viewArea);
+            onViewAreaChanged();
+        }
+    }
+
+    public @NonNull PageRangeHandler getPageRangeHandler() {
         return mPageRangeHandler;
     }
 
-    @NonNull
-    public PdfSelectionModel getSelectionModel() {
+    public @NonNull PdfSelectionModel getSelectionModel() {
         return mSelectionModel;
     }
 
@@ -109,8 +217,7 @@ public class PaginatedView extends AbstractPaginatedView {
         mSelectionModel = selectionModel;
     }
 
-    @NonNull
-    public SearchModel getSearchModel() {
+    public @NonNull SearchModel getSearchModel() {
         return mSearchModel;
     }
 
@@ -118,9 +225,8 @@ public class PaginatedView extends AbstractPaginatedView {
         mSearchModel = searchModel;
     }
 
-    @NonNull
-    public PdfSelectionHandles getSelectionHandles() {
-        return  mSelectionHandles;
+    public @NonNull PdfSelectionHandles getSelectionHandles() {
+        return mSelectionHandles;
     }
 
     public void setSelectionHandles(@NonNull PdfSelectionHandles selectionHandles) {
@@ -131,13 +237,16 @@ public class PaginatedView extends AbstractPaginatedView {
         mPdfLoader = pdfLoader;
     }
 
-    @NonNull
-    public PageViewFactory getPageViewFactory() {
+    public @NonNull PageViewFactory getPageViewFactory() {
         return mPageViewFactory;
     }
 
     public void setPageViewFactory(@NonNull PageViewFactory pageViewFactory) {
         mPageViewFactory = pageViewFactory;
+    }
+
+    public void setMetricEventCallback(@Nullable EventCallback eventCallback) {
+        mEventCallback = eventCallback;
     }
 
     /** Instantiate a page of this pageView into a child pageView. */
@@ -175,8 +284,7 @@ public class PaginatedView extends AbstractPaginatedView {
     }
 
     /** Return the view of the given page number. */
-    @Nullable
-    public PageView getViewAt(int pageNum) {
+    public @Nullable PageView getViewAt(int pageNum) {
         return mPageViews.get(pageNum);
     }
 
@@ -186,8 +294,7 @@ public class PaginatedView extends AbstractPaginatedView {
      * <p>The list is backed by this view and will likely change soon, so is only suitable for
      * immediate iteration.
      */
-    @NonNull
-    public List<PageMosaicView> getChildViews() {
+    public @NonNull List<PageMosaicView> getChildViews() {
         return new AbstractList<PageMosaicView>() {
 
             @Override
@@ -220,6 +327,10 @@ public class PaginatedView extends AbstractPaginatedView {
 
     @Override
     public void removeAllViews() {
+        if (mPageRangeHandler != null) {
+            mPageRangeHandler.setVisiblePages(null);
+        }
+
         for (int i = 0; i < mPageViews.size(); i++) {
             mPageViews.valueAt(i).clearAll();
         }
@@ -243,10 +354,10 @@ public class PaginatedView extends AbstractPaginatedView {
      *
      * @param index the index of the child view in this ViewGroup
      */
-    @Override
-    protected void layoutChild(int index) {
+    private void layoutChild(int index) {
         int pageNum = mPageViews.keyAt(index);
-        Rect pageCoordinates = getModel().getPageLocation(pageNum);
+        Rect viewArea = getViewArea();
+        Rect pageCoordinates = getModel().getPageLocation(pageNum, viewArea);
 
         PageView child = (PageView) getChildAt(index);
         child
@@ -257,7 +368,6 @@ public class PaginatedView extends AbstractPaginatedView {
                         pageCoordinates.right,
                         pageCoordinates.bottom);
 
-        Rect viewArea = getModel().getViewArea();
         child
                 .getPageView()
                 .setViewArea(
@@ -275,42 +385,17 @@ public class PaginatedView extends AbstractPaginatedView {
     }
 
     /** Perform a layout when the viewArea of the {@code model} has changed. */
-    @Override
-    public void onViewAreaChanged() {
+    private void onViewAreaChanged() {
         // We can't wait for the next layout pass, the pages will be drawn before.
         // We could still optimize to skip the next layoutChild() calls for the pages that have been
         // laid out already for this viewArea.
         onLayout(false, getLeft(), getTop(), getRight(), getBottom());
     }
 
-    @Override
-    public void onWindowFocusChanged(boolean hasWindowFocus) {
-        super.onWindowFocusChanged(hasWindowFocus);
-        if (getVisibility() == View.VISIBLE && mPageRangeHandler != null) {
-            mPageRangeHandler.adjustMaxPageToUpperVisibleRange();
-            if (getChildCount() > 0) {
-                for (PageMosaicView page : getChildViews()) {
-                    page.clearTiles();
-                    if (mPdfLoader != null) {
-                        mPdfLoader.cancelAllTileBitmaps(page.getPageNum());
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        if (mPageRangeHandler != null) {
-            mPageRangeHandler.setVisiblePages(null);
-        }
-    }
-
     /**
      * Refreshes the page range for the visible area.
      */
-    public void refreshPageRangeInVisibleArea(@NonNull ZoomView.ZoomScroll zoomScroll,
+    public void refreshPageRangeInVisibleArea(ZoomView.@NonNull ZoomScroll zoomScroll,
             int parentViewHeight) {
         mPageRangeHandler.refreshVisiblePageRange(zoomScroll.scrollY, zoomScroll.zoom,
                 parentViewHeight);
@@ -350,7 +435,7 @@ public class PaginatedView extends AbstractPaginatedView {
             if (getViewAt(pageNum) == null) {
                 mPageViewFactory.getOrCreatePageView(pageNum,
                         PaginationUtils.getPageElevationInPixels(getContext()),
-                        mPaginationModel.getPageSize(pageNum));
+                        mModel.getPageSize(pageNum));
                 requiresLayoutPass = true;
             }
         }
@@ -387,6 +472,9 @@ public class PaginatedView extends AbstractPaginatedView {
             // be executed against the document, even if the user has scrolled away from the page.
             mPdfLoader.cancelExceptSearchAndFormFilling(page);
             mPdfLoader.releasePage(page);
+            if (mEventCallback != null) {
+                mEventCallback.onPageCleared(page);
+            }
             if (clearViews) {
                 removeViewAt(page);
             }
@@ -400,7 +488,7 @@ public class PaginatedView extends AbstractPaginatedView {
             PageMosaicView pageView = mPageViewFactory.getOrCreatePageView(
                     page,
                     PaginationUtils.getPageElevationInPixels(getContext()),
-                    mPaginationModel.getPageSize(page));
+                    mModel.getPageSize(page));
             pageView.clearTiles();
             pageView.requestFastDrawAtZoom(stableZoom);
             pageView.refreshPageContentAndOverlays();
@@ -412,7 +500,7 @@ public class PaginatedView extends AbstractPaginatedView {
             PageMosaicView pageView = mPageViewFactory.getOrCreatePageView(
                     page,
                     PaginationUtils.getPageElevationInPixels(getContext()),
-                    mPaginationModel.getPageSize(page));
+                    mModel.getPageSize(page));
             pageView.requestDrawAtZoom(stableZoom);
             pageView.refreshPageContentAndOverlays();
         }
@@ -433,7 +521,7 @@ public class PaginatedView extends AbstractPaginatedView {
             PageMosaicView pageView = mPageViewFactory.getOrCreatePageView(
                     page,
                     PaginationUtils.getPageElevationInPixels(getContext()),
-                    mPaginationModel.getPageSize(page));
+                    mModel.getPageSize(page));
             pageView.requestTiles();
         }
     }
@@ -453,5 +541,49 @@ public class PaginatedView extends AbstractPaginatedView {
 
     public boolean isConfigurationChanged() {
         return mIsConfigurationChanged;
+    }
+
+    static class SavedState extends View.BaseSavedState {
+        final PaginationModel mModel;
+
+        SavedState(Parcel source) {
+            super(source);
+            mModel = ParcelCompat.readParcelable(source, null, PaginationModel.class);
+        }
+
+        SavedState(Parcel source, ClassLoader loader) {
+            super(source);
+            mModel = ParcelCompat.readParcelable(source, loader, PaginationModel.class);
+        }
+
+        SavedState(Parcelable superState, PaginationModel model) {
+            super(superState);
+            mModel = model;
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            super.writeToParcel(out, flags);
+            out.writeParcelable(mModel, flags);
+        }
+
+        public static final ClassLoaderCreator<SavedState> CREATOR =
+                new ClassLoaderCreator<SavedState>() {
+
+                    @Override
+                    public SavedState createFromParcel(Parcel in) {
+                        return new SavedState(in);
+                    }
+
+                    @Override
+                    public SavedState createFromParcel(Parcel source, ClassLoader loader) {
+                        return new SavedState(source, loader);
+                    }
+
+                    @Override
+                    public SavedState[] newArray(int size) {
+                        return new SavedState[size];
+                    }
+                };
     }
 }

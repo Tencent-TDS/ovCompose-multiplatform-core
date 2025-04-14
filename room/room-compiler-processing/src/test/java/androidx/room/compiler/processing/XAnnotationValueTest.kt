@@ -72,7 +72,7 @@ class XAnnotationValueTest(
                 SourceKind.KOTLIN -> listOf(kotlinSource)
             }
         if (isPreCompiled) {
-            val compiled = compileFiles(sources)
+            val compiled = compileFiles(sources, kotlincArguments = kotlincArgs)
             val hasKotlinSources = sources.any { it is Source.KotlinSource }
             val kotlinSources =
                 if (hasKotlinSources) {
@@ -1337,8 +1337,7 @@ class XAnnotationValueTest(
                 MyInterface
                 """
                         .trimIndent()
-                ) as Source.KotlinSource,
-            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS
+                ) as Source.KotlinSource
         ) { invocation ->
             val classJTypeName =
                 JParameterizedTypeName.get(
@@ -1460,32 +1459,20 @@ class XAnnotationValueTest(
                 """
                         .trimIndent()
                 ) as Source.KotlinSource,
-            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS
+            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS,
         ) { invocation ->
             val annotation = getAnnotation(invocation)
             // Compare the AnnotationSpec string ignoring whitespace
             assertThat(annotation.toAnnotationSpec().toString().removeWhiteSpace())
                 .isEqualTo(
-                    // TODO(b/314151707): List values are missing in type annotations with K2. File
-                    // a bug!
-                    if (sourceKind == SourceKind.KOTLIN && isTypeAnnotation && isPreCompiled) {
-                        """
-                        @test.MyAnnotation(
-                            stringParam="2",
-                            stringParam2="1"
-                        )
-                        """
-                            .removeWhiteSpace()
-                    } else {
-                        """
-                        @test.MyAnnotation(
-                            stringParam="2",
-                            stringParam2="1",
-                            stringArrayParam={"3","5","7"}
-                        )
-                        """
-                            .removeWhiteSpace()
-                    }
+                    """
+                    @test.MyAnnotation(
+                        stringParam="2",
+                        stringParam2="1",
+                        stringArrayParam={"3","5","7"}
+                    )
+                    """
+                        .removeWhiteSpace()
                 )
 
             assertThat(
@@ -1509,15 +1496,7 @@ class XAnnotationValueTest(
                         .firstOrNull()
                         ?.value
                 )
-                .isEqualTo(
-                    // TODO(b/314151707): List values are missing in type annotations with K2. File
-                    // a bug!
-                    if (sourceKind == SourceKind.KOTLIN && isTypeAnnotation && isPreCompiled) {
-                        null
-                    } else {
-                        "3"
-                    }
-                )
+                .isEqualTo("3")
         }
     }
 
@@ -1583,8 +1562,7 @@ class XAnnotationValueTest(
                 MyInterface
                 """
                         .trimIndent()
-                ) as Source.KotlinSource,
-            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS
+                ) as Source.KotlinSource
         ) { invocation ->
             val aJTypeName = JClassName.get("test", "A")
             val aKTypeName = KClassName("test", "A")

@@ -19,6 +19,7 @@ package androidx.camera.video
 import android.content.Context
 import android.graphics.Matrix
 import android.graphics.Rect
+import android.graphics.SurfaceTexture
 import android.media.CamcorderProfile.QUALITY_1080P
 import android.media.CamcorderProfile.QUALITY_2160P
 import android.media.CamcorderProfile.QUALITY_480P
@@ -37,7 +38,6 @@ import android.os.Looper
 import android.util.Range
 import android.util.Size
 import android.view.Surface
-import androidx.arch.core.util.Function
 import androidx.camera.core.AspectRatio.RATIO_16_9
 import androidx.camera.core.AspectRatio.RATIO_4_3
 import androidx.camera.core.CameraEffect
@@ -55,6 +55,7 @@ import androidx.camera.core.MirrorMode.MIRROR_MODE_OFF
 import androidx.camera.core.MirrorMode.MIRROR_MODE_ON
 import androidx.camera.core.MirrorMode.MIRROR_MODE_ON_FRONT_ONLY
 import androidx.camera.core.SurfaceRequest
+import androidx.camera.core.SurfaceRequest.TransformationInfo
 import androidx.camera.core.UseCase
 import androidx.camera.core.impl.CameraFactory
 import androidx.camera.core.impl.CameraInfoInternal
@@ -65,12 +66,15 @@ import androidx.camera.core.impl.MutableOptionsBundle
 import androidx.camera.core.impl.MutableStateObservable
 import androidx.camera.core.impl.Observable
 import androidx.camera.core.impl.Quirk
+import androidx.camera.core.impl.SessionConfig.DEFAULT_SESSION_TYPE
+import androidx.camera.core.impl.SessionConfig.SESSION_TYPE_HIGH_SPEED
 import androidx.camera.core.impl.StreamSpec
 import androidx.camera.core.impl.Timebase
 import androidx.camera.core.impl.utils.CameraOrientationUtil.surfaceRotationToDegrees
 import androidx.camera.core.impl.utils.CompareSizesByArea
 import androidx.camera.core.impl.utils.TransformUtils.rectToSize
 import androidx.camera.core.impl.utils.TransformUtils.rotateSize
+import androidx.camera.core.impl.utils.TransformUtils.sizeToRect
 import androidx.camera.core.impl.utils.TransformUtils.within360
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.directExecutor
 import androidx.camera.core.impl.utils.executor.CameraXExecutors.mainThreadExecutor
@@ -107,12 +111,12 @@ import androidx.camera.video.Quality.HD
 import androidx.camera.video.Quality.HIGHEST
 import androidx.camera.video.Quality.LOWEST
 import androidx.camera.video.Quality.NONE
+import androidx.camera.video.Quality.QUALITY_SOURCE_REGULAR
 import androidx.camera.video.Quality.SD
 import androidx.camera.video.Quality.UHD
 import androidx.camera.video.StreamInfo.StreamState
 import androidx.camera.video.impl.VideoCaptureConfig
 import androidx.camera.video.internal.VideoValidatedEncoderProfilesProxy
-import androidx.camera.video.internal.encoder.VideoEncoderConfig
 import androidx.camera.video.internal.encoder.VideoEncoderInfo
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -681,8 +685,7 @@ class VideoCaptureTest {
         // Arrange: create HD SDR VideoProfile.
         val videoProfileHdSdr =
             createFakeVideoProfileProxy(
-                RESOLUTION_720P.width,
-                RESOLUTION_720P.height,
+                RESOLUTION_720P,
                 videoMediaType = MIMETYPE_VIDEO_AVC,
                 videoBitDepth = EncoderProfilesProxy.VideoProfileProxy.BIT_DEPTH_8,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_NONE
@@ -690,8 +693,7 @@ class VideoCaptureTest {
         // Arrange: create HD HLG10 VideoProfile.
         val videoProfileHdHlg10 =
             createFakeVideoProfileProxy(
-                RESOLUTION_720P.width,
-                RESOLUTION_720P.height,
+                RESOLUTION_720P,
                 videoMediaType = MIMETYPE_VIDEO_HEVC,
                 videoBitDepth = EncoderProfilesProxy.VideoProfileProxy.BIT_DEPTH_10,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HLG
@@ -699,8 +701,7 @@ class VideoCaptureTest {
         // Arrange: create HD HDR10 VideoProfile.
         val videoProfileHdHdr10 =
             createFakeVideoProfileProxy(
-                RESOLUTION_720P.width,
-                RESOLUTION_720P.height,
+                RESOLUTION_720P,
                 videoMediaType = MIMETYPE_VIDEO_AV1,
                 videoBitDepth = EncoderProfilesProxy.VideoProfileProxy.BIT_DEPTH_10,
                 videoHdrFormat = EncoderProfiles.VideoProfile.HDR_HDR10
@@ -772,8 +773,8 @@ class VideoCaptureTest {
             createVideoCapture(
                 videoOutput,
                 dynamicRange = DynamicRange.HDR_UNSPECIFIED_10_BIT,
-                videoEncoderInfoFinder = { config ->
-                    when (config.mimeType) {
+                videoEncoderInfoFinder = { mimeType ->
+                    when (mimeType) {
                         MIMETYPE_VIDEO_AVC -> { // SDR: H263
                             FakeVideoEncoderInfo(
                                 supportedWidths = Range.create(2, 1920),
@@ -793,7 +794,7 @@ class VideoCaptureTest {
                             )
                         }
                         else -> {
-                            throw AssertionError("Unknown mimeType: " + config.mimeType)
+                            throw AssertionError("Unknown mimeType: $mimeType")
                         }
                     }
                 }
@@ -894,7 +895,7 @@ class VideoCaptureTest {
 
         var surfaceResult: SurfaceRequest.Result? = null
         val videoOutput = createVideoOutput { surfaceRequest, _ ->
-            surfaceRequest.provideSurface(mock(Surface::class.java), directExecutor()) {
+            surfaceRequest.provideSurface(Surface(SurfaceTexture(0)), directExecutor()) {
                 surfaceResult = it
             }
         }
@@ -923,7 +924,7 @@ class VideoCaptureTest {
 
         var surfaceResult: SurfaceRequest.Result? = null
         val videoOutput = createVideoOutput { surfaceRequest, _ ->
-            surfaceRequest.provideSurface(mock(Surface::class.java), directExecutor()) {
+            surfaceRequest.provideSurface(Surface(SurfaceTexture(0)), directExecutor()) {
                 surfaceResult = it
             }
         }
@@ -1303,6 +1304,14 @@ class VideoCaptureTest {
         )
     }
 
+    @Test
+    fun suggestedStreamSpecSessionType_isPropagatedToSurfaceRequest() {
+        testSurfaceRequestContainsExpected(
+            sessionType = SESSION_TYPE_HIGH_SPEED,
+            expectedSessionType = SESSION_TYPE_HIGH_SPEED
+        )
+    }
+
     private fun testSetTargetRotation_transformationInfoUpdated(
         lensFacing: Int = LENS_FACING_BACK,
         sensorRotationDegrees: Int = 0,
@@ -1318,7 +1327,7 @@ class VideoCaptureTest {
             hasTransform = hasCameraTransform,
         )
         createCameraUseCaseAdapter(lensFacing = lensFacing)
-        var transformationInfo: SurfaceRequest.TransformationInfo? = null
+        var transformationInfo: TransformationInfo? = null
         val videoOutput =
             createVideoOutput(
                 surfaceRequestListener = { surfaceRequest, _ ->
@@ -1405,7 +1414,10 @@ class VideoCaptureTest {
         val videoOutput =
             createVideoOutput(
                 surfaceRequestListener = { surfaceRequest, _ ->
-                    surfaceRequest.provideSurface(mock(Surface::class.java), mainThreadExecutor()) {
+                    surfaceRequest.provideSurface(
+                        Surface(SurfaceTexture(0)),
+                        mainThreadExecutor()
+                    ) {
                         appSurfaceReadyToRelease = true
                     }
                 }
@@ -1578,17 +1590,12 @@ class VideoCaptureTest {
         setupCamera(sensorRotation = sourceRotationDegrees)
         createCameraUseCaseAdapter()
         videoOutput.updateStreamInfo(
-            StreamInfo.of(
-                StreamInfo.STREAM_ID_ANY,
-                StreamState.INACTIVE,
-                SurfaceRequest.TransformationInfo.of(
-                    targetCropRect,
-                    targetRotationDegrees,
-                    0,
-                    false,
-                    Matrix(),
-                    /*mirroring=*/ false
-                )
+            createStreamInfo(
+                transformationInfo =
+                    createTransformationInfo(
+                        cropRect = targetCropRect,
+                        rotationDegrees = targetRotationDegrees
+                    )
             )
         )
         videoCapture.setViewPortCropRect(sourceCropRect)
@@ -1616,6 +1623,27 @@ class VideoCaptureTest {
             cropRect = cropRect,
             expectedCropRect = expectedCropRect
         )
+    }
+
+    @Test
+    fun sessionConfigMatchesStreamSpec() {
+        // Arrange.
+        setupCamera()
+        createCameraUseCaseAdapter()
+        val videoCapture = createVideoCapture(createVideoOutput())
+        setSuggestedStreamSpec(
+            resolution = ANY_SIZE,
+            sessionType = SESSION_TYPE_HIGH_SPEED,
+            expectedFrameRate = FRAME_RATE_RANGE_FIXED_30
+        )
+
+        // Act.
+        addAndAttachUseCases(videoCapture)
+
+        // Assert.
+        val sessionConfig = videoCapture.sessionConfig
+        assertThat(sessionConfig.sessionType).isEqualTo(SESSION_TYPE_HIGH_SPEED)
+        assertThat(sessionConfig.expectedFrameRateRange).isEqualTo(FRAME_RATE_RANGE_FIXED_30)
     }
 
     @Test
@@ -1650,11 +1678,318 @@ class VideoCaptureTest {
         assertThat(videoCapture.isVideoStabilizationEnabled).isTrue()
     }
 
+    @Test
+    fun verifyResolutionInfo_bindAndUnbind_returnNullOrNot() {
+        // Arrange.
+        setupCamera()
+        createCameraUseCaseAdapter()
+        setSuggestedStreamSpec(resolution = ANY_SIZE)
+        val videoCapture = createVideoCapture()
+
+        // Assert: is not bound yet, return null.
+        assertThat(videoCapture.resolutionInfo).isNull()
+
+        // Act.
+        addAndAttachUseCases(videoCapture)
+
+        // Assert: is bound, return non-null.
+        assertThat(videoCapture.resolutionInfo).isNotNull()
+
+        // Act.
+        detachAndRemoveUseCases(videoCapture)
+
+        // Assert: is unbound, return null.
+        assertThat(videoCapture.resolutionInfo).isNull()
+    }
+
+    @Test
+    fun verifyResolutionInfo_contentMatch() {
+        val resolution = Size(1920, 1080)
+        val sensorRotationDegrees = 90
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = sensorRotationDegrees,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = sensorRotationDegrees,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_setTargetRotationOnBackCamera_rotationMatched() {
+        val resolution = Size(1920, 1080)
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 0,
+            lensFacing = LENS_FACING_BACK,
+            targetRotation = Surface.ROTATION_90,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 270,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_setTargetRotationOnFrontCamera_rotationMatched() {
+        val resolution = Size(1920, 1080)
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 0,
+            lensFacing = LENS_FACING_FRONT,
+            targetRotation = Surface.ROTATION_90,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 90,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_hasViewPortCropRect_cropRectMatched() {
+        val resolution = Size(1920, 1080)
+        val sensorRotationDegrees = 90
+        val cropRect = Rect(20, 30, 1900, 1050) // 1880x1020
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = sensorRotationDegrees,
+            cropRect = cropRect,
+            expectedResolution = resolution,
+            expectedCropRect = cropRect,
+            expectedRotationDegrees = sensorRotationDegrees,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_hasViewPortCropRectAndEncoderAlignment_cropRectAligned() {
+        val resolution = Size(1920, 1080)
+        val sensorRotationDegrees = 90
+        val cropRect = Rect(20, 30, 1900, 1050) // 1880x1020
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = sensorRotationDegrees,
+            cropRect = cropRect,
+            videoEncoderInfoFinder = {
+                createVideoEncoderInfo(widthAlignment = 16, heightAlignment = 16)
+            },
+            expectedResolution = resolution,
+            expectedCropRect = Rect(24, 28, 1896, 1052), // 1872x1024
+            expectedRotationDegrees = sensorRotationDegrees,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_simulateStreamSharing_contentMatched() {
+        val resolution = Size(123, 456) // An arbitrary resolution from StreamSharing.
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 0, // Sensor rotation has been applied in StreamSharing.
+            hasCameraTransform = false, // StreamSharing indicator.
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 0,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_simulateStreamSharing_setTargetRotationAndMirroringOnBackCamera() {
+        val resolution = Size(123, 456) // An arbitrary resolution from StreamSharing.
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 0, // Rotation has been applied in StreamSharing.
+            lensFacing = LENS_FACING_BACK,
+            hasCameraTransform = false, // StreamSharing indicator.
+            targetRotation = Surface.ROTATION_90,
+            mirrorMode = MIRROR_MODE_ON,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 90,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_simulateStreamSharing_setTargetRotationAndMirroringOnFrontCamera() {
+        val resolution = Size(123, 456) // An arbitrary resolution from StreamSharing.
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 0, // Rotation has been applied in StreamSharing.
+            lensFacing = LENS_FACING_FRONT,
+            hasCameraTransform = false, // StreamSharing indicator.
+            videoOutput = createVideoOutput(),
+            targetRotation = Surface.ROTATION_90,
+            mirrorMode = MIRROR_MODE_ON,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 270,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_simulatePersistentRecording_rotationCompensated() {
+        // Simulate flipping camera from back to front.
+        val resolution = Size(1920, 1080)
+        val cropRect = sizeToRect(resolution)
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 270,
+            lensFacing = LENS_FACING_FRONT,
+            videoOutput =
+                createVideoOutput(
+                    streamInfo =
+                        StreamInfo.of(
+                            StreamInfo.STREAM_ID_ANY,
+                            StreamState.ACTIVE,
+                            createTransformationInfo(cropRect = cropRect, rotationDegrees = 90)
+                        )
+                ),
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 180,
+        )
+    }
+
+    @Test
+    fun verifyResolutionInfo_simulatePersistentRecording_frontMirroring_rotationCompensated() {
+        // Simulate flipping camera from back to front and set mirroring on front.
+        val resolution = Size(1920, 1080)
+        val cropRect = sizeToRect(resolution)
+        testResolutionInfoContainsExpected(
+            resolution = resolution,
+            sensorRotationDegrees = 270,
+            lensFacing = LENS_FACING_FRONT,
+            videoOutput =
+                createVideoOutput(
+                    streamInfo =
+                        createStreamInfo(
+                            transformationInfo =
+                                createTransformationInfo(
+                                    cropRect = cropRect,
+                                    rotationDegrees = 90,
+                                    mirroring = false
+                                )
+                        )
+                ),
+            mirrorMode = MIRROR_MODE_ON,
+            expectedResolution = resolution,
+            expectedCropRect = sizeToRect(resolution),
+            expectedRotationDegrees = 0,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_matchConfiguredResolution() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_720P,
+            qualitySelector = QualitySelector.fromOrderedList(listOf(FHD, HD, SD)),
+            expectedQuality = HD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_setHighestQuality_returnSpecificQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_1080P,
+            qualitySelector = QualitySelector.from(HIGHEST),
+            expectedQuality = FHD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_setLowestQuality_returnSpecificQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = RESOLUTION_480P,
+            qualitySelector = QualitySelector.from(LOWEST),
+            expectedQuality = SD,
+        )
+    }
+
+    @Test
+    fun verifySelectedQuality_configuredResolutionNotMatch_returnNearestQuality() {
+        testSelectedQualityIsExpected(
+            streamSpecConfiguredResolution = Size(1920, 1000),
+            qualitySelector = QualitySelector.fromOrderedList(listOf(FHD, HD, SD)),
+            expectedQuality = FHD,
+        )
+    }
+
+    private fun testSelectedQualityIsExpected(
+        streamSpecConfiguredResolution: Size,
+        streamSpecResolution: Size = streamSpecConfiguredResolution,
+        qualitySelector: QualitySelector,
+        profiles: Map<Int, EncoderProfilesProxy> = FULL_QUALITY_PROFILES_MAP,
+        videoCapabilities: VideoCapabilities = FULL_QUALITY_VIDEO_CAPABILITIES,
+        expectedQuality: Quality?
+    ) {
+        // Arrange.
+        setupCamera(profiles = profiles)
+        createCameraUseCaseAdapter()
+        setSuggestedStreamSpec(
+            resolution = streamSpecResolution,
+            originalConfiguredResolution = streamSpecConfiguredResolution
+        )
+        val videoOutput =
+            createVideoOutput(
+                videoCapabilities = videoCapabilities,
+                mediaSpec =
+                    MediaSpec.builder()
+                        .configureVideo { it.setQualitySelector(qualitySelector) }
+                        .build()
+            )
+        val videoCapture = createVideoCapture(videoOutput = videoOutput)
+
+        // Act.
+        addAndAttachUseCases(videoCapture)
+
+        // Assert.
+        assertThat(videoCapture.selectedQuality).isEqualTo(expectedQuality)
+    }
+
+    private fun testResolutionInfoContainsExpected(
+        resolution: Size,
+        sensorRotationDegrees: Int,
+        lensFacing: Int = LENS_FACING_BACK,
+        hasCameraTransform: Boolean = true,
+        videoOutput: VideoOutput? = null,
+        targetRotation: Int? = null,
+        cropRect: Rect? = null,
+        mirrorMode: Int? = null,
+        videoEncoderInfoFinder: VideoEncoderInfo.Finder? = null,
+        expectedResolution: Size,
+        expectedRotationDegrees: Int,
+        expectedCropRect: Rect,
+    ) {
+        // Arrange.
+        setupCamera(
+            sensorRotation = sensorRotationDegrees,
+            lensFacing = lensFacing,
+            hasTransform = hasCameraTransform
+        )
+        createCameraUseCaseAdapter(lensFacing = lensFacing)
+        setSuggestedStreamSpec(resolution = resolution)
+        val videoCapture: VideoCapture<VideoOutput> =
+            createVideoCapture(
+                videoOutput = videoOutput,
+                targetRotation = targetRotation,
+                mirrorMode = mirrorMode,
+                videoEncoderInfoFinder = videoEncoderInfoFinder
+            )
+        cropRect?.let { videoCapture.setViewPortCropRect(it) }
+
+        // Act.
+        addAndAttachUseCases(videoCapture)
+
+        // Assert.
+        val resolutionInfo = videoCapture.resolutionInfo!!
+        assertThat(resolutionInfo.resolution).isEqualTo(expectedResolution)
+        assertThat(resolutionInfo.cropRect).isEqualTo(expectedCropRect)
+        assertThat(resolutionInfo.rotationDegrees).isEqualTo(expectedRotationDegrees)
+    }
+
     private fun testSurfaceRequestContainsExpected(
         resolution: Size = RESOLUTION_720P,
         videoEncoderInfo: VideoEncoderInfo = createVideoEncoderInfo(),
         cropRect: Rect? = null,
         expectedCropRect: Rect? = null,
+        sessionType: Int? = null,
+        expectedSessionType: Int? = null,
         targetFrameRate: Range<Int>? = null,
         expectedFrameRate: Range<Int> = SurfaceRequest.FRAME_RATE_RANGE_UNSPECIFIED,
         requestedDynamicRange: DynamicRange? = null,
@@ -1665,6 +2000,7 @@ class VideoCaptureTest {
         createCameraUseCaseAdapter()
         setSuggestedStreamSpec(
             resolution = resolution,
+            sessionType = sessionType,
             expectedFrameRate = expectedFrameRate,
             dynamicRange = expectedDynamicRange
         )
@@ -1696,6 +2032,10 @@ class VideoCaptureTest {
             assertThat(videoCapture.cropRect).isEqualTo(it)
         }
 
+        expectedSessionType?.let {
+            assertThat(surfaceRequest!!.sessionType).isEqualTo(expectedSessionType)
+        }
+
         if (expectedFrameRate != StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED) {
             assertThat(surfaceRequest!!.expectedFrameRate).isEqualTo(expectedFrameRate)
         }
@@ -1712,6 +2052,29 @@ class VideoCaptureTest {
         val resolutions = (videoCapture.currentConfig as ImageOutputConfig).customOrderedResolutions
         assertThat(resolutions).containsExactlyElementsIn(expectedResolutions).inOrder()
     }
+
+    private fun createTransformationInfo(
+        cropRect: Rect,
+        rotationDegrees: Int = 0,
+        targetRotation: Int = Surface.ROTATION_0,
+        hasCameraTransform: Boolean = true,
+        sensorToBufferTransform: Matrix = Matrix(),
+        mirroring: Boolean = false
+    ): TransformationInfo =
+        TransformationInfo.of(
+            cropRect,
+            rotationDegrees,
+            targetRotation,
+            hasCameraTransform,
+            sensorToBufferTransform,
+            mirroring
+        )
+
+    private fun createStreamInfo(
+        streamId: Int = StreamInfo.STREAM_ID_ANY,
+        streamState: StreamState = StreamState.ACTIVE,
+        transformationInfo: TransformationInfo? = null,
+    ) = StreamInfo.of(streamId, streamState, transformationInfo)
 
     private fun createVideoEncoderInfo(
         canSwapWidthHeight: Boolean = true,
@@ -1730,29 +2093,27 @@ class VideoCaptureTest {
     }
 
     private fun createVideoOutput(
-        streamState: StreamState = StreamState.ACTIVE,
+        streamInfo: StreamInfo = createStreamInfo(),
         mediaSpec: MediaSpec? = MediaSpec.builder().build(),
         videoCapabilities: VideoCapabilities = CAMERA_0_VIDEO_CAPABILITIES,
         surfaceRequestListener: (SurfaceRequest, Timebase) -> Unit = { surfaceRequest, _ ->
             surfaceRequest.willNotProvideSurface()
         },
     ): TestVideoOutput =
-        TestVideoOutput(streamState, mediaSpec, videoCapabilities) { surfaceRequest, timebase ->
+        TestVideoOutput(streamInfo, mediaSpec, videoCapabilities) { surfaceRequest, timebase ->
             surfaceRequestsToRelease.add(surfaceRequest)
             surfaceRequestListener.invoke(surfaceRequest, timebase)
         }
 
     private class TestVideoOutput(
-        streamState: StreamState,
+        streamInfo: StreamInfo,
         mediaSpec: MediaSpec?,
         val videoCapabilities: VideoCapabilities = CAMERA_0_VIDEO_CAPABILITIES,
         val surfaceRequestCallback: (SurfaceRequest, Timebase) -> Unit
     ) : VideoOutput {
 
         private val streamInfoObservable: MutableStateObservable<StreamInfo> =
-            MutableStateObservable.withInitialState(
-                StreamInfo.of(StreamInfo.STREAM_ID_ANY, streamState)
-            )
+            MutableStateObservable.withInitialState(streamInfo)
 
         private val mediaSpecObservable: MutableStateObservable<MediaSpec> =
             MutableStateObservable.withInitialState(mediaSpec)
@@ -1761,7 +2122,11 @@ class VideoCaptureTest {
             surfaceRequestCallback.invoke(surfaceRequest, Timebase.UPTIME)
         }
 
-        override fun onSurfaceRequested(surfaceRequest: SurfaceRequest, timebase: Timebase) {
+        override fun onSurfaceRequested(
+            surfaceRequest: SurfaceRequest,
+            timebase: Timebase,
+            hasGlProcessing: Boolean
+        ) {
             surfaceRequestCallback.invoke(surfaceRequest, timebase)
         }
 
@@ -1769,7 +2134,10 @@ class VideoCaptureTest {
 
         override fun getMediaSpec(): Observable<MediaSpec> = mediaSpecObservable
 
-        override fun getMediaCapabilities(cameraInfo: CameraInfo): VideoCapabilities {
+        override fun getMediaCapabilities(
+            cameraInfo: CameraInfo,
+            sessionType: Int
+        ): VideoCapabilities {
             return videoCapabilities
         }
 
@@ -1797,17 +2165,15 @@ class VideoCaptureTest {
     }
 
     private fun createVideoCapture(
-        videoOutput: VideoOutput = createVideoOutput(),
+        videoOutput: VideoOutput? = null,
         targetRotation: Int? = null,
         mirrorMode: Int? = null,
         targetResolution: Size? = null,
         targetFrameRate: Range<Int>? = null,
         dynamicRange: DynamicRange? = null,
-        videoEncoderInfoFinder: Function<VideoEncoderConfig, VideoEncoderInfo> = Function {
-            createVideoEncoderInfo()
-        },
+        videoEncoderInfoFinder: VideoEncoderInfo.Finder? = null,
     ): VideoCapture<VideoOutput> =
-        VideoCapture.Builder(videoOutput)
+        VideoCapture.Builder(videoOutput ?: createVideoOutput())
             .setSessionOptionUnpacker { _, _, _ -> }
             .apply {
                 targetRotation?.let { setTargetRotation(it) }
@@ -1815,7 +2181,10 @@ class VideoCaptureTest {
                 targetResolution?.let { setTargetResolution(it) }
                 targetFrameRate?.let { setTargetFrameRate(it) }
                 dynamicRange?.let { setDynamicRange(it) }
-                setVideoEncoderInfoFinder(videoEncoderInfoFinder)
+                setVideoEncoderInfoFinder(
+                    videoEncoderInfoFinder
+                        ?: VideoEncoderInfo.Finder { _ -> createVideoEncoderInfo() }
+                )
             }
             .build()
 
@@ -1842,14 +2211,20 @@ class VideoCaptureTest {
 
     private fun setSuggestedStreamSpec(
         resolution: Size,
+        originalConfiguredResolution: Size? = null,
+        sessionType: Int? = DEFAULT_SESSION_TYPE,
         expectedFrameRate: Range<Int> = StreamSpec.FRAME_RATE_RANGE_UNSPECIFIED,
         dynamicRange: DynamicRange? = null
     ) {
         setSuggestedStreamSpec(
             StreamSpec.builder(resolution)
                 .apply {
+                    sessionType?.let { setSessionType(sessionType) }
                     setExpectedFrameRateRange(expectedFrameRate)
                     dynamicRange?.let { setDynamicRange(dynamicRange) }
+                    originalConfiguredResolution?.let {
+                        setOriginalConfiguredResolution(originalConfiguredResolution)
+                    }
                 }
                 .build()
         )
@@ -1985,8 +2360,6 @@ class VideoCaptureTest {
                 QUALITY_LOW to PROFILES_720P,
             )
 
-        // TODO(b/278168212): Only SDR is checked by now. The default value of DynamicRange in
-        //  VideoCapture is SDR.
         private val FULL_QUALITY_VIDEO_CAPABILITIES =
             createFakeVideoCapabilities(mapOf(DynamicRange.SDR to FULL_QUALITY_PROFILES_MAP))
 
@@ -2000,7 +2373,7 @@ class VideoCaptureTest {
             val videoCapabilitiesMap =
                 profilesMap.mapValues {
                     val provider = FakeEncoderProfilesProvider.Builder().addAll(it.value).build()
-                    CapabilitiesByQuality(provider)
+                    CapabilitiesByQuality(provider, QUALITY_SOURCE_REGULAR)
                 }
 
             return object : VideoCapabilities {
@@ -2019,7 +2392,14 @@ class VideoCaptureTest {
                     quality: Quality,
                     dynamicRange: DynamicRange
                 ): Boolean {
-                    return videoCapabilitiesMap[dynamicRange]?.isQualitySupported(quality) ?: false
+                    return videoCapabilitiesMap[dynamicRange]?.isQualitySupported(quality) == true
+                }
+
+                override fun getSupportedFrameRateRanges(
+                    quality: Quality,
+                    dynamicRange: DynamicRange
+                ): Set<Range<Int>> {
+                    return emptySet()
                 }
 
                 override fun isStabilizationSupported(): Boolean {

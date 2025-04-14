@@ -31,6 +31,7 @@ import kotlin.reflect.KType
 /**
  * Add the [content] [Composable] as bottom sheet content to the [NavGraphBuilder]
  *
+ * @sample androidx.compose.material.navigation.samples.BottomSheetNavDemo
  * @param route route for the destination
  * @param arguments list of arguments to associate with destination
  * @param deepLinks list of deep links to associate with the destinations
@@ -60,6 +61,7 @@ public fun NavGraphBuilder.bottomSheet(
 /**
  * Add the [content] [Composable] as bottom sheet content to the [NavGraphBuilder]
  *
+ * @sample androidx.compose.material.navigation.samples.BottomSheetNavDemo
  * @param T route from a [KClass] for the destination
  * @param typeMap map of destination arguments' kotlin type [KType] to its respective custom
  *   [NavType]. May be empty if [T] does not use custom NavTypes.
@@ -73,10 +75,21 @@ public inline fun <reified T : Any> NavGraphBuilder.bottomSheet(
     deepLinks: List<NavDeepLink> = emptyList(),
     noinline content: @Composable ColumnScope.(backstackEntry: NavBackStackEntry) -> Unit
 ) {
+    bottomSheet(T::class, typeMap, arguments, deepLinks, content)
+}
+
+@PublishedApi
+internal fun NavGraphBuilder.bottomSheet(
+    route: KClass<*>,
+    typeMap: Map<KType, @JvmSuppressWildcards NavType<*>>,
+    arguments: List<NamedNavArgument>,
+    deepLinks: List<NavDeepLink> = emptyList(),
+    content: @Composable ColumnScope.(backstackEntry: NavBackStackEntry) -> Unit
+) {
     destination(
         BottomSheetNavigatorDestinationBuilder(
                 provider[BottomSheetNavigator::class],
-                T::class,
+                route,
                 typeMap,
                 content
             )

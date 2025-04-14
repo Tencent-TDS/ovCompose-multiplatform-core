@@ -17,7 +17,6 @@
 package androidx.room.solver.prepared.binder
 
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
 import androidx.room.compiler.codegen.XMemberName
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
@@ -39,15 +38,6 @@ class LambdaPreparedQueryResultBinder(
     private val functionName: XMemberName,
     adapter: PreparedQueryResultAdapter?
 ) : PreparedQueryResultBinder(adapter) {
-
-    override fun executeAndReturn(
-        prepareQueryStmtBlock: CodeGenScope.() -> String,
-        preparedStmtProperty: XPropertySpec?,
-        dbProperty: XPropertySpec,
-        scope: CodeGenScope
-    ) {
-        error("Wrong executeAndReturn invoked")
-    }
 
     override fun executeAndReturn(
         sqlQueryVar: String,
@@ -91,6 +81,4 @@ class LambdaPreparedQueryResultBinder(
             )
         scope.builder.add("return %L", performBlock)
     }
-
-    override fun isMigratedToDriver() = true
 }

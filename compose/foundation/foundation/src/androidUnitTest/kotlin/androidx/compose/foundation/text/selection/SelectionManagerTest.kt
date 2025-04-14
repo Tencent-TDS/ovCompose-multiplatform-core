@@ -20,10 +20,12 @@ import androidx.collection.LongObjectMap
 import androidx.collection.emptyLongObjectMap
 import androidx.collection.longObjectMapOf
 import androidx.collection.mutableLongObjectMapOf
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagFlipperRunner
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagSuppress
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
@@ -31,10 +33,10 @@ import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.util.fastForEach
 import com.google.common.truth.Truth.assertThat
 import kotlin.test.fail
+import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 import org.mockito.kotlin.any
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
@@ -44,7 +46,7 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
-@RunWith(JUnit4::class)
+@RunWith(ContextMenuFlagFlipperRunner::class)
 class SelectionManagerTest {
     private val selectionRegistrar = spy(SelectionRegistrarImpl())
     private val selectable = FakeSelectable()
@@ -87,7 +89,7 @@ class SelectionManagerTest {
         )
 
     private val hapticFeedback = mock<HapticFeedback>()
-    private val clipboardManager = mock<ClipboardManager>()
+    private val clipboard = mock<Clipboard>()
     private val textToolbar = mock<TextToolbar>()
 
     @Before
@@ -106,7 +108,6 @@ class SelectionManagerTest {
             )
         selectionManager.containerLayoutCoordinates = containerLayoutCoordinates
         selectionManager.hapticFeedBack = hapticFeedback
-        selectionManager.clipboardManager = clipboardManager
         selectionManager.textToolbar = textToolbar
         selectionManager.selection = fakeSelection
         selectionManager.onSelectionChange = { onSelectionChangeCalledTimes++ }
@@ -819,17 +820,17 @@ class SelectionManagerTest {
     }
 
     @Test
-    fun copy_selection_null_not_trigger_clipboardManager() {
+    fun copy_selection_null_not_trigger_clipboardManager() = runTest {
         selectionManager.selection = null
         selectionRegistrar.subselections = emptyLongObjectMap()
 
         selectionManager.copy()
 
-        verify(clipboardManager, times(0)).setText(any())
+        verify(clipboard, times(0)).setClipEntry(any())
     }
 
     @Test
-    fun copy_selection_not_null_trigger_clipboardManager_setText() {
+    fun copy_selection_not_null_trigger_clipboardManager_setText() = runTest {
         val text = "Text Demo"
         val annotatedString = AnnotatedString(text = text)
         val startOffset = text.indexOf('m')
@@ -854,12 +855,14 @@ class SelectionManagerTest {
         selectionManager.selection = selection
         selectionRegistrar.subselections = longObjectMapOf(selectableId, selection)
 
+        var actualTextToCopy: AnnotatedString? = null
+        selectionManager.onCopyHandler = { textToCopy -> actualTextToCopy = textToCopy }
         selectionManager.copy()
 
-        verify(clipboardManager, times(1))
-            .setText(annotatedString.subSequence(endOffset, startOffset))
+        assertThat(actualTextToCopy).isEqualTo(annotatedString.subSequence(endOffset, startOffset))
     }
 
+    @ContextMenuFlagSuppress(suppressedFlagValue = true)
     @Test
     fun showSelectionToolbar_trigger_textToolbar_showMenu() {
         val text = "Text Demo"
@@ -890,9 +893,10 @@ class SelectionManagerTest {
 
         selectionManager.showToolbar = true
 
-        verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), isNull(), any())
+        verify(textToolbar, times(1)).showMenu(any(), any(), isNull(), isNull(), any(), isNull())
     }
 
+    @ContextMenuFlagSuppress(suppressedFlagValue = true)
     @Test
     fun showSelectionToolbar_withoutFocus_notTrigger_textToolbar_showMenu() {
         val text = "Text Demo"
@@ -922,7 +926,7 @@ class SelectionManagerTest {
 
         selectionManager.showToolbar = true
 
-        verify(textToolbar, never()).showMenu(any(), any(), isNull(), isNull(), isNull())
+        verify(textToolbar, never()).showMenu(any(), any(), isNull(), isNull(), isNull(), any())
     }
 
     @Test
@@ -943,9 +947,12 @@ class SelectionManagerTest {
                     )
             )
         var selection: Selection? = fakeSelection
-        val lambda: (Selection?) -> Unit = { selection = it }
-        val spyLambda = spy(lambda)
-        selectionManager.onSelectionChange = spyLambda
+        var onSelectionChangeInvocationCount = 0
+        val onSelectionChangeLambda: (Selection?) -> Unit = { newSelection ->
+            selection = newSelection
+            onSelectionChangeInvocationCount++
+        }
+        selectionManager.onSelectionChange = onSelectionChangeLambda
         selectionManager.selection = fakeSelection
 
         selectionManager.onRelease()
@@ -953,7 +960,7 @@ class SelectionManagerTest {
         verify(selectionRegistrar).subselections = emptyLongObjectMap()
 
         assertThat(selection).isNull()
-        verify(spyLambda, times(1)).invoke(null)
+        assertThat(onSelectionChangeInvocationCount).isEqualTo(1)
         verify(hapticFeedback, times(1)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -975,9 +982,12 @@ class SelectionManagerTest {
                     )
             )
         var selection: Selection? = fakeSelection
-        val lambda: (Selection?) -> Unit = { selection = it }
-        val spyLambda = spy(lambda)
-        selectionManager.onSelectionChange = spyLambda
+        var onSelectionChangeInvocationCount = 0
+        val onSelectionChangeLambda: (Selection?) -> Unit = { newSelection ->
+            selection = newSelection
+            onSelectionChangeInvocationCount++
+        }
+        selectionManager.onSelectionChange = onSelectionChangeLambda
         selectionManager.selection = fakeSelection
 
         selectionRegistrar.subselections = longObjectMapOf(startSelectableId, fakeSelection)
@@ -985,7 +995,7 @@ class SelectionManagerTest {
 
         verify(selectionRegistrar).subselections = emptyLongObjectMap()
         assertThat(selection).isNull()
-        verify(spyLambda, times(1)).invoke(null)
+        assertThat(onSelectionChangeInvocationCount).isEqualTo(1)
         verify(hapticFeedback, times(1)).performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
 
@@ -1263,6 +1273,46 @@ class SelectionManagerTest {
             SelectAllData(text = "Text", selection = TextRange(0, 4)),
             SelectAllData(text = "Text", selection = null),
         )
+    }
+
+    @Test
+    fun startHandleLineHeight_valid() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(startSelectable)
+        whenever(startSelectable.getLineHeight(fakeSelection.start.offset)).thenReturn(lineHeightPx)
+
+        assertThat(selectionManager.startHandleLineHeight).isEqualTo(lineHeightPx)
+    }
+
+    @Test
+    fun startHandleLineHeight_no_selection_return_zero() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(startSelectable)
+        whenever(startSelectable.getLineHeight(fakeSelection.start.offset)).thenReturn(lineHeightPx)
+
+        selectionManager.selection = null
+
+        assertThat(selectionManager.startHandleLineHeight).isZero()
+    }
+
+    @Test
+    fun endHandleLineHeight_valid() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(endSelectable)
+        whenever(endSelectable.getLineHeight(fakeSelection.end.offset)).thenReturn(lineHeightPx)
+
+        assertThat(selectionManager.endHandleLineHeight).isEqualTo(lineHeightPx)
+    }
+
+    @Test
+    fun endHandleLineHeight_no_selection_return_zero() {
+        val lineHeightPx = 15f
+        selectionRegistrar.subscribe(endSelectable)
+        whenever(endSelectable.getLineHeight(fakeSelection.end.offset)).thenReturn(lineHeightPx)
+
+        selectionManager.selection = null
+
+        assertThat(selectionManager.endHandleLineHeight).isZero()
     }
 
     private fun expectedSelection(

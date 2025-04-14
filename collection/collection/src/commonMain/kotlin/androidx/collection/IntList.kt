@@ -23,6 +23,7 @@ import androidx.collection.internal.throwIllegalArgumentException
 import androidx.collection.internal.throwIndexOutOfBoundsException
 import androidx.collection.internal.throwNoSuchElementException
 import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
@@ -60,7 +61,7 @@ public sealed class IntList(initialCapacity: Int) {
 
     /** The number of elements in the [IntList]. */
     @get:IntRange(from = 0)
-    public val size: Int
+    public inline val size: Int
         get() = _size
 
     /** Returns the last valid index in the [IntList]. This can be `-1` when the list is empty. */
@@ -73,12 +74,12 @@ public sealed class IntList(initialCapacity: Int) {
         get() = 0 until _size
 
     /** Returns `true` if the collection has no elements in it. */
-    public fun none(): Boolean {
+    public inline fun none(): Boolean {
         return isEmpty()
     }
 
     /** Returns `true` if there's at least one element in the collection. */
-    public fun any(): Boolean {
+    public inline fun any(): Boolean {
         return isNotEmpty()
     }
 
@@ -129,7 +130,7 @@ public sealed class IntList(initialCapacity: Int) {
     }
 
     /** Returns the number of elements in this list. */
-    public fun count(): Int = _size
+    public inline fun count(): Int = _size
 
     /**
      * Counts the number of elements matching [predicate].
@@ -288,7 +289,7 @@ public sealed class IntList(initialCapacity: Int) {
      */
     public operator fun get(@IntRange(from = 0) index: Int): Int {
         if (index !in 0 until _size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         return content[index]
     }
@@ -299,7 +300,7 @@ public sealed class IntList(initialCapacity: Int) {
      */
     public fun elementAt(@IntRange(from = 0) index: Int): Int {
         if (index !in 0 until _size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         return content[index]
     }
@@ -359,10 +360,10 @@ public sealed class IntList(initialCapacity: Int) {
     }
 
     /** Returns `true` if the [IntList] has no elements in it or `false` otherwise. */
-    public fun isEmpty(): Boolean = _size == 0
+    public inline fun isEmpty(): Boolean = _size == 0
 
     /** Returns `true` if there are elements in the [IntList] or `false` if it is empty. */
-    public fun isNotEmpty(): Boolean = _size != 0
+    public inline fun isNotEmpty(): Boolean = _size != 0
 
     /**
      * Returns the last element in the [IntList] or throws a [NoSuchElementException] if it
@@ -402,6 +403,43 @@ public sealed class IntList(initialCapacity: Int) {
             }
         }
         return -1
+    }
+
+    /**
+     * Searches this list the specified element in the range defined by [fromIndex] and [toIndex].
+     * The list is expected to be sorted into ascending order according to the natural ordering of
+     * its elements, otherwise the result is undefined.
+     *
+     * [fromIndex] must be >= 0 and < [toIndex], and [toIndex] must be <= [size], otherwise an an
+     * [IndexOutOfBoundsException] will be thrown.
+     *
+     * @return the index of the element if it is contained in the list within the specified range.
+     *   otherwise, the inverted insertion point `(-insertionPoint - 1)`. The insertion point is
+     *   defined as the index at which the element should be inserted, so that the list remains
+     *   sorted.
+     */
+    @JvmOverloads
+    public fun binarySearch(element: Int, fromIndex: Int = 0, toIndex: Int = size): Int {
+        if (fromIndex < 0 || fromIndex >= toIndex || toIndex > _size) {
+            throwIndexOutOfBoundsException("")
+        }
+
+        var low = fromIndex
+        var high = toIndex - 1
+
+        while (low <= high) {
+            val mid = low + high ushr 1
+            val midVal = content[mid]
+            if (midVal < element) {
+                low = mid + 1
+            } else if (midVal > element) {
+                high = mid - 1
+            } else {
+                return mid // key found
+            }
+        }
+
+        return -(low + 1) // key not found.
     }
 
     /**
@@ -533,7 +571,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public fun add(@IntRange(from = 0) index: Int, element: Int) {
         if (index !in 0.._size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         ensureCapacity(_size + 1)
         val content = content
@@ -558,7 +596,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public fun addAll(@IntRange(from = 0) index: Int, elements: IntArray): Boolean {
         if (index !in 0.._size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsException("")
         }
         if (elements.isEmpty()) return false
         ensureCapacity(_size + elements.size)
@@ -585,7 +623,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public fun addAll(@IntRange(from = 0) index: Int, elements: IntList): Boolean {
         if (index !in 0.._size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$_size")
+            throwIndexOutOfBoundsException("")
         }
         if (elements.isEmpty()) return false
         ensureCapacity(_size + elements._size)
@@ -612,7 +650,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      * Adds all [elements] to the end of the [MutableIntList] and returns `true` if the
      * [MutableIntList] was changed or `false` if [elements] was empty.
      */
-    public fun addAll(elements: IntList): Boolean {
+    public inline fun addAll(elements: IntList): Boolean {
         return addAll(_size, elements)
     }
 
@@ -620,17 +658,17 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      * Adds all [elements] to the end of the [MutableIntList] and returns `true` if the
      * [MutableIntList] was changed or `false` if [elements] was empty.
      */
-    public fun addAll(elements: IntArray): Boolean {
+    public inline fun addAll(elements: IntArray): Boolean {
         return addAll(_size, elements)
     }
 
     /** Adds all [elements] to the end of the [MutableIntList]. */
-    public operator fun plusAssign(elements: IntList) {
+    public inline operator fun plusAssign(elements: IntList) {
         addAll(_size, elements)
     }
 
     /** Adds all [elements] to the end of the [MutableIntList]. */
-    public operator fun plusAssign(elements: IntArray) {
+    public inline operator fun plusAssign(elements: IntArray) {
         addAll(_size, elements)
     }
 
@@ -731,7 +769,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public fun removeAt(@IntRange(from = 0) index: Int): Int {
         if (index !in 0 until _size) {
-            throwIndexOutOfBoundsException("Index $index must be in 0..$lastIndex")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         val content = content
         val item = content[index]
@@ -755,10 +793,10 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public fun removeRange(@IntRange(from = 0) start: Int, @IntRange(from = 0) end: Int) {
         if (start !in 0.._size || end !in 0.._size) {
-            throwIndexOutOfBoundsException("Start ($start) and end ($end) must be in 0..$_size")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         if (end < start) {
-            throwIllegalArgumentException("Start ($start) is more than end ($end)")
+            throwIllegalArgumentException("The end index must be < start index")
         }
         if (end != start) {
             if (end < _size) {
@@ -815,7 +853,7 @@ public class MutableIntList(initialCapacity: Int = 16) : IntList(initialCapacity
      */
     public operator fun set(@IntRange(from = 0) index: Int, element: Int): Int {
         if (index !in 0 until _size) {
-            throwIndexOutOfBoundsException("set index $index must be between 0 .. $lastIndex")
+            throwIndexOutOfBoundsException("Index must be between 0 and size")
         }
         val content = content
         val old = content[index]
@@ -895,3 +933,35 @@ public fun mutableIntListOf(element1: Int, element2: Int, element3: Int): Mutabl
 /** @return a new [MutableIntList] with the given elements, in order. */
 public inline fun mutableIntListOf(vararg elements: Int): MutableIntList =
     MutableIntList(elements.size).apply { plusAssign(elements) }
+
+/**
+ * Builds a new [IntList] by populating a [MutableIntList] using the given [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutableIntList] can be populated.
+ */
+public inline fun buildIntList(
+    builderAction: MutableIntList.() -> Unit,
+): IntList {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableIntList().apply(builderAction)
+}
+
+/**
+ * Builds a new [IntList] by populating a [MutableIntList] using the given [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of elements added in the [builderAction].
+ * @param builderAction Lambda in which the [MutableIntList] can be populated.
+ */
+public inline fun buildIntList(
+    initialCapacity: Int,
+    builderAction: MutableIntList.() -> Unit,
+): IntList {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableIntList(initialCapacity).apply(builderAction)
+}

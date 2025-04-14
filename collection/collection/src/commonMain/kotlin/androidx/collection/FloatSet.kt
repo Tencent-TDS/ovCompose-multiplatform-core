@@ -23,11 +23,14 @@
     "PrivatePropertyName",
     "NOTHING_TO_INLINE"
 )
+@file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
 import androidx.annotation.IntRange
 import androidx.collection.internal.requirePrecondition
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
@@ -98,6 +101,38 @@ public fun mutableFloatSetOf(element1: Float, element2: Float, element3: Float):
 /** Returns a new [MutableFloatSet] with the specified elements. */
 public fun mutableFloatSetOf(vararg elements: Float): MutableFloatSet =
     MutableFloatSet(elements.size).apply { plusAssign(elements) }
+
+/**
+ * Builds a new [FloatSet] by populating a [MutableFloatSet] using the given [builderAction].
+ *
+ * The set passed as a receiver to the [builderAction] is valid only inside that function. Using it
+ * outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutableFloatSet] can be populated.
+ */
+public inline fun buildFloatSet(
+    builderAction: MutableFloatSet.() -> Unit,
+): FloatSet {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableFloatSet().apply(builderAction)
+}
+
+/**
+ * Builds a new [FloatSet] by populating a [MutableFloatSet] using the given [builderAction].
+ *
+ * The set passed as a receiver to the [builderAction] is valid only inside that function. Using it
+ * outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of elements added in the [builderAction].
+ * @param builderAction Lambda in which the [MutableFloatSet] can be populated.
+ */
+public inline fun buildFloatSet(
+    initialCapacity: Int,
+    builderAction: MutableFloatSet.() -> Unit,
+): FloatSet {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableFloatSet(initialCapacity).apply(builderAction)
+}
 
 /**
  * [FloatSet] is a container with a [Set]-like interface designed to avoid allocations, including
@@ -739,7 +774,6 @@ public class MutableFloatSet(initialCapacity: Int = DefaultScatterCapacity) : Fl
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -747,7 +781,6 @@ public class MutableFloatSet(initialCapacity: Int = DefaultScatterCapacity) : Fl
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -791,21 +824,15 @@ public class MutableFloatSet(initialCapacity: Int = DefaultScatterCapacity) : Fl
 
                 elements[targetIndex] = elements[index]
                 elements[index] = 0f
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                elements[swapIndex] = elements[targetIndex]
+                val oldElement = elements[targetIndex]
                 elements[targetIndex] = elements[index]
-                elements[index] = elements[swapIndex]
+                elements[index] = oldElement
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location

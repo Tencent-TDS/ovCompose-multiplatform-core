@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,8 +35,10 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledIconToggleButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption.Companion.Narrow
 import androidx.compose.material3.IconButtonDefaults.IconButtonWidthOption.Companion.Wide
@@ -46,6 +49,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,13 +87,13 @@ fun IconButtonMeasurementsDemo() {
             // XSmall uniform round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xSmallContainerSize()),
-                shape = IconButtonDefaults.xSmallRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraSmallContainerSize()),
+                shape = IconButtonDefaults.extraSmallRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
                 )
             }
 
@@ -134,13 +139,13 @@ fun IconButtonMeasurementsDemo() {
             // XLarge uniform round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xLargeContainerSize()),
-                shape = IconButtonDefaults.xLargeRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraLargeContainerSize()),
+                shape = IconButtonDefaults.extraLargeRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xLargeIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraLargeIconSize)
                 )
             }
         }
@@ -159,13 +164,13 @@ fun IconButtonMeasurementsDemo() {
             // XSmall narrow round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xSmallContainerSize(Narrow)),
-                shape = IconButtonDefaults.xSmallRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraSmallContainerSize(Narrow)),
+                shape = IconButtonDefaults.extraSmallRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
                 )
             }
 
@@ -211,13 +216,13 @@ fun IconButtonMeasurementsDemo() {
             // XLarge narrow round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xLargeContainerSize(Narrow)),
-                shape = IconButtonDefaults.xLargeRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraLargeContainerSize(Narrow)),
+                shape = IconButtonDefaults.extraLargeRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xLargeIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraLargeIconSize)
                 )
             }
         }
@@ -236,13 +241,13 @@ fun IconButtonMeasurementsDemo() {
             // XSmall wide round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xSmallContainerSize(Wide)),
-                shape = IconButtonDefaults.xSmallRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraSmallContainerSize(Wide)),
+                shape = IconButtonDefaults.extraSmallRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
                 )
             }
             // Small wide round icon button
@@ -287,13 +292,13 @@ fun IconButtonMeasurementsDemo() {
             // XLarge wide round icon button
             FilledIconButton(
                 onClick = { /* doSomething() */ },
-                modifier = Modifier.size(IconButtonDefaults.xLargeContainerSize(Wide)),
-                shape = IconButtonDefaults.xLargeRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraLargeContainerSize(Wide)),
+                shape = IconButtonDefaults.extraLargeRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xLargeIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraLargeIconSize)
                 )
             }
         }
@@ -315,29 +320,23 @@ fun IconButtonCornerRadiusDemo() {
             horizontalArrangement = Arrangement.spacedBy(padding),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // xsmall round icon button
+            // extra small round icon button
             OutlinedIconButton(
                 onClick = { /* doSomething() */ },
-                modifier =
-                    Modifier
-                        // .minimumInteractiveComponentSize()
-                        .size(IconButtonDefaults.xSmallContainerSize()),
-                shape = IconButtonDefaults.xSmallRoundShape
+                modifier = Modifier.size(IconButtonDefaults.extraSmallContainerSize()),
+                shape = IconButtonDefaults.extraSmallRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
                 )
             }
 
             // Small round icon button
             OutlinedIconButton(
                 onClick = { /* doSomething() */ },
-                modifier =
-                    Modifier
-                        // .minimumInteractiveComponentSize()
-                        .size(IconButtonDefaults.smallContainerSize()),
+                modifier = Modifier.size(IconButtonDefaults.smallContainerSize()),
                 shape = IconButtonDefaults.smallRoundShape
             ) {
                 Icon(
@@ -382,13 +381,13 @@ fun IconButtonCornerRadiusDemo() {
                 onClick = { /* doSomething() */ },
                 modifier =
                     Modifier.minimumInteractiveComponentSize()
-                        .size(IconButtonDefaults.xLargeContainerSize()),
-                shape = IconButtonDefaults.xLargeRoundShape
+                        .size(IconButtonDefaults.extraLargeContainerSize()),
+                shape = IconButtonDefaults.extraLargeRoundShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xLargeIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraLargeIconSize)
                 )
             }
         }
@@ -402,19 +401,19 @@ fun IconButtonCornerRadiusDemo() {
             horizontalArrangement = Arrangement.spacedBy(padding),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // xsmall square icon button
+            // extra small square icon button
             OutlinedIconButton(
                 onClick = { /* doSomething() */ },
                 modifier =
                     Modifier
                         // .minimumInteractiveComponentSize()
-                        .size(IconButtonDefaults.xSmallContainerSize()),
-                shape = IconButtonDefaults.xSmallSquareShape
+                        .size(IconButtonDefaults.extraSmallContainerSize()),
+                shape = IconButtonDefaults.extraSmallSquareShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
                 )
             }
 
@@ -469,25 +468,26 @@ fun IconButtonCornerRadiusDemo() {
                 onClick = { /* doSomething() */ },
                 modifier =
                     Modifier.minimumInteractiveComponentSize()
-                        .size(IconButtonDefaults.xLargeContainerSize()),
-                shape = IconButtonDefaults.xLargeSquareShape
+                        .size(IconButtonDefaults.extraLargeContainerSize()),
+                shape = IconButtonDefaults.extraLargeSquareShape
             ) {
                 Icon(
                     Icons.Outlined.Lock,
                     contentDescription = "Localized description",
-                    modifier = Modifier.size(IconButtonDefaults.xLargeIconSize)
+                    modifier = Modifier.size(IconButtonDefaults.extraLargeIconSize)
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun IconToggleButtonsDemo() {
+fun IconButtonAndToggleButtonsDemo() {
     Column {
         val rowScrollState = rememberScrollState()
         val padding = 16.dp
-        // unselected round row
+
         Row(
             modifier =
                 Modifier.height(150.dp)
@@ -502,7 +502,7 @@ fun IconToggleButtonsDemo() {
             Text("Outline")
             Text("Standard")
         }
-        // unselected round row
+        // icon buttons
         Row(
             modifier =
                 Modifier.height(150.dp)
@@ -511,32 +511,79 @@ fun IconToggleButtonsDemo() {
             horizontalArrangement = Arrangement.spacedBy(padding),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Unselected")
+            Spacer(Modifier.width(76.dp))
 
-            FilledIconToggleButton(checked = false, onCheckedChange = { /* change the state */ }) {
+            FilledIconButton(onClick = {}, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
             }
 
-            FilledTonalIconToggleButton(
-                checked = false,
-                onCheckedChange = { /* change the state */ }
-            ) {
+            FilledTonalIconButton(onClick = {}, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
+            }
+
+            OutlinedIconButton(onClick = {}, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
+            }
+
+            IconButton(onClick = {}, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
+            }
+        }
+
+        // unselected icon toggle buttons
+        Row(
+            modifier =
+                Modifier.height(150.dp)
+                    .horizontalScroll(rowScrollState)
+                    .padding(horizontal = padding),
+            horizontalArrangement = Arrangement.spacedBy(padding),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            var checked by remember { mutableStateOf(false) }
+            Text(
+                text =
+                    if (!checked) {
+                        "Unselected"
+                    } else {
+                        "Selected"
+                    },
+                modifier = Modifier.defaultMinSize(minWidth = 76.dp),
+            )
+
+            FilledIconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
+            }
+
+            FilledTonalIconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
             }
 
             OutlinedIconToggleButton(
-                checked = false,
-                onCheckedChange = { /* change the state */ }
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
             ) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
+                IconFor(checked)
             }
 
-            IconToggleButton(checked = false, onCheckedChange = { /* change the state */ }) {
-                Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
+            IconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
             }
         }
 
-        // unselected round row
+        // selected icon toggle buttons
         Row(
             modifier =
                 Modifier.height(150.dp)
@@ -545,25 +592,58 @@ fun IconToggleButtonsDemo() {
             horizontalArrangement = Arrangement.spacedBy(padding),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Selected")
-            FilledIconToggleButton(checked = true, onCheckedChange = { /* change the state */ }) {
-                Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+            var checked by remember { mutableStateOf(true) }
+
+            Text(
+                text =
+                    if (!checked) {
+                        "Unselected"
+                    } else {
+                        "Selected"
+                    },
+                modifier = Modifier.defaultMinSize(minWidth = 76.dp)
+            )
+
+            FilledIconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
             }
 
             FilledTonalIconToggleButton(
-                checked = true,
-                onCheckedChange = { /* change the state */ }
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
             ) {
-                Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+                IconFor(checked)
             }
 
-            OutlinedIconToggleButton(checked = true, onCheckedChange = { /* change the state */ }) {
-                Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+            OutlinedIconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
             }
 
-            IconToggleButton(checked = true, onCheckedChange = { /* change the state */ }) {
-                Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+            IconToggleButton(
+                checked = checked,
+                onCheckedChange = { checked = it },
+                shapes = IconButtonDefaults.toggleableShapes()
+            ) {
+                IconFor(checked)
             }
         }
+    }
+}
+
+@Composable
+private fun IconFor(checked: Boolean) {
+    if (checked) {
+        Icon(Icons.Filled.Edit, contentDescription = "Localized description")
+    } else {
+        Icon(Icons.Outlined.Edit, contentDescription = "Localized description")
     }
 }

@@ -48,4 +48,18 @@ internal object Api34Compat {
     ) {
         callback.onReadoutStarted(session, request, timestamp, frameNumber)
     }
+
+    @JvmStatic
+    fun setSettingsOverrideZoom(parameters: MutableMap<CaptureRequest.Key<*>, Any>) {
+        parameters[CaptureRequest.CONTROL_SETTINGS_OVERRIDE] =
+            CaptureRequest.CONTROL_SETTINGS_OVERRIDE_ZOOM
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+internal object Api35Compat {
+    @JvmStatic
+    fun setFlashStrengthLevel(parameters: MutableMap<CaptureRequest.Key<*>, Any>, level: Int) {
+        parameters[CaptureRequest.FLASH_STRENGTH_LEVEL] = level
+    }
 }

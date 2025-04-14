@@ -106,6 +106,76 @@ class MutableAffineTransformTest {
     }
 
     @Test
+    fun setValuesAndGetValues_shouldRoundTrip() {
+        val affineTransform = MutableAffineTransform()
+        val values = floatArrayOf(1F, 2F, 3F, 4F, 5F, 6F)
+
+        affineTransform.setValues(values)
+        val outValues = FloatArray(6)
+        affineTransform.getValues(outValues)
+
+        assertThat(outValues).usingExactEquality().containsExactly(values)
+    }
+
+    @Test
+    fun constructWithValuesAndGetValues_shouldRoundTrip() {
+        val affineTransform = MutableAffineTransform(1F, 2F, 3F, 4F, 5F, 6F)
+
+        val outValues = FloatArray(6)
+        affineTransform.getValues(outValues)
+
+        assertThat(outValues)
+            .usingExactEquality()
+            .containsExactly(floatArrayOf(1F, 2F, 3F, 4F, 5F, 6F))
+    }
+
+    @Test
+    fun setValues_shouldMatchConstructedWithFactoryFunctions() {
+        assertThat(MutableAffineTransform().apply { setValues(7F, 0F, 0F, 0F, 7F, 0F) })
+            .isEqualTo(ImmutableAffineTransform.scale(7F))
+
+        assertThat(MutableAffineTransform().apply { setValues(3F, 0F, 0F, 0F, 5F, 0F) })
+            .isEqualTo(ImmutableAffineTransform.scale(3F, 5F))
+
+        assertThat(MutableAffineTransform().apply { setValues(4F, 0F, 0F, 0F, 1F, 0F) })
+            .isEqualTo(ImmutableAffineTransform.scaleX(4F))
+
+        assertThat(MutableAffineTransform().apply { setValues(1F, 0F, 0F, 0F, 2F, 0F) })
+            .isEqualTo(ImmutableAffineTransform.scaleY(2F))
+
+        assertThat(MutableAffineTransform().apply { setValues(1F, 0F, 8F, 0F, 1F, 9F) })
+            .isEqualTo(ImmutableAffineTransform.translate(ImmutableVec(8F, 9F)))
+    }
+
+    @Test
+    fun setValuesArray_shouldMatchConstructedWithFactoryFunctions() {
+        assertThat(
+                MutableAffineTransform().apply { setValues(floatArrayOf(7F, 0F, 0F, 0F, 7F, 0F)) }
+            )
+            .isEqualTo(ImmutableAffineTransform.scale(7F))
+
+        assertThat(
+                MutableAffineTransform().apply { setValues(floatArrayOf(3F, 0F, 0F, 0F, 5F, 0F)) }
+            )
+            .isEqualTo(ImmutableAffineTransform.scale(3F, 5F))
+
+        assertThat(
+                MutableAffineTransform().apply { setValues(floatArrayOf(4F, 0F, 0F, 0F, 1F, 0F)) }
+            )
+            .isEqualTo(ImmutableAffineTransform.scaleX(4F))
+
+        assertThat(
+                MutableAffineTransform().apply { setValues(floatArrayOf(1F, 0F, 0F, 0F, 2F, 0F)) }
+            )
+            .isEqualTo(ImmutableAffineTransform.scaleY(2F))
+
+        assertThat(
+                MutableAffineTransform().apply { setValues(floatArrayOf(1F, 0F, 8F, 0F, 1F, 9F)) }
+            )
+            .isEqualTo(ImmutableAffineTransform.translate(ImmutableVec(8F, 9F)))
+    }
+
+    @Test
     fun asImmutable_returnsEquivalentImmutableAffineTransform() {
         val affineTransform = MutableAffineTransform(A, B, C, D, E, F)
 
@@ -113,6 +183,112 @@ class MutableAffineTransformTest {
 
         assertThat(output).isEqualTo(ImmutableAffineTransform(A, B, C, D, E, F))
         assertThat(output).isInstanceOf(ImmutableAffineTransform::class.java)
+    }
+
+    @Test
+    fun populateFrom_correctlyCopiesFromAffineTransform() {
+        val source = ImmutableAffineTransform(A, B, C, D, E, F)
+        val dest = MutableAffineTransform()
+        dest.populateFrom(source)
+
+        assertThat(dest.equals(source)).isTrue()
+    }
+
+    @Test
+    fun populateFromIdentity_correctlySetsAffineTransformToIdentity() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromIdentity()
+
+        assertThat(transform.equals(AffineTransform.IDENTITY)).isTrue()
+    }
+
+    @Test
+    fun populateFromTranslate_correctlyPopulatesAffineTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromTranslate(ImmutableVec(x = 0.1f, y = 0.2f))
+
+        assertThat(transform.equals(MutableAffineTransform(1f, 0f, 0.1f, 0f, 1f, 0.2f))).isTrue()
+    }
+
+    @Test
+    fun populateFromScale_singleArgument_correctlyPopulatesAffineTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromScale(0.2f)
+
+        assertThat(transform.equals(MutableAffineTransform(0.2f, 0f, 0f, 0f, 0.2f, 0f))).isTrue()
+    }
+
+    @Test
+    fun populateFromScale_separateArguments_correctlyPopulatesAffineTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromScale(0.2f, 0.3f)
+
+        assertThat(transform.equals(MutableAffineTransform(0.2f, 0f, 0f, 0f, 0.3f, 0f))).isTrue()
+    }
+
+    @Test
+    fun populateFromScaleX_correctlyPopulatesAffineTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromScaleX(0.1f)
+
+        assertThat(transform.equals(MutableAffineTransform(0.1f, 0f, 0f, 0f, 1f, 0f))).isTrue()
+    }
+
+    @Test
+    fun populateFromScaleY_correctlyPopulatesAffineTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+
+        transform.populateFromScaleY(0.7f)
+
+        assertThat(transform.equals(MutableAffineTransform(1f, 0f, 0f, 0f, 0.7f, 0f))).isTrue()
+    }
+
+    @Test
+    fun shearX_returnsCorrectTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+        transform.populateFromShearX(0.0f)
+        assertThat(transform.equals(AffineTransform.IDENTITY)).isTrue()
+        transform.populateFromShearX(2.2f)
+        assertThat(transform.equals(MutableAffineTransform(1.0f, 2.2f, 0.0f, 0.0f, 1.0f, 0.0f)))
+            .isTrue()
+    }
+
+    @Test
+    fun shearY_returnsCorrectTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+        transform.populateFromShearY(0.0f)
+        assertThat(transform.equals(AffineTransform.IDENTITY)).isTrue()
+        transform.populateFromShearY(2.2f)
+        assertThat(transform.equals(MutableAffineTransform(1.0f, 0.0f, 0.0f, 2.2f, 1.0f, 0.0f)))
+            .isTrue()
+    }
+
+    @Test
+    fun rotate_returnsCorrectTransform() {
+        val transform = MutableAffineTransform(A, B, C, D, E, F)
+        transform.populateFromRotate(Angle.ZERO)
+        assertThat(transform.equals(AffineTransform.IDENTITY)).isTrue()
+        transform.populateFromRotate(Angle.HALF_TURN_RADIANS)
+        assertThat(
+                transform.isAlmostEqual(
+                    MutableAffineTransform(-1f, 0f, 0f, 0f, -1f, 0.0f),
+                    tolerance = 0.00001f,
+                )
+            )
+            .isTrue()
+        transform.populateFromRotate(Angle.QUARTER_TURN_RADIANS)
+        assertThat(
+                transform.isAlmostEqual(
+                    MutableAffineTransform(0f, -1f, 0f, 1f, 0f, 0.0f),
+                    tolerance = 0.00001f,
+                )
+            )
+            .isTrue()
     }
 
     companion object {

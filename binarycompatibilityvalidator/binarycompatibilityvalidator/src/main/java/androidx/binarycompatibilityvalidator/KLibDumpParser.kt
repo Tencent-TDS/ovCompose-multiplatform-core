@@ -16,11 +16,12 @@
 
 // Need to access Impl classes from 'org.jetbrains.kotlin.library.abi.impl.'
 // ideally the parser would also live alongside that project to access to impl classes
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // b/407928023
 @file:OptIn(ExperimentalLibraryAbiReader::class)
 
 package androidx.binarycompatibilityvalidator
 
+import java.io.File
 import org.jetbrains.kotlin.library.abi.AbiClass
 import org.jetbrains.kotlin.library.abi.AbiCompoundName
 import org.jetbrains.kotlin.library.abi.AbiDeclaration
@@ -50,6 +51,8 @@ class MutableAbiInfo(
 
 @OptIn(ExperimentalLibraryAbiReader::class)
 class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
+
+    constructor(file: File) : this(file.readText(), file.path)
 
     /** Cursor to keep track of current location within the dump */
     private val cursor = Cursor(klibDump)
@@ -95,7 +98,6 @@ class KlibDumpParser(klibDump: String, private val fileName: String? = null) {
                                 platformTargets = listOf(),
                                 compilerVersion = "",
                                 abiVersion = "",
-                                libraryVersion = "",
                                 irProviderName = ""
                             )
                     )

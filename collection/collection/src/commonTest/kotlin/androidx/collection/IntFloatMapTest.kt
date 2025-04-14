@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -225,6 +226,36 @@ class IntFloatMapTest {
         assertEquals(3f, map5[3])
         assertEquals(4f, map5[4])
         assertEquals(5f, map5[5])
+    }
+
+    @Test
+    fun buildIntFloatMapFunction() {
+        val contract: Boolean
+        val map = buildIntFloatMap {
+            contract = true
+            put(1, 1f)
+            put(2, 2f)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1f, map[1])
+        assertEquals(2f, map[2])
+    }
+
+    @Test
+    fun buildIntObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildIntFloatMap(20) {
+                contract = true
+                put(1, 1f)
+                put(2, 2f)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1f, map[1])
+        assertEquals(2f, map[2])
     }
 
     @Test
@@ -619,6 +650,7 @@ class IntFloatMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableIntFloatMap()
         map[1] = 1f
@@ -631,6 +663,10 @@ class IntFloatMapTest {
 
         map2[1] = 1f
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(mutableIntFloatMapOf(1, 1f, 2, 2f), mutableIntFloatMapOf(1, 1f, 3, 2f))
     }
 
     @Test

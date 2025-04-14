@@ -22,6 +22,7 @@ import com.google.common.truth.Truth.assertThat
 import org.jetbrains.kotlin.library.abi.AbiClassKind
 import org.jetbrains.kotlin.library.abi.AbiModality
 import org.jetbrains.kotlin.library.abi.AbiPropertyKind
+import org.jetbrains.kotlin.library.abi.AbiTypeArgument
 import org.jetbrains.kotlin.library.abi.AbiTypeNullability
 import org.jetbrains.kotlin.library.abi.AbiValueParameter
 import org.jetbrains.kotlin.library.abi.AbiVariance
@@ -241,6 +242,15 @@ class KlibParsingCursorExtensionsTest {
     }
 
     @Test
+    fun parseQualifiedNameWithQualifiedReceiver() {
+        val input = "androidx.compose.ui.text/AnnotatedString.Builder.BulletScope"
+        val cursor = Cursor(input)
+        val qName = cursor.parseAbiQualifiedName()
+        assertThat(qName.toString())
+            .isEqualTo("androidx.compose.ui.text/AnnotatedString.Builder.BulletScope")
+    }
+
+    @Test
     fun parseAbiType() {
         val input = "androidx.collection/ScatterMap<#A, #B> something"
         val cursor = Cursor(input)
@@ -327,6 +337,27 @@ class KlibParsingCursorExtensionsTest {
         val receiver = cursor.parseFunctionReceiver()
         assertThat(receiver?.className.toString()).isEqualTo("androidx.collection/LongSparseArray")
         assertThat(cursor.currentLine).isEqualTo("<get-size>(): kotlin/Int")
+    }
+
+    @Test
+    fun parseFunctionReceiverWithStarParams() {
+        val input = "(androidx.compose.animation.core/AnimationState<*, *>).<get-isFinished>()"
+        val cursor = Cursor(input)
+        val receiver = cursor.parseFunctionReceiver()
+        assertThat(receiver?.className.toString())
+            .isEqualTo("androidx.compose.animation.core/AnimationState")
+        assertThat(cursor.currentLine).isEqualTo("<get-isFinished>()")
+    }
+
+    @Test
+    fun parseFunctionReceiverWithNullableParam() {
+        val input = "(kotlin.collections/List<#A?>)."
+        val cursor = Cursor(input)
+        val receiver = cursor.parseFunctionReceiver()
+        assertThat(receiver?.className.toString()).isEqualTo("kotlin.collections/List")
+        val typeArg = receiver?.arguments?.single()?.type
+        assertThat(typeArg?.nullability).isEqualTo(AbiTypeNullability.MARKED_NULLABLE)
+        assertThat(typeArg?.tag).isEqualTo("A")
     }
 
     @Test
@@ -428,6 +459,21 @@ class KlibParsingCursorExtensionsTest {
         assertThat(valueParams.single().isVararg).isTrue()
         val type = valueParams.single().type
         assertThat(type.className.toString()).isEqualTo("kotlin/Array")
+    }
+
+    @Test
+    fun parseValueParamsWithStarTypeParam() {
+        val input = "(androidx.datastore.preferences.core/Preferences.Key<*>)"
+        val cursor = Cursor(input)
+        val valueParams = cursor.parseValueParameters()!!
+        assertThat(valueParams).hasSize(1)
+        val valueParam = valueParams.single()
+        val type = valueParam.type
+        assertThat(type.className.toString())
+            .isEqualTo("androidx.datastore.preferences.core/Preferences.Key")
+        assertThat(type.arguments).hasSize(1)
+        assertThat(type.arguments?.single())
+            .isInstanceOf(AbiTypeArgument.StarProjection::class.java)
     }
 
     @Test

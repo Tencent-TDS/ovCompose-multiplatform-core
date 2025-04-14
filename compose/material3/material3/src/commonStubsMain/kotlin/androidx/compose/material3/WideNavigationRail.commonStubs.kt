@@ -21,23 +21,22 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 @ExperimentalMaterial3ExpressiveApi
-actual class ModalExpandedNavigationRailProperties
+actual class ModalWideNavigationRailProperties
 actual constructor(
     actual val shouldDismissOnBackPress: Boolean,
 )
 
-@Immutable
-@ExperimentalMaterial3ExpressiveApi
-actual object ModalExpandedNavigationRailDefaults {
-    actual val Properties: ModalExpandedNavigationRailProperties = implementedInJetBrainsFork()
-}
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal actual fun createDefaultModalWideNavigationRailProperties():
+    ModalWideNavigationRailProperties = implementedInJetBrainsFork()
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal actual fun ModalWideNavigationRailDialog(
     onDismissRequest: () -> Unit,
-    properties: ModalExpandedNavigationRailProperties,
+    properties: ModalWideNavigationRailProperties,
     onPredictiveBack: (Float) -> Unit,
     onPredictiveBackCancelled: () -> Unit,
+    predictiveBackState: RailPredictiveBackState,
     content: @Composable () -> Unit
 ): Unit = implementedInJetBrainsFork()

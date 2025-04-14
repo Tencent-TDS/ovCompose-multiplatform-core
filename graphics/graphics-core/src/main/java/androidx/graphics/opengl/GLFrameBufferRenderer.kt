@@ -48,7 +48,6 @@ import java.util.concurrent.CountDownLatch
  * buffers as well as fine grained control over synchronization of buffer content.
  */
 @RequiresApi(Build.VERSION_CODES.Q)
-@Suppress("AcronymName")
 class GLFrameBufferRenderer
 internal constructor(
     private val surfaceControlProvider: SurfaceControlProvider,
@@ -195,7 +194,6 @@ internal constructor(
          *   thread
          * @return The builder instance
          */
-        @Suppress("AcronymName")
         fun setGLRenderer(glRenderer: GLRenderer?): Builder {
             mGLRenderer = glRenderer
             return this
@@ -339,7 +337,7 @@ internal constructor(
      * OpenGL.
      */
     val glRenderer: GLRenderer
-        @Suppress("AcronymName") @JvmName("getGLRenderer") get() = mGLRenderer
+        @JvmName("getGLRenderer") get() = mGLRenderer
 
     /**
      * Returns the [SyncStrategy] used for determining when to create [SyncFenceCompat] objects in
@@ -506,10 +504,18 @@ internal constructor(
     internal fun detachTargets(cancelPending: Boolean, onReleaseComplete: (() -> Unit)? = null) {
         val frameBufferPool = mBufferPool
         val renderTarget = mRenderTarget
+        val surfaceControl = mSurfaceControl
         renderTarget?.detach(cancelPending)
 
         mGLRenderer.execute {
             mCurrentFrameBuffer?.let { buffer -> frameBufferPool?.release(buffer) }
+            surfaceControl?.let { sc ->
+                SurfaceControlCompat.Transaction().reparent(sc, null).apply {
+                    commit()
+                    close()
+                }
+                sc.release()
+            }
             frameBufferPool?.close()
             onReleaseComplete?.invoke()
         }
@@ -747,7 +753,8 @@ internal constructor(
             surfaceView: SurfaceView,
             callback: SurfaceControlProvider.Callback
         ) {
-            destroySurfaceControl(callback)
+            // Destroy previously created SurfaceControl as we are creating a new instance
+            callback.onSurfaceControlDestroyed()
 
             val width = surfaceView.width
             val height = surfaceView.height
@@ -799,7 +806,7 @@ internal constructor(
                         }
 
                         override fun surfaceDestroyed(p0: SurfaceHolder) {
-                            destroySurfaceControl(callback)
+                            callback.onSurfaceControlDestroyed()
                         }
 
                         override fun surfaceRedrawNeeded(p0: SurfaceHolder) {
@@ -826,23 +833,7 @@ internal constructor(
             }
         }
 
-        fun destroySurfaceControl(callback: SurfaceControlProvider.Callback) {
-            callback.onSurfaceControlDestroyed()
-            releaseSurfaceControl()
-        }
-
-        private fun releaseSurfaceControl() {
-            mSurfaceControl?.let { surfaceControl ->
-                if (surfaceControl.isValid()) {
-                    SurfaceControlCompat.Transaction().reparent(surfaceControl, null).commit()
-                    surfaceControl.release()
-                }
-                mSurfaceControl = null
-            }
-        }
-
         override fun release() {
-            releaseSurfaceControl()
             surfaceView?.holder?.removeCallback(mSurfaceHolderCallback)
             surfaceView = null
         }

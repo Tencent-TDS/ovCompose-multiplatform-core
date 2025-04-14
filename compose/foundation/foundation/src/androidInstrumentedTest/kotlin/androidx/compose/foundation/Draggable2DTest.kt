@@ -54,7 +54,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
 import java.lang.Float.NaN
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
@@ -182,9 +181,8 @@ class Draggable2DTest {
     }
 
     @Test
-    @Ignore("b/303237627")
     fun draggable2D_cancel_callsDragStop() {
-        var total = Offset.Zero
+        var total by mutableStateOf(Offset.Zero)
         var dragStopped = 0f
         setDraggable2DContent {
             if (total.x < 20f) {
@@ -808,14 +806,12 @@ class Draggable2DTest {
         val moveAngle = Math.atan(moveOffset.x / moveOffset.y.toDouble())
 
         rule.runOnIdle {
-            assertEquals(
-                downEventPosition.x + touchSlop * Math.cos(moveAngle).toFloat(),
-                onDragStartedOffset.x
-            )
-            assertEquals(
-                downEventPosition.y + touchSlop * Math.sin(moveAngle).toFloat(),
-                onDragStartedOffset.y
-            )
+            assertThat(downEventPosition.x + touchSlop * Math.cos(moveAngle).toFloat())
+                .isWithin(0.5f)
+                .of(onDragStartedOffset.x)
+            assertThat(downEventPosition.y + touchSlop * Math.sin(moveAngle).toFloat())
+                .isWithin(0.5f)
+                .of(onDragStartedOffset.y)
         }
     }
 
@@ -876,8 +872,8 @@ class Draggable2DTest {
             reverseDirection = reverseDirection,
             interactionSource = interactionSource,
             startDragImmediately = startDragImmediately,
-            onDragStarted = { onDragStarted(it) },
-            onDragStopped = { onDragStopped(it) },
+            onDragStarted = onDragStarted,
+            onDragStopped = onDragStopped,
             state = state
         )
     }

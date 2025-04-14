@@ -21,15 +21,11 @@ import android.hardware.camera2.CaptureRequest
 import android.os.Build
 import android.os.Looper
 import androidx.camera.camera2.pipe.integration.adapter.RobolectricCameraPipeTestRunner
-import androidx.camera.camera2.pipe.integration.compat.StreamConfigurationMapCompat
-import androidx.camera.camera2.pipe.integration.compat.quirk.CameraQuirks
-import androidx.camera.camera2.pipe.integration.compat.workaround.AeFpsRange
 import androidx.camera.camera2.pipe.integration.compat.workaround.NoOpAutoFlashAEModeDisabler
 import androidx.camera.camera2.pipe.integration.compat.workaround.NotUseFlashModeTorchFor3aUpdate
-import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCorrector
 import androidx.camera.camera2.pipe.integration.compat.workaround.UseFlashModeTorchFor3aUpdateImpl
+import androidx.camera.camera2.pipe.integration.impl.TorchControl.TorchMode
 import androidx.camera.camera2.pipe.integration.testing.FakeCameraProperties
-import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCamera
 import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCameraRequestControl
 import androidx.camera.camera2.pipe.testing.FakeCameraMetadata
 import androidx.camera.core.CameraControl
@@ -59,7 +55,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.internal.DoNotInstrument
-import org.robolectric.shadows.StreamConfigurationMapBuilder
 
 @RunWith(RobolectricCameraPipeTestRunner::class)
 @DoNotInstrument
@@ -82,20 +77,6 @@ class FlashControlTest {
         )
     }
     private val fakeRequestControl = FakeUseCaseCameraRequestControl()
-    private val fakeUseCaseCamera = FakeUseCaseCamera(requestControl = fakeRequestControl)
-    private val aeFpsRange =
-        AeFpsRange(
-            CameraQuirks(
-                FakeCameraMetadata(),
-                StreamConfigurationMapCompat(
-                    StreamConfigurationMapBuilder.newBuilder().build(),
-                    OutputSizesCorrector(
-                        FakeCameraMetadata(),
-                        StreamConfigurationMapBuilder.newBuilder().build()
-                    )
-                )
-            )
-        )
     private lateinit var state3AControl: State3AControl
     private lateinit var torchControl: TorchControl
     private lateinit var flashControl: FlashControl
@@ -137,13 +118,12 @@ class FlashControlTest {
             State3AControl(
                     cameraProperties,
                     NoOpAutoFlashAEModeDisabler,
-                    aeFpsRange,
                 )
-                .apply { useCaseCamera = fakeUseCaseCamera }
+                .apply { requestControl = fakeRequestControl }
 
         torchControl =
             TorchControl(cameraProperties, state3AControl, fakeUseCaseThreads).apply {
-                useCaseCamera = fakeUseCaseCamera
+                requestControl = fakeRequestControl
             }
 
         flashControl =
@@ -159,13 +139,12 @@ class FlashControlTest {
                         NotUseFlashModeTorchFor3aUpdate
                     },
             )
-        flashControl.useCaseCamera = fakeUseCaseCamera
+        flashControl.requestControl = fakeRequestControl
         flashControl.setScreenFlash(screenFlash)
     }
 
     @Test
     fun setFlash_whenInactive(): Unit = runBlocking {
-        val fakeUseCaseCamera = FakeUseCaseCamera()
         val fakeCameraProperties = FakeCameraProperties()
 
         val flashControl =
@@ -174,9 +153,8 @@ class FlashControlTest {
                 State3AControl(
                         fakeCameraProperties,
                         NoOpAutoFlashAEModeDisabler,
-                        aeFpsRange,
                     )
-                    .apply { useCaseCamera = fakeUseCaseCamera },
+                    .apply { requestControl = fakeRequestControl },
                 fakeUseCaseThreads,
                 TorchControl(fakeCameraProperties, state3AControl, fakeUseCaseThreads),
                 NotUseFlashModeTorchFor3aUpdate
@@ -267,7 +245,7 @@ class FlashControlTest {
         // Act. call reset & clear the UseCaseCamera.
         flashControl.setFlashAsync(ImageCapture.FLASH_MODE_ON)
         flashControl.reset()
-        flashControl.useCaseCamera = null
+        flashControl.requestControl = null
 
         assertThrows<CameraControl.OperationCanceledException> { deferred.awaitWithTimeout() }
     }
@@ -280,11 +258,10 @@ class FlashControlTest {
         val deferred = flashControl.setFlashAsync(ImageCapture.FLASH_MODE_ON)
         val fakeRequestControl =
             FakeUseCaseCameraRequestControl().apply { addParameterResult = CompletableDeferred() }
-        val fakeUseCaseCamera = FakeUseCaseCamera(requestControl = fakeRequestControl)
 
         // Act. Simulate the UseCaseCamera is recreated.
-        flashControl.useCaseCamera = fakeUseCaseCamera
-        state3AControl.useCaseCamera = fakeUseCaseCamera
+        flashControl.requestControl = fakeRequestControl
+        state3AControl.requestControl = fakeRequestControl
 
         // Simulate setFlash is completed on the recreated UseCaseCamera
         fakeRequestControl.addParameterResult.complete(Unit)
@@ -301,11 +278,10 @@ class FlashControlTest {
         val deferred = flashControl.setFlashAsync(ImageCapture.FLASH_MODE_ON)
         val fakeRequestControl =
             FakeUseCaseCameraRequestControl().apply { addParameterResult = CompletableDeferred() }
-        val fakeUseCaseCamera = FakeUseCaseCamera(requestControl = fakeRequestControl)
 
         // Act. Simulate the UseCaseCamera is recreated.
-        flashControl.useCaseCamera = fakeUseCaseCamera
-        state3AControl.useCaseCamera = fakeUseCaseCamera
+        flashControl.requestControl = fakeRequestControl
+        state3AControl.requestControl = fakeRequestControl
         // Act. Submits a new Flash mode.
         val deferred2 = flashControl.setFlashAsync(ImageCapture.FLASH_MODE_AUTO)
         // Simulate setFlash is completed on the recreated UseCaseCamera
@@ -411,7 +387,7 @@ class FlashControlTest {
 
         flashControl.startScreenFlashCaptureTasks()
 
-        assertThat(torchControl.torchStateLiveData.value).isEqualTo(TorchState.ON)
+        assertThat(torchControl.torchMode).isEqualTo(TorchMode.USED_AS_FLASH)
     }
 
     @Test
@@ -421,7 +397,7 @@ class FlashControlTest {
 
         flashControl.startScreenFlashCaptureTasks()
 
-        assertThat(torchControl.torchStateLiveData.value).isEqualTo(TorchState.ON)
+        assertThat(torchControl.torchMode).isEqualTo(TorchMode.USED_AS_FLASH)
     }
 
     @Test

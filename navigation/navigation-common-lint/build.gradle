@@ -23,7 +23,7 @@
  */
 
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -33,12 +33,16 @@ plugins {
 BundleInsideHelper.forInsideLintJar(project)
 
 dependencies {
+    compileOnly(libs.kotlinCompiler)
     compileOnly(libs.kotlinStdlib)
-    compileOnly(libs.androidLintApi)
+    compileOnly(libs.androidLintApiStableAnalysis)
+    compileOnly(libs.intellijCore)
+    compileOnly(libs.uast)
+
     bundleInside(project(":navigation:lint:common"))
 
-    testImplementation(libs.androidLint)
-    testImplementation(libs.androidLintTests)
+    testImplementation(libs.androidLintApiStableAnalysis)
+    testImplementation(libs.androidLintTestsStableAnalysis)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(project(":navigation:lint:common-test"))
@@ -47,7 +51,7 @@ dependencies {
 
 androidx {
     name = "Navigation Common Lint"
-    type = LibraryType.LINT
+    type = SoftwareType.LINT
     inceptionYear = "2022"
     description = "Lint checks for Navigation Common"
 }

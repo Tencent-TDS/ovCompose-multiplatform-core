@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
+
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -32,7 +33,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios()
     jvm()
     linux()
@@ -87,12 +88,12 @@ androidXMultiplatform {
 }
 
 android {
-    namespace "androidx.room.testing"
+    namespace = "androidx.room.testing"
 }
 
 androidx {
     name = "Room Testing"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room Testing"
     legacyDisableKotlinStrictApiMode = true

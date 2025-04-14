@@ -19,31 +19,12 @@ import androidx.annotation.RestrictTo
 import androidx.camera.camera2.pipe.graph.GraphListener
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /** This is used to uniquely identify a specific backend implementation. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @JvmInline
 public value class CameraBackendId(public val value: String)
-
-/**
- * A CameraStatusMonitors monitors the status of the cameras, and emits updates when the status of
- * cameras changes, for instance when the camera access priorities have changed or when a particular
- * camera has become available.
- */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-public interface CameraStatusMonitor {
-    public val cameraStatus: Flow<CameraStatus>
-
-    public abstract class CameraStatus internal constructor() {
-        public object CameraPrioritiesChanged : CameraStatus() {
-            override fun toString(): String = "CameraPrioritiesChanged"
-        }
-
-        public class CameraAvailable(public val cameraId: CameraId) : CameraStatus() {
-            override fun toString(): String = "CameraAvailable(camera=$cameraId"
-        }
-    }
-}
 
 /**
  * A CameraBackend is used by [CameraPipe] to abstract out the lifecycle, state, and interactions
@@ -57,15 +38,19 @@ public interface CameraStatusMonitor {
  * The lifecycle of an individual camera is managed by [CameraController]s, which may be created via
  * [CameraBackend.createCameraController].
  */
+@JvmDefaultWithCompatibility
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public interface CameraBackend {
     public val id: CameraBackendId
 
     /**
-     * A flow of camera statuses that provide camera status updates such as when the camera access
-     * priorities have changed, or a certain camera has become available.
+     * A flow of the list of currently openable [CameraId]s from this CameraBackend. It should
+     * continuously return a list of current cameras, and the list should be updated as camera
+     * availability changes, e.g., an external camera is plugged or unplugged. The flow should also
+     * replay the most recent value for each new subscriber.
      */
-    public val cameraStatus: Flow<CameraStatusMonitor.CameraStatus>
+    public val cameraIds: Flow<List<CameraId>>
+        get() = flowOf(awaitCameraIds() ?: emptyList())
 
     /**
      * Read out a list of _openable_ [CameraId]s for this backend. The backend may be able to report
@@ -131,7 +116,8 @@ public interface CameraBackend {
         graphId: CameraGraphId,
         graphConfig: CameraGraph.Config,
         graphListener: GraphListener,
-        streamGraph: StreamGraph
+        streamGraph: StreamGraph,
+        surfaceTracker: SurfaceTracker,
     ): CameraController
 
     /** Connects and starts the underlying camera */
@@ -187,6 +173,9 @@ public interface CameraBackends {
      * instances.
      */
     public val activeIds: Set<CameraBackendId>
+
+    /** This instructs all backends to each shutdown their respective cameras. */
+    public suspend fun shutdown()
 
     /**
      * Get a previously created [CameraBackend] instance, or create a new one. If the backend fails

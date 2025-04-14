@@ -21,15 +21,16 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.lifecycle:lifecycle-livedata:2.1.0")
     api(libs.guavaListenableFuture)
@@ -43,7 +44,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-common:2.1.0")
     implementation("androidx.tracing:tracing:1.2.0")
     implementation(libs.autoValueAnnotations)
-    androidTestImplementation project(path: ':camera:camera-camera2')
+    androidTestImplementation(project(":camera:camera-camera2"))
     compileOnly(project(":external:libyuv"))
 
     annotationProcessor(libs.autoValue)
@@ -58,6 +59,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.mockitoCore4)
     testImplementation("androidx.concurrent:concurrent-futures-ktx:1.1.0")
+    testImplementation(project(":internal-testutils-ktx"))
     testImplementation(project(":internal-testutils-truth"))
     testImplementation(project(":camera:camera-camera2"))
     testImplementation(project(":camera:camera-testing"), {
@@ -71,8 +73,8 @@ dependencies {
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.truth)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it's own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(project(":camera:camera-testing")) {
         // Ensure camera-testing does not pull in androidx.test dependencies
         exclude(group:"androidx.test")
@@ -84,6 +86,8 @@ dependencies {
 }
 
 android {
+    compileSdk = 35
+
     defaultConfig {
         externalNativeBuild {
             def versionScript = file("src/main/cpp/jni.lds").getAbsolutePath()
@@ -99,20 +103,20 @@ android {
     }
 
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
     }
 
     buildFeatures.prefab = true
 
     externalNativeBuild {
         cmake {
-            version libs.versions.cmake.get()
+            version = libs.versions.cmake.get()
             path "src/main/cpp/CMakeLists.txt"
         }
     }
 
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
 
     // Use Robolectric 4.+
@@ -121,16 +125,16 @@ android {
     packagingOptions {
         pickFirst "META-INF/support.camera_camera-core.version"
     }
-    namespace "androidx.camera.core"
+    namespace = "androidx.camera.core"
 }
 
 tasks.withType(Test).configureEach { test ->
-    test.maxParallelForks(2)
+    test.maxParallelForks = 2
 }
 
 androidx {
     name = "Camera Core"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2019"
     description = "Core components for the Jetpack Camera Library, a library providing a " +
             "consistent and reliable camera foundation that enables great camera driven " +

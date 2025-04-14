@@ -20,11 +20,14 @@ import android.content.Context
 import android.graphics.Rect
 import android.graphics.Region
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
 import androidx.compose.runtime.ComposeNodeLifecycleCallback
 import androidx.compose.runtime.CompositionContext
+import androidx.compose.ui.ComposeUiFlags
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -44,6 +47,7 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.node.LayoutNode
@@ -56,11 +60,19 @@ import androidx.compose.ui.platform.compositionContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.unit.round
+import androidx.compose.ui.util.fastCoerceAtLeast
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.core.graphics.Insets
 import androidx.core.view.NestedScrollingParent3
 import androidx.core.view.NestedScrollingParentHelper
+import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
+import androidx.core.view.WindowInsetsAnimationCompat.BoundsCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
@@ -82,7 +94,12 @@ internal open class AndroidViewHolder(
     private val dispatcher: NestedScrollDispatcher,
     val view: View,
     private val owner: Owner,
-) : ViewGroup(context), NestedScrollingParent3, ComposeNodeLifecycleCallback, OwnerScope {
+) :
+    ViewGroup(context),
+    NestedScrollingParent3,
+    ComposeNodeLifecycleCallback,
+    OwnerScope,
+    OnApplyWindowInsetsListener {
 
     init {
         // Any [Abstract]ComposeViews that are descendants of this view will host
@@ -93,6 +110,21 @@ internal open class AndroidViewHolder(
         isSaveFromParentEnabled = false
 
         @Suppress("LeakingThis") addView(view)
+        ViewCompat.setWindowInsetsAnimationCallback(
+            this,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                override fun onStart(
+                    animation: WindowInsetsAnimationCompat,
+                    bounds: WindowInsetsAnimationCompat.BoundsCompat
+                ): WindowInsetsAnimationCompat.BoundsCompat = insetBounds(bounds)
+
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: MutableList<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat = insetToLayoutPosition(insets)
+            }
+        )
+        ViewCompat.setOnApplyWindowInsetsListener(this, this)
     }
 
     // Keep nullable to match the `expect` declaration of InteropViewFactoryHolder
@@ -154,6 +186,10 @@ internal open class AndroidViewHolder(
             }
         }
 
+    private val position = IntArray(2)
+    private var size = IntSize.Zero
+    private var insets: WindowInsetsCompat? = null
+
     /**
      * The [OwnerSnapshotObserver] of this holder's [Owner]. Will be null when this view is not
      * attached, since the observer is not valid unless the view is attached.
@@ -210,6 +246,17 @@ internal open class AndroidViewHolder(
 
     override fun onDeactivate() {
         reset()
+        if (
+            @OptIn(ExperimentalComposeUiApi::class) ComposeUiFlags.isRemoveFocusedViewFixEnabled &&
+                hasFocus() &&
+                isInTouchMode &&
+                SDK_INT > 28
+        ) {
+            // Removing a view that is focused results in focus being re-assigned to an existing
+            // view on screen. We don't want this behavior in touch mode.
+            // https://developer.android.com/about/versions/pie/android-9.0-changes-28#focus
+            findFocus().clearFocus()
+        }
         removeAllViewsInLayout()
     }
 
@@ -273,7 +320,7 @@ internal open class AndroidViewHolder(
     // When there is no hardware acceleration invalidates are intercepted using this method,
     // otherwise using onDescendantInvalidated. Return null to avoid invalidating the
     // AndroidComposeView or the handler.
-    @Suppress("Deprecation")
+    @Suppress("OVERRIDE_DEPRECATION", "Deprecation")
     override fun invalidateChildInParent(location: IntArray?, dirty: Rect?): ViewParent? {
         super.invalidateChildInParent(location, dirty)
         invalidateOrDefer()
@@ -365,6 +412,33 @@ internal open class AndroidViewHolder(
                     // these cases, we need to inform the View.
                     layoutAccordingTo(layoutNode)
                     @OptIn(InternalComposeUiApi::class) owner.onInteropViewLayoutChange(this)
+                    val previousX = position[0]
+                    val previousY = position[1]
+                    view.getLocationOnScreen(position)
+                    val oldSize = size
+                    size = it.size
+                    val previouslyDispatchedInsets = insets
+                    if (previouslyDispatchedInsets != null) {
+                        if (
+                            previousX != position[0] || previousY != position[1] || oldSize != size
+                        ) {
+                            // If we have previously been dispatched insets (no parents consumed
+                            // the insets already), we need to dispatch the insets again when the
+                            // view is moved as this could cause the insets (once we account for
+                            // the layout position) to change.
+                            insetToLayoutPosition(previouslyDispatchedInsets)
+                                .toWindowInsets()
+                                ?.let { translatedInsets ->
+                                    // Re-dispatch the insets - we do this instead of calling
+                                    // requestApplyInsets() as that schedules a full traversal of
+                                    // the
+                                    // view hierarchy - there is no need to do that when only the
+                                    // AndroidView moved. Other changes that cause insets to change
+                                    // will be dispatched as normal.
+                                    view.dispatchApplyWindowInsets(translatedInsets)
+                                }
+                        }
+                    }
                 }
         layoutNode.compositeKeyHash = compositeKeyHash
         layoutNode.modifier = modifier.then(coreModifier)
@@ -378,6 +452,10 @@ internal open class AndroidViewHolder(
             if (view.parent !== this) addView(view)
         }
         layoutNode.onDetach = { owner ->
+            @OptIn(ExperimentalComposeUiApi::class)
+            if (ComposeUiFlags.isViewFocusFixEnabled && hasFocus()) {
+                owner.focusOwner.clearFocus(true)
+            }
             (owner as? AndroidComposeView)?.removeAndroidView(this)
             removeAllViewsInLayout()
         }
@@ -575,6 +653,54 @@ internal open class AndroidViewHolder(
 
     override fun isNestedScrollingEnabled(): Boolean {
         return view.isNestedScrollingEnabled
+    }
+
+    override fun onApplyWindowInsets(v: View, insets: WindowInsetsCompat): WindowInsetsCompat {
+        // Cache a copy of the last known insets
+        this.insets = WindowInsetsCompat(insets)
+        return insetToLayoutPosition(insets)
+    }
+
+    private fun insetToLayoutPosition(insets: WindowInsetsCompat): WindowInsetsCompat {
+        if (!insets.hasInsets()) {
+            return insets
+        }
+        return insetValue(insets) { l, t, r, b -> insets.inset(l, t, r, b) }
+    }
+
+    private fun insetBounds(bounds: BoundsCompat): BoundsCompat =
+        insetValue(bounds) { l, t, r, b ->
+            BoundsCompat(bounds.lowerBound.inset(l, t, r, b), bounds.upperBound.inset(l, t, r, b))
+        }
+
+    private inline fun <T> insetValue(value: T, block: (l: Int, t: Int, r: Int, b: Int) -> T): T {
+        val coordinates = layoutNode.innerCoordinator
+        if (!coordinates.isAttached) {
+            return value
+        }
+        val topLeft = coordinates.positionInRoot().round()
+        val left = topLeft.x.fastCoerceAtLeast(0)
+        val top = topLeft.y.fastCoerceAtLeast(0)
+        val (rootWidth, rootHeight) = coordinates.findRootCoordinates().size
+        val (width, height) = coordinates.size
+        val bottomRight = coordinates.localToRoot(Offset(width.toFloat(), height.toFloat())).round()
+        val right = (rootWidth - bottomRight.x).fastCoerceAtLeast(0)
+        val bottom = (rootHeight - bottomRight.y).fastCoerceAtLeast(0)
+
+        return if (left == 0 && top == 0 && right == 0 && bottom == 0) {
+            value
+        } else {
+            block(left, top, right, bottom)
+        }
+    }
+
+    private fun Insets.inset(left: Int, top: Int, right: Int, bottom: Int): Insets {
+        return Insets.of(
+            (this.left - left).fastCoerceAtLeast(0),
+            (this.top - top).fastCoerceAtLeast(0),
+            (this.right - right).fastCoerceAtLeast(0),
+            (this.bottom - bottom).fastCoerceAtLeast(0)
+        )
     }
 
     companion object {

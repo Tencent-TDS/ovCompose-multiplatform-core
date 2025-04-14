@@ -22,13 +22,14 @@ import android.os.Build
 import android.telecom.DisconnectCause
 import android.telecom.PhoneAccount
 import android.telecom.PhoneAccountHandle
-import androidx.annotation.RequiresApi
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.internal.utils.Utils
 import androidx.core.telecom.test.utils.BaseTelecomTest
 import androidx.core.telecom.test.utils.ManagedConnection
 import androidx.core.telecom.test.utils.ManagedConnectionService
 import androidx.core.telecom.test.utils.TestUtils
+import androidx.core.telecom.test.utils.TestUtils.ALL_CALL_CAPABILITIES
+import androidx.core.telecom.test.utils.TestUtils.OUTGOING_NAME
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
@@ -47,7 +48,6 @@ import org.junit.runner.RunWith
  * [ManagedCallsTest] should be used to test core-telecom with traditional sim calling.
  */
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.Q)
-@RequiresApi(Build.VERSION_CODES.Q)
 @RunWith(AndroidJUnit4::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class ManagedCallsTest : BaseTelecomTest() {
@@ -77,6 +77,15 @@ class ManagedCallsTest : BaseTelecomTest() {
             .addSupportedUriScheme(PhoneAccount.SCHEME_VOICEMAIL)
             .build()
 
+    val OUTGOING_MANAGED_CALL_ATTRIBUTES =
+        CallAttributesCompat(
+            OUTGOING_NAME,
+            Uri.parse("tel:" + TestUtils.TEST_PHONE_NUMBER),
+            CallAttributesCompat.DIRECTION_OUTGOING,
+            CallAttributesCompat.CALL_TYPE_AUDIO_CALL,
+            ALL_CALL_CAPABILITIES
+        )
+
     @Before
     fun setUp() {
         Utils.resetUtils()
@@ -97,7 +106,7 @@ class ManagedCallsTest : BaseTelecomTest() {
     fun testAddManagedCall() {
         val deferredConnection = CompletableDeferred<ManagedConnection>()
         runBlocking {
-            val connection = addManagedCall(TestUtils.OUTGOING_CALL_ATTRIBUTES, deferredConnection)
+            val connection = addManagedCall(OUTGOING_MANAGED_CALL_ATTRIBUTES, deferredConnection)
             disconnectAndDestroyConnection(connection)
         }
     }

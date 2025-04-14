@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
+
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -31,9 +32,8 @@ plugins {
     id("com.android.library")
 }
 
-
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios()
     jvm()
     linux()
@@ -82,12 +82,12 @@ androidXMultiplatform {
 }
 
 android {
-    namespace "androidx.sqlite.db"
+    namespace = "androidx.sqlite.db"
 }
 
 androidx {
     name = "SQLite"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "SQLite API"
 }

@@ -17,6 +17,7 @@
 package androidx.compose.ui.text.style
 
 import androidx.compose.ui.text.PlatformParagraphStyle
+import androidx.compose.ui.text.internal.checkPrecondition
 import kotlin.jvm.JvmInline
 
 /**
@@ -207,7 +208,7 @@ class LineHeightStyle(val alignment: Alignment, val trim: Trim, val mode: Mode) 
     value class Alignment constructor(internal val topRatio: Float) {
 
         init {
-            check(topRatio in 0f..1f || topRatio == -1f) {
+            checkPrecondition(topRatio in 0f..1f || topRatio == -1f) {
                 "topRatio should be in [0..1] range or -1"
             }
         }
@@ -318,8 +319,8 @@ class LineHeightStyle(val alignment: Alignment, val trim: Trim, val mode: Mode) 
             val Fixed = Mode(0)
 
             /**
-             * Use the specified line height if the system preferred line height is smaller than
-             * specified line height.
+             * By specifying [Mode.Minimum], when the specified line height is smaller than the
+             * system preferred value, the system preferred one is used instead.
              */
             val Minimum = Mode(1)
         }

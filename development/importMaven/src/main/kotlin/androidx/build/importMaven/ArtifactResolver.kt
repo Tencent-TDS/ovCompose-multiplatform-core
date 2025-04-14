@@ -40,6 +40,7 @@ import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinUsages
+import org.jetbrains.kotlin.gradle.targets.js.KotlinJsCompilerAttribute
 import org.jetbrains.kotlin.gradle.targets.js.KotlinWasmTargetAttribute
 import org.jetbrains.kotlin.konan.target.KonanTarget
 
@@ -207,55 +208,30 @@ ${
                 }
             }
             val resolutionList = configurations.map { configuration ->
-                resolveArtifacts(configuration, disableVerificationOnFailure = true)
+                resolveArtifacts(configuration)
             }
             val artifacts = resolutionList.flatMap { resolution ->
                 resolution.artifacts
             }
-            val dependenciesPassedVerification = resolutionList.map { resolution ->
+            val dependenciesPassedVerification = resolutionList.all { resolution ->
                 resolution.dependenciesPassedVerification
-            }.all { it == true }
+            }
             return ArtifactsResolutionResult(artifacts, dependenciesPassedVerification)
         }
 
         /**
          * Resolves the given configuration.
          * @param configuration The configuration to resolve
-         * @param disableVerificationOnFailure If set, this method will try to re-resolve the
-         *        configuration without dependency verification. This might be necessary if an
-         *        artifact is signed but the key is not registered in any of the public key servers.
          */
         private fun resolveArtifacts(
             configuration: Configuration,
-            disableVerificationOnFailure: Boolean
         ): ArtifactsResolutionResult {
-            return try {
-                val artifacts = configuration.incoming.artifactView {
-                    // We need to be lenient because we are requesting files that might not exist.
-                    // For example source.jar or .asc.
-                    it.lenient(true)
-                }.artifacts.artifacts.toList()
-                ArtifactsResolutionResult(artifacts.toList(), dependenciesPassedVerification = true)
-            } catch (verificationException: DependencyVerificationException) {
-                if (disableVerificationOnFailure) {
-                    val copy = configuration.copyRecursive().also {
-                        it.resolutionStrategy.disableDependencyVerification()
-                    }
-                    logger.warn {
-                        """
-Failed key verification for public servers, will retry without verification.
-${verificationException.message?.prependIndent("    ")}
-                        """
-                    }
-                    val artifacts = resolveArtifacts(copy, disableVerificationOnFailure = false)
-                    return ArtifactsResolutionResult(
-                        artifacts.artifacts,
-                        dependenciesPassedVerification = false
-                    )
-                } else {
-                    throw verificationException
-                }
-            }
+            val artifacts = configuration.incoming.artifactView {
+                // We need to be lenient because we are requesting files that might not exist.
+                // For example source.jar or .asc.
+                it.lenient(true)
+            }.artifacts.artifacts.toList()
+            return ArtifactsResolutionResult(artifacts.toList(), dependenciesPassedVerification = false)
         }
 
         /**
@@ -428,6 +404,25 @@ ${verificationException.message?.prependIndent("    ")}
                 }
             }
 
+            val js =
+                KOTlIN_USAGES.map { kotlinUsage ->
+                    createConfiguration(*dependencies) {
+                        attributes.apply {
+                            attribute(Category.CATEGORY_ATTRIBUTE, Category.LIBRARY)
+                            attribute(
+                                TargetJvmEnvironment.TARGET_JVM_ENVIRONMENT_ATTRIBUTE,
+                                "non-jvm"
+                            )
+                            attribute(Usage.USAGE_ATTRIBUTE, kotlinUsage)
+                            attribute(
+                                KotlinJsCompilerAttribute.jsCompilerAttribute,
+                                KotlinJsCompilerAttribute.ir
+                            )
+                            attribute(KotlinPlatformType.attribute, KotlinPlatformType.js)
+                        }
+                    }
+                }
+
             val commonArtifacts = KOTlIN_USAGES.map { kotlinUsage ->
                 createConfiguration(*dependencies) {
                     attributes.apply {
@@ -437,7 +432,7 @@ ${verificationException.message?.prependIndent("    ")}
                     }
                 }
             }
-            return jvmAndAndroid + wasmJs + konanTargetConfigurations + commonArtifacts
+            return jvmAndAndroid + wasmJs + js + konanTargetConfigurations + commonArtifacts
         }
 
         private fun createKonanTargetConfiguration(

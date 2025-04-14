@@ -17,12 +17,13 @@
 package androidx.credentials.playservices
 
 import android.content.Context
+import android.os.Build
 import android.os.CancellationSignal
 import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
-import androidx.credentials.ClearCredentialRequestTypes
 import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.ClearCredentialStateRequest.Companion.TYPE_CLEAR_RESTORE_CREDENTIAL
 import androidx.credentials.CreateCredentialRequest
 import androidx.credentials.CreateCredentialResponse
 import androidx.credentials.CreatePasswordRequest
@@ -30,8 +31,10 @@ import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreateRestoreCredentialRequest
 import androidx.credentials.CredentialManagerCallback
 import androidx.credentials.CredentialProvider
+import androidx.credentials.ExperimentalDigitalCredentialApi
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetDigitalCredentialOption
 import androidx.credentials.GetRestoreCredentialOption
 import androidx.credentials.exceptions.ClearCredentialException
 import androidx.credentials.exceptions.ClearCredentialProviderConfigurationException
@@ -40,12 +43,14 @@ import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.CreateCredentialProviderConfigurationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
-import androidx.credentials.playservices.controllers.BeginSignIn.CredentialProviderBeginSignInController
-import androidx.credentials.playservices.controllers.CreatePassword.CredentialProviderCreatePasswordController
-import androidx.credentials.playservices.controllers.CreatePublicKeyCredential.CredentialProviderCreatePublicKeyCredentialController
-import androidx.credentials.playservices.controllers.CreateRestoreCredential.CredentialProviderCreateRestoreCredentialController
-import androidx.credentials.playservices.controllers.GetRestoreCredential.CredentialProviderGetRestoreCredentialController
-import androidx.credentials.playservices.controllers.GetSignInIntent.CredentialProviderGetSignInIntentController
+import androidx.credentials.playservices.controllers.blockstore.createrestorecredential.CredentialProviderCreateRestoreCredentialController
+import androidx.credentials.playservices.controllers.blockstore.getrestorecredential.CredentialProviderGetRestoreCredentialController
+import androidx.credentials.playservices.controllers.identityauth.beginsignin.CredentialProviderBeginSignInController
+import androidx.credentials.playservices.controllers.identityauth.createpassword.CredentialProviderCreatePasswordController
+import androidx.credentials.playservices.controllers.identityauth.createpublickeycredential.CredentialProviderCreatePublicKeyCredentialController
+import androidx.credentials.playservices.controllers.identityauth.getsigninintent.CredentialProviderGetSignInIntentController
+import androidx.credentials.playservices.controllers.identitycredentials.createpublickeycredential.CreatePublicKeyCredentialController
+import androidx.credentials.playservices.controllers.identitycredentials.getdigitalcredential.CredentialProviderGetDigitalCredentialController
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.auth.blockstore.restorecredential.RestoreCredential
 import com.google.android.gms.auth.blockstore.restorecredential.RestoreCredentialStatusCodes
@@ -58,6 +63,7 @@ import java.util.concurrent.Executor
 /** Entry point of all credential manager requests to the play-services-auth module. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 @Suppress("deprecation")
+@OptIn(ExperimentalDigitalCredentialApi::class)
 class CredentialProviderPlayServicesImpl(private val context: Context) : CredentialProvider {
 
     @VisibleForTesting var googleApiAvailability = GoogleApiAvailability.getInstance()
@@ -72,7 +78,36 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
         if (cancellationReviewer(cancellationSignal)) {
             return
         }
-        if (isGetRestoreCredentialRequest(request)) {
+        if (isDigitalCredentialRequest(request)) {
+            if (!isAvailableOnDevice(MIN_GMS_APK_VERSION_DIGITAL_CRED)) {
+                cancellationReviewerWithCallback(cancellationSignal) {
+                    executor.execute {
+                        callback.onError(
+                            GetCredentialProviderConfigurationException(
+                                "this device requires a Google Play Services update for the" +
+                                    " given feature to be supported"
+                            )
+                        )
+                    }
+                }
+                return
+            }
+            if (Build.VERSION.SDK_INT >= 23) {
+                CredentialProviderGetDigitalCredentialController(context)
+                    .invokePlayServices(request, callback, executor, cancellationSignal)
+            } else {
+                cancellationReviewerWithCallback(cancellationSignal) {
+                    executor.execute {
+                        callback.onError(
+                            GetCredentialProviderConfigurationException(
+                                "this feature requires the minimum API level to be 23"
+                            )
+                        )
+                    }
+                }
+                return
+            }
+        } else if (isGetRestoreCredentialRequest(request)) {
             if (!isAvailableOnDevice(MIN_GMS_APK_VERSION_RESTORE_CRED)) {
                 cancellationReviewerWithCallback(cancellationSignal) {
                     executor.execute {
@@ -114,8 +149,13 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
                     .invokePlayServices(request, callback, executor, cancellationSignal)
             }
             is CreatePublicKeyCredentialRequest -> {
-                CredentialProviderCreatePublicKeyCredentialController.getInstance(context)
-                    .invokePlayServices(request, callback, executor, cancellationSignal)
+                if (request.isConditional) {
+                    CreatePublicKeyCredentialController.getInstance(context)
+                        .invokePlayServices(request, callback, executor, cancellationSignal)
+                } else {
+                    CredentialProviderCreatePublicKeyCredentialController.getInstance(context)
+                        .invokePlayServices(request, callback, executor, cancellationSignal)
+                }
             }
             is CreateRestoreCredentialRequest -> {
                 if (!isAvailableOnDevice(MIN_GMS_APK_VERSION_RESTORE_CRED)) {
@@ -182,7 +222,7 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
         if (cancellationReviewer(cancellationSignal)) {
             return
         }
-        if (request.requestType == ClearCredentialRequestTypes.CLEAR_RESTORE_CREDENTIAL) {
+        if (request.requestType == TYPE_CLEAR_RESTORE_CREDENTIAL) {
             if (!isAvailableOnDevice(MIN_GMS_APK_VERSION_RESTORE_CRED)) {
                 cancellationReviewerWithCallback(cancellationSignal) {
                     executor.execute {
@@ -263,6 +303,8 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) const val MIN_GMS_APK_VERSION = 230815045
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
         const val MIN_GMS_APK_VERSION_RESTORE_CRED = 242200000
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+        const val MIN_GMS_APK_VERSION_DIGITAL_CRED = 243100000
 
         internal fun cancellationReviewerWithCallback(
             cancellationSignal: CancellationSignal?,
@@ -297,6 +339,15 @@ class CredentialProviderPlayServicesImpl(private val context: Context) : Credent
         internal fun isGetRestoreCredentialRequest(request: GetCredentialRequest): Boolean {
             for (option in request.credentialOptions) {
                 if (option is GetRestoreCredentialOption) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        internal fun isDigitalCredentialRequest(request: GetCredentialRequest): Boolean {
+            for (option in request.credentialOptions) {
+                if (option is GetDigitalCredentialOption) {
                     return true
                 }
             }

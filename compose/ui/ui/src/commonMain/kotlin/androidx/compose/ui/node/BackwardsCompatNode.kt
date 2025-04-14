@@ -350,6 +350,13 @@ internal class BackwardsCompatNode(element: Modifier.Element) :
         }
     }
 
+    /** Explicit override so we only cancel pointer input if this is a PointerInputModifier */
+    override fun onDensityChange() {
+        if (element is PointerInputModifier) {
+            onCancelPointerInput()
+        }
+    }
+
     override fun onCancelPointerInput() {
         with(element as PointerInputModifier) { pointerInputFilter.onCancel() }
     }

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextIndent
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
@@ -43,10 +44,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
-import androidx.test.filters.Suppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -193,6 +194,13 @@ class MultiParagraphIntegrationTest {
         val paragraph = simpleMultiParagraph(text = text)
 
         paragraph.getPathForRange(textStart, textEnd + 1)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun getPathForRange_throws_exception_if_end_is_larger_than_last_line_end() {
+        val paragraph = simpleMultiParagraph("ab", "cd", maxLines = 1)
+
+        paragraph.getPathForRange(3, 4) // path for "d"
     }
 
     @Test
@@ -401,7 +409,7 @@ class MultiParagraphIntegrationTest {
         paragraph.getBoundingBox(-1)
     }
 
-    @Suppress
+    @Ignore
     @Test(expected = java.lang.IllegalArgumentException::class)
     fun getBoundingBox_offset_larger_than_length_throw_exception() {
         val text = "abc"
@@ -1416,7 +1424,8 @@ class MultiParagraphIntegrationTest {
                 style = TextStyle(textDirection = TextDirection.Rtl),
                 constraints = Constraints(),
                 density = defaultDensity,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
 
         // the first character uses TextDirection.Content, text is Ltr
@@ -1441,7 +1450,8 @@ class MultiParagraphIntegrationTest {
                 placeholders = placeholders,
                 constraints = Constraints(),
                 density = defaultDensity,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
 
         // Rendered as below:
@@ -1465,7 +1475,8 @@ class MultiParagraphIntegrationTest {
                 placeholders = placeholders,
                 constraints = Constraints(),
                 density = defaultDensity,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
 
         // Rendered as below:
@@ -1490,7 +1501,8 @@ class MultiParagraphIntegrationTest {
                 placeholders = placeholders,
                 constraints = Constraints(),
                 density = defaultDensity,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
 
         assertThat(paragraph.placeholderRects).hasSize(1)
@@ -1524,7 +1536,8 @@ class MultiParagraphIntegrationTest {
                 placeholders = placeholders,
                 constraints = Constraints(),
                 density = defaultDensity,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
 
         assertThat(paragraph.placeholderRects).hasSize(2)
@@ -1563,7 +1576,8 @@ class MultiParagraphIntegrationTest {
             placeholders = placeholders,
             constraints = Constraints(),
             density = defaultDensity,
-            fontFamilyResolver = UncachedFontFamilyResolver(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -1575,7 +1589,8 @@ class MultiParagraphIntegrationTest {
             style = TextStyle(),
             constraints = minWidthConstraints,
             density = defaultDensity,
-            fontFamilyResolver = UncachedFontFamilyResolver(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -1587,7 +1602,8 @@ class MultiParagraphIntegrationTest {
             style = TextStyle(),
             constraints = minHeightConstraints,
             density = defaultDensity,
-            fontFamilyResolver = UncachedFontFamilyResolver(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -1610,7 +1626,8 @@ class MultiParagraphIntegrationTest {
                 style = TextStyle(fontSize = fontSize, fontFamily = fontFamilyMeasureFont),
                 constraints = constraints,
                 density = this,
-                fontFamilyResolver = UncachedFontFamilyResolver(context)
+                fontFamilyResolver = UncachedFontFamilyResolver(context),
+                overflow = TextOverflow.Clip
             )
         }
     }
@@ -1769,6 +1786,31 @@ class MultiParagraphIntegrationTest {
         }
     }
 
+    @OptIn(ExperimentalTextApi::class)
+    @Test
+    fun mapEachParagraphStyle_containsAllAnnotations_excludingParagraphStyle() {
+        val tag1 = "annotation1"
+        val value1 = "value1"
+
+        val strings = mutableListOf<AnnotatedString>()
+        buildAnnotatedString {
+                withStyle(ParagraphStyle()) { withStyle(SpanStyle()) { append("a") } }
+                withAnnotation(tag1, value1) { append("a") }
+                withStyle(ParagraphStyle()) { append("a") }
+                withStyle(SpanStyle()) { append("a") }
+            }
+            .mapEachParagraphStyle(ParagraphStyle()) { annotatedString, _ ->
+                strings.add(annotatedString)
+            }
+
+        assertThat(strings.size).isEqualTo(4)
+        assertThat(strings[0].annotations).containsExactly(Range(SpanStyle(), 0, 1))
+        assertThat(strings[1].annotations)
+            .containsExactly(Range(StringAnnotation(value1), 0, 1, tag1))
+        assertThat(strings[2].annotations).isNull()
+        assertThat(strings[3].annotations).containsExactly(Range(SpanStyle(), 0, 1))
+    }
+
     private fun MultiParagraph.disableAntialias() {
         paragraphInfoList.forEach {
             (it.paragraph as AndroidParagraph).textPaint.isAntiAlias = false
@@ -1821,7 +1863,26 @@ class MultiParagraphIntegrationTest {
             maxLines = maxLines,
             constraints = Constraints(maxWidth = width.ceilToInt()),
             density = defaultDensity,
-            fontFamilyResolver = UncachedFontFamilyResolver(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
+        )
+    }
+
+    private fun simpleMultiParagraph(
+        vararg text: String,
+        style: TextStyle? = null,
+        fontSize: TextUnit = TextUnit.Unspecified,
+        maxLines: Int = Int.MAX_VALUE,
+        width: Float = Float.MAX_VALUE
+    ): MultiParagraph {
+        return MultiParagraph(
+            annotatedString = createAnnotatedString(text.toList()),
+            style = TextStyle(fontFamily = fontFamilyMeasureFont, fontSize = fontSize).merge(style),
+            maxLines = maxLines,
+            constraints = Constraints(maxWidth = width.ceilToInt()),
+            density = defaultDensity,
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -1845,7 +1906,8 @@ class MultiParagraphIntegrationTest {
             maxLines = maxLines,
             constraints = Constraints(maxWidth = width.ceilToInt()),
             density = defaultDensity,
-            fontFamilyResolver = UncachedFontFamilyResolver(context)
+            fontFamilyResolver = UncachedFontFamilyResolver(context),
+            overflow = TextOverflow.Clip
         )
     }
 }

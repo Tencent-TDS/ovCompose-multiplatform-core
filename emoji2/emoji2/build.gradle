@@ -6,7 +6,7 @@
  * modifying its settings.
  */
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -25,6 +25,7 @@ BundleInsideHelper.forInsideAar(
 )
 
 dependencies {
+    api(libs.jspecify)
     bundleInside(project(":noto-emoji-compat-flatbuffers"))
 
     api("androidx.core:core:1.3.0")
@@ -37,19 +38,19 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation project(':internal-testutils-runtime')
+    androidTestImplementation(libs.espressoCore)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
+    androidTestImplementation(project(":internal-testutils-runtime"))
 }
 
 androidx {
     name = "Emoji2"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Core library to enable emoji compatibility in Kitkat and newer devices to avoid the empty emoji characters."
 }
 
 android {
-    namespace "androidx.emoji2"
+    namespace = "androidx.emoji2"
 }

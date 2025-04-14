@@ -45,6 +45,7 @@ import androidx.camera.core.impl.UseCaseConfig.OPTION_SESSION_CONFIG_UNPACKER
 import androidx.camera.core.impl.UseCaseConfigFactory
 import androidx.camera.core.impl.UseCaseConfigFactory.CaptureType
 import androidx.camera.core.impl.utils.executor.CameraXExecutors
+import androidx.camera.core.internal.TargetConfig.OPTION_TARGET_NAME
 import kotlin.math.min
 
 private val DEFAULT_PREVIEW_SIZE = Size(0, 0)
@@ -187,13 +188,15 @@ public class MeteringRepeating(
             if (product == maxSizeProduct) {
                 return outputSize
             } else if (product > maxSizeProduct) {
-                return previousSize ?: break // fallback to minimum size.
+                // Returns the maximum supported resolution that is <= min(VGA, display resolution)
+                // if it is found
+                return previousSize ?: break
             }
             previousSize = outputSize
         }
 
         // If not found, return the minimum size.
-        return outputSizes[0]
+        return previousSize ?: outputSizes[0]
     }
 
     public class MeteringRepeatingConfig : UseCaseConfig<MeteringRepeating>, ImageInputConfig {
@@ -203,6 +206,7 @@ public class MeteringRepeating(
                     OPTION_SESSION_CONFIG_UNPACKER,
                     CameraUseCaseAdapter.DefaultSessionOptionsUnpacker
                 )
+                insertOption(OPTION_TARGET_NAME, "MeteringRepeating")
                 insertOption(OPTION_CAPTURE_TYPE, CaptureType.METERING_REPEATING)
             }
 

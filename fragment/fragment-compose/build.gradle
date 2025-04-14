@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 
 plugins {
@@ -53,7 +53,7 @@ dependencies {
     androidTestImplementation(project(":compose:ui:ui-test-junit4"))
     androidTestImplementation(project(":compose:ui:ui-text"))
     androidTestImplementation(project(":compose:ui:ui-unit"))
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.espressoCore)
     androidTestImplementation(libs.hamcrestCore)
     androidTestImplementation(project(":internal-testutils-runtime"))
     androidTestImplementation(libs.junit)
@@ -64,15 +64,15 @@ dependencies {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.fragment.compose"
+    compileSdk = 35
+    namespace = "androidx.fragment.compose"
     // TODO(b/313699418): need to update compose.runtime version to 1.6.0+
     experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidx {
     name = "Fragment Compose"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2024"
     description = "Integrate Fragments with Compose to provide helper APIs for using Fragments in" +
             "Compose or Compose inside of Fragments"

@@ -16,6 +16,7 @@
 
 package androidx.wear.compose.foundation
 
+import android.os.Build
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.BasicText
@@ -38,7 +40,6 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -56,6 +57,7 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeWithVelocity
+import androidx.test.filters.SdkSuppress
 import java.lang.Math.sin
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,6 +65,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
+@SdkSuppress(maxSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 class BasicSwipeToDismissBoxTest {
     @get:Rule val rule = createComposeRule()
 
@@ -246,7 +249,7 @@ class BasicSwipeToDismissBoxTest {
                     BasicText(
                         text = "Inner",
                         color = { Color.Red },
-                        modifier = Modifier.testTag(TEST_TAG)
+                        modifier = Modifier.fillMaxWidth().testTag(TEST_TAG)
                     )
                 }
             }
@@ -255,8 +258,8 @@ class BasicSwipeToDismissBoxTest {
         rule.onNodeWithTag(TEST_TAG).performTouchInput { swipeRight() }
 
         rule.runOnIdle {
-            assertEquals(true, innerDismissed)
-            assertEquals(false, outerDismissed)
+            assertTrue(innerDismissed)
+            assertFalse(outerDismissed)
         }
     }
 
@@ -443,19 +446,17 @@ class BasicSwipeToDismissBoxTest {
                 modifier = Modifier.testTag(TEST_TAG),
             ) { isBackground ->
                 if (isBackground) {
-                    val focusRequester = rememberActiveFocusRequester()
                     BasicText(
                         BACKGROUND_MESSAGE,
                         Modifier.onFocusChanged { focusedBackground = it.isFocused }
-                            .focusRequester(focusRequester)
+                            .hierarchicalFocusRequester()
                             .focusable()
                     )
                 } else {
-                    val focusRequester = rememberActiveFocusRequester()
                     BasicText(
                         CONTENT_MESSAGE,
                         Modifier.onFocusChanged { focusedContent = it.isFocused }
-                            .focusRequester(focusRequester)
+                            .hierarchicalFocusRequester()
                             .focusable()
                     )
                 }
@@ -480,6 +481,28 @@ class BasicSwipeToDismissBoxTest {
             assertTrue(focusedContent)
             assertFalse(focusedBackground)
         }
+    }
+
+    @Test
+    fun dragged_right() {
+        lateinit var state: SwipeToDismissBoxState
+        rule.setContent {
+            state = rememberSwipeToDismissBoxState()
+            BasicSwipeToDismissBox(
+                state = state,
+                modifier = Modifier.testTag(TEST_TAG),
+                onDismissed = {}
+            ) {
+                MessageContent()
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput {
+            down(Offset(x = 0f, y = height / 2f))
+            moveTo(Offset(x = 100f, y = height / 2f))
+        }
+
+        rule.runOnIdle { assertTrue(state.offset > 0f) }
     }
 
     private fun testBothDirectionScroll(

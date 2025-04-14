@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -700,6 +701,7 @@ class ScatterMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableScatterMap<String?, String?>()
         map["Hello"] = "World"
@@ -1395,6 +1397,82 @@ class ScatterMapTest {
         assertTrue(map.all { _, value -> value == "XX" })
 
         assertFalse(MutableScatterMap<String, String>().asMutableMap().entries.iterator().hasNext())
+    }
+
+    @Test
+    @JsName("jsAsMapEquals")
+    fun asMapEquals() {
+        val map = MutableScatterMap<String?, String?>()
+        map["Hello"] = "World"
+        map[null] = "Monde"
+        map["Bonjour"] = null
+
+        assertFalse(map.asMap().equals(null))
+        assertFalse(map.asMutableMap().equals(null))
+        assertEquals(map.asMap(), map.asMap())
+        assertEquals(map.asMutableMap(), map.asMutableMap())
+
+        val map2 = MutableScatterMap<String?, String?>()
+        map2["Bonjour"] = null
+        map2[null] = "Monde"
+
+        assertNotEquals(map.asMap(), map2.asMap())
+        assertNotEquals(map.asMutableMap(), map2.asMutableMap())
+
+        map2["Hello"] = "World"
+        assertEquals(map.asMap(), map2.asMap())
+        assertEquals(map.asMutableMap(), map2.asMutableMap())
+    }
+
+    @Test
+    fun asMapToString() {
+        val map = MutableScatterMap<String?, String?>()
+        assertEquals("{}", map.asMap().toString())
+        assertEquals("{}", map.asMutableMap().toString())
+
+        map["Hello"] = "World"
+        map["Bonjour"] = "Monde"
+        assertTrue(
+            "{Hello=World, Bonjour=Monde}" == map.asMap().toString() ||
+                "{Bonjour=Monde, Hello=World}" == map.asMap().toString()
+        )
+        assertTrue(
+            "{Hello=World, Bonjour=Monde}" == map.asMutableMap().toString() ||
+                "{Bonjour=Monde, Hello=World}" == map.asMutableMap().toString()
+        )
+
+        map.clear()
+        map["Hello"] = null
+        assertEquals("{Hello=null}", map.asMap().toString())
+        assertEquals("{Hello=null}", map.asMutableMap().toString())
+
+        map.clear()
+        map[null] = "Monde"
+        assertEquals("{null=Monde}", map.asMap().toString())
+        assertEquals("{null=Monde}", map.asMutableMap().toString())
+
+        val selfAsKeyMap = MutableScatterMap<Any, String>()
+        selfAsKeyMap[selfAsKeyMap] = "Hello"
+        assertEquals("{(this)=Hello}", selfAsKeyMap.asMap().toString())
+        assertEquals("{(this)=Hello}", selfAsKeyMap.asMutableMap().toString())
+
+        val selfAsValueMap = MutableScatterMap<String, Any>()
+        selfAsValueMap["Hello"] = selfAsValueMap
+        assertEquals("{Hello=(this)}", selfAsValueMap.asMap().toString())
+        assertEquals("{Hello=(this)}", selfAsValueMap.asMutableMap().toString())
+
+        // Test with a small map
+        val map2 = MutableScatterMap<String?, String?>(2)
+        map2["Hello"] = "World"
+        map2["Bonjour"] = "Monde"
+        assertTrue(
+            "{Hello=World, Bonjour=Monde}" == map2.asMap().toString() ||
+                "{Bonjour=Monde, Hello=World}" == map2.asMap().toString()
+        )
+        assertTrue(
+            "{Hello=World, Bonjour=Monde}" == map2.asMutableMap().toString() ||
+                "{Bonjour=Monde, Hello=World}" == map2.asMutableMap().toString()
+        )
     }
 
     @Test

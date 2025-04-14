@@ -17,8 +17,8 @@
 package androidx.graphics.shapes
 
 import androidx.test.filters.SmallTest
-import org.junit.Assert
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 @SmallTest
@@ -29,7 +29,7 @@ class RoundedPolygonTest {
 
     @Test
     fun numVertsConstructorTest() {
-        Assert.assertThrows(IllegalArgumentException::class.java) { RoundedPolygon(2) }
+        assertThrows(IllegalArgumentException::class.java) { RoundedPolygon(2) }
 
         val square = RoundedPolygon(4)
         var min = Point(-1f, -1f)
@@ -60,7 +60,7 @@ class RoundedPolygonTest {
         val p3 = Point(0f, -1f)
         val verts = floatArrayOf(p0.x, p0.y, p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
 
-        Assert.assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             RoundedPolygon(floatArrayOf(p0.x, p0.y, p1.x, p1.y))
         }
 
@@ -95,6 +95,77 @@ class RoundedPolygonTest {
         min = Point(-1f, -1f)
         max = Point(1f, 1f)
         assertInBounds(manualSquarePVRounded.cubics, min, max)
+    }
+
+    @Test
+    fun featuresConstructorThrowsForTooFewFeatures() {
+        assertThrows(IllegalArgumentException::class.java) { RoundedPolygon(listOf()) }
+        val corner = Feature.Corner(listOf(Cubic.empty(0f, 0f)))
+        assertThrows(IllegalArgumentException::class.java) { RoundedPolygon(listOf(corner)) }
+    }
+
+    @Test
+    fun featuresConstructorThrowsForNonContinuousFeatures() {
+        val cubic1 = Cubic.straightLine(0f, 0f, 1f, 0f)
+        val cubic2 = Cubic.straightLine(10f, 10f, 20f, 20f)
+        assertThrows(IllegalArgumentException::class.java) {
+            RoundedPolygon(listOf(Feature.buildEdge(cubic1), Feature.buildEdge(cubic2)))
+        }
+    }
+
+    @Test
+    fun featuresConstructorReconstructsSquare() {
+        val base = RoundedPolygon.rectangle()
+        val actual = RoundedPolygon(base.features)
+        assertPolygonsEqualish(base, actual)
+    }
+
+    @Test
+    fun featuresConstructorReconstructsRoundedSquare() {
+        val base = RoundedPolygon.rectangle(rounding = CornerRounding(0.5f, 0.2f))
+        val actual = RoundedPolygon(base.features)
+        assertPolygonsEqualish(base, actual)
+    }
+
+    @Test
+    fun featuresConstructorReconstructsCircles() {
+        for (i in 3..20) {
+            val base = RoundedPolygon.circle(i)
+            val actual = RoundedPolygon(base.features)
+            assertPolygonsEqualish(base, actual)
+        }
+    }
+
+    @Test
+    fun featuresConstructorReconstructsStars() {
+        for (i in 3..20) {
+            val base = RoundedPolygon.star(i)
+            val actual = RoundedPolygon(base.features)
+            assertPolygonsEqualish(base, actual)
+        }
+    }
+
+    @Test
+    fun featuresConstructorReconstructsRoundedStars() {
+        for (i in 3..20) {
+            val base = RoundedPolygon.star(i, rounding = CornerRounding(0.5f, 0.2f))
+            val actual = RoundedPolygon(base.features)
+            assertPolygonsEqualish(base, actual)
+        }
+    }
+
+    @Test
+    fun featuresConstructorReconstructsPill() {
+        val base = RoundedPolygon.pill()
+        val actual = RoundedPolygon(base.features)
+        assertPolygonsEqualish(base, actual)
+    }
+
+    @Test
+    fun featuresConstructorReconstructsPillStar() {
+        val base = RoundedPolygon.pillStar(rounding = CornerRounding(0.5f, 0.2f))
+        val actual = RoundedPolygon(base.features)
+        assertPolygonsEqualish(base, actual)
     }
 
     @Test

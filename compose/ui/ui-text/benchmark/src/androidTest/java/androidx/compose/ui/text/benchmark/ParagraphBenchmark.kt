@@ -28,6 +28,7 @@ import androidx.compose.ui.text.ParagraphIntrinsics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
@@ -97,7 +98,8 @@ class ParagraphBenchmark(
     ): Paragraph {
         return Paragraph(
             paragraphIntrinsics = paragraphIntrinsics(text, spanStyles),
-            constraints = Constraints(maxWidth = ceil(width).toInt())
+            constraints = Constraints(maxWidth = ceil(width).toInt()),
+            overflow = TextOverflow.Clip
         )
     }
 
@@ -115,10 +117,11 @@ class ParagraphBenchmark(
     ): ParagraphIntrinsics {
         return ParagraphIntrinsics(
             text = text,
-            density = Density(density = instrumentationContext.resources.displayMetrics.density),
             style = TextStyle(fontSize = fontSize),
+            annotations = spanStyles,
+            density = Density(density = instrumentationContext.resources.displayMetrics.density),
             fontFamilyResolver = createFontFamilyResolver(instrumentationContext),
-            spanStyles = spanStyles
+            placeholders = listOf()
         )
     }
 
@@ -126,7 +129,7 @@ class ParagraphBenchmark(
     fun minIntrinsicWidth() {
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
-                val intrinsics = runWithTimingDisabled { paragraphIntrinsics(textGenerator) }
+                val intrinsics = runWithMeasurementDisabled { paragraphIntrinsics(textGenerator) }
 
                 intrinsics.minIntrinsicWidth
             }
@@ -137,7 +140,7 @@ class ParagraphBenchmark(
     fun maxIntrinsicWidth() {
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
-                val intrinsics = runWithTimingDisabled { paragraphIntrinsics(textGenerator) }
+                val intrinsics = runWithMeasurementDisabled { paragraphIntrinsics(textGenerator) }
 
                 intrinsics.maxIntrinsicWidth
             }
@@ -148,7 +151,7 @@ class ParagraphBenchmark(
     fun construct() {
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
-                val annotatedString = runWithTimingDisabled {
+                val annotatedString = runWithMeasurementDisabled {
                     // create a new paragraph and use a smaller width to get
                     // some line breaking in the result
                     text(textGenerator)
@@ -169,7 +172,7 @@ class ParagraphBenchmark(
         textBenchmarkRule.generator { textGenerator ->
             benchmarkRule.measureRepeated {
                 val (paragraph, canvas) =
-                    runWithTimingDisabled {
+                    runWithMeasurementDisabled {
                         val annotatedString = text(textGenerator)
                         val paragraph =
                             paragraph(annotatedString.text, annotatedString.spanStyles, width)

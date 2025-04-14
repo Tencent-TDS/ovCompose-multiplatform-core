@@ -21,7 +21,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,7 +43,6 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.ExperimentalWearFoundationApi
 import androidx.wear.compose.foundation.RevealValue
 import androidx.wear.compose.foundation.SwipeToReveal
 import androidx.wear.compose.foundation.expandableItem
@@ -57,52 +58,11 @@ import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalWearFoundationApi::class)
 @Sampled
 @Composable
 fun SwipeToRevealSample() {
-    SwipeToReveal(
-        modifier =
-            Modifier.semantics {
-                // Use custom actions to make the primary and secondary actions accessible
-                customActions =
-                    listOf(
-                        CustomAccessibilityAction("Delete") {
-                            /* Add the primary action click handler */
-                            true
-                        }
-                    )
-            },
-        primaryAction = {
-            Box(
-                modifier = Modifier.fillMaxSize().clickable { /* Add the primary action */ },
-            ) {
-                Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete")
-            }
-        },
-        undoAction = {
-            Chip(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { /* Add undo action here */ },
-                colors = ChipDefaults.secondaryChipColors(),
-                label = { Text(text = "Undo") }
-            )
-        }
-    ) {
-        Chip(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { /* the click action associated with chip */ },
-            colors = ChipDefaults.secondaryChipColors(),
-            label = { Text(text = "Swipe Me") }
-        )
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Sampled
-@Composable
-fun SwipeToRevealWithDelayedText() {
     val state = rememberRevealState()
+    val coroutineScope = rememberCoroutineScope()
     SwipeToReveal(
         modifier =
             Modifier.semantics {
@@ -118,10 +78,67 @@ fun SwipeToRevealWithDelayedText() {
         state = state,
         primaryAction = {
             Box(
-                modifier = Modifier.fillMaxSize().clickable { /* Add the primary action */ },
+                modifier =
+                    Modifier.fillMaxSize().clickable {
+                        /* Add the primary action */
+                        coroutineScope.launch { state.animateTo(RevealValue.RightRevealed) }
+                    },
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete")
-                if (abs(state.offset) > revealOffset) {
+            }
+        },
+        undoAction = {
+            Chip(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    /* Add the undo action */
+                    coroutineScope.launch { state.animateTo(RevealValue.Covered) }
+                },
+                colors = ChipDefaults.secondaryChipColors(),
+                label = { Text(text = "Undo") }
+            )
+        }
+    ) {
+        Chip(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { /* the click action associated with chip */ },
+            colors = ChipDefaults.secondaryChipColors(),
+            label = { Text(text = "Swipe Me") }
+        )
+    }
+}
+
+@Sampled
+@Composable
+fun SwipeToRevealWithDelayedText() {
+    val state = rememberRevealState()
+    val coroutineScope = rememberCoroutineScope()
+    SwipeToReveal(
+        modifier =
+            Modifier.semantics {
+                // Use custom actions to make the primary and secondary actions accessible
+                customActions =
+                    listOf(
+                        CustomAccessibilityAction("Delete") {
+                            /* Add the primary action click handler */
+                            true
+                        }
+                    )
+            },
+        state = state,
+        primaryAction = {
+            Row(
+                modifier =
+                    Modifier.fillMaxSize().clickable {
+                        /* Add the primary action */
+                        coroutineScope.launch { state.animateTo(RevealValue.RightRevealed) }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(imageVector = Icons.Outlined.Delete, contentDescription = "Delete")
+                if (abs(state.offset) > state.revealThreshold) {
                     // Delay the text appearance so that it has enough space to be displayed
                     val textAlpha =
                         animateFloatAsState(
@@ -139,7 +156,10 @@ fun SwipeToRevealWithDelayedText() {
         undoAction = {
             Chip(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { /* Add undo action here */ },
+                onClick = {
+                    /* Add the undo action */
+                    coroutineScope.launch { state.animateTo(RevealValue.Covered) }
+                },
                 colors = ChipDefaults.secondaryChipColors(),
                 label = { Text(text = "Undo") }
             )
@@ -157,7 +177,6 @@ fun SwipeToRevealWithDelayedText() {
 /**
  * A sample on how to use Swipe To Reveal within a list of items, preferably [ScalingLazyColumn].
  */
-@OptIn(ExperimentalWearFoundationApi::class)
 @Sampled
 @Composable
 fun SwipeToRevealWithExpandables() {
@@ -185,7 +204,7 @@ fun SwipeToRevealWithExpandables() {
                                     listOf(
                                         CustomAccessibilityAction("Delete") {
                                             coroutineScope.launch {
-                                                revealState.animateTo(RevealValue.Revealed)
+                                                revealState.animateTo(RevealValue.RightRevealed)
                                             }
                                             true
                                         }
@@ -199,7 +218,7 @@ fun SwipeToRevealWithExpandables() {
                                         .background(Color.Red, actionShape)
                                         .clickable {
                                             coroutineScope.launch {
-                                                revealState.animateTo(RevealValue.Revealed)
+                                                revealState.animateTo(RevealValue.RightRevealed)
                                             }
                                         },
                                 contentAlignment = Alignment.Center

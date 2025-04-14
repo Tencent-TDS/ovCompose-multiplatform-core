@@ -16,10 +16,10 @@
 
 package androidx.wear.compose.material3
 
-import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.tween
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.Measurable
@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
  *   items are shown when the screen is new, then scrolled away or hidden when scrolling, and
  *   finally shown again when idle.
  */
-fun Modifier.scrollAway(
+public fun Modifier.scrollAway(
     scrollInfoProvider: ScrollInfoProvider,
     screenStage: () -> ScreenStage
 ): Modifier = this then ScrollAwayModifierElement(scrollInfoProvider, screenStage)
@@ -62,28 +62,41 @@ fun Modifier.scrollAway(
  * [ScreenStage] represents the different stages for a screen, which affect visibility of scaffold
  * components such as [TimeText] and [ScrollIndicator] with [scrollAway] and other animations.
  */
-enum class ScreenStage {
-    /**
-     * Initial stage for a screen when first displayed. It is expected that the [TimeText] and
-     * [ScrollIndicator] are displayed when initially showing a screen.
-     */
-    New,
+@Immutable
+@JvmInline
+public value class ScreenStage internal constructor(internal val value: Int) {
+    public companion object {
+        /**
+         * Initial stage for a screen when first displayed. It is expected that the [TimeText] and
+         * [ScrollIndicator] are displayed when initially showing a screen.
+         */
+        public val New: ScreenStage = ScreenStage(0)
 
-    /**
-     * Stage when both the screen is not scrolling and some time has passed after the screen was
-     * initially shown. At this stage, the [TimeText] is expected to be displayed and the
-     * [ScrollIndicator] will be hidden.
-     */
-    Idle,
+        /**
+         * Stage when both the screen is not scrolling and some time has passed after the screen was
+         * initially shown. At this stage, the [TimeText] is expected to be displayed and the
+         * [ScrollIndicator] will be hidden.
+         */
+        public val Idle: ScreenStage = ScreenStage(1)
 
-    /**
-     * Stage when the screen is being scrolled. At this stage, it is expected that the
-     * [ScrollIndicator] will be shown and [TimeText] will be scrolled away by the scroll operation.
-     */
-    Scrolling
+        /**
+         * Stage when the screen is being scrolled. At this stage, it is expected that the
+         * [ScrollIndicator] will be shown and [TimeText] will be scrolled away by the scroll
+         * operation.
+         */
+        public val Scrolling: ScreenStage = ScreenStage(2)
+    }
+
+    override fun toString(): String =
+        when (this) {
+            New -> "New"
+            Idle -> "Idle"
+            Scrolling -> "Scrolling"
+            else -> "Unknown"
+        }
 }
 
-private data class ScrollAwayModifierElement(
+private class ScrollAwayModifierElement(
     val scrollInfoProvider: ScrollInfoProvider,
     val screenStage: () -> ScreenStage
 ) : ModifierNodeElement<ScrollAwayModifierNode>() {
@@ -98,6 +111,24 @@ private data class ScrollAwayModifierElement(
     override fun InspectorInfo.inspectableProperties() {
         name = "scrollAway"
         properties["scrollInfoProvider"] = scrollInfoProvider
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as ScrollAwayModifierElement
+
+        if (scrollInfoProvider != other.scrollInfoProvider) return false
+        if (screenStage !== other.screenStage) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = scrollInfoProvider.hashCode()
+        result = 31 * result + screenStage.hashCode()
+        return result
     }
 }
 
@@ -133,8 +164,6 @@ private class ScrollAwayModifierNode(
                         // Scale, fade and scroll the content to scroll it away.
                         (offsetPx / maxScrollOut.toPx()).coerceIn(0f, 1f) to 1f
                     }
-
-                Log.d("SCROLL", "OffsetPx = $offsetPx, TargetProgress=$targetProgress")
 
                 val screenStage = screenStage()
 

@@ -16,6 +16,7 @@
 
 package androidx.compose.ui.text
 
+import android.os.Build
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
@@ -96,6 +98,38 @@ class TextMeasurerTest {
     }
 
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.M) // b/364169257 for details
+    fun width_shouldMatter_ifSoftwrapIsDisabled_butOverflowIsStartEllipsis() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = longText,
+                    softWrap = false,
+                    overflow = TextOverflow.StartEllipsis,
+                    constraints = Constraints(maxWidth = 200)
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.width).isEqualTo(200)
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.M) // b/364169257 for details
+    fun width_shouldMatter_ifSoftwrapIsDisabled_butOverflowIsMiddleEllipsis() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = longText,
+                    softWrap = false,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    constraints = Constraints(maxWidth = 200)
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.width).isEqualTo(200)
+    }
+
+    @Test
     fun width_shouldBeMaxIntrinsicWidth_ifSoftwrapIsDisabled_andOverflowIsClip() {
         val textLayoutResult =
             layoutText(
@@ -144,13 +178,69 @@ class TextMeasurerTest {
     }
 
     @Test
-    fun dontOverwriteMaxLines_ifSoftwrapIsEnabled() {
+    fun overwriteMaxLines_ifSoftwrapIsDisabled_andTextOverflowIsStartEllipsis() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = multiLineText,
+                    softWrap = false,
+                    overflow = TextOverflow.StartEllipsis
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.lineCount).isEqualTo(1)
+    }
+
+    @Test
+    fun overwriteMaxLines_ifSoftwrapIsDisabled_andTextOverflowIsMiddleEllipsis() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = multiLineText,
+                    softWrap = false,
+                    overflow = TextOverflow.MiddleEllipsis
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.lineCount).isEqualTo(1)
+    }
+
+    @Test
+    fun dontOverwriteMaxLines_endEllipsis_ifSoftwrapIsEnabled() {
         val textLayoutResult =
             layoutText(
                 textLayoutInput(
                     text = multiLineText,
                     softWrap = true,
                     overflow = TextOverflow.Ellipsis
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.lineCount).isEqualTo(5)
+    }
+
+    @Test
+    fun dontOverwriteMaxLines_middleEllipsis_ifSoftwrapIsEnabled() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = multiLineText,
+                    softWrap = true,
+                    overflow = TextOverflow.MiddleEllipsis
+                )
+            )
+
+        assertThat(textLayoutResult.multiParagraph.lineCount).isEqualTo(5)
+    }
+
+    @Test
+    fun dontOverwriteMaxLines_startEllipsis_ifSoftwrapIsEnabled() {
+        val textLayoutResult =
+            layoutText(
+                textLayoutInput(
+                    text = multiLineText,
+                    softWrap = true,
+                    overflow = TextOverflow.StartEllipsis
                 )
             )
 
@@ -365,6 +455,31 @@ class TextMeasurerTest {
             .isEqualTo(TextDecoration.Underline)
         assertThat(secondTextLayout.layoutInput.style.textDecoration)
             .isEqualTo(TextDecoration.LineThrough)
+    }
+
+    @Test
+    fun decreasingMinWidth_decreasesTheCalculatedWidth() {
+        val textMeasurer = textMeasurer(cacheSize = 8)
+        val firstTextLayout =
+            layoutText(
+                textLayoutInput(
+                    constraints = Constraints(minWidth = 1000, maxWidth = Int.MAX_VALUE)
+                ),
+                textMeasurer
+            )
+
+        val secondTextLayout =
+            layoutText(
+                textLayoutInput(
+                    constraints = Constraints(minWidth = 500, maxWidth = Int.MAX_VALUE)
+                ),
+                textMeasurer
+            )
+
+        assertThat(firstTextLayout.multiParagraph)
+            .isNotSameInstanceAs(secondTextLayout.multiParagraph)
+        assertThat(firstTextLayout.size.width).isEqualTo(1000)
+        assertThat(secondTextLayout.size.width).isEqualTo(500)
     }
 
     @Test

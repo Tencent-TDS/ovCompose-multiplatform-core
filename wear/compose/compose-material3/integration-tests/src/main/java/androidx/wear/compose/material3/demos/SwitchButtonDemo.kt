@@ -28,7 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
-import androidx.wear.compose.material3.LocalTextMaxLines
+import androidx.wear.compose.material3.LocalTextConfiguration
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 
@@ -41,7 +41,7 @@ fun SwitchButtonDemo() {
         item { ListHeader { Text("Disabled Switch") } }
         item { DemoSwitchButton(enabled = false, initiallyChecked = true) }
         item { DemoSwitchButton(enabled = false, initiallyChecked = false) }
-        item { ListHeader { Text("Icon") } }
+        item { ListHeader { Text("Switch with Icon") } }
         item {
             DemoSwitchButton(
                 enabled = true,
@@ -59,6 +59,28 @@ fun SwitchButtonDemo() {
                 secondary = "Secondary label"
             ) {
                 Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+            }
+        }
+        item { ListHeader { Text("Disabled Switch with Icon") } }
+        for (initiallyChecked in booleanArrayOf(true, false)) {
+            item {
+                DemoSwitchButton(
+                    enabled = false,
+                    initiallyChecked = initiallyChecked,
+                    primary = "Primary label",
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
+            }
+            item {
+                DemoSwitchButton(
+                    enabled = false,
+                    initiallyChecked = initiallyChecked,
+                    primary = "Primary label",
+                    secondary = "Secondary label"
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
             }
         }
         item { ListHeader { Text("Multi-line") } }
@@ -113,7 +135,7 @@ private fun DemoSwitchButton(
             Text(
                 primary,
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = primaryMaxLines ?: LocalTextMaxLines.current,
+                maxLines = primaryMaxLines ?: LocalTextConfiguration.current.maxLines,
             )
         },
         secondaryLabel = {

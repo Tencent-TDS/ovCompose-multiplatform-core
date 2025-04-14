@@ -21,6 +21,8 @@ import static androidx.wear.protolayout.DimensionBuilders.dp;
 import static androidx.wear.protolayout.DimensionBuilders.expand;
 import static androidx.wear.protolayout.DimensionBuilders.sp;
 import static androidx.wear.protolayout.DimensionBuilders.weight;
+import static androidx.wear.protolayout.LayoutElementBuilders.ARC_DIRECTION_COUNTER_CLOCKWISE;
+import static androidx.wear.protolayout.LayoutElementBuilders.ARC_DIRECTION_NORMAL;
 import static androidx.wear.protolayout.LayoutElementBuilders.FontStyle.ROBOTO_FLEX_FONT;
 import static androidx.wear.protolayout.LayoutElementBuilders.TABULAR_OPTION_TAG;
 import static androidx.wear.protolayout.LayoutElementBuilders.WEIGHT_AXIS_TAG;
@@ -33,8 +35,11 @@ import static org.junit.Assert.assertThrows;
 import android.graphics.Color;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.wear.protolayout.LayoutElementBuilders.DashedArcLine;
+import androidx.wear.protolayout.LayoutElementBuilders.DashedLinePattern;
 import androidx.wear.protolayout.expression.AppDataKey;
 import androidx.wear.protolayout.expression.DynamicBuilders;
+import androidx.wear.protolayout.proto.ColorProto;
 import androidx.wear.protolayout.proto.DimensionProto;
 import androidx.wear.protolayout.proto.LayoutElementProto;
 import androidx.wear.protolayout.proto.TypesProto;
@@ -407,8 +412,7 @@ public class LayoutElementBuildersTest {
 
     @Test
     public void testFontStyleSetSize_tooManySizes_throws() {
-        int[] sizes =
-                new int[LayoutElementBuilders.FontStyle.Builder.TEXT_SIZES_LIMIT + 1];
+        int[] sizes = new int[LayoutElementBuilders.FontStyle.Builder.TEXT_SIZES_LIMIT + 1];
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new LayoutElementBuilders.FontStyle.Builder().setSizes(sizes).build());
@@ -418,20 +422,14 @@ public class LayoutElementBuildersTest {
     public void testFontStyleSetSize_atLeastOneNegative_throws() {
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        new LayoutElementBuilders.FontStyle.Builder()
-                                .setSizes(-1, 5, 1)
-                                .build());
+                () -> new LayoutElementBuilders.FontStyle.Builder().setSizes(-1, 5, 1).build());
     }
 
     @Test
     public void testFontStyleSetSize_atLeastOneZero_throws() {
         assertThrows(
                 IllegalArgumentException.class,
-                () ->
-                        new LayoutElementBuilders.FontStyle.Builder()
-                                .setSizes(1, 2, 0)
-                                .build());
+                () -> new LayoutElementBuilders.FontStyle.Builder().setSizes(1, 2, 0).build());
     }
 
     @Test
@@ -467,30 +465,33 @@ public class LayoutElementBuildersTest {
 
     @Test
     public void testArcs_withSetDirection_correctlySetsValues() {
-        int arcLineDirection = LayoutElementBuilders.ARC_DIRECTION_COUNTER_CLOCKWISE;
+        int arcLineDirection = ARC_DIRECTION_COUNTER_CLOCKWISE;
         int arcTextDirection = LayoutElementBuilders.ARC_DIRECTION_NORMAL;
         int arcDirection = LayoutElementBuilders.ARC_DIRECTION_CLOCKWISE;
 
-        LayoutElementBuilders.Arc arc = new LayoutElementBuilders.Arc.Builder()
-                .setArcDirection(arcDirection)
-                .addContent(
-                        new LayoutElementBuilders.ArcLine.Builder()
-                                .setArcDirection(arcLineDirection)
-                                .build())
-                .addContent(
-                        new LayoutElementBuilders.ArcText.Builder()
-                                .setArcDirection(arcTextDirection)
-                                .build())
-                .build();
+        LayoutElementBuilders.Arc arc =
+                new LayoutElementBuilders.Arc.Builder()
+                        .setArcDirection(arcDirection)
+                        .addContent(
+                                new LayoutElementBuilders.ArcLine.Builder()
+                                        .setArcDirection(arcLineDirection)
+                                        .build())
+                        .addContent(
+                                new LayoutElementBuilders.ArcText.Builder()
+                                        .setArcDirection(arcTextDirection)
+                                        .build())
+                        .build();
 
         assertThat(arc.getArcDirection().getValue()).isEqualTo(arcDirection);
         assertThat(
-                ((LayoutElementBuilders.ArcLine) arc.getContents().get(0))
-                        .getArcDirection().getValue())
+                        ((LayoutElementBuilders.ArcLine) arc.getContents().get(0))
+                                .getArcDirection()
+                                .getValue())
                 .isEqualTo(arcLineDirection);
         assertThat(
-                ((LayoutElementBuilders.ArcText) arc.getContents().get(1))
-                        .getArcDirection().getValue())
+                        ((LayoutElementBuilders.ArcText) arc.getContents().get(1))
+                                .getArcDirection()
+                                .getValue())
                 .isEqualTo(arcTextDirection);
     }
 
@@ -711,5 +712,108 @@ public class LayoutElementBuildersTest {
         assertThat(fontStyleProto.getPreferredFontFamiliesList().size()).isEqualTo(2);
         assertThat(fontStyleProto.getPreferredFontFamilies(0)).isEqualTo(expectedFontFamily);
         assertThat(fontStyleProto.getPreferredFontFamilies(1)).isEqualTo(fallbackFontFamily);
+    }
+
+    @Test
+    public void dashedArcLine_length() {
+        DashedArcLine dashedArcLine =
+                new DashedArcLine.Builder()
+                        .setLength(DEGREES_PROP)
+                        .setLayoutConstraintsForDynamicLength(DEGREES_PROP_CONSTRAINT)
+                        .build();
+
+        DimensionProto.DegreesProp lengthProto = dashedArcLine.toProto().getLength();
+
+        assertThat(lengthProto.getValue()).isEqualTo(DEGREES_PROP.getValue());
+        assertThat(lengthProto.getDynamicValue().getStateSource().getSourceKey())
+                .isEqualTo(STATE_KEY);
+        assertThat(lengthProto.getValueForLayout()).isEqualTo(DEGREES_PROP_CONSTRAINT.getValue());
+        assertThat(lengthProto.getAngularAlignmentForLayoutValue())
+                .isEqualTo(DEGREES_PROP_CONSTRAINT.getAngularAlignment());
+    }
+
+    @Test
+    public void dashedArcLine_length_withoutLayoutConstraint_throws() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> new DashedArcLine.Builder().setLength(DEGREES_PROP).build());
+    }
+
+    @Test
+    public void dashedArcLine_thickness() {
+        float thickness = 5F;
+        DashedArcLine dashedArcLine = new DashedArcLine.Builder().setThickness(thickness).build();
+
+        assertThat(dashedArcLine.toProto().getThickness().getValue()).isEqualTo(thickness);
+    }
+
+    @Test
+    public void dashedArcLine_color() {
+        String stateKey = "color-key";
+        ColorBuilders.ColorProp color =
+                new ColorBuilders.ColorProp.Builder(Color.BLUE)
+                        .setDynamicValue(
+                                DynamicBuilders.DynamicColor.from(new AppDataKey<>(stateKey)))
+                        .build();
+        DashedArcLine dashedArcLine = new DashedArcLine.Builder().setColor(color).build();
+
+        ColorProto.ColorProp colorProto = dashedArcLine.toProto().getColor();
+        assertThat(colorProto.getArgb()).isEqualTo(Color.BLUE);
+        assertThat(colorProto.getDynamicValue().getStateSource().getSourceKey())
+                .isEqualTo(stateKey);
+    }
+
+    @Test
+    public void dashedArcLine_arcDirection() {
+        DashedArcLine dashedArcLine1 = new DashedArcLine.Builder().build();
+        DashedArcLine dashedArcLine2 =
+                new DashedArcLine.Builder()
+                        .setArcDirection(ARC_DIRECTION_COUNTER_CLOCKWISE)
+                        .build();
+
+        assertThat(dashedArcLine1.toProto().getArcDirection().getValue().getNumber())
+                .isEqualTo(ARC_DIRECTION_NORMAL);
+        assertThat(dashedArcLine2.toProto().getArcDirection().getValue().getNumber())
+                .isEqualTo(ARC_DIRECTION_COUNTER_CLOCKWISE);
+    }
+
+    @Test
+    public void dashedArcLine_brushWithEqualSegments() {
+        DashedArcLine dashedArcLine =
+                new DashedArcLine.Builder()
+                        .setLinePattern(
+                                new DashedLinePattern.Builder()
+                                        .setGapSize(4.5F)
+                                        .setGapInterval(111)
+                                        .build())
+                        .build();
+
+        LayoutElementProto.DashedLinePattern brush = dashedArcLine.getLinePattern().toProto();
+        assertThat(brush.getGapSize().getValue()).isEqualTo(4.5F);
+        List<DimensionProto.DegreesProp> gapLocations = brush.getGapLocationsList();
+        assertThat(gapLocations.get(0).getValue()).isEqualTo(0F);
+        assertThat(gapLocations.get(1).getValue()).isEqualTo(111F);
+        assertThat(gapLocations.get(2).getValue()).isEqualTo(222F);
+        assertThat(gapLocations.get(3).getValue()).isEqualTo(333F);
+    }
+
+    @Test
+    public void dashedArcLine_brushWithNonEqualSegments() {
+        DashedArcLine dashedArcLine =
+                new DashedArcLine.Builder()
+                        .setLinePattern(
+                                new DashedLinePattern.Builder()
+                                        .setGapSize(4.5F)
+                                        .setGapLocations(66F, 111F, 321F, 212F)
+                                        .build())
+                        .build();
+
+        LayoutElementProto.DashedLinePattern brush = dashedArcLine.getLinePattern().toProto();
+        assertThat(brush.getGapSize().getValue()).isEqualTo(4.5F);
+        List<DimensionProto.DegreesProp> gapLocations = brush.getGapLocationsList();
+        assertThat(gapLocations.get(0).getValue()).isEqualTo(66F);
+        assertThat(gapLocations.get(1).getValue()).isEqualTo(111F);
+        assertThat(gapLocations.get(2).getValue()).isEqualTo(321F);
+        assertThat(gapLocations.get(3).getValue()).isEqualTo(212F);
     }
 }

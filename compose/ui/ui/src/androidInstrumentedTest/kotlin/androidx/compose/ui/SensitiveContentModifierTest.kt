@@ -18,7 +18,6 @@ package androidx.compose.ui
 
 import android.os.Build
 import android.view.View
-import androidx.annotation.RequiresApi
 import androidx.compose.material.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,7 +27,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.FlakyTest
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import org.junit.After
 import org.junit.Assert
 import org.junit.Assume
@@ -39,7 +40,7 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-@RequiresApi(35)
+@SdkSuppress(minSdkVersion = 35)
 class SensitiveContentModifierTest {
     @get:Rule val rule = createComposeRule()
     private lateinit var androidComposeView: View
@@ -91,6 +92,7 @@ class SensitiveContentModifierTest {
         }
     }
 
+    @FlakyTest(bugId = 402192279)
     @Test
     fun testDynamicSensitiveModifier() {
         var isContentSensitive by mutableStateOf(true)

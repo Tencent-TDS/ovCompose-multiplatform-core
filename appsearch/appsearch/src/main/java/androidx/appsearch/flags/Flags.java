@@ -54,6 +54,10 @@ public final class Flags {
     public static final String FLAG_ENABLE_LIST_FILTER_HAS_PROPERTY_FUNCTION =
             FLAG_PREFIX + "enable_list_filter_has_property_function";
 
+    /** Enable the "matchScoreExpression" function in list filter query expressions. */
+    public static final String FLAG_ENABLE_LIST_FILTER_MATCH_SCORE_EXPRESSION_FUNCTION =
+            FLAG_PREFIX + "enable_list_filter_match_score_expression_function";
+
     /** Enable Schema Type Grouping related features. */
     public static final String FLAG_ENABLE_GROUPING_TYPE_PER_SCHEMA =
             FLAG_PREFIX + "enable_grouping_type_per_schema";
@@ -80,7 +84,7 @@ public final class Flags {
      * methods.
      */
     public static final String FLAG_ENABLE_SEARCH_SPEC_SEARCH_STRING_PARAMETERS =
-            FLAG_PREFIX + "enable_search_spec_search_spec_strings";
+            FLAG_PREFIX + "enable_search_spec_search_string_parameters";
 
     /** Enable addTakenActions API in PutDocumentsRequest. */
     public static final String FLAG_ENABLE_PUT_DOCUMENTS_REQUEST_ADD_TAKEN_ACTIONS =
@@ -105,10 +109,12 @@ public final class Flags {
             FLAG_PREFIX + "enable_enterprise_global_search_session";
 
     /**
-     * Enables {@link android.app.appsearch.functions.AppFunctionManager} and app functions related
-     * stuff.
+     * Enable {@link android.appsearch.app.AppSearchSchema#getDescription} and
+     * {@link android.appsearch.app.AppSearchSchema.PropertyConfig#getDescription} and the related
+     * builders.
      */
-    public static final String FLAG_ENABLE_APP_FUNCTIONS = FLAG_PREFIX + "enable_app_functions";
+    public static final String FLAG_ENABLE_SCHEMA_DESCRIPTION =
+            FLAG_PREFIX + "enable_schema_description";
 
     /**
      * Enable {@link androidx.appsearch.app.AppSearchResult#RESULT_DENIED} and
@@ -130,6 +136,10 @@ public final class Flags {
     public static final String FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG =
             FLAG_PREFIX + "enable_schema_embedding_property_config";
 
+    /** Enables embedding quantization. */
+    public static final String FLAG_ENABLE_SCHEMA_EMBEDDING_QUANTIZATION =
+            FLAG_PREFIX + "enable_schema_embedding_quantization";
+
     /** Enables informational ranking expressions. */
     public static final String FLAG_ENABLE_INFORMATIONAL_RANKING_EXPRESSIONS =
             FLAG_PREFIX + "enable_informational_ranking_expressions";
@@ -142,6 +152,100 @@ public final class Flags {
     public static final String FLAG_ENABLE_BLOB_STORE =
             FLAG_PREFIX + "enable_blob_store";
 
+    /**  Enable {@link androidx.appsearch.app.GenericDocument#writeToParcel}.  */
+    public static final String FLAG_ENABLE_GENERIC_DOCUMENT_OVER_IPC =
+            FLAG_PREFIX + "enable_generic_document_over_ipc";
+
+    /** Enable empty batch result fix for enterprise GetDocuments. */
+    public static final String FLAG_ENABLE_ENTERPRISE_EMPTY_BATCH_RESULT_FIX =
+            FLAG_PREFIX + "enable_enterprise_empty_batch_result_fix";
+
+    /** Enables abstract syntax trees to be built and used within AppSearch. */
+    public static final String FLAG_ENABLE_ABSTRACT_SYNTAX_TREES =
+            FLAG_PREFIX + "enable_abstract_syntax_trees";
+
+    /** Enables the feature of scorable property. */
+    public static final String FLAG_ENABLE_SCORABLE_PROPERTY =
+            FLAG_PREFIX + "enable_scorable_property";
+
+    /**
+     * Enable the {@link androidx.appsearch.app.SearchSpec.Builder#addFilterDocumentIds}.
+     */
+    public static final String FLAG_ENABLE_SEARCH_SPEC_FILTER_DOCUMENT_IDS =
+            FLAG_PREFIX + "enable_search_spec_filter_document_ids";
+
+    /**
+     * Enables additional builder copy constructors for
+     * {@link androidx.appsearch.app.AppSearchSchema},
+     * {@link androidx.appsearch.app.SetSchemaRequest}, {@link androidx.appsearch.app.SearchSpec},
+     * {@link androidx.appsearch.app.JoinSpec}, {@link androidx.appsearch.app.AppSearchBatchResult},
+     * and {@link androidx.appsearch.app.GetSchemaResponse}.
+     */
+    public static final String FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS =
+            FLAG_PREFIX + "enable_additional_builder_copy_constructors";
+
+    /**
+     * Enables wrapping the parent types of a document in the corresponding
+     * {@link androidx.appsearch.app.SearchResult}, instead of in
+     * {@link androidx.appsearch.app.GenericDocument}.
+     */
+    public static final String FLAG_ENABLE_SEARCH_RESULT_PARENT_TYPES =
+            FLAG_PREFIX + "enable_search_result_parent_types";
+
+    /** Enables delete propagation type related APIs. */
+    public static final String FLAG_ENABLE_DELETE_PROPAGATION_TYPE =
+            FLAG_PREFIX + "enable_delete_propagation_type";
+
+    /** Enables AppSearch to manage blob files. */
+    public static final String FLAG_ENABLE_APP_SEARCH_MANAGE_BLOB_FILES =
+            FLAG_PREFIX + "enable_app_search_manage_blob_files";
+
+    /**
+     * Enables time since last optimize to be calculated by last attempted optimize run time instead
+     * of last successful optimize run time.
+     */
+    public static final String FLAG_ENABLE_CALCULATE_TIME_SINCE_LAST_ATTEMPTED_OPTIMIZE =
+            FLAG_PREFIX + "enable_calculate_time_since_last_attempted_optimize";
+
+    /** Enables qualified id join index v3. */
+    public static final String FLAG_ENABLE_QUALIFIED_ID_JOIN_INDEX_V3 =
+            FLAG_PREFIX + "enable_qualified_id_join_index_v3";
+
+    /** Enables soft index restoration. */
+    public static final String FLAG_ENABLE_SOFT_INDEX_RESTORATION =
+            FLAG_PREFIX + "enable_soft_index_restoration";
+
+    /** Enables marker file creation for Optimize API. */
+    public static final String FLAG_ENABLE_MARKER_FILE_FOR_OPTIMIZE =
+            FLAG_PREFIX + "enable_marker_file_for_optimize";
+
+    /**
+     * Enables releasing the backup schema file instance in the schema store if the overlay schema
+     * instance exists.
+     */
+    public static final String FLAG_ENABLE_RELEASE_BACKUP_SCHEMA_FILE_IF_OVERLAY_PRESENT =
+            FLAG_PREFIX + "enable_release_backup_schema_file_if_overlay_present";
+
+    /** Enables retrieving embedding match snippet information. This affects  */
+    public static final String FLAG_ENABLE_EMBEDDING_MATCH_INFO =
+            FLAG_PREFIX + "enable_embedding_match_info";
+
+    /** Enables to query visibility documents rather than get.  */
+    public static final String FLAG_ENABLE_QUERY_VISIBILITY_DOCUMENTS =
+            FLAG_PREFIX + "enable_query_visibility_documents";
+
+    /** Enables strict byte size enforcement on a result page. */
+    public static final String FLAG_ENABLE_STRICT_PAGE_BYTE_SIZE_LIMIT =
+            FLAG_PREFIX + "enable_strict_page_byte_size_limit";
+
+    /** Enables compression threshold. */
+    public static final String FLAG_ENABLE_COMPRESSION_THRESHOLD =
+            FLAG_PREFIX + "enable_compression_threshold";
+
+    /** Enables setting the gzip compression memlevel to 1. */
+    public static final String FLAG_ENABLE_COMPRESSION_MEM_LEVEL_ONE =
+            FLAG_PREFIX + "enable_compression_mem_level_one";
+
     // Whether the features should be enabled.
     //
     // In Jetpack, those should always return true.
@@ -153,6 +257,14 @@ public final class Flags {
 
     /** Whether the "hasProperty" function in list filter query expressions should be enabled. */
     public static boolean enableListFilterHasPropertyFunction() {
+        return true;
+    }
+
+    /**
+     * Whether the "matchScoreExpression" function in list filter query expressions should be
+     * enabled.
+     */
+    public static boolean enableListFilterMatchScoreExpressionFunction() {
         return true;
     }
 
@@ -241,6 +353,11 @@ public final class Flags {
         return true;
     }
 
+    /** Whether embedding quantization is enabled. */
+    public static boolean enableSchemaEmbeddingQuantization() {
+        return true;
+    }
+
     /** Whether the search parameter APIs should be enabled. */
     public static boolean enableSearchSpecSearchStringParameters() {
         return true;
@@ -261,6 +378,138 @@ public final class Flags {
 
     /**  Whether {@link androidx.appsearch.app.AppSearchBlobHandle} should be enabled. */
     public static boolean enableBlobStore() {
+        return true;
+    }
+
+    /** Whether AppSearch manages blob files. */
+    public static boolean enableAppSearchManageBlobFiles() {
+        return true;
+    }
+
+    /** Whether empty batch result fix for enterprise GetDocuments should be enabled. */
+    public static boolean enableEnterpriseEmptyBatchResultFix() {
+        return true;
+    }
+
+    /** Whether AppSearch can create and use abstract syntax trees. */
+    public static boolean enableAbstractSyntaxTrees() {
+        return true;
+    }
+
+    /**
+     * Whether additional builder copy constructors for
+     * {@link androidx.appsearch.app.AppSearchSchema},
+     * {@link androidx.appsearch.app.SetSchemaRequest}, {@link androidx.appsearch.app.SearchSpec},
+     * {@link androidx.appsearch.app.JoinSpec}, {@link androidx.appsearch.app.AppSearchBatchResult},
+     * and {@link androidx.appsearch.app.GetSchemaResponse} should be enabled.
+     */
+    public static boolean enableAdditionalBuilderCopyConstructors() {
+        return true;
+    }
+
+    /**
+     * Whether or not the AppSearch should keep track of replaces when calculating the document
+     * limit or should call into Icing to get the current active document count when the limit is
+     * reached.
+     */
+    public static boolean enableDocumentLimiterReplaceTracking() { return true; }
+
+    /**
+     * Whether the {@link androidx.appsearch.app.SearchSpec.Builder#addFilterDocumentIds} should be
+     * enabled.
+     */
+    public static boolean enableSearchSpecFilterDocumentIds() {
+        return true;
+    }
+
+    /** Whether the feature of the scorable property should be enabled. */
+    public static boolean enableScorableProperty() {
+        return true;
+    }
+
+    /**
+     * Whether to wrap the parent types of a document in the corresponding
+     * {@link androidx.appsearch.app.SearchResult}, instead of in
+     * {@link androidx.appsearch.app.GenericDocument}.
+     */
+    public static boolean enableSearchResultParentTypes() {
+        return true;
+    }
+
+    /**
+     * Whether delete propagation related APIs should be enabled.
+     *
+     * <p>Note: delete propagation depends on qualified id join index v3, so
+     * {@link #enableQualifiedIdJoinIndexV3()} should also be true.
+     *
+     */
+    public static boolean enableDeletePropagationType() {
+        // TODO(b/384947619): enable this flag once expiry propagation and dependency check are
+        //   implemented.
+        return false;
+    }
+
+    /**
+     * Whether to calculate time since last optimize using last attempted optimize run time instead
+     * of last successful optimize run time.
+     */
+    public static boolean enableCalculateTimeSinceLastAttemptedOptimize() {
+        return true;
+    }
+
+    /** Whether qualified id join index v3 should be enabled. */
+    public static boolean enableQualifiedIdJoinIndexV3() {
+        return true;
+    }
+
+    /** Whether soft index restoration should be enabled. */
+    public static boolean enableSoftIndexRestoration() {
+        return true;
+    }
+
+    /** Whether marker file creation for Optimize API should be enabled. */
+    public static boolean enableMarkerFileForOptimize() {
+        return true;
+    }
+
+    /**
+     * Whether to release the backup schema file instance in the schema store if the overlay schema
+     * instance exists.
+     */
+    public static boolean enableReleaseBackupSchemaFileIfOverlayPresent() {
+        return true;
+    }
+
+    /**
+     * Whether to enable retrieving embedding match info during snippetting.
+     */
+    public static boolean enableEmbeddingMatchInfo() {
+        return true;
+    }
+
+    /**
+     * Whether to query visibility documents rather than get.
+     */
+    public static boolean enableQueryVisibilityDocuments() {
+        return true;
+    }
+
+    /** Whether to enforce page byte size limit in a stricter way. */
+    public static boolean enableStrictPageByteSizeLimit() {
+        return true;
+    }
+
+    /**
+     * Whether to enable compression threshold.
+     */
+    public static boolean enableCompressionThreshold() {
+        return true;
+    }
+
+    /**
+     * Whether to use a compression memlevel of 1.
+     */
+    public static boolean enableCompressionMemLevelOne() {
         return true;
     }
 }

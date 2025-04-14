@@ -16,20 +16,23 @@
 
 package androidx.pdf.viewer;
 
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.R;
 import androidx.pdf.models.PageSelection;
 import androidx.pdf.models.SelectionBoundary;
 import androidx.pdf.select.SelectionActionMode;
 import androidx.pdf.select.SelectionModel;
+import androidx.pdf.util.Accessibility;
 import androidx.pdf.util.Preconditions;
 import androidx.pdf.widget.ZoomView;
 import androidx.pdf.widget.ZoomableSelectionHandles;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Implementation of SelectionHandles for PdfViewer.
@@ -44,6 +47,7 @@ public class PdfSelectionHandles extends ZoomableSelectionHandles<PageSelection>
     private SelectionBoundary mDragging;
 
     private SelectionActionMode mSelectionActionMode;
+    private Boolean mIsSelectionHandlesVisible;
 
     public PdfSelectionHandles(
             @NonNull PdfSelectionModel selectionModel, @NonNull ZoomView zoomView,
@@ -61,10 +65,17 @@ public class PdfSelectionHandles extends ZoomableSelectionHandles<PageSelection>
     protected void updateHandles() {
         if (mSelection == null || mPdfView.getViewAt(mSelection.getPage()) == null) {
             hideHandles();
+            mIsSelectionHandlesVisible = false;
         } else {
             View pageView = mPdfView.getViewAt(mSelection.getPage()).asView();
             showHandle(mStartHandle, pageView, mSelection.getStart(), false);
             showHandle(mStopHandle, pageView, mSelection.getStop(), true);
+
+            if (!mIsSelectionHandlesVisible) {
+                Accessibility.get().announce(mZoomView.getContext(), mZoomView,
+                        mSelection.getText());
+                mIsSelectionHandlesVisible = true;
+            }
         }
     }
 
@@ -80,6 +91,7 @@ public class PdfSelectionHandles extends ZoomableSelectionHandles<PageSelection>
     protected void onDragHandleDown(boolean isStopHandle) {
         mDragging = isStopHandle ? mSelection.getStop() : mSelection.getStart();
         mFixed = isStopHandle ? mSelection.getStart() : mSelection.getStop();
+        mPdfView.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
     }
 
     @Override
@@ -93,5 +105,16 @@ public class PdfSelectionHandles extends ZoomableSelectionHandles<PageSelection>
     @Override
     protected void onDragHandleUp() {
         mSelectionActionMode.resume();
+        mPdfView.performHapticFeedback(HapticFeedbackConstants.TEXT_HANDLE_MOVE);
+        Accessibility.get().announce(mZoomView.getContext(), mZoomView,
+                mSelection.getText());
+    }
+
+    public @NonNull ImageView getStartHandle() {
+        return mStartHandle;
+    }
+
+    public @NonNull ImageView getStopHandle() {
+        return mStopHandle;
     }
 }

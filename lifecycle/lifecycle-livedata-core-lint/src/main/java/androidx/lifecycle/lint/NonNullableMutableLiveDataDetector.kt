@@ -35,13 +35,15 @@ import com.intellij.psi.PsiVariable
 import com.intellij.psi.PsiWhiteSpace
 import com.intellij.psi.impl.source.PsiImmediateClassType
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.calls.KtCall
-import org.jetbrains.kotlin.analysis.api.calls.KtCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.calls.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.types.KtNonErrorClassType
-import org.jetbrains.kotlin.analysis.api.types.KtTypeParameterType
+import org.jetbrains.kotlin.analysis.api.resolution.KaCall
+import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
+import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
+import org.jetbrains.kotlin.analysis.api.types.KaClassType
+import org.jetbrains.kotlin.analysis.api.types.KaTypeNullability
+import org.jetbrains.kotlin.analysis.api.types.KaTypeParameterType
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableDeclaration
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNullableType
 import org.jetbrains.kotlin.psi.KtTypeReference
@@ -134,16 +136,16 @@ class NonNullableMutableLiveDataDetector : Detector(), UastScanner {
                         ?: node.sourcePsi as? KtNameReferenceExpression
                         ?: return
                 analyze(ktCallExpression) {
-                    val ktCall = ktCallExpression.resolveCall()?.singleCallOrNull<KtCall>()
-                    val callee = (ktCall as? KtCallableMemberCall<*, *>)?.partiallyAppliedSymbol
+                    val ktCall = ktCallExpression.resolveToCall()?.singleCallOrNull<KaCall>()
+                    val callee = (ktCall as? KaCallableMemberCall<*, *>)?.partiallyAppliedSymbol
                     val receiver = callee?.extensionReceiver ?: callee?.dispatchReceiver
-                    var receiverType = receiver?.type as? KtNonErrorClassType
+                    var receiverType = receiver?.type as? KaClassType
                     while (!isGeneric && receiverType != null) {
-                        val typeArgument = receiverType.ownTypeArguments.singleOrNull()?.type
-                        if (typeArgument is KtTypeParameterType) {
+                        val typeArgument = receiverType.typeArguments.singleOrNull()?.type
+                        if (typeArgument is KaTypeParameterType) {
                             isGeneric = true
                         }
-                        receiverType = typeArgument as? KtNonErrorClassType
+                        receiverType = typeArgument as? KaClassType
                     }
                 }
                 if (isGeneric) return
@@ -310,6 +312,22 @@ class NonNullableMutableLiveDataDetector : Detector(), UastScanner {
  * @return `true` if instance is nullable, `false` otherwise.
  */
 internal fun UElement.isNullable(context: JavaContext): Boolean {
+    val ktExpression = sourcePsi as? KtExpression
+    if (ktExpression != null) {
+        analyze(ktExpression) {
+            val nullability = ktExpression.expressionType?.nullability
+            // NB: to avoid unnecessary smartcast lookup for definitely non-null type
+            if (nullability == KaTypeNullability.NON_NULLABLE) {
+                return false
+            } else {
+                val smartCastNullity = ktExpression.smartCastInfo?.smartCastType?.nullability
+                if (smartCastNullity == KaTypeNullability.NON_NULLABLE) {
+                    return false
+                }
+                // For unknown (platform-type) or still nullable, fall back to @Nullable lookup.
+            }
+        }
+    }
     if (this is UCallExpression) {
         val psiMethod = resolve() ?: return false
         val sourceMethod = psiMethod.toUElement()?.sourcePsi

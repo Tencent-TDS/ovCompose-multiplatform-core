@@ -23,7 +23,6 @@ import androidx.sqlite.SQLiteDriver
 import androidx.sqlite.SQLiteStatement
 import androidx.sqlite.driver.AndroidSQLiteConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
-import androidx.sqlite.use
 
 /**
  * An implementation of a connection pool used when an [AndroidSQLiteDriver] is provided. This impl
@@ -34,19 +33,22 @@ internal class AndroidSQLiteDriverConnectionPool(
     private val fileName: String
 ) : ConnectionPool {
 
-    private val androidConnection by lazy {
+    private val pooledConnection by lazy {
         AndroidSQLiteDriverPooledConnection(driver.open(fileName) as AndroidSQLiteConnection)
     }
+
+    internal val androidConnection: AndroidSQLiteConnection
+        get() = pooledConnection.delegate
 
     override suspend fun <R> useConnection(
         isReadOnly: Boolean,
         block: suspend (Transactor) -> R
     ): R {
-        return block.invoke(androidConnection)
+        return block.invoke(pooledConnection)
     }
 
     override fun close() {
-        androidConnection.delegate.close()
+        pooledConnection.delegate.close()
     }
 }
 

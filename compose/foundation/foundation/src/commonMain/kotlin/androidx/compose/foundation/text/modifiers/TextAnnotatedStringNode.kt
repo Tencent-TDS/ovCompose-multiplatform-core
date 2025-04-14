@@ -17,6 +17,7 @@
 package androidx.compose.foundation.text.modifiers
 
 import androidx.compose.foundation.text.DefaultMinLines
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Constraints.Companion.fitPrioritizingWidth
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.trace
 
 /** Node that implements Text for [AnnotatedString] or [onTextLayout] parameters. */
 internal class TextAnnotatedStringNode(
@@ -78,8 +80,12 @@ internal class TextAnnotatedStringNode(
     private var onPlaceholderLayout: ((List<Rect?>) -> Unit)? = null,
     private var selectionController: SelectionController? = null,
     private var overrideColor: ColorProducer? = null,
+    private var autoSize: TextAutoSize? = null,
     private var onShowTranslation: ((TextSubstitutionValue) -> Unit)? = null
 ) : Modifier.Node(), LayoutModifierNode, DrawModifierNode, SemanticsModifierNode {
+    override val shouldAutoInvalidate: Boolean
+        get() = false
+
     @Suppress("PrimitiveInCollection")
     private var baselineCache: MutableMap<AlignmentLine, Int>? = null
 
@@ -96,7 +102,8 @@ internal class TextAnnotatedStringNode(
                         softWrap,
                         maxLines,
                         minLines,
-                        placeholders
+                        placeholders,
+                        autoSize
                     )
             }
             return _layoutCache!!
@@ -153,7 +160,8 @@ internal class TextAnnotatedStringNode(
         maxLines: Int,
         softWrap: Boolean,
         fontFamilyResolver: FontFamily.Resolver,
-        overflow: TextOverflow
+        overflow: TextOverflow,
+        autoSize: TextAutoSize?
     ): Boolean {
         var changed: Boolean
 
@@ -187,6 +195,11 @@ internal class TextAnnotatedStringNode(
 
         if (this.overflow != overflow) {
             this.overflow = overflow
+            changed = true
+        }
+
+        if (this.autoSize != autoSize) {
+            this.autoSize = autoSize
             changed = true
         }
 
@@ -241,7 +254,8 @@ internal class TextAnnotatedStringNode(
                 softWrap = softWrap,
                 maxLines = maxLines,
                 minLines = minLines,
-                placeholders = placeholders
+                placeholders = placeholders,
+                autoSize = autoSize
             )
         }
 
@@ -276,6 +290,9 @@ internal class TextAnnotatedStringNode(
 
     private fun setSubstitution(updatedText: AnnotatedString): Boolean {
         val currentTextSubstitution = textSubstitution
+        // updatedText is currently always returned as a plain text so we ignore inline content
+        // which is represented by placeholders. If translation ever supports annotations, we
+        // would need to recalculate the placeholders
         if (currentTextSubstitution != null) {
             if (updatedText == currentTextSubstitution.substitution) {
                 return false
@@ -289,7 +306,8 @@ internal class TextAnnotatedStringNode(
                 softWrap,
                 maxLines,
                 minLines,
-                placeholders
+                placeholders = emptyList(),
+                autoSize
             ) ?: return false
         } else {
             val newTextSubstitution = TextSubstitutionValue(text, updatedText)
@@ -302,7 +320,8 @@ internal class TextAnnotatedStringNode(
                     softWrap,
                     maxLines,
                     minLines,
-                    placeholders
+                    placeholders = emptyList(),
+                    autoSize
                 )
             substitutionLayoutCache.density = layoutCache.density
             newTextSubstitution.layoutCache = substitutionLayoutCache
@@ -402,41 +421,47 @@ internal class TextAnnotatedStringNode(
         measurable: Measurable,
         constraints: Constraints
     ): MeasureResult {
-        val layoutCache = getLayoutCache(this)
+        trace("TextAnnotatedStringNode:measure") {
+            val layoutCache = getLayoutCache(this)
 
-        val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
-        val textLayoutResult = layoutCache.textLayoutResult
+            val didChangeLayout = layoutCache.layoutWithConstraints(constraints, layoutDirection)
+            val textLayoutResult = layoutCache.textLayoutResult
 
-        // ensure measure restarts when hasStaleResolvedFonts by reading in measure
-        textLayoutResult.multiParagraph.intrinsics.hasStaleResolvedFonts
+            // ensure measure restarts when hasStaleResolvedFonts by reading in measure
+            textLayoutResult.multiParagraph.intrinsics.hasStaleResolvedFonts
 
-        if (didChangeLayout) {
-            invalidateLayer()
-            onTextLayout?.invoke(textLayoutResult)
-            selectionController?.updateTextLayout(textLayoutResult)
+            if (didChangeLayout) {
+                invalidateLayer()
+                onTextLayout?.invoke(textLayoutResult)
+                selectionController?.updateTextLayout(textLayoutResult)
 
-            @Suppress("PrimitiveInCollection") val cache = baselineCache ?: LinkedHashMap(2)
-            cache[FirstBaseline] = textLayoutResult.firstBaseline.fastRoundToInt()
-            cache[LastBaseline] = textLayoutResult.lastBaseline.fastRoundToInt()
-            baselineCache = cache
-        }
+                @Suppress("PrimitiveInCollection") val cache = baselineCache ?: LinkedHashMap(2)
+                cache[FirstBaseline] = textLayoutResult.firstBaseline.fastRoundToInt()
+                cache[LastBaseline] = textLayoutResult.lastBaseline.fastRoundToInt()
+                baselineCache = cache
+            }
 
-        // first share the placeholders
-        onPlaceholderLayout?.invoke(textLayoutResult.placeholderRects)
+            // first share the placeholders
+            onPlaceholderLayout?.invoke(textLayoutResult.placeholderRects)
 
-        // then allow children to measure _inside_ our final box, with the above placeholders
-        val placeable =
-            measurable.measure(
-                fitPrioritizingWidth(
-                    minWidth = textLayoutResult.size.width,
-                    maxWidth = textLayoutResult.size.width,
-                    minHeight = textLayoutResult.size.height,
-                    maxHeight = textLayoutResult.size.height
+            // then allow children to measure _inside_ our final box, with the above placeholders
+            val placeable =
+                measurable.measure(
+                    fitPrioritizingWidth(
+                        minWidth = textLayoutResult.size.width,
+                        maxWidth = textLayoutResult.size.width,
+                        minHeight = textLayoutResult.size.height,
+                        maxHeight = textLayoutResult.size.height
+                    )
                 )
-            )
 
-        return layout(textLayoutResult.size.width, textLayoutResult.size.height, baselineCache!!) {
-            placeable.place(0, 0)
+            return layout(
+                textLayoutResult.size.width,
+                textLayoutResult.size.height,
+                baselineCache!!
+            ) {
+                placeable.place(0, 0)
+            }
         }
     }
 

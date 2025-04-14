@@ -30,6 +30,17 @@ import androidx.camera.camera2.pipe.core.Log
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 @JvmInline
 public value class CameraError private constructor(public val value: Int) {
+
+    /**
+     * Whether the [CameraError] indicates that the camera has been disconnected. Used in places
+     * where we need to determine whether the camera has been taken.
+     */
+    public fun isDisconnected(): Boolean {
+        return this == ERROR_CAMERA_DISCONNECTED ||
+            this == ERROR_CAMERA_IN_USE ||
+            this == ERROR_CAMERA_LIMIT_EXCEEDED
+    }
+
     public companion object {
         /**
          * Convenient placeholder for errors like CameraAccessException.CAMERA_ERROR where the cause
@@ -184,7 +195,25 @@ public value class CameraError private constructor(public val value: Int) {
         }
     }
 
-    override fun toString(): String = "CameraError($value)"
+    override fun toString(): String =
+        "CameraError(" +
+            when (this) {
+                ERROR_UNDETERMINED -> "ERROR_UNDETERMINED"
+                ERROR_CAMERA_IN_USE -> "ERROR_CAMERA_IN_USE"
+                ERROR_CAMERA_LIMIT_EXCEEDED -> "ERROR_CAMERA_LIMIT_EXCEEDED"
+                ERROR_CAMERA_DISABLED -> "ERROR_CAMERA_DISABLED"
+                ERROR_CAMERA_DEVICE -> "ERROR_CAMERA_DEVICE"
+                ERROR_CAMERA_SERVICE -> "ERROR_CAMERA_SERVICE"
+                ERROR_CAMERA_DISCONNECTED -> "ERROR_CAMERA_DISCONNECTED"
+                ERROR_ILLEGAL_ARGUMENT_EXCEPTION -> "ERROR_ILLEGAL_ARGUMENT_EXCEPTION"
+                ERROR_SECURITY_EXCEPTION -> "ERROR_SECURITY_EXCEPTION"
+                ERROR_GRAPH_CONFIG -> "ERROR_GRAPH_CONFIG"
+                ERROR_DO_NOT_DISTURB_ENABLED -> "ERROR_DO_NOT_DISTURB_ENABLED"
+                ERROR_UNKNOWN_EXCEPTION -> "ERROR_UNKNOWN_EXCEPTION"
+                ERROR_CAMERA_OPENER -> "ERROR_CAMERA_OPENER"
+                else -> "ERROR_UNKNOWN"
+            } +
+            ")"
 }
 
 // TODO(b/276918807): When we have CameraProperties, handle the exception on a more granular level.

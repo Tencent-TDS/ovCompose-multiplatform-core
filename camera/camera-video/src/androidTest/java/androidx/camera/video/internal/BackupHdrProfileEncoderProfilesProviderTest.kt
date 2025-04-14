@@ -19,6 +19,7 @@ package androidx.camera.video.internal
 import android.content.Context
 import android.media.CamcorderProfile
 import android.media.EncoderProfiles.VideoProfile.HDR_HLG
+import android.os.Build
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.internal.Camera2EncoderProfilesProvider
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
@@ -30,6 +31,7 @@ import androidx.camera.core.DynamicRange.SDR
 import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.core.impl.EncoderProfilesProvider
 import androidx.camera.core.impl.EncoderProfilesProxy.VideoProfileProxy.BIT_DEPTH_10
+import androidx.camera.testing.impl.AndroidUtil.isEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CameraXUtil
@@ -46,6 +48,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeNotNull
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
@@ -129,6 +132,12 @@ class BackupHdrProfileEncoderProfilesProviderTest(
     fun setup() {
         assumeTrue(CameraUtil.hasCameraWithLensFacing(cameraSelector.lensFacing!!))
 
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
+
         CameraXUtil.initialize(context, cameraConfig).get()
 
         cameraId = CameraUtil.getCameraIdWithLensFacing(cameraSelector.lensFacing!!)!!
@@ -156,6 +165,9 @@ class BackupHdrProfileEncoderProfilesProviderTest(
         assumeTrue(baseProvider.hasProfile(quality))
         val encoderProfiles = baseProvider.getAll(quality)
         val baseVideoProfile = encoderProfiles!!.videoProfiles[0]
+        // Due to a known issue where VideoProfile might be null, see InvalidVideoProfilesQuirk,
+        // skip the test if VideoProfile is null.
+        assumeNotNull(baseVideoProfile)
 
         // Act.
         val resultVideoProfile = validateOrAdapt(baseVideoProfile, VideoEncoderInfoImpl.FINDER)

@@ -75,7 +75,6 @@ import android.util.ArraySet;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.RequiresApi;
 import androidx.mediarouter.media.MediaRouter.RouteInfo;
 
@@ -117,7 +116,6 @@ class MediaRouter2Utils {
 
     private MediaRouter2Utils() {}
 
-    @OptIn(markerClass = androidx.core.os.BuildCompat.PrereleaseSdkCheck.class)
     @Nullable
     public static MediaRoute2Info toFwkMediaRoute2Info(@Nullable MediaRouteDescriptor descriptor) {
         if (descriptor == null) {

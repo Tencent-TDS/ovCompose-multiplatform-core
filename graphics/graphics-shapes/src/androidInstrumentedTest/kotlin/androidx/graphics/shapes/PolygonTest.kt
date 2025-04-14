@@ -16,9 +16,9 @@
 
 package androidx.graphics.shapes
 
+import android.graphics.Matrix
 import androidx.test.filters.SmallTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -174,30 +174,57 @@ class PolygonTest {
         val squareCopyFeatures = squareCopy.features
         nonzeroCubics = nonzeroCubics(squareCopyFeatures.flatMap { it.cubics })
         assertCubicListsEqualish(squareCopy.cubics, nonzeroCubics)
+    }
 
-        // Test other elements of Features
-        val translator = translateTransform(1f, 2f)
-        val features = square.features
-        val preTransformVertices = mutableListOf<Point>()
-        val preTransformCenters = mutableListOf<Point>()
-        for (feature in features) {
-            if (feature is Feature.Corner) {
-                // Copy into new Point objects since the ones in the feature should transform
-                preTransformVertices.add(Point(feature.vertex.x, feature.vertex.y))
-                preTransformCenters.add(Point(feature.roundedCenter.x, feature.roundedCenter.y))
-            }
+    @Test
+    fun transformKeepsContiguousAnchorsEqual() {
+        val poly =
+            RoundedPolygon(radius = 1f, numVertices = 4, rounding = CornerRounding(7 / 15f))
+                .transformed(
+                    Matrix().apply {
+                        postRotate(45f)
+                        postScale(648f, 648f)
+                        postTranslate(540f, 1212f)
+                    }
+                )
+        poly.cubics.indices.forEach { i ->
+            // It has to be the same point
+            assertEquals(
+                "Failed at X, index $i",
+                poly.cubics[i].anchor1X,
+                poly.cubics[(i + 1) % poly.cubics.size].anchor0X,
+                0f
+            )
+            assertEquals(
+                "Failed at Y, index $i",
+                poly.cubics[i].anchor1Y,
+                poly.cubics[(i + 1) % poly.cubics.size].anchor0Y,
+                0f
+            )
         }
-        val transformedFeatures = square.transformed(translator).features
-        val postTransformVertices = mutableListOf<Point>()
-        val postTransformCenters = mutableListOf<Point>()
-        for (feature in transformedFeatures) {
-            if (feature is Feature.Corner) {
-                postTransformVertices.add(feature.vertex)
-                postTransformCenters.add(feature.roundedCenter)
-            }
-        }
-        assertNotEquals(preTransformVertices, postTransformVertices)
-        assertNotEquals(preTransformCenters, postTransformCenters)
+    }
+
+    @Test
+    fun emptyPolygonTest() {
+        val poly = RoundedPolygon(6, radius = 0f, rounding = CornerRounding(0.1f))
+        assert(poly.cubics.size == 1)
+
+        val stillEmpty = poly.transformed(scaleTransform(10f, 20f))
+        assert(stillEmpty.cubics.size == 1)
+        assert(stillEmpty.cubics.first().zeroLength())
+    }
+
+    @Test
+    fun emptySideTest() {
+        val poly1 =
+            RoundedPolygon(
+                floatArrayOf(0f, 0f, 1f, 0f, 1f, 0f, 0f, 1f), // Triangle with one point repeated
+            )
+        val poly2 =
+            RoundedPolygon(
+                floatArrayOf(0f, 0f, 1f, 0f, 0f, 1f), // Triangle
+            )
+        assertCubicListsEqualish(poly1.cubics, poly2.cubics)
     }
 
     private fun nonzeroCubics(original: List<Cubic>): List<Cubic> {

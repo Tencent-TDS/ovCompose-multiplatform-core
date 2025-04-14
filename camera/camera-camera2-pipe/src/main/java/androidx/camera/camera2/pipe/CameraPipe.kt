@@ -20,7 +20,7 @@ import android.content.Context
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
-import android.os.HandlerThread
+import android.os.Handler
 import androidx.annotation.RestrictTo
 import androidx.camera.camera2.pipe.CameraPipe.Config
 import androidx.camera.camera2.pipe.compat.AudioRestrictionController
@@ -28,10 +28,6 @@ import androidx.camera.camera2.pipe.config.CameraGraphConfigModule
 import androidx.camera.camera2.pipe.config.CameraPipeComponent
 import androidx.camera.camera2.pipe.config.CameraPipeConfigModule
 import androidx.camera.camera2.pipe.config.DaggerCameraPipeComponent
-import androidx.camera.camera2.pipe.config.DaggerExternalCameraPipeComponent
-import androidx.camera.camera2.pipe.config.ExternalCameraGraphComponent
-import androidx.camera.camera2.pipe.config.ExternalCameraGraphConfigModule
-import androidx.camera.camera2.pipe.config.ExternalCameraPipeComponent
 import androidx.camera.camera2.pipe.config.ThreadConfigModule
 import androidx.camera.camera2.pipe.core.Debug
 import androidx.camera.camera2.pipe.core.DurationNs
@@ -91,6 +87,8 @@ public interface CameraPipe {
         val cameraBackendConfig: CameraBackendConfig = CameraBackendConfig(),
         val cameraInteropConfig: CameraInteropConfig = CameraInteropConfig(),
         val imageSources: ImageSources? = null,
+        // TODO: b/409140708 - Remove this flag once we've removed all its references.
+        val usePruningDeviceManager: Boolean = true,
     )
 
     /**
@@ -122,7 +120,7 @@ public interface CameraPipe {
         val defaultBackgroundExecutor: Executor? = null,
         val defaultBlockingExecutor: Executor? = null,
         val defaultCameraExecutor: Executor? = null,
-        val defaultCameraHandler: HandlerThread? = null,
+        val defaultCameraHandler: Handler? = null,
         val testOnlyDispatcher: CoroutineDispatcher? = null,
         val testOnlyScope: CoroutineScope? = null
     )
@@ -163,48 +161,6 @@ public interface CameraPipe {
                 "$defaultBackend does not exist in cameraBackends! Available backends are:" +
                     " ${cameraBackends.keys}"
             }
-        }
-    }
-
-    /**
-     * External may be used if the underlying implementation needs to delegate to another library or
-     * system.
-     */
-    @Deprecated(
-        "CameraPipe.External is deprecated, use customCameraBackend on " + "GraphConfig instead."
-    )
-    public class External(threadConfig: ThreadConfig = ThreadConfig()) {
-        private val component: ExternalCameraPipeComponent =
-            DaggerExternalCameraPipeComponent.builder()
-                .threadConfigModule(ThreadConfigModule(threadConfig))
-                .build()
-
-        /**
-         * This creates a new [CameraGraph] instance that is configured to use an externally defined
-         * [RequestProcessor].
-         */
-        @Suppress("DEPRECATION")
-        @Deprecated(
-            "CameraPipe.External is deprecated, use customCameraBackend on " +
-                "GraphConfig instead."
-        )
-        public fun create(
-            config: CameraGraph.Config,
-            cameraMetadata: CameraMetadata,
-            requestProcessor: RequestProcessor
-        ): CameraGraph {
-            check(config.camera == cameraMetadata.camera) {
-                "Invalid camera config: ${config.camera} does not match ${cameraMetadata.camera}"
-            }
-            val componentBuilder = component.cameraGraphBuilder()
-            val component: ExternalCameraGraphComponent =
-                componentBuilder
-                    .externalCameraGraphConfigModule(
-                        ExternalCameraGraphConfigModule(config, cameraMetadata, requestProcessor)
-                    )
-                    .build()
-
-            return component.cameraGraph()
         }
     }
 

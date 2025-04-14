@@ -19,8 +19,8 @@ package androidx.navigation.lint
 import com.intellij.psi.PsiClass
 import com.intellij.psi.impl.source.PsiClassReferenceType
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.symbols.KtClassKind
-import org.jetbrains.kotlin.analysis.api.symbols.KtClassOrObjectSymbol
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassKind
+import org.jetbrains.kotlin.analysis.api.symbols.KaClassSymbol
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -66,11 +66,11 @@ fun UExpression.isClassReference(
                 is KtReferenceExpression -> sourcePsi.mainReference.resolveToSymbol()
                 else -> null
             }
-                as? KtClassOrObjectSymbol ?: return false to null
+                as? KaClassSymbol ?: return false to null
 
         ((checkClass && symbol.classKind.isClass) ||
-            (checkInterface && symbol.classKind == KtClassKind.INTERFACE) ||
-            (checkCompanion && symbol.classKind == KtClassKind.COMPANION_OBJECT)) to
+            (checkInterface && symbol.classKind == KaClassKind.INTERFACE) ||
+            (checkCompanion && symbol.classKind == KaClassKind.COMPANION_OBJECT)) to
             symbol.name?.asString()
     }
 }
@@ -81,6 +81,9 @@ fun UExpression.getKClassType(): PsiClass? {
 
     val expressionType = getExpressionType() ?: return null
     if (expressionType !is PsiClassReferenceType) return null
+    @Suppress("UnstableApiUsage")
     val typeArg = expressionType.typeArguments().firstOrNull() ?: return null
     return (typeArg as? PsiClassReferenceType)?.reference?.resolve() as? PsiClass
 }
+
+const val MIN_ANALYSIS_API = 14

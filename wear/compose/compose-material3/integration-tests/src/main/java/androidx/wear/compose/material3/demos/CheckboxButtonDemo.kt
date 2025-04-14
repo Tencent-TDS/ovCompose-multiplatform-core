@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.wear.compose.material3.CheckboxButton
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
-import androidx.wear.compose.material3.LocalTextMaxLines
+import androidx.wear.compose.material3.LocalTextConfiguration
 import androidx.wear.compose.material3.Text
 
 @Composable
@@ -59,6 +59,28 @@ fun CheckboxButtonDemo() {
                 secondary = "Secondary label"
             ) {
                 Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+            }
+        }
+        item { ListHeader { Text("Disabled Checkbox with Icon") } }
+        for (initiallyChecked in booleanArrayOf(true, false)) {
+            item {
+                DemoCheckboxButton(
+                    enabled = false,
+                    initiallyChecked = initiallyChecked,
+                    primary = "Primary label",
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
+            }
+            item {
+                DemoCheckboxButton(
+                    enabled = false,
+                    initiallyChecked = initiallyChecked,
+                    primary = "Primary label",
+                    secondary = "Secondary label"
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
             }
         }
         item { ListHeader { Text("Multi-line") } }
@@ -113,7 +135,7 @@ private fun DemoCheckboxButton(
             Text(
                 primary,
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = primaryMaxLines ?: LocalTextMaxLines.current
+                maxLines = primaryMaxLines ?: LocalTextConfiguration.current.maxLines
             )
         },
         secondaryLabel = {

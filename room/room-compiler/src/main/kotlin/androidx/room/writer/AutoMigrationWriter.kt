@@ -20,10 +20,8 @@ import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.VisibilityModifier
 import androidx.room.compiler.codegen.XCodeBlock
 import androidx.room.compiler.codegen.XFunSpec
-import androidx.room.compiler.codegen.XFunSpec.Builder.Companion.addStatement
 import androidx.room.compiler.codegen.XTypeSpec
-import androidx.room.compiler.codegen.XTypeSpec.Builder.Companion.addOriginatingElement
-import androidx.room.compiler.codegen.XTypeSpec.Builder.Companion.addProperty
+import androidx.room.compiler.codegen.XTypeSpec.Builder.Companion.applyTo
 import androidx.room.compiler.processing.XTypeElement
 import androidx.room.ext.RoomMemberNames.DB_UTIL_FOREIGN_KEY_CHECK
 import androidx.room.ext.RoomTypeNames
@@ -45,14 +43,11 @@ class AutoMigrationWriter(
     private val renamedTables = autoMigration.schemaDiff.renamedTables
     private val complexChangedTables = autoMigration.schemaDiff.complexChangedTables
     private val deletedTables = autoMigration.schemaDiff.deletedTables
+    private val className = autoMigration.getImplTypeName(dbElement.asClassName())
+    override val packageName = className.packageName
 
     override fun createTypeSpecBuilder(): XTypeSpec.Builder {
-        val builder =
-            XTypeSpec.classBuilder(
-                codeLanguage,
-                autoMigration.getImplTypeName(dbElement.asClassName())
-            )
-        builder.apply {
+        return XTypeSpec.classBuilder(className).applyTo { language ->
             addOriginatingElement(dbElement)
             superclass(RoomTypeNames.MIGRATION)
             // Class is package-protected in Java (no visibility modifier) and internal in Kotlin
@@ -60,13 +55,13 @@ class AutoMigrationWriter(
                 setVisibility(VisibilityModifier.INTERNAL)
             }
             if (autoMigration.specClassName != null) {
-                builder.addProperty(
+                addProperty(
                     name = "callback",
                     typeName = RoomTypeNames.AUTO_MIGRATION_SPEC,
                     visibility = VisibilityModifier.PRIVATE,
                     initExpr =
                         if (!autoMigration.isSpecProvided) {
-                            XCodeBlock.ofNewInstance(codeLanguage, autoMigration.specClassName)
+                            XCodeBlock.ofNewInstance(autoMigration.specClassName)
                         } else {
                             null
                         }
@@ -75,7 +70,6 @@ class AutoMigrationWriter(
             addFunction(createConstructor())
             addFunction(createMigrateMethod())
         }
-        return builder
     }
 
     /**
@@ -84,11 +78,11 @@ class AutoMigrationWriter(
      * @return The constructor of the generated AutoMigration
      */
     private fun createConstructor(): XFunSpec {
-        return XFunSpec.constructorBuilder(codeLanguage, VisibilityModifier.PUBLIC)
+        return XFunSpec.constructorBuilder(VisibilityModifier.PUBLIC)
             .apply {
                 callSuperConstructor(
-                    XCodeBlock.of(codeLanguage, "%L", autoMigration.from),
-                    XCodeBlock.of(codeLanguage, "%L", autoMigration.to),
+                    XCodeBlock.of("%L", autoMigration.from),
+                    XCodeBlock.of("%L", autoMigration.to),
                 )
                 if (autoMigration.isSpecProvided) {
                     addParameter(
@@ -104,7 +98,6 @@ class AutoMigrationWriter(
     private fun createMigrateMethod(): XFunSpec {
         val migrateFunctionBuilder: XFunSpec.Builder =
             XFunSpec.builder(
-                    language = codeLanguage,
                     name = "migrate",
                     visibility = VisibilityModifier.PUBLIC,
                     isOverride = true,
@@ -446,10 +439,9 @@ class AutoMigrationWriter(
         migrateBuilder.addStatement(
             "%L",
             XCodeBlock.ofExtensionCall(
-                language = codeLanguage,
                 memberName = SQLiteDriverMemberNames.CONNECTION_EXEC_SQL,
                 receiverVarName = "connection",
-                args = XCodeBlock.of(codeLanguage, "%S", sql)
+                args = XCodeBlock.of("%S", sql)
             )
         )
     }

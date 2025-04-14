@@ -21,17 +21,30 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
     id("AndroidXComposePlugin")
 }
 
 androidXMultiplatform {
-    android()
+    androidLibrary {
+        namespace = "androidx.compose.ui.tooling.data"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+
+        compileSdk = 35
+        aarMetadata.minCompileSdk = 35
+    }
     jvmStubs()
 
     defaultPlatform(PlatformIdentifier.ANDROID)
@@ -48,7 +61,7 @@ androidXMultiplatform {
 
         commonTest {
             dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(libs.kotlinTest)
             }
         }
 
@@ -101,14 +114,10 @@ androidXMultiplatform {
 
 androidx {
     name = "Compose Tooling Data"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2021"
     description = "Compose tooling library data. This library provides data about compose" +
             " for different tooling purposes."
     legacyDisableKotlinStrictApiMode = true
 }
 
-android {
-    compileSdk 35
-    namespace "androidx.compose.ui.tooling.data"
-}

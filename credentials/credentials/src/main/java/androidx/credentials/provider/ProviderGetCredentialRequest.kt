@@ -32,7 +32,6 @@ import androidx.credentials.provider.CallingAppInfo.Companion.setCallingAppInfo
  * set on the [CredentialEntry] that the user selected. The request must be extracted using the
  * [PendingIntentHandler.retrieveProviderGetCredentialRequest] helper API.
  *
- * @constructor constructs an instance of [ProviderGetCredentialRequest]
  * @property credentialOptions the list of credential retrieval options containing the required
  *   parameters, expected to contain a single [CredentialOption] when this request is retrieved from
  *   the [android.app.Activity] invoked by the [android.app.PendingIntent] set on a
@@ -43,25 +42,52 @@ import androidx.credentials.provider.CallingAppInfo.Companion.setCallingAppInfo
  * @property biometricPromptResult the result of a Biometric Prompt authentication flow, that is
  *   propagated to the provider if the provider requested for
  *   [androidx.credentials.CredentialManager] to handle the authentication flow
- *
- * Note : Credential providers are not expected to utilize the constructor in this class for any
- * production flow. This constructor must only be used for testing purposes.
  */
 class ProviderGetCredentialRequest
-@JvmOverloads
+@RestrictTo(RestrictTo.Scope.LIBRARY)
 constructor(
     val credentialOptions: List<CredentialOption>,
     val callingAppInfo: CallingAppInfo,
-    val biometricPromptResult: BiometricPromptResult? = null,
+    val biometricPromptResult: BiometricPromptResult?,
+    // The source Bundle used to construct this request, if applicable
+    @get:RestrictTo(RestrictTo.Scope.LIBRARY) val sourceBundle: Bundle?,
 ) {
-    internal companion object {
+
+    /**
+     * Constructs an instance of [ProviderGetCredentialRequest]
+     *
+     * @param credentialOptions the list of credential retrieval options containing the required
+     *   parameters, expected to contain a single [CredentialOption] when this request is retrieved
+     *   from the [android.app.Activity] invoked by the [android.app.PendingIntent] set on a
+     *   [PasswordCredentialEntry] or a [PublicKeyCredentialEntry], or expected to contain multiple
+     *   [CredentialOption] when this request is retrieved from the [android.app.Activity] invoked
+     *   by the [android.app.PendingIntent] set on a [RemoteEntry]
+     * @param callingAppInfo information pertaining to the calling application
+     * @param biometricPromptResult the result of a Biometric Prompt authentication flow, that is
+     *   propagated to the provider if the provider requested for
+     *   [androidx.credentials.CredentialManager] to handle the authentication flow
+     */
+    @JvmOverloads
+    constructor(
+        credentialOptions: List<CredentialOption>,
+        callingAppInfo: CallingAppInfo,
+        biometricPromptResult: BiometricPromptResult? = null,
+    ) : this(credentialOptions, callingAppInfo, biometricPromptResult, null)
+
+    companion object {
         @JvmStatic
         internal fun createFrom(
             options: List<CredentialOption>,
             callingAppInfo: CallingAppInfo,
-            biometricPromptResult: BiometricPromptResult? = null
+            biometricPromptResult: BiometricPromptResult? = null,
+            sourceBundle: Bundle?
         ): ProviderGetCredentialRequest {
-            return ProviderGetCredentialRequest(options, callingAppInfo, biometricPromptResult)
+            return ProviderGetCredentialRequest(
+                options,
+                callingAppInfo,
+                biometricPromptResult,
+                sourceBundle
+            )
         }
 
         private const val EXTRA_CREDENTIAL_OPTION_SIZE =
@@ -77,8 +103,12 @@ constructor(
         private const val EXTRA_CREDENTIAL_OPTION_ALLOWED_PROVIDERS_PREFIX =
             "androidx.credentials.provider.extra.CREDENTIAL_OPTION_ALLOWED_PROVIDERS_"
 
+        /**
+         * Helper method to convert the given [request] to a parcelable [Bundle], in case the
+         * instance needs to be sent across a process. Consumers of this method should use
+         * [fromBundle] to reconstruct the class instance back from the bundle returned here.
+         */
         @JvmStatic
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
         fun asBundle(request: ProviderGetCredentialRequest): Bundle {
             val bundle = Bundle()
             val optionSize = request.credentialOptions.size
@@ -107,23 +137,41 @@ constructor(
             return bundle
         }
 
+        /**
+         * Helper method to convert a [Bundle] retrieved through [asBundle], back to an instance of
+         * [ProviderGetCredentialRequest].
+         *
+         * Throws [IllegalArgumentException] if the conversion fails. This means that the given
+         * [bundle] does not contain a `ProviderGetCredentialRequest`. The bundle should be
+         * constructed and retrieved from [asBundle] itself and never be created from scratch to
+         * avoid the failure.
+         */
         @JvmStatic
-        @RestrictTo(RestrictTo.Scope.LIBRARY)
-        fun fromBundle(bundle: Bundle): ProviderGetCredentialRequest? {
-            val callingAppInfo = extractCallingAppInfo(bundle) ?: return null
+        fun fromBundle(bundle: Bundle): ProviderGetCredentialRequest {
+            val callingAppInfo =
+                extractCallingAppInfo(bundle)
+                    ?: throw IllegalArgumentException("Bundle was missing CallingAppInfo.")
             val optionSize = bundle.getInt(EXTRA_CREDENTIAL_OPTION_SIZE, -1)
             if (optionSize < 0) {
-                return null
+                throw IllegalArgumentException("Bundle had invalid option size as $optionSize.")
             }
             val options = mutableListOf<CredentialOption>()
             for (i in 0 until optionSize) {
-                val type = bundle.getString("$EXTRA_CREDENTIAL_OPTION_TYPE_PREFIX$i") ?: return null
+                val type =
+                    bundle.getString("$EXTRA_CREDENTIAL_OPTION_TYPE_PREFIX$i")
+                        ?: throw IllegalArgumentException(
+                            "Bundle was missing option type at index $optionSize."
+                        )
                 val candidateQueryData =
                     bundle.getBundle("$EXTRA_CREDENTIAL_OPTION_CANDIDATE_QUERY_DATA_PREFIX$i")
-                        ?: return null
+                        ?: throw IllegalArgumentException(
+                            "Bundle was missing candidate query data at index $optionSize."
+                        )
                 val requestData =
                     bundle.getBundle("$EXTRA_CREDENTIAL_OPTION_CREDENTIAL_RETRIEVAL_DATA_PREFIX$i")
-                        ?: return null
+                        ?: throw IllegalArgumentException(
+                            "Bundle was missing request data at index $optionSize."
+                        )
                 val isSystemProviderRequired =
                     bundle.getBoolean(
                         "$EXTRA_CREDENTIAL_OPTION_IS_SYSTEM_PROVIDER_REQUIRED_PREFIX$i",
@@ -152,7 +200,7 @@ constructor(
                 )
             }
 
-            return createFrom(options, callingAppInfo)
+            return createFrom(options, callingAppInfo, biometricPromptResult = null, bundle)
         }
     }
 }

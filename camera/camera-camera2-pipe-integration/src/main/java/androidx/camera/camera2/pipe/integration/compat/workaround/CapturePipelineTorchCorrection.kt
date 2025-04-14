@@ -28,9 +28,11 @@ import androidx.camera.camera2.pipe.integration.impl.CameraProperties
 import androidx.camera.camera2.pipe.integration.impl.CapturePipeline
 import androidx.camera.camera2.pipe.integration.impl.CapturePipelineImpl
 import androidx.camera.camera2.pipe.integration.impl.TorchControl
+import androidx.camera.camera2.pipe.integration.impl.TorchControl.TorchMode
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.TorchState
+import androidx.camera.core.imagecapture.CameraCapturePipeline
 import androidx.camera.core.impl.CaptureConfig
 import androidx.camera.core.impl.Config
 import javax.inject.Inject
@@ -81,14 +83,21 @@ constructor(
             threads.sequentialScope.launch {
                 deferredResults.joinAll()
                 Log.debug { "Re-enable Torch to correct the Torch state" }
-                torchControl.setTorchAsync(torch = false).join()
-                torchControl.setTorchAsync(torch = true).join()
+                torchControl.setTorchAsync(TorchMode.OFF).join()
+                torchControl.setTorchAsync(TorchMode.USED_AS_FLASH).join()
                 Log.debug { "Re-enable Torch to correct the Torch state, done" }
             }
         }
 
         return deferredResults
     }
+
+    override suspend fun getCameraCapturePipeline(
+        captureMode: Int,
+        flashMode: Int,
+        flashType: Int
+    ): CameraCapturePipeline =
+        capturePipelineImpl.getCameraCapturePipeline(captureMode, flashMode, flashType)
 
     override var template: Int = CameraDevice.TEMPLATE_PREVIEW
         set(value) {

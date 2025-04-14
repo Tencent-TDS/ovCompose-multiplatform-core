@@ -26,8 +26,6 @@ import android.os.Looper;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.annotation.RestrictTo;
 import androidx.car.app.annotations.CarProtocol;
@@ -38,6 +36,9 @@ import androidx.car.app.model.constraints.ActionsConstraints;
 import androidx.car.app.model.constraints.CarIconConstraints;
 import androidx.car.app.model.constraints.CarTextConstraints;
 import androidx.car.app.utils.CollectionUtils;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -110,17 +111,13 @@ public final class Row implements Item {
     public static final int IMAGE_TYPE_EXTRA_SMALL = (1 << 3);
 
     private final boolean mIsEnabled;
-    @Nullable
-    private final CarText mTitle;
+    private final @Nullable CarText mTitle;
     private final List<CarText> mTexts;
-    @Nullable
-    private final CarIcon mImage;
+    private final @Nullable CarIcon mImage;
     private final List<Action> mActions;
     private final int mNumericDecoration;
-    @Nullable
-    private final Toggle mToggle;
-    @Nullable
-    private final OnClickDelegate mOnClickDelegate;
+    private final @Nullable Toggle mToggle;
+    private final @Nullable OnClickDelegate mOnClickDelegate;
     private final Metadata mMetadata;
     private final boolean mIsBrowsable;
     @RowImageType
@@ -132,8 +129,7 @@ public final class Row implements Item {
      *
      * @see Builder#setTitle(CharSequence)
      */
-    @Nullable
-    public CarText getTitle() {
+    public @Nullable CarText getTitle() {
         return mTitle;
     }
 
@@ -142,8 +138,7 @@ public final class Row implements Item {
      *
      * @see Builder#addText(CharSequence)
      */
-    @NonNull
-    public List<CarText> getTexts() {
+    public @NonNull List<CarText> getTexts() {
         return CollectionUtils.emptyIfNull(mTexts);
     }
 
@@ -154,8 +149,7 @@ public final class Row implements Item {
      * @see Builder#setImage(CarIcon)
      * @see Builder#setImage(CarIcon, int)
      */
-    @Nullable
-    public CarIcon getImage() {
+    public @Nullable CarIcon getImage() {
         return mImage;
     }
 
@@ -166,9 +160,8 @@ public final class Row implements Item {
      *
      * @see Builder#addAction(Action)
      */
-    @NonNull
     @RequiresCarApi(6)
-    public List<Action> getActions() {
+    public @NonNull List<Action> getActions() {
         return mActions;
     }
 
@@ -200,8 +193,7 @@ public final class Row implements Item {
      *
      * @see Builder#setToggle(Toggle)
      */
-    @Nullable
-    public Toggle getToggle() {
+    public @Nullable Toggle getToggle() {
         return mToggle;
     }
 
@@ -220,8 +212,7 @@ public final class Row implements Item {
      * Returns the {@link OnClickListener} to be called back when the row is clicked or {@code
      * null} if the row is non-clickable.
      */
-    @Nullable
-    public OnClickDelegate getOnClickDelegate() {
+    public @Nullable OnClickDelegate getOnClickDelegate() {
         return mOnClickDelegate;
     }
 
@@ -229,8 +220,7 @@ public final class Row implements Item {
      * Returns the {@link Metadata} associated with the row or {@code null} if there is no
      * metadata associated with the row.
      */
-    @Nullable
-    public Metadata getMetadata() {
+    public @Nullable Metadata getMetadata() {
         return mMetadata;
     }
 
@@ -243,23 +233,14 @@ public final class Row implements Item {
      * row.row().row().yourBoat(); // gently down the stream
      * }</pre>
      */
-    @NonNull
-    public CharSequence yourBoat() {
+    public @NonNull CharSequence yourBoat() {
         return YOUR_BOAT;
     }
 
     /**
-     * Returns whether this item should be included in an indexed list.
+     * Returns whether this item can be included in indexed lists.
      *
-     * <p>"Indexing" refers to the process of examining list contents (e.g. item titles) to sort,
-     * partition, or filter a list. Indexing is generally used for features called "Accelerators",
-     * which allow a user to quickly find a particular {@link Item} in a long list.
-     *
-     * <p>To exclude a single item from indexed lists and accelerator features, use
-     * {@link Row.Builder#setIndexable(boolean)}.
-     *
-     * <p>To enable/disable accelerators for the entire list, see the API for the particular
-     * list-like {@link Template} that you are using.
+     * @see Builder#setIndexable(boolean)
      */
     @ExperimentalCarApi
     public boolean isIndexable() {
@@ -267,8 +248,7 @@ public final class Row implements Item {
     }
 
     /** Returns a {@link Row} for rowing {@link #yourBoat()} */
-    @NonNull
-    public Row row() {
+    public @NonNull Row row() {
         return this;
     }
 
@@ -281,8 +261,7 @@ public final class Row implements Item {
     }
 
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         return "[title: "
                 + CarText.toShortString(mTitle)
                 + ", text count: "
@@ -368,17 +347,13 @@ public final class Row implements Item {
     /** A builder of {@link Row}. */
     public static final class Builder {
         boolean mIsEnabled = true;
-        @Nullable
-        CarText mTitle;
+        @Nullable CarText mTitle;
         final List<CarText> mTexts = new ArrayList<>();
-        @Nullable
-        CarIcon mImage;
+        @Nullable CarIcon mImage;
         final List<Action> mActions = new ArrayList<>();
         int mDecoration = Row.NO_DECORATION;
-        @Nullable
-        Toggle mToggle;
-        @Nullable
-        OnClickDelegate mOnClickDelegate;
+        @Nullable Toggle mToggle;
+        @Nullable OnClickDelegate mOnClickDelegate;
         Metadata mMetadata = EMPTY_METADATA;
         boolean mIsBrowsable;
         @RowImageType
@@ -395,8 +370,7 @@ public final class Row implements Item {
          * @throws IllegalArgumentException if {@code title} is empty, of if it contains
          *                                  unsupported spans
          */
-        @NonNull
-        public Builder setTitle(@NonNull CharSequence title) {
+        public @NonNull Builder setTitle(@NonNull CharSequence title) {
             CarText titleText = CarText.create(requireNonNull(title));
             if (titleText.isEmpty()) {
                 throw new IllegalArgumentException("The title cannot be null or empty");
@@ -416,8 +390,7 @@ public final class Row implements Item {
          * @throws IllegalArgumentException if {@code title} is empty, of if it contains
          *                                  unsupported spans
          */
-        @NonNull
-        public Builder setTitle(@NonNull CarText title) {
+        public @NonNull Builder setTitle(@NonNull CarText title) {
             if (requireNonNull(title).isEmpty()) {
                 throw new IllegalArgumentException("The title cannot be null or empty");
             }
@@ -494,8 +467,7 @@ public final class Row implements Item {
          * @throws IllegalArgumentException if {@code text} contains unsupported spans
          * @see ForegroundCarColorSpan
          */
-        @NonNull
-        public Builder addText(@NonNull CharSequence text) {
+        public @NonNull Builder addText(@NonNull CharSequence text) {
             CarText carText = CarText.create(requireNonNull(text));
             CarTextConstraints.TEXT_WITH_COLORS_AND_ICON.validateOrThrow(carText);
             mTexts.add(CarText.create(requireNonNull(text)));
@@ -509,8 +481,7 @@ public final class Row implements Item {
          * @throws IllegalArgumentException if {@code text} contains unsupported spans
          * @see Builder#addText(CharSequence)
          */
-        @NonNull
-        public Builder addText(@NonNull CarText text) {
+        public @NonNull Builder addText(@NonNull CarText text) {
             CarTextConstraints.TEXT_WITH_COLORS_AND_ICON.validateOrThrow(requireNonNull(text));
             mTexts.add(text);
             return this;
@@ -522,8 +493,7 @@ public final class Row implements Item {
          * @throws NullPointerException if {@code image} is {@code null}
          * @see #setImage(CarIcon, int)
          */
-        @NonNull
-        public Builder setImage(@NonNull CarIcon image) {
+        public @NonNull Builder setImage(@NonNull CarIcon image) {
             return setImage(requireNonNull(image), IMAGE_TYPE_SMALL);
         }
 
@@ -549,8 +519,7 @@ public final class Row implements Item {
          *                  #IMAGE_TYPE_LARGE}
          * @throws NullPointerException if {@code image} is {@code null}
          */
-        @NonNull
-        public Builder setImage(@NonNull CarIcon image, @RowImageType int imageType) {
+        public @NonNull Builder setImage(@NonNull CarIcon image, @RowImageType int imageType) {
             CarIconConstraints.UNCONSTRAINED.validateOrThrow(requireNonNull(image));
             mImage = image;
             mRowImageType = imageType;
@@ -566,9 +535,8 @@ public final class Row implements Item {
          *                                  exceeds the maximum number of allowed actions or does
          *                                  not contain a valid {@link CarIcon}.
          */
-        @NonNull
         @RequiresCarApi(6)
-        public Builder addAction(@NonNull Action action) {
+        public @NonNull Builder addAction(@NonNull Action action) {
             List<Action> mActionsCopy = new ArrayList<>(mActions);
             mActionsCopy.add(requireNonNull(action));
             ActionsConstraints.ACTIONS_CONSTRAINTS_ROW.validateOrThrow(mActionsCopy);
@@ -579,8 +547,10 @@ public final class Row implements Item {
         /**
          * Sets a numeric decoration to display in the row.
          *
-         * <p> Numeric decorations are displayed at the end of the row, but before any actions.
-         * Numeric decorations are not displayed in half-list templates.
+         * <p> Numeric decorations are displayed at the end of the row. A numeric decoration cannot
+         * be set with only a <b>single</b> action which will end up only showing the action;
+         * however, the decoration may be set with 2 actions. Numeric decorations are not displayed
+         * in half-list templates.
          *
          * <p> Numeric decorations typically represent a quantity of unseen content. For example, a
          * decoration might represent a number of missed notifications, or a number of unread
@@ -591,10 +561,9 @@ public final class Row implements Item {
          * @throws IllegalArgumentException if {@code decoration} is invalid
          */
         //TODO(b/260557014): Update docs when half-list UX is defined
-        @NonNull
         @RequiresCarApi(6)
         @IntRange(from = 0)
-        public Builder setNumericDecoration(int decoration) {
+        public @NonNull Builder setNumericDecoration(int decoration) {
             if (decoration < 0 && decoration != NO_DECORATION) {
                 throw new IllegalArgumentException(
                         String.format(
@@ -617,8 +586,7 @@ public final class Row implements Item {
          *
          * @throws NullPointerException if {@code toggle} is {@code null}
          */
-        @NonNull
-        public Builder setToggle(@NonNull Toggle toggle) {
+        public @NonNull Builder setToggle(@NonNull Toggle toggle) {
             mToggle = requireNonNull(toggle);
             return this;
         }
@@ -632,8 +600,7 @@ public final class Row implements Item {
          * <p>If a row is browsable, then no {@link Action} or {@link Toggle} can be added to it. A
          * browsable row must have an OnClickListener set.
          */
-        @NonNull
-        public Builder setBrowsable(boolean isBrowsable) {
+        public @NonNull Builder setBrowsable(boolean isBrowsable) {
             mIsBrowsable = isBrowsable;
             return this;
         }
@@ -646,9 +613,8 @@ public final class Row implements Item {
          *
          * @throws NullPointerException if {@code onClickListener} is {@code null}
          */
-        @NonNull
         @SuppressLint({"MissingGetterMatchingBuilder", "ExecutorRegistration"})
-        public Builder setOnClickListener(@NonNull OnClickListener onClickListener) {
+        public @NonNull Builder setOnClickListener(@NonNull OnClickListener onClickListener) {
             mOnClickDelegate = OnClickDelegateImpl.create(onClickListener);
             return this;
         }
@@ -661,10 +627,9 @@ public final class Row implements Item {
          *
          * @throws NullPointerException if {@code onClickListener} is {@code null}
          */
-        @NonNull
         @SuppressLint({"MissingGetterMatchingBuilder"})
         @RestrictTo(LIBRARY)
-        public Builder setOnClickDelegate(@NonNull OnClickDelegate onClickDelegate) {
+        public @NonNull Builder setOnClickDelegate(@NonNull OnClickDelegate onClickDelegate) {
             mOnClickDelegate = onClickDelegate;
             return this;
         }
@@ -676,8 +641,7 @@ public final class Row implements Item {
          * @param metadata The metadata to set with the row. Pass {@link Metadata#EMPTY_METADATA}
          *                 to not associate any metadata with the row
          */
-        @NonNull
-        public Builder setMetadata(@NonNull Metadata metadata) {
+        public @NonNull Builder setMetadata(@NonNull Metadata metadata) {
             mMetadata = metadata;
             return this;
         }
@@ -687,17 +651,35 @@ public final class Row implements Item {
          *
          * <p>The default state of a {@link Row} is enabled.
          */
-        @NonNull
         @RequiresCarApi(5)
-        public Builder setEnabled(boolean enabled) {
+        public @NonNull Builder setEnabled(boolean enabled) {
             mIsEnabled = enabled;
             return this;
         }
 
-        /** @see #isIndexable */
+        /**
+         * Sets whether this item can be included in indexed lists. By default, this is set to
+         * {@code true}.
+         *
+         * <p>The host creates indexed lists to help users navigate through long lists more easily
+         * by sorting, filtering, or some other means.
+         *
+         * <p>For example, a media app may, by default, show a user's playlists sorted by date
+         * created. If the app provides these playlists via the {@code SectionedItemTemplate} and
+         * enables {@code #isAlphabeticalIndexingAllowed}, the user will be able to select a letter
+         * on a keyboard to jump to their playlists that start with that letter. When this happens,
+         * the list is reconstructed and sorted alphabetically, then shown to the user, jumping down
+         * to the letter. Items that are set to {@code #setIndexable(false)}, do not show up in this
+         * new sorted list. Sticking with the media example, a media app may choose to hide things
+         * like "autogenerated playlists" from the list and only keep user created playlists.
+         *
+         * <p>Individual items can be set to be included or excluded from filtered lists, but it's
+         * also possible to enable/disable the creation of filtered lists as a whole via the
+         * template's API (eg. {@code SectionedItemTemplate
+         * .Builder#setAlphabeticalIndexingAllowed(Boolean)}).
+         */
         @ExperimentalCarApi
-        @NonNull
-        public Builder setIndexable(boolean indexable) {
+        public @NonNull Builder setIndexable(boolean indexable) {
             mIndexable = indexable;
             return this;
         }
@@ -709,8 +691,7 @@ public final class Row implements Item {
          *                               correctly. See {@link #setToggle} and
          *                               {@link #setBrowsable}.
          */
-        @NonNull
-        public Row build() {
+        public @NonNull Row build() {
             if (mTitle == null) {
                 throw new IllegalStateException("A title must be set on the row");
             }

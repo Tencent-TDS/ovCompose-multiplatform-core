@@ -17,7 +17,6 @@
 package androidx.room.solver.prepared.binder
 
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.box
@@ -33,17 +32,6 @@ class CoroutinePreparedQueryResultBinder(
     adapter: PreparedQueryResultAdapter?,
     private val continuationParamName: String,
 ) : PreparedQueryResultBinder(adapter) {
-
-    override fun executeAndReturn(
-        prepareQueryStmtBlock: CodeGenScope.() -> String,
-        preparedStmtProperty: XPropertySpec?,
-        dbProperty: XPropertySpec,
-        scope: CodeGenScope
-    ) {
-        error("Wrong executeAndReturn invoked")
-    }
-
-    override fun isMigratedToDriver(): Boolean = true
 
     override fun executeAndReturn(
         sqlQueryVar: String,

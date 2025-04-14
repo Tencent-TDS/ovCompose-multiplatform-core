@@ -15,6 +15,7 @@
  */
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -367,6 +368,7 @@ class IntSetTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val set = MutableIntSet()
         set += 1
@@ -549,6 +551,36 @@ class IntSetTest {
         assertTrue(3 in set)
         assertTrue(4 in set)
         assertFalse(5 in set)
+    }
+
+    @Test
+    fun buildIntSetFunction() {
+        val contract: Boolean
+        val set = buildIntSet {
+            contract = true
+            add(1)
+            add(2)
+        }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(1 in set)
+        assertTrue(2 in set)
+    }
+
+    @Test
+    fun buildIntSetWithCapacityFunction() {
+        val contract: Boolean
+        val set =
+            buildIntSet(20) {
+                contract = true
+                add(1)
+                add(2)
+            }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(set.capacity >= 18)
+        assertTrue(1 in set)
+        assertTrue(2 in set)
     }
 
     @Test

@@ -46,8 +46,11 @@ class FakeCameraGraph(
     override val graphState: StateFlow<GraphState>
         get() = throw NotImplementedError("Not used in testing")
 
-    override var isForeground = false
+    override var isForeground = true
     private var audioRestrictionMode = AUDIO_RESTRICTION_NONE
+
+    override val parameters: CameraGraph.Parameters
+        get() = throw NotImplementedError("Not used in testing")
 
     override suspend fun acquireSession(): CameraGraph.Session {
         if (isClosed) {

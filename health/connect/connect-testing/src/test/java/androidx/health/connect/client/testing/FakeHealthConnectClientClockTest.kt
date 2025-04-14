@@ -50,7 +50,7 @@ class FakeHealthConnectClientClockTest {
             exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
             title = "Record1",
             exerciseRoute = null,
-            metadata = Metadata(clientRecordId = "FakeHealthConnectData1")
+            metadata = Metadata.manualEntry(clientRecordId = "FakeHealthConnectData1")
         )
 
     private val record2 =
@@ -62,7 +62,7 @@ class FakeHealthConnectClientClockTest {
             exerciseType = ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
             title = "Record2",
             exerciseRoute = null,
-            metadata = Metadata(clientRecordId = "FakeHealthConnectData2")
+            metadata = Metadata.manualEntry(clientRecordId = "FakeHealthConnectData2")
         )
 
     private val fake =
@@ -145,7 +145,7 @@ class FakeHealthConnectClientClockTest {
     }
 
     @Test
-    fun timeRangeFilterlocalTime_noEndTime() = runTest {
+    fun timeRangeFilterLocalTime_noEndTime() = runTest {
 
         // Read records that end when record 1 ends
         val records =
@@ -171,7 +171,7 @@ class FakeHealthConnectClientClockTest {
         val heightRecord =
             HeightRecord(
                 time = fixedInstant.minusSeconds(29),
-                metadata = Metadata(clientRecordId = "HeightRecord#1"),
+                metadata = Metadata.manualEntry(clientRecordId = "HeightRecord#1"),
                 height = Length.meters(1.8),
                 zoneOffset = zoneOffset
             )
@@ -204,12 +204,12 @@ class FakeHealthConnectClientClockTest {
     }
 
     @Test
-    fun timeRangeFilterlocalTime_noEndTimeInstant() = runTest {
+    fun timeRangeFilterLocalTime_noEndTimeInstant() = runTest {
         // Given a record with a fixed time, before the clock.
         val heightRecord =
             HeightRecord(
                 time = fixedInstant.minusSeconds(29),
-                metadata = Metadata(clientRecordId = "HeightRecord#1"),
+                metadata = Metadata.manualEntry(clientRecordId = "HeightRecord#1"),
                 height = Length.meters(1.8),
                 zoneOffset = zoneOffset
             )
@@ -248,12 +248,12 @@ class FakeHealthConnectClientClockTest {
     }
 
     @Test
-    fun timeRangeFilterlocalTime_noStartTimeInstant() = runTest {
+    fun timeRangeFilterLocalTime_noStartTimeInstant() = runTest {
         // Given a record with a fixed time, before the clock.
         val heightRecord =
             HeightRecord(
                 time = fixedInstant.minusSeconds(29),
-                metadata = Metadata(clientRecordId = "HeightRecord#1"),
+                metadata = Metadata.manualEntry(clientRecordId = "HeightRecord#1"),
                 height = Length.meters(1.8),
                 zoneOffset = zoneOffset
             )

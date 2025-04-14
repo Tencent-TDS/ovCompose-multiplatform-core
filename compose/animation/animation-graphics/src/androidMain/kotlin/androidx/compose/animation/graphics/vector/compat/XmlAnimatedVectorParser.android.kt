@@ -18,7 +18,6 @@ package androidx.compose.animation.graphics.vector.compat
 
 import android.content.res.Resources
 import android.util.AttributeSet
-import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.animation.graphics.res.loadAnimatorResource
 import androidx.compose.animation.graphics.vector.AnimatedImageVector
 import androidx.compose.animation.graphics.vector.AnimatedVectorTarget
@@ -54,7 +53,6 @@ private fun parseAnimatedVectorTarget(
     }
 }
 
-@ExperimentalAnimationGraphicsApi
 internal fun XmlPullParser.parseAnimatedImageVector(
     res: Resources,
     theme: Resources.Theme?,

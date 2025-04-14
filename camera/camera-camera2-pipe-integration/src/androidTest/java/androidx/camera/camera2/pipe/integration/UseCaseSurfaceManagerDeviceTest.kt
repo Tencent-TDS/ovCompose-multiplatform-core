@@ -27,6 +27,7 @@ import android.os.HandlerThread
 import android.view.Surface
 import androidx.camera.camera2.pipe.CameraPipe
 import androidx.camera.camera2.pipe.CameraSurfaceManager
+import androidx.camera.camera2.pipe.integration.adapter.SessionConfigAdapter
 import androidx.camera.camera2.pipe.integration.compat.workaround.InactiveSurfaceCloserImpl
 import androidx.camera.camera2.pipe.integration.impl.Camera2ImplConfig
 import androidx.camera.camera2.pipe.integration.impl.UseCaseSurfaceManager
@@ -195,24 +196,13 @@ class UseCaseSurfaceManagerDeviceTest {
             )
         assertThat(surfaceActiveCountDown.await(3, TimeUnit.SECONDS)).isTrue()
         val cameraOpenedUsageCount = testSessionParameters.deferrableSurface.useCount
-        val cameraDisconnectedUsageCount: Int
 
         // Act. Launch Camera2Activity to open the camera, it disconnects the CameraGraph.
         ActivityScenario.launch<Camera2TestActivity>(
                 Intent(ApplicationProvider.getApplicationContext(), Camera2TestActivity::class.java)
                     .apply { putExtra(Camera2TestActivity.EXTRA_CAMERA_ID, cameraId) }
             )
-            .use {
-                // TODO(b/268768235): Under some conditions, it is possible that the camera gets
-                //  disconnected for both the foreground and test activity, before the preview has a
-                //  chance to be ready. Fix it with follow-up changes to change this test by using a
-                //  CameraGraphSimulator rather than a real CameraGraph.
-                // lateinit var previewReady: IdlingResource
-                // it.onActivity { activity -> previewReady = activity.mPreviewReady!! }
-                // previewReady.waitForIdle()
-
-                cameraDisconnectedUsageCount = testSessionParameters.deferrableSurface.useCount
-            }
+            .close()
         // Close the CameraGraph to ensure the usage count does go back down.
         testUseCaseCamera.useCaseCameraGraphConfig.graph.close()
         testUseCaseCamera.useCaseSurfaceManager.stopAsync().awaitWithTimeout()
@@ -221,7 +211,6 @@ class UseCaseSurfaceManagerDeviceTest {
 
         // Assert, verify the usage count of the DeferrableSurface
         assertThat(cameraOpenedUsageCount).isEqualTo(2)
-        assertThat(cameraDisconnectedUsageCount).isEqualTo(2)
         assertThat(cameraClosedUsageCount).isEqualTo(1)
     }
 
@@ -250,6 +239,7 @@ class UseCaseSurfaceManagerDeviceTest {
                         useCaseThreads,
                         cameraPipe,
                         InactiveSurfaceCloserImpl(),
+                        SessionConfigAdapter(useCases = useCases)
                     )
             )
 

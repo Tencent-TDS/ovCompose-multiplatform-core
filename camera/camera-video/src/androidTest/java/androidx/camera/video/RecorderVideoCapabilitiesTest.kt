@@ -25,9 +25,11 @@ import androidx.camera.core.CameraXConfig
 import androidx.camera.core.DynamicRange.SDR
 import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.testing.impl.AndroidUtil
+import androidx.camera.testing.impl.AndroidUtil.isEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CameraXUtil
+import androidx.camera.video.Quality.QUALITY_SOURCE_REGULAR
 import androidx.camera.video.Recorder.VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE
 import androidx.camera.video.internal.encoder.VideoEncoderInfoImpl
 import androidx.test.core.app.ApplicationProvider
@@ -81,6 +83,12 @@ class RecorderVideoCapabilitiesTest(
 
     @Before
     fun setUp() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
+
         assumeTrue(CameraUtil.hasCameraWithLensFacing(CameraSelector.LENS_FACING_BACK))
 
         CameraXUtil.initialize(context, cameraConfig).get()
@@ -92,6 +100,7 @@ class RecorderVideoCapabilitiesTest(
             RecorderVideoCapabilities(
                 VIDEO_CAPABILITIES_SOURCE_CAMCORDER_PROFILE,
                 cameraInfo,
+                QUALITY_SOURCE_REGULAR,
                 VideoEncoderInfoImpl.FINDER
             )
     }

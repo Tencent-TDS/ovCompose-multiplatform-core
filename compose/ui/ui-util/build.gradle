@@ -22,7 +22,7 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
@@ -32,7 +32,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     jvmStubs()
     linuxX64Stubs()
 
@@ -42,19 +42,23 @@ androidXMultiplatform {
         commonMain {
             dependencies {
                 implementation(libs.kotlinStdlib)
+                implementation("androidx.collection:collection:1.4.3")
             }
         }
 
         commonTest {
             dependencies {
-                implementation(kotlin("test-junit"))
+                implementation(libs.kotlinTest)
+                implementation(project(":kruth:kruth"))
             }
         }
 
         jvmMain {
             dependsOn(commonMain)
-            dependencies {
-            }
+        }
+
+        jvmTest {
+            dependsOn(commonTest)
         }
 
         androidMain {
@@ -79,11 +83,12 @@ androidXMultiplatform {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
+                implementation(libs.testRunner)
             }
         }
 
         androidUnitTest {
-            dependsOn(commonTest)
+            dependsOn(jvmTest)
             dependencies {
                 implementation(libs.truth)
             }
@@ -93,11 +98,10 @@ androidXMultiplatform {
 
 androidx {
     name = "Compose Util"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2020"
     description = "Internal Compose utilities used by other modules"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = false
 }
 
 androidxCompose {
@@ -105,5 +109,8 @@ androidxCompose {
 }
 
 android {
-    namespace "androidx.compose.ui.util"
+    namespace = "androidx.compose.ui.util"
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

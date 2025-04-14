@@ -91,7 +91,6 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalTestApi::class)
 @LargeTest
 class TextFieldCursorTest : FocusedWindowTest {
 
@@ -369,12 +368,10 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
-    @Suppress("UnnecessaryOptInAnnotation")
-    @OptIn(ExperimentalTestApi::class)
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     fun cursorBlinkingAnimation_whenSystemDisablesAnimations() {
@@ -407,7 +404,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -435,7 +432,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
 
         // no cursor when should be no cursor
@@ -448,7 +445,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -546,7 +543,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
 
         toggle = !toggle
@@ -569,7 +566,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -604,7 +601,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -674,7 +671,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -936,7 +933,7 @@ class TextFieldCursorTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = contentColor,
                 backgroundColor = contentColor,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 

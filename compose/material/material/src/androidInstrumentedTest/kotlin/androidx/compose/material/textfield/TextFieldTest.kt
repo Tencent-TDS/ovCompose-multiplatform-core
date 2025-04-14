@@ -1000,7 +1000,7 @@ class TextFieldTest {
                 shapeColor = Color.White,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 3.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 3.dp.toPx() }
             )
     }
 
@@ -1041,7 +1041,7 @@ class TextFieldTest {
                 shapeColor = Color.Blue,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
             )
 
         rule.onNodeWithTag(TextFieldTag).performClick()
@@ -1055,7 +1055,7 @@ class TextFieldTest {
                 shapeColor = Color.Blue,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
             )
     }
 
@@ -1475,6 +1475,23 @@ class TextFieldTest {
         assertThat(tfHeightNoIntrinsic).isNotEqualTo(0)
 
         assertThat(tfHeightIntrinsic).isEqualTo(tfHeightNoIntrinsic)
+    }
+
+    @Test
+    fun textField_withTrailingIcon_inIntrinsicHeight_andTooShortWidth_doesNotCrash() {
+        // Regression test for b/328954156
+        rule.setContent {
+            Box(Modifier.width(200.dp)) {
+                Box(Modifier.height(IntrinsicSize.Min)) {
+                    TextField(
+                        state = rememberTextFieldState(),
+                        modifier = Modifier.padding(100.dp),
+                        trailingIcon = { Box(Modifier.size(20.dp)) },
+                    )
+                }
+            }
+        }
+        // Nothing to assert; just make sure it doesn't crash
     }
 
     @Test

@@ -22,17 +22,13 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
-import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.completeWith
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.WhileSubscribed
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.dropWhile
 import kotlinx.coroutines.flow.emitAll
@@ -40,7 +36,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -64,42 +59,22 @@ internal class DataStoreImpl<T>(
      */
     private val corruptionHandler: CorruptionHandler<T> = NoOpCorruptionHandler(),
     private val scope: CoroutineScope = CoroutineScope(ioDispatcher() + SupervisorJob())
-) : DataStore<T> {
-
-    /**
-     * Shared flow responsible for observing [InterProcessCoordinator] for file changes. Each
-     * downstream [data] flow collects on this [kotlinx.coroutines.flow.SharedFlow] to ensure we
-     * observe the [InterProcessCoordinator] when there is an active collection on the [data].
-     */
-    private val updateCollection =
-        flow<Unit> {
-                // deferring 1 flow so we can create coordinator lazily just to match existing
-                // behavior.
-                // also wait for initialization to complete before watching update events.
-                readAndInit.awaitComplete()
-                coordinator.updateNotifications.conflate().collect {
-                    val currentState = inMemoryCache.currentState
-                    if (currentState !is Final) {
-                        // update triggered reads should always wait for lock
-                        readDataAndUpdateCache(requireLock = true)
-                    }
-                }
-            }
-            .shareIn(
-                scope = scope,
-                started =
-                    SharingStarted.WhileSubscribed(
-                        stopTimeout = Duration.ZERO,
-                        replayExpiration = Duration.ZERO
-                    ),
-                replay = 0
-            )
+) : CurrentDataProviderStore<T> {
 
     /**
      * The actual values of DataStore. This is exposed in the API via [data] to be able to combine
      * its lifetime with IPC update collection ([updateCollection]).
      */
-    private val internalDataFlow: Flow<T> = flow {
+    override val data: Flow<T> = flow {
+        val startState = readState(requireLock = false)
+        when (startState) {
+            is Data<T> -> emit(startState.value)
+            is UnInitialized -> error(BUG_MESSAGE)
+            is ReadException<T> -> throw startState.readException
+            // TODO(b/273990827): decide the contract of accessing when state is Final
+            is Final -> return@flow
+        }
+
         /**
          * If downstream flow is UnInitialized, no data has been read yet, we need to trigger a new
          * read then start emitting values once we have seen a new value (or exception).
@@ -119,19 +94,9 @@ internal class DataStoreImpl<T>(
          * ReadException can transition to another ReadException, Data or Final. Data can transition
          * to another Data or Final. Final will not change.
          */
-        // the first read should not be blocked by ongoing writes, so it can be dirty read. If it is
-        // a unlocked read, the same value might be emitted to the flow again
-        val startState = readState(requireLock = false)
-        when (startState) {
-            is Data<T> -> emit(startState.value)
-            is UnInitialized -> error(BUG_MESSAGE)
-            is ReadException<T> -> throw startState.readException
-            // TODO(b/273990827): decide the contract of accessing when state is Final
-            is Final -> return@flow
-        }
-
         emitAll(
             inMemoryCache.flow
+                .onStart { incrementCollector() }
                 .takeWhile {
                     // end the flow if we reach the final value
                     it !is Final
@@ -145,20 +110,55 @@ internal class DataStoreImpl<T>(
                         is UnInitialized -> error(BUG_MESSAGE)
                     }
                 }
+                .onCompletion { decrementCollector() }
         )
     }
 
-    override val data: Flow<T> = channelFlow {
-        val updateCollector =
-            launch(start = CoroutineStart.LAZY) {
-                updateCollection.collect {
-                    // collect it infinitely so it keeps running as long as the data flow is active.
-                }
+    override suspend fun currentData(): T {
+        val startState = readState(requireLock = false)
+        when (startState) {
+            is Data<T> -> return startState.value
+            is UnInitialized -> error(BUG_MESSAGE)
+            is ReadException<T> -> throw startState.readException
+            // TODO(b/273990827): decide the contract of accessing when state is Final
+            is Final -> throw startState.finalException
+        }
+    }
+
+    private val collectorMutex = Mutex()
+    private var collectorCounter = 0
+    /**
+     * Job responsible for observing [InterProcessCoordinator] for file changes. Each downstream
+     * [data] flow collects on this [kotlinx.coroutines.Job] to ensure we observe the
+     * [InterProcessCoordinator] when there is an active collection on the [data].
+     */
+    private var collectorJob: Job? = null
+
+    private suspend fun incrementCollector() {
+        collectorMutex.withLock {
+            if (++collectorCounter == 1) {
+                collectorJob =
+                    scope.launch {
+                        readAndInit.awaitComplete()
+                        coordinator.updateNotifications.conflate().collect {
+                            val currentState = inMemoryCache.currentState
+                            if (currentState !is Final) {
+                                // update triggered reads should always wait for lock
+                                readDataAndUpdateCache(requireLock = true)
+                            }
+                        }
+                    }
             }
-        internalDataFlow
-            .onStart { updateCollector.start() }
-            .onCompletion { updateCollector.cancel() }
-            .collect { send(it) }
+        }
+    }
+
+    private suspend fun decrementCollector() {
+        collectorMutex.withLock {
+            if (--collectorCounter == 0) {
+                collectorJob?.cancel()
+                collectorJob = null
+            }
+        }
     }
 
     override suspend fun updateData(transform: suspend (t: T) -> T): T {
@@ -402,6 +402,10 @@ internal class DataStoreImpl<T>(
     }
 
     @OptIn(ExperimentalContracts::class)
+    @Suppress(
+        "LEAKED_IN_PLACE_LAMBDA",
+        "WRONG_INVOCATION_KIND"
+    ) // https://youtrack.jetbrains.com/issue/KT-29963
     private suspend fun <R> doWithWriteFileLock(
         hasWriteFileLock: Boolean,
         block: suspend () -> R

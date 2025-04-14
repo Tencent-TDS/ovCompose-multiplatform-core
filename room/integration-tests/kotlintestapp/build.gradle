@@ -23,7 +23,7 @@ import com.google.devtools.ksp.gradle.KspTask
 plugins {
     id("AndroidXPlugin")
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     // both ksp and kapt are applied. each run in their own variant.
     id("com.google.devtools.ksp")
     id("kotlin-kapt")
@@ -46,7 +46,7 @@ android {
             dimension "processorConfiguration"
         }
     }
-    namespace "androidx.room.integration.kotlintestapp"
+    namespace = "androidx.room.integration.kotlintestapp"
 }
 
 dependencies {
@@ -96,22 +96,22 @@ dependencies {
     androidTestImplementation("androidx.lifecycle:lifecycle-runtime-testing:2.6.1")
     androidTestImplementation(libs.rxjava2)
     androidTestImplementation(libs.kotlinCoroutinesTest)
-    testImplementation(libs.mockitoCore4)
     androidTestImplementation("androidx.collection:collection")
+    androidTestImplementation(project(":sqlite:sqlite-bundled"))
 }
 
 room {
     schemaDirectory(
         "withKapt",
-        provider { layout.projectDirectory.dir("schemas").getAsFile().getAbsolutePath() }
+        layout.projectDirectory.dir("schemas")
     )
     schemaDirectory(
         "withKspGenJava",
-        provider { layout.projectDirectory.dir("schemas-ksp").getAsFile().getAbsolutePath() }
+        layout.projectDirectory.dir("schemas-ksp")
     )
     schemaDirectory(
         "withKspGenKotlin",
-        provider { layout.projectDirectory.dir("schemas-ksp").getAsFile().getAbsolutePath() }
+        layout.projectDirectory.dir("schemas-ksp")
     )
 }
 

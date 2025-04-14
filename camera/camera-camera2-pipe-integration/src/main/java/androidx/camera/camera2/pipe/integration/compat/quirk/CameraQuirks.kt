@@ -170,6 +170,14 @@ constructor(
         }
         if (
             quirkSettings.shouldEnableQuirk(
+                JpegCaptureDownsizingQuirk::class.java,
+                JpegCaptureDownsizingQuirk.isEnabled(cameraMetadata)
+            )
+        ) {
+            quirks.add(JpegCaptureDownsizingQuirk)
+        }
+        if (
+            quirkSettings.shouldEnableQuirk(
                 PreviewOrientationIncorrectQuirk::class.java,
                 PreviewOrientationIncorrectQuirk.isEnabled(cameraMetadata)
             )
@@ -218,6 +226,14 @@ constructor(
         }
         if (
             quirkSettings.shouldEnableQuirk(
+                QuickSuccessiveImageCaptureFailsRepeatingRequestQuirk::class.java,
+                QuickSuccessiveImageCaptureFailsRepeatingRequestQuirk.isEnabled(cameraMetadata)
+            )
+        ) {
+            quirks.add(QuickSuccessiveImageCaptureFailsRepeatingRequestQuirk())
+        }
+        if (
+            quirkSettings.shouldEnableQuirk(
                 ImageCaptureFailedWhenVideoCaptureIsBoundQuirk::class.java,
                 ImageCaptureFailedWhenVideoCaptureIsBoundQuirk.isEnabled()
             )
@@ -239,6 +255,14 @@ constructor(
             )
         ) {
             quirks.add(ImageCaptureFailedForVideoSnapshotQuirk())
+        }
+        if (
+            quirkSettings.shouldEnableQuirk(
+                AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk::class.java,
+                AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk.isEnabled()
+            )
+        ) {
+            quirks.add(AbnormalStreamWhenImageAnalysisBindWithTemplateRecordQuirk())
         }
 
         Quirks(quirks).also {

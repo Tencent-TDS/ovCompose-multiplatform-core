@@ -36,7 +36,7 @@ import layoutinspector.compose.inspection.LayoutInspectorComposeProtocol.Quad
 import layoutinspector.compose.inspection.LayoutInspectorComposeProtocol.Rect
 
 internal fun InspectorNode.toComposableNode(context: ConversionContext): ComposableNode {
-    return toNodeBuilder(context).resetSystemFlag().build()
+    return toNodeBuilder(context).build()
 }
 
 private val SELECTOR_EXPR = Regex("(\\\$(lambda-)?[0-9]+)+$")
@@ -130,6 +130,12 @@ private fun InspectorNode.flags(): Int {
     }
     if (inlined) {
         flags = flags or ComposableNode.Flags.INLINED_VALUE
+    }
+    if (hasDrawModifier) {
+        flags = flags or ComposableNode.Flags.HAS_DRAW_MODIFIER_VALUE
+    }
+    if (hasChildDrawModifier) {
+        flags = flags or ComposableNode.Flags.HAS_CHILD_DRAW_MODIFIER_VALUE
     }
     return flags
 }

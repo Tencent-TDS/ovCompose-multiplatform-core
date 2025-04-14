@@ -25,6 +25,7 @@ import androidx.camera.camera2.pipe.FrameNumber
 import androidx.camera.camera2.pipe.RequestNumber
 import androidx.camera.camera2.pipe.Result3A
 import androidx.camera.camera2.pipe.testing.FakeCameraMetadata
+import androidx.camera.camera2.pipe.testing.FakeCaptureSequenceProcessor.Companion.requiredParameters
 import androidx.camera.camera2.pipe.testing.FakeFrameMetadata
 import androidx.camera.camera2.pipe.testing.FakeGraphProcessor
 import androidx.camera.camera2.pipe.testing.FakeRequestMetadata
@@ -46,7 +47,7 @@ import org.robolectric.annotation.Config
 @Config(minSdk = Build.VERSION_CODES.LOLLIPOP)
 internal class Controller3AUnlock3ATest {
     private val graphTestContext = GraphTestContext()
-    private val graphState3A = graphTestContext.graphProcessor.graphState3A
+    private val graphState3A = GraphState3A()
     private val graphProcessor = graphTestContext.graphProcessor
     private val captureSequenceProcessor = graphTestContext.captureSequenceProcessor
     private val listener3A = Listener3A()
@@ -67,8 +68,8 @@ internal class Controller3AUnlock3ATest {
     @Test
     fun testUnlock3AFailsImmediatelyWithoutRepeatingRequest() = runTest {
         val graphProcessor2 = FakeGraphProcessor()
-        val controller3A =
-            Controller3A(graphProcessor2, fakeMetadata, graphProcessor2.graphState3A, listener3A)
+        val graphState3A2 = GraphState3A()
+        val controller3A = Controller3A(graphProcessor2, fakeMetadata, graphState3A2, listener3A)
         val result = controller3A.unlock3A(ae = true)
         assertThat(result.await().status).isEqualTo(Result3A.Status.SUBMIT_FAILED)
     }
@@ -104,8 +105,8 @@ internal class Controller3AUnlock3ATest {
         assertThat(result.isCompleted).isFalse()
 
         // There should be one request to lock AE.
-        val request1 = captureSequenceProcessor.nextEvent().requestSequence
-        assertThat(request1!!.requiredParameters[CaptureRequest.CONTROL_AE_LOCK]).isEqualTo(false)
+        val event1 = captureSequenceProcessor.nextEvent()
+        assertThat(event1.requiredParameters).containsEntry(CaptureRequest.CONTROL_AE_LOCK, false)
 
         repeatingJob.cancel()
         repeatingJob.join()
@@ -164,9 +165,12 @@ internal class Controller3AUnlock3ATest {
         assertThat(result.isCompleted).isFalse()
 
         // There should be one request to unlock AF.
-        val request1 = captureSequenceProcessor.nextEvent().requestSequence
-        assertThat(request1!!.requiredParameters[CaptureRequest.CONTROL_AF_TRIGGER])
-            .isEqualTo(CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+        val event1 = captureSequenceProcessor.nextEvent()
+        assertThat(event1.requiredParameters)
+            .containsEntry(
+                CaptureRequest.CONTROL_AF_TRIGGER,
+                CaptureRequest.CONTROL_AF_TRIGGER_CANCEL
+            )
 
         repeatingJob.cancel()
         repeatingJob.join()
@@ -225,8 +229,8 @@ internal class Controller3AUnlock3ATest {
         assertThat(result.isCompleted).isFalse()
 
         // There should be one request to lock AWB.
-        val request1 = captureSequenceProcessor.nextEvent().requestSequence
-        assertThat(request1!!.requiredParameters[CaptureRequest.CONTROL_AWB_LOCK]).isEqualTo(false)
+        val event1 = captureSequenceProcessor.nextEvent()
+        assertThat(event1.requiredParameters).containsEntry(CaptureRequest.CONTROL_AWB_LOCK, false)
 
         repeatingJob.cancel()
         repeatingJob.join()
@@ -287,12 +291,15 @@ internal class Controller3AUnlock3ATest {
         assertThat(result.isCompleted).isFalse()
 
         // There should be one request to unlock AF.
-        val request1 = captureSequenceProcessor.nextEvent().requestSequence
-        assertThat(request1!!.requiredParameters[CaptureRequest.CONTROL_AF_TRIGGER])
-            .isEqualTo(CaptureRequest.CONTROL_AF_TRIGGER_CANCEL)
+        val event1 = captureSequenceProcessor.nextEvent()
+        assertThat(event1.requiredParameters)
+            .containsEntry(
+                CaptureRequest.CONTROL_AF_TRIGGER,
+                CaptureRequest.CONTROL_AF_TRIGGER_CANCEL
+            )
         // Then request to unlock AE.
-        val request2 = captureSequenceProcessor.nextEvent().requestSequence
-        assertThat(request2!!.requiredParameters[CaptureRequest.CONTROL_AE_LOCK]).isEqualTo(false)
+        val event2 = captureSequenceProcessor.nextEvent()
+        assertThat(event2.requiredParameters).containsEntry(CaptureRequest.CONTROL_AE_LOCK, false)
 
         repeatingJob.cancel()
         repeatingJob.join()

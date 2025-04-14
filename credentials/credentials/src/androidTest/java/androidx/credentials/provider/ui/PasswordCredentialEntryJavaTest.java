@@ -16,6 +16,7 @@
 package androidx.credentials.provider.ui;
 
 import static androidx.credentials.CredentialOption.BUNDLE_KEY_IS_AUTO_SELECT_ALLOWED;
+import static androidx.credentials.provider.ui.UiUtils.testBiometricPromptData;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -29,13 +30,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
+import android.os.Build;
 import android.os.Bundle;
 import android.service.credentials.CredentialEntry;
 
-import androidx.annotation.RequiresApi;
-import androidx.biometric.BiometricManager;
-import androidx.biometric.BiometricPrompt;
-import androidx.core.os.BuildCompat;
 import androidx.credentials.PasswordCredential;
 import androidx.credentials.R;
 import androidx.credentials.TestUtilsKt;
@@ -52,8 +50,6 @@ import org.junit.runner.RunWith;
 
 import java.time.Instant;
 import java.util.HashSet;
-
-import javax.crypto.NullCipher;
 
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = 26) // Instant usage
@@ -86,11 +82,22 @@ public class PasswordCredentialEntryJavaTest {
     }
     @Test
     public void build_allParams_success() {
-        PasswordCredentialEntry entry = constructEntryWithAllParams();
+        PasswordCredentialEntry entry =
+                constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
         assertNotNull(entry);
         assertThat(entry.getType()).isEqualTo(PasswordCredential.TYPE_PASSWORD_CREDENTIAL);
         assertEntryWithAllParams(entry);
     }
+
+    @Test
+    public void build_allParamsForcedBiometricPromptDataNull_success() {
+        PasswordCredentialEntry entry =
+                constructEntryWithAllParams(/*nullBiometricPromptData=*/ true);
+        assertNotNull(entry);
+        assertThat(entry.getType()).isEqualTo(PasswordCredential.TYPE_PASSWORD_CREDENTIAL);
+        assertEntryWithAllParams(entry);
+    }
+
     @Test
     public void build_nullContext_throwsNPE() {
         assertThrows("Expected null context to throw NPE",
@@ -322,16 +329,19 @@ public class PasswordCredentialEntryJavaTest {
     @Test
     @SdkSuppress(minSdkVersion = 28)
     public void fromSlice_allParams_success() {
-        PasswordCredentialEntry originalEntry = constructEntryWithAllParams();
+        PasswordCredentialEntry originalEntry = constructEntryWithAllParams(
+                /*nullBiometricPromptData=*/ false);
         PasswordCredentialEntry entry = PasswordCredentialEntry.fromSlice(
                 PasswordCredentialEntry.toSlice(originalEntry));
         assertNotNull(entry);
         assertEntryWithAllParams(entry);
     }
+
     @Test
     @SdkSuppress(minSdkVersion = 34)
     public void fromCredentialEntry_allParams_success() {
-        PasswordCredentialEntry originalEntry = constructEntryWithAllParams();
+        PasswordCredentialEntry originalEntry =
+                constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
         PasswordCredentialEntry entry = PasswordCredentialEntry.fromCredentialEntry(
                 new CredentialEntry("id",
                         PasswordCredentialEntry.toSlice(originalEntry)));
@@ -346,28 +356,23 @@ public class PasswordCredentialEntryJavaTest {
                 mBeginGetPasswordOption).build();
     }
 
-    private PasswordCredentialEntry constructEntryWithAllParams() {
-        if (BuildCompat.isAtLeastV()) {
-            return new PasswordCredentialEntry.Builder(
-                    mContext, USERNAME, mPendingIntent, mBeginGetPasswordOption)
-                    .setDisplayName(DISPLAYNAME)
-                    .setLastUsedTime(Instant.ofEpochMilli(LAST_USED_TIME))
-                    .setIcon(ICON)
-                    .setAutoSelectAllowed(IS_AUTO_SELECT_ALLOWED)
-                    .setAffiliatedDomain(AFFILIATED_DOMAIN)
-                    .setDefaultIconPreferredAsSingleProvider(SINGLE_PROVIDER_ICON_BIT)
-                    .setBiometricPromptData(testBiometricPromptData()).build();
-        } else {
-            return new PasswordCredentialEntry.Builder(
-                    mContext, USERNAME, mPendingIntent, mBeginGetPasswordOption)
-                    .setDisplayName(DISPLAYNAME)
-                    .setLastUsedTime(Instant.ofEpochMilli(LAST_USED_TIME))
-                    .setIcon(ICON)
-                    .setAutoSelectAllowed(IS_AUTO_SELECT_ALLOWED)
-                    .setAffiliatedDomain(AFFILIATED_DOMAIN)
-                    .setDefaultIconPreferredAsSingleProvider(SINGLE_PROVIDER_ICON_BIT)
-                    .build();
+    private PasswordCredentialEntry constructEntryWithAllParams(boolean nullBiometricPromptData) {
+        PasswordCredentialEntry.Builder testBuilder = new PasswordCredentialEntry.Builder(
+                mContext, USERNAME, mPendingIntent, mBeginGetPasswordOption)
+                .setDisplayName(DISPLAYNAME)
+                .setLastUsedTime(Instant.ofEpochMilli(LAST_USED_TIME))
+                .setIcon(ICON)
+                .setAutoSelectAllowed(IS_AUTO_SELECT_ALLOWED)
+                .setAffiliatedDomain(AFFILIATED_DOMAIN)
+                .setDefaultIconPreferredAsSingleProvider(SINGLE_PROVIDER_ICON_BIT);
+        if (Build.VERSION.SDK_INT >= 35) {
+            BiometricPromptData biometricPromptData = null;
+            if (!nullBiometricPromptData) {
+                biometricPromptData = testBiometricPromptData();
+            }
+            testBuilder.setBiometricPromptData(biometricPromptData);
         }
+        return testBuilder.build();
     }
 
     private void assertEntryWithRequiredParamsOnly(PasswordCredentialEntry entry,
@@ -394,19 +399,11 @@ public class PasswordCredentialEntryJavaTest {
         assertThat(entry.isDefaultIconPreferredAsSingleProvider()).isEqualTo(
                 SINGLE_PROVIDER_ICON_BIT);
         assertThat(entry.getEntryGroupId()).isEqualTo(USERNAME);
-        if (BuildCompat.isAtLeastV() && entry.getBiometricPromptData() != null) {
+        if (Build.VERSION.SDK_INT >= 35 && entry.getBiometricPromptData() != null) {
             assertThat(entry.getBiometricPromptData().getAllowedAuthenticators()).isEqualTo(
                     testBiometricPromptData().getAllowedAuthenticators());
         } else {
             assertThat(entry.getBiometricPromptData()).isNull();
         }
-    }
-
-    @RequiresApi(35)
-    private static BiometricPromptData testBiometricPromptData() {
-        return new BiometricPromptData.Builder()
-                .setCryptoObject(new BiometricPrompt.CryptoObject(new NullCipher()))
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                .build();
     }
 }

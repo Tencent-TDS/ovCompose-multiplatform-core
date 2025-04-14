@@ -19,28 +19,27 @@ package androidx.pdf.viewer;
 import android.content.Context;
 import android.graphics.Rect;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.util.ObservableValue;
 import androidx.pdf.util.PaginationUtils;
 import androidx.pdf.widget.ZoomView;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SelectedMatchValueObserver implements ObservableValue.ValueObserver<SelectedMatch> {
     private final PaginatedView mPaginatedView;
-    private final PaginationModel mPaginationModel;
     private final PageViewFactory mPageViewFactory;
     private final LayoutHandler mLayoutHandler;
     private final ZoomView mZoomView;
     private final Context mContext;
 
     public SelectedMatchValueObserver(@NonNull PaginatedView paginatedView,
-            @NonNull PaginationModel paginationModel, @NonNull PageViewFactory pageViewFactory,
+            @NonNull PageViewFactory pageViewFactory,
             @NonNull ZoomView zoomView, @NonNull LayoutHandler layoutHandler,
             @NonNull Context context) {
         mPaginatedView = paginatedView;
-        mPaginationModel = paginationModel;
         mPageViewFactory = pageViewFactory;
         mZoomView = zoomView;
         mLayoutHandler = layoutHandler;
@@ -67,26 +66,27 @@ public class SelectedMatchValueObserver implements ObservableValue.ValueObserver
     }
 
     private boolean isPageCreated(int pageNum) {
-        return pageNum < mPaginationModel.getSize() && mPaginatedView.getViewAt(pageNum) != null;
+        return pageNum < mPaginatedView.getModel().getSize() && mPaginatedView.getViewAt(pageNum)
+                != null;
     }
 
     private void lookAtSelection(SelectedMatch selection) {
         if (selection == null || selection.isEmpty()) {
             return;
         }
-        if (selection.getPage() >= mPaginationModel.getSize()) {
+        if (selection.getPage() >= mPaginatedView.getModel().getSize()) {
             mLayoutHandler.layoutPages(selection.getPage() + 1);
             return;
         }
         Rect rect = selection.getPageMatches().getFirstRect(selection.getSelected());
-        int x = mPaginationModel.getLookAtX(selection.getPage(), rect.centerX());
-        int y = mPaginationModel.getLookAtY(selection.getPage(), rect.centerY());
+        int x = mPaginatedView.getModel().getLookAtX(selection.getPage(), rect.centerX());
+        int y = mPaginatedView.getModel().getLookAtY(selection.getPage(), rect.centerY());
         mZoomView.centerAt(x, y);
 
         PageMosaicView pageView = mPageViewFactory.getOrCreatePageView(
                 selection.getPage(),
                 PaginationUtils.getPageElevationInPixels(mContext),
-                mPaginationModel.getPageSize(selection.getPage()));
+                mPaginatedView.getModel().getPageSize(selection.getPage()));
         pageView.setOverlay(selection.getOverlay());
     }
 }

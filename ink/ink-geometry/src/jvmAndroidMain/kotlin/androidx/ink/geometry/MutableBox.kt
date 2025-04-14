@@ -28,8 +28,7 @@ import kotlin.math.min
  * (e.g. the positive Y axis being "down"), because it is intended to be used with any coordinate
  * system rather than just Android screen/View space.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
-public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2: Float) : Box {
+public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2: Float) : Box() {
 
     /** The lower bound in the `X` direction. */
     override var xMin: Float = min(x1, x2)
@@ -46,10 +45,6 @@ public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2:
     /** The upper bound in the `Y` direction. */
     override var yMax: Float = max(y1, y2)
         private set
-
-    /** Populates [out] with the center of the [MutableBox]. */
-    override fun center(out: MutablePoint): Unit =
-        BoxHelper.nativeCenter(xMin, yMin, xMax, yMax, out)
 
     /**
      * Sets the lower and upper bounds in the `X` direction to new values. The minimum value becomes
@@ -80,7 +75,7 @@ public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2:
     public constructor() : this(0f, 0f, 0f, 0f)
 
     /** Constructs the smallest [MutableBox] containing the two given points. */
-    public fun fillFromTwoPoints(point1: Point, point2: Point): MutableBox {
+    public fun populateFromTwoPoints(point1: Vec, point2: Vec): MutableBox {
         setXBounds(point1.x, point2.x)
         setYBounds(point1.y, point2.y)
         return this
@@ -90,8 +85,8 @@ public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2:
      * Constructs a [MutableBox] with a given [center], [width], and [height]. [width] and [height]
      * must be non-negative numbers.
      */
-    public fun fillFromCenterAndDimensions(
-        center: Point,
+    public fun populateFromCenterAndDimensions(
+        center: Vec,
         @FloatRange(from = 0.0) width: Float,
         @FloatRange(from = 0.0) height: Float,
     ): MutableBox {
@@ -110,15 +105,9 @@ public class MutableBox private constructor(x1: Float, y1: Float, x2: Float, y2:
         return this
     }
 
-    /** Convert this object to a new immutable [Box]. */
-    public fun buildBox(): ImmutableBox {
-        return ImmutableBox.fromTwoPoints(ImmutablePoint(xMin, yMin), ImmutablePoint(xMax, yMax))
-    }
-
-    /** Return a copy of this object that can be modified independently. */
-    public fun copy(): MutableBox {
-        return MutableBox(xMin, yMin, xMax, yMax)
-    }
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    override fun asImmutable(): ImmutableBox =
+        ImmutableBox(x1 = xMin, y1 = yMin, x2 = xMax, y2 = yMax)
 
     override fun equals(other: Any?): Boolean =
         other === this || (other is Box && Box.areEquivalent(this, other))

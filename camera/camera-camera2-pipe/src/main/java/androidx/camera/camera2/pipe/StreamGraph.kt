@@ -16,6 +16,7 @@
 
 package androidx.camera.camera2.pipe
 
+import android.hardware.camera2.CameraExtensionSession
 import androidx.annotation.RestrictTo
 
 /**
@@ -23,6 +24,7 @@ import androidx.annotation.RestrictTo
  *
  * [CameraStream]s can be used to build [Request]s that are sent to a [CameraGraph].
  */
+@JvmDefaultWithCompatibility
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 public interface StreamGraph {
     public val streams: List<CameraStream>
@@ -35,4 +37,21 @@ public interface StreamGraph {
     public operator fun get(streamId: StreamId): CameraStream? = streams.find { it.id == streamId }
 
     public operator fun get(outputId: OutputId): OutputStream? = outputs.find { it.id == outputId }
+
+    /**
+     * Get the estimated real time latency for an extension session or output stall duration for a
+     * regular session. This method accepts an [OutputId] for MultiResolution use cases when there
+     * are multiple streams. This method returns null if the [StreamGraph] is not configured
+     * correctly or if the Android version is under 34 for extensions.
+     */
+    public fun getOutputLatency(streamId: StreamId, outputId: OutputId? = null): OutputLatency?
+
+    /** Wrapper class for [CameraExtensionSession.StillCaptureLatency] object. */
+    public data class OutputLatency(
+        public val estimatedCaptureLatencyNs: Long,
+        public val estimatedProcessingLatencyNs: Long
+    ) {
+        public val estimatedLatencyNs: Long
+            get() = estimatedCaptureLatencyNs + estimatedProcessingLatencyNs
+    }
 }

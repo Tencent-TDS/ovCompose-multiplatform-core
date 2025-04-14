@@ -19,7 +19,6 @@ package androidx.pdf.viewer;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
-import android.os.Build;
 
 import androidx.pdf.models.Dimensions;
 import androidx.pdf.util.BitmapRecycler;
@@ -27,7 +26,6 @@ import androidx.pdf.viewer.PageViewFactory.PageView;
 import androidx.pdf.viewer.loader.PdfLoader;
 import androidx.pdf.widget.MosaicView.BitmapSource;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.filters.SmallTest;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -37,15 +35,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.util.List;
 
 /** Tests for {@link PaginatedView}. */
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
-//TODO: Remove minsdk check after sdk extension 13 release
-@Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
 public class PaginatedViewTest {
 
     PaginatedView mPaginatedView;

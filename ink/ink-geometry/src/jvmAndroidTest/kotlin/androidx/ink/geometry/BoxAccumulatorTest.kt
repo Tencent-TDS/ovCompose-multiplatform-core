@@ -16,6 +16,10 @@
 
 package androidx.ink.geometry
 
+import androidx.ink.brush.Brush
+import androidx.ink.brush.StockBrushes
+import androidx.ink.strokes.Stroke
+import androidx.ink.strokes.testing.buildStrokeInputBatchFromPoints
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,7 +81,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(0.1F, 2F), ImmutablePoint(3F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(0.1F, 2F), ImmutableVec(3F, 4F))
                     )
             )
     }
@@ -93,7 +97,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 1.2F), ImmutablePoint(3F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 1.2F), ImmutableVec(3F, 4F))
                     )
             )
     }
@@ -109,7 +113,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 2F), ImmutablePoint(3.1F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 2F), ImmutableVec(3.1F, 4F))
                     )
             )
     }
@@ -125,7 +129,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 2F), ImmutablePoint(3F, 4.2F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 2F), ImmutableVec(3F, 4.2F))
                     )
             )
     }
@@ -143,7 +147,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 1F), ImmutablePoint(4F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 1F), ImmutableVec(4F, 4F))
                     )
             )
     }
@@ -172,7 +176,7 @@ class BoxAccumulatorTest {
 
         envelope.add(
             BoxAccumulator(
-                ImmutableBox.fromTwoPoints(ImmutablePoint(1.1F, 2.1F), ImmutablePoint(2.9F, 3.9F))
+                ImmutableBox.fromTwoPoints(ImmutableVec(1.1F, 2.1F), ImmutableVec(2.9F, 3.9F))
             )
         )
 
@@ -185,7 +189,7 @@ class BoxAccumulatorTest {
 
         envelope.add(
             BoxAccumulator(
-                ImmutableBox.fromTwoPoints(ImmutablePoint(0.9F, 1.9F), ImmutablePoint(3.1F, 4.1F))
+                ImmutableBox.fromTwoPoints(ImmutableVec(0.9F, 1.9F), ImmutableVec(3.1F, 4.1F))
             )
         )
 
@@ -194,9 +198,9 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(
-                                ImmutablePoint(0.9F, 1.9F),
-                                ImmutablePoint(3.1F, 4.1F)
+                            .populateFromTwoPoints(
+                                ImmutableVec(0.9F, 1.9F),
+                                ImmutableVec(3.1F, 4.1F)
                             )
                     )
             )
@@ -206,12 +210,10 @@ class BoxAccumulatorTest {
     fun addEnvelope_whenNewAndCurrentOverlap_shouldUpdateToUnion() {
         val envelope =
             BoxAccumulator()
-                .add(MutableBox().fillFromTwoPoints(ImmutablePoint(1F, 8F), ImmutablePoint(4F, 9F)))
+                .add(MutableBox().populateFromTwoPoints(ImmutableVec(1F, 8F), ImmutableVec(4F, 9F)))
 
         envelope.add(
-            BoxAccumulator(
-                ImmutableBox.fromTwoPoints(ImmutablePoint(2F, 7F), ImmutablePoint(3F, 10F))
-            )
+            BoxAccumulator(ImmutableBox.fromTwoPoints(ImmutableVec(2F, 7F), ImmutableVec(3F, 10F)))
         )
 
         assertThat(envelope)
@@ -219,7 +221,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 7F), ImmutablePoint(4F, 10F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 7F), ImmutableVec(4F, 10F))
                     )
             )
     }
@@ -229,9 +231,7 @@ class BoxAccumulatorTest {
         val envelope = BoxAccumulator().add(rect1234)
 
         envelope.add(
-            BoxAccumulator(
-                ImmutableBox.fromTwoPoints(ImmutablePoint(2F, 0F), ImmutablePoint(5F, 1F))
-            )
+            BoxAccumulator(ImmutableBox.fromTwoPoints(ImmutableVec(2F, 0F), ImmutableVec(5F, 1F)))
         )
 
         assertThat(envelope)
@@ -239,7 +239,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 0F), ImmutablePoint(5F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 0F), ImmutableVec(5F, 4F))
                     )
             )
     }
@@ -251,7 +251,7 @@ class BoxAccumulatorTest {
 
     @Test
     fun rect_withBounds_returnsBox() {
-        val addition = rect1234.newMutable()
+        val addition = MutableBox().populateFrom(rect1234)
         val envelope = BoxAccumulator().add(addition)
 
         val rect = envelope.box
@@ -285,7 +285,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 10F), ImmutablePoint(3F, 15F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 10F), ImmutableVec(3F, 15F))
                     )
             )
     }
@@ -296,7 +296,7 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
         val segment = ImmutableSegment(start = ImmutableVec(1f, 10f), end = ImmutableVec(30f, 150f))
 
@@ -308,7 +308,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 10F), ImmutablePoint(30F, 150F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 10F), ImmutableVec(30F, 150F))
                     )
             )
     }
@@ -331,7 +331,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 5F), ImmutablePoint(10F, 20F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 5F), ImmutableVec(10F, 20F))
                     )
             )
     }
@@ -342,7 +342,7 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
         val triangle =
             ImmutableTriangle(
@@ -359,7 +359,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 5F), ImmutablePoint(20F, 25F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 5F), ImmutableVec(20F, 25F))
                     )
             )
     }
@@ -367,7 +367,7 @@ class BoxAccumulatorTest {
     @Test
     fun add_rectToEmptyEnvelope_updatesEnvelope() {
         val envelope = BoxAccumulator()
-        val rect = ImmutableBox.fromTwoPoints(ImmutablePoint(1f, 10f), ImmutablePoint(-3f, -20f))
+        val rect = ImmutableBox.fromTwoPoints(ImmutableVec(1f, 10f), ImmutableVec(-3f, -20f))
 
         envelope.add(rect)
 
@@ -377,7 +377,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(-3F, -20F), ImmutablePoint(1F, 10F))
+                            .populateFromTwoPoints(ImmutableVec(-3F, -20F), ImmutableVec(1F, 10F))
                     )
             )
     }
@@ -388,10 +388,9 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
-        val rect =
-            ImmutableBox.fromTwoPoints(ImmutablePoint(100f, 200f), ImmutablePoint(300f, 400f))
+        val rect = ImmutableBox.fromTwoPoints(ImmutableVec(100f, 200f), ImmutableVec(300f, 400f))
 
         envelope.add(rect)
 
@@ -401,7 +400,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(300F, 400F))
+                            .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(300F, 400F))
                     )
             )
     }
@@ -411,7 +410,7 @@ class BoxAccumulatorTest {
         val envelope = BoxAccumulator()
         val parallelogram =
             ImmutableParallelogram.fromCenterDimensionsRotationAndShear(
-                center = ImmutablePoint(10f, 20f),
+                center = ImmutableVec(10f, 20f),
                 width = 4f,
                 height = 6f,
                 rotation = Angle.ZERO,
@@ -426,7 +425,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(8F, 17F), ImmutablePoint(12F, 23F))
+                            .populateFromTwoPoints(ImmutableVec(8F, 17F), ImmutableVec(12F, 23F))
                     )
             )
     }
@@ -437,11 +436,11 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
         val parallelogram =
             ImmutableParallelogram.fromCenterAndDimensions(
-                center = ImmutablePoint(100f, 200f),
+                center = ImmutableVec(100f, 200f),
                 width = 500f,
                 height = 1000f,
             )
@@ -454,9 +453,9 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(
-                                ImmutablePoint(-150F, -300F),
-                                ImmutablePoint(350F, 700F)
+                            .populateFromTwoPoints(
+                                ImmutableVec(-150F, -300F),
+                                ImmutableVec(350F, 700F)
                             )
                     )
             )
@@ -479,13 +478,13 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
         val secondEnvelope =
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(-150F, -300F), ImmutablePoint(350F, 700F))
+                        .populateFromTwoPoints(ImmutableVec(-150F, -300F), ImmutableVec(350F, 700F))
                 )
 
         envelope.add(secondEnvelope)
@@ -496,9 +495,9 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(
-                                ImmutablePoint(-150F, -300F),
-                                ImmutablePoint(350F, 700F)
+                            .populateFromTwoPoints(
+                                ImmutableVec(-150F, -300F),
+                                ImmutableVec(350F, 700F)
                             )
                     )
             )
@@ -517,7 +516,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 10F), ImmutablePoint(1F, 10F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 10F), ImmutableVec(1F, 10F))
                     )
             )
     }
@@ -528,7 +527,7 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     MutableBox()
-                        .fillFromTwoPoints(ImmutablePoint(10F, 10F), ImmutablePoint(20F, 25F))
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
                 )
         val point = MutableVec(1f, 5f)
 
@@ -540,7 +539,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(1F, 5F), ImmutablePoint(20F, 25F))
+                            .populateFromTwoPoints(ImmutableVec(1F, 5F), ImmutableVec(20F, 25F))
                     )
             )
     }
@@ -548,7 +547,7 @@ class BoxAccumulatorTest {
     @Test
     fun add_emptyMeshToEmptyEnvelope_doesNotUpdateEnvelope() {
         val envelope = BoxAccumulator()
-        val mesh = ModeledShape()
+        val mesh = PartitionedMesh()
 
         envelope.add(mesh)
 
@@ -580,8 +579,8 @@ class BoxAccumulatorTest {
             BoxAccumulator()
                 .add(
                     ImmutableBox.fromTwoPoints(
-                        ImmutablePoint(1.00001F, 2.00001F),
-                        ImmutablePoint(2.99999F, 3.99999F),
+                        ImmutableVec(1.00001F, 2.00001F),
+                        ImmutableVec(2.99999F, 3.99999F),
                     )
                 )
 
@@ -635,7 +634,7 @@ class BoxAccumulatorTest {
                 BoxAccumulator()
                     .add(
                         MutableBox()
-                            .fillFromTwoPoints(ImmutablePoint(2F, 2F), ImmutablePoint(3F, 4F))
+                            .populateFromTwoPoints(ImmutableVec(2F, 2F), ImmutableVec(3F, 4F))
                     )
             )
     }
@@ -669,8 +668,45 @@ class BoxAccumulatorTest {
         assertThat(string).contains("MutableBox")
     }
 
-    private val rect1234 =
-        ImmutableBox.fromTwoPoints(ImmutablePoint(1F, 2F), ImmutablePoint(3F, 4F))
-    private val rect5678 =
-        ImmutableBox.fromTwoPoints(ImmutablePoint(5F, 6F), ImmutablePoint(7F, 8F))
+    private val rect1234 = ImmutableBox.fromTwoPoints(ImmutableVec(1F, 2F), ImmutableVec(3F, 4F))
+    private val rect5678 = ImmutableBox.fromTwoPoints(ImmutableVec(5F, 6F), ImmutableVec(7F, 8F))
+
+    @Test
+    fun add_meshToEmptyEnvelope_updatesEnvelope() {
+        val envelope = BoxAccumulator()
+        val mesh = buildTestStrokeShape()
+
+        envelope.add(mesh)
+
+        assertThat(envelope.isEmpty()).isFalse()
+    }
+
+    @Test
+    fun add_meshToNonEmptyEnvelope_updatesEnvelope() {
+        val envelope =
+            BoxAccumulator()
+                .add(
+                    MutableBox()
+                        .populateFromTwoPoints(ImmutableVec(10F, 10F), ImmutableVec(20F, 25F))
+                )
+        val mesh = buildTestStrokeShape()
+
+        envelope.add(mesh)
+
+        // Verify that the original lower-bounds for envelope (10F, 10F) are updated after adding
+        // the
+        // mesh.
+        assertThat(envelope.isEmpty()).isFalse()
+        val box = envelope.box!!
+        assertThat(box.xMin).isLessThan(10f)
+        assertThat(box.yMin).isLessThan(10f)
+    }
+
+    private fun buildTestStrokeShape(): PartitionedMesh {
+        return Stroke(
+                Brush(family = StockBrushes.markerLatest, size = 10f, epsilon = 0.1f),
+                buildStrokeInputBatchFromPoints(floatArrayOf(10f, 3f, 20f, 5f)).asImmutable(),
+            )
+            .shape
+    }
 }

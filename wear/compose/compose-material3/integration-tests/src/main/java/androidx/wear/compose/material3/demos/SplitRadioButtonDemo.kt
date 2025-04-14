@@ -26,7 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.wear.compose.material3.ListHeader
-import androidx.wear.compose.material3.LocalTextMaxLines
+import androidx.wear.compose.material3.LocalTextConfiguration
 import androidx.wear.compose.material3.SplitRadioButton
 import androidx.wear.compose.material3.Text
 
@@ -65,7 +65,7 @@ fun SplitRadioButtonDemo() {
                 enabled = true,
                 selected = selectedMultiLineRadioIndex == 1,
                 onSelected = { selectedMultiLineRadioIndex = 1 },
-                primary = "Primary Label with at most three lines of content"
+                primary = "Primary label with at most three lines of content"
             )
         }
         item {
@@ -73,7 +73,7 @@ fun SplitRadioButtonDemo() {
                 enabled = true,
                 selected = selectedMultiLineRadioIndex == 2,
                 onSelected = { selectedMultiLineRadioIndex = 2 },
-                primary = "Primary Label with at most three lines of content",
+                primary = "Primary label with at most three lines of content",
                 secondary = "Secondary label with at most two lines of text"
             )
         }
@@ -85,6 +85,17 @@ fun SplitRadioButtonDemo() {
                 primary = "Override the maximum number of primary label content to be four",
                 primaryMaxLines = 4,
             )
+        }
+        item { ListHeader { Text("Disabled Multi-line") } }
+        for (selected in booleanArrayOf(true, false)) {
+            item {
+                DemoSplitRadioButton(
+                    enabled = false,
+                    selected = selected,
+                    primary = "Primary label",
+                    secondary = "Secondary label"
+                )
+            }
         }
     }
 }
@@ -105,7 +116,7 @@ private fun DemoSplitRadioButton(
             Text(
                 primary,
                 Modifier.fillMaxWidth(),
-                maxLines = primaryMaxLines ?: LocalTextMaxLines.current
+                maxLines = primaryMaxLines ?: LocalTextConfiguration.current.maxLines
             )
         },
         secondaryLabel =

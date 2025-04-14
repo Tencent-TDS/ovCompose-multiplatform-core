@@ -26,6 +26,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
@@ -107,7 +108,15 @@ internal fun Modifier.textFieldScrollable(
     }
 
 // Layout
-internal fun Modifier.textFieldScroll(
+// Expect/actual is needed due to a different implementation in uikit
+internal expect fun Modifier.textFieldScroll(
+    scrollerPosition: TextFieldScrollerPosition,
+    textFieldValue: TextFieldValue,
+    visualTransformation: VisualTransformation,
+    textLayoutResultProvider: () -> TextLayoutResultProxy?
+): Modifier
+
+internal fun Modifier.defaultTextFieldScroll(
     scrollerPosition: TextFieldScrollerPosition,
     textFieldValue: TextFieldValue,
     visualTransformation: VisualTransformation,
@@ -274,6 +283,10 @@ internal class TextFieldScrollerPosition(
     var maximum by mutableFloatStateOf(0f)
         private set
 
+    /** Size of the visible part, on the scrollable axis, in pixels. */
+    var viewportSize by mutableIntStateOf(0)
+        private set
+
     /**
      * Keeps the cursor position before a new symbol has been typed or the text field has been
      * dragged. We check it to understand if the [offset] needs to be updated.
@@ -302,6 +315,7 @@ internal class TextFieldScrollerPosition(
             previousCursorRect = cursorRect
         }
         offset = offset.coerceIn(0f, difference)
+        viewportSize = containerSize
     }
 
     /*@VisibleForTesting*/

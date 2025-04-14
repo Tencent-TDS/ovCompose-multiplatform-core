@@ -25,13 +25,14 @@ import com.android.tools.lint.detector.api.CURRENT_API
 /** [IssueRegistry] containing runtime specific lint issues. */
 class ActivityComposeIssueRegistry : IssueRegistry() {
     // Tests are run with this version. We ensure that with ApiLintVersionsTest
-    override val api = 14
+    override val api = 16
     override val minApi = CURRENT_API
     override val issues
         get() =
             listOf(
                 ActivityResultLaunchDetector.LaunchDuringComposition,
-                CollectProgressDetector.NoCollectCallFound
+                CollectProgressDetector.NoCollectCallFound,
+                LocalContextCastIssueDetector.ContextCastToActivity
             )
 
     override val vendor =

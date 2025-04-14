@@ -17,12 +17,12 @@
 package androidx.wear.compose.material.dialog
 
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -258,7 +258,9 @@ class DialogWithMaterialSlcBehaviourTest {
                         title = {},
                         negativeButton = { Button(onClick = {}, content = {}) },
                         positiveButton = { Button(onClick = {}, content = {}) },
-                        content = { Text("Dialog", modifier = Modifier.testTag(TEST_TAG)) },
+                        content = {
+                            Text("Dialog", modifier = Modifier.fillMaxWidth().testTag(TEST_TAG))
+                        },
                     )
                 }
             }
@@ -287,7 +289,9 @@ class DialogWithMaterialSlcBehaviourTest {
                     AlertWithMaterialSlc(
                         icon = {},
                         title = {},
-                        message = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
+                        message = {
+                            Text("Text", modifier = Modifier.fillMaxWidth().testTag(TEST_TAG))
+                        },
                         content = {},
                     )
                 }
@@ -317,7 +321,9 @@ class DialogWithMaterialSlcBehaviourTest {
                     ConfirmationWithMaterialSlc(
                         onTimeout = { showDialog = false },
                         icon = {},
-                        content = { Text("Dialog", modifier = Modifier.testTag(TEST_TAG)) },
+                        content = {
+                            Text("Dialog", modifier = Modifier.fillMaxWidth().testTag(TEST_TAG))
+                        },
                     )
                 }
             }
@@ -372,7 +378,9 @@ class DialogWithMaterialSlcBehaviourTest {
                     AlertWithMaterialSlc(
                         icon = {},
                         title = {},
-                        message = { Text("Text", modifier = Modifier.testTag(TEST_TAG)) },
+                        message = {
+                            Text("Text", modifier = Modifier.fillMaxWidth().testTag(TEST_TAG))
+                        },
                         content = {},
                     )
                 }
@@ -891,7 +899,7 @@ class DialogWithMaterialSlcContentColorTest {
         Assert.assertEquals(overrideColor, actualColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_correct_background_color_on_alert_for_buttons() {
         verifyBackgroundColor(expected = { MaterialTheme.colors.background }) {
@@ -905,7 +913,7 @@ class DialogWithMaterialSlcContentColorTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_correct_background_color_on_alert_for_chips() {
         verifyBackgroundColor(expected = { MaterialTheme.colors.background }) {
@@ -918,7 +926,7 @@ class DialogWithMaterialSlcContentColorTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_correct_background_color_on_ConfirmationWithMaterialSlc() {
         verifyBackgroundColor(expected = { MaterialTheme.colors.background }) {

@@ -18,9 +18,10 @@ package androidx.biometric;
 
 import static android.Manifest.permission.SET_BIOMETRIC_DIALOG_ADVANCED;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Contains the information of the template of content view with a more options button for
@@ -45,15 +46,12 @@ import androidx.annotation.RequiresPermission;
  *     .setContentView(
  *         new PromptContentViewWithMoreOptionsButton.Builder()
  *             .setDescription("test description")
- *             .setMoreOptionsButtonListener(executor, listener)
  *             .build()
  *      )
  *     .build();
  * </pre>
  */
 public final class PromptContentViewWithMoreOptionsButton implements PromptContentView {
-    static final int MAX_DESCRIPTION_CHARACTER_NUMBER = 225;
-
     private final String mDescription;
 
     private PromptContentViewWithMoreOptionsButton(@NonNull String description) {
@@ -67,8 +65,7 @@ public final class PromptContentViewWithMoreOptionsButton implements PromptConte
      * @return The description for the content view, or null if the content view has no description.
      */
     @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-    @Nullable
-    public String getDescription() {
+    public @Nullable String getDescription() {
         return mDescription;
     }
 
@@ -87,12 +84,7 @@ public final class PromptContentViewWithMoreOptionsButton implements PromptConte
          * @throws IllegalArgumentException If description exceeds certain character limit.
          */
         @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-        @NonNull
-        public Builder setDescription(@NonNull String description) {
-            if (description.length() > MAX_DESCRIPTION_CHARACTER_NUMBER) {
-                throw new IllegalArgumentException("The character number of description exceeds "
-                        + MAX_DESCRIPTION_CHARACTER_NUMBER);
-            }
+        public @NonNull Builder setDescription(@NonNull String description) {
             mDescription = description;
             return this;
         }
@@ -103,8 +95,7 @@ public final class PromptContentViewWithMoreOptionsButton implements PromptConte
          * @return An instance of {@link PromptContentViewWithMoreOptionsButton}.
          */
         @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-        @NonNull
-        public PromptContentViewWithMoreOptionsButton build() {
+        public @NonNull PromptContentViewWithMoreOptionsButton build() {
             return new PromptContentViewWithMoreOptionsButton(mDescription);
         }
     }

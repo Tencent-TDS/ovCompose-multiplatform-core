@@ -68,10 +68,11 @@ private constructor(
 
             val lifecycleEventEnum =
                 Class.forName(
-                    Lifecycle.Event::class.java.name,
+                    "androidx.lifecycle.Lifecycle\$Event",
                     /* initialize = */ false,
                     classLoader
                 )
+            @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
             val lifecycleEventInstances =
                 lifecycleEventEnum.enumConstants
                     .filterIsInstance(Enum::class.java)

@@ -22,7 +22,9 @@ import androidx.build.buildInfo.CreateAggregateLibraryBuildInfoFileTask
 import androidx.build.buildInfo.CreateAggregateLibraryBuildInfoFileTask.Companion.CREATE_AGGREGATE_BUILD_INFO_FILES_TASK
 import androidx.build.dependencyTracker.AffectedModuleDetector
 import androidx.build.gradle.isRoot
-import androidx.build.license.CheckExternalDependencyLicensesTask
+import androidx.build.license.ValidateLicensesExistTask
+import androidx.build.logging.TERMINAL_RED
+import androidx.build.logging.TERMINAL_RESET
 import androidx.build.playground.VerifyPlaygroundGradleConfigurationTask
 import androidx.build.studio.StudioTask.Companion.registerStudioTask
 import androidx.build.testConfiguration.registerOwnersServiceTasks
@@ -31,18 +33,23 @@ import androidx.build.uptodatedness.cacheEvenIfNoOutputs
 import com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.configuration.BuildFeatures
 import org.gradle.api.file.RelativePath
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.bundling.ZipEntryCompression
 import org.gradle.build.event.BuildEventsListenerRegistry
 import org.gradle.kotlin.dsl.extra
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.targets.js.npm.tasks.KotlinNpmInstallTask
 
 abstract class AndroidXRootImplPlugin : Plugin<Project> {
-    @get:javax.inject.Inject abstract val registry: BuildEventsListenerRegistry
+    @get:Inject abstract val registry: BuildEventsListenerRegistry
+    @get:Inject abstract val buildFeatures: BuildFeatures
 
     override fun apply(project: Project) {
         if (!project.isRoot) {
@@ -54,14 +61,13 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
     private fun Project.configureRootProject() {
         project.validateAllAndroidxArgumentsAreRecognized()
         tasks.register("listAndroidXProperties", ListAndroidXPropertiesTask::class.java)
-        setDependencyVersions()
         configureKtfmtCheckFile()
-        tasks.register(CheckExternalDependencyLicensesTask.TASK_NAME)
         maybeRegisterFilterableTask()
+        registerListAffectedProjectsTask()
 
         // If we're running inside Studio, validate the Android Gradle Plugin version.
         val expectedAgpVersion = System.getenv("EXPECTED_AGP_VERSION")
-        if (properties.containsKey("android.injected.invoked.from.ide")) {
+        if (providers.gradleProperty("android.injected.invoked.from.ide").isPresent) {
             if (expectedAgpVersion != ANDROID_GRADLE_PLUGIN_VERSION) {
                 throw GradleException(
                     """
@@ -76,29 +82,32 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
             }
         }
 
-        val buildOnServerTask = tasks.create(BUILD_ON_SERVER_TASK, BuildOnServerTask::class.java)
-        buildOnServerTask.cacheEvenIfNoOutputs()
-        buildOnServerTask.distributionDirectory = getDistributionDirectory()
-        buildOnServerTask.dependsOn(
-            tasks.register(
-                CREATE_AGGREGATE_BUILD_INFO_FILES_TASK,
-                CreateAggregateLibraryBuildInfoFileTask::class.java
-            )
-        )
+        val verifyPlayground = VerifyPlaygroundGradleConfigurationTask.createIfNecessary(project)
 
-        VerifyPlaygroundGradleConfigurationTask.createIfNecessary(project)?.let {
-            buildOnServerTask.dependsOn(it)
+        val aggregateBuildInfo =
+            if (!buildFeatures.isIsolatedProjectsEnabled()) {
+                tasks.register(
+                    CREATE_AGGREGATE_BUILD_INFO_FILES_TASK,
+                    CreateAggregateLibraryBuildInfoFileTask::class.java
+                )
+            } else null
+
+        tasks.register(BUILD_ON_SERVER_TASK, BuildOnServerTask::class.java) { task ->
+            task.cacheEvenIfNoOutputs()
+            task.distributionDirectory = getDistributionDirectory()
+            verifyPlayground?.let { task.dependsOn(it) }
+            aggregateBuildInfo?.let { task.dependsOn(it) }
         }
 
         extra.set("projects", ConcurrentHashMap<String, String>())
 
         /**
-         * Copy PrivacySandbox related APKs into [getTestConfigDirectory] before zipping. Flatten
-         * directory hierarchy as both TradeFed and FTL work with flat hierarchy.
+         * Copy App APKs (from ApkOutputProviders) into [getTestConfigDirectory] before zipping.
+         * Flatten directory hierarchy as both TradeFed and FTL work with flat hierarchy.
          */
         val finalizeConfigsTask =
             project.tasks.register(FINALIZE_TEST_CONFIGS_WITH_APKS_TASK, Copy::class.java) {
-                it.from(project.getPrivacySandboxFilesDirectory())
+                it.from(project.getAppApksFilesDirectory())
                 it.into(project.getTestConfigDirectory())
                 it.eachFile { f -> f.relativePath = RelativePath(true, f.name) }
                 it.includeEmptyDirs = false
@@ -121,7 +130,9 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
 
         AffectedModuleDetector.configure(gradle, this)
 
-        registerOwnersServiceTasks()
+        if (!buildFeatures.isIsolatedProjectsEnabled()) {
+            registerOwnersServiceTasks()
+        }
         registerStudioTask()
 
         project.tasks.register("listTaskOutputs", ListTaskOutputsTask::class.java) { task ->
@@ -138,7 +149,7 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
          * Add dependency analysis plugin and add buildHealth task to buildOnServer when
          * maxDepVersions is not enabled
          */
-        if (!project.usingMaxDepVersions()) {
+        if (!project.usingMaxDepVersions().get()) {
             project.plugins.apply("com.autonomousapps.dependency-analysis")
 
             // Ignore advice regarding ktx dependencies
@@ -148,12 +159,54 @@ abstract class AndroidXRootImplPlugin : Plugin<Project> {
                 )
             dependencyAnalysis.structure { it.ignoreKtx(true) }
         }
+        project.configureTasksForKotlinWeb()
+
+        tasks.register("checkExternalLicenses", ValidateLicensesExistTask::class.java) {
+            it.prebuiltsDirectory.set(File(getPrebuiltsRoot(), "androidx/external"))
+            it.baseline.set(layout.projectDirectory.file("license-baseline.txt"))
+            it.cacheEvenIfNoOutputs()
+        }
     }
 
-    private fun Project.setDependencyVersions() {
-        androidx.build.dependencies.kotlinGradlePluginVersion = getVersionByName("kotlin")
-        androidx.build.dependencies.kspVersion = getVersionByName("ksp")
-        androidx.build.dependencies.agpVersion = getVersionByName("androidGradlePlugin")
-        androidx.build.dependencies.guavaVersion = getVersionByName("guavaJre")
+    private fun Project.configureTasksForKotlinWeb() {
+        val offlineMirrorStorage =
+            if (ProjectLayoutType.isPlayground(this)) {
+                project.file(
+                    layout.buildDirectory.dir("javascript-for-playground").map {
+                        it.asFile.also { it.mkdirs() }
+                    }
+                )
+            } else {
+                File(getPrebuiltsRoot(), "androidx/javascript-for-kotlin")
+            }
+        val createYarnRcFileTask =
+            tasks.register("createYarnRcFile", CreateYarnRcFileTask::class.java) {
+                it.offlineMirrorStorage.set(offlineMirrorStorage)
+                it.yarnrcFile.set(layout.buildDirectory.file("js/.yarnrc"))
+            }
+
+        tasks.withType<KotlinNpmInstallTask>().configureEach {
+            it.dependsOn(createYarnRcFileTask)
+            it.args.addAll(listOf("--ignore-engines", "--verbose"))
+            if (project.useYarnOffline()) {
+                it.args.add("--offline")
+                it.doFirst {
+                    println(
+                        """
+                    Fetching yarn packages from the offline mirror: ${offlineMirrorStorage.path}.
+                    Your build will fail if a package is not in the offline mirror. To fix, run:
+
+                    $TERMINAL_RED./gradlew kotlinNpmInstall -Pandroidx.yarnOfflineMode=false &&
+                    ./gradlew kotlinUpgradeYarnLock$TERMINAL_RESET
+
+                    this will download the dependencies from the internet and update the lockfile.
+                    Don't forget to upload the changes to Gerrit!
+                    """
+                            .trimIndent()
+                            .replace("\n", " ")
+                    )
+                }
+            }
+        }
     }
 }

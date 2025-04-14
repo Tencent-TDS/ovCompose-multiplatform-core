@@ -170,8 +170,9 @@ public final class MediaRouteDescriptor {
      * Returns if this route is a dynamic group route.
      *
      * <p>{@link MediaRouteProvider} creates a dynamic group route when {@link
-     * MediaRouteProvider#onCreateDynamicGroupRouteController(String, Bundle)} is called. It happens
-     * when a single route or a single static group is selected.
+     * MediaRouteProvider#onCreateDynamicGroupRouteController(String,
+     * MediaRouteProvider.RouteControllerOptions)} is called. It happens when a single route or a
+     * single static group is selected.
      *
      * <p>If a single device or a static group is selected, the associated dynamic group route
      * should not be seen by any client app because there is already one for the device. After user

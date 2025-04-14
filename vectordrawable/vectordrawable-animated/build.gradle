@@ -5,7 +5,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -13,6 +13,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api(project(":vectordrawable:vectordrawable"))
     implementation("androidx.core:core:1.12.0")
@@ -23,7 +24,7 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
+    androidTestImplementation(libs.espressoCore)
 }
 
 android {
@@ -37,12 +38,12 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles("proguard-rules.pro")
     }
-    namespace "androidx.vectordrawable.animated"
+    namespace = "androidx.vectordrawable.animated"
 }
 
 androidx {
     name = "AnimatedVectorDrawable"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     mavenVersion = LibraryVersions.VECTORDRAWABLE_ANIMATED
     inceptionYear = "2015"
     description = "Android Support AnimatedVectorDrawable"

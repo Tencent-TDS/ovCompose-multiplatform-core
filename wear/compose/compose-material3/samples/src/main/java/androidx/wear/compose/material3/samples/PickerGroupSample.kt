@@ -17,25 +17,28 @@
 package androidx.wear.compose.material3.samples
 
 import androidx.annotation.Sampled
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.PickerGroup
-import androidx.wear.compose.material3.PickerGroupItem
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.rememberPickerGroupState
 import androidx.wear.compose.material3.rememberPickerState
 
 @Sampled
 @Composable
 fun PickerGroupSample() {
-    val pickerGroupState = rememberPickerGroupState()
+    var selectedPickerIndex by remember { mutableIntStateOf(0) }
     val pickerStateHour = rememberPickerState(initialNumberOfOptions = 24)
     val pickerStateMinute = rememberPickerState(initialNumberOfOptions = 60)
     Column(
@@ -44,33 +47,49 @@ fun PickerGroupSample() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.size(30.dp))
-        Text(text = if (pickerGroupState.selectedIndex == 0) "Hours" else "Minutes")
+        val label = if (selectedPickerIndex == 0) "Hours" else "Minutes"
+        AnimatedContent(
+            targetState = label,
+        ) { targetText ->
+            Text(text = targetText)
+        }
         Spacer(modifier = Modifier.size(10.dp))
         PickerGroup(
+            selectedPickerState =
+                if (selectedPickerIndex == 0) pickerStateHour else pickerStateMinute,
+            autoCenter = false
+        ) {
             PickerGroupItem(
                 pickerState = pickerStateHour,
+                selected = selectedPickerIndex == 0,
+                onSelected = { selectedPickerIndex = 0 },
                 option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
+            )
+
             PickerGroupItem(
                 pickerState = pickerStateMinute,
+                selected = selectedPickerIndex == 1,
+                onSelected = { selectedPickerIndex = 1 },
                 option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
-            pickerGroupState = pickerGroupState,
-            autoCenter = false
-        )
+            )
+        }
     }
 }
 
 @Sampled
 @Composable
 fun AutoCenteringPickerGroup() {
-    val pickerGroupState = rememberPickerGroupState()
+    var selectedPickerIndex by remember { mutableIntStateOf(0) }
     val pickerStateHour = rememberPickerState(initialNumberOfOptions = 24)
     val pickerStateMinute = rememberPickerState(initialNumberOfOptions = 60)
     val pickerStateSeconds = rememberPickerState(initialNumberOfOptions = 60)
     val pickerStateMilliSeconds = rememberPickerState(initialNumberOfOptions = 1000)
+    val pickerStates = remember {
+        arrayOf(pickerStateHour, pickerStateMinute, pickerStateSeconds, pickerStateMilliSeconds)
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
@@ -78,31 +97,39 @@ fun AutoCenteringPickerGroup() {
     ) {
         val headingText = mapOf(0 to "Hours", 1 to "Minutes", 2 to "Seconds", 3 to "Milli")
         Spacer(modifier = Modifier.size(30.dp))
-        Text(text = headingText[pickerGroupState.selectedIndex]!!)
+        AnimatedContent(targetState = headingText[selectedPickerIndex]!!) { targetText ->
+            Text(text = targetText)
+        }
         Spacer(modifier = Modifier.size(10.dp))
-        PickerGroup(
+        PickerGroup(selectedPickerState = pickerStates[selectedPickerIndex], autoCenter = true) {
             PickerGroupItem(
                 pickerState = pickerStateHour,
+                selected = selectedPickerIndex == 0,
+                onSelected = { selectedPickerIndex = 0 },
                 option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
+            )
             PickerGroupItem(
                 pickerState = pickerStateMinute,
+                selected = selectedPickerIndex == 1,
+                onSelected = { selectedPickerIndex = 1 },
                 option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
+            )
             PickerGroupItem(
                 pickerState = pickerStateSeconds,
+                selected = selectedPickerIndex == 2,
+                onSelected = { selectedPickerIndex = 2 },
                 option = { optionIndex, _ -> Text(text = "%02d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
+            )
             PickerGroupItem(
                 pickerState = pickerStateMilliSeconds,
+                selected = selectedPickerIndex == 3,
+                onSelected = { selectedPickerIndex = 3 },
                 option = { optionIndex, _ -> Text(text = "%03d".format(optionIndex)) },
                 modifier = Modifier.size(80.dp, 100.dp)
-            ),
-            pickerGroupState = pickerGroupState,
-            autoCenter = true
-        )
+            )
+        }
     }
 }

@@ -16,11 +16,14 @@
 
 package androidx.wear.compose.foundation.lazy
 
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.requiredWidth
@@ -32,6 +35,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.WithTouchSlop
 import androidx.compose.ui.Modifier
@@ -39,6 +43,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -46,6 +51,7 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performRotaryScrollInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -57,9 +63,10 @@ import androidx.test.filters.MediumTest
 import androidx.wear.compose.foundation.TEST_TAG
 import com.google.common.truth.Truth.assertThat
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -985,7 +992,6 @@ public class ScalingLazyColumnTest {
         assert(!focusSet)
     }
 
-    @Ignore("b/347700248 re-enable test after focusable semantics start working again")
     @Test
     fun scalingLazyColumnIsFocusedByDefault_withSemantics() {
         rule.setContent {
@@ -997,6 +1003,101 @@ public class ScalingLazyColumnTest {
         }
 
         rule.onNodeWithTag("scalingLazyColumn").assertIsFocused()
+    }
+
+    @Test
+    fun scalingLazyColumn_rotary_enabledScroll() {
+        testScalingLazyColumnRotary(true, 3)
+    }
+
+    @Test
+    fun scalingLazyColumn_noRotary_disabledScroll() {
+        testScalingLazyColumnRotary(false, 1)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    private fun testScalingLazyColumnRotary(
+        userScrollEnabled: Boolean,
+        scrollTarget: Int,
+        scrollItems: Int = 2
+    ) {
+        lateinit var state: ScalingLazyListState
+
+        rule.setContent {
+            state = rememberScalingLazyListState()
+            ScalingLazyColumn(
+                state = state,
+                modifier = Modifier.testTag(scalingLazyColumnTag),
+                userScrollEnabled = userScrollEnabled
+            ) {
+                items(100) {
+                    BasicText(text = "item $it", modifier = Modifier.requiredSize(itemSizeDp))
+                }
+            }
+        }
+        rule.onNodeWithTag(scalingLazyColumnTag).performRotaryScrollInput {
+            // try to scroll by N items
+            rotateToScrollVertically(itemSizePx.toFloat() * scrollItems)
+        }
+        rule.waitForIdle()
+
+        assertThat(state.centerItemIndex).isEqualTo(scrollTarget)
+    }
+
+    @Test
+    fun testCheckLastScrollDirection() {
+
+        lateinit var state: ScalingLazyListState
+        lateinit var scope: CoroutineScope
+
+        rule.setContent {
+            state = rememberScalingLazyListState()
+            scope = rememberCoroutineScope()
+            ScalingLazyColumn(
+                state = state,
+                modifier = Modifier.height(itemSizeDp * 3f).testTag(scalingLazyColumnTag),
+            ) {
+                items(100) { Spacer(Modifier.height(itemSizeDp)) }
+            }
+        }
+
+        // Assert both isLastScrollForward and isLastScrollBackward are false before any scroll
+        assertThat(state.lastScrolledBackward).isEqualTo(false)
+        assertThat(state.lastScrolledBackward).isEqualTo(false)
+
+        rule.runOnIdle { scope.launch { state.animateScrollBy(100f, tween(1000)) } }
+        // Assert isLastScrollForward is true during forward-scroll and isLastScrollBackward is
+        // false
+        rule.runOnIdle {
+            assertThat(state.lastScrolledForward).isTrue()
+            assertThat(state.lastScrolledBackward).isFalse()
+        }
+
+        rule.mainClock.advanceTimeBy(500)
+
+        // Assert isLastScrollForward is true after forward-scroll and isLastScrollBackward is false
+        rule.runOnIdle {
+            assertThat(state.lastScrolledForward).isTrue()
+            assertThat(state.lastScrolledBackward).isFalse()
+        }
+
+        rule.runOnIdle { scope.launch { state.animateScrollBy(-100f, tween(1000)) } }
+
+        rule.mainClock.advanceTimeBy(500)
+
+        // Assert isLastScrollForward is false during backward-scroll and isLastScrollBackward is
+        // true
+        rule.runOnIdle {
+            assertThat(state.lastScrolledForward).isFalse()
+            assertThat(state.lastScrolledBackward).isTrue()
+        }
+
+        // Assert isLastScrollForward is false after backward-scroll and isLastScrollBackward is
+        // true
+        rule.runOnIdle {
+            assertThat(state.lastScrolledForward).isFalse()
+            assertThat(state.lastScrolledBackward).isTrue()
+        }
     }
 }
 

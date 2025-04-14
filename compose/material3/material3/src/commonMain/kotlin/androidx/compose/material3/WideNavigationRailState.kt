@@ -16,108 +16,212 @@
 
 package androidx.compose.material3
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.animate
 import androidx.compose.material3.internal.AnchoredDraggableState
 import androidx.compose.material3.internal.snapTo
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 @ExperimentalMaterial3ExpressiveApi
-/** Possible values of [ModalExpandedNavigationRailState]. */
-enum class ModalExpandedNavigationRailValue {
-    /** The state of the modal expanded navigation rail when it is closed. */
-    Closed,
+/** Possible values of [WideNavigationRailState]. */
+enum class WideNavigationRailValue {
+    /** The state of the rail when it is collapsed. */
+    Collapsed,
 
-    /** The state of the modal expanded navigation rail when it is open. */
-    Open,
+    /** The state of the rail when it is expanded. */
+    Expanded
 }
 
 /**
- * State of a modal expanded navigation rail, such as [ModalExpandedNavigationRail].
+ * A state object that can be hoisted to observe the wide navigation rail state. It allows for
+ * setting to the rail to be collapsed or expanded.
  *
- * Contains states relating to its swipe position as well as animations between state values.
- *
- * @param initialValue The initial value of the state
- * @param density The density that this state can use to convert values to and from dp
- * @param animationSpec The animation spec that will be used to animate to a new state
- * @param confirmValueChange Optional callback invoked to confirm or veto a pending state change
+ * @see rememberWideNavigationRailState to construct the default implementation.
  */
-@Suppress("NotCloseable")
 @ExperimentalMaterial3ExpressiveApi
-class ModalExpandedNavigationRailState(
-    var initialValue: ModalExpandedNavigationRailValue,
+interface WideNavigationRailState {
+    /** Whether the state is currently animating */
+    val isAnimating: Boolean
+
+    /** Whether the rail is going to be expanded or not. */
+    val targetValue: WideNavigationRailValue
+
+    /** Whether the rail is currently expanded or not. */
+    val currentValue: WideNavigationRailValue
+
+    /** Expand the rail with animation and suspend until it fully expands. */
+    suspend fun expand()
+
+    /** Collapse the rail with animation and suspend until it fully collapses. */
+    suspend fun collapse()
+
+    /**
+     * Collapse the rail with animation if it's expanded, or expand it if it's collapsed, and
+     * suspend until it's set to its new state.
+     */
+    suspend fun toggle()
+
+    /**
+     * Set the state without any animation and suspend until it's set.
+     *
+     * @param targetValue the expanded boolean to set to
+     */
+    suspend fun snapTo(targetValue: WideNavigationRailValue)
+}
+
+/** Create and [remember] a [WideNavigationRailState]. */
+@ExperimentalMaterial3ExpressiveApi
+@Composable
+fun rememberWideNavigationRailState(
+    initialValue: WideNavigationRailValue = WideNavigationRailValue.Collapsed
+): WideNavigationRailState {
+    // TODO: Load the motionScheme tokens from the component tokens file.
+    val animationSpec = MotionSchemeKeyTokens.DefaultSpatial.value<Float>()
+    return rememberSaveable(saver = WideNavigationRailStateImpl.Saver(animationSpec)) {
+        WideNavigationRailStateImpl(
+            initialValue = initialValue,
+            animationSpec = animationSpec,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal val WideNavigationRailValue.isExpanded
+    get() = this == WideNavigationRailValue.Expanded
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal operator fun WideNavigationRailValue.not(): WideNavigationRailValue {
+    return if (this == WideNavigationRailValue.Collapsed) {
+        WideNavigationRailValue.Expanded
+    } else {
+        WideNavigationRailValue.Collapsed
+    }
+}
+
+@ExperimentalMaterial3ExpressiveApi
+internal class WideNavigationRailStateImpl(
+    var initialValue: WideNavigationRailValue,
+    private val animationSpec: AnimationSpec<Float>,
+) : WideNavigationRailState {
+
+    private val internalValue = if (initialValue.isExpanded) Expanded else Collapsed
+    private val internalState = Animatable(internalValue, Float.VectorConverter)
+    private val _currentVal = derivedStateOf {
+        if (internalState.value == Expanded) {
+            WideNavigationRailValue.Expanded
+        } else {
+            WideNavigationRailValue.Collapsed
+        }
+    }
+
+    override val isAnimating: Boolean
+        get() = internalState.isRunning
+
+    override val targetValue: WideNavigationRailValue
+        get() =
+            if (internalState.targetValue == Expanded) {
+                WideNavigationRailValue.Expanded
+            } else {
+                WideNavigationRailValue.Collapsed
+            }
+
+    override val currentValue: WideNavigationRailValue
+        get() = _currentVal.value
+
+    override suspend fun expand() {
+        internalState.animateTo(targetValue = Expanded, animationSpec = animationSpec)
+    }
+
+    override suspend fun collapse() {
+        internalState.animateTo(targetValue = Collapsed, animationSpec = animationSpec)
+    }
+
+    override suspend fun toggle() {
+        internalState.animateTo(
+            targetValue = if (targetValue.isExpanded) Collapsed else Expanded,
+            animationSpec = animationSpec
+        )
+    }
+
+    override suspend fun snapTo(targetValue: WideNavigationRailValue) {
+        val target = if (targetValue.isExpanded) Expanded else Collapsed
+        internalState.snapTo(target)
+    }
+
+    companion object {
+        private const val Collapsed = 0f
+        private const val Expanded = 1f
+
+        /** The default [Saver] implementation for [WideNavigationRailState]. */
+        fun Saver(
+            animationSpec: AnimationSpec<Float>,
+        ) =
+            Saver<WideNavigationRailState, WideNavigationRailValue>(
+                save = { it.targetValue },
+                restore = { WideNavigationRailStateImpl(it, animationSpec) }
+            )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+internal class ModalWideNavigationRailState(
+    state: WideNavigationRailState,
     density: Density,
     val animationSpec: AnimationSpec<Float>,
-    var confirmValueChange: (ModalExpandedNavigationRailValue) -> Boolean = { true },
-) {
-    internal val anchoredDraggableState =
+) : WideNavigationRailState by state {
+    internal val anchoredDraggableState: AnchoredDraggableState<WideNavigationRailValue> =
         AnchoredDraggableState(
-            initialValue = initialValue,
+            initialValue = state.targetValue,
             positionalThreshold = { distance -> distance * 0.5f },
             velocityThreshold = { with(density) { 400.dp.toPx() } },
             animationSpec = { animationSpec },
-            confirmValueChange = confirmValueChange
         )
 
     /**
      * The current value of the state.
      *
-     * If no swipe or animation is in progress, this corresponds to the value the modal expanded
-     * navigation rail is currently in. If a swipe or an animation is in progress, this corresponds
-     * to the value the rail was in before the swipe or animation started.
+     * If no swipe or animation is in progress, this corresponds to the value the dismissible modal
+     * wide navigation rail is currently in. If a swipe or an animation is in progress, this
+     * corresponds to the value the rail was in before the swipe or animation started.
      */
-    val currentValue: ModalExpandedNavigationRailValue
+    override val currentValue: WideNavigationRailValue
         get() = anchoredDraggableState.currentValue
 
     /**
-     * The target value of the modal expanded navigation rail state.
+     * The target value of the dismissible modal wide navigation rail state.
      *
      * If a swipe is in progress, this is the value that the modal rail will animate to if the swipe
      * finishes. If an animation is running, this is the target value of that animation. Finally, if
      * no swipe or animation is in progress, this is the same as the [currentValue].
      */
-    val targetValue: ModalExpandedNavigationRailValue
+    override val targetValue: WideNavigationRailValue
         get() = anchoredDraggableState.targetValue
 
-    /** Whether the modal expanded navigation rail is open. */
-    val isOpen: Boolean
-        get() = currentValue != ModalExpandedNavigationRailValue.Closed
-
-    /** Whether the state is currently animating. */
-    val isAnimationRunning: Boolean
+    override val isAnimating: Boolean
         get() = anchoredDraggableState.isAnimationRunning
 
-    /**
-     * Open the modal expanded navigation rail with animation and suspend until it if fully open or
-     * the animation has been cancelled. This method will throw CancellationException if the
-     * animation is interrupted.
-     *
-     * @return the reason the expand animation ended
-     */
-    suspend fun open() = animateTo(ModalExpandedNavigationRailValue.Open)
+    override suspend fun expand() = animateTo(WideNavigationRailValue.Expanded)
 
-    /**
-     * Close the modal expanded navigation rail with animation and suspend until it is fully closed
-     * or the animation has been cancelled. This method will throw CancellationException if the
-     * animation interrupted.
-     *
-     * @return the reason the collapse animation ended
-     */
-    suspend fun close() = animateTo(ModalExpandedNavigationRailValue.Closed)
+    override suspend fun collapse() = animateTo(WideNavigationRailValue.Collapsed)
 
-    /**
-     * Set the state without any animation and suspend until it's set.
-     *
-     * @param targetValue The new target value
-     */
-    suspend fun snapTo(targetValue: ModalExpandedNavigationRailValue) {
+    override suspend fun toggle() {
+        animateTo(!targetValue)
+    }
+
+    override suspend fun snapTo(targetValue: WideNavigationRailValue) {
         anchoredDraggableState.snapTo(targetValue)
     }
 
@@ -137,7 +241,7 @@ class ModalExpandedNavigationRailState(
         get() = anchoredDraggableState.offset
 
     private suspend fun animateTo(
-        targetValue: ModalExpandedNavigationRailValue,
+        targetValue: WideNavigationRailValue,
         animationSpec: AnimationSpec<Float> = this.animationSpec,
         velocity: Float = anchoredDraggableState.lastVelocity
     ) {
@@ -156,44 +260,16 @@ class ModalExpandedNavigationRailState(
             }
         }
     }
-
-    companion object {
-        /** The default [Saver] implementation for [ModalExpandedNavigationRailState]. */
-        fun Saver(
-            density: Density,
-            animationSpec: AnimationSpec<Float>,
-            confirmStateChange: (ModalExpandedNavigationRailValue) -> Boolean
-        ) =
-            Saver<ModalExpandedNavigationRailState, ModalExpandedNavigationRailValue>(
-                save = { it.currentValue },
-                restore = {
-                    ModalExpandedNavigationRailState(it, density, animationSpec, confirmStateChange)
-                }
-            )
-    }
 }
 
-/**
- * Create and [remember] a [ModalExpandedNavigationRailState].
- *
- * @param confirmValueChange Optional callback invoked to confirm or veto a pending state change.
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun rememberModalExpandedNavigationRailState(
-    confirmValueChange: (ModalExpandedNavigationRailValue) -> Boolean = { true }
-): ModalExpandedNavigationRailState {
-    val density = LocalDensity.current
-    // TODO: Load the motionScheme tokens from the component tokens file.
-    val animationSpec = MotionSchemeKeyTokens.DefaultSpatial.value<Float>()
-    return rememberSaveable(
-        saver = ModalExpandedNavigationRailState.Saver(density, animationSpec, confirmValueChange)
+@Stable
+internal class RailPredictiveBackState {
+    var swipeEdgeMatchesRail by mutableStateOf(true)
+
+    fun update(
+        isSwipeEdgeLeft: Boolean,
+        isRtl: Boolean,
     ) {
-        ModalExpandedNavigationRailState(
-            initialValue = ModalExpandedNavigationRailValue.Closed,
-            density = density,
-            animationSpec = animationSpec,
-            confirmValueChange = confirmValueChange
-        )
+        swipeEdgeMatchesRail = (isSwipeEdgeLeft && !isRtl) || (!isSwipeEdgeLeft && isRtl)
     }
 }

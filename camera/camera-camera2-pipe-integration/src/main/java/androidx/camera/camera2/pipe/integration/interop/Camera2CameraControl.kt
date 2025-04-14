@@ -22,15 +22,14 @@ import androidx.camera.camera2.pipe.integration.adapter.CameraControlAdapter
 import androidx.camera.camera2.pipe.integration.adapter.asListenableFuture
 import androidx.camera.camera2.pipe.integration.compat.Camera2CameraControlCompat
 import androidx.camera.camera2.pipe.integration.impl.ComboRequestListener
-import androidx.camera.camera2.pipe.integration.impl.UseCaseCamera
 import androidx.camera.camera2.pipe.integration.impl.UseCaseCameraControl
+import androidx.camera.camera2.pipe.integration.impl.UseCaseCameraRequestControl
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.core.CameraControl
 import androidx.camera.core.impl.CameraControlInternal
 import androidx.camera.core.impl.utils.futures.Futures
 import androidx.core.util.Preconditions
 import com.google.common.util.concurrent.ListenableFuture
-import kotlinx.coroutines.async
 
 /**
  * An class that provides ability to interoperate with the [android.hardware.camera2] APIs.
@@ -49,16 +48,16 @@ public class Camera2CameraControl
 private constructor(
     private val compat: Camera2CameraControlCompat,
     private val threads: UseCaseThreads,
-    @VisibleForTesting internal val requestListener: ComboRequestListener,
+    @get:VisibleForTesting internal val requestListener: ComboRequestListener,
 ) : UseCaseCameraControl {
 
-    private var _useCaseCamera: UseCaseCamera? = null
-    override var useCaseCamera: UseCaseCamera?
-        @RestrictTo(RestrictTo.Scope.LIBRARY) get() = _useCaseCamera
+    private var _useCaseCameraRequestControl: UseCaseCameraRequestControl? = null
+    override var requestControl: UseCaseCameraRequestControl?
+        @RestrictTo(RestrictTo.Scope.LIBRARY) get() = _useCaseCameraRequestControl
         @RestrictTo(RestrictTo.Scope.LIBRARY)
         set(value) {
-            _useCaseCamera = value
-            _useCaseCamera?.also {
+            _useCaseCameraRequestControl = value
+            _useCaseCameraRequestControl?.also {
                 requestListener.removeListener(compat)
                 requestListener.addListener(compat, threads.sequentialExecutor)
                 compat.applyAsync(it, false)
@@ -146,9 +145,7 @@ private constructor(
 
     private fun updateAsync(tag: String): ListenableFuture<Void?> =
         Futures.nonCancellationPropagating(
-            threads.sequentialScope
-                .async { compat.applyAsync(useCaseCamera).await() }
-                .asListenableFuture(tag)
+            compat.applyAsync(requestControl).asListenableFuture(tag)
         )
 
     public companion object {

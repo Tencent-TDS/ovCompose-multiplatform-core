@@ -19,7 +19,7 @@ package androidx.core.telecom.test
 import android.os.Build.VERSION_CODES
 import android.telecom.Call
 import android.telecom.DisconnectCause
-import androidx.annotation.RequiresApi
+import android.util.Log
 import androidx.core.telecom.CallAttributesCompat
 import androidx.core.telecom.CallControlResult
 import androidx.core.telecom.CallControlScope
@@ -31,11 +31,14 @@ import androidx.core.telecom.test.utils.TestUtils
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -43,7 +46,6 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -57,7 +59,6 @@ import org.junit.runner.RunWith
  * currentCallEndpoint.counter.getFirst() // The flow may never be collected } }
  */
 @SdkSuppress(minSdkVersion = VERSION_CODES.O)
-@RequiresApi(VERSION_CODES.O)
 @RunWith(AndroidJUnit4::class)
 class BasicCallControlsTest : BaseTelecomTest() {
     private val NUM_OF_TIMES_TO_TOGGLE = 3
@@ -70,6 +71,10 @@ class BasicCallControlsTest : BaseTelecomTest() {
     @After
     fun onDestroy() {
         Utils.resetUtils()
+    }
+
+    companion object {
+        val TAG = BasicCallControlsTest::class.simpleName
     }
 
     /**
@@ -135,7 +140,6 @@ class BasicCallControlsTest : BaseTelecomTest() {
      * [CallEndpointCompat] via [CallControlScope.requestEndpointChange]. The call should use the
      * *V2 platform APIs* under the hood.
      */
-    @Ignore // b/329357697  TODO:: re-enable when cache_call_audio_callbacks is enabled in builds
     @SdkSuppress(minSdkVersion = VERSION_CODES.UPSIDE_DOWN_CAKE)
     @LargeTest
     @Test(timeout = 10000)
@@ -149,7 +153,6 @@ class BasicCallControlsTest : BaseTelecomTest() {
      * mute/unmute the call are reflected in [CallControlScope.isMuted]. The call should use the *V2
      * platform APIs* under the hood.
      */
-    @Ignore // b/323006293  TODO:: re-enable when cache_call_audio_callbacks is enabled in builds
     @SdkSuppress(minSdkVersion = VERSION_CODES.UPSIDE_DOWN_CAKE)
     @LargeTest
     @Test(timeout = 10000)
@@ -273,6 +276,21 @@ class BasicCallControlsTest : BaseTelecomTest() {
                 }
             }
             assertTrue(flag)
+        }
+    }
+
+    /** Add test coverage for [CallControlScope.getCallId] */
+    @SdkSuppress(minSdkVersion = VERSION_CODES.O)
+    @LargeTest
+    @Test
+    fun testGetCallId() {
+        runBlocking {
+            assertWithinTimeout_addCall(TestUtils.OUTGOING_CALL_ATTRIBUTES) {
+                launch {
+                    assertNotNull(getCallId())
+                    disconnect(DisconnectCause(DisconnectCause.LOCAL))
+                }
+            }
         }
     }
 
@@ -416,26 +434,9 @@ class BasicCallControlsTest : BaseTelecomTest() {
                         TestUtils.waitOnCallState(call!!, Call.STATE_ACTIVE)
                         // Grab initial mute state
                         val initialMuteState = isMuted.first()
-                        // Toggle to other state
-                        val setMuteStateTo = !initialMuteState
-                        var muteStateChanged = false
                         // Toggle mute via ICS
-                        ics.setMuted(setMuteStateTo)
-                        runBlocking {
-                            launch {
-                                isMuted.collect {
-                                    if (it != initialMuteState) {
-                                        muteStateChanged = true
-                                        // Cancel the coroutine to ensure we don't block on waiting
-                                        // for
-                                        // updates and force a timeout.
-                                        cancel()
-                                    }
-                                }
-                            }
-                        }
-                        // Ensure that the updated mute state was collected
-                        assertTrue(muteStateChanged)
+                        ics.setMuted(!initialMuteState)
+                        waitForMuteStateChange(!initialMuteState, isMuted)
                         assertEquals(
                             CallControlResult.Success(),
                             disconnect(DisconnectCause(DisconnectCause.LOCAL))
@@ -444,6 +445,20 @@ class BasicCallControlsTest : BaseTelecomTest() {
                 }
             }
         }
+    }
+
+    private suspend fun waitForMuteStateChange(isMuted: Boolean, isMutedFlow: Flow<Boolean>) {
+        Log.i(TAG, "waitForGlobalMuteState: v=[$isMuted]")
+        val result =
+            withTimeoutOrNull(5000) {
+                isMutedFlow
+                    .filter {
+                        Log.i(TAG, "it=[$isMuted], isMuted=[$isMuted]")
+                        it == isMuted
+                    }
+                    .firstOrNull()
+            }
+        assertEquals("Global Mute State never reached the expected state", isMuted, result)
     }
 
     private fun getAnotherEndpoint(

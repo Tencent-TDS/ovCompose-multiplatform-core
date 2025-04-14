@@ -6,9 +6,8 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
-import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -17,15 +16,11 @@ plugins {
     id("androidx.baselineprofile")
 }
 androidXMultiplatform {
-    android()
+    androidTarget()
     desktop()
     mac()
     linux()
     ios()
-
-    kotlin {
-        explicitApi = ExplicitApiMode.Strict
-    }
 
     defaultPlatform(PlatformIdentifier.ANDROID)
 
@@ -48,7 +43,7 @@ androidXMultiplatform {
             }
         }
 
-        jvmCommonMain {
+        jvmMain {
             dependsOn(commonMain)
             dependencies {
                 api("androidx.arch.core:core-common:2.2.0")
@@ -56,7 +51,7 @@ androidXMultiplatform {
         }
 
         desktopMain {
-            dependsOn(jvmCommonMain)
+            dependsOn(jvmMain)
         }
 
         desktopTest {
@@ -67,11 +62,12 @@ androidXMultiplatform {
         }
 
         androidMain {
-            dependsOn(jvmCommonMain)
+            dependsOn(jvmMain)
             dependencies {
                 api(libs.kotlinCoroutinesAndroid)
+                implementation("androidx.core:core-viewtree:1.0.0")
                 implementation("androidx.arch.core:core-runtime:2.2.0")
-                implementation("androidx.profileinstaller:profileinstaller:1.3.1")
+                implementation("androidx.profileinstaller:profileinstaller:1.4.0")
             }
         }
 
@@ -86,6 +82,7 @@ androidXMultiplatform {
         androidInstrumentedTest {
             dependsOn(commonTest)
             dependencies {
+                implementation("androidx.core:core-viewtree:1.0.0")
                 implementation(libs.junit)
                 implementation(libs.truth)
                 implementation(libs.testExtJunit)
@@ -95,12 +92,12 @@ androidXMultiplatform {
             }
         }
 
-        nonJvmCommonMain {
+        nonJvmMain {
             dependsOn(commonMain)
         }
 
         nativeMain {
-            dependsOn(nonJvmCommonMain)
+            dependsOn(nonJvmMain)
 
             // Required for WeakReference usage
             languageSettings.optIn("kotlin.experimental.ExperimentalNativeApi")
@@ -127,6 +124,7 @@ androidXMultiplatform {
 }
 
 dependencies {
+    api(libs.jspecify)
     lintPublish(project(":lifecycle:lifecycle-runtime-lint"))
 }
 
@@ -138,15 +136,14 @@ android {
     // Include `*.java` files into the build
     sourceSets["main"].java.srcDir("src/androidMain/java")
     sourceSets["test"].java.srcDir("src/androidUnitTest/kotlin")
-    namespace "androidx.lifecycle.runtime"
+    namespace = "androidx.lifecycle.runtime"
     // TODO(b/345531033)
     experimentalProperties["android.lint.useK2Uast"] = false
 }
 
 androidx {
     name = "Lifecycle Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
-    inceptionYear "2017"
-    description "Android Lifecycle Runtime"
-    metalavaK2UastEnabled = false
+    type = SoftwareType.PUBLISHED_LIBRARY
+    inceptionYear = "2017"
+    description = "Android Lifecycle Runtime"
 }

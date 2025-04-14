@@ -25,6 +25,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isFinite
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.DefaultCameraDistance
@@ -34,6 +35,8 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.ReusableGraphicsLayerScope
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.input.pointer.MatrixPositionCalculator
+import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.internal.checkPrecondition
 import androidx.compose.ui.internal.checkPreconditionNotNull
 import androidx.compose.ui.internal.requirePrecondition
@@ -45,6 +48,8 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.ui.FrameRateCategory
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
@@ -53,6 +58,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.minus
 import androidx.compose.ui.unit.plus
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.util.fastIsFinite
 
 /** Measurable and Placeable type that has a position. */
 internal abstract class NodeCoordinator(
@@ -315,6 +321,12 @@ internal abstract class NodeCoordinator(
         }
     }
 
+    fun onUnplaced() {
+        if (hasNode(Nodes.Unplaced)) {
+            visitNodes(Nodes.Unplaced) { it.onUnplaced() }
+        }
+    }
+
     /** Places the modified child. */
     /*@CallSuper*/
     override fun placeAt(
@@ -376,6 +388,7 @@ internal abstract class NodeCoordinator(
             updateLayerBlock(layerBlock)
         }
         if (this.position != position) {
+            layoutNode.requireOwner().voteFrameRate(FrameRateCategory.High.value)
             this.position = position
             layoutNode.layoutDelegate.measurePassDelegate
                 .notifyChildrenUsingCoordinatesWhilePlacing()
@@ -390,7 +403,7 @@ internal abstract class NodeCoordinator(
         }
         this.zIndex = zIndex
         if (!isPlacingForAlignment) {
-            captureRulers(measureResult)
+            captureRulersIfNeeded(measureResult)
         }
     }
 
@@ -520,7 +533,13 @@ internal abstract class NodeCoordinator(
                 layoutNode.innerLayerCoordinatorIsDirty = true
                 invalidateParentLayer()
             } else if (updateParameters) {
-                updateLayerParameters()
+                val positionalPropertiesChanged = updateLayerParameters()
+                if (positionalPropertiesChanged) {
+                    layoutNode
+                        .requireOwner()
+                        .rectManager
+                        .onLayoutLayerPositionalPropertiesChanged(layoutNode)
+                }
             }
         } else {
             this.layerBlock = null
@@ -600,6 +619,27 @@ internal abstract class NodeCoordinator(
     val minimumTouchTargetSize: Size
         get() = with(layerDensity) { layoutNode.viewConfiguration.minimumTouchTargetSize.toSize() }
 
+    fun onAttach() {
+        if (layer == null && layerBlock != null) {
+            // This has been detached and is now being reattached. It previously had a layer, so
+            // reconstitute one.
+            layer =
+                layoutNode
+                    .requireOwner()
+                    .createLayer(drawBlock, invalidateParentLayer, explicitLayer)
+                    .apply {
+                        resize(measuredSize)
+                        move(position)
+                        invalidate()
+                    }
+        }
+    }
+
+    fun onDetach() {
+        layer?.destroy()
+        layer = null
+    }
+
     /**
      * Executes a hit test for this [NodeCoordinator].
      *
@@ -607,76 +647,65 @@ internal abstract class NodeCoordinator(
      * @param pointerPosition The tested pointer position, which is relative to the
      *   [NodeCoordinator].
      * @param hitTestResult The parent [HitTestResult] that any hit should be added to.
-     * @param isTouchEvent `true` if this is from a touch source. Touch sources allow for minimum
+     * @param pointerType The [PointerType] of the source input. Touch sources allow for minimum
      *   touch target. Semantics hit tests always treat hits as needing minimum touch target.
      * @param isInLayer `true` if the touch event is in the layer of this and all parents or `false`
      *   if it is outside the layer, but within the minimum touch target of the edge of the layer.
-     *   This can only be `false` when [isTouchEvent] is `true` or else a layer miss means the event
-     *   will be clipped out.
+     *   This can only be `false` when [pointerType] is [PointerType.Touch] or else a layer miss
+     *   means the event will be clipped out.
      */
     fun hitTest(
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean
     ) {
         val head = head(hitTestSource.entityType())
         if (!withinLayerBounds(pointerPosition)) {
             // This missed the clip, but if this layout is too small and this is within the
             // minimum touch target, we still consider it a hit.
-            if (isTouchEvent) {
+            if (pointerType == PointerType.Touch) {
                 val distanceFromEdge =
                     distanceInMinimumTouchTarget(pointerPosition, minimumTouchTargetSize)
                 if (
-                    distanceFromEdge.isFinite() &&
+                    distanceFromEdge.fastIsFinite() &&
                         hitTestResult.isHitInMinimumTouchTargetBetter(distanceFromEdge, false)
                 ) {
                     head.hitNear(
                         hitTestSource,
                         pointerPosition,
                         hitTestResult,
-                        isTouchEvent,
+                        pointerType,
                         false,
                         distanceFromEdge
                     )
                 } // else it is a complete miss.
             }
         } else if (head == null) {
-            hitTestChild(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            hitTestChild(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
         } else if (isPointerInBounds(pointerPosition)) {
             // A real hit
-            head.hit(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            head.hit(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
         } else {
             val distanceFromEdge =
-                if (!isTouchEvent) Float.POSITIVE_INFINITY
+                if (pointerType != PointerType.Touch) Float.POSITIVE_INFINITY
                 else {
                     distanceInMinimumTouchTarget(pointerPosition, minimumTouchTargetSize)
                 }
-
-            if (
-                distanceFromEdge.isFinite() &&
+            val isHitInMinimumTouchTargetBetter =
+                distanceFromEdge.fastIsFinite() &&
                     hitTestResult.isHitInMinimumTouchTargetBetter(distanceFromEdge, isInLayer)
-            ) {
-                // Hit closer than existing handlers, so just record it
-                head.hitNear(
-                    hitTestSource,
-                    pointerPosition,
-                    hitTestResult,
-                    isTouchEvent,
-                    isInLayer,
-                    distanceFromEdge
-                )
-            } else {
-                head.speculativeHit(
-                    hitTestSource,
-                    pointerPosition,
-                    hitTestResult,
-                    isTouchEvent,
-                    isInLayer,
-                    distanceFromEdge
-                )
-            }
+
+            head.outOfBoundsHit(
+                hitTestSource,
+                pointerPosition,
+                hitTestResult,
+                pointerType,
+                isInLayer,
+                distanceFromEdge,
+                isHitInMinimumTouchTargetBetter
+            )
         }
     }
 
@@ -687,16 +716,80 @@ internal abstract class NodeCoordinator(
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean
     ) {
         if (this == null) {
-            hitTestChild(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            hitTestChild(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
         } else {
             hitTestResult.hit(this, isInLayer) {
                 nextUntil(hitTestSource.entityType(), Nodes.Layout)
-                    .hit(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+                    .hit(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
             }
+        }
+    }
+
+    /**
+     * The pointer lands outside the node's bounds. There are three cases we have to handle:
+     * 1. hitNear: if the nodes is smaller than the minimumTouchTargetSize, it's touch bounds will
+     *    be expanded to the minimal touch target size.
+     * 2. hitExpandedTouchBounds: if the nodes has a expanded touch bounds.
+     * 3. speculativeHit: if the hit misses this node, but its child can still get the pointer
+     *    event.
+     *
+     * The complication is when touch bounds overlaps, there are 3 possibilities:
+     * 1. hit in this node's expanded touch bounds or minimum touch target bounds overlaps with a
+     *    direct hit in the other node. The node with direct hit will get the event.
+     * 2. hit in this node's expanded touch bounds overlaps with other node's expanded touch bounds.
+     *    Both nodes will get the event.
+     * 3. hit in this node's expanded touch bounds overlaps with the other node's minimum touch
+     *    touch bounds. The node with expanded touch bounds will get the event.
+     *
+     * The logic to handle the hit priority is implemented in [HitTestResult.speculativeHit] and
+     * [HitTestResult.hitExpandedTouchBounds].
+     */
+    private fun Modifier.Node?.outOfBoundsHit(
+        hitTestSource: HitTestSource,
+        pointerPosition: Offset,
+        hitTestResult: HitTestResult,
+        pointerType: PointerType,
+        isInLayer: Boolean,
+        distanceFromEdge: Float,
+        isHitInMinimumTouchTargetBetter: Boolean
+    ) {
+        if (this == null) {
+            hitTestChild(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
+        } else if (isInExpandedTouchBounds(pointerPosition, pointerType)) {
+            hitTestResult.hitExpandedTouchBounds(this, isInLayer) {
+                nextUntil(hitTestSource.entityType(), Nodes.Layout)
+                    .outOfBoundsHit(
+                        hitTestSource,
+                        pointerPosition,
+                        hitTestResult,
+                        pointerType,
+                        isInLayer,
+                        distanceFromEdge,
+                        isHitInMinimumTouchTargetBetter
+                    )
+            }
+        } else if (isHitInMinimumTouchTargetBetter) {
+            hitNear(
+                hitTestSource,
+                pointerPosition,
+                hitTestResult,
+                pointerType,
+                isInLayer,
+                distanceFromEdge
+            )
+        } else {
+            speculativeHit(
+                hitTestSource,
+                pointerPosition,
+                hitTestResult,
+                pointerType,
+                isInLayer,
+                distanceFromEdge
+            )
         }
     }
 
@@ -708,23 +801,24 @@ internal abstract class NodeCoordinator(
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean,
         distanceFromEdge: Float
     ) {
         if (this == null) {
-            hitTestChild(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            hitTestChild(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
         } else {
             // Hit closer than existing handlers, so just record it
             hitTestResult.hitInMinimumTouchTarget(this, distanceFromEdge, isInLayer) {
                 nextUntil(hitTestSource.entityType(), Nodes.Layout)
-                    .hitNear(
+                    .outOfBoundsHit(
                         hitTestSource,
                         pointerPosition,
                         hitTestResult,
-                        isTouchEvent,
+                        pointerType,
                         isInLayer,
-                        distanceFromEdge
+                        distanceFromEdge,
+                        isHitInMinimumTouchTargetBetter = true
                     )
             }
         }
@@ -738,37 +832,66 @@ internal abstract class NodeCoordinator(
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean,
         distanceFromEdge: Float
     ) {
         if (this == null) {
-            hitTestChild(hitTestSource, pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+            hitTestChild(hitTestSource, pointerPosition, hitTestResult, pointerType, isInLayer)
         } else if (hitTestSource.interceptOutOfBoundsChildEvents(this)) {
             // We only want to replace the existing touch target if there are better
             // hits in the children
             hitTestResult.speculativeHit(this, distanceFromEdge, isInLayer) {
                 nextUntil(hitTestSource.entityType(), Nodes.Layout)
-                    .speculativeHit(
+                    .outOfBoundsHit(
                         hitTestSource,
                         pointerPosition,
                         hitTestResult,
-                        isTouchEvent,
+                        pointerType,
                         isInLayer,
-                        distanceFromEdge
+                        distanceFromEdge,
+                        isHitInMinimumTouchTargetBetter = false
                     )
             }
         } else {
             nextUntil(hitTestSource.entityType(), Nodes.Layout)
-                .speculativeHit(
+                .outOfBoundsHit(
                     hitTestSource,
                     pointerPosition,
                     hitTestResult,
-                    isTouchEvent,
+                    pointerType,
                     isInLayer,
-                    distanceFromEdge
+                    distanceFromEdge,
+                    isHitInMinimumTouchTargetBetter = false
                 )
         }
+    }
+
+    /**
+     * Helper method to check if the pointer is inside the node's expanded touch bounds. This only
+     * applies to pointer input modifier nodes whose [PointerInputModifierNode.touchBoundsExpansion]
+     * is not null.
+     */
+    private fun Modifier.Node?.isInExpandedTouchBounds(
+        pointerPosition: Offset,
+        pointerType: PointerType
+    ): Boolean {
+        if (this == null) {
+            return false
+        }
+        // The expanded touch bounds only works for stylus at this moment.
+        if (pointerType != PointerType.Stylus && pointerType != PointerType.Eraser) {
+            return false
+        }
+        dispatchForKind(Nodes.PointerInput) {
+            // We only check for the node itself or the first delegate PointerInputModifierNode.
+            val expansion = it.touchBoundsExpansion
+            return pointerPosition.x >= -expansion.computeLeft(layoutDirection) &&
+                pointerPosition.x < measuredWidth + expansion.computeRight(layoutDirection) &&
+                pointerPosition.y >= -expansion.top &&
+                pointerPosition.y < measuredHeight + expansion.bottom
+        }
+        return false
     }
 
     /** Do a [hitTest] on the children of this [NodeCoordinator]. */
@@ -776,7 +899,7 @@ internal abstract class NodeCoordinator(
         hitTestSource: HitTestSource,
         pointerPosition: Offset,
         hitTestResult: HitTestResult,
-        isTouchEvent: Boolean,
+        pointerType: PointerType,
         isInLayer: Boolean
     ) {
         // Also, keep looking to see if we also might hit any children.
@@ -784,13 +907,7 @@ internal abstract class NodeCoordinator(
         val wrapped = wrapped
         if (wrapped != null) {
             val positionInWrapped = wrapped.fromParentPosition(pointerPosition)
-            wrapped.hitTest(
-                hitTestSource,
-                positionInWrapped,
-                hitTestResult,
-                isTouchEvent,
-                isInLayer
-            )
+            wrapped.hitTest(hitTestSource, positionInWrapped, hitTestResult, pointerType, isInLayer)
         }
     }
 
@@ -908,7 +1025,24 @@ internal abstract class NodeCoordinator(
         transformFromAncestor(commonAncestor, matrix)
     }
 
-    fun transformToAncestor(ancestor: NodeCoordinator, matrix: Matrix) {
+    override fun transformToScreen(matrix: Matrix) {
+        val owner = layoutNode.requireOwner()
+        val rootCoordinator = findRootCoordinates().toCoordinator()
+        transformToAncestor(rootCoordinator, matrix)
+        if (owner is MatrixPositionCalculator) {
+            // Only Android owner supports direct matrix manipulations,
+            // This API had to be Android-only in the first place.
+            owner.localToScreen(matrix)
+        } else {
+            // Fallback: try to extract just position
+            val screenPosition = rootCoordinator.positionOnScreen()
+            if (screenPosition.isSpecified) {
+                matrix.translate(screenPosition.x, screenPosition.y, 0f)
+            }
+        }
+    }
+
+    private fun transformToAncestor(ancestor: NodeCoordinator, matrix: Matrix) {
         var wrapper = this
         while (wrapper != ancestor) {
             wrapper.layer?.transform(matrix)
@@ -1312,7 +1446,7 @@ internal abstract class NodeCoordinator(
             layoutNode: LayoutNode,
             pointerPosition: Offset,
             hitTestResult: HitTestResult,
-            isTouchEvent: Boolean,
+            pointerType: PointerType,
             isInLayer: Boolean
         )
     }
@@ -1339,7 +1473,9 @@ internal abstract class NodeCoordinator(
                         layoutDelegate.measurePassDelegate
                             .notifyChildrenUsingCoordinatesWhilePlacing()
                     }
-                    layoutNode.owner?.requestOnPositionedCallback(layoutNode)
+                    val owner = layoutNode.requireOwner()
+                    owner.rectManager.onLayoutLayerPositionalPropertiesChanged(layoutNode)
+                    owner.requestOnPositionedCallback(layoutNode)
                 }
             }
         }
@@ -1371,9 +1507,9 @@ internal abstract class NodeCoordinator(
                     layoutNode: LayoutNode,
                     pointerPosition: Offset,
                     hitTestResult: HitTestResult,
-                    isTouchEvent: Boolean,
+                    pointerType: PointerType,
                     isInLayer: Boolean
-                ) = layoutNode.hitTest(pointerPosition, hitTestResult, isTouchEvent, isInLayer)
+                ) = layoutNode.hitTest(pointerPosition, hitTestResult, pointerType, isInLayer)
             }
 
         /** Hit testing specifics for semantics. */
@@ -1384,19 +1520,19 @@ internal abstract class NodeCoordinator(
                 override fun interceptOutOfBoundsChildEvents(node: Modifier.Node) = false
 
                 override fun shouldHitTestChildren(parentLayoutNode: LayoutNode) =
-                    parentLayoutNode.collapsedSemantics?.isClearingSemantics != true
+                    parentLayoutNode.semanticsConfiguration?.isClearingSemantics != true
 
                 override fun childHitTest(
                     layoutNode: LayoutNode,
                     pointerPosition: Offset,
                     hitTestResult: HitTestResult,
-                    isTouchEvent: Boolean,
+                    pointerType: PointerType,
                     isInLayer: Boolean
                 ) =
                     layoutNode.hitTestSemantics(
                         pointerPosition,
                         hitTestResult,
-                        isTouchEvent,
+                        pointerType,
                         isInLayer
                     )
             }

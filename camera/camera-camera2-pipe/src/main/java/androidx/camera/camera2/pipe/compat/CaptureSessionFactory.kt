@@ -22,7 +22,6 @@ import android.os.Build
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.camera.camera2.pipe.CameraGraph
-import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.StreamId
 import androidx.camera.camera2.pipe.compat.OutputConfigurationWrapper.Companion.SURFACE_GROUP_ID_NONE
 import androidx.camera.camera2.pipe.config.Camera2ControllerScope
@@ -137,7 +136,7 @@ constructor(private val threads: Threads, private val graphConfig: CameraGraph.C
                     "Failed to create reprocessable captures session from $cameraDevice for" +
                         " $captureSessionState!"
                 }
-                captureSessionState.disconnect()
+                captureSessionState.shutdown()
             }
         } else {
             if (
@@ -171,7 +170,7 @@ internal class AndroidMHighSpeedSessionFactory @Inject constructor(private val t
                 "Failed to create ConstrainedHighSpeedCaptureSession " +
                     "from $cameraDevice for $captureSessionState!"
             }
-            captureSessionState.disconnect()
+            captureSessionState.shutdown()
         }
         return emptyMap()
     }
@@ -184,21 +183,13 @@ constructor(
     private val threads: Threads,
     private val streamGraph: StreamGraphImpl,
     private val graphConfig: CameraGraph.Config,
-    private val camera2MetadataProvider: Camera2MetadataProvider
 ) : CaptureSessionFactory {
     override fun create(
         cameraDevice: CameraDeviceWrapper,
         surfaces: Map<StreamId, Surface>,
         captureSessionState: CaptureSessionState
     ): Map<StreamId, OutputConfigurationWrapper> {
-        val outputs =
-            buildOutputConfigurations(
-                graphConfig,
-                streamGraph,
-                surfaces,
-                camera2MetadataProvider,
-                cameraDevice.cameraId
-            )
+        val outputs = buildOutputConfigurations(graphConfig, streamGraph, surfaces)
         if (outputs.all.isEmpty()) {
             Log.warn { "Failed to create OutputConfigurations for $graphConfig" }
             captureSessionState.onSessionFinalized()
@@ -240,7 +231,6 @@ constructor(
     private val threads: Threads,
     private val graphConfig: CameraGraph.Config,
     private val streamGraph: StreamGraphImpl,
-    private val camera2MetadataProvider: Camera2MetadataProvider
 ) : CaptureSessionFactory {
     override fun create(
         cameraDevice: CameraDeviceWrapper,
@@ -259,14 +249,7 @@ constructor(
                 else -> graphConfig.sessionMode.mode
             }
 
-        val outputs =
-            buildOutputConfigurations(
-                graphConfig,
-                streamGraph,
-                surfaces,
-                camera2MetadataProvider,
-                cameraDevice.cameraId
-            )
+        val outputs = buildOutputConfigurations(graphConfig, streamGraph, surfaces)
         if (outputs.all.isEmpty()) {
             Log.warn { "Failed to create OutputConfigurations for $graphConfig" }
             captureSessionState.onSessionFinalized()
@@ -315,8 +298,6 @@ internal fun buildOutputConfigurations(
     graphConfig: CameraGraph.Config,
     streamGraph: StreamGraphImpl,
     surfaces: Map<StreamId, Surface>,
-    camera2MetadataProvider: Camera2MetadataProvider,
-    cameraId: CameraId
 ): OutputConfigurations {
     val allOutputs = arrayListOf<OutputConfigurationWrapper>()
     val deferredOutputs = mutableMapOf<StreamId, OutputConfigurationWrapper>()
@@ -362,8 +343,6 @@ internal fun buildOutputConfigurations(
                         } else {
                             null
                         },
-                    cameraId = cameraId,
-                    camera2MetadataProvider = camera2MetadataProvider
                 )
             if (output == null) {
                 Log.warn { "Failed to create AndroidOutputConfiguration for $outputConfig" }
@@ -399,8 +378,6 @@ internal fun buildOutputConfigurations(
                     } else {
                         null
                     },
-                cameraId = cameraId,
-                camera2MetadataProvider = camera2MetadataProvider
             )
         if (output == null) {
             Log.warn { "Failed to create AndroidOutputConfiguration for $outputConfig" }
@@ -476,14 +453,7 @@ constructor(
             }
         }
 
-        val outputs =
-            buildOutputConfigurations(
-                graphConfig,
-                streamGraph,
-                surfaces,
-                camera2MetadataProvider,
-                cameraDevice.cameraId
-            )
+        val outputs = buildOutputConfigurations(graphConfig, streamGraph, surfaces)
 
         if (outputs.all.isEmpty()) {
             Log.warn { "Failed to create OutputConfigurations for $graphConfig" }
@@ -513,7 +483,7 @@ constructor(
                 "Failed to create ExtensionCaptureSession from $cameraDevice " +
                     "for $captureSessionState!"
             }
-            captureSessionState.disconnect()
+            captureSessionState.shutdown()
         }
 
         return emptyMap()

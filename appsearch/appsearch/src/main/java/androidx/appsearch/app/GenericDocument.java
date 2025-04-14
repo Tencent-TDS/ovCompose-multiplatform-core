@@ -17,20 +17,27 @@
 package androidx.appsearch.app;
 
 import android.annotation.SuppressLint;
+import android.os.Build;
+import android.os.Parcel;
 import android.util.Log;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.annotation.RequiresFeature;
 import androidx.annotation.RestrictTo;
 import androidx.appsearch.annotation.CanIgnoreReturnValue;
+import androidx.appsearch.annotation.CurrentTimeMillisLong;
 import androidx.appsearch.annotation.Document;
+import androidx.appsearch.annotation.SystemApi;
 import androidx.appsearch.exceptions.AppSearchException;
 import androidx.appsearch.flags.FlaggedApi;
 import androidx.appsearch.flags.Flags;
 import androidx.appsearch.safeparcel.GenericDocumentParcel;
 import androidx.appsearch.safeparcel.PropertyParcel;
 import androidx.appsearch.util.IndentingStringBuilder;
+import androidx.core.os.ParcelCompat;
 import androidx.core.util.Preconditions;
 
 import java.lang.reflect.Array;
@@ -59,6 +66,8 @@ import java.util.Set;
  * @see AppSearchSession#getByDocumentIdAsync
  * @see AppSearchSession#search
  */
+// TODO(b/384721898): Switch to JSpecify annotations
+@SuppressWarnings("JSpecifyNullness")
 public class GenericDocument {
     private static final String TAG = "AppSearchGenericDocumen";
 
@@ -99,6 +108,7 @@ public class GenericDocument {
 // @exportToFramework:startStrip()
     @Deprecated
 // @exportToFramework:endStrip()
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static int getMaxIndexedProperties() {
         return MAX_INDEXED_PROPERTIES;
     }
@@ -116,8 +126,7 @@ public class GenericDocument {
      *                            conversion.
      * @see GenericDocument#toDocumentClass
      */
-    @NonNull
-    public static GenericDocument fromDocumentClass(@NonNull Object document)
+    public static @NonNull GenericDocument fromDocumentClass(@NonNull Object document)
             throws AppSearchException {
         Preconditions.checkNotNull(document);
         DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
@@ -152,32 +161,91 @@ public class GenericDocument {
     }
 
     /**
+     * Writes the {@link GenericDocument} to the given {@link Parcel}.
+     *
+     * @param dest The {@link Parcel} to write to.
+     * @param flags The flags to use for parceling.
+     * @exportToFramework:hide
+     */
+    // GenericDocument is an open class that can be extended, whereas parcelable classes must be
+    // final in those methods. Thus, we make this a system api to avoid 3p apps depending on it
+    // and getting confused by the inheritability.
+    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
+    @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_OVER_IPC)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public final void writeToParcel(@NonNull Parcel dest, int flags) {
+        Objects.requireNonNull(dest);
+        dest.writeParcelable(mDocumentParcel, flags);
+    }
+
+    /**
+     * Creates a {@link GenericDocument} from a {@link Parcel}.
+     *
+     * @param parcel The {@link Parcel} to read from.
+     * @exportToFramework:hide
+     */
+    // GenericDocument is an open class that can be extended, whereas parcelable classes must be
+    // final in those methods. Thus, we make this a system api to avoid 3p apps depending on it
+    // and getting confused by the inheritability.
+    @SuppressWarnings("deprecation")
+    @SystemApi(client = SystemApi.Client.MODULE_LIBRARIES)
+    @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_OVER_IPC)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static @NonNull GenericDocument createFromParcel(@NonNull Parcel parcel) {
+        Objects.requireNonNull(parcel);
+        GenericDocumentParcel documentParcel;
+        // @exportToFramework:startStrip()
+        if (AppSearchEnvironmentFactory.getEnvironmentInstance().getEnvironment()
+                != AppSearchEnvironment.FRAMEWORK_ENVIRONMENT) {
+            // Non-Framework code should use ParcelCompat.
+            documentParcel =
+                    ParcelCompat.readParcelable(
+                            parcel, GenericDocumentParcel.class.getClassLoader(),
+                            GenericDocumentParcel.class);
+            return new GenericDocument(documentParcel);
+        }
+        // @exportToFramework:endStrip()
+
+        // Code built in Framework cannot depend on Androidx libraries. Therefore, we must call
+        // Parcel#readParcelable directly.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            documentParcel =
+                    parcel.readParcelable(
+                            GenericDocumentParcel.class.getClassLoader(),
+                            GenericDocumentParcel.class);
+        } else {
+            // The Parcel#readParcelable(ClassLoader, Class) function has a known issue on Android
+            // T. This was fixed on Android U. When on Android T, call the older version of
+            // Parcel#readParcelable.
+            documentParcel =
+                    parcel.readParcelable(GenericDocumentParcel.class.getClassLoader());
+        }
+        return new GenericDocument(documentParcel);
+    }
+
+    /**
      * Returns the {@link GenericDocumentParcel} holding the values for this
      * {@link GenericDocument}.
      *
      * @exportToFramework:hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    public GenericDocumentParcel getDocumentParcel() {
+    public @NonNull GenericDocumentParcel getDocumentParcel() {
         return mDocumentParcel;
     }
 
     /** Returns the unique identifier of the {@link GenericDocument}. */
-    @NonNull
-    public String getId() {
+    public @NonNull String getId() {
         return mDocumentParcel.getId();
     }
 
     /** Returns the namespace of the {@link GenericDocument}. */
-    @NonNull
-    public String getNamespace() {
+    public @NonNull String getNamespace() {
         return mDocumentParcel.getNamespace();
     }
 
     /** Returns the {@link AppSearchSchema} type of the {@link GenericDocument}. */
-    @NonNull
-    public String getSchemaType() {
+    public @NonNull String getSchemaType() {
         return mDocumentParcel.getSchemaType();
     }
 
@@ -185,11 +253,14 @@ public class GenericDocument {
      * Returns the list of parent types of the {@link GenericDocument}'s type.
      *
      * <p>It is guaranteed that child types appear before parent types in the list.
+     *
+     * @deprecated Parent types should no longer be set in {@link GenericDocument}. Use
+     * {@link SearchResult.Builder#getParentTypeMap()} instead.
      * <!--@exportToFramework:hide-->
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @Nullable
-    public List<String> getParentTypes() {
+    @Deprecated
+    public @Nullable List<String> getParentTypes() {
         List<String> result = mDocumentParcel.getParentTypes();
         if (result == null) {
             return null;
@@ -202,7 +273,7 @@ public class GenericDocument {
      *
      * <p>The value is in the {@link System#currentTimeMillis} time base.
      */
-    /*@exportToFramework:CurrentTimeMillisLong*/
+    @CurrentTimeMillisLong
     public long getCreationTimestampMillis() {
         return mDocumentParcel.getCreationTimestampMillis();
     }
@@ -237,8 +308,7 @@ public class GenericDocument {
     }
 
     /** Returns the names of all properties defined in this document. */
-    @NonNull
-    public Set<String> getPropertyNames() {
+    public @NonNull Set<String> getPropertyNames() {
         return Collections.unmodifiableSet(mDocumentParcel.getPropertyNames());
     }
 
@@ -303,8 +373,7 @@ public class GenericDocument {
      * The returned object will be one of the following types: {@code String[]}, {@code long[]},
      * {@code double[]}, {@code boolean[]}, {@code byte[][]}, {@code GenericDocument[]}.
      */
-    @Nullable
-    public Object getProperty(@NonNull String path) {
+    public @Nullable Object getProperty(@NonNull String path) {
         Objects.requireNonNull(path);
         Object rawValue =
                 getRawPropertyFromRawDocument(new PropertyPath(path), /*pathIndex=*/ 0,
@@ -353,9 +422,9 @@ public class GenericDocument {
      * @param propertyMap the map containing the path we are looking up
      * @return the raw property
      */
-    @Nullable
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
     @SuppressWarnings("deprecation")
-    private static Object getRawPropertyFromRawDocument(
+    private static @Nullable Object getRawPropertyFromRawDocument(
             @NonNull PropertyPath path, int pathIndex,
             @NonNull Map<String, PropertyParcel> propertyMap) {
         Objects.requireNonNull(path);
@@ -414,6 +483,11 @@ public class GenericDocument {
                     EmbeddingVector[] embeddingValues = propertyParcel.getEmbeddingValues();
                     if (embeddingValues != null && index < embeddingValues.length) {
                         extractedValue = Arrays.copyOfRange(embeddingValues, index, index + 1);
+                    }
+                } else if (propertyParcel.getBlobHandleValues() != null) {
+                    AppSearchBlobHandle[] blobHandlesValues = propertyParcel.getBlobHandleValues();
+                    if (blobHandlesValues != null && index < blobHandlesValues.length) {
+                        extractedValue = Arrays.copyOfRange(blobHandlesValues, index, index + 1);
                     }
                 } else {
                     throw new IllegalStateException(
@@ -502,8 +576,7 @@ public class GenericDocument {
      * @return The result of concatenating each individual list element into a larger array/list of
      * the same type.
      */
-    @Nullable
-    private static Object flattenAccumulator(@NonNull List<Object> accumulator) {
+    private static @Nullable Object flattenAccumulator(@NonNull List<Object> accumulator) {
         if (accumulator.isEmpty()) {
             return null;
         }
@@ -604,8 +677,7 @@ public class GenericDocument {
      * @return The first {@link String} associated with the given path or {@code null} if there is
      * no such value or the value is of a different type.
      */
-    @Nullable
-    public String getPropertyString(@NonNull String path) {
+    public @Nullable String getPropertyString(@NonNull String path) {
         Preconditions.checkNotNull(path);
         String[] propertyArray = getPropertyStringArray(path);
         if (propertyArray == null || propertyArray.length == 0) {
@@ -681,8 +753,7 @@ public class GenericDocument {
      * @return The first {@code byte[]} associated with the given path or {@code null} if there is
      * no such value or the value is of a different type.
      */
-    @Nullable
-    public byte[] getPropertyBytes(@NonNull String path) {
+    public @Nullable byte[] getPropertyBytes(@NonNull String path) {
         Preconditions.checkNotNull(path);
         byte[][] propertyArray = getPropertyBytesArray(path);
         if (propertyArray == null || propertyArray.length == 0) {
@@ -701,8 +772,7 @@ public class GenericDocument {
      * @return The first {@link GenericDocument} associated with the given path or {@code null} if
      * there is no such value or the value is of a different type.
      */
-    @Nullable
-    public GenericDocument getPropertyDocument(@NonNull String path) {
+    public @Nullable GenericDocument getPropertyDocument(@NonNull String path) {
         Preconditions.checkNotNull(path);
         GenericDocument[] propertyArray = getPropertyDocumentArray(path);
         if (propertyArray == null || propertyArray.length == 0) {
@@ -721,15 +791,38 @@ public class GenericDocument {
      * @return The first {@code EmbeddingVector[]} associated with the given path or
      * {@code null} if there is no such value or the value is of a different type.
      */
-    @Nullable
     @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
-    public EmbeddingVector getPropertyEmbedding(@NonNull String path) {
+    public @Nullable EmbeddingVector getPropertyEmbedding(@NonNull String path) {
         Preconditions.checkNotNull(path);
         EmbeddingVector[] propertyArray = getPropertyEmbeddingArray(path);
         if (propertyArray == null || propertyArray.length == 0) {
             return null;
         }
         warnIfSinglePropertyTooLong("Embedding", path, propertyArray.length);
+        return propertyArray[0];
+    }
+
+    /**
+     * Retrieves an {@link AppSearchBlobHandle} property by path.
+     *
+     * <p>See {@link #getProperty} for a detailed description of the path syntax.
+     *
+     * <p>See {@link AppSearchSession#openBlobForReadAsync} for how to use
+     * {@link AppSearchBlobHandle} to retrieve blob data.
+     *
+     * @param path The path to look for.
+     * @return The first {@link AppSearchBlobHandle} associated with the given path or
+     * {@code null} if there is no such value or the value is of a different type.
+     */
+    @FlaggedApi(Flags.FLAG_ENABLE_BLOB_STORE)
+    @ExperimentalAppSearchApi
+    public @Nullable AppSearchBlobHandle getPropertyBlobHandle(@NonNull String path) {
+        Preconditions.checkNotNull(path);
+        AppSearchBlobHandle[] propertyArray = getPropertyBlobHandleArray(path);
+        if (propertyArray == null || propertyArray.length == 0) {
+            return null;
+        }
+        warnIfSinglePropertyTooLong("BlobHandle", path, propertyArray.length);
         return propertyArray[0];
     }
 
@@ -759,8 +852,7 @@ public class GenericDocument {
      * @return The {@code String[]} associated with the given path, or {@code null} if no value is
      * set or the value is of a different type.
      */
-    @Nullable
-    public String[] getPropertyStringArray(@NonNull String path) {
+    public @Nullable String[] getPropertyStringArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, String[].class);
@@ -781,8 +873,7 @@ public class GenericDocument {
      * @return The {@code long[]} associated with the given path, or {@code null} if no value is
      * set or the value is of a different type.
      */
-    @Nullable
-    public long[] getPropertyLongArray(@NonNull String path) {
+    public @Nullable long[] getPropertyLongArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, long[].class);
@@ -803,8 +894,7 @@ public class GenericDocument {
      * @return The {@code double[]} associated with the given path, or {@code null} if no value is
      * set or the value is of a different type.
      */
-    @Nullable
-    public double[] getPropertyDoubleArray(@NonNull String path) {
+    public @Nullable double[] getPropertyDoubleArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, double[].class);
@@ -825,8 +915,7 @@ public class GenericDocument {
      * @return The {@code boolean[]} associated with the given path, or {@code null} if no value
      * is set or the value is of a different type.
      */
-    @Nullable
-    public boolean[] getPropertyBooleanArray(@NonNull String path) {
+    public @Nullable boolean[] getPropertyBooleanArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, boolean[].class);
@@ -855,8 +944,7 @@ public class GenericDocument {
      * set or the value is of a different type.
      */
     @SuppressLint("ArrayReturn")
-    @Nullable
-    public byte[][] getPropertyBytesArray(@NonNull String path) {
+    public @Nullable byte[][] getPropertyBytesArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, byte[][].class);
@@ -885,8 +973,7 @@ public class GenericDocument {
      * value is set or the value is of a different type.
      */
     @SuppressLint("ArrayReturn")
-    @Nullable
-    public GenericDocument[] getPropertyDocumentArray(@NonNull String path) {
+    public @Nullable GenericDocument[] getPropertyDocumentArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, GenericDocument[].class);
@@ -909,12 +996,36 @@ public class GenericDocument {
      * {@code null} if no value is set or the value is of a different type.
      */
     @SuppressLint({"ArrayReturn", "NullableCollection"})
-    @Nullable
     @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
-    public EmbeddingVector[] getPropertyEmbeddingArray(@NonNull String path) {
+    public @Nullable EmbeddingVector[] getPropertyEmbeddingArray(@NonNull String path) {
         Preconditions.checkNotNull(path);
         Object value = getProperty(path);
         return safeCastProperty(path, value, EmbeddingVector[].class);
+    }
+
+    /**
+     * Retrieves a repeated {@code AppSearchBlobHandle[]} property by path.
+     *
+     * <p>See {@link #getProperty} for a detailed description of the path syntax.
+     *
+     * <p>If the property has not been set via {@link Builder#setPropertyBlobHandle}, this method
+     * returns {@code null}.
+     *
+     * <p>If it has been set via {@link Builder#setPropertyBlobHandle} to an empty
+     * {@code AppSearchBlobHandle[]}, this method returns an empty
+     * {@code AppSearchBlobHandle[]}.
+     *
+     * @param path The path to look for.
+     * @return The {@code AppSearchBlobHandle[]} associated with the given path, or
+     * {@code null} if no value is set or the value is of a different type.
+     */
+    @SuppressLint({"ArrayReturn", "NullableCollection"})
+    @ExperimentalAppSearchApi
+    @FlaggedApi(Flags.FLAG_ENABLE_BLOB_STORE)
+    public @Nullable AppSearchBlobHandle[] getPropertyBlobHandleArray(@NonNull String path) {
+        Preconditions.checkNotNull(path);
+        Object value = getProperty(path);
+        return safeCastProperty(path, value, AppSearchBlobHandle[].class);
     }
 
     /**
@@ -925,8 +1036,7 @@ public class GenericDocument {
      * @param value  Value of the property
      * @param tClass Class to cast the value into
      */
-    @Nullable
-    private static <T> T safeCastProperty(
+    private static <T> @Nullable T safeCastProperty(
             @NonNull String path, @Nullable Object value, @NonNull Class<T> tClass) {
         if (value == null) {
             return null;
@@ -959,9 +1069,10 @@ public class GenericDocument {
      *                            classpath.
      * @see GenericDocument#fromDocumentClass
      */
-    @NonNull
-    public <T> T toDocumentClass(@NonNull Class<T> documentClass) throws AppSearchException {
-        return toDocumentClass(documentClass, /* documentClassMap= */null);
+    @OptIn(markerClass = ExperimentalAppSearchApi.class)
+    public <T> @NonNull T toDocumentClass(@NonNull Class<T> documentClass)
+            throws AppSearchException {
+        return toDocumentClass(documentClass, DocumentClassMappingContext.EMPTY);
     }
 
     /**
@@ -977,11 +1088,12 @@ public class GenericDocument {
      *
      * <p>If this GenericDocument's type is recorded as a subtype of the provided
      * {@code documentClass}, the method will find an AppSearch document class, using the provided
-     * {@code documentClassMap}, that is the most concrete and assignable to {@code documentClass},
-     * and then deserialize to that class instead. This allows for more specific and accurate
-     * deserialization of GenericDocuments. If {@code documentClassMap} is null or we are not
-     * able to find a candidate assignable to {@code documentClass}, the method will deserialize
-     * to {@code documentClass} directly.
+     * {@code documentClassMappingContext}, that is the most concrete and assignable to
+     * {@code documentClass}, and then deserialize to that class instead. This allows for more
+     * specific and accurate deserialization of GenericDocuments. If
+     * {@code documentClassMappingContext} has information missing or we are not able to find a
+     * candidate assignable to {@code documentClass}, the method will deserialize to
+     * {@code documentClass} directly.
      *
      * <p>Assignability is determined by the programing language's type system, and which type is
      * more concrete is determined by AppSearch's type system specified via
@@ -989,43 +1101,51 @@ public class GenericDocument {
      * {@link Document#parent()}.
      *
      * <p>For nested document properties, this method will be called recursively, and
-     * {@code documentClassMap} will be passed down to the recursive calls of this method.
+     * {@code documentClassMappingContext} will be passed down to the recursive
+     * calls of this method.
      *
-     * @param documentClass    a class annotated with {@link Document}
-     * @param documentClassMap a map from AppSearch's type name specified by {@link Document#name()}
-     *                         to the list of the fully qualified names of the corresponding
-     *                         document classes. In most cases, passing the value returned by
-     *                         {@link AppSearchDocumentClassMap#getGlobalMap()} will be sufficient.
+     * <p>For most use cases, it is recommended to utilize
+     * {@link SearchResult#getDocument(Class, Map)} instead of calling this method directly. This
+     * avoids the need to manually create a {@link DocumentClassMappingContext}.
+     *
+     * @param documentClass               a class annotated with {@link Document}
+     * @param documentClassMappingContext a {@link DocumentClassMappingContext} instance
      * @return an instance of the document class after being converted from a
      * {@link GenericDocument}
      * @throws AppSearchException if no factory for this document class could be found on the
      *                            classpath.
      * @see GenericDocument#fromDocumentClass
      */
-    @NonNull
-    public <T> T toDocumentClass(@NonNull Class<T> documentClass,
-            @Nullable Map<String, List<String>> documentClassMap) throws AppSearchException {
+    @ExperimentalAppSearchApi
+    public <T> @NonNull T toDocumentClass(@NonNull Class<T> documentClass,
+            @NonNull DocumentClassMappingContext documentClassMappingContext)
+            throws AppSearchException {
         Preconditions.checkNotNull(documentClass);
+        Preconditions.checkNotNull(documentClassMappingContext);
         DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
         Class<? extends T> targetClass = findTargetClassToDeserialize(documentClass,
-                documentClassMap);
+                documentClassMappingContext.getDocumentClassMap(),
+                documentClassMappingContext.getParentTypeMap());
         DocumentClassFactory<? extends T> factory = registry.getOrCreateFactory(targetClass);
-        return factory.fromGenericDocument(this, documentClassMap);
+        return factory.fromGenericDocument(this, documentClassMappingContext);
     }
 
     /**
      * Find a target class that is assignable to {@code documentClass} to deserialize this
-     * document, based on the provided document class map. If the provided map is null, return
-     * {@code documentClass} directly.
+     * document, based on the provided {@code documentClassMap} and {@code parentTypeMap}. If
+     * {@code documentClassMap} is empty, return {@code documentClass} directly.
+     * If {@code parentTypeMap} does not contain the required parent type information, this
+     * method will try the deprecated {@link #getParentTypes()}.
      *
      * <p>This method first tries to find a target class corresponding to the document's own type.
      * If that fails, it then tries to find a class corresponding to the document's parent type.
      * If that still fails, {@code documentClass} itself will be returned.
      */
-    @NonNull
-    private <T> Class<? extends T> findTargetClassToDeserialize(@NonNull Class<T> documentClass,
-            @Nullable Map<String, List<String>> documentClassMap) {
-        if (documentClassMap == null) {
+    private <T> @NonNull Class<? extends T> findTargetClassToDeserialize(
+            @NonNull Class<T> documentClass,
+            @NonNull Map<String, List<String>> documentClassMap,
+            @NonNull Map<String, List<String>> parentTypeMap) {
+        if (documentClassMap.isEmpty()) {
             return documentClass;
         }
 
@@ -1037,7 +1157,12 @@ public class GenericDocument {
         }
 
         // Find the target class by parent types.
-        List<String> parentTypes = getParentTypes();
+        List<String> parentTypes;
+        if (parentTypeMap.containsKey(getSchemaType())) {
+            parentTypes = parentTypeMap.get(getSchemaType());
+        } else {
+            parentTypes = getParentTypes();
+        }
         if (parentTypes != null) {
             for (int i = 0; i < parentTypes.size(); ++i) {
                 targetClass = AppSearchDocumentClassMap.getAssignableClassBySchemaName(
@@ -1054,23 +1179,6 @@ public class GenericDocument {
         return documentClass;
     }
 // @exportToFramework:endStrip()
-
-    /**
-     * Copies the contents of this {@link GenericDocument} into a new
-     * {@link GenericDocument.Builder}.
-     *
-     * <p>The returned builder is a deep copy whose data is separate from this document.
-     *
-     * @deprecated This API is not compliant with API guidelines.
-     * Use {@link Builder#Builder(GenericDocument)} instead.
-     * <!--@exportToFramework:hide-->
-     */
-    // TODO(b/171882200): Expose this API in Android T
-    @NonNull
-    @Deprecated
-    public GenericDocument.Builder<GenericDocument.Builder<?>> toBuilder() {
-        return new Builder<>(new GenericDocumentParcel.Builder(mDocumentParcel));
-    }
 
     @Override
     public boolean equals(@Nullable Object other) {
@@ -1090,8 +1198,7 @@ public class GenericDocument {
     }
 
     @Override
-    @NonNull
-    public String toString() {
+    public @NonNull String toString() {
         IndentingStringBuilder stringBuilder = new IndentingStringBuilder();
         appendGenericDocumentString(stringBuilder);
         return stringBuilder.toString();
@@ -1265,8 +1372,7 @@ public class GenericDocument {
          */
         @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_BUILDER_HIDDEN_METHODS)
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setNamespace(@NonNull String namespace) {
+        public @NonNull BuilderType setNamespace(@NonNull String namespace) {
             Preconditions.checkNotNull(namespace);
             mDocumentParcelBuilder.setNamespace(namespace);
             return mBuilderTypeInstance;
@@ -1283,8 +1389,7 @@ public class GenericDocument {
          */
         @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_BUILDER_HIDDEN_METHODS)
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setId(@NonNull String id) {
+        public @NonNull BuilderType setId(@NonNull String id) {
             Preconditions.checkNotNull(id);
             mDocumentParcelBuilder.setId(id);
             return mBuilderTypeInstance;
@@ -1299,8 +1404,7 @@ public class GenericDocument {
          */
         @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_BUILDER_HIDDEN_METHODS)
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setSchemaType(@NonNull String schemaType) {
+        public @NonNull BuilderType setSchemaType(@NonNull String schemaType) {
             Preconditions.checkNotNull(schemaType);
             mDocumentParcelBuilder.setSchemaType(schemaType);
             return mBuilderTypeInstance;
@@ -1310,13 +1414,15 @@ public class GenericDocument {
          * Sets the list of parent types of the {@link GenericDocument}'s type.
          *
          * <p>Child types must appear before parent types in the list.
+         *
+         * @deprecated Parent types should no longer be set in {@link GenericDocument}. Use
+         * {@link SearchResult.Builder#setParentTypeMap(Map)} instead.
          * <!--@exportToFramework:hide-->
          */
         @CanIgnoreReturnValue
         @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-        @NonNull
-        public BuilderType setParentTypes(@NonNull List<String> parentTypes) {
-            Preconditions.checkNotNull(parentTypes);
+        @Deprecated
+        public @NonNull BuilderType setParentTypes(@Nullable List<String> parentTypes) {
             mDocumentParcelBuilder.setParentTypes(parentTypes);
             return mBuilderTypeInstance;
         }
@@ -1336,8 +1442,8 @@ public class GenericDocument {
          * @throws IllegalArgumentException if the score is negative.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setScore(@IntRange(from = 0, to = Integer.MAX_VALUE) int score) {
+        public @NonNull BuilderType setScore(
+                @IntRange(from = 0, to = Integer.MAX_VALUE) int score) {
             if (score < 0) {
                 throw new IllegalArgumentException("Document score cannot be negative.");
             }
@@ -1356,9 +1462,8 @@ public class GenericDocument {
          * @param creationTimestampMillis a creation timestamp in milliseconds.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setCreationTimestampMillis(
-                /*@exportToFramework:CurrentTimeMillisLong*/ long creationTimestampMillis) {
+        public @NonNull BuilderType setCreationTimestampMillis(
+                @CurrentTimeMillisLong long creationTimestampMillis) {
             mDocumentParcelBuilder.setCreationTimestampMillis(creationTimestampMillis);
             return mBuilderTypeInstance;
         }
@@ -1378,8 +1483,7 @@ public class GenericDocument {
          * @throws IllegalArgumentException if ttlMillis is negative.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setTtlMillis(long ttlMillis) {
+        public @NonNull BuilderType setTtlMillis(long ttlMillis) {
             if (ttlMillis < 0) {
                 throw new IllegalArgumentException("Document ttlMillis cannot be negative.");
             }
@@ -1399,8 +1503,8 @@ public class GenericDocument {
          *                                  {@code String} is {@code null} or "".
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyString(@NonNull String name, @NonNull String... values) {
+        public @NonNull BuilderType setPropertyString(@NonNull String name,
+                @NonNull String... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
             validatePropertyName(name);
@@ -1424,8 +1528,8 @@ public class GenericDocument {
          * @throws IllegalArgumentException if the name is empty or {@code null}.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyBoolean(@NonNull String name, @NonNull boolean... values) {
+        public @NonNull BuilderType setPropertyBoolean(@NonNull String name,
+                @NonNull boolean... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
             validatePropertyName(name);
@@ -1444,8 +1548,8 @@ public class GenericDocument {
          * @throws IllegalArgumentException if the name is empty or {@code null}.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyLong(@NonNull String name, @NonNull long... values) {
+        public @NonNull BuilderType setPropertyLong(@NonNull String name,
+                @NonNull long... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
             validatePropertyName(name);
@@ -1464,8 +1568,8 @@ public class GenericDocument {
          * @throws IllegalArgumentException if the name is empty or {@code null}.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyDouble(@NonNull String name, @NonNull double... values) {
+        public @NonNull BuilderType setPropertyDouble(@NonNull String name,
+                @NonNull double... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
             validatePropertyName(name);
@@ -1476,6 +1580,8 @@ public class GenericDocument {
         /**
          * Sets one or multiple {@code byte[]} for a property, replacing its previous values.
          *
+         * <p> For large byte data and lazy retrieval, see {@link #setPropertyBlobHandle}.
+         *
          * @param name   the name associated with the {@code values}. Must match the name
          *               for this property as given in
          *               {@link AppSearchSchema.PropertyConfig#getName}.
@@ -1484,8 +1590,8 @@ public class GenericDocument {
          *                                  {@code byte[]} is {@code null}, or if name is empty.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyBytes(@NonNull String name, @NonNull byte[]... values) {
+        public @NonNull BuilderType setPropertyBytes(@NonNull String name,
+                @NonNull byte[]... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
             validatePropertyName(name);
@@ -1511,8 +1617,7 @@ public class GenericDocument {
          *                                  is empty.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType setPropertyDocument(
+        public @NonNull BuilderType setPropertyDocument(
                 @NonNull String name, @NonNull GenericDocument... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
@@ -1539,9 +1644,11 @@ public class GenericDocument {
          * @throws IllegalArgumentException if the name is empty or {@code null}.
          */
         @CanIgnoreReturnValue
-        @NonNull
         @FlaggedApi(Flags.FLAG_ENABLE_SCHEMA_EMBEDDING_PROPERTY_CONFIG)
-        public BuilderType setPropertyEmbedding(@NonNull String name,
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.SCHEMA_EMBEDDING_PROPERTY_CONFIG)
+        public @NonNull BuilderType setPropertyEmbedding(@NonNull String name,
                 @NonNull EmbeddingVector... values) {
             Preconditions.checkNotNull(name);
             Preconditions.checkNotNull(values);
@@ -1550,6 +1657,44 @@ public class GenericDocument {
                 if (values[i] == null) {
                     throw new IllegalArgumentException(
                             "The EmbeddingVector at " + i + " is null.");
+                }
+            }
+            mDocumentParcelBuilder.putInPropertyMap(name, values);
+            return mBuilderTypeInstance;
+        }
+
+        /**
+         * Sets one or multiple {@link AppSearchBlobHandle} values for a property, replacing
+         * its previous values.
+         *
+         * <p>{@link AppSearchBlobHandle} is a pointer to a blob of data.
+         *
+         * <p>Store large byte via the {@link android.os.ParcelFileDescriptor} returned from
+         * {@link AppSearchSession#openBlobForWriteAsync}. Once the blob data is committed via
+         * {@link AppSearchSession#commitBlobAsync}, the blob is retrievable via
+         * {@link AppSearchSession#openBlobForReadAsync}.
+         *
+         * @param name   the name associated with the {@code values}. Must match the name
+         *               for this property as given in
+         *               {@link AppSearchSchema.PropertyConfig#getName}.
+         * @param values the {@link AppSearchBlobHandle} values of the property.
+         * @throws IllegalArgumentException if the name is empty or {@code null}.
+         */
+        @CanIgnoreReturnValue
+        @FlaggedApi(Flags.FLAG_ENABLE_BLOB_STORE)
+        @ExperimentalAppSearchApi
+        @RequiresFeature(
+                enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
+                name = Features.BLOB_STORAGE)
+        public @NonNull BuilderType setPropertyBlobHandle(@NonNull String name,
+                @NonNull AppSearchBlobHandle... values) {
+            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(values);
+            validatePropertyName(name);
+            for (int i = 0; i < values.length; i++) {
+                if (values[i] == null) {
+                    throw new IllegalArgumentException(
+                            "The BlobHandle at " + i + " is null.");
                 }
             }
             mDocumentParcelBuilder.putInPropertyMap(name, values);
@@ -1571,16 +1716,14 @@ public class GenericDocument {
          */
         @FlaggedApi(Flags.FLAG_ENABLE_GENERIC_DOCUMENT_BUILDER_HIDDEN_METHODS)
         @CanIgnoreReturnValue
-        @NonNull
-        public BuilderType clearProperty(@NonNull String name) {
+        public @NonNull BuilderType clearProperty(@NonNull String name) {
             Preconditions.checkNotNull(name);
             mDocumentParcelBuilder.clearProperty(name);
             return mBuilderTypeInstance;
         }
 
         /** Builds the {@link GenericDocument} object. */
-        @NonNull
-        public GenericDocument build() {
+        public @NonNull GenericDocument build() {
             return new GenericDocument(mDocumentParcelBuilder.build());
         }
 

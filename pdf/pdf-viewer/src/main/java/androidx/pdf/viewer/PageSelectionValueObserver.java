@@ -18,26 +18,24 @@ package androidx.pdf.viewer;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.data.Range;
 import androidx.pdf.models.PageSelection;
 import androidx.pdf.util.ObservableValue;
 import androidx.pdf.util.PaginationUtils;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class PageSelectionValueObserver implements ObservableValue.ValueObserver<PageSelection> {
     private final PaginatedView mPaginatedView;
-    private final PaginationModel mPaginationModel;
     private final PageViewFactory mPageViewFactory;
     private Context mContext;
 
     public PageSelectionValueObserver(@NonNull PaginatedView paginatedView,
-            @NonNull PaginationModel paginationModel,
             @NonNull PageViewFactory pageViewFactory, @NonNull Context context) {
         mPaginatedView = paginatedView;
-        mPaginationModel = paginationModel;
         mPageViewFactory = pageViewFactory;
         mContext = context;
     }
@@ -56,13 +54,14 @@ public class PageSelectionValueObserver implements ObservableValue.ValueObserver
             mPageViewFactory.getOrCreatePageView(
                             newSelection.getPage(),
                             PaginationUtils.getPageElevationInPixels(mContext),
-                            mPaginationModel.getPageSize(newSelection.getPage()))
+                            mPaginatedView.getModel().getPageSize(newSelection.getPage()))
                     .setOverlay(new PdfHighlightOverlay(newSelection));
         }
     }
 
     private boolean isPageCreated(int pageNum) {
-        return pageNum < mPaginationModel.getSize() && mPaginatedView.getViewAt(pageNum) != null;
+        return pageNum < mPaginatedView.getModel().getSize() && mPaginatedView.getViewAt(pageNum)
+                != null;
     }
 
     private PageViewFactory.PageView getPage(int pageNum) {

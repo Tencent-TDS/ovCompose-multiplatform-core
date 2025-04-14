@@ -55,6 +55,7 @@ internal constructor(
     private val recorder: Recorder,
     private val outputOptions: OutputOptions,
     private val withAudio: Boolean,
+    private val initialAudioMuted: Boolean,
     private val asPersistentRecording: Boolean,
     private val recordingStopStrategy: (androidx.camera.video.Recording, Recorder) -> Unit,
     private val callbackExecutor: Executor,
@@ -73,7 +74,7 @@ internal constructor(
             else -> throw AssertionError()
         }.apply {
             if (withAudio) {
-                withAudioEnabled()
+                withAudioEnabled(initialAudioMuted)
             }
             if (asPersistentRecording) {
                 asPersistentRecording()
@@ -116,7 +117,20 @@ internal constructor(
     ): List<Status> {
         try {
             return if (statusCount > 0) {
-                listener.verifyStatus(eventCount = statusCount)
+                listener.verifyStatus(eventCount = statusCount).also {
+                    if (withAudio) {
+                        // Ensure audio is recorded.
+                        listener.verifyAcceptCall(
+                            Status::class.java,
+                            /*inOrder=*/ false,
+                            defaultVerifyStatusTimeoutMs,
+                            CallTimesAtLeast(1),
+                            ArgumentMatcher<VideoRecordEvent> {
+                                it.recordingStats.audioStats.audioBytesRecorded > 0L
+                            }
+                        )
+                    }
+                }
             } else emptyList()
         } catch (t: Throwable) {
             throw AssertionError("Failed on #verifyStatus", t)
@@ -221,7 +235,7 @@ internal constructor(
         return this
     }
 
-    private fun verifyMute(muted: Boolean) {
+    public fun verifyMute(muted: Boolean) {
         // TODO(b/274862085): Change to verify the status events consecutively having MUTED state
         //  by adding the utility to MockConsumer.
         try {

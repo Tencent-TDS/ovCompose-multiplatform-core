@@ -22,8 +22,8 @@ import androidx.room.RoomProcessor
 import androidx.room.compiler.processing.util.CompilationResultSubject
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.compileFiles
+import androidx.room.compiler.processing.util.runProcessorTest
 import androidx.room.processor.Context
-import androidx.room.runProcessorTestWithK1
 import androidx.testutils.generateAllEnumerations
 import loadTestSource
 import org.junit.Test
@@ -156,13 +156,16 @@ private fun singleDb(
                 COMMON.LIVE_DATA,
                 COMMON.COMPUTABLE_LIVE_DATA,
                 COMMON.GUAVA_ROOM,
-                COMMON.LISTENABLE_FUTURE
+                COMMON.LISTENABLE_FUTURE,
+                COMMON.PAGING_SOURCE,
+                COMMON.LIMIT_OFFSET_PAGING_SOURCE
             )
         )
-    runProcessorTestWithK1(
+    runProcessorTest(
         sources = sources,
         classpath = libs,
         options = mapOf(Context.BooleanProcessorOptions.GENERATE_KOTLIN.argName to "false"),
+        kotlincArguments = listOf("-jvm-target=11"),
         javacProcessors = listOf(RoomProcessor()),
         symbolProcessorProviders = listOf(RoomKspProcessor.Provider()),
         onCompilationResult = onCompilationResult

@@ -24,7 +24,6 @@ import android.telecom.Call
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.telecom.InCallServiceCompat
-import androidx.core.telecom.util.ExperimentalAppActions
 import java.util.Collections
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -61,13 +60,13 @@ internal class TestInCallService : InCallServiceCompat() {
         mCalls.remove(call)
     }
 
-    override fun onBind(intent: Intent): IBinder? {
-        if (intent.action == SERVICE_INTERFACE) {
+    override fun onBind(intent: Intent?): IBinder? {
+        if (intent?.action == SERVICE_INTERFACE) {
             Log.i(LOG_TAG, "InCallService bound from telecom")
             mTelecomBoundFlow.tryEmit(true)
             return super.onBind(intent)
         }
-        Log.i(LOG_TAG, "InCallService bound by ${intent.component}")
+        Log.i(LOG_TAG, "InCallService bound by ${intent?.component}")
         return localBinder
     }
 
@@ -116,7 +115,6 @@ internal class TestInCallService : InCallServiceCompat() {
         mCalls.clear()
     }
 
-    @ExperimentalAppActions
     fun getLastCall(): Call? {
         return if (mCalls.size == 0) {
             null

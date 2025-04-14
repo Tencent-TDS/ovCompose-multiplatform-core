@@ -17,6 +17,7 @@
 package androidx.privacysandbox.tools.apigenerator.parser
 
 import androidx.privacysandbox.tools.apigenerator.mergedClasspath
+import androidx.privacysandbox.tools.core.PrivacySandboxParsingException
 import androidx.privacysandbox.tools.core.model.AnnotatedDataClass
 import androidx.privacysandbox.tools.core.model.AnnotatedEnumClass
 import androidx.privacysandbox.tools.core.model.AnnotatedInterface
@@ -51,6 +52,7 @@ class ApiStubParserTest {
                     |import androidx.privacysandbox.tools.PrivacySandboxService
                     |import androidx.privacysandbox.tools.PrivacySandboxValue
                     |import androidx.privacysandbox.ui.core.SandboxedUiAdapter
+                    |import androidx.privacysandbox.ui.core.SharedUiAdapter
                     |
                     |@PrivacySandboxService
                     |interface MySdk {
@@ -68,6 +70,9 @@ class ApiStubParserTest {
                     |
                     |@PrivacySandboxInterface
                     |interface MyUiInterface : SandboxedUiAdapter {}
+                    |
+                    |@PrivacySandboxInterface
+                    |interface MySharedUiInterface : SharedUiAdapter {}
                     |
                     |@PrivacySandboxValue
                     |data class PayloadType(val size: Long, val appId: String)
@@ -181,6 +186,11 @@ class ApiStubParserTest {
                     superTypes = listOf(Types.sandboxedUiAdapter),
                     methods = listOf(),
                 ),
+                AnnotatedInterface(
+                    type = Type(packageName = "com.mysdk", simpleName = "MySharedUiInterface"),
+                    superTypes = listOf(Types.sharedUiAdapter),
+                    methods = listOf(),
+                )
             )
         val expectedCallback =
             AnnotatedInterface(

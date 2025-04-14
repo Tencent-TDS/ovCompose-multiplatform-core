@@ -22,15 +22,25 @@
  * modifying its settings.
  */
 
+
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
 }
 
 androidXMultiplatform {
-    android()
+    androidLibrary {
+        namespace = "androidx.sqlite.driver.test"
+        withAndroidTestOnDeviceBuilder {
+            it.compilationName = "instrumentedTest"
+            it.defaultSourceSetName = "androidInstrumentedTest"
+            it.sourceSetTreeName = "test"
+        }
+        withAndroidTestOnJvmBuilder {
+            it.defaultSourceSetName = "androidUnitTest"
+        }
+    }
     ios()
     jvm()
     linux()
@@ -78,9 +88,6 @@ androidXMultiplatform {
     }
 }
 
-android {
-    namespace "androidx.sqlite.driver.test"
-}
 
 androidx {
     name = "SQLite Driver Coformance Base Tests"

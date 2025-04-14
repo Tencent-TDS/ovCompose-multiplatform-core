@@ -22,8 +22,8 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SdkSuppress
 import androidx.window.embedding.EmbeddingAspectRatio.Companion.ALWAYS_DISALLOW
 import androidx.window.embedding.SplitAttributes.LayoutDirection.Companion.BOTTOM_TO_TOP
 import androidx.window.embedding.SplitAttributes.LayoutDirection.Companion.LOCALE
@@ -80,7 +80,7 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
                 .setLayoutDirection(LOCALE)
-                .setAnimationBackground(EmbeddingAnimationBackground.DEFAULT)
+                .setAnimationParams(EmbeddingAnimationParams.Builder().build())
                 .build()
         assertNull(rule.tag)
         assertEquals(SPLIT_MIN_DIMENSION_DP_DEFAULT, rule.minWidthDp)
@@ -138,8 +138,15 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.3f))
                 .setLayoutDirection(TOP_TO_BOTTOM)
-                .setAnimationBackground(
-                    EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
+                .setAnimationParams(
+                    EmbeddingAnimationParams.Builder()
+                        .setAnimationBackground(
+                            EmbeddingAnimationBackground.createColorBackground(Color.BLUE)
+                        )
+                        .setOpenAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setCloseAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setChangeAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .build()
                 )
                 .build()
         assertEquals(TEST_TAG, rule.tag)
@@ -149,6 +156,84 @@ class RuleParserTests {
         assertEquals(expectedSplitLayout, rule.defaultSplitAttributes)
         assertTrue(rule.checkParentBounds(density, validBounds))
         assertFalse(rule.checkParentBounds(density, invalidBounds))
+    }
+
+    /**
+     * Verifies that params are set correctly when reading {@link SplitPairRule} from XML with
+     * divider attributes.
+     *
+     * @see R.xml.test_split_config_custom_split_pair_rule_with_divider for customized value.
+     */
+    @Test
+    fun testCustom_SplitPairRule_withDivider() {
+        val rules =
+            RuleController.parseRules(
+                application,
+                R.xml.test_split_config_custom_split_pair_rule_with_divider
+            )
+        assertEquals(4, rules.size)
+        val expectedDividerColor = 0xff112233
+
+        val expectedDividerAttributes1 = DividerAttributes.FixedDividerAttributes.Builder().build()
+
+        val expectedDividerAttributes2 =
+            DividerAttributes.DraggableDividerAttributes.Builder().build()
+
+        val expectedDividerAttributes3 =
+            DividerAttributes.FixedDividerAttributes.Builder()
+                .setWidthDp(1)
+                .setColor(expectedDividerColor.toInt())
+                .build()
+
+        val expectedDividerAttributes4 =
+            DividerAttributes.DraggableDividerAttributes.Builder()
+                .setWidthDp(1)
+                .setColor(expectedDividerColor.toInt())
+                .setDraggingToFullscreenAllowed(true)
+                .setDragRange(DividerAttributes.DragRange.SplitRatioDragRange(0.2f, 0.8f))
+                .build()
+
+        rules.forEach {
+            val rule = it as SplitPairRule
+            when (rule.tag) {
+                "rule1" ->
+                    assertEquals(
+                        expectedDividerAttributes1,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule2" ->
+                    assertEquals(
+                        expectedDividerAttributes2,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule3" ->
+                    assertEquals(
+                        expectedDividerAttributes3,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                "rule4" ->
+                    assertEquals(
+                        expectedDividerAttributes4,
+                        rule.defaultSplitAttributes.dividerAttributes
+                    )
+                else -> throw IllegalStateException("Unexpected rule tag ${rule.tag}")
+            }
+        }
+    }
+
+    /**
+     * Verifies that a `IllegalArgumentException` thrown for invalid divider attributes.
+     *
+     * @see R.xml.test_split_config_custom_split_pair_rule_with_divider_error for customized value.
+     */
+    @Test
+    fun testCustom_SplitPairRule_withDividerError() {
+        assertThrows(IllegalArgumentException::class.java) {
+            RuleController.parseRules(
+                application,
+                R.xml.test_split_config_custom_split_pair_rule_with_divider_error
+            )
+        }
     }
 
     /**
@@ -168,7 +253,7 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.5f))
                 .setLayoutDirection(LOCALE)
-                .setAnimationBackground(EmbeddingAnimationBackground.DEFAULT)
+                .setAnimationParams(EmbeddingAnimationParams.Builder().build())
                 .build()
         assertNull(rule.tag)
         assertEquals(SPLIT_MIN_DIMENSION_DP_DEFAULT, rule.minWidthDp)
@@ -217,7 +302,7 @@ class RuleParserTests {
      * Verifies that horizontal layout are set correctly when reading [SplitPlaceholderRule] from
      * XML.
      */
-    @RequiresApi(Build.VERSION_CODES.M)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.M)
     @Test
     fun testHorizontalLayout_SplitPlaceholderRule_Xml() {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
@@ -232,10 +317,17 @@ class RuleParserTests {
             SplitAttributes.Builder()
                 .setSplitType(SplitAttributes.SplitType.ratio(0.3f))
                 .setLayoutDirection(BOTTOM_TO_TOP)
-                .setAnimationBackground(
-                    EmbeddingAnimationBackground.createColorBackground(
-                        application.resources.getColor(R.color.testColor, null)
-                    )
+                .setAnimationParams(
+                    EmbeddingAnimationParams.Builder()
+                        .setAnimationBackground(
+                            EmbeddingAnimationBackground.createColorBackground(
+                                application.resources.getColor(R.color.testColor, null)
+                            )
+                        )
+                        .setOpenAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setCloseAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .setChangeAnimation(EmbeddingAnimationParams.AnimationSpec.JUMP_CUT)
+                        .build()
                 )
                 .build()
         assertEquals(TEST_TAG, rule.tag)

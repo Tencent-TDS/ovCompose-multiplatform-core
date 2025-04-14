@@ -51,7 +51,7 @@ internal class ParagraphLayoutCache(
     private var overflow: TextOverflow = TextOverflow.Clip,
     private var softWrap: Boolean = true,
     private var maxLines: Int = Int.MAX_VALUE,
-    private var minLines: Int = DefaultMinLines,
+    private var minLines: Int = DefaultMinLines
 ) {
 
     /**
@@ -121,19 +121,11 @@ internal class ParagraphLayoutCache(
     fun layoutWithConstraints(constraints: Constraints, layoutDirection: LayoutDirection): Boolean {
         val finalConstraints =
             if (minLines > 1) {
-                val localMin =
-                    MinLinesConstrainer.from(
-                            mMinLinesConstrainer,
-                            layoutDirection,
-                            style,
-                            density!!,
-                            fontFamilyResolver
-                        )
-                        .also { mMinLinesConstrainer = it }
-                localMin.coerceMinLines(inConstraints = constraints, minLines = minLines)
+                useMinLinesConstrainer(constraints, layoutDirection)
             } else {
                 constraints
             }
+
         if (!newLayoutWillBeDifferent(finalConstraints, layoutDirection)) {
             if (finalConstraints != prevConstraints) {
                 // ensure size and overflow is still accurate
@@ -152,6 +144,7 @@ internal class ParagraphLayoutCache(
             }
             return false
         }
+
         paragraph =
             layoutText(finalConstraints, layoutDirection).also {
                 prevConstraints = finalConstraints
@@ -167,15 +160,40 @@ internal class ParagraphLayoutCache(
         return true
     }
 
+    private fun useMinLinesConstrainer(
+        constraints: Constraints,
+        layoutDirection: LayoutDirection,
+        style: TextStyle = this.style
+    ): Constraints {
+        val localMin =
+            MinLinesConstrainer.from(
+                    mMinLinesConstrainer,
+                    layoutDirection,
+                    style,
+                    density!!,
+                    fontFamilyResolver
+                )
+                .also { mMinLinesConstrainer = it }
+        return localMin.coerceMinLines(inConstraints = constraints, minLines = minLines)
+    }
+
     /** The natural height of text at [width] in [layoutDirection] */
     fun intrinsicHeight(width: Int, layoutDirection: LayoutDirection): Int {
         val localWidth = cachedIntrinsicHeightInputWidth
         val localHeght = cachedIntrinsicHeight
         if (width == localWidth && localWidth != -1) return localHeght
+        val constraints = Constraints(0, width, 0, Constraints.Infinity)
+        val finalConstraints =
+            if (minLines > 1) {
+                useMinLinesConstrainer(constraints, layoutDirection)
+            } else {
+                constraints
+            }
         val result =
-            layoutText(Constraints(0, width, 0, Constraints.Infinity), layoutDirection)
+            layoutText(finalConstraints, layoutDirection)
                 .height
                 .ceilToIntPx()
+                .coerceAtLeast(finalConstraints.minHeight)
 
         cachedIntrinsicHeightInputWidth = width
         cachedIntrinsicHeight = result
@@ -219,8 +237,10 @@ internal class ParagraphLayoutCache(
                 ParagraphIntrinsics(
                     text = text,
                     style = resolveDefaults(style, layoutDirection),
+                    annotations = listOf(),
                     density = density!!,
-                    fontFamilyResolver = fontFamilyResolver
+                    fontFamilyResolver = fontFamilyResolver,
+                    placeholders = listOf()
                 )
             } else {
                 localIntrinsics
@@ -235,7 +255,7 @@ internal class ParagraphLayoutCache(
      * The text will layout with a width that's as close to its max intrinsic width as possible
      * while still being greater than or equal to `minWidth` and less than or equal to `maxWidth`.
      */
-    private fun layoutText(constraints: Constraints, layoutDirection: LayoutDirection): Paragraph {
+    internal fun layoutText(constraints: Constraints, layoutDirection: LayoutDirection): Paragraph {
         val localParagraphIntrinsics = setLayoutDirection(layoutDirection)
 
         return Paragraph(
@@ -247,9 +267,8 @@ internal class ParagraphLayoutCache(
                     overflow,
                     localParagraphIntrinsics.maxIntrinsicWidth
                 ),
-            // This is a fallback behavior for ellipsis. Native
             maxLines = finalMaxLines(softWrap, overflow, maxLines),
-            ellipsis = overflow == TextOverflow.Ellipsis
+            overflow = overflow
         )
     }
 
@@ -261,7 +280,7 @@ internal class ParagraphLayoutCache(
         constraints: Constraints,
         layoutDirection: LayoutDirection
     ): Boolean {
-        // paragarph and paragraphIntrinsics are from previous run
+        // paragraph and paragraphIntrinsics are from previous run
         val localParagraph = paragraph ?: return true
         val localParagraphIntrinsics = paragraphIntrinsics ?: return true
         // no layout yet
@@ -276,6 +295,7 @@ internal class ParagraphLayoutCache(
         if (constraints == prevConstraints) return false
 
         if (constraints.maxWidth != prevConstraints.maxWidth) return true
+        if (constraints.minWidth != prevConstraints.minWidth) return true
 
         // if we get here width won't change, height may be clipped
         if (constraints.maxHeight < localParagraph.height || localParagraph.didExceedMaxLines) {
@@ -312,7 +332,7 @@ internal class ParagraphLayoutCache(
         val annotatedString = AnnotatedString(text)
         paragraph ?: return null
         paragraphIntrinsics ?: return null
-        val finalConstraints = prevConstraints.copy(minWidth = 0, minHeight = 0)
+        val finalConstraints = prevConstraints.copyMaxDimensions()
 
         // and redo layout with MultiParagraph
         return TextLayoutResult(
@@ -338,7 +358,7 @@ internal class ParagraphLayoutCache(
                 ),
                 finalConstraints,
                 maxLines,
-                overflow == TextOverflow.Ellipsis
+                overflow
             ),
             layoutSize
         )

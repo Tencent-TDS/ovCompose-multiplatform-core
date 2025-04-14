@@ -18,11 +18,15 @@
     "RedundantVisibilityModifier",
     "NOTHING_TO_INLINE"
 )
+@file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
 import androidx.collection.internal.EMPTY_OBJECTS
 import androidx.collection.internal.requirePrecondition
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
 
@@ -225,6 +229,40 @@ public fun <V> mutablePKeyObjectMapOf(
         map[key4] = value4
         map[key5] = value5
     }
+
+/**
+ * Builds a new [PKeyObjectMap] by populating a [MutablePKeyObjectMap] using the given
+ * [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutablePKeyObjectMap] can be populated.
+ */
+public inline fun <V> buildPKeyObjectMap(
+    builderAction: MutablePKeyObjectMap<V>.() -> Unit,
+): PKeyObjectMap<V> {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutablePKeyObjectMap<V>().apply(builderAction)
+}
+
+/**
+ * Builds a new [PKeyObjectMap] by populating a [MutablePKeyObjectMap] using the given
+ * [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of pairs added in the [builderAction].
+ * @param builderAction Lambda in which the [MutablePKeyObjectMap] can be populated.
+ */
+public inline fun <V> buildPKeyObjectMap(
+    initialCapacity: Int,
+    builderAction: MutablePKeyObjectMap<V>.() -> Unit,
+): PKeyObjectMap<V> {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutablePKeyObjectMap<V>(initialCapacity).apply(builderAction)
+}
 
 /**
  * [PKeyObjectMap] is a container with a [Map]-like interface for keys with
@@ -451,19 +489,19 @@ public sealed class PKeyObjectMap<V> {
     }
 
     /**
-     * Returns true if the specified [key] is present in this hash map, false
+     * Returns true if the specified [key] is present in this map, false
      * otherwise.
      */
-    public operator fun contains(key: PKey): Boolean = findKeyIndex(key) >= 0
+    public inline operator fun contains(key: PKey): Boolean = containsKey(key)
 
     /**
-     * Returns true if the specified [key] is present in this hash map, false
+     * Returns true if the specified [key] is present in this map, false
      * otherwise.
      */
     public fun containsKey(key: PKey): Boolean = findKeyIndex(key) >= 0
 
     /**
-     * Returns true if the specified [value] is present in this hash map, false
+     * Returns true if the specified [value] is present in this map, false
      * otherwise.
      */
     public fun containsValue(value: V): Boolean {
@@ -985,7 +1023,6 @@ public class MutablePKeyObjectMap<V>(
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -993,7 +1030,6 @@ public class MutablePKeyObjectMap<V>(
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -1040,25 +1076,19 @@ public class MutablePKeyObjectMap<V>(
 
                 values[targetIndex] = values[index]
                 values[index] = null
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                keys[swapIndex] = keys[targetIndex]
+                val oldKey = keys[targetIndex]
                 keys[targetIndex] = keys[index]
-                keys[index] = keys[swapIndex]
+                keys[index] = oldKey
 
-                values[swapIndex] = values[targetIndex]
+                val oldValue = values[targetIndex]
                 values[targetIndex] = values[index]
-                values[index] = values[swapIndex]
+                values[index] = oldValue
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location

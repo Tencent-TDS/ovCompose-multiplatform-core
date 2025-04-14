@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.testutils.assertContainsColor
 import androidx.compose.testutils.assertDoesNotContainColor
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -91,11 +92,11 @@ class SegmentedCircularProgressIndicatorTest {
             )
         }
         rule.waitForIdle()
-        // by default fully filled progress approximately takes 25% of the control.
+        // by default fully filled progress approximately takes 16% of the control.
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Yellow, 20f..25f)
+            .assertColorInPercentageRange(Color.Yellow, 15f..18f)
         rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(Color.Red)
     }
 
@@ -119,7 +120,7 @@ class SegmentedCircularProgressIndicatorTest {
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Red, 20f..25f)
+            .assertColorInPercentageRange(Color.Red, 15f..18f)
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -141,15 +142,15 @@ class SegmentedCircularProgressIndicatorTest {
         }
         rule.waitForIdle()
         // Color should take approximately a quarter of the full screen color percentages,
-        // eg 25% / 4 ≈ 6%.
+        // eg 16% / 4 ≈ 4%.
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Yellow, 4f..8f)
+            .assertColorInPercentageRange(Color.Yellow, 3f..5f)
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Red, 4f..8f)
+            .assertColorInPercentageRange(Color.Red, 3f..5f)
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -160,7 +161,7 @@ class SegmentedCircularProgressIndicatorTest {
                 progress = { 0.5f },
                 segmentCount = 5,
                 modifier = Modifier.testTag(TEST_TAG),
-                strokeWidth = 4.dp,
+                strokeWidth = CircularProgressIndicatorDefaults.smallStrokeWidth,
                 colors =
                     ProgressIndicatorDefaults.colors(
                         indicatorColor = Color.Yellow,
@@ -187,7 +188,7 @@ class SegmentedCircularProgressIndicatorTest {
                 progress = { 0.5f },
                 segmentCount = 5,
                 modifier = Modifier.testTag(TEST_TAG),
-                strokeWidth = 36.dp,
+                strokeWidth = CircularProgressIndicatorDefaults.largeStrokeWidth,
                 colors =
                     ProgressIndicatorDefaults.colors(
                         indicatorColor = Color.Yellow,
@@ -200,11 +201,11 @@ class SegmentedCircularProgressIndicatorTest {
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Yellow, 15f..20f)
+            .assertColorInPercentageRange(Color.Yellow, 7f..9f)
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Red, 15f..20f)
+            .assertColorInPercentageRange(Color.Red, 7f..9f)
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -213,7 +214,7 @@ class SegmentedCircularProgressIndicatorTest {
         setContentWithTheme {
             SegmentedCircularProgressIndicator(
                 segmentCount = 6,
-                completed = { it % 2 != 0 },
+                segmentValue = { it % 2 != 0 },
                 modifier = Modifier.testTag(TEST_TAG),
                 colors =
                     ProgressIndicatorDefaults.colors(
@@ -242,7 +243,7 @@ class SegmentedCircularProgressIndicatorTest {
         setContentWithTheme {
             SegmentedCircularProgressIndicator(
                 segmentCount = 6,
-                completed = { true },
+                segmentValue = { true },
                 modifier = Modifier.testTag(TEST_TAG),
                 colors =
                     ProgressIndicatorDefaults.colors(
@@ -257,7 +258,7 @@ class SegmentedCircularProgressIndicatorTest {
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Yellow, 20f..25f)
+            .assertColorInPercentageRange(Color.Yellow, 15f..18f)
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -266,7 +267,7 @@ class SegmentedCircularProgressIndicatorTest {
         setContentWithTheme {
             SegmentedCircularProgressIndicator(
                 segmentCount = 6,
-                completed = { false },
+                segmentValue = { false },
                 modifier = Modifier.testTag(TEST_TAG),
                 colors =
                     ProgressIndicatorDefaults.colors(
@@ -281,11 +282,134 @@ class SegmentedCircularProgressIndicatorTest {
         rule
             .onNodeWithTag(TEST_TAG)
             .captureToImage()
-            .assertColorInPercentageRange(Color.Red, 20f..25f)
+            .assertColorInPercentageRange(Color.Red, 15f..18f)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun progress_disabled_contains_only_disabled_colors() {
+        setContentWithTheme {
+            SegmentedCircularProgressIndicator(
+                progress = { 0.5f },
+                segmentCount = 5,
+                modifier = Modifier.testTag(TEST_TAG),
+                enabled = false,
+                colors =
+                    ProgressIndicatorDefaults.colors(
+                        indicatorColor = Color.Yellow,
+                        trackColor = Color.Red,
+                        disabledIndicatorColor = Color.Blue,
+                        disabledTrackColor = Color.Green,
+                    ),
+            )
+        }
+
+        rule.waitForIdle()
+
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(Color.Yellow)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(Color.Red)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(Color.Blue)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(Color.Green)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun progress_overflow_contains_overflow_color() {
+        val customIndicatorColor = Color.Yellow
+        val customTrackColor = Color.Red
+        val customOverflowTrackColor = Color.Blue
+
+        setContentWithTheme {
+            SegmentedCircularProgressIndicator(
+                progress = { 1.5f },
+                segmentCount = 5,
+                modifier = Modifier.testTag(TEST_TAG),
+                colors =
+                    ProgressIndicatorDefaults.colors(
+                        indicatorColor = customIndicatorColor,
+                        trackColor = customTrackColor,
+                        overflowTrackColor = customOverflowTrackColor
+                    ),
+                allowProgressOverflow = true
+            )
+        }
+        rule.waitForIdle()
+        // When overflow is allowed then over-achieved (>100%) progress values the track should be
+        // in overflowTrackColor and the indicator should still be in indicatorColor.
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(customTrackColor)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customIndicatorColor)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customOverflowTrackColor)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun progress_overflow_not_allowed_contains_only_indicator_color() {
+        val customIndicatorColor = Color.Yellow
+        val customTrackColor = Color.Red
+        val customOverflowTrackColor = Color.Blue
+
+        setContentWithTheme {
+            SegmentedCircularProgressIndicator(
+                progress = { 1.5f },
+                segmentCount = 5,
+                modifier = Modifier.testTag(TEST_TAG),
+                colors =
+                    ProgressIndicatorDefaults.colors(
+                        indicatorColor = customIndicatorColor,
+                        trackColor = customTrackColor,
+                        overflowTrackColor = customOverflowTrackColor
+                    ),
+                allowProgressOverflow = false
+            )
+        }
+        rule.waitForIdle()
+        // When progress overflow is disabled, then overflow progress values should be coerced to 1
+        // and overflowTrackColor should not appear, only customIndicatorColor.
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .captureToImage()
+            .assertDoesNotContainColor(customOverflowTrackColor)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(customTrackColor)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customIndicatorColor)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun progress_overflow_200_percent_contains_only_indicator_color() {
+        val customIndicatorColor = Color.Yellow
+        val customTrackColor = Color.Red
+        val customOverflowTrackColor = Color.Blue
+
+        setContentWithTheme {
+            SegmentedCircularProgressIndicator(
+                progress = { 2.0f },
+                segmentCount = 5,
+                modifier = Modifier.testTag(TEST_TAG),
+                colors =
+                    ProgressIndicatorDefaults.colors(
+                        indicatorColor = customIndicatorColor,
+                        trackColor = customTrackColor,
+                        overflowTrackColor = customOverflowTrackColor,
+                    ),
+            )
+        }
+        rule.waitForIdle()
+        // For 200% over-achieved progress the indicator should take the whole progress
+        // circle, just like for 100%.
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertDoesNotContainColor(customTrackColor)
+        rule
+            .onNodeWithTag(TEST_TAG)
+            .captureToImage()
+            .assertDoesNotContainColor(customOverflowTrackColor)
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(customIndicatorColor)
     }
 
     private fun setContentWithTheme(composable: @Composable BoxScope.() -> Unit) {
         // Use constant size modifier to limit relative color percentage ranges.
-        rule.setContentWithTheme(modifier = Modifier.size(204.dp), composable = composable)
+        rule.setContentWithTheme(modifier = Modifier.size(COMPONENT_SIZE)) {
+            ScreenConfiguration(SCREEN_SIZE_LARGE) { composable() }
+        }
     }
 }
+
+private val COMPONENT_SIZE = 204.dp

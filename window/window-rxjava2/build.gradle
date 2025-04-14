@@ -21,8 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,7 +31,7 @@ plugins {
 }
 
 android {
-    namespace "androidx.window.rxjava2"
+    namespace = "androidx.window.rxjava2"
 }
 
 dependencies {
@@ -45,15 +45,15 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy)
-    androidTestImplementation(libs.mockitoKotlin, excludes.bytebuddy)
+    androidTestImplementation(libs.dexmakerMockito)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.mockitoKotlin)
     androidTestImplementation(libs.kotlinCoroutinesTest)
 }
 
 androidx {
     name = "WindowManager RxJava2"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2021"
     description = "WindowManager RxJava 2"
     legacyDisableKotlinStrictApiMode = true

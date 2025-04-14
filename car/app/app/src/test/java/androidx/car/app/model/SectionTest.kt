@@ -18,6 +18,7 @@ package androidx.car.app.model
 
 import android.text.SpannableString
 import android.text.Spanned
+import androidx.car.app.annotations.CarProtocol
 import androidx.car.app.testing.TestDelegateInvoker.requestAllItemsForTest
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -28,11 +29,13 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class SectionTest {
     /** An example item containing a uniquely identifying field. */
+    @CarProtocol
     private data class TestItem(val someUniquelyIdentifyingField: Int) : Item {
         constructor() : this(-1)
     }
 
     /** An empty section implementation to test the base class. */
+    @CarProtocol
     private class TestSection(builder: Builder) : Section<TestItem>(builder) {
         /** An empty builder implementation to test the base class. */
         class Builder : BaseBuilder<TestItem, Builder>() {
@@ -62,6 +65,13 @@ class SectionTest {
         val section = TestSection.Builder().setNoItemsMessage(message).build()
 
         assertThat(section.noItemsMessage).isEqualTo(message)
+    }
+
+    @Test
+    fun getOnItemVisibilityChangedDelegate() {
+        val section = TestSection.Builder().setOnItemVisibilityChangedListener { _, _ -> }.build()
+
+        assertThat(section.onItemVisibilityChangedDelegate).isNotNull()
     }
 
     @Test
@@ -123,6 +133,7 @@ class SectionTest {
                 .addItem(TestItem(2))
                 .setNoItemsMessage("Some message")
                 .setTitle("some title")
+                .setOnItemVisibilityChangedListener { _, _ -> }
                 .build()
 
         @Suppress("ReplaceCallWithBinaryOperator") assertThat(section.equals(section)).isTrue()
@@ -136,6 +147,7 @@ class SectionTest {
                 .addItem(TestItem(2))
                 .setNoItemsMessage("Some message")
                 .setTitle("some title")
+                .setOnItemVisibilityChangedListener { _, _ -> }
                 .build()
         val section2 =
             TestSection.Builder()
@@ -143,6 +155,7 @@ class SectionTest {
                 .addItem(TestItem(2))
                 .setNoItemsMessage("Some message")
                 .setTitle("some title")
+                .setOnItemVisibilityChangedListener { _, _ -> }
                 .build()
 
         // Is symmetric
@@ -158,7 +171,8 @@ class SectionTest {
                 TestSection.Builder().addItem(TestItem(1)).build(),
                 TestSection.Builder().addItem(TestItem(2)).build(),
                 TestSection.Builder().setTitle("title").build(),
-                TestSection.Builder().setNoItemsMessage("no items").build()
+                TestSection.Builder().setNoItemsMessage("no items").build(),
+                TestSection.Builder().setOnItemVisibilityChangedListener { _, _ -> }.build(),
             )
 
         // Test all different sections against each other

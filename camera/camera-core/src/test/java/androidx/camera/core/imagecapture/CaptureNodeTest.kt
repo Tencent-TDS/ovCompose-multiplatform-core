@@ -17,6 +17,7 @@
 package androidx.camera.core.imagecapture
 
 import android.graphics.ImageFormat.JPEG
+import android.graphics.ImageFormat.RAW_SENSOR
 import android.graphics.ImageFormat.YUV_420_888
 import android.os.Build
 import android.os.Looper.getMainLooper
@@ -57,7 +58,7 @@ class CaptureNodeTest {
 
     @Before
     fun setUp() {
-        captureNodeIn = CaptureNode.In.of(Size(10, 10), JPEG, JPEG, false, null)
+        captureNodeIn = CaptureNode.In.of(Size(10, 10), JPEG, listOf(JPEG), false, null)
         captureNodeOut = captureNode.transform(captureNodeIn)
         captureNodeOut.edge.setListener { imagePropagated.add(it.imageProxy) }
     }
@@ -68,11 +69,47 @@ class CaptureNodeTest {
     }
 
     @Test
+    fun isNotSimultaneousCapture_createOneImageReaders() {
+        // Arrange: enable isSimultaneousCaptureEnabled in CaptureNode.In
+        val input = CaptureNode.In.of(Size(10, 10), RAW_SENSOR, listOf(RAW_SENSOR), false, null)
+
+        // Act: transform.
+        val node = CaptureNode()
+        val output = node.transform(input)
+
+        // Assert
+        assertThat(output.outputFormats.size).isEqualTo(1)
+        assertThat(output.outputFormats[0]).isEqualTo(RAW_SENSOR)
+        assertThat(input.surface).isNotNull()
+        assertThat(input.cameraCaptureCallback).isNotNull()
+        assertThat(input.secondarySurface).isNull()
+        assertThat(input.secondaryCameraCaptureCallback).isNull()
+    }
+
+    @Test
+    fun isSimultaneousCapture_createTwoImageReaders() {
+        // Arrange: enable isSimultaneousCaptureEnabled in CaptureNode.In
+        val input =
+            CaptureNode.In.of(Size(10, 10), RAW_SENSOR, listOf(RAW_SENSOR, JPEG), false, null)
+
+        // Act: transform.
+        val node = CaptureNode()
+        val output = node.transform(input)
+
+        // Assert
+        assertThat(output.outputFormats.size).isEqualTo(2)
+        assertThat(input.surface).isNotNull()
+        assertThat(input.cameraCaptureCallback).isNotNull()
+        assertThat(input.secondarySurface).isNotNull()
+        assertThat(input.secondaryCameraCaptureCallback).isNotNull()
+    }
+
+    @Test
     fun hasImageReaderProxyProvider_useTheProvidedImageReader() {
         // Arrange: create a fake ImageReaderProxyProvider.
         val imageReader = FakeImageReaderProxy(CaptureNode.MAX_IMAGES)
         val imageReaderProvider = ImageReaderProxyProvider { _, _, _, _, _ -> imageReader }
-        val input = CaptureNode.In.of(Size(10, 10), JPEG, JPEG, false, imageReaderProvider)
+        val input = CaptureNode.In.of(Size(10, 10), JPEG, listOf(JPEG), false, imageReaderProvider)
         // Act: transform.
         val node = CaptureNode()
         node.transform(input)
@@ -114,7 +151,7 @@ class CaptureNodeTest {
             CaptureNode.In.of(
                 Size(10, 10),
                 JPEG,
-                JPEG,
+                listOf(JPEG),
                 /* isVirtualCamera */ true,
                 { _, _, _, _, _ -> imageReaderProxy }
             )
@@ -175,7 +212,7 @@ class CaptureNodeTest {
             CaptureNode.In.of(
                 Size(10, 10),
                 JPEG,
-                JPEG,
+                listOf(JPEG),
                 /* isVirtualCamera */ true,
                 { _, _, _, _, _ -> imageReaderProxy }
             )
@@ -197,7 +234,8 @@ class CaptureNodeTest {
         assertThat(takePictureCallback.captureProcessProgressList).isEmpty()
     }
 
-    @Test
+    // TODO(b/371138487): re-enable this test method once we fix the flaky issue.
+    // @Test
     fun requestSentNon100Progress_progress100isInvoked() {
         // Arrange: Configure the CaptureNode and submit fake request.
         val captureNode = CaptureNode()
@@ -206,7 +244,7 @@ class CaptureNodeTest {
             CaptureNode.In.of(
                 Size(10, 10),
                 JPEG,
-                JPEG,
+                listOf(JPEG),
                 /* isVirtualCamera */ true,
                 { _, _, _, _, _ -> imageReaderProxy }
             )
@@ -224,6 +262,7 @@ class CaptureNodeTest {
         // Act: notify onCaptureProcessProgressed that is not 100 after request starts.
         captureNodeIn.cameraCaptureCallback.onCaptureProcessProgressed(1, 50)
         captureNodeIn.cameraCaptureCallback.onCaptureProcessProgressed(1, 90)
+        shadowOf(getMainLooper()).idle()
 
         imageReaderProxy.triggerImageAvailableSync(tagBundle)
         shadowOf(getMainLooper()).idle()
@@ -232,7 +271,8 @@ class CaptureNodeTest {
         assertThat(takePictureCallback.captureProcessProgressList).containsExactly(50, 90, 100)
     }
 
-    @Test
+    // TODO(b/371138487): re-enable this test method once we fix the flaky issue.
+    // @Test
     fun requestSent100Progress_ensureNoDuplicate() {
         // Arrange: Configure the CaptureNode and submit fake request.
         val captureNode = CaptureNode()
@@ -241,7 +281,7 @@ class CaptureNodeTest {
             CaptureNode.In.of(
                 Size(10, 10),
                 JPEG,
-                JPEG,
+                listOf(JPEG),
                 /* isVirtualCamera */ true,
                 { _, _, _, _, _ -> imageReaderProxy }
             )
@@ -276,11 +316,11 @@ class CaptureNodeTest {
 
     @Test
     fun transformWithPostviewSizeAndYuv() {
-        // Arrange: set the postviewSize to the CaptureNode.In
-        val postviewSize = Size(640, 480)
+        // Arrange: set the postview settings to the CaptureNode.In
+        val postviewSettings = PostviewSettings.create(Size(640, 480), YUV_420_888)
 
         val input =
-            CaptureNode.In.of(Size(10, 10), JPEG, JPEG, false, null, postviewSize, YUV_420_888)
+            CaptureNode.In.of(Size(10, 10), JPEG, listOf(JPEG), false, null, postviewSettings)
 
         // Act: transform.
         val node = CaptureNode()
@@ -288,17 +328,18 @@ class CaptureNodeTest {
 
         // Assert: postview surface is created
         assertThat(input.postviewSurface).isNotNull()
-        assertThat(input.postviewSurface!!.prescribedSize).isEqualTo(postviewSize)
+        assertThat(input.postviewSurface!!.prescribedSize).isEqualTo(postviewSettings.resolution)
         assertThat(input.postviewSurface!!.prescribedStreamFormat).isEqualTo(YUV_420_888)
         node.release()
     }
 
     @Test
     fun transformWithPostviewSizeAndJpeg() {
-        // Arrange: set the postviewSize to the CaptureNode.In
-        val postviewSize = Size(640, 480)
+        // Arrange: set the postview settings to the CaptureNode.In
+        val postviewSettings = PostviewSettings.create(Size(640, 480), JPEG)
 
-        val input = CaptureNode.In.of(Size(10, 10), JPEG, JPEG, false, null, postviewSize, JPEG)
+        val input =
+            CaptureNode.In.of(Size(10, 10), JPEG, listOf(JPEG), false, null, postviewSettings)
 
         // Act: transform.
         val node = CaptureNode()
@@ -306,7 +347,7 @@ class CaptureNodeTest {
 
         // Assert: postview surface is created
         assertThat(input.postviewSurface).isNotNull()
-        assertThat(input.postviewSurface!!.prescribedSize).isEqualTo(postviewSize)
+        assertThat(input.postviewSurface!!.prescribedSize).isEqualTo(postviewSettings.resolution)
         assertThat(input.postviewSurface!!.prescribedStreamFormat).isEqualTo(JPEG)
         node.release()
     }

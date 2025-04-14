@@ -21,8 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.RunApiTasks
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -31,6 +31,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api(project(":wear:watchface:watchface-complications-data"))
     api(project(":wear:watchface:watchface"))
@@ -51,26 +52,35 @@ dependencies {
     testImplementation(project(":wear:watchface:watchface"))
 }
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions.suppressWarnings = true
+}
+
+tasks.withType(JavaCompile){
+    options.compilerArgs <<"-Xlint:-deprecation"
+}
+
 android {
     buildFeatures {
         aidl = true
     }
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
-    lintOptions {
-        disable 'NullabilityAnnotationsDetector' // False alarm on transformed files.
+    lint {
+        disable.add("NullabilityAnnotationsDetector") // False alarm on transformed files.
     }
 
     // Use Robolectric 4.+
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.wear.watchface.complications.rendering"
+    namespace = "androidx.wear.watchface.complications.rendering"
 }
 
 androidx {
     name = "Android Wear Watchface Complication Rendering"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Support for rendering complications on the watch face"
     legacyDisableKotlinStrictApiMode = true
+    failOnDeprecationWarnings = false
 }

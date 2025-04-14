@@ -106,3 +106,26 @@ internal fun TextLayoutResult.isPositionInsideSelection(
     return isOffsetSelectedAndContainsPosition(offset) ||
         isOffsetSelectedAndContainsPosition(offset - 1)
 }
+
+/**
+ * Returns the text line height for the given offset. It also returns the last visible line height
+ * if the given offset is followed after the last visible character. If the text is empty, or if the
+ * requested line is out of the visible range, then returns zero.
+ *
+ * @param offset a character offset
+ * @return the line height for the given offset
+ */
+internal fun TextLayoutResult.getLineHeight(offset: Int): Float {
+    if (offset < 0 || layoutInput.text.isEmpty()) return 0f
+
+    val line =
+        minOf(
+            multiParagraph.getLineForOffset(offset),
+            multiParagraph.maxLines - 1,
+            multiParagraph.lineCount - 1
+        )
+    val lineEnd = multiParagraph.getLineEnd(line)
+    if (offset > lineEnd) return 0f
+
+    return multiParagraph.getLineHeight(line)
+}

@@ -17,6 +17,7 @@
 package androidx.compose.ui.geometry
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.util.fastIsFinite
 import androidx.compose.ui.util.lerp
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -24,6 +25,7 @@ import kotlin.math.min
 
 /** An immutable rounded rectangle with custom radii for all four corners. */
 @Immutable
+@Suppress("DataClassDefinition")
 data class RoundRect(
     /** The offset of the left edge of this rectangle from the x axis */
     val left: Float,
@@ -339,25 +341,23 @@ val RoundRect.isEmpty
 
 /** Whether all coordinates of this rounded rectangle are finite. */
 val RoundRect.isFinite
-    get() = left.isFinite() && top.isFinite() && right.isFinite() && bottom.isFinite()
+    get() =
+        left.fastIsFinite() && top.fastIsFinite() && right.fastIsFinite() && bottom.fastIsFinite()
 
 /** Whether this rounded rectangle is a simple rectangle with zero corner radii. */
 val RoundRect.isRect
     get(): Boolean =
-        (topLeftCornerRadius.x == 0.0f || topLeftCornerRadius.y == 0.0f) &&
-            (topRightCornerRadius.x == 0.0f || topRightCornerRadius.y == 0.0f) &&
-            (bottomLeftCornerRadius.x == 0.0f || bottomLeftCornerRadius.y == 0.0f) &&
-            (bottomRightCornerRadius.x == 0.0f || bottomRightCornerRadius.y == 0.0f)
+        topLeftCornerRadius.isZero() &&
+            topRightCornerRadius.isZero() &&
+            bottomLeftCornerRadius.isZero() &&
+            bottomRightCornerRadius.isZero()
 
 /** Whether this rounded rectangle has no side with a straight section. */
 val RoundRect.isEllipse
     get(): Boolean =
-        topLeftCornerRadius.x == topRightCornerRadius.x &&
-            topLeftCornerRadius.y == topRightCornerRadius.y &&
-            topRightCornerRadius.x == bottomRightCornerRadius.x &&
-            topRightCornerRadius.y == bottomRightCornerRadius.y &&
-            bottomRightCornerRadius.x == bottomLeftCornerRadius.x &&
-            bottomRightCornerRadius.y == bottomLeftCornerRadius.y &&
+        topLeftCornerRadius.packedValue == topRightCornerRadius.packedValue &&
+            topRightCornerRadius.packedValue == bottomRightCornerRadius.packedValue &&
+            bottomRightCornerRadius.packedValue == bottomLeftCornerRadius.packedValue &&
             width <= 2.0 * topLeftCornerRadius.x &&
             height <= 2.0 * topLeftCornerRadius.y
 
@@ -388,13 +388,10 @@ val RoundRect.center: Offset
  */
 val RoundRect.isSimple: Boolean
     get() =
-        topLeftCornerRadius.x == topLeftCornerRadius.y &&
-            topLeftCornerRadius.x == topRightCornerRadius.x &&
-            topLeftCornerRadius.x == topRightCornerRadius.y &&
-            topLeftCornerRadius.x == bottomRightCornerRadius.x &&
-            topLeftCornerRadius.x == bottomRightCornerRadius.y &&
-            topLeftCornerRadius.x == bottomLeftCornerRadius.x &&
-            topLeftCornerRadius.x == bottomLeftCornerRadius.y
+        topLeftCornerRadius.isCircular() &&
+            topLeftCornerRadius.packedValue == topRightCornerRadius.packedValue &&
+            topLeftCornerRadius.packedValue == bottomRightCornerRadius.packedValue &&
+            topLeftCornerRadius.packedValue == bottomLeftCornerRadius.packedValue
 
 /**
  * Linearly interpolate between two rounded rectangles.

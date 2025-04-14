@@ -13,17 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@file:Suppress("NOTHING_TO_INLINE")
+
+@file:Suppress("NOTHING_TO_INLINE", "KotlinRedundantDiagnosticSuppress")
 
 package androidx.compose.ui.graphics
 
 import androidx.compose.ui.geometry.MutableRect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.util.fastIsFinite
 import androidx.compose.ui.util.fastMaxOf
 import androidx.compose.ui.util.fastMinOf
-import androidx.compose.ui.util.normalizedAngleCos
-import androidx.compose.ui.util.normalizedAngleSin
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 // NOTE: This class contains a number of tests like this:
 //
@@ -68,7 +71,7 @@ value class Matrix(
         val y = point.y
         val z = v03 * x + v13 * y + v33
         val inverseZ = 1 / z
-        val pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        val pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
 
         return Offset(x = pZ * (v00 * x + v10 * y + v30), y = pZ * (v01 * x + v11 * y + v31))
     }
@@ -96,28 +99,28 @@ value class Matrix(
         var x = l
         var y = t
         var inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        var pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        var pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x0 = pZ * (v00 * x + v10 * y + v30)
         val y0 = pZ * (v01 * x + v11 * y + v31)
 
         x = l
         y = b
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x1 = pZ * (v00 * x + v10 * y + v30)
         val y1 = pZ * (v01 * x + v11 * y + v31)
 
         x = r
         y = t
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x2 = pZ * (v00 * x + v10 * y + v30)
         val y2 = pZ * (v01 * x + v11 * y + v31)
 
         x = r
         y = b
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x3 = pZ * (v00 * x + v10 * y + v30)
         val y3 = pZ * (v01 * x + v11 * y + v31)
 
@@ -152,28 +155,28 @@ value class Matrix(
         var x = l
         var y = t
         var inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        var pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        var pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x0 = pZ * (v00 * x + v10 * y + v30)
         val y0 = pZ * (v01 * x + v11 * y + v31)
 
         x = l
         y = b
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x1 = pZ * (v00 * x + v10 * y + v30)
         val y1 = pZ * (v01 * x + v11 * y + v31)
 
         x = r
         y = t
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x2 = pZ * (v00 * x + v10 * y + v30)
         val y2 = pZ * (v01 * x + v11 * y + v31)
 
         x = r
         y = b
         inverseZ = 1.0f / (v03 * x + v13 * y + v33)
-        pZ = if (inverseZ.isFinite()) inverseZ else 0f
+        pZ = if (inverseZ.fastIsFinite()) inverseZ else 0f
         val x3 = pZ * (v00 * x + v10 * y + v30)
         val y3 = pZ * (v01 * x + v11 * y + v31)
 
@@ -349,9 +352,9 @@ value class Matrix(
         // See top-level comment
         if (values.size < 16) return
 
-        val d = degrees * (1.0f / 360.0f)
-        val s = normalizedAngleSin(d)
-        val c = normalizedAngleCos(d)
+        val r = degrees * (PI / 180.0)
+        val s = sin(r).toFloat()
+        val c = cos(r).toFloat()
 
         val a01 = this[0, 1]
         val a02 = this[0, 2]
@@ -388,9 +391,9 @@ value class Matrix(
         // See top-level comment
         if (values.size < 16) return
 
-        val d = degrees * (1.0f / 360.0f)
-        val s = normalizedAngleSin(d)
-        val c = normalizedAngleCos(d)
+        val r = degrees * (PI / 180.0)
+        val s = sin(r).toFloat()
+        val c = cos(r).toFloat()
 
         val a00 = this[0, 0]
         val a02 = this[0, 2]
@@ -427,9 +430,9 @@ value class Matrix(
         // See top-level comment
         if (values.size < 16) return
 
-        val d = degrees * (1.0f / 360.0f)
-        val s = normalizedAngleSin(d)
-        val c = normalizedAngleCos(d)
+        val r = degrees * (PI / 180.0)
+        val s = sin(r).toFloat()
+        val c = cos(r).toFloat()
 
         val a00 = this[0, 0]
         val a10 = this[1, 0]
@@ -533,9 +536,9 @@ value class Matrix(
         scaleZ: Float = 1f
     ) {
         // X
-        val rx = rotationX * (1.0f / 360.0f)
-        val rsx = normalizedAngleSin(rx)
-        val rcx = normalizedAngleCos(rx)
+        val rx = rotationX * (PI / 180.0)
+        val rsx = sin(rx).toFloat()
+        val rcx = cos(rx).toFloat()
 
         var v11 = rcx
         var v12 = rsx
@@ -547,9 +550,9 @@ value class Matrix(
         var v32 = translationY * rsx + translationZ * rcx
 
         // Y
-        val ry = rotationY * (1.0f / 360.0f)
-        val rsy = normalizedAngleSin(ry)
-        val rcy = normalizedAngleCos(ry)
+        val ry = rotationY * (PI / 180.0)
+        val rsy = sin(ry).toFloat()
+        val rcy = cos(ry).toFloat()
 
         var v00 = rcy
         var v02 = -rsy
@@ -564,9 +567,9 @@ value class Matrix(
         v32 = -translationX * rsy + v32 * rcy
 
         // Z
-        val rz = rotationZ * (1.0f / 360.0f)
-        val rsz = normalizedAngleSin(rz)
-        val rcz = normalizedAngleCos(rz)
+        val rz = rotationZ * (PI / 180.0)
+        val rsz = sin(rz).toFloat()
+        val rcz = cos(rz).toFloat()
 
         val a10 = v10
         v10 = -rsz * v00 + rcz * v10

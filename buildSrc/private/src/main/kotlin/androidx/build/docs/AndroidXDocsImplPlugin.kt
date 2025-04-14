@@ -16,7 +16,6 @@
 
 package androidx.build.docs
 
-import androidx.build.PROJECT_STRUCTURE_METADATA_FILENAME
 import androidx.build.configureTaskTimeouts
 import androidx.build.dackka.DackkaTask
 import androidx.build.dackka.GenerateMetadataTask
@@ -29,7 +28,8 @@ import androidx.build.getKeystore
 import androidx.build.getLibraryByName
 import androidx.build.getSupportRootFolder
 import androidx.build.metalava.versionMetadataUsage
-import androidx.build.multiplatformUsage
+import androidx.build.sources.PROJECT_STRUCTURE_METADATA_FILENAME
+import androidx.build.sources.multiplatformUsage
 import androidx.build.versionCatalog
 import androidx.build.workaroundPrebuiltTakingPrecedenceOverProject
 import com.android.build.api.attributes.BuildTypeAttr
@@ -61,6 +61,8 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
+import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
@@ -105,7 +107,8 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
             when (plugin) {
                 is LibraryPlugin -> {
                     val libraryExtension = project.extensions.getByType<LibraryExtension>()
-                    libraryExtension.compileSdk = project.defaultAndroidConfig.compileSdk
+                    libraryExtension.compileSdk =
+                        project.defaultAndroidConfig.latestStableCompileSdk
                     libraryExtension.buildToolsVersion =
                         project.defaultAndroidConfig.buildToolsVersion
 
@@ -248,13 +251,20 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
             // Store archiveOperations into a local variable to prevent access to the plugin
             // during the task execution, as that breaks configuration caching.
             val localVar = archiveOperations
+            val tempDir = project.layout.buildDirectory.dir("tmp/JvmSources").get().asFile
+            // Get rid of stale files in the directory
+            tempDir.deleteRecursively()
             task.into(sourcesDestinationDirectory)
             task.from(
                 pairProvider
                     .map { it.first }
                     .map {
                         it.map { jar ->
-                            localVar.zipTree(jar).matching { it.exclude("**/META-INF/MANIFEST.MF") }
+                            localVar
+                                .zipTree(jar)
+                                .matching { it.exclude("**/META-INF/MANIFEST.MF") }
+                                .rewriteImageTagsAndCopy(tempDir)
+                            tempDir
                         }
                     }
             )
@@ -266,15 +276,20 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
                 // Store archiveOperations into a local variable to prevent access to the plugin
                 // during the task execution, as that breaks configuration caching.
                 val localVar = archiveOperations
+                val tempDir = project.layout.buildDirectory.dir("tmp/SampleSources").get().asFile
+                // Get rid of stale files in the directory
+                tempDir.deleteRecursively()
                 task.into(samplesDestinationDirectory)
                 task.from(
                     pairProvider
                         .map { it.second }
                         .map {
                             it.map { jar ->
-                                localVar.zipTree(jar).matching {
-                                    it.exclude("**/META-INF/MANIFEST.MF")
-                                }
+                                localVar
+                                    .zipTree(jar)
+                                    .matching { it.exclude("**/META-INF/MANIFEST.MF") }
+                                    .rewriteImageTagsAndCopy(tempDir)
+                                tempDir
                             }
                         }
                 )
@@ -460,7 +475,7 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
             project.configurations.create("docs-runtime-classpath") {
                 it.setResolveClasspathForUsage(Usage.JAVA_RUNTIME)
             }
-        val kotlinDefaultCatalogVersion = androidx.build.KotlinTarget.DEFAULT.catalogVersion
+        val kotlinDefaultCatalogVersion = androidx.build.KotlinTarget.LATEST.catalogVersion
         val kotlinLatest = project.versionCatalog.findVersion(kotlinDefaultCatalogVersion).get()
         listOf(docsCompileClasspath, docsRuntimeClasspath).forEach { config ->
             config.resolutionStrategy {
@@ -551,7 +566,7 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
 
                     description =
                         "Generates reference documentation using a Google devsite Dokka" +
-                            " plugin. Places docs in $generatedDocsDir"
+                            " plugin. Places docs in ${generatedDocsDir.get()}"
                     group = JavaBasePlugin.DOCUMENTATION_GROUP
 
                     dackkaClasspath.from(project.files(dackkaConfiguration))
@@ -567,7 +582,9 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
                     )
                     dependenciesClasspath.from(
                         dependencyClasspath +
-                            project.getAndroidJar() +
+                            project.getAndroidJar(
+                                project.defaultAndroidConfig.latestStableCompileSdk
+                            ) +
                             project.getExtraCommonDependencies()
                     )
                     excludedPackages.set(hiddenPackages.toSet())
@@ -785,6 +802,8 @@ private val hiddenAnnotations: List<String> =
 
 val validNullabilityAnnotations =
     listOf(
+        "org.jspecify.annotations.NonNull",
+        "org.jspecify.annotations.Nullable",
         "androidx.annotation.Nullable",
         "android.annotation.Nullable",
         "androidx.annotation.NonNull",
@@ -824,13 +843,25 @@ abstract class UnzipMultiplatformSourcesTask() : DefaultTask() {
     @get:OutputDirectory abstract val metadataOutput: DirectoryProperty
 
     @get:OutputDirectory abstract val sourceOutput: DirectoryProperty
+
     @get:OutputDirectory abstract val samplesOutput: DirectoryProperty
 
     @get:Inject abstract val fileSystemOperations: FileSystemOperations
+
     @get:Inject abstract val archiveOperations: ArchiveOperations
+
+    @get:Inject abstract val projectLayout: ProjectLayout
 
     @TaskAction
     fun execute() {
+        val tempSourcesDir =
+            projectLayout.buildDirectory.dir("tmp/MultiplatformSources").get().asFile
+        val tempSamplesDir =
+            projectLayout.buildDirectory.dir("tmp/MultiplatformSamples").get().asFile
+        // Get rid of stale files in the directories
+        tempSourcesDir.deleteRecursively()
+        tempSamplesDir.deleteRecursively()
+
         val (sources, samples) =
             inputJars
                 .get()
@@ -839,18 +870,26 @@ abstract class UnzipMultiplatformSourcesTask() : DefaultTask() {
                 // Now that we publish sample jars, they can get confused with normal source
                 // jars. We want to handle sample jars separately, so filter by the name.
                 .partition { name -> "samples" !in name }
+
+        sources.values.forEach { fileTree ->
+            fileTree.matching { it.exclude("META-INF/*") }.rewriteImageTagsAndCopy(tempSourcesDir)
+        }
         fileSystemOperations.sync {
             it.duplicatesStrategy = DuplicatesStrategy.FAIL
-            it.from(sources.values)
+            it.from(tempSourcesDir)
             it.into(sourceOutput)
             it.exclude("META-INF/*")
+        }
+
+        samples.values.forEach { fileTree ->
+            fileTree.matching { it.exclude("META-INF/*") }.rewriteImageTagsAndCopy(tempSamplesDir)
         }
         fileSystemOperations.sync {
             // Some libraries share samples, e.g. paging. This can be an issue if and only if the
             // consumer libraries have pinned samples version or are not in an atomic group.
             // We don't have anything matching this case now, but should enforce better. b/334825580
             it.duplicatesStrategy = DuplicatesStrategy.INCLUDE
-            it.from(samples.values)
+            it.from(tempSamplesDir)
             it.into(samplesOutput)
             it.exclude("META-INF/*")
         }
@@ -891,6 +930,10 @@ abstract class MergeMultiplatformMetadataTask : DefaultTask() {
                 mergedMetadata.merge(metadata)
             }
         val gson = GsonBuilder().setPrettyPrinting().create()
+        // Sort sourceSets to ensure that child sourceSets come after their parents, b/404784813
+        // Also ensure deterministic order--mergedMetadata.merge() uses .toSet() to deduplicate.
+        mergedMetadata.sourceSets =
+            mergedMetadata.sourceSets.sortedWith(compareBy({ it.dependencies.size }, { it.name }))
         val json = gson.toJson(mergedMetadata)
         mergedProjectMetadata.get().asFile.apply {
             parentFile.mkdirs()
@@ -931,7 +974,12 @@ private fun Project.getExtraCommonDependencies(): FileCollection =
                 getPrebuiltsExternalPath(),
                 "org/jetbrains/kotlinx/atomicfu/0.17.0/atomicfu-0.17.0.jar"
             ),
-            File(getPrebuiltsExternalPath(), "com/squareup/okio/okio-jvm/3.1.0/okio-jvm-3.1.0.jar")
+            File(getPrebuiltsExternalPath(), "com/squareup/okio/okio-jvm/3.1.0/okio-jvm-3.1.0.jar"),
+            // TODO(b/409256436): Remove when KMP classes (.knm) in Kotlin 2.1 can be loaded
+            File(
+                getPrebuiltsExternalPath(),
+                "org/jetbrains/kotlin/kotlin-stdlib/2.0.20/kotlin-stdlib-2.0.20-common.jar"
+            )
         ) +
             PLATFORMS.map {
                 File(
@@ -940,3 +988,48 @@ private fun Project.getExtraCommonDependencies(): FileCollection =
                 )
             }
     )
+
+private fun FileTree.rewriteImageTagsAndCopy(destinationDir: File) {
+    visit { fileDetails ->
+        if (!fileDetails.isDirectory) {
+            val targetFile = File(destinationDir, fileDetails.relativePath.pathString)
+            targetFile.parentFile.mkdirs()
+
+            if (fileDetails.file.extension == "kt") {
+                val content = fileDetails.file.readText()
+                val updatedContent = rewriteLinks(content)
+                targetFile.writeText(updatedContent)
+            } else {
+                fileDetails.file.copyTo(targetFile, overwrite = true)
+            }
+        }
+    }
+}
+
+/**
+ * Rewrites multi-line markdown links ![]()to a single-line format. Work-around for b/350055200.
+ *
+ * Example transformation:
+ * ```
+ * Original: ![Example
+ *           Image](http://example.com/image.png)
+ * Result:   ![Example Image](http://example.com/image.png)
+ * ```
+ */
+internal fun rewriteLinks(content: String): String =
+    markdownLinksRegex.replace(content) { matchResult ->
+        val exclamationMark = matchResult.groupValues[1]
+        val linkText = matchResult.groupValues[2].replace("\n", " ").replace(" * ", "").trim()
+        val url = matchResult.groupValues[3].trim()
+        "$exclamationMark[$linkText]($url)"
+    }
+
+/**
+ * Regular expression to match markdown link syntax, supporting both standard links and image links.
+ *
+ * The pattern matches:
+ * - Optional `!` at the beginning for image links.
+ * - Link text enclosed in square brackets `[ ... ]`, allowing for whitespace around the text.
+ * - URL in parentheses `( ... )`, allowing for whitespace around the URL.
+ */
+private val markdownLinksRegex = Regex("""(!?)\[\s*([^\[\]]+?)\s*]\(\s*([^(]+?)\s*\)""")

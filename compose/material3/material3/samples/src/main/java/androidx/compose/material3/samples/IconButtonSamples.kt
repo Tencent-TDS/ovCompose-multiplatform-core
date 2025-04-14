@@ -48,7 +48,7 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun IconButtonSample() {
     IconButton(onClick = { /* doSomething() */ }) {
-        Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
     }
 }
 
@@ -56,23 +56,33 @@ fun IconButtonSample() {
 @Preview
 @Sampled
 @Composable
-fun XSmallNarrowSquareIconButtonsSample() {
+fun IconButtonWithAnimatedShapeSample() {
+    IconButton(onClick = { /* doSomething() */ }, shapes = IconButtonDefaults.shapes()) {
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun ExtraSmallNarrowSquareIconButtonsSample() {
     // Small narrow round icon button
     FilledIconButton(
         onClick = { /* doSomething() */ },
         modifier =
             Modifier.minimumInteractiveComponentSize()
                 .size(
-                    IconButtonDefaults.xSmallContainerSize(
+                    IconButtonDefaults.extraSmallContainerSize(
                         IconButtonDefaults.IconButtonWidthOption.Narrow
                     )
                 ),
-        shape = IconButtonDefaults.xSmallSquareShape
+        shape = IconButtonDefaults.extraSmallSquareShape
     ) {
         Icon(
-            Icons.Outlined.Lock,
+            Icons.Filled.Lock,
             contentDescription = "Localized description",
-            modifier = Modifier.size(IconButtonDefaults.xSmallIconSize)
+            modifier = Modifier.size(IconButtonDefaults.extraSmallIconSize)
         )
     }
 }
@@ -93,7 +103,7 @@ fun MediumRoundWideIconButtonSample() {
         shape = IconButtonDefaults.mediumRoundShape
     ) {
         Icon(
-            Icons.Outlined.Lock,
+            Icons.Filled.Lock,
             contentDescription = "Localized description",
             modifier = Modifier.size(IconButtonDefaults.mediumIconSize)
         )
@@ -111,7 +121,7 @@ fun LargeRoundUniformOutlinedIconButtonSample() {
         shape = IconButtonDefaults.largeRoundShape
     ) {
         Icon(
-            Icons.Outlined.Lock,
+            Icons.Filled.Lock,
             contentDescription = "Localized description",
             modifier = Modifier.size(IconButtonDefaults.largeIconSize)
         )
@@ -124,7 +134,7 @@ fun LargeRoundUniformOutlinedIconButtonSample() {
 fun TintedIconButtonSample() {
     IconButton(onClick = { /* doSomething() */ }) {
         Icon(
-            rememberVectorPainter(image = Icons.Outlined.Lock),
+            rememberVectorPainter(image = Icons.Filled.Lock),
             contentDescription = "Localized description",
             tint = Color.Red
         )
@@ -145,12 +155,41 @@ fun IconToggleButtonSample() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun IconToggleButtonWithAnimatedShapeSample() {
+    var checked by remember { mutableStateOf(false) }
+    IconToggleButton(
+        checked = checked,
+        onCheckedChange = { checked = it },
+        shapes = IconButtonDefaults.toggleableShapes()
+    ) {
+        if (checked) {
+            Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+        } else {
+            Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        }
+    }
+}
+
 @Preview
 @Sampled
 @Composable
 fun FilledIconButtonSample() {
     FilledIconButton(onClick = { /* doSomething() */ }) {
-        Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun FilledIconButtonWithAnimatedShapeSample() {
+    FilledIconButton(onClick = { /* doSomething() */ }, shapes = IconButtonDefaults.shapes()) {
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
     }
 }
 
@@ -168,12 +207,41 @@ fun FilledIconToggleButtonSample() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun FilledIconToggleButtonWithAnimatedShapeSample() {
+    var checked by remember { mutableStateOf(false) }
+    FilledIconToggleButton(
+        checked = checked,
+        onCheckedChange = { checked = it },
+        shapes = IconButtonDefaults.toggleableShapes()
+    ) {
+        if (checked) {
+            Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+        } else {
+            Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        }
+    }
+}
+
 @Preview
 @Sampled
 @Composable
 fun FilledTonalIconButtonSample() {
     FilledTonalIconButton(onClick = { /* doSomething() */ }) {
-        Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun FilledTonalIconButtonWithAnimatedShapeSample() {
+    FilledTonalIconButton(onClick = { /* doSomething() */ }, shapes = IconButtonDefaults.shapes()) {
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
     }
 }
 
@@ -191,12 +259,41 @@ fun FilledTonalIconToggleButtonSample() {
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun FilledTonalIconToggleButtonWithAnimatedShapeSample() {
+    var checked by remember { mutableStateOf(false) }
+    FilledTonalIconToggleButton(
+        checked = checked,
+        onCheckedChange = { checked = it },
+        shapes = IconButtonDefaults.toggleableShapes()
+    ) {
+        if (checked) {
+            Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+        } else {
+            Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        }
+    }
+}
+
 @Preview
 @Sampled
 @Composable
 fun OutlinedIconButtonSample() {
     OutlinedIconButton(onClick = { /* doSomething() */ }) {
-        Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+    }
+}
+
+@ExperimentalMaterial3ExpressiveApi
+@Preview
+@Sampled
+@Composable
+fun OutlinedIconButtonWithAnimatedShapeSample() {
+    OutlinedIconButton(onClick = { /* doSomething() */ }, shapes = IconButtonDefaults.shapes()) {
+        Icon(Icons.Filled.Lock, contentDescription = "Localized description")
     }
 }
 
@@ -206,6 +303,25 @@ fun OutlinedIconButtonSample() {
 fun OutlinedIconToggleButtonSample() {
     var checked by remember { mutableStateOf(false) }
     OutlinedIconToggleButton(checked = checked, onCheckedChange = { checked = it }) {
+        if (checked) {
+            Icon(Icons.Filled.Lock, contentDescription = "Localized description")
+        } else {
+            Icon(Icons.Outlined.Lock, contentDescription = "Localized description")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Preview
+@Sampled
+@Composable
+fun OutlinedIconToggleButtonWithAnimatedShapeSample() {
+    var checked by remember { mutableStateOf(false) }
+    OutlinedIconToggleButton(
+        checked = checked,
+        onCheckedChange = { checked = it },
+        shapes = IconButtonDefaults.toggleableShapes()
+    ) {
         if (checked) {
             Icon(Icons.Filled.Lock, contentDescription = "Localized description")
         } else {

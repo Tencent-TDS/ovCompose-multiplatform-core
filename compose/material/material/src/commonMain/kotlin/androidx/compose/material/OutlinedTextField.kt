@@ -32,11 +32,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldLineLimits.MultiLine
 import androidx.compose.foundation.text.input.TextFieldLineLimits.SingleLine
 import androidx.compose.foundation.text.input.TextFieldState
-import androidx.compose.foundation.text.input.toTextFieldBuffer
+import androidx.compose.material.internal.subtractConstraintSafely
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -69,6 +70,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.unit.sp
@@ -79,8 +82,8 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m2.material.io/components/text-fields#outlined-text-field" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text
+ * field](https://m2.material.io/components/text-fields#outlined-text-field).
  *
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
  * places like forms, where many text fields are placed together, their reduced emphasis helps
@@ -182,7 +185,6 @@ fun OutlinedTextField(
 
     val density = LocalDensity.current
 
-    @OptIn(ExperimentalMaterialApi::class)
     BasicTextField(
         state = state,
         modifier =
@@ -219,10 +221,13 @@ fun OutlinedTextField(
                 if (outputTransformation == null) {
                     state.text.toString()
                 } else {
-                    val buffer = state.toTextFieldBuffer()
+                    // TODO: use constructor to create TextFieldBuffer from TextFieldState when
+                    // available
+                    lateinit var buffer: TextFieldBuffer
+                    state.edit { buffer = this }
                     // after edit completes, mutations on buffer are ineffective
                     with(outputTransformation) { buffer.transformOutput() }
-                    buffer.toString()
+                    buffer.asCharSequence().toString()
                 }
 
             TextFieldDefaults.OutlinedTextFieldDecorationBox(
@@ -248,8 +253,8 @@ fun OutlinedTextField(
 }
 
 /**
- * <a href="https://m2.material.io/components/text-fields#outlined-text-field" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text
+ * field](https://m2.material.io/components/text-fields#outlined-text-field).
  *
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
  * places like forms, where many text fields are placed together, their reduced emphasis helps
@@ -341,7 +346,6 @@ fun OutlinedTextField(
 
     val density = LocalDensity.current
 
-    @OptIn(ExperimentalMaterialApi::class)
     BasicTextField(
         value = value,
         modifier =
@@ -455,8 +459,8 @@ fun OutlinedTextField(
 }
 
 /**
- * <a href="https://m2.material.io/components/text-fields#outlined-text-field" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text
+ * field](https://m2.material.io/components/text-fields#outlined-text-field).
  *
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
  * places like forms, where many text fields are placed together, their reduced emphasis helps
@@ -549,7 +553,6 @@ fun OutlinedTextField(
 
     val density = LocalDensity.current
 
-    @OptIn(ExperimentalMaterialApi::class)
     BasicTextField(
         value = value,
         modifier =
@@ -944,7 +947,7 @@ private class OutlinedTextFieldMeasurePolicy(
             labelPlaceableWidth = labelWidth,
             placeholderPlaceableWidth = placeholderWidth,
             animationProgress = animationProgress,
-            constraints = ZeroConstraints,
+            constraints = Constraints(),
             density = density,
             paddingValues = paddingValues,
         )
@@ -961,7 +964,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == LeadingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.substractConstraintSafely(
+                        remainingWidth.subtractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -971,7 +974,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .fastFirstOrNull { it.layoutId == TrailingId }
                 ?.let {
                     remainingWidth =
-                        remainingWidth.substractConstraintSafely(
+                        remainingWidth.subtractConstraintSafely(
                             it.maxIntrinsicWidth(Constraints.Infinity)
                         )
                     intrinsicMeasurer(it, width)
@@ -996,18 +999,11 @@ private class OutlinedTextFieldMeasurePolicy(
             labelPlaceableHeight = labelHeight,
             placeholderPlaceableHeight = placeholderHeight,
             animationProgress = animationProgress,
-            constraints = ZeroConstraints,
+            constraints = Constraints(),
             density = density,
             paddingValues = paddingValues
         )
     }
-}
-
-private fun Int.substractConstraintSafely(from: Int): Int {
-    if (this == Constraints.Infinity) {
-        return this
-    }
-    return this - from
 }
 
 /**
@@ -1040,7 +1036,7 @@ private fun calculateWidth(
     val focusedLabelWidth =
         ((labelPlaceableWidth + labelHorizontalPadding) * animationProgress).roundToInt()
 
-    return maxOf(wrappedWidth, focusedLabelWidth, constraints.minWidth)
+    return constraints.constrainWidth(max(wrappedWidth, focusedLabelWidth))
 }
 
 /**
@@ -1073,8 +1069,7 @@ private fun calculateHeight(
     val bottomPadding = paddingValues.calculateBottomPadding().value * density
     val middleSectionHeight = actualTopPadding + inputFieldHeight + bottomPadding
 
-    return max(
-        constraints.minHeight,
+    return constraints.constrainHeight(
         maxOf(leadingPlaceableHeight, trailingPlaceableHeight, middleSectionHeight.roundToInt())
     )
 }

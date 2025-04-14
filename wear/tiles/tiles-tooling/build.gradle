@@ -5,13 +5,13 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
@@ -33,19 +33,20 @@ dependencies {
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
     androidTestImplementation(libs.guava)
+    androidTestImplementation(project(":wear:protolayout:protolayout-material"))
 }
 
 android {
     defaultConfig {
-        minSdkVersion 26
+        minSdk = 26
     }
 
-    namespace "androidx.wear.tiles.tooling"
+    namespace = "androidx.wear.tiles.tooling"
 }
 
 androidx {
     name = "Android Wear Tiles Tooling"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2023"
     description = "A set of tools that are used to preview Tile components in Android Studio"
     legacyDisableKotlinStrictApiMode = true

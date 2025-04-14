@@ -25,6 +25,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
+import android.os.PersistableBundle
 import android.util.Log
 import androidx.annotation.ColorInt
 import androidx.annotation.IntDef
@@ -132,6 +133,11 @@ private constructor(
             oos.writeInt(type)
             oos.writeInt(complicationData.persistencePolicy)
             oos.writeInt(complicationData.displayPolicy)
+            if (isFieldValidForType(FIELD_EXTRAS, type)) {
+                if (Build.VERSION.SDK_INT > 30) {
+                    complicationData.extras.writeToStream(oos)
+                }
+            }
             if (isFieldValidForType(FIELD_LONG_TEXT, type)) {
                 oos.writeObject(complicationData.longText)
             }
@@ -272,6 +278,11 @@ private constructor(
             val fields = mutableMapOf<String, Any>()
             fields[FIELD_PERSISTENCE_POLICY] = ois.readInt()
             fields[FIELD_DISPLAY_POLICY] = ois.readInt()
+            if (isFieldValidForType(FIELD_EXTRAS, type)) {
+                if (Build.VERSION.SDK_INT > 30) {
+                    fields[FIELD_EXTRAS] = PersistableBundle.readFromStream(ois)
+                }
+            }
             if (isFieldValidForType(FIELD_LONG_TEXT, type)) {
                 putIfNotNull(fields, FIELD_LONG_TEXT, ois.readObject() as ComplicationText?)
             }
@@ -443,7 +454,7 @@ private constructor(
         fun readResolve(): Any = complicationData!!
 
         companion object {
-            private const val VERSION_NUMBER = 20
+            private const val VERSION_NUMBER = 21
 
             internal fun putIfNotNull(
                 fields: MutableMap<String, Any>,
@@ -480,12 +491,41 @@ private constructor(
     fun isActiveAt(dateTimeMillis: Long) = dateTimeMillis in startDateTimeMillis..endDateTimeMillis
 
     /**
+     * Removes any extras from this complication data, including from placeholders and timelines.
+     */
+    fun stripExtras() {
+        fields.remove(FIELD_EXTRAS)
+
+        (fields[FIELD_PLACEHOLDER_FIELDS] as ComplicationData?)?.stripExtras()
+        (fields[FIELD_ORIGINAL_FIELDS] as ComplicationData?)?.stripExtras()
+
+        timelineEntries?.let {
+            for (complicationEntry in it) {
+                complicationEntry.stripExtras()
+            }
+        }
+    }
+
+    /**
      * TapAction unfortunately can't be serialized. Returns true if tapAction has been lost due to
      * serialization (e.g. due to being read from the local cache). The next complication update
      * from the system would replace this with one with a tapAction.
      */
     val tapActionLostDueToSerialization: Boolean
         get() = fields[FIELD_TAP_ACTION_LOST] as Boolean? ?: false
+
+    /** Expansion point for OEM watch faces and complications. */
+    var extras: PersistableBundle
+        get() = (fields[FIELD_EXTRAS] as PersistableBundle?) ?: PersistableBundle.EMPTY
+        set(extraBundle) {
+            if (extraBundle.isEmpty) {
+                fields.remove(FIELD_EXTRAS)
+                _bundle?.remove(FIELD_EXTRAS)
+            } else {
+                fields[FIELD_EXTRAS] = extraBundle
+                _bundle?.putParcelable(FIELD_EXTRAS, extraBundle)
+            }
+        }
 
     /**
      * For timeline entries. The epoch second at which this timeline entry becomes * valid or `null`
@@ -1286,7 +1326,9 @@ private constructor(
                 (!isFieldValidForType(FIELD_START_TIME, type) ||
                     startDateTimeMillis == other.startDateTimeMillis) &&
                 (!isFieldValidForType(FIELD_END_TIME, type) ||
-                    endDateTimeMillis == other.endDateTimeMillis))
+                    endDateTimeMillis == other.endDateTimeMillis) &&
+                (!isFieldValidForType(FIELD_EXTRAS, type) ||
+                    PersistableBundleHelper.equals(extras, other.extras)))
 
     override fun hashCode(): Int =
         Objects.hash(
@@ -1379,6 +1421,12 @@ private constructor(
             if (isFieldValidForType(FIELD_DISPLAY_POLICY, type)) displayPolicy else null,
             if (isFieldValidForType(FIELD_START_TIME, type)) startDateTimeMillis else null,
             if (isFieldValidForType(FIELD_END_TIME, type)) endDateTimeMillis else null,
+            if (isFieldValidForType(FIELD_EXTRAS, type)) {
+                // PersistableBundle does not implement hashCode
+                PersistableBundleHelper.hashCode(extras)
+            } else {
+                null
+            },
         )
 
     /** Builder class for [ComplicationData]. */
@@ -1392,6 +1440,15 @@ private constructor(
         constructor(@ComplicationType type: Int) : this(type, mutableMapOf()) {
             if (type == TYPE_SMALL_IMAGE || type == TYPE_LONG_TEXT) {
                 setSmallImageStyle(IMAGE_STYLE_PHOTO)
+            }
+        }
+
+        /** Sets any extras. */
+        fun setExtras(extras: PersistableBundle) = apply {
+            if (extras.isEmpty) {
+                fields.remove(FIELD_EXTRAS)
+            } else {
+                fields[FIELD_EXTRAS] = extras
             }
         }
 
@@ -1820,8 +1877,8 @@ private constructor(
          *
          * Returns this Builder to allow chaining.
          */
-        fun setColorRampIsSmoothShaded(isSmoothShaded: Boolean?) = apply {
-            putOrRemoveField(FIELD_COLOR_RAMP_INTERPOLATED, isSmoothShaded)
+        fun setColorRampInterpolated(isColorRampInterpolated: Boolean?) = apply {
+            putOrRemoveField(FIELD_COLOR_RAMP_INTERPOLATED, isColorRampInterpolated)
         }
 
         /**
@@ -2103,6 +2160,7 @@ private constructor(
         private const val FIELD_ELEMENT_COLORS = "ELEMENT_COLORS"
         private const val FIELD_ELEMENT_WEIGHTS = "ELEMENT_WEIGHTS"
         private const val FIELD_END_TIME = "END_TIME"
+        private const val FIELD_EXTRAS = "EXTRAS"
         private const val FIELD_ICON = "ICON"
         private const val FIELD_ICON_BURN_IN_PROTECTION = "ICON_BURN_IN_PROTECTION"
         private const val FIELD_IMAGE_STYLE = "IMAGE_STYLE"
@@ -2225,6 +2283,7 @@ private constructor(
                 FIELD_TIMELINE_END_TIME,
                 FIELD_START_TIME,
                 FIELD_END_TIME,
+                FIELD_EXTRAS,
                 FIELD_TIMELINE_ENTRIES,
                 FIELD_TIMELINE_ENTRY_TYPE,
                 // Placeholder or fallback.
@@ -2411,6 +2470,7 @@ private constructor(
             }
             putFromBundle(FIELD_START_TIME) { bundle.getLong(it, 0) }
             putFromBundle(FIELD_END_TIME) { bundle.getLong(it, Long.MAX_VALUE) }
+            putFromBundle(FIELD_EXTRAS) { GetParcelableHelper.getPersistableBundle(bundle, it) }
             putFromBundle(FIELD_VALUE, bundle::getFloat)
             putFromBundle(FIELD_DYNAMIC_VALUE) { key ->
                 bundle.getByteArray(key)?.let { DynamicFloat.fromByteArray(it) }
@@ -2516,6 +2576,9 @@ private constructor(
             putFromFields(FIELD_DISPLAY_POLICY, bundle::putInt)
             putFromFields(FIELD_START_TIME, bundle::putLong)
             putFromFields(FIELD_END_TIME, bundle::putLong)
+            putFromFields<PersistableBundle>(FIELD_EXTRAS) { key, value ->
+                bundle.putParcelable(key, value)
+            }
             putFromFields(FIELD_VALUE, bundle::putFloat)
             putFromFields<DynamicFloat>(FIELD_DYNAMIC_VALUE) { key, value ->
                 bundle.putByteArray(key, value.toDynamicFloatByteArray())
@@ -2616,7 +2679,8 @@ private constructor(
         }
 
         /** Returns whether or not we should redact complication data in toString(). */
-        @JvmStatic fun shouldRedact() = !Log.isLoggable(TAG, Log.DEBUG)
+        @JvmStatic
+        fun shouldRedact() = !Log.isLoggable(TAG, Log.DEBUG) && !Build.TYPE.equals("userdebug")
 
         @JvmStatic
         fun maybeRedact(unredacted: CharSequence?): String =
@@ -2625,6 +2689,70 @@ private constructor(
         @JvmSynthetic
         private fun maybeRedact(unredacted: String): String =
             if (!shouldRedact() || unredacted == PLACEHOLDER_STRING) unredacted else "REDACTED"
+    }
+}
+
+internal object GetParcelableHelperApi33 {
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    fun getPersistableBundle(bundle: Bundle, key: String) =
+        bundle.getParcelable(key, PersistableBundle::class.java)
+}
+
+internal object GetParcelableHelper {
+    @Suppress("deprecation")
+    fun getPersistableBundle(bundle: Bundle, key: String): PersistableBundle? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return GetParcelableHelperApi33.getPersistableBundle(bundle, key)
+        } else {
+            return bundle.getParcelable(key) as PersistableBundle?
+        }
+    }
+}
+
+/** [PersistableBundle] doesn't implement equals or hashCode, but we need them. */
+internal object PersistableBundleHelper {
+    @Suppress("deprecation")
+    fun equals(a: PersistableBundle?, b: PersistableBundle?): Boolean {
+        if (a === b) {
+            return true
+        }
+        if (a == null || b == null) {
+            return false
+        }
+        if (a.size() != b.size()) {
+            return false
+        }
+        for (key in a.keySet()) {
+            val aVal = a.get(key)!!
+            val bVal = b.get(key) ?: return false
+            if (aVal is PersistableBundle && bVal is PersistableBundle) {
+                if (!equals(aVal, bVal)) {
+                    return false
+                }
+            } else {
+                if (aVal != bVal) {
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
+    @Suppress("deprecation")
+    fun hashCode(bundle: PersistableBundle?): Int {
+        if (bundle == null) {
+            return -1
+        }
+        var hash = 0
+        for (key in bundle.keySet()) {
+            val v = bundle.get(key)!!
+            if (v is PersistableBundle) {
+                hash = hash * 33 + hashCode(v)
+            } else {
+                hash = hash * 33 + v.hashCode()
+            }
+        }
+        return hash
     }
 }
 

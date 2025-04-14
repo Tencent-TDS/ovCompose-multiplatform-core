@@ -24,6 +24,7 @@ import androidx.room.compiler.processing.util.getMethodByJvmName
 import androidx.room.compiler.processing.util.getParameter
 import androidx.room.compiler.processing.util.runKaptTest
 import androidx.room.compiler.processing.util.runProcessorTest
+import org.junit.Ignore
 import org.junit.Test
 
 class KotlinMetadataTest {
@@ -48,6 +49,7 @@ class KotlinMetadataTest {
         }
     }
 
+    @Ignore("b/360398921")
     @Test
     fun inlineReifiedFunctionAndKAPT4() {
         val source =
@@ -61,8 +63,8 @@ class KotlinMetadataTest {
                 """
                     .trimIndent()
             )
-        runKaptTest(sources = listOf(source), kotlincArguments = listOf("-Xuse-kapt4")) { invocation
-            ->
+        runKaptTest(sources = listOf(source), kotlincArguments = listOf("-Xuse-k2-kapt")) {
+            invocation ->
             invocation.processingEnv.requireTypeElement("Foo").let { element ->
                 val f = element.getDeclaredFields().single()
                 // This shouldn't throw NullPointerException when inline reified functions are

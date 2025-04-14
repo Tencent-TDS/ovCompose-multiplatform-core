@@ -16,18 +16,91 @@
 
 package androidx.compose.foundation.text.input.internal.selection
 
+import android.os.Build
 import androidx.compose.foundation.contextmenu.ContextMenuScope
 import androidx.compose.foundation.contextmenu.ContextMenuState
+import androidx.compose.foundation.text.MenuItemsAvailability
 import androidx.compose.foundation.text.TextContextMenuItems
+import androidx.compose.foundation.text.TextContextMenuItems.Autofill
+import androidx.compose.foundation.text.TextContextMenuItems.Copy
+import androidx.compose.foundation.text.TextContextMenuItems.Cut
+import androidx.compose.foundation.text.TextContextMenuItems.Paste
+import androidx.compose.foundation.text.TextContextMenuItems.SelectAll
 import androidx.compose.foundation.text.TextItem
+import androidx.compose.foundation.text.contextmenu.builder.TextContextMenuBuilderScope
+import androidx.compose.foundation.text.contextmenu.modifier.addTextContextMenuComponentsWithResources
+import androidx.compose.foundation.text.textItem
+import androidx.compose.runtime.State
+import androidx.compose.ui.Modifier
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
 
 internal fun TextFieldSelectionState.contextMenuBuilder(
     state: ContextMenuState,
+    itemsAvailability: State<MenuItemsAvailability>,
+    onMenuItemClicked: TextFieldSelectionState.(TextContextMenuItems) -> Unit
 ): ContextMenuScope.() -> Unit = {
-    TextItem(state, TextContextMenuItems.Cut, enabled = canCut()) { cut() }
-    TextItem(state, TextContextMenuItems.Copy, enabled = canCopy()) {
-        copy(cancelSelection = false)
+    fun textFieldItem(label: TextContextMenuItems, enabled: Boolean) {
+        TextItem(state, label, enabled) { onMenuItemClicked(label) }
     }
-    TextItem(state, TextContextMenuItems.Paste, enabled = canPaste()) { paste() }
-    TextItem(state, TextContextMenuItems.SelectAll, enabled = canSelectAll()) { selectAll() }
+
+    val availability: MenuItemsAvailability = itemsAvailability.value
+
+    textFieldItem(Cut, enabled = availability.canCut)
+    textFieldItem(Copy, enabled = availability.canCopy)
+    textFieldItem(Paste, enabled = availability.canPaste)
+    textFieldItem(SelectAll, enabled = availability.canSelectAll)
+    if (Build.VERSION.SDK_INT >= 26) {
+        textFieldItem(Autofill, enabled = availability.canAutofill)
+    }
+}
+
+// TODO(halilibo): Add a new TextToolbar option "paste as plain text".
+internal actual fun Modifier.addBasicTextFieldTextContextMenuComponents(
+    state: TextFieldSelectionState,
+    coroutineScope: CoroutineScope,
+): Modifier = addTextContextMenuComponentsWithResources { resources ->
+    fun TextContextMenuBuilderScope.textFieldItem(
+        item: TextContextMenuItems,
+        enabled: Boolean,
+        desiredState: TextToolbarState = TextToolbarState.None,
+        closePredicate: (() -> Boolean)? = null,
+        onClick: () -> Unit
+    ) {
+        textItem(resources, item, enabled) {
+            onClick()
+            if (closePredicate?.invoke() ?: true) close()
+            state.updateTextToolbarState(desiredState)
+        }
+    }
+
+    fun TextContextMenuBuilderScope.textFieldSuspendItem(
+        item: TextContextMenuItems,
+        enabled: Boolean,
+        onClick: suspend () -> Unit
+    ) {
+        textFieldItem(item, enabled) {
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) { onClick() }
+        }
+    }
+
+    with(state) {
+        separator()
+        textFieldSuspendItem(Cut, enabled = canCut()) { cut() }
+        textFieldSuspendItem(Copy, enabled = canCopy()) { copy(cancelSelection = textToolbarShown) }
+        textFieldSuspendItem(Paste, enabled = canPaste()) { paste() }
+        textFieldItem(
+            item = SelectAll,
+            enabled = canSelectAll(),
+            desiredState = TextToolbarState.Selection,
+            closePredicate = { !textToolbarShown },
+        ) {
+            selectAll()
+        }
+        if (Build.VERSION.SDK_INT >= 26) {
+            textFieldItem(Autofill, enabled = canAutofill()) { autofill() }
+        }
+        separator()
+    }
 }

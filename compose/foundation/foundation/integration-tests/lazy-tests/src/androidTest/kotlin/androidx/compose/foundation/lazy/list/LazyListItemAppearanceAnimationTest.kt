@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE") // b/407927787
 
 package androidx.compose.foundation.lazy.list
 
@@ -331,6 +331,20 @@ class LazyListItemAppearanceAnimationTest {
                 assertThat(expectedTime).isEqualTo(rule.mainClock.currentTime)
             }
         }
+    }
+
+    @Test
+    fun snapToPosition_noAnimation() {
+        val items = List(200) { Color.Black }
+        rule.setContent {
+            LazyList(containerSize = itemSizeDp) {
+                items(items, key = { it.toArgb() }) { Item(it) }
+            }
+        }
+
+        rule.runOnIdle { runBlocking { state.scrollToItem(200) } }
+
+        assertPixels(itemSize) { Color.Black }
     }
 
     @Composable

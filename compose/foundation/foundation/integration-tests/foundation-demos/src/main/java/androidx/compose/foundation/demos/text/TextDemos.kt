@@ -41,6 +41,8 @@ import androidx.compose.foundation.samples.HandwritingDetectorSample
 import androidx.compose.integration.demos.common.ComposableDemo
 import androidx.compose.integration.demos.common.DemoCategory
 import androidx.compose.ui.text.samples.AnnotatedStringFromHtml
+import androidx.compose.ui.text.samples.AnnotatedStringWithBulletListCustomBulletSample
+import androidx.compose.ui.text.samples.AnnotatedStringWithBulletListSample
 
 val TextDemos =
     DemoCategory(
@@ -92,6 +94,9 @@ val TextDemos =
                             ComposableDemo("Min/max lines") { BasicTextMinMaxLinesDemo() },
                             ComposableDemo("Get last character after clip") {
                                 LastClippedCharacterDemo()
+                            },
+                            ComposableDemo("Ellipses plays well with redraw") {
+                                EllipsizeRedrawDemo()
                             }
                         )
                     ),
@@ -99,6 +104,7 @@ val TextDemos =
                     ComposableDemo("Line Height Behavior") { TextLineHeightDemo() },
                     ComposableDemo("Layout Reuse") { TextReuseLayoutDemo() },
                     ComposableDemo("Multi paragraph") { MultiParagraphDemo() },
+                    ComposableDemo("Auto Size") { AutoSizeTextDemo() }
                 )
             ),
             DemoCategory(
@@ -225,7 +231,16 @@ val TextDemos =
             ),
             ComposableDemo("\uD83D\uDD17 Hyperlinks") { Hyperlinks() },
             ComposableDemo("Text Pointer Icon") { TextPointerIconDemo() },
-            ComposableDemo("Html") { AnnotatedStringFromHtml() },
+            DemoCategory(
+                "Html and bullets",
+                listOf(
+                    ComposableDemo("Html") { AnnotatedStringFromHtml() },
+                    ComposableDemo("Default bullets") { AnnotatedStringWithBulletListSample() },
+                    ComposableDemo("Custom bullets") {
+                        AnnotatedStringWithBulletListCustomBulletSample()
+                    }
+                )
+            ),
             ComposableDemo("Show/hide keyboard via scroll") { windowInsetsNestedScrollDemo() },
         )
     )

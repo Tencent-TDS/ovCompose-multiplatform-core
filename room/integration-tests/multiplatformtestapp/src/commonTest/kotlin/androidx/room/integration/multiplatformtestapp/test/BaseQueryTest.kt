@@ -390,12 +390,11 @@ abstract class BaseQueryTest {
 
         assertThat(channel.receive()).isEmpty()
 
-        // Validates that a write using the connection directly will cause invalidation when
-        // a refresh is requested.
+        // Validates that a write using the connection directly will cause invalidation without
+        // the need to do a manual refresh.
         db.useWriterConnection { connection ->
             connection.execSQL("INSERT INTO SampleEntity (pk) VALUES (13)")
         }
-        db.invalidationTracker.refreshAsync()
         assertThat(channel.receive())
             .containsExactly(
                 SampleEntity(13),
@@ -463,6 +462,16 @@ abstract class BaseQueryTest {
         db.dao().insert(sampleEntity2)
         assertThat(db.dao().getSample1To2())
             .isEqualTo(SampleDao.Sample1And2(sample1 = sampleEntity1, sample2 = sampleEntity2))
+    }
+
+    @Test
+    fun relationByteKey() = runTest {
+        val sampleEntity1 = SampleEntity1Byte(ByteArray(1))
+        val sampleEntity2 = SampleEntity2Byte(ByteArray(1))
+        db.dao().insert(sampleEntity1)
+        db.dao().insert(sampleEntity2)
+        assertThat(db.dao().getSample1To2Byte())
+            .isEqualTo(SampleDao.Sample1And2Byte(sample1 = sampleEntity1, sample2 = sampleEntity2))
     }
 
     @Test

@@ -24,6 +24,9 @@ import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.compiler.plugin.parseLegacyPluginOption
+import org.jetbrains.kotlin.config.ApiVersion
+import org.jetbrains.kotlin.config.JvmDefaultMode
+import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.LanguageVersion
 
 /** Utility object to run kotlin compiler via its CLI API. */
@@ -68,10 +71,39 @@ internal object KotlinCliRunner {
 
     /** Get the language version specified with `-language-version=xxx`. */
     fun getLanguageVersion(kotlincArguments: List<String>): LanguageVersion {
-        val cliArguments = compiler.createArguments()
-        compiler.parseArguments(kotlincArguments.toTypedArray(), cliArguments)
-        return cliArguments.languageVersion?.let { LanguageVersion.fromVersionString(it) }
-            ?: TestDefaultOptions.kotlinLanguageVersion
+        return parseArguments(kotlincArguments).languageVersion?.let {
+            LanguageVersion.fromVersionString(it)
+        } ?: TestDefaultOptions.kotlinLanguageVersion
+    }
+
+    /** Get the api version specified with `-api-version=xxx`. */
+    fun getApiVersion(kotlincArguments: List<String>): ApiVersion {
+        return parseArguments(kotlincArguments).apiVersion?.let { ApiVersion.parse(it) }
+            ?: TestDefaultOptions.kotlinApiVersion
+    }
+
+    /** Get the jvm target specified with `-jvm-target=xxx`. */
+    fun getJvmTarget(kotlincArguments: List<String>): JvmTarget {
+        return parseArguments(kotlincArguments).jvmTarget?.let { JvmTarget.fromString(it) }
+            ?: TestDefaultOptions.jvmTarget
+    }
+
+    /** Get the jvm default mode specified with `-Xjvm-default=xxx`. */
+    fun getJvmDefaultMode(kotlincArguments: List<String>): JvmDefaultMode {
+        return parseArguments(kotlincArguments).jvmDefault.let {
+            JvmDefaultMode.fromStringOrNull(it)
+        } ?: TestDefaultOptions.jvmDefaultMode
+    }
+
+    /** Get the JVM module name specified with `-module-name`. */
+    fun getJvmModuleName(kotlincArguments: List<String>): String {
+        return parseArguments(kotlincArguments).moduleName ?: TestDefaultOptions.jvmModuleName
+    }
+
+    private fun parseArguments(kotlincArguments: List<String>): K2JVMCompilerArguments {
+        return compiler.createArguments().apply {
+            compiler.parseArguments(kotlincArguments.toTypedArray(), this)
+        }
     }
 
     private fun CompilationStepArguments.copyToCliArguments(cliArguments: K2JVMCompilerArguments) {
@@ -83,10 +115,10 @@ internal object KotlinCliRunner {
         // We want allow no sources to run test handlers
         cliArguments.allowNoSourceFiles = true
 
-        cliArguments.languageVersion = TestDefaultOptions.kotlinLanguageVersion.versionString
-        cliArguments.apiVersion = TestDefaultOptions.kotlinApiVersion.versionString
-        cliArguments.jvmTarget = TestDefaultOptions.jvmTarget.description
-        cliArguments.jvmDefault = TestDefaultOptions.jvmDefaultMode.description
+        cliArguments.languageVersion = getLanguageVersion(kotlincArguments).versionString
+        cliArguments.apiVersion = getApiVersion(kotlincArguments).versionString
+        cliArguments.jvmTarget = getJvmTarget(kotlincArguments).description
+        cliArguments.jvmDefault = getJvmDefaultMode(kotlincArguments).description
 
         // useJavac & compileJava are experimental so lets not use it for now.
         cliArguments.useJavac = false

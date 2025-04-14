@@ -15,6 +15,10 @@
  */
 package androidx.collection
 
+import kotlin.js.JsName
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -768,6 +772,7 @@ class OrderedScatterSetTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val set = MutableOrderedScatterSet<String?>()
         set += "Hello"
@@ -925,6 +930,77 @@ class OrderedScatterSetTest {
         set.clear()
         assertEquals(0, set.size)
         assertFalse("Hola" in set)
+    }
+
+    @Test
+    @JsName("jsAsSetEquals")
+    fun asSetEquals() {
+        val set = MutableOrderedScatterSet<String?>()
+        set += "Hello"
+        set += null
+        set += "Bonjour"
+
+        assertFalse(set.asSet().equals(null))
+        assertFalse(set.asMutableSet().equals(null))
+        assertEquals(set.asSet(), set.asSet())
+        assertEquals(set.asMutableSet(), set.asMutableSet())
+
+        val set2 = MutableOrderedScatterSet<String?>()
+        set2 += "Bonjour"
+        set2 += null
+
+        assertNotEquals(set.asSet(), set2.asSet())
+        assertNotEquals(set.asMutableSet(), set2.asMutableSet())
+
+        set2 += "Hello"
+        assertEquals(set.asSet(), set2.asSet())
+        assertEquals(set.asMutableSet(), set2.asMutableSet())
+    }
+
+    @Test
+    fun asSetString() {
+        val set = MutableOrderedScatterSet<String?>()
+        assertEquals("[]", set.asSet().toString())
+        assertEquals("[]", set.asMutableSet().toString())
+
+        set += "Hello"
+        set += "Bonjour"
+        assertTrue(
+            "[Hello, Bonjour]" == set.asSet().toString() ||
+                "[Bonjour, Hello]" == set.asSet().toString()
+        )
+        assertTrue(
+            "[Hello, Bonjour]" == set.asMutableSet().toString() ||
+                "[Bonjour, Hello]" == set.asMutableSet().toString()
+        )
+
+        set.clear()
+        set += null
+        assertEquals("[null]", set.asSet().toString())
+        assertEquals("[null]", set.asMutableSet().toString())
+
+        set.clear()
+
+        val selfAsElement = MutableScatterSet<Any>()
+        selfAsElement.add(selfAsElement)
+        assertEquals("[(this)]", selfAsElement.asSet().toString())
+        assertEquals("[(this)]", selfAsElement.asMutableSet().toString())
+    }
+
+    @Test
+    fun asSetHashCodeAddValues() {
+        val set = mutableOrderedScatterSetOf<String?>()
+        assertEquals(217, set.asSet().hashCode())
+        assertEquals(217, set.asMutableSet().hashCode())
+        set += null
+        assertEquals(218, set.asSet().hashCode())
+        assertEquals(218, set.asMutableSet().hashCode())
+
+        set += "Hello"
+        val h1 = set.hashCode()
+        set += "World"
+        assertNotEquals(h1, set.asSet().hashCode())
+        assertNotEquals(h1, set.asMutableSet().hashCode())
     }
 
     @Test
@@ -1266,5 +1342,52 @@ class OrderedScatterSetTest {
         set.retainAll { false }
         assertTrue(set.isEmpty())
         set.forEach { fail() }
+    }
+
+    @Test
+    fun sequentialHashCollisions() {
+        val set = MutableOrderedScatterSet<BadHashKey>()
+
+        for (x in 0..256) {
+            val i = x % 128
+            val key = BadHashKey(i.toString())
+            set.add(key)
+            for (j in i downTo max(0, i - 24)) {
+                assertTrue(set.contains(BadHashKey(i.toString())))
+            }
+        }
+    }
+
+    @Test
+    fun randomizedHashCollisions() {
+        val set = MutableOrderedScatterSet<BadHashKey>()
+
+        for (x in 0..1024) {
+            val i = abs(Random(6789).nextInt()) % 128
+            val key = BadHashKey(i.toString())
+            set.add(key)
+            for (j in i downTo max(0, i - 24)) {
+                assertTrue(set.contains(BadHashKey(i.toString())))
+            }
+        }
+    }
+
+    private class BadHashKey(val name: String) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other == null || this::class != other::class) return false
+
+            other as BadHashKey
+
+            return name == other.name
+        }
+
+        override fun hashCode(): Int {
+            return name.length
+        }
+
+        override fun toString(): String {
+            return "BadHashKey(name='$name')"
+        }
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagFlipperRunner
 import androidx.compose.foundation.text.selection.Selection
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
@@ -39,7 +40,9 @@ import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.dp
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(ContextMenuFlagFlipperRunner::class)
 internal class MultiText2dSelectionGesturesTest : AbstractSelectionGesturesTest() {
 
     // 3 x 3 grid of texts

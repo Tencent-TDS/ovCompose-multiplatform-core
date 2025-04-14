@@ -21,12 +21,12 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
@@ -42,9 +42,9 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it's own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it's own MockMaker
+    androidTestImplementation(libs.espressoCore)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(project(":internal-testutils-espresso"))
     androidTestImplementation(project(":internal-testutils-appcompat"), {
         exclude group: "androidx.viewpager2", module: "viewpager2"
@@ -59,12 +59,14 @@ dependencies {
 
 androidx {
     name = "ViewPager2"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "AndroidX Widget ViewPager2"
     legacyDisableKotlinStrictApiMode = true
+    // TODO: b/326456246
+    optOutJSpecify = true
 }
 
 android {
-    namespace "androidx.viewpager2"
+    namespace = "androidx.viewpager2"
 }

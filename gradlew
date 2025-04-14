@@ -14,13 +14,14 @@ SCRIPT_PATH="$(cd $(dirname $0) && pwd -P)"
 if [ -n "$OUT_DIR" ] ; then
     mkdir -p "$OUT_DIR"
     OUT_DIR="$(cd $OUT_DIR && pwd -P)"
-    export GRADLE_USER_HOME="$OUT_DIR/.gradle"
     export TMPDIR="$OUT_DIR/tmp"
+elif [[ $SCRIPT_PATH == /google/cog/* ]] ; then
+    export OUT_DIR="$HOME/androidxout"
 else
     CHECKOUT_ROOT="$(cd $SCRIPT_PATH/../.. && pwd -P)"
     export OUT_DIR="$CHECKOUT_ROOT/out"
-    export GRADLE_USER_HOME=~/.gradle
 fi
+export GRADLE_USER_HOME="$OUT_DIR/.gradle"
 
 ORG_GRADLE_JVMARGS="$(cd $SCRIPT_PATH && grep org.gradle.jvmargs gradle.properties | sed 's/^/-D/')"
 if [ -n "$DIST_DIR" ]; then
@@ -33,9 +34,6 @@ if [ -n "$DIST_DIR" ]; then
     # We don't set a default DIST_DIR in an else clause here because Studio doesn't use gradlew
     # and doesn't set DIST_DIR and we want gradlew and Studio to match
 fi
-
-# Loading the AIDL lexer requires disabling Lint's bytecode verification
-export ANDROID_LINT_SKIP_BYTECODE_VERIFIER=true
 
 # unset ANDROID_BUILD_TOP so that Lint doesn't think we're building the platform itself
 unset ANDROID_BUILD_TOP

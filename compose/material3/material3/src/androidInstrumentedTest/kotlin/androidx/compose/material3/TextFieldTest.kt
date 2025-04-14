@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -607,7 +608,7 @@ class TextFieldTest {
                     )
                 },
                 labelPosition =
-                    TextFieldLabelPosition.Default(
+                    TextFieldLabelPosition.Attached(
                         minimizedAlignment = Alignment.End,
                         expandedAlignment = Alignment.CenterHorizontally
                     ),
@@ -643,7 +644,7 @@ class TextFieldTest {
                     SideEffect { compositionCount++ }
 
                     // lambda reads `progress` in the draw phase
-                    Box(Modifier.graphicsLayer { progressValue.value = progress })
+                    Box(Modifier.graphicsLayer { progressValue.value = labelMinimizedProgress })
                 }
             )
         }
@@ -1073,7 +1074,7 @@ class TextFieldTest {
                 prefix = { Text(prefixText) },
                 suffix = { Text(suffixText) },
                 placeholder = { Text(placeholderText) },
-                labelPosition = TextFieldLabelPosition.Default(alwaysMinimize = false),
+                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = false),
             )
         }
 
@@ -1097,7 +1098,7 @@ class TextFieldTest {
                 prefix = { Text(prefixText) },
                 suffix = { Text(suffixText) },
                 placeholder = { Text(placeholderText) },
-                labelPosition = TextFieldLabelPosition.Default(alwaysMinimize = true),
+                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
             )
         }
 
@@ -1558,7 +1559,7 @@ class TextFieldTest {
                 shapeColor = Color.White,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 3.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 3.dp.toPx() }
             )
     }
 
@@ -1601,7 +1602,7 @@ class TextFieldTest {
                 shapeColor = Color.Blue,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
             )
 
         rule.onNodeWithTag(TextFieldTag).performClick()
@@ -1615,7 +1616,7 @@ class TextFieldTest {
                 shapeColor = Color.Blue,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
             )
     }
 
@@ -2074,6 +2075,23 @@ class TextFieldTest {
         assertThat(tfHeightNoIntrinsic).isNotEqualTo(0)
 
         assertThat(tfHeightIntrinsic).isEqualTo(tfHeightNoIntrinsic)
+    }
+
+    @Test
+    fun textField_withTrailingIcon_inIntrinsicHeight_andTooShortWidth_doesNotCrash() {
+        // Regression test for b/328954156
+        rule.setContent {
+            Box(Modifier.width(200.dp)) {
+                Box(Modifier.height(IntrinsicSize.Min)) {
+                    TextField(
+                        state = rememberTextFieldState(),
+                        modifier = Modifier.padding(100.dp),
+                        trailingIcon = { Box(Modifier.size(20.dp)) },
+                    )
+                }
+            }
+        }
+        // Nothing to assert; just make sure it doesn't crash
     }
 
     @Test

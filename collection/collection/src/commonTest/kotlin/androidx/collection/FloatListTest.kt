@@ -713,4 +713,46 @@ class FloatListTest {
         assertEquals(-1f, l[2])
         assertEquals(10f, l[3])
     }
+
+    @Test
+    fun buildFloatListFunction() {
+        val contract: Boolean
+        val l = buildFloatList {
+            contract = true
+            add(2f)
+            add(10f)
+        }
+        assertTrue(contract)
+        assertEquals(2, l.size)
+        assertEquals(2f, l[0])
+        assertEquals(10f, l[1])
+    }
+
+    @Test
+    fun buildFloatListWithCapacityFunction() {
+        val contract: Boolean
+        val l =
+            buildFloatList(20) {
+                contract = true
+                add(2f)
+                add(10f)
+            }
+        assertTrue(contract)
+        assertEquals(2, l.size)
+        assertTrue(l.content.size >= 20)
+        assertEquals(2f, l[0])
+        assertEquals(10f, l[1])
+    }
+
+    @Test
+    fun binarySearchFloatList() {
+        val l = mutableFloatListOf(-2f, -1f, 2f, 10f, 10f)
+        assertEquals(0, l.binarySearch(-2))
+        assertEquals(2, l.binarySearch(2))
+        assertEquals(3, l.binarySearch(10))
+
+        assertEquals(-1, l.binarySearch(-20))
+        assertEquals(-4, l.binarySearch(3))
+        assertEquals(-6, l.binarySearch(20))
+    }
 }
