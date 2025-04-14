@@ -183,8 +183,8 @@ private class InputMethodRequestsImpl(
     }
 
     fun replaceInputMethodText(event: InputMethodEvent) {
-        val committed = event.text.printableSubstringOrEmpty(0, event.committedCharacterCount)
-        val composing = event.text.printableSubstringOrEmpty(event.committedCharacterCount, null)
+        val committed = event.text.substringSuitableForTextFieldOrEmpty(0, event.committedCharacterCount)
+        val composing = event.text.substringSuitableForTextFieldOrEmpty(event.committedCharacterCount, null)
 
         editText {
             if (needToDeletePreviousChar && selection.min > 0 && composing.isEmpty()) {
@@ -204,12 +204,12 @@ private class InputMethodRequestsImpl(
  * Returns the substring between [start] (inclusive) and [end] (exclusive, or the end of the
  * iterator, if `null`) of the given [AttributedCharacterIterator].
  *
- * Only printable characters are returned.
- * The reason unprintable characters need to be filtered is that the system sometimes sends
- * unprintable ones (e.g. backspace.) in an [InputMethodEvent].
+ * Only characters suitable to be present in a text field are returned.
+ * The reason the characters need to be filtered is that the system sometimes sends ones that
+ * should not be added to a text field (e.g. the backspace character) in an [InputMethodEvent].
  * See https://youtrack.jetbrains.com/issue/CMP-7989
  */
-internal fun AttributedCharacterIterator?.printableSubstringOrEmpty(
+internal fun AttributedCharacterIterator?.substringSuitableForTextFieldOrEmpty(
     start: Int,
     end: Int? = null
 ) : String {
@@ -219,7 +219,7 @@ internal fun AttributedCharacterIterator?.printableSubstringOrEmpty(
         index = start
         var c: Char = current()
         while ((c != CharacterIterator.DONE) && ((end == null) || (index < end))) {
-            if (!c.isISOControl())
+            if ((c == '\r') || (c == '\n') || (c == '\t') || !c.isISOControl())
                 append(c)
             c = next()
         }

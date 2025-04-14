@@ -112,8 +112,8 @@ internal class DesktopTextInputService(private val component: PlatformComponent)
     private fun replaceInputMethodText(event: InputMethodEvent) {
         val input = currentInput ?: return
 
-        val committed = event.text.printableSubstringOrEmpty(0, event.committedCharacterCount)
-        val composing = event.text.printableSubstringOrEmpty(event.committedCharacterCount, null)
+        val committed = event.text.substringSuitableForTextFieldOrEmpty(0, event.committedCharacterCount)
+        val composing = event.text.substringSuitableForTextFieldOrEmpty(event.committedCharacterCount, null)
         val ops = mutableListOf<EditCommand>()
 
         if (needToDeletePreviousChar && input.value.selection.min > 0 && composing.isEmpty()) {
