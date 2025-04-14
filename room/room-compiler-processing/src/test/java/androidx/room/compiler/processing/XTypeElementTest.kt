@@ -23,7 +23,6 @@ import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.asClassName
 import androidx.room.compiler.processing.javac.JavacType
 import androidx.room.compiler.processing.ksp.KspProcessingEnv
-import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.asKClassName
@@ -977,17 +976,22 @@ class XTypeElementTest(
             val baseCompanion = invocation.processingEnv.requireTypeElement("Base.Companion")
             val objectMethodNames = invocation.objectMethodNames()
             val declaredMethods = base.getDeclaredMethods()
-            assertThat(declaredMethods.jvmNames())
-                .containsExactly(
-                    "baseFun",
-                    "suspendFun",
-                    "privateBaseFun",
-                    "staticBaseFun",
-                    "getName",
-                    "suspendFun2",
-                    "extFun"
-                )
-                .inOrder()
+            val ordered =
+                assertThat(declaredMethods.jvmNames())
+                    .containsExactly(
+                        "baseFun",
+                        "suspendFun",
+                        "privateBaseFun",
+                        "staticBaseFun",
+                        "getName",
+                        "suspendFun2",
+                        "extFun"
+                    )
+            // Member ordering in companion objects cannot be restored in KSP2:
+            // https://github.com/google/ksp/issues/1898
+            if (!invocation.isKsp2) {
+                ordered.inOrder()
+            }
             declaredMethods.forEach { method ->
                 assertWithMessage("Enclosing element of method ${method.jvmName}")
                     .that(method.enclosingElement.name)
@@ -1357,8 +1361,7 @@ class XTypeElementTest(
             """
                             .trimIndent()
                     )
-                ),
-            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS
+                )
         ) { invocation ->
             val appSubject = invocation.processingEnv.requireTypeElement("test.Subject")
             val methodNames = appSubject.getAllMethods().map { it.name }.toList()
@@ -1625,7 +1628,7 @@ class XTypeElementTest(
             """
                     .trimIndent()
             )
-        runTest(sources = listOf(src), kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS) { invocation ->
+        runTest(sources = listOf(src)) { invocation ->
             val defaultArgsConstructors =
                 invocation.processingEnv
                     .requireTypeElement("DefaultArgs")

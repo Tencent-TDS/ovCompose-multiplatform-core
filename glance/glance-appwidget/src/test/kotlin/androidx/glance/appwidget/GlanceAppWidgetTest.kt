@@ -18,11 +18,14 @@ package androidx.glance.appwidget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
 import android.util.SizeF
+import android.view.ViewGroup.LayoutParams
 import android.widget.FrameLayout
+import android.widget.ListView
 import android.widget.RemoteViews
 import android.widget.TextView
 import androidx.compose.ui.unit.DpSize
@@ -31,6 +34,7 @@ import androidx.core.os.bundleOf
 import androidx.glance.GlanceId
 import androidx.glance.LocalGlanceId
 import androidx.glance.LocalSize
+import androidx.glance.appwidget.lazy.LazyColumn
 import androidx.glance.text.Text
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -403,6 +407,102 @@ class GlanceAppWidgetTest {
                 1 -> assertThat(content).isNull()
                 else -> throw Error("Invalid index $index")
             }
+        }
+    }
+
+    @Test
+    fun composeForPreview() = runTest {
+        val rv =
+            TestWidget.forPreview { widgetCategory -> Text("$widgetCategory") }
+                .composeForPreview(context, WIDGET_CATEGORY_HOME_SCREEN)
+
+        val view = context.applyRemoteViews(rv)
+        assertIs<TextView>(view)
+        assertThat(view.text.toString()).isEqualTo(WIDGET_CATEGORY_HOME_SCREEN.toString())
+    }
+
+    @Test
+    fun composeForPreview_sizeModeSingle_noInfo() = runTest {
+        val rv =
+            TestWidget.forPreview {
+                    val size = LocalSize.current
+                    Text("${size.width} x ${size.height}")
+                }
+                .composeForPreview(context, WIDGET_CATEGORY_HOME_SCREEN)
+
+        val view = context.applyRemoteViews(rv)
+        assertIs<TextView>(view)
+        assertThat(view.text.toString()).isEqualTo("0.0.dp x 0.0.dp")
+    }
+
+    @Test
+    fun composeForPreview_sizeModeSingle_withInfo() = runTest {
+        val rv =
+            TestWidget.forPreview {
+                    val size = LocalSize.current
+                    Text("${size.width} x ${size.height}")
+                }
+                .composeForPreview(
+                    context,
+                    WIDGET_CATEGORY_HOME_SCREEN,
+                    appWidgetProviderInfo {
+                        minWidth = 40
+                        minResizeWidth = 40
+                        minHeight = 50
+                        minResizeHeight = 50
+                    }
+                )
+
+        val view = context.applyRemoteViews(rv)
+        assertIs<TextView>(view)
+        assertThat(view.text.toString()).isEqualTo("40.0.dp x 50.0.dp")
+    }
+
+    @Config(minSdk = 31)
+    @Test
+    fun composeForPreview_sizeModeResponsive() = runTest {
+        val sizes =
+            setOf(
+                DpSize(60.dp, 80.dp),
+                DpSize(100.dp, 70.dp),
+                DpSize(120.dp, 100.dp),
+            )
+        val rv =
+            TestWidget.forPreview(SizeMode.Responsive(sizes)) {
+                    val size = LocalSize.current
+                    Text("${size.width} x ${size.height}")
+                }
+                .composeForPreview(context, WIDGET_CATEGORY_HOME_SCREEN)
+
+        sizes.forEach { size ->
+            val view =
+                context.applyRemoteViews(
+                    rv,
+                    LayoutParams(
+                        size.width.plus(5.dp).toPixels(context),
+                        size.height.plus(5.dp).toPixels(context),
+                    ),
+                )
+            assertIs<TextView>(view)
+            assertThat(view.text.toString()).isEqualTo("${size.width} x ${size.height}")
+        }
+    }
+
+    @Config(minSdk = 32)
+    @Test
+    fun composeForPreview_listViewIds() = runMediumTest {
+        val rv =
+            TestWidget.forPreview {
+                    LazyColumn { items(5, { it.toLong() }) { index -> Text("$index") } }
+                }
+                .composeForPreview(context, WIDGET_CATEGORY_HOME_SCREEN)
+
+        val view = context.applyRemoteViews(rv)
+        assertIs<ListView>(view)
+        (0 until 5).forEach { i ->
+            val item = view.adapter.getItem(i) as RemoteViews
+            assertThat(item.layoutId).isAtLeast(FirstRootAlias)
+            assertThat(item.layoutId).isAtMost(LastRootAlias)
         }
     }
 

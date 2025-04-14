@@ -32,7 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.ListHeader
-import androidx.wear.compose.material3.LocalTextMaxLines
+import androidx.wear.compose.material3.LocalTextConfiguration
 import androidx.wear.compose.material3.RadioButton
 import androidx.wear.compose.material3.Text
 
@@ -63,7 +63,7 @@ fun RadioButtonDemo() {
         item { ListHeader { Text("Disabled Radio Button") } }
         item { DemoRadioButton(enabled = false, selected = true) }
         item { DemoRadioButton(enabled = false, selected = false) }
-        item { ListHeader { Text("Icon") } }
+        item { ListHeader { Text("Radio Button with Icon") } }
         item {
             DemoRadioButton(
                 enabled = true,
@@ -81,6 +81,26 @@ fun RadioButtonDemo() {
                 secondary = "Secondary label"
             ) {
                 Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+            }
+        }
+        item { ListHeader { Text("Disabled Radio Button with Icon") } }
+        for (selected in booleanArrayOf(true, false)) {
+            item {
+                DemoRadioButton(
+                    enabled = false,
+                    selected = selected,
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
+            }
+            item {
+                DemoRadioButton(
+                    enabled = false,
+                    selected = selected,
+                    secondary = "Secondary label"
+                ) {
+                    Icon(imageVector = Icons.Filled.Favorite, contentDescription = "Favorite icon")
+                }
             }
         }
         item { ListHeader { Text("Multi-line") } }
@@ -139,7 +159,7 @@ private fun DemoRadioButton(
             Text(
                 primary,
                 Modifier.fillMaxWidth(),
-                maxLines = primaryMaxLines ?: LocalTextMaxLines.current
+                maxLines = primaryMaxLines ?: LocalTextConfiguration.current.maxLines
             )
         },
         secondaryLabel =

@@ -28,15 +28,19 @@ import android.os.Parcelable;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.text.TextUtils;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.Nullable;
+
 /**
- * A simple set of metadata for a media item suitable for display. This can be
- * created using the Builder or retrieved from existing metadata using
- * {@link MediaMetadataCompat#getDescription()}.
+ * A simple set of metadata for a media item suitable for display. This can be created using the
+ * Builder or retrieved from existing metadata using {@link MediaMetadataCompat#getDescription()}.
+ *
+ * @deprecated androidx.media is deprecated. Please migrate to <a
+ *     href="https://developer.android.com/media/media3">androidx.media3</a>.
  */
+@Deprecated
 @SuppressLint("BanParcelableUsage")
 public final class MediaDescriptionCompat implements Parcelable {
     private static final String TAG = "MediaDescriptionCompat";
@@ -220,8 +224,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      * Returns the media id or null. See
      * {@link MediaMetadataCompat#METADATA_KEY_MEDIA_ID}.
      */
-    @Nullable
-    public String getMediaId() {
+    public @Nullable String getMediaId() {
         return mMediaId;
     }
 
@@ -230,8 +233,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return A title or null.
      */
-    @Nullable
-    public CharSequence getTitle() {
+    public @Nullable CharSequence getTitle() {
         return mTitle;
     }
 
@@ -240,8 +242,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return A subtitle or null.
      */
-    @Nullable
-    public CharSequence getSubtitle() {
+    public @Nullable CharSequence getSubtitle() {
         return mSubtitle;
     }
 
@@ -250,8 +251,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return A description or null.
      */
-    @Nullable
-    public CharSequence getDescription() {
+    public @Nullable CharSequence getDescription() {
         return mDescription;
     }
 
@@ -260,8 +260,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return An icon or null.
      */
-    @Nullable
-    public Bitmap getIconBitmap() {
+    public @Nullable Bitmap getIconBitmap() {
         return mIcon;
     }
 
@@ -270,8 +269,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return An icon uri or null.
      */
-    @Nullable
-    public Uri getIconUri() {
+    public @Nullable Uri getIconUri() {
         return mIconUri;
     }
 
@@ -280,8 +278,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return A bundle of extras or null.
      */
-    @Nullable
-    public Bundle getExtras() {
+    public @Nullable Bundle getExtras() {
         return mExtras;
     }
 
@@ -290,8 +287,7 @@ public final class MediaDescriptionCompat implements Parcelable {
      *
      * @return A media Uri or null.
      */
-    @Nullable
-    public Uri getMediaUri() {
+    public @Nullable Uri getMediaUri() {
         return mMediaUri;
     }
 
@@ -448,7 +444,11 @@ public final class MediaDescriptionCompat implements Parcelable {
 
     /**
      * Builder for {@link MediaDescriptionCompat} objects.
+     *
+     * @deprecated androidx.media is deprecated. Please migrate to <a
+     *     href="https://developer.android.com/media/media3">androidx.media3</a>.
      */
+    @Deprecated
     public static final class Builder {
         private String mMediaId;
         private CharSequence mTitle;
@@ -615,38 +615,31 @@ public final class MediaDescriptionCompat implements Parcelable {
             return builder.build();
         }
 
-        @Nullable
-        static String getMediaId(MediaDescription description) {
+        static @Nullable String getMediaId(MediaDescription description) {
             return description.getMediaId();
         }
 
-        @Nullable
-        static CharSequence getTitle(MediaDescription description) {
+        static @Nullable CharSequence getTitle(MediaDescription description) {
             return description.getTitle();
         }
 
-        @Nullable
-        static CharSequence getSubtitle(MediaDescription description) {
+        static @Nullable CharSequence getSubtitle(MediaDescription description) {
             return description.getSubtitle();
         }
 
-        @Nullable
-        static CharSequence getDescription(MediaDescription description) {
+        static @Nullable CharSequence getDescription(MediaDescription description) {
             return description.getDescription();
         }
 
-        @Nullable
-        static Bitmap getIconBitmap(MediaDescription description) {
+        static @Nullable Bitmap getIconBitmap(MediaDescription description) {
             return description.getIconBitmap();
         }
 
-        @Nullable
-        static Uri getIconUri(MediaDescription description) {
+        static @Nullable Uri getIconUri(MediaDescription description) {
             return description.getIconUri();
         }
 
-        @Nullable
-        static Bundle getExtras(MediaDescription description) {
+        static @Nullable Bundle getExtras(MediaDescription description) {
             return description.getExtras();
         }
     }
@@ -660,8 +653,7 @@ public final class MediaDescriptionCompat implements Parcelable {
             builder.setMediaUri(mediaUri);
         }
 
-        @Nullable
-        static Uri getMediaUri(MediaDescription description) {
+        static @Nullable Uri getMediaUri(MediaDescription description) {
             return description.getMediaUri();
         }
     }

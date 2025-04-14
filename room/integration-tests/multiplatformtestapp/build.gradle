@@ -25,10 +25,11 @@ plugins {
     id("com.android.library")
     id("com.google.devtools.ksp")
     id("androidx.room")
+    alias(libs.plugins.kotlinSerialization)
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios()
     jvm()
     linux()
@@ -39,10 +40,13 @@ androidXMultiplatform {
                 implementation(libs.kotlinStdlib)
                 implementation(project(":room:room-runtime"))
                 implementation(project(":room:room-testing"))
+                implementation(project(":room:room-paging"))
                 implementation(project(":sqlite:sqlite-bundled"))
                 implementation(project(":kruth:kruth"))
+                implementation(project(":paging:paging-common"))
                 implementation(libs.kotlinTest)
                 implementation(libs.kotlinCoroutinesTest)
+                implementation(libs.kotlinSerializationCore)
             }
         }
         androidInstrumentedTest {
@@ -103,7 +107,7 @@ dependencies {
 }
 
 android {
-    namespace "androidx.room.integration.multiplatformtestapp"
+    namespace = "androidx.room.integration.multiplatformtestapp"
 }
 
 // Copy schema files to the iOS binary output test directory that will be part of the bundle's
@@ -123,4 +127,7 @@ room {
     schemaDirectory(
             provider { layout.projectDirectory.dir("schemas-ksp").getAsFile().getAbsolutePath() }
     )
+}
+
+androidx {
 }

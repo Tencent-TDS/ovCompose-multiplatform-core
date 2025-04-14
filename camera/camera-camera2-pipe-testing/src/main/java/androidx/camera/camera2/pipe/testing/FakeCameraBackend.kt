@@ -24,13 +24,13 @@ import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
-import androidx.camera.camera2.pipe.CameraStatusMonitor
 import androidx.camera.camera2.pipe.StreamGraph
+import androidx.camera.camera2.pipe.SurfaceTracker
 import androidx.camera.camera2.pipe.graph.GraphListener
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** The FakeCameraBackend implements [CameraBackend] and creates [CameraControllerSimulator]s. */
 public class FakeCameraBackend(private val fakeCameras: Map<CameraId, CameraMetadata>) :
@@ -45,8 +45,7 @@ public class FakeCameraBackend(private val fakeCameras: Map<CameraId, CameraMeta
     override val id: CameraBackendId
         get() = FAKE_CAMERA_BACKEND_ID
 
-    override val cameraStatus: Flow<CameraStatusMonitor.CameraStatus>
-        get() = MutableSharedFlow()
+    override val cameraIds: Flow<List<CameraId>> = MutableStateFlow(fakeCameraIds)
 
     override fun awaitCameraIds(): List<CameraId> = fakeCameraIds
 
@@ -69,16 +68,12 @@ public class FakeCameraBackend(private val fakeCameras: Map<CameraId, CameraMeta
         graphId: CameraGraphId,
         graphConfig: CameraGraph.Config,
         graphListener: GraphListener,
-        streamGraph: StreamGraph
+        streamGraph: StreamGraph,
+        surfaceTracker: SurfaceTracker,
     ): CameraController {
         val cameraController =
-            CameraControllerSimulator(
-                cameraContext,
-                graphId,
-                graphConfig,
-                graphListener,
-                streamGraph
-            )
+            CameraControllerSimulator(cameraContext, graphId, graphConfig, graphListener)
+        cameraController.streamGraph = streamGraph
         synchronized(lock) { _cameraControllers.add(cameraController) }
         return cameraController
     }

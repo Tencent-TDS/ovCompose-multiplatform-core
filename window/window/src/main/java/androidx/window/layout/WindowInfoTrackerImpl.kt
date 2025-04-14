@@ -43,7 +43,7 @@ internal class WindowInfoTrackerImpl(
 
     /**
      * A [Flow] of window layout changes in the current visual [UiContext]. A context has to be
-     * either an [Activity] or created with [Context#createWindowContext].
+     * either an [Activity] or created with [Context.createWindowContext].
      */
     override fun windowLayoutInfo(@UiContext context: Context): Flow<WindowLayoutInfo> {
         return callbackFlow {
@@ -69,4 +69,9 @@ internal class WindowInfoTrackerImpl(
             windowSdkExtensions.requireExtensionVersion(6)
             return windowBackend.supportedPostures
         }
+
+    override fun getCurrentWindowLayoutInfo(@UiContext context: Context): WindowLayoutInfo {
+        windowSdkExtensions.requireExtensionVersion(9)
+        return windowBackend.getCurrentWindowLayoutInfo(context)
+    }
 }

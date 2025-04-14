@@ -15,12 +15,16 @@
  */
 
 @file:Suppress("RedundantVisibilityModifier", "NOTHING_TO_INLINE")
+@file:OptIn(ExperimentalContracts::class)
 
 package androidx.collection
 
 import androidx.collection.internal.EMPTY_OBJECTS
 import androidx.collection.internal.requirePrecondition
 import androidx.collection.internal.throwNoSuchElementException
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 import kotlin.jvm.JvmField
 import kotlin.jvm.JvmOverloads
 
@@ -217,6 +221,40 @@ public fun <K> mutableObjectIntMapOf(
     }
 
 /**
+ * Builds a new [ObjectIntMap] by populating a [MutableObjectIntMap] using the given
+ * [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param builderAction Lambda in which the [MutableObjectIntMap] can be populated.
+ */
+public inline fun <K> buildObjectIntMap(
+    builderAction: MutableObjectIntMap<K>.() -> Unit,
+): ObjectIntMap<K> {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableObjectIntMap<K>().apply(builderAction)
+}
+
+/**
+ * Builds a new [ObjectIntMap] by populating a [MutableObjectIntMap] using the given
+ * [builderAction].
+ *
+ * The instance passed as a receiver to the [builderAction] is valid only inside that function.
+ * Using it outside of the function produces an unspecified behavior.
+ *
+ * @param initialCapacity Hint for the expected number of pairs added in the [builderAction].
+ * @param builderAction Lambda in which the [MutableObjectIntMap] can be populated.
+ */
+public inline fun <K> buildObjectIntMap(
+    initialCapacity: Int,
+    builderAction: MutableObjectIntMap<K>.() -> Unit,
+): ObjectIntMap<K> {
+    contract { callsInPlace(builderAction, InvocationKind.EXACTLY_ONCE) }
+    return MutableObjectIntMap<K>(initialCapacity).apply(builderAction)
+}
+
+/**
  * [ObjectIntMap] is a container with a [Map]-like interface for keys with reference types and [Int]
  * primitives for values.
  *
@@ -396,13 +434,13 @@ public sealed class ObjectIntMap<K> {
         return count
     }
 
-    /** Returns true if the specified [key] is present in this hash map, false otherwise. */
-    public operator fun contains(key: K): Boolean = findKeyIndex(key) >= 0
+    /** Returns true if the specified [key] is present in this map, false otherwise. */
+    public inline operator fun contains(key: K): Boolean = containsKey(key)
 
-    /** Returns true if the specified [key] is present in this hash map, false otherwise. */
+    /** Returns true if the specified [key] is present in this map, false otherwise. */
     public fun containsKey(key: K): Boolean = findKeyIndex(key) >= 0
 
-    /** Returns true if the specified [value] is present in this hash map, false otherwise. */
+    /** Returns true if the specified [value] is present in this map, false otherwise. */
     public fun containsValue(value: Int): Boolean {
         forEachValue { v -> if (value == v) return true }
         return false
@@ -509,7 +547,8 @@ public sealed class ObjectIntMap<K> {
         @Suppress("UNCHECKED_CAST") val o = other as ObjectIntMap<Any?>
 
         forEach { key, value ->
-            if (value != o[key]) {
+            val index = o.findKeyIndex(key)
+            if (index < 0 || value != o.values[index]) {
                 return false
             }
         }
@@ -901,7 +940,6 @@ public class MutableObjectIntMap<K>(initialCapacity: Int = DefaultScatterCapacit
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -909,7 +947,6 @@ public class MutableObjectIntMap<K>(initialCapacity: Int = DefaultScatterCapacit
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -956,25 +993,19 @@ public class MutableObjectIntMap<K>(initialCapacity: Int = DefaultScatterCapacit
 
                 values[targetIndex] = values[index]
                 values[index] = 0
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                keys[swapIndex] = keys[targetIndex]
+                val oldKey = keys[targetIndex]
                 keys[targetIndex] = keys[index]
-                keys[index] = keys[swapIndex]
+                keys[index] = oldKey
 
-                values[swapIndex] = values[targetIndex]
+                val oldValue = values[targetIndex]
                 values[targetIndex] = values[index]
-                values[index] = values[swapIndex]
+                values[index] = oldValue
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location

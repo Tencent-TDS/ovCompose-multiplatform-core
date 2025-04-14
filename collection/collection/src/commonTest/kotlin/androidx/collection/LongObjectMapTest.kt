@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -225,6 +226,36 @@ class LongObjectMapTest {
         assertEquals("Welt", map5[3L])
         assertEquals("Sekai", map5[4L])
         assertEquals("Mondo", map5[5L])
+    }
+
+    @Test
+    fun buildLongObjectMapFunction() {
+        val contract: Boolean
+        val map = buildLongObjectMap {
+            contract = true
+            put(1L, "World")
+            put(2L, "Monde")
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals("World", map[1L])
+        assertEquals("Monde", map[2L])
+    }
+
+    @Test
+    fun buildLongObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildLongObjectMap(20) {
+                contract = true
+                put(1L, "World")
+                put(2L, "Monde")
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals("World", map[1L])
+        assertEquals("Monde", map[2L])
     }
 
     @Test
@@ -656,6 +687,7 @@ class LongObjectMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableLongObjectMap<String?>()
         map[1L] = "World"

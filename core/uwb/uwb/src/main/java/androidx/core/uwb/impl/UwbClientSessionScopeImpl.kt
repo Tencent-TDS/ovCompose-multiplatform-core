@@ -16,10 +16,10 @@
 
 package androidx.core.uwb.impl
 
-import android.util.Log
 import androidx.core.uwb.RangingCapabilities
 import androidx.core.uwb.RangingMeasurement
 import androidx.core.uwb.RangingParameters
+import androidx.core.uwb.RangingResult.RangingResultInitialized
 import androidx.core.uwb.RangingResult.RangingResultPeerDisconnected
 import androidx.core.uwb.RangingResult.RangingResultPosition
 import androidx.core.uwb.UwbAddress
@@ -31,6 +31,7 @@ import com.google.android.gms.nearby.uwb.RangingSessionCallback
 import com.google.android.gms.nearby.uwb.UwbClient
 import com.google.android.gms.nearby.uwb.UwbComplexChannel
 import com.google.android.gms.nearby.uwb.UwbDevice
+import com.google.android.gms.nearby.uwb.UwbRangeDataNtfConfig
 import com.google.android.gms.nearby.uwb.UwbStatusCodes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -126,7 +127,7 @@ internal open class UwbClientSessionScopeImpl(
             }
         parametersBuilder.setSlotDuration(slotDuration)
         if (parameters.uwbRangeDataNtfConfig != null) {
-            val ntfConfig = com.google.android.gms.nearby.uwb.UwbRangeDataNtfConfig.Builder()
+            val ntfConfig = UwbRangeDataNtfConfig.Builder()
             ntfConfig.setRangeDataConfigType(parameters.uwbRangeDataNtfConfig.configType)
             ntfConfig.setNtfProximityNear(parameters.uwbRangeDataNtfConfig.ntfProximityNearCm)
             ntfConfig.setNtfProximityFar(parameters.uwbRangeDataNtfConfig.ntfProximityFarCm)
@@ -138,7 +139,11 @@ internal open class UwbClientSessionScopeImpl(
         val callback =
             object : RangingSessionCallback {
                 override fun onRangingInitialized(device: UwbDevice) {
-                    Log.i(TAG, "Started UWB ranging.")
+                    trySend(
+                        RangingResultInitialized(
+                            androidx.core.uwb.UwbDevice(UwbAddress(device.address.address))
+                        )
+                    )
                 }
 
                 override fun onRangingResult(device: UwbDevice, position: RangingPosition) {

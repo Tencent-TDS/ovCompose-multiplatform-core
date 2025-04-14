@@ -203,9 +203,10 @@ internal abstract class CalendarModel(val locale: CalendarLocale) {
      *
      * @param date a date string
      * @param pattern the expected date pattern to be used for parsing the date string
+     * @param locale a [CalendarLocale] to be used for parsing the date string
      * @return a [CalendarDate], or a `null` in case the parsing failed
      */
-    abstract fun parse(date: String, pattern: String): CalendarDate?
+    abstract fun parse(date: String, pattern: String, locale: CalendarLocale): CalendarDate?
 }
 
 /**
@@ -297,7 +298,21 @@ internal data class DateInputFormat(val patternWithDelimiters: String, val delim
  * - dd.MM.yyyy
  * - MM/dd/yyyy
  */
-internal expect fun datePatternAsInputFormat(localeFormat: String): DateInputFormat
+internal fun datePatternAsInputFormat(localeFormat: String): DateInputFormat {
+    val patternWithDelimiters =
+        localeFormat
+            .replace(Regex("[^dMy/\\-.]"), "")
+            .replace(Regex("d{1,2}"), "dd")
+            .replace(Regex("M{1,2}"), "MM")
+            .replace(Regex("y{1,4}"), "yyyy")
+            .replace("My", "M/y") // Edge case for the Kako locale
+            .removeSuffix(".") // Removes a dot suffix that appears in some formats
+
+    val delimiterRegex = Regex("[/\\-.]")
+    val delimiterMatchResult = delimiterRegex.find(patternWithDelimiters)
+    val delimiter = delimiterMatchResult!!.groups[0]!!.value
+    return DateInputFormat(patternWithDelimiters = patternWithDelimiters, delimiter = delimiter[0])
+}
 
 internal const val DaysInWeek: Int = 7
 internal const val MillisecondsIn24Hours = 86400000L

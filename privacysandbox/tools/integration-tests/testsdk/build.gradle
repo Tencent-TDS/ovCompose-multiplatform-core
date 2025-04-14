@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import androidx.build.KotlinTarget
 
 plugins {
     id("AndroidXPlugin")
@@ -74,9 +73,10 @@ androidComponents {
 android {
     namespace = "androidx.privacysandbox.tools.integration.testsdk"
 
-    defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    compileSdk = 35
+    compileSdkExtension = 14
 
+    defaultConfig {
         ksp {
             arg(aidlInput)
             arg(frameworkAidlInput)
@@ -88,11 +88,12 @@ dependencies {
     ksp(project(":privacysandbox:tools:tools-apicompiler"))
     implementation(project(":privacysandbox:tools:tools"))
     implementation(project(":privacysandbox:sdkruntime:sdkruntime-provider"))
+    implementation(project(":privacysandbox:ui:ui-core"))
+    implementation(project(":privacysandbox:ui:ui-provider"))
 
     implementation(libs.kotlinCoroutinesAndroid)
     implementation(libs.kotlinCoroutinesCore)
 }
 
 androidx {
-    kotlinTarget = KotlinTarget.KOTLIN_1_9
 }

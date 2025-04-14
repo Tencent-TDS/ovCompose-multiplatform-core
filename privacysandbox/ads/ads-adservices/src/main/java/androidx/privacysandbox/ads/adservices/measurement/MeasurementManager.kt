@@ -137,7 +137,7 @@ abstract class MeasurementManager {
          *   value returned is null.
          */
         @JvmStatic
-        @SuppressLint("NewApi", "ClassVerificationFailure")
+        @SuppressLint("NewApi")
         fun obtain(context: Context): MeasurementManager? {
             Log.d(
                 "MeasurementManager",
@@ -148,10 +148,6 @@ abstract class MeasurementManager {
             } else if (AdServicesInfo.extServicesVersionS() >= 9) {
                 BackCompatManager.getManager(context, "MeasurementManager") {
                     MeasurementManagerApi31Ext9Impl(context)
-                }
-            } else if (AdServicesInfo.extServicesVersionR() >= 11) {
-                BackCompatManager.getManager(context, "MeasurementManager") {
-                    MeasurementManagerApi30Ext11Impl(context)
                 }
             } else {
                 null

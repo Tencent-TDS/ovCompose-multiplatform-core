@@ -21,13 +21,20 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -45,12 +52,17 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.get
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.material3.IconButtonDefaults.DefaultButtonSize
 import androidx.wear.compose.material3.IconButtonDefaults.ExtraSmallButtonSize
 import androidx.wear.compose.material3.IconButtonDefaults.LargeButtonSize
 import androidx.wear.compose.material3.IconButtonDefaults.SmallButtonSize
+import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertEquals
+import org.junit.Assume
 import org.junit.Rule
 import org.junit.Test
 
@@ -147,6 +159,29 @@ class IconButtonTest {
         rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
 
         rule.runOnIdle { assertEquals(true, longClicked) }
+    }
+
+    @Test
+    fun triggers_haptic_when_long_clicked() {
+        val results = mutableMapOf<HapticFeedbackType, Int>()
+        val haptics = hapticFeedback(collectResultsFromHapticFeedback(results))
+
+        rule.setContentWithTheme {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                IconButton(
+                    onClick = { /* Do nothing */ },
+                    onLongClick = {},
+                    enabled = true,
+                    modifier = Modifier.testTag(TEST_TAG)
+                ) {}
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
+
+        assertThat(results).hasSize(1)
+        assertThat(results).containsKey(HapticFeedbackType.LongPress)
+        assertThat(results[HapticFeedbackType.LongPress]).isEqualTo(1)
     }
 
     @Test
@@ -306,7 +341,28 @@ class IconButtonTest {
             }
         }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun animates_corners_to_75_percent_on_click() {
+        val baseShape = RoundedCornerShape(20.dp)
+        val pressedShape = RoundedCornerShape(0.dp)
+
+        rule.verifyRoundedButtonTapAnimationEnd(
+            baseShape,
+            pressedShape,
+            0.75f,
+            8,
+            color = { IconButtonDefaults.filledIconButtonColors().containerColor }
+        ) { modifier ->
+            FilledIconButton(
+                onClick = {},
+                shapes = IconButtonShapes(baseShape, pressedShape),
+                modifier = modifier
+            ) {}
+        }
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun default_shape_is_circular() {
         rule.isShape(
@@ -319,31 +375,35 @@ class IconButtonTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun allows_custom_shape_override() {
         val shape = CutCornerShape(4.dp)
 
         rule.isShape(expectedShape = shape, colors = { IconButtonDefaults.iconButtonColors() }) {
             modifier ->
-            IconButton(onClick = {}, modifier = modifier, shape = shape) {
+            IconButton(
+                onClick = {},
+                modifier = modifier,
+                shapes = IconButtonDefaults.shapes(shape)
+            ) {
                 // omit content to allow us to validate the shape by pixel checking.
             }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_icon_button_colors() {
         rule.verifyIconButtonColors(
             status = Status.Enabled,
             colors = { IconButtonDefaults.iconButtonColors() },
             expectedContainerColor = { Color.Transparent },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurface }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -356,7 +416,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -367,7 +427,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -382,7 +442,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_variant_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -393,7 +453,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_variant_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -408,18 +468,18 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_icon_button_colors() {
         rule.verifyIconButtonColors(
             status = Status.Enabled,
             colors = { IconButtonDefaults.filledTonalIconButtonColors() },
             expectedContainerColor = { MaterialTheme.colorScheme.surfaceContainer },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurfaceVariant }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -434,18 +494,18 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_icon_button_colors() {
         rule.verifyIconButtonColors(
             status = Status.Enabled,
             colors = { IconButtonDefaults.outlinedIconButtonColors() },
             expectedContainerColor = { Color.Transparent },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurface }
+            expectedContentColor = { MaterialTheme.colorScheme.primary }
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_icon_button_colors() {
         rule.verifyIconButtonColors(
@@ -458,7 +518,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_icon_button_correct_border_colors() {
         val status = Status.Enabled
@@ -470,7 +530,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_icon_button_correct_border_colors() {
         val status = Status.Disabled
@@ -484,7 +544,7 @@ class IconButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun overrides_outlined_icon_button_border_color() {
         val status = Status.Enabled
@@ -504,6 +564,46 @@ class IconButtonTest {
                 ) {}
             }
         )
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun button_positioned_correctly() {
+        var isScreenRound = false
+        rule.setContentWithTheme {
+            isScreenRound = LocalConfiguration.current.isScreenRound
+            Box(Modifier.testTag(TEST_TAG).background(Color.Black).padding(1.dp)) {
+                IconButton(
+                    onClick = {},
+                    colors =
+                        IconButtonDefaults.filledIconButtonColors(containerColor = Color.Green),
+                    modifier = Modifier.size(27.dp, 20.dp)
+                ) {}
+            }
+        }
+
+        // Skip test on non-round devices - see b/394103579, failing repeated on Pixel 2.
+        Assume.assumeTrue(isScreenRound)
+
+        val bitmap = rule.onNodeWithTag(TEST_TAG).captureToImage().asAndroidBitmap()
+        val spaces =
+            listOf(IntOffset(0, 1), IntOffset(0, -1), IntOffset(1, 0), IntOffset(-1, 0)).map {
+                direction ->
+                var position =
+                    IntOffset(
+                        (bitmap.width - 1) * (1 - direction.x) / 2,
+                        (bitmap.height - 1) * (1 - direction.y) / 2,
+                    )
+                var distance = 0
+                while (bitmap[position.x, position.y] == android.graphics.Color.BLACK) {
+                    position += direction
+                    distance++
+                }
+                distance
+            }
+        assert(spaces.all { it == spaces[0] }) {
+            "All spaces around the button should be equal, where: ${spaces.joinToString()}"
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -563,7 +663,7 @@ private fun ComposeContentTestRule.isShape(
             verticalPadding = 0.dp,
             shapeColor = buttonColor,
             backgroundColor = background,
-            shapeOverlapPixelCount = 2.0f,
+            antiAliasingGap = 2.0f,
             shape = expectedShape,
         )
 }

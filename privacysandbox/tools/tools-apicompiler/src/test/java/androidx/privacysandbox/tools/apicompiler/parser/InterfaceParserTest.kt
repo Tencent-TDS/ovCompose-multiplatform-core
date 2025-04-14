@@ -25,6 +25,7 @@ import androidx.privacysandbox.tools.core.model.ParsedApi
 import androidx.privacysandbox.tools.core.model.Type
 import androidx.privacysandbox.tools.core.model.Types
 import androidx.privacysandbox.tools.core.model.Types.asNullable
+import androidx.privacysandbox.tools.core.model.Types.sandboxedUiAdapter
 import androidx.room.compiler.processing.util.Source
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
@@ -47,6 +48,10 @@ class InterfaceParserTest {
                         suspend fun doStuff(x: Int, y: Int?): String
                         suspend fun processList(list: List<Int>): List<String>
                         fun doMoreStuff()
+
+                        companion object {
+                            const val MY_CONST = 123
+                        }
                     }
                 """,
             )
@@ -121,9 +126,14 @@ class InterfaceParserTest {
                     |package com.mysdk
                     |import androidx.privacysandbox.tools.PrivacySandboxInterface
                     |import androidx.privacysandbox.ui.core.SandboxedUiAdapter as SUiAdapter
+                    |import androidx.privacysandbox.ui.core.SharedUiAdapter as ShUiAdapter
                     |
                     |@PrivacySandboxInterface
                     |interface MyUiInterface : SUiAdapter {
+                    |}
+                    |
+                    |@PrivacySandboxInterface
+                    |interface MySharedUiInterface : ShUiAdapter {
                     |}
                 """
                     .trimMargin()
@@ -155,10 +165,16 @@ class InterfaceParserTest {
                             AnnotatedInterface(
                                 type =
                                     Type(packageName = "com.mysdk", simpleName = "MyUiInterface"),
-                                superTypes =
-                                    listOf(
-                                        Types.sandboxedUiAdapter,
+                                superTypes = listOf(Types.sandboxedUiAdapter),
+                                methods = listOf()
+                            ),
+                            AnnotatedInterface(
+                                type =
+                                    Type(
+                                        packageName = "com.mysdk",
+                                        simpleName = "MySharedUiInterface"
                                     ),
+                                superTypes = listOf(Types.sharedUiAdapter),
                                 methods = listOf()
                             )
                         )
@@ -238,12 +254,34 @@ class InterfaceParserTest {
     }
 
     @Test
-    fun interfaceWithCompanionObject_fails() {
+    fun interfaceWithCompanionObjectNonConstDeclarations_fails() {
         checkSourceFails(
                 serviceInterface(
                     """interface MySdk {
-                    |   companion object {
-                    |       fun foo() {}
+                        |   companion object {
+                        |       const val CONST_IS_ALLOWED = 42
+                        |       val nonConstVal = 9
+                        |       fun method() = true
+                        |       class InnerClass() {}
+                        |   }
+                        |}
+                    """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: companion object cannot declare non-const values (nonConstVal).",
+                "Error in com.mysdk.MySdk: companion object cannot declare methods (method).",
+                "Error in com.mysdk.MySdk: companion object cannot declare classes (InnerClass)."
+            )
+    }
+
+    @Test
+    fun interfaceWithObject_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   object MyObject {
                     |   }
                     |}
                 """
@@ -251,7 +289,55 @@ class InterfaceParserTest {
                 )
             )
             .containsExactlyErrors(
-                "Error in com.mysdk.MySdk: annotated interfaces cannot declare companion objects."
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithEnumClass_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   enum class MyEnumClass {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithInterface_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   private interface MyInterface {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
+            )
+    }
+
+    @Test
+    fun interfaceWithInnerClass_fails() {
+        checkSourceFails(
+                serviceInterface(
+                    """public interface MySdk {
+                    |   class MyInnerClass {}
+                    |}
+                """
+                        .trimMargin()
+                )
+            )
+            .containsExactlyErrors(
+                "Error in com.mysdk.MySdk: annotated interfaces cannot declare objects or classes."
             )
     }
 
@@ -342,6 +428,31 @@ class InterfaceParserTest {
             .containsExactlyErrors(
                 "Error in com.mysdk.MyInterface: annotated interface inherits prohibited types (A, " +
                     "B, C, ...)."
+            )
+    }
+
+    @Test
+    fun interfaceInheritanceManyUiInterfaces_fails() {
+        val source =
+            Source.kotlin(
+                "com/mysdk/MySdk.kt",
+                """
+                    package com.mysdk
+                    import androidx.privacysandbox.tools.PrivacySandboxService
+                    import androidx.privacysandbox.tools.PrivacySandboxInterface
+                    import androidx.privacysandbox.ui.core.SandboxedUiAdapter as SUiAdapter
+                    import androidx.privacysandbox.ui.core.SharedUiAdapter as ShUiAdapter
+
+                    @PrivacySandboxService
+                    interface MySdk {}
+
+                    @PrivacySandboxInterface
+                    interface MyInterface : SUiAdapter, ShUiAdapter {
+                    }"""
+            )
+        checkSourceFails(source)
+            .containsExactlyErrors(
+                "Error in com.mysdk.MyInterface: annotated interface inherits more than one UI adapter interface (SandboxedUiAdapter, SharedUiAdapter)."
             )
     }
 

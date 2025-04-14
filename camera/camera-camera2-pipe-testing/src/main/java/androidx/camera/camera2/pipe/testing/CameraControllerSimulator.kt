@@ -22,7 +22,6 @@ import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
-import androidx.camera.camera2.pipe.CameraStatusMonitor
 import androidx.camera.camera2.pipe.GraphState.GraphStateError
 import androidx.camera.camera2.pipe.StreamGraph
 import androidx.camera.camera2.pipe.StreamId
@@ -44,8 +43,7 @@ public class CameraControllerSimulator(
     cameraContext: CameraContext,
     private val graphId: CameraGraphId,
     private val graphConfig: CameraGraph.Config,
-    private val graphListener: GraphListener,
-    private val streamGraph: StreamGraph,
+    private val graphListener: GraphListener
 ) : CameraController {
     override val cameraId: CameraId
         get() = graphConfig.camera
@@ -53,7 +51,7 @@ public class CameraControllerSimulator(
     override val cameraGraphId: CameraGraphId
         get() = graphId
 
-    override var isForeground: Boolean = false
+    override var isForeground: Boolean = true
 
     private val lock = Any()
     private var currentSurfaceMap: Map<StreamId, Surface> = emptyMap()
@@ -75,6 +73,14 @@ public class CameraControllerSimulator(
 
     public var currentCaptureSequenceProcessor: FakeCaptureSequenceProcessor? = null
         private set
+
+    public var outputLatencySet: StreamGraph.OutputLatency? = null
+        private set
+
+    public var streamGraph: StreamGraph? = null
+
+    public val simulatedCaptureLatency: Long = 5L
+    public val simulatedProcessingLatency: Long = 10L
 
     init {
         check(cameraContext.cameraBackends.allIds.isNotEmpty()) {
@@ -146,6 +152,11 @@ public class CameraControllerSimulator(
         }
     }
 
+    public fun simulateOutputLatency() {
+        outputLatencySet =
+            StreamGraph.OutputLatency(simulatedCaptureLatency, simulatedProcessingLatency)
+    }
+
     override fun start() {
         synchronized(lock) {
             check(!closed) { "Attempted to invoke start after close." }
@@ -160,14 +171,6 @@ public class CameraControllerSimulator(
         }
     }
 
-    override fun tryRestart(cameraStatus: CameraStatusMonitor.CameraStatus) {
-        synchronized(lock) {
-            check(!closed) { "Attempted to invoke restart after close." }
-            stop()
-            start()
-        }
-    }
-
     override fun close() {
         synchronized(lock) {
             closed = true
@@ -176,7 +179,7 @@ public class CameraControllerSimulator(
     }
 
     override fun updateSurfaceMap(surfaceMap: Map<StreamId, Surface>) {
-        check(streamGraph.streamIds.containsAll(surfaceMap.keys))
+        streamGraph?.streamIds?.containsAll(surfaceMap.keys).let { check(it == true) }
 
         synchronized(lock) {
             currentSurfaceMap = surfaceMap
@@ -188,5 +191,9 @@ public class CameraControllerSimulator(
                 graphListener.onGraphModified(graphRequestProcessor)
             }
         }
+    }
+
+    override fun getOutputLatency(streamId: StreamId?): StreamGraph.OutputLatency? {
+        return outputLatencySet
     }
 }

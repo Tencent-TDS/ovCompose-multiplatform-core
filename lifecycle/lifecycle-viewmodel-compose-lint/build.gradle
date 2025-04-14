@@ -23,7 +23,7 @@
  */
 
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -35,9 +35,9 @@ BundleInsideHelper.forInsideLintJar(project)
 dependencies {
     compileOnly(libs.androidLintMinApi)
     compileOnly(libs.kotlinStdlib)
-    bundleInside(projectOrArtifact(":compose:lint:common"))
+    bundleInside(project(":compose:lint:common"))
 
-    testImplementation(projectOrArtifact(":compose:lint:common-test"))
+    testImplementation(project(":compose:lint:common-test"))
     testImplementation(libs.kotlinStdlib)
     testImplementation(libs.kotlinReflect)
     testImplementation(libs.kotlinStdlibJdk8)
@@ -48,7 +48,7 @@ dependencies {
 
 androidx {
     name = "Lifecycle ViewModel Compose Lint Checks"
-    type = LibraryType.LINT
+    type = SoftwareType.LINT
     inceptionYear = "2024"
     description = "Android Lifecycles Lint Checks"
 }

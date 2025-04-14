@@ -16,13 +16,11 @@
 
 package androidx.pdf.viewer;
 
-import android.animation.ValueAnimator;
+import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.ViewState;
 import androidx.pdf.find.FindInFileView;
@@ -31,6 +29,11 @@ import androidx.pdf.util.ObservableValue;
 import androidx.pdf.widget.ZoomView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<ZoomView.ZoomScroll> {
@@ -43,8 +46,8 @@ public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<Zo
     private boolean mIsAnnotationIntentResolvable;
     private final SelectionActionMode mSelectionActionMode;
     private final ObservableValue<ViewState> mViewState;
+    private final ImmersiveModeRequester mImmersiveModeRequester;
 
-    private static final int FAB_ANIMATION_DURATION = 200;
     private boolean mIsPageScrollingUp;
 
     public ZoomScrollValueObserver(@Nullable ZoomView zoomView,
@@ -52,7 +55,8 @@ public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<Zo
             @NonNull LayoutHandler layoutHandler, @NonNull FloatingActionButton annotationButton,
             @NonNull FindInFileView findInFileView, boolean isAnnotationIntentResolvable,
             @NonNull SelectionActionMode selectionActionMode,
-            @NonNull ObservableValue<ViewState> viewState) {
+            @NonNull ObservableValue<ViewState> viewState,
+            @NonNull ImmersiveModeRequester immersiveModeRequester) {
         mZoomView = zoomView;
         mPaginatedView = paginatedView;
         mLayoutHandler = layoutHandler;
@@ -63,15 +67,17 @@ public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<Zo
         mViewState = viewState;
         mAnnotationButtonHandler = new Handler(Looper.getMainLooper());
         mIsPageScrollingUp = false;
+        mImmersiveModeRequester = immersiveModeRequester;
     }
 
     @Override
-    public void onChange(@Nullable ZoomView.ZoomScroll oldPosition,
-            @Nullable ZoomView.ZoomScroll position) {
-        if (mPaginatedView == null || !mPaginatedView.getPaginationModel().isInitialized()
-                || position == null || mPaginatedView.getPaginationModel().getSize() == 0) {
+    public void onChange(ZoomView.@Nullable ZoomScroll oldPosition,
+            ZoomView.@Nullable ZoomScroll position) {
+        if (mPaginatedView == null || !mPaginatedView.getModel().isInitialized()
+                || position == null || mPaginatedView.getModel().getSize() == 0) {
             return;
         }
+
         mZoomView.loadPageAssets(mLayoutHandler, mViewState);
 
         if (oldPosition.scrollY > position.scrollY) {
@@ -80,68 +86,39 @@ public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<Zo
             mIsPageScrollingUp = false;
         }
 
+        // Stop showing context menu if there is any change in zoom or scroll, resume only when
+        // the new position is stable
+        if (mPaginatedView.getSelectionModel().selection().get() != null) {
+            mSelectionActionMode.stopActionMode();
+            if (position.stable) {
+                setUpContextMenu();
+            }
+        }
+
         if (mIsAnnotationIntentResolvable && !mPaginatedView.isConfigurationChanged()) {
 
             if (!isAnnotationButtonVisible() && position.scrollY == 0
                     && mFindInFileView.getVisibility() == View.GONE) {
-                editFabExpandAnimation();
+                mImmersiveModeRequester.requestImmersiveModeChange(false);
             } else if (isAnnotationButtonVisible() && mIsPageScrollingUp) {
                 clearAnnotationHandler();
                 return;
             }
             if (position.scrollY == oldPosition.scrollY) {
-                mAnnotationButtonHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (position.scrollY != 0) {
-                            mAnnotationButton.animate()
-                                    .alpha(0.0f)
-                                    .setDuration(FAB_ANIMATION_DURATION)
-                                    .withEndAction(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            mAnnotationButton.setVisibility(View.GONE);
-                                            mAnnotationButton.setAlpha(1.0f);
-                                        }
-                                    });
-                        }
+                mAnnotationButtonHandler.post(() -> {
+                    if (position.scrollY != 0) {
+                        mImmersiveModeRequester.requestImmersiveModeChange(true);
                     }
                 });
             }
         } else if (mPaginatedView.isConfigurationChanged()
-                && position.scrollY != oldPosition.scrollY) {
+                && !position.stable) {
             mPaginatedView.setConfigurationChanged(false);
-        }
-
-        if (position.scrollY > 0) {
-            mSelectionActionMode.stopActionMode();
-        }
-        if (position.scrollY == oldPosition.scrollY) {
-            mSelectionActionMode.resume();
         }
     }
 
     private boolean isAnnotationButtonVisible() {
         return mAnnotationButton.getVisibility() == View.VISIBLE;
-    }
-
-    private void editFabExpandAnimation() {
-        mAnnotationButton.setScaleX(0.0f);
-        mAnnotationButton.setScaleY(0.0f);
-        ValueAnimator scaleAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
-        scaleAnimator.setDuration(FAB_ANIMATION_DURATION);
-        scaleAnimator.addUpdateListener(
-                new ValueAnimator.AnimatorUpdateListener() {
-                    @Override
-                    public void onAnimationUpdate(@NonNull ValueAnimator animation) {
-                        float scale = (float) animation.getAnimatedValue();
-                        mAnnotationButton.setScaleX(scale);
-                        mAnnotationButton.setScaleY(scale);
-                        mAnnotationButton.setAlpha(scale);
-                    }
-                });
-        scaleAnimator.start();
-        mAnnotationButton.setVisibility(View.VISIBLE);
     }
 
     /** Exposing a function to clear the handler when PDFViewer Fragment is destroyed. */
@@ -152,4 +129,53 @@ public class ZoomScrollValueObserver implements ObservableValue.ValueObserver<Zo
     public void setAnnotationIntentResolvable(boolean annotationIntentResolvable) {
         mIsAnnotationIntentResolvable = annotationIntentResolvable;
     }
+
+    private void setUpContextMenu() {
+        // Resume the context menu if selected area is on the current viewing screen
+        if (mPaginatedView.getSelectionModel().getPage() != -1) {
+            int selectionPage = mPaginatedView.getSelectionModel().getPage();
+            int firstPageInVisibleRange =
+                    mPaginatedView.getPageRangeHandler().getVisiblePages().getFirst();
+            int lastPageInVisisbleRange =
+                    mPaginatedView.getPageRangeHandler().getVisiblePages().getLast();
+
+            // If selection is within the range of visible pages
+            if (selectionPage >= firstPageInVisibleRange
+                    && selectionPage <= lastPageInVisisbleRange) {
+                List<Rect> selectionRects =
+                        mPaginatedView.getSelectionModel().selection().get().getRects();
+                int startX = Integer.MAX_VALUE;
+                int startY = Integer.MAX_VALUE;
+                int endX = Integer.MIN_VALUE;
+                int endY = Integer.MIN_VALUE;
+                for (Rect rect : selectionRects) {
+                    if (rect.left < startX) {
+                        startX = rect.left;
+                    }
+                    if (rect.top < startY) {
+                        startY = rect.top;
+                    }
+                    if (rect.right > endX) {
+                        endX = rect.right;
+                    }
+                    if (rect.bottom > endY) {
+                        endY = rect.bottom;
+                    }
+                }
+
+                // Start and stop coordinates in a page wrt pagination model
+                startX = mPaginatedView.getModel().getLookAtX(selectionPage, startX);
+                startY = mPaginatedView.getModel().getLookAtY(selectionPage, startY);
+                endX = mPaginatedView.getModel().getLookAtX(selectionPage, endX);
+                endY = mPaginatedView.getModel().getLookAtY(selectionPage, endY);
+
+                Rect currentViewArea = mPaginatedView.getViewArea();
+
+                if (currentViewArea.intersects(startX, startY, endX, endY)) {
+                    mSelectionActionMode.resume();
+                }
+            }
+        }
+    }
+
 }

@@ -19,6 +19,7 @@ package androidx.compose.foundation.text.selection.gestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagFlipperRunner
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.text.selection.gestures.util.MultiSelectionSubject
 import androidx.compose.foundation.text.selection.gestures.util.TextSelectionAsserter
@@ -42,7 +43,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.ResolvedTextDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.util.fastForEach
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth
 import org.junit.Before
@@ -50,7 +50,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @MediumTest
-@RunWith(AndroidJUnit4::class)
+@RunWith(ContextMenuFlagFlipperRunner::class)
 internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
 
     override val pointerAreaTag = "selectionContainer"
@@ -71,6 +71,7 @@ internal class MultiTextSelectionGesturesRtlTest : TextSelectionGesturesTest() {
                         textContent = textContent.value,
                         rule = rule,
                         textToolbar = textToolbar,
+                        spyTextActionModeCallback = spyTextActionModeCallback,
                         hapticFeedback = hapticFeedback,
                         getActual = { selection.value }
                     ) {

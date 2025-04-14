@@ -21,14 +21,15 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id("AndroidXPlugin")
     id("AndroidXComposePlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("androidx.inspection")
 }
 
@@ -48,7 +49,7 @@ dependencies {
     // we ignore its transitive dependencies, because ui-inspection should
     // depend on them as "compile-only" deps.
     implementation(project(":compose:ui:ui-tooling-data"), {
-        transitive(false)
+        transitive = false
     })
     implementation(libs.kotlinReflect, {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-stdlib"
@@ -60,11 +61,13 @@ dependencies {
     androidTestImplementation(project(":compose:ui:ui-tooling"))
     androidTestImplementation(project(":compose:ui:ui-tooling-data"))
     androidTestImplementation(project(":compose:ui:ui"))
+    androidTestImplementation(project(":compose:foundation:foundation"))
     androidTestImplementation(project(":compose:ui:ui-util"))
     androidTestImplementation(project(":compose:ui:ui-test-junit4"))
     androidTestImplementation(project(":internal-testutils-fonts"))
     androidTestImplementation(project(":compose:material:material"))
     androidTestImplementation("androidx.compose.material:material-icons-core:1.6.7")
+    androidTestImplementation("androidx.compose.material3:material3-android:1.3.1")
     androidTestImplementation(project(":inspection:inspection-testing"))
     androidTestImplementation("androidx.activity:activity-compose:1.3.1")
     androidTestImplementation(libs.testRunner)
@@ -75,16 +78,16 @@ dependencies {
 
 androidx {
     name = "Compose Layout Inspector"
-    type = LibraryType.IDE_PLUGIN
+    type = SoftwareType.IDE_PLUGIN
     inceptionYear = "2021"
     description = "Compose layout inspector. Exposes information to our tools for better IDE support."
 }
 
 android {
-    compileSdk 35
+    compileSdk = 35
     defaultConfig {
         // layout inspection supported starting on Android Q
-        minSdkVersion 29
+        minSdk = 29
     }
 
     sourceSets {
@@ -94,20 +97,22 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version libs.versions.cmake.get()
+            version = libs.versions.cmake.get()
         }
     }
-    namespace "androidx.compose.ui.inspection"
-}
-
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions {
-        freeCompilerArgs += [
-                "-P", "plugin:androidx.compose.compiler.plugins.kotlin:sourceInformation=true"
-        ]
-    }
+    namespace = "androidx.compose.ui.inspection"
 }
 
 inspection {
     name = "compose-ui-inspection.jar"
 }
+
+// TODO(b/407640608): Fix :compose:ui:ui-inspection:connectedCheck to work without this block
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        freeCompilerArgs += [
+                "-Xlambdas=class"
+        ]
+    }
+}
+

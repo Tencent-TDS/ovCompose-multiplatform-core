@@ -16,7 +16,10 @@
 
 package androidx.wear.compose.material3
 
+import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,23 +27,31 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.testutils.assertContainsColor
+import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -57,6 +68,7 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
@@ -66,13 +78,88 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.toSize
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.screenshot.AndroidXScreenshotTestRule
+import androidx.test.screenshot.matchers.BitmapMatcher
+import androidx.test.screenshot.matchers.MSSIMMatcher
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import kotlin.math.abs
 import org.junit.Assert
+import org.junit.rules.TestName
 
 /** Constant to emulate very big but finite constraints */
 val BigTestMaxWidth = 5000.dp
 val BigTestMaxHeight = 5000.dp
+
+/** Screen size constants for screenshot tests */
+val SCREEN_SIZE_SMALL = 192
+val SCREEN_SIZE_LARGE = 228
+
+enum class ScreenSize(val size: Int) {
+    SMALL(SCREEN_SIZE_SMALL),
+    LARGE(SCREEN_SIZE_LARGE)
+}
+
+enum class ScreenShape(val isRound: Boolean) {
+    ROUND_DEVICE(true),
+}
+
+/**
+ * Provides a composable function that allows you to place your content in different screen
+ * configurations within your UI tests. This is useful for testing how your composables behave on
+ * different screen sizes and form factors (e.g. round or square screens).
+ *
+ * @param screenSizeDp The desired screen size in dp. The composable will be placed into a square
+ *   box with this side length.
+ * @param isRound An optional boolean value to specify if the simulated screen should be round. If
+ *   `true`, the screen is considered round. If `false`, it is considered rectangular. If `null`,
+ *   the original device's roundness setting is used.
+ * @param content The composable content to be tested within the modified screen configuration.
+ */
+@Composable
+fun ScreenConfiguration(
+    screenSizeDp: Int,
+    isRound: Boolean? = null,
+    content: @Composable () -> Unit
+) {
+    val originalConfiguration = LocalConfiguration.current
+    val originalContext = LocalContext.current
+
+    val fixedScreenSizeConfiguration =
+        remember(originalConfiguration) {
+            Configuration(originalConfiguration).apply {
+                screenWidthDp = screenSizeDp
+                screenHeightDp = screenSizeDp
+                if (isRound != null) {
+                    screenLayout =
+                        if (isRound) Configuration.SCREENLAYOUT_ROUND_YES
+                        else Configuration.SCREENLAYOUT_ROUND_NO
+                }
+            }
+        }
+    originalContext.resources.configuration.updateFrom(fixedScreenSizeConfiguration)
+
+    CompositionLocalProvider(
+        LocalContext provides originalContext,
+        LocalConfiguration provides fixedScreenSizeConfiguration
+    ) {
+        Box(
+            modifier =
+                Modifier.size(screenSizeDp.dp).background(MaterialTheme.colorScheme.background),
+        ) {
+            content()
+        }
+    }
+}
+
+/**
+ * Valid characters for golden identifiers are [A-Za-z0-9_-] TestParameterInjector adds '[' +
+ * parameter_values + ']' + ',' to the test name.
+ */
+fun TestName.goldenIdentifier(): String =
+    methodName.replace("[", "_").replace("]", "").replace(",", "_")
 
 internal const val TEST_TAG = "test-item"
 
@@ -100,9 +187,7 @@ fun TestIcon(modifier: Modifier = Modifier, iconLabel: String = "TestIcon") {
 
 @Composable
 fun CenteredText(text: String) {
-    Column(modifier = Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
-        Text(text)
-    }
+    Column(verticalArrangement = Arrangement.Center) { Text(text) }
 }
 
 fun ComposeContentTestRule.setContentWithThemeForSizeAssertions(
@@ -305,6 +390,7 @@ internal fun ComposeContentTestRule.verifyScreenshot(
     screenshotRule: AndroidXScreenshotTestRule,
     testTag: String = TEST_TAG,
     layoutDirection: LayoutDirection = LayoutDirection.Ltr,
+    matcher: BitmapMatcher = MSSIMMatcher(),
     content: @Composable () -> Unit
 ) {
     setContentWithTheme {
@@ -317,7 +403,60 @@ internal fun ComposeContentTestRule.verifyScreenshot(
         }
     }
 
-    onNodeWithTag(testTag).captureToImage().assertAgainstGolden(screenshotRule, methodName)
+    onNodeWithTag(testTag)
+        .captureToImage()
+        .assertAgainstGolden(screenshotRule, methodName, matcher = matcher)
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun ComposeContentTestRule.verifyRoundedButtonTapAnimationEnd(
+    baseShape: RoundedCornerShape,
+    pressedShape: RoundedCornerShape,
+    targetProgress: Float,
+    expectedFramesUntilTarget: Int,
+    color: @Composable () -> Color,
+    antiAliasingGap: Float = 2f,
+    releaseAfterTap: Boolean = true,
+    content: @Composable (Modifier) -> Unit
+) {
+    val expectedAnimationEnd =
+        AnimatedRoundedCornerShape(baseShape, pressedShape) { targetProgress }
+    var fillColor = Color.Transparent
+
+    setContent {
+        fillColor = color()
+        content(Modifier.testTag(TEST_TAG))
+    }
+
+    mainClock.autoAdvance = false
+    onNodeWithTag(TEST_TAG).performTouchInput {
+        down(center)
+        if (releaseAfterTap) {
+            up()
+        }
+    }
+
+    /**
+     * We are manually advancing by a fixed amount of frames since
+     * 1) the RoundButton.animateButtonShape is internal and therefore we cannot modify the
+     *    animation spec being used. Otherwise, we could set a custom animation time isolated and
+     *    known to this test we could wait for.
+     * 2) rule.mainClock.waitUntil expects a condition. However, the shape validations for
+     *    ImageBitMap only includes of assets
+     */
+    repeat(expectedFramesUntilTarget) { mainClock.advanceTimeByFrame() }
+
+    onNodeWithTag(TEST_TAG)
+        .captureToImage()
+        .assertShape(
+            density = density,
+            horizontalPadding = 0.dp,
+            verticalPadding = 0.dp,
+            shapeColor = fillColor,
+            backgroundColor = Color.Transparent,
+            antiAliasingGap = antiAliasingGap,
+            shape = expectedAnimationEnd,
+        )
 }
 
 private fun ImageBitmap.histogram(): MutableMap<Color, Long> {
@@ -340,3 +479,65 @@ internal enum class Status {
 }
 
 class StableRef<T>(var value: T)
+
+/**
+ * Creates a [HapticFeedback] that can execute a custom code when
+ * [HapticFeedback.performHapticFeedback] is triggered.
+ */
+internal fun hapticFeedback(
+    perform: (hapticFeedbackType: HapticFeedbackType) -> Unit
+): HapticFeedback =
+    object : HapticFeedback {
+        override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+            perform(hapticFeedbackType)
+        }
+    }
+
+/**
+ * Implementation to be used with [hapticFeedback] to collect all the haptic feedback performed and
+ * store in [results].
+ */
+internal fun collectResultsFromHapticFeedback(
+    results: MutableMap<HapticFeedbackType, Int>
+): (hapticFeedbackType: HapticFeedbackType) -> Unit = { hapticFeedbackType: HapticFeedbackType ->
+    results.merge(hapticFeedbackType, 1, Int::plus)
+}
+
+/**
+ * Logic forked from Wear.MaterialTest writeToDevice - utility for writing an image bitmap to
+ * storage on the emulated device. The image can be extract using adb pull, for example: adb pull
+ * /storage/emulated/0/Android/data/androidx.wear.compose.test/cache/screenshots/mytest.png
+ * /usr/local/username/Desktop/mytest.png
+ */
+fun ImageBitmap.writeToDevice(testName: String) {
+    this.asAndroidBitmap().writeToDevice(testName)
+}
+
+private val deviceOutputDirectory
+    get() =
+        File(InstrumentationRegistry.getInstrumentation().context.externalCacheDir, "screenshots")
+
+private fun Bitmap.writeToDevice(testName: String): File {
+    return writeToDevice(testName) {
+        compress(Bitmap.CompressFormat.PNG, 0 /*ignored for png*/, it)
+    }
+}
+
+private fun writeToDevice(testName: String, writeAction: (FileOutputStream) -> Unit): File {
+    if (!deviceOutputDirectory.exists() && !deviceOutputDirectory.mkdir()) {
+        throw IOException("Could not create folder $deviceOutputDirectory")
+    }
+
+    val file = File(deviceOutputDirectory, "$testName.png")
+    Log.d("Screenshot", "File path is ${file.absolutePath}")
+    try {
+        FileOutputStream(file).use { writeAction(it) }
+    } catch (e: Exception) {
+        throw IOException(
+            "Could not write file to storage (path: ${file.absolutePath}). " +
+                " Stacktrace: " +
+                e.stackTrace
+        )
+    }
+    return file
+}

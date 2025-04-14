@@ -307,8 +307,8 @@ fun rememberModalBottomSheetState(
 }
 
 /**
- * <a href="https://material.io/components/sheets-bottom#modal-bottom-sheet" class="external"
- * target="_blank">Material Design modal bottom sheet</a>.
+ * [Material Design modal bottom
+ * sheet](https://material.io/components/sheets-bottom#modal-bottom-sheet)
  *
  * Modal bottom sheets present a set of choices while blocking interaction with the rest of the
  * screen. They are an alternative to inline menus and simple dialogs, providing additional room for
@@ -507,7 +507,7 @@ private fun Scrim(color: Color, onDismiss: () -> Unit, visible: Boolean) {
             }
 
         Canvas(Modifier.fillMaxSize().then(dismissModifier)) {
-            drawRect(color = color, alpha = alpha)
+            drawRect(color = color, alpha = alpha.coerceIn(0f, 1f))
         }
     }
 }

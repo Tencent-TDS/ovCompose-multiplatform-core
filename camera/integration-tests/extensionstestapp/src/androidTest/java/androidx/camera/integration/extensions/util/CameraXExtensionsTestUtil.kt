@@ -56,6 +56,7 @@ import androidx.camera.integration.extensions.CameraExtensionsActivity
 import androidx.camera.integration.extensions.CameraExtensionsActivity.CAMERA2_IMPLEMENTATION_OPTION
 import androidx.camera.integration.extensions.CameraExtensionsActivity.CAMERA_PIPE_IMPLEMENTATION_OPTION
 import androidx.camera.integration.extensions.IntentExtraKey
+import androidx.camera.integration.extensions.IntentExtraKey.INTENT_EXTRA_KEY_VIDEO_CAPTURE_ENABLED
 import androidx.camera.integration.extensions.utils.CameraSelectorUtil.createCameraSelectorById
 import androidx.camera.integration.extensions.utils.ExtensionModeUtil.AVAILABLE_EXTENSION_MODES
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -244,6 +245,31 @@ object CameraXExtensionsTestUtil {
     }
 
     @JvmStatic
+    fun assumeExtensionModeOutputFormatSupported(
+        cameraProvider: ProcessCameraProvider,
+        extensionsManager: ExtensionsManager,
+        cameraId: String,
+        extensionMode: Int,
+        outputFormat: Int
+    ) {
+        val cameraIdCameraSelector = createCameraSelectorById(cameraId)
+        val extensionsEnabledCameraSelector =
+            extensionsManager.getExtensionEnabledCameraSelector(
+                cameraIdCameraSelector,
+                extensionMode
+            )
+        val imageCaptureCapabilities =
+            ImageCapture.getImageCaptureCapabilities(
+                cameraProvider.getCameraInfo(extensionsEnabledCameraSelector)
+            )
+        assumeTrue(
+            "Extensions mode($extensionMode) does not supported output format $outputFormat still" +
+                " image capture",
+            imageCaptureCapabilities.supportedOutputFormats.contains(outputFormat)
+        )
+    }
+
+    @JvmStatic
     fun assumeAnyExtensionModeSupported(extensionsManager: ExtensionsManager, cameraId: String) {
         val cameraIdCameraSelector = createCameraSelectorById(cameraId)
         var anyExtensionModeSupported = false
@@ -290,6 +316,8 @@ object CameraXExtensionsTestUtil {
     fun launchCameraExtensionsActivity(
         cameraId: String,
         extensionMode: Int,
+        outputFormat: Int = ImageCapture.OUTPUT_FORMAT_JPEG,
+        videoCaptureEnabled: Boolean? = null,
         deleteCapturedImages: Boolean = true,
     ): ActivityScenario<CameraExtensionsActivity> {
         val intent =
@@ -299,10 +327,14 @@ object CameraXExtensionsTestUtil {
                 ?.apply {
                     putExtra(IntentExtraKey.INTENT_EXTRA_KEY_CAMERA_ID, cameraId)
                     putExtra(IntentExtraKey.INTENT_EXTRA_KEY_EXTENSION_MODE, extensionMode)
+                    putExtra(IntentExtraKey.INTENT_EXTRA_KEY_OUTPUT_FORMAT, outputFormat)
                     putExtra(
                         IntentExtraKey.INTENT_EXTRA_KEY_DELETE_CAPTURED_IMAGE,
                         deleteCapturedImages
                     )
+                    videoCaptureEnabled?.let {
+                        putExtra(INTENT_EXTRA_KEY_VIDEO_CAPTURE_ENABLED, it)
+                    }
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 }
 

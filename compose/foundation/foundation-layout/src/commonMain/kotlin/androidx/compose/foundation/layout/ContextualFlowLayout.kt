@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("DEPRECATION")
+
 package androidx.compose.foundation.layout
 
 import androidx.annotation.FloatRange
@@ -62,6 +64,7 @@ import androidx.compose.ui.unit.dp
  * @see FlowRow
  * @see ContextualFlowColumn
  */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @Composable
 @ExperimentalLayoutApi
 fun ContextualFlowRow(
@@ -136,6 +139,7 @@ fun ContextualFlowRow(
  * @see FlowColumn
  * @see ContextualFlowRow
  */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @Composable
 @ExperimentalLayoutApi
 fun ContextualFlowColumn(
@@ -181,6 +185,7 @@ fun ContextualFlowColumn(
 }
 
 /** Defines the scope for items within a [ContextualFlowRow]. */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @LayoutScopeMarker
 @Stable
 @ExperimentalLayoutApi
@@ -248,18 +253,21 @@ interface ContextualFlowRowScope : RowScope {
 }
 
 /** Scope for the overflow [ContextualFlowRow]. */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @LayoutScopeMarker
 @Stable
 @ExperimentalLayoutApi
 interface ContextualFlowRowOverflowScope : FlowRowOverflowScope
 
 /** Scope for the overflow [ContextualFlowColumn]. */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @LayoutScopeMarker
 @Stable
 @ExperimentalLayoutApi
 interface ContextualFlowColumnOverflowScope : FlowColumnOverflowScope
 
 /** Provides a scope for items within a [ContextualFlowColumn]. */
+@Deprecated("ContextualFlowLayouts are no longer maintained")
 @LayoutScopeMarker
 @Stable
 @ExperimentalLayoutApi
@@ -334,7 +342,7 @@ internal class ContextualFlowRowScopeImpl(
     override val maxHeight: Dp
 ) : RowScope by RowScopeInstance, ContextualFlowRowScope {
     override fun Modifier.fillMaxRowHeight(fraction: Float): Modifier {
-        requirePrecondition(fraction >= 0.0f && fraction <= 1.0f) {
+        requirePrecondition(fraction in 0.0f..1.0f) {
             "invalid fraction $fraction; must be >= 0 and <= 1.0"
         }
         return this.then(
@@ -353,7 +361,7 @@ internal class ContextualFlowColumnScopeImpl(
     override val maxHeightInLine: Dp
 ) : ColumnScope by ColumnScopeInstance, ContextualFlowColumnScope {
     override fun Modifier.fillMaxColumnWidth(fraction: Float): Modifier {
-        requirePrecondition(fraction >= 0.0f && fraction <= 1.0f) {
+        requirePrecondition(fraction in 0.0f..1.0f) {
             "invalid fraction $fraction; must be >= 0 and <= 1.0"
         }
         return this.then(

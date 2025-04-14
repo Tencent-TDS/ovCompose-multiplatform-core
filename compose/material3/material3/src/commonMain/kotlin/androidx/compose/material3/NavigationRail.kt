@@ -42,12 +42,18 @@ import androidx.compose.material3.internal.MappedInteractionSource
 import androidx.compose.material3.internal.ProvideContentColorTextStyle
 import androidx.compose.material3.internal.systemBarsForVisualComponents
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
-import androidx.compose.material3.tokens.NavigationRailTokens
+import androidx.compose.material3.tokens.NavigationRailBaselineItemTokens
+import androidx.compose.material3.tokens.NavigationRailCollapsedTokens
+import androidx.compose.material3.tokens.NavigationRailColorTokens
+import androidx.compose.material3.tokens.NavigationRailVerticalItemTokens
+import androidx.compose.material3.tokens.ShapeKeyTokens
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -65,6 +71,8 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainHeight
@@ -75,8 +83,8 @@ import androidx.compose.ui.util.fastFirstOrNull
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m3.material.io/components/navigation-rail/overview" class="external"
- * target="_blank">Material Design bottom navigation rail</a>.
+ * [Material Design bottom navigation
+ * rail](https://m3.material.io/components/navigation-rail/overview)
  *
  * Navigation rails provide access to primary destinations in apps when using tablet and desktop
  * screens.
@@ -108,6 +116,7 @@ import kotlin.math.roundToInt
  * @param windowInsets a window insets of the navigation rail.
  * @param content the content of this navigation rail, typically 3-7 [NavigationRailItem]s
  */
+@OptIn(ExperimentalMaterial3ComponentOverrideApi::class)
 @Composable
 fun NavigationRail(
     modifier: Modifier = Modifier,
@@ -117,25 +126,50 @@ fun NavigationRail(
     windowInsets: WindowInsets = NavigationRailDefaults.windowInsets,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        color = containerColor,
-        contentColor = contentColor,
-        modifier = modifier,
-    ) {
-        Column(
-            Modifier.fillMaxHeight()
-                .windowInsetsPadding(windowInsets)
-                .widthIn(min = NavigationRailTokens.ContainerWidth)
-                .padding(vertical = NavigationRailVerticalPadding)
-                .selectableGroup(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(NavigationRailVerticalPadding)
+    with(LocalNavigationRailOverride.current) {
+        NavigationRailOverrideScope(
+                modifier = modifier,
+                containerColor = containerColor,
+                contentColor = contentColor,
+                header = header,
+                windowInsets = windowInsets,
+                content = content,
+            )
+            .NavigationRail()
+    }
+}
+
+/**
+ * This override provides the default behavior of the [NavigationRail] component.
+ *
+ * [NavigationRailOverride] used when no override is specified.
+ */
+@ExperimentalMaterial3ComponentOverrideApi
+object DefaultNavigationRailOverride : NavigationRailOverride {
+    @Composable
+    override fun NavigationRailOverrideScope.NavigationRail() {
+        Surface(
+            color = containerColor,
+            contentColor = contentColor,
+            modifier = modifier,
         ) {
-            if (header != null) {
-                header()
-                Spacer(Modifier.height(NavigationRailHeaderPadding))
+            Column(
+                Modifier.fillMaxHeight()
+                    .windowInsetsPadding(windowInsets)
+                    .widthIn(min = NavigationRailCollapsedTokens.NarrowContainerWidth)
+                    .padding(vertical = NavigationRailVerticalPadding)
+                    .selectableGroup()
+                    .semantics { isTraversalGroup = true },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(NavigationRailVerticalPadding)
+            ) {
+                val header = header
+                if (header != null) {
+                    header()
+                    Spacer(Modifier.height(NavigationRailHeaderPadding))
+                }
+                content()
             }
-            content()
         }
     }
 }
@@ -201,7 +235,7 @@ fun NavigationRailItem(
     val styledLabel: @Composable (() -> Unit)? =
         label?.let {
             @Composable {
-                val style = NavigationRailTokens.LabelTextFont.value
+                val style = NavigationRailVerticalItemTokens.LabelTextFont.value
                 val textColor by
                     animateColorAsState(
                         targetValue = colors.textColor(selected = selected, enabled = enabled),
@@ -249,7 +283,7 @@ fun NavigationRailItem(
         val deltaOffset: Offset
         with(LocalDensity.current) {
             val itemWidth = NavigationRailItemWidth.roundToPx()
-            val indicatorWidth = NavigationRailTokens.ActiveIndicatorWidth.roundToPx()
+            val indicatorWidth = NavigationRailVerticalItemTokens.ActiveIndicatorWidth.roundToPx()
             deltaOffset = Offset((itemWidth - indicatorWidth).toFloat() / 2, 0f)
         }
         val offsetInteractionSource =
@@ -259,9 +293,9 @@ fun NavigationRailItem(
 
         val indicatorShape =
             if (label != null) {
-                NavigationRailTokens.ActiveIndicatorShape.value
+                NavigationRailBaselineItemTokens.ActiveIndicatorShape.value
             } else {
-                NavigationRailTokens.NoLabelActiveIndicatorShape.value
+                ShapeKeyTokens.CornerFull.value
             }
 
         // The indicator has a width-expansion animation which interferes with the timing of the
@@ -299,7 +333,7 @@ fun NavigationRailItem(
 object NavigationRailDefaults {
     /** Default container color of a navigation rail. */
     val ContainerColor: Color
-        @Composable get() = NavigationRailTokens.ContainerColor.value
+        @Composable get() = NavigationRailCollapsedTokens.ContainerColor.value
 
     /** Default window insets for navigation rail. */
     val windowInsets: WindowInsets
@@ -333,11 +367,11 @@ object NavigationRailItemDefaults {
      */
     @Composable
     fun colors(
-        selectedIconColor: Color = NavigationRailTokens.ActiveIconColor.value,
-        selectedTextColor: Color = NavigationRailTokens.ActiveLabelTextColor.value,
-        indicatorColor: Color = NavigationRailTokens.ActiveIndicatorColor.value,
-        unselectedIconColor: Color = NavigationRailTokens.InactiveIconColor.value,
-        unselectedTextColor: Color = NavigationRailTokens.InactiveLabelTextColor.value,
+        selectedIconColor: Color = NavigationRailColorTokens.ItemActiveIcon.value,
+        selectedTextColor: Color = NavigationRailColorTokens.ItemActiveLabelText.value,
+        indicatorColor: Color = NavigationRailColorTokens.ItemActiveIndicator.value,
+        unselectedIconColor: Color = NavigationRailColorTokens.ItemInactiveIcon.value,
+        unselectedTextColor: Color = NavigationRailColorTokens.ItemInactiveLabelText.value,
         disabledIconColor: Color = unselectedIconColor.copy(alpha = DisabledAlpha),
         disabledTextColor: Color = unselectedTextColor.copy(alpha = DisabledAlpha),
     ): NavigationRailItemColors =
@@ -355,18 +389,19 @@ object NavigationRailItemDefaults {
         get() {
             return defaultNavigationRailItemColorsCached
                 ?: NavigationRailItemColors(
-                        selectedIconColor = fromToken(NavigationRailTokens.ActiveIconColor),
-                        selectedTextColor = fromToken(NavigationRailTokens.ActiveLabelTextColor),
+                        selectedIconColor = fromToken(NavigationRailColorTokens.ItemActiveIcon),
+                        selectedTextColor =
+                            fromToken(NavigationRailColorTokens.ItemActiveLabelText),
                         selectedIndicatorColor =
-                            fromToken(NavigationRailTokens.ActiveIndicatorColor),
-                        unselectedIconColor = fromToken(NavigationRailTokens.InactiveIconColor),
+                            fromToken(NavigationRailColorTokens.ItemActiveIndicator),
+                        unselectedIconColor = fromToken(NavigationRailColorTokens.ItemInactiveIcon),
                         unselectedTextColor =
-                            fromToken(NavigationRailTokens.InactiveLabelTextColor),
+                            fromToken(NavigationRailColorTokens.ItemInactiveLabelText),
                         disabledIconColor =
-                            fromToken(NavigationRailTokens.InactiveIconColor)
+                            fromToken(NavigationRailColorTokens.ItemInactiveIcon)
                                 .copy(alpha = DisabledAlpha),
                         disabledTextColor =
-                            fromToken(NavigationRailTokens.InactiveLabelTextColor)
+                            fromToken(NavigationRailColorTokens.ItemInactiveLabelText)
                                 .copy(alpha = DisabledAlpha),
                     )
                     .also { defaultNavigationRailItemColorsCached = it }
@@ -378,11 +413,11 @@ object NavigationRailItemDefaults {
     )
     @Composable
     fun colors(
-        selectedIconColor: Color = NavigationRailTokens.ActiveIconColor.value,
-        selectedTextColor: Color = NavigationRailTokens.ActiveLabelTextColor.value,
-        indicatorColor: Color = NavigationRailTokens.ActiveIndicatorColor.value,
-        unselectedIconColor: Color = NavigationRailTokens.InactiveIconColor.value,
-        unselectedTextColor: Color = NavigationRailTokens.InactiveLabelTextColor.value,
+        selectedIconColor: Color = NavigationRailColorTokens.ItemActiveIcon.value,
+        selectedTextColor: Color = NavigationRailColorTokens.ItemActiveLabelText.value,
+        indicatorColor: Color = NavigationRailColorTokens.ItemActiveIndicator.value,
+        unselectedIconColor: Color = NavigationRailColorTokens.ItemInactiveIcon.value,
+        unselectedTextColor: Color = NavigationRailColorTokens.ItemInactiveLabelText.value,
     ): NavigationRailItemColors =
         NavigationRailItemColors(
             selectedIconColor = selectedIconColor,
@@ -745,21 +780,69 @@ private val NavigationRailHeaderPadding: Dp = 8.dp
 
 /*@VisibleForTesting*/
 /** Width of an individual [NavigationRailItem]. */
-internal val NavigationRailItemWidth: Dp = NavigationRailTokens.ContainerWidth
+internal val NavigationRailItemWidth: Dp = NavigationRailCollapsedTokens.NarrowContainerWidth
 
 /*@VisibleForTesting*/
 /** Height of an individual [NavigationRailItem]. */
-internal val NavigationRailItemHeight: Dp = NavigationRailTokens.NoLabelActiveIndicatorHeight
+internal val NavigationRailItemHeight: Dp = NavigationRailVerticalItemTokens.ActiveIndicatorWidth
 
 /*@VisibleForTesting*/
 /** Vertical padding between the contents of a [NavigationRailItem] and its top/bottom. */
 internal val NavigationRailItemVerticalPadding: Dp = 4.dp
 
 private val IndicatorHorizontalPadding: Dp =
-    (NavigationRailTokens.ActiveIndicatorWidth - NavigationRailTokens.IconSize) / 2
+    (NavigationRailVerticalItemTokens.ActiveIndicatorWidth -
+        NavigationRailBaselineItemTokens.IconSize) / 2
 
 private val IndicatorVerticalPaddingWithLabel: Dp =
-    (NavigationRailTokens.ActiveIndicatorHeight - NavigationRailTokens.IconSize) / 2
+    (NavigationRailVerticalItemTokens.ActiveIndicatorHeight -
+        NavigationRailBaselineItemTokens.IconSize) / 2
 
 private val IndicatorVerticalPaddingNoLabel: Dp =
-    (NavigationRailTokens.NoLabelActiveIndicatorHeight - NavigationRailTokens.IconSize) / 2
+    (NavigationRailVerticalItemTokens.ActiveIndicatorWidth -
+        NavigationRailBaselineItemTokens.IconSize) / 2
+
+/**
+ * Interface that allows libraries to override the behavior of the [NavigationRail] component.
+ *
+ * To override this component, implement the member function of this interface, then provide the
+ * implementation to [LocalNavigationRailOverride] in the Compose hierarchy.
+ */
+@ExperimentalMaterial3ComponentOverrideApi
+interface NavigationRailOverride {
+    /** Behavior function that is called by the [NavigationRail] component. */
+    @Composable fun NavigationRailOverrideScope.NavigationRail()
+}
+
+/**
+ * Parameters available to [NavigationRail].
+ *
+ * @param modifier the [Modifier] to be applied to this navigation rail
+ * @param containerColor the color used for the background of this navigation rail. Use
+ *   [Color.Transparent] to have no color.
+ * @param contentColor the preferred color for content inside this navigation rail. Defaults to
+ *   either the matching content color for [containerColor], or to the current [LocalContentColor]
+ *   if [containerColor] is not a color from the theme.
+ * @param header optional header that may hold a [FloatingActionButton] or a logo
+ * @param windowInsets a window insets of the navigation rail.
+ * @param content the content of this navigation rail, typically 3-7 [NavigationRailItem]s
+ */
+@ExperimentalMaterial3ComponentOverrideApi
+class NavigationRailOverrideScope
+internal constructor(
+    val modifier: Modifier = Modifier,
+    val containerColor: Color,
+    val contentColor: Color,
+    val header: @Composable (ColumnScope.() -> Unit)?,
+    val windowInsets: WindowInsets,
+    val content: @Composable ColumnScope.() -> Unit,
+)
+
+/** CompositionLocal containing the currently-selected [NavigationRailOverride]. */
+@Suppress("OPT_IN_MARKER_ON_WRONG_TARGET")
+@get:ExperimentalMaterial3ComponentOverrideApi
+@ExperimentalMaterial3ComponentOverrideApi
+val LocalNavigationRailOverride: ProvidableCompositionLocal<NavigationRailOverride> =
+    compositionLocalOf {
+        DefaultNavigationRailOverride
+    }

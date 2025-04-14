@@ -72,6 +72,7 @@ import androidx.compose.ui.text.android.style.BaselineShiftSpan
 import androidx.compose.ui.text.android.style.LineHeightStyleSpan
 import androidx.compose.ui.text.android.style.getEllipsizedLeftPadding
 import androidx.compose.ui.text.android.style.getEllipsizedRightPadding
+import androidx.compose.ui.text.internal.requirePrecondition
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -119,7 +120,7 @@ constructor(
     width: Float,
     val textPaint: TextPaint,
     @TextLayoutAlignment alignment: Int = DEFAULT_ALIGNMENT,
-    ellipsize: TextUtils.TruncateAt? = null,
+    private val ellipsize: TextUtils.TruncateAt? = null,
     @TextDirection textDirectionHeuristic: Int = DEFAULT_TEXT_DIRECTION,
     lineSpacingMultiplier: Float = DEFAULT_LINESPACING_MULTIPLIER,
     @Px lineSpacingExtra: Float = DEFAULT_LINESPACING_EXTRA,
@@ -313,7 +314,9 @@ constructor(
                 false
             } else {
                 /* When maxLines exceeds
-                 1. if ellipsis is applied, ellipsisCount of lastLine is greater than 0.
+                 1. if ellipsis is applied, ellipsisCount of lastLine is greater than 0. It works
+                 for all ellipsis position because start/middle ellipsis only supported for a single
+                 line text.
                  2. if ellipsis is not applies, lineEnd of the last line is unequals to
                  charSequence.length.
                  On certain cases, even though ellipsize is set, text overflow might still be
@@ -455,13 +458,13 @@ constructor(
      * returns the length of the text.
      */
     fun getLineEnd(lineIndex: Int): Int =
-        if (layout.getEllipsisStart(lineIndex) == 0) { // no ellipsis
-            layout.getLineEnd(lineIndex)
-        } else {
+        if (layout.isLineEllipsized(lineIndex) && ellipsize == TextUtils.TruncateAt.END) {
             // Layout#getLineEnd usually gets the end of text for the last line even if ellipsis
             // happens. However, if LF character is included in the ellipsized region, getLineEnd
             // returns LF character offset. So, use end of text for line end here.
             layout.text.length
+        } else {
+            layout.getLineEnd(lineIndex)
         }
 
     /**
@@ -469,10 +472,10 @@ constructor(
      * whitespaces are not counted as visible characters.
      */
     fun getLineVisibleEnd(lineIndex: Int): Int =
-        if (layout.getEllipsisStart(lineIndex) == 0) { // no ellipsis
-            layoutHelper.getLineVisibleEnd(lineIndex)
-        } else {
+        if (layout.isLineEllipsized(lineIndex) && ellipsize == TextUtils.TruncateAt.END) {
             layout.getLineStart(lineIndex) + layout.getEllipsisStart(lineIndex)
+        } else {
+            layoutHelper.getLineVisibleEnd(lineIndex)
         }
 
     fun isLineEllipsized(lineIndex: Int) = layout.isLineEllipsized(lineIndex)
@@ -601,7 +604,7 @@ constructor(
         val range = lineEndOffset - lineStartOffset
         val minArraySize = range * 2
 
-        require(array.size >= minArraySize) {
+        requirePrecondition(array.size >= minArraySize) {
             "array.size - arrayStart must be greater or equal than (endOffset - startOffset) * 2"
         }
 
@@ -668,15 +671,21 @@ constructor(
      */
     fun fillBoundingBoxes(startOffset: Int, endOffset: Int, array: FloatArray, arrayStart: Int) {
         val textLength = text.length
-        require(startOffset >= 0) { "startOffset must be > 0" }
-        require(startOffset < textLength) { "startOffset must be less than text length" }
-        require(endOffset > startOffset) { "endOffset must be greater than startOffset" }
-        require(endOffset <= textLength) { "endOffset must be smaller or equal to text length" }
+        requirePrecondition(startOffset >= 0) { "startOffset must be > 0" }
+        requirePrecondition(startOffset < textLength) {
+            "startOffset must be less than text length"
+        }
+        requirePrecondition(endOffset > startOffset) {
+            "endOffset must be greater than startOffset"
+        }
+        requirePrecondition(endOffset <= textLength) {
+            "endOffset must be smaller or equal to text length"
+        }
 
         val range = endOffset - startOffset
         val minArraySize = range * 4
 
-        require((array.size - arrayStart) >= minArraySize) {
+        requirePrecondition((array.size - arrayStart) >= minArraySize) {
             "array.size - arrayStart must be greater or equal than (endOffset - startOffset) * 4"
         }
 

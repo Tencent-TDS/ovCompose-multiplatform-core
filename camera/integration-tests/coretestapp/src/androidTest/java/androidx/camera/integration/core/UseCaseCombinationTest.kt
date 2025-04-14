@@ -17,9 +17,6 @@ package androidx.camera.integration.core
 
 import android.Manifest
 import android.content.Context
-import android.hardware.camera2.CameraCaptureSession
-import android.hardware.camera2.CaptureRequest
-import android.hardware.camera2.TotalCaptureResult
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.Camera
@@ -33,14 +30,14 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
-import androidx.camera.integration.core.util.CameraPipeUtil
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.testing.impl.AndroidUtil.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
-import androidx.camera.testing.impl.SurfaceTextureProvider.createSurfaceTextureProvider
+import androidx.camera.testing.impl.IgnoreVideoRecordingProblematicDeviceRule.Companion.skipVideoRecordingTestIfNotSupportedByEmulator
+import androidx.camera.testing.impl.SurfaceTextureProvider.createAutoDrainingSurfaceTextureProvider
 import androidx.camera.testing.impl.WakelockEmptyActivityRule
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
+import androidx.camera.testing.impl.mocks.MockScreenFlash
 import androidx.camera.testing.impl.video.AudioChecker
 import androidx.camera.testing.impl.video.RecordingSession
 import androidx.camera.video.FileOutputOptions
@@ -98,6 +95,7 @@ class UseCaseCombinationTest(
     @get:Rule val wakelockEmptyActivityRule = WakelockEmptyActivityRule()
 
     companion object {
+
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun data() =
@@ -318,7 +316,18 @@ class UseCaseCombinationTest(
     }
 
     @Test
-    fun previewCombinesVideoCaptureAndImageCapture() {
+    fun previewCombinesVideoCaptureAndImageCapture_withoutRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        imageCapture.waitForCapturing()
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndImageCapture_withRecording() {
         // Arrange.
         checkAndPrepareVideoCaptureSources()
         checkAndBindUseCases(preview, videoCapture, imageCapture)
@@ -327,6 +336,29 @@ class UseCaseCombinationTest(
         previewMonitor.waitForStream()
         recordingSession.createRecording().recordAndVerify()
         imageCapture.waitForCapturing()
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndFlashImageCapture_withoutRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        imageCapture.waitForCapturing(useFlash = true)
+    }
+
+    @Test
+    fun previewCombinesVideoCaptureAndFlashImageCapture_withRecording() {
+        // Arrange.
+        checkAndPrepareVideoCaptureSources()
+        checkAndBindUseCases(preview, videoCapture, imageCapture)
+
+        // Assert.
+        previewMonitor.waitForStream()
+        recordingSession.createRecording().recordAndVerify()
+        imageCapture.waitForCapturing(useFlash = true)
     }
 
     @Test
@@ -448,22 +480,12 @@ class UseCaseCombinationTest(
         imageAnalysisMonitor.waitForImageAnalysis()
     }
 
-    private fun initPreview(monitor: PreviewMonitor?, setSurfaceProvider: Boolean = true): Preview {
-        return Preview.Builder()
-            .setTargetName("Preview")
-            .also {
-                monitor?.let { monitor ->
-                    CameraPipeUtil.setCameraCaptureSessionCallback(implName, it, monitor)
-                }
+    private fun initPreview(monitor: PreviewMonitor, setSurfaceProvider: Boolean = true): Preview {
+        return Preview.Builder().setTargetName("Preview").build().apply {
+            if (setSurfaceProvider) {
+                instrumentation.runOnMainSync { surfaceProvider = monitor.getSurfaceProvider() }
             }
-            .build()
-            .apply {
-                if (setSurfaceProvider) {
-                    instrumentation.runOnMainSync {
-                        surfaceProvider = createSurfaceTextureProvider()
-                    }
-                }
-            }
+        }
     }
 
     private fun initImageAnalysis(analyzer: ImageAnalysis.Analyzer?): ImageAnalysis {
@@ -476,7 +498,7 @@ class UseCaseCombinationTest(
         return ImageCapture.Builder().build()
     }
 
-    private fun ImageCapture.waitForCapturing(timeMillis: Long = 5000) {
+    private fun ImageCapture.waitForCapturing(timeMillis: Long = 10000, useFlash: Boolean = false) {
         val callback =
             object : ImageCapture.OnImageCapturedCallback() {
                 val latch = CountDownLatch(1)
@@ -493,16 +515,35 @@ class UseCaseCombinationTest(
                 }
             }
 
+        if (useFlash) {
+            if (cameraSelector.lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                screenFlash = MockScreenFlash()
+                flashMode = ImageCapture.FLASH_MODE_SCREEN
+            } else {
+                flashMode = ImageCapture.FLASH_MODE_ON
+            }
+        } else {
+            flashMode = ImageCapture.FLASH_MODE_OFF
+        }
+
         takePicture(Dispatchers.Main.asExecutor(), callback)
 
         assertThat(
                 callback.latch.await(timeMillis, TimeUnit.MILLISECONDS) && callback.errors.isEmpty()
             )
             .isTrue()
+
+        // Just in case same imageCapture is bound to rear camera later
+        screenFlash = null
     }
 
-    class PreviewMonitor : CameraCaptureSession.CaptureCallback() {
+    class PreviewMonitor {
         private var countDown: CountDownLatch? = null
+        private val surfaceProvider = createAutoDrainingSurfaceTextureProvider {
+            countDown?.countDown()
+        }
+
+        fun getSurfaceProvider(): Preview.SurfaceProvider = surfaceProvider
 
         fun waitForStream(count: Int = 10, timeMillis: Long = TimeUnit.SECONDS.toMillis(5)) {
             Truth.assertWithMessage("Preview doesn't start")
@@ -540,14 +581,6 @@ class UseCaseCombinationTest(
                     countDown
                 }!!
                 .await(timeSeconds, TimeUnit.SECONDS)
-
-        override fun onCaptureCompleted(
-            session: CameraCaptureSession,
-            request: CaptureRequest,
-            result: TotalCaptureResult
-        ) {
-            synchronized(this) { countDown?.countDown() }
-        }
     }
 
     class AnalysisMonitor : ImageAnalysis.Analyzer {

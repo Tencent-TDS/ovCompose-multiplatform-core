@@ -27,23 +27,24 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.R;
 import androidx.pdf.models.PageSelection;
 import androidx.pdf.models.SelectionBoundary;
-import androidx.pdf.util.ObservableValue;
 import androidx.pdf.util.Preconditions;
-import androidx.pdf.viewer.PageMosaicView;
-import androidx.pdf.viewer.PageViewFactory;
 import androidx.pdf.viewer.PaginatedView;
+import androidx.pdf.widget.ZoomView;
 
+import org.jspecify.annotations.NonNull;
+
+import java.util.List;
 import java.util.Objects;
 
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SelectionActionMode {
     private static final String TAG = "SelectionActionMode";
     private final Context mContext;
+    private final ZoomView mZoomView;
     private final PaginatedView mPaginatedView;
     private final SelectionModel<PageSelection> mSelectionModel;
     private final Object mSelectionObserverKey;
@@ -54,30 +55,28 @@ public class SelectionActionMode {
     private final String mKeyCopiedText = "PdfCopiedText";
 
     public SelectionActionMode(@NonNull Context context, @NonNull PaginatedView paginatedView,
-            @NonNull SelectionModel<PageSelection> selectionModel) {
+            @NonNull ZoomView zoomView, @NonNull SelectionModel<PageSelection> selectionModel) {
         Preconditions.checkNotNull(context, "Context should not be null");
         Preconditions.checkNotNull(paginatedView, "paginatedView should not be null");
         Preconditions.checkNotNull(paginatedView, "selectionModel should not be null");
         Preconditions.checkNotNull(paginatedView, "callback should not be null");
         this.mContext = context;
         this.mPaginatedView = paginatedView;
+        this.mZoomView = zoomView;
         this.mSelectionModel = selectionModel;
         this.mCallback = new SelectionCallback();
 
         mSelectionObserverKey = selectionModel.selection().addObserver(
-                new ObservableValue.ValueObserver<PageSelection>() {
-                    @Override
-                    public void onChange(PageSelection oldValue, PageSelection newValue) {
-                        mCurrentSelection = newValue;
-                        if (newValue == null) {
-                            stopActionMode();
-                        } else if (oldValue == null) {
-                            startActionMode();
-                        } else {
-                            if (!oldValue.getStart().equals(newValue.getStart())
-                                    && !oldValue.getStop().equals(newValue.getStop())) {
-                                resume();
-                            }
+                (oldValue, newValue) -> {
+                    mCurrentSelection = newValue;
+                    if (newValue == null) {
+                        stopActionMode();
+                    } else if (oldValue == null) {
+                        startActionMode();
+                    } else {
+                        if (!oldValue.getStart().equals(newValue.getStart())
+                                && !oldValue.getStop().equals(newValue.getStop())) {
+                            resume();
                         }
                     }
                 });
@@ -92,12 +91,9 @@ public class SelectionActionMode {
 
     /** Start this action mode - updates the menu, ensures it is visible. */
     private void startActionMode() {
-        PageViewFactory.PageView pageView = mPaginatedView.getViewAt(
-                Objects.requireNonNull(mSelectionModel.mSelection.get()).getPage());
-        if (pageView != null) {
-            PageMosaicView pageMosaicView = pageView.getPageView();
-            pageMosaicView.startActionMode(mCallback, ActionMode.TYPE_FLOATING);
-        }
+        mZoomView.post(() -> {
+            mZoomView.startActionMode(mCallback, ActionMode.TYPE_FLOATING);
+        });
     }
 
     /** Resumes the context menu **/
@@ -165,7 +161,6 @@ public class SelectionActionMode {
         @Override
         public void onDestroyActionMode(ActionMode mode) {
             mode = null;
-
         }
 
         /**
@@ -174,9 +169,65 @@ public class SelectionActionMode {
          */
         @Override
         public void onGetContentRect(ActionMode mode, View view, Rect outRect) {
-            PageSelection pageSelection = mSelectionModel.selection().get();
-            Rect bounds = pageSelection.getRects().get(0);
-            outRect.set(bounds.left, bounds.top, bounds.right, bounds.bottom);
+            Rect bounds = chooseContentLocationForMenu();
+            outRect.set(Math.round(mZoomView.toZoomViewX(bounds.left)),
+                    Math.round(mZoomView.toZoomViewY(bounds.top)),
+                    Math.round(mZoomView.toZoomViewX(bounds.right)),
+                    Math.round(mZoomView.toZoomViewY(bounds.bottom)));
+        }
+
+        /**
+         * Determines the ideal location of the selection menu based on the visible area of the PDF
+         * and the bounds of the current selection.
+         *
+         * In order of preference, this will return:
+         * a) The first selection boundary, if it's visible
+         * b) The last selection boundary, if the first is not visible
+         * c) The middle of the visible area, if neither the first nor the last selection boundary
+         * are visible
+         *
+         * @return the ideal location for the selection menu in content coordinates, as a
+         * {@link Rect}. These coordinates should be adjusted for the current zoom / scroll level
+         * before using them in any {@link View}
+         */
+        private Rect chooseContentLocationForMenu() {
+            PageSelection selection = Objects.requireNonNull(mSelectionModel.mSelection.get());
+            int selectionPage = selection.getPage();
+            Rect pageLocation = mPaginatedView.getModel().getPageLocation(selectionPage,
+                    mPaginatedView.getViewArea());
+
+            List<Rect> selectionBounds = selection.getRects();
+            // The selection bounds are defined in page coordinates, we need their bounds in the
+            // overall PDF.
+            Rect firstSelectionBounds = toContentRect(selectionBounds.get(0), pageLocation);
+            Rect lastSelectionBounds = toContentRect(
+                    selectionBounds.get(selectionBounds.size() - 1), pageLocation);
+
+            Rect visibleArea = mZoomView.getVisibleAreaInContentCoords();
+            if (firstSelectionBounds.intersect(visibleArea)) {
+                return firstSelectionBounds;
+            } else if (lastSelectionBounds.intersect(visibleArea)) {
+                return lastSelectionBounds;
+            } else {
+                // If neither the beginning nor the end of the current selection are visible,
+                // center the menu in View
+                int centerX = visibleArea.centerX();
+                int centerY = visibleArea.centerY();
+                return new Rect(centerX - 1, centerY - 1, centerX + 1, centerY + 1);
+            }
+        }
+
+        /**
+         * Converts a {@link Rect} in PDF page coordinate space to a Rect in PDF coordinate space
+         *
+         * @param pageRect     A {@link Rect} describing a location within a PDF page
+         * @param pageLocation A {@link Rect} describing the location of a page within a PDF
+         * @return A {@link Rect} describing {@code pageRect}'s location in the overall PDF
+         */
+        private Rect toContentRect(Rect pageRect, Rect pageLocation) {
+            Rect out = new Rect(pageRect);
+            out.offset(pageLocation.left, pageLocation.top);
+            return out;
         }
     }
 }

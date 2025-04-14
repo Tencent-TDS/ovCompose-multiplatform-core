@@ -21,12 +21,10 @@ import static androidx.pdf.util.CycleRange.Direction.FORWARDS;
 import static com.google.common.truth.Truth.assertThat;
 
 import android.graphics.Rect;
-import android.os.Build;
 
 import androidx.pdf.find.MatchCount;
 import androidx.pdf.models.MatchRects;
 import androidx.pdf.viewer.loader.PdfLoader;
-import androidx.test.filters.SmallTest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -34,16 +32,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
 @SuppressWarnings("deprecation")
-//TODO: Remove minsdk check after sdk extension 13 release
-@Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
 public class SearchModelTest {
 
     @Mock

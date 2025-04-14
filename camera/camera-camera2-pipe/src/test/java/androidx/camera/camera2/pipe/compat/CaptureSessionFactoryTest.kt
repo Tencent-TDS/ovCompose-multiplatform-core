@@ -22,9 +22,11 @@ import android.os.Build
 import android.os.Looper
 import android.util.Size
 import android.view.Surface
+import androidx.camera.camera2.pipe.CameraController
 import androidx.camera.camera2.pipe.CameraExtensionMetadata
 import androidx.camera.camera2.pipe.CameraGraph
 import androidx.camera.camera2.pipe.CameraGraph.Flags.FinalizeSessionOnCloseBehavior
+import androidx.camera.camera2.pipe.CameraGraphId
 import androidx.camera.camera2.pipe.CameraId
 import androidx.camera.camera2.pipe.CameraMetadata
 import androidx.camera.camera2.pipe.CameraPipe
@@ -42,6 +44,7 @@ import androidx.camera.camera2.pipe.config.ThreadConfigModule
 import androidx.camera.camera2.pipe.core.SystemTimeSource
 import androidx.camera.camera2.pipe.graph.StreamGraphImpl
 import androidx.camera.camera2.pipe.internal.CameraErrorListener
+import androidx.camera.camera2.pipe.testing.FakeCameraController
 import androidx.camera.camera2.pipe.testing.FakeCaptureSequence
 import androidx.camera.camera2.pipe.testing.FakeCaptureSequenceProcessor
 import androidx.camera.camera2.pipe.testing.FakeGraphProcessor
@@ -106,6 +109,7 @@ internal class CaptureSessionFactoryTest {
         val surfaceTexture = SurfaceTexture(0)
         surfaceTexture.setDefaultBufferSize(stream1Output.size.width, stream1Output.size.height)
         val surface = Surface(surfaceTexture)
+        val threads = FakeThreads.fromTestScope(this)
 
         val pendingOutputs =
             sessionFactory.create(
@@ -114,7 +118,7 @@ internal class CaptureSessionFactoryTest {
                     testCamera.cameraDevice,
                     testCamera.cameraId,
                     cameraErrorListener,
-                    threads = FakeThreads.fromTestScope(this)
+                    threads = threads,
                 ),
                 mapOf(stream1.id to surface),
                 captureSessionState =
@@ -131,10 +135,11 @@ internal class CaptureSessionFactoryTest {
                         CameraSurfaceManager(),
                         SystemTimeSource(),
                         CameraGraph.Flags(
-                            quirkFinalizeSessionOnCloseBehavior =
-                                FinalizeSessionOnCloseBehavior.OFF,
-                            quirkCloseCaptureSessionOnDisconnect = false,
+                            finalizeSessionOnCloseBehavior = FinalizeSessionOnCloseBehavior.OFF,
+                            closeCaptureSessionOnDisconnect = false,
                         ),
+                        threads.blockingDispatcher,
+                        threads.backgroundDispatcher,
                         this
                     )
             )
@@ -190,6 +195,13 @@ class FakeCameraGraphModule {
             camera = fakeCamera.cameraId,
             streams = listOf(stream),
         )
+    }
+
+    @Provides
+    @CameraGraphScope
+    fun provideFakeCameraController(): CameraController {
+        val graphId = CameraGraphId.nextId()
+        return FakeCameraController(graphId)
     }
 }
 

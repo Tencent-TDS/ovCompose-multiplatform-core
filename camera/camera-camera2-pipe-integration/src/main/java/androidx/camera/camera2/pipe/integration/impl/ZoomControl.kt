@@ -35,9 +35,7 @@ import dagger.Module
 import dagger.multibindings.IntoSet
 import javax.inject.Inject
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 public const val DEFAULT_ZOOM_RATIO: Float = 1.0f
 
@@ -45,7 +43,6 @@ public const val DEFAULT_ZOOM_RATIO: Float = 1.0f
 public class ZoomControl
 @Inject
 constructor(
-    private val threads: UseCaseThreads,
     private val zoomCompat: ZoomCompat,
 ) : UseCaseCameraControl {
     // NOTE: minZoom may be lower than 1.0
@@ -78,11 +75,11 @@ constructor(
             maxZoomRatio = maxZoomRatio
         )
 
-    private var _useCaseCamera: UseCaseCamera? = null
-    override var useCaseCamera: UseCaseCamera?
-        get() = _useCaseCamera
+    private var _requestControl: UseCaseCameraRequestControl? = null
+    override var requestControl: UseCaseCameraRequestControl?
+        get() = _requestControl
         set(value) {
-            _useCaseCamera = value
+            _requestControl = value
             applyZoomState(_zoomState.value ?: defaultZoomState, false)
         }
 
@@ -154,16 +151,12 @@ constructor(
         }
         updateSignal = signal
 
-        threads.sequentialScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            setZoomState(zoomState)
+        setZoomState(zoomState)
 
-            useCaseCamera?.let {
-                zoomCompat.applyAsync(zoomState.zoomRatio, it).propagateTo(signal)
-            }
-                ?: signal.completeExceptionally(
-                    CameraControl.OperationCanceledException("Camera is not active.")
-                )
-        }
+        requestControl?.let { zoomCompat.applyAsync(zoomState.zoomRatio, it).propagateTo(signal) }
+            ?: signal.completeExceptionally(
+                CameraControl.OperationCanceledException("Camera is not active.")
+            )
 
         /**
          * TODO: Use signal.asListenableFuture() directly. Deferred<T>.asListenableFuture() returns

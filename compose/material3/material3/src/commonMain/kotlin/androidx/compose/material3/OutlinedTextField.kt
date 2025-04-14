@@ -43,6 +43,7 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material3.internal.AboveLabelBottomPadding
 import androidx.compose.material3.internal.AboveLabelHorizontalPadding
 import androidx.compose.material3.internal.ContainerId
+import androidx.compose.material3.internal.FloatProducer
 import androidx.compose.material3.internal.LabelId
 import androidx.compose.material3.internal.LeadingId
 import androidx.compose.material3.internal.MinFocusedLabelLineHeight
@@ -57,12 +58,15 @@ import androidx.compose.material3.internal.SupportingId
 import androidx.compose.material3.internal.TextFieldId
 import androidx.compose.material3.internal.TrailingId
 import androidx.compose.material3.internal.defaultErrorSemantics
+import androidx.compose.material3.internal.expandedAlignment
 import androidx.compose.material3.internal.getString
 import androidx.compose.material3.internal.heightOrZero
 import androidx.compose.material3.internal.layoutId
+import androidx.compose.material3.internal.minimizedAlignment
 import androidx.compose.material3.internal.minimizedLabelHalfHeight
 import androidx.compose.material3.internal.subtractConstraintSafely
 import androidx.compose.material3.internal.textFieldHorizontalIconPadding
+import androidx.compose.material3.internal.textFieldLabelMinHeight
 import androidx.compose.material3.internal.widthOrZero
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -98,6 +102,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.offset
@@ -108,8 +114,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * <a href="https://m3.material.io/components/text-fields/overview" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text field](https://m3.material.io/components/text-fields/overview)
  *
  * Text fields allow users to enter text into a UI. They typically appear in forms and dialogs.
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
@@ -201,7 +206,7 @@ fun OutlinedTextField(
     enabled: Boolean = true,
     readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Default(),
+    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Attached(),
     label: @Composable (TextFieldLabelScope.() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
@@ -298,8 +303,7 @@ fun OutlinedTextField(
 }
 
 /**
- * <a href="https://m3.material.io/components/text-fields/overview" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text field](https://m3.material.io/components/text-fields/overview)
  *
  * Text fields allow users to enter text into a UI. They typically appear in forms and dialogs.
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
@@ -465,8 +469,7 @@ fun OutlinedTextField(
 }
 
 /**
- * <a href="https://m3.material.io/components/text-fields/overview" class="external"
- * target="_blank">Material Design outlined text field</a>.
+ * [Material Design outlined text field](https://m3.material.io/components/text-fields/overview)
  *
  * Text fields allow users to enter text into a UI. They typically appear in forms and dialogs.
  * Outlined text fields have less visual emphasis than filled text fields. When they appear in
@@ -649,7 +652,7 @@ internal fun OutlinedTextFieldLayout(
     suffix: @Composable (() -> Unit)?,
     singleLine: Boolean,
     labelPosition: TextFieldLabelPosition,
-    labelProgress: Float,
+    labelProgress: FloatProducer,
     onLabelMeasured: (Size) -> Unit,
     container: @Composable () -> Unit,
     supporting: @Composable (() -> Unit)?,
@@ -766,9 +769,9 @@ internal fun OutlinedTextFieldLayout(
 
             if (label != null) {
                 Box(
-                    Modifier.heightIn(
-                            min = lerp(MinTextLineHeight, MinFocusedLabelLineHeight, labelProgress)
-                        )
+                    Modifier.textFieldLabelMinHeight {
+                            lerp(MinTextLineHeight, MinFocusedLabelLineHeight, labelProgress())
+                        }
                         .wrapContentHeight()
                         .layoutId(LabelId)
                         .then(labelPadding)
@@ -796,7 +799,7 @@ private class OutlinedTextFieldMeasurePolicy(
     private val onLabelMeasured: (Size) -> Unit,
     private val singleLine: Boolean,
     private val labelPosition: TextFieldLabelPosition,
-    private val labelProgress: Float,
+    private val labelProgress: FloatProducer,
     private val paddingValues: PaddingValues,
     private val horizontalIconPadding: Dp,
 ) : MeasurePolicy {
@@ -804,6 +807,7 @@ private class OutlinedTextFieldMeasurePolicy(
         measurables: List<Measurable>,
         constraints: Constraints
     ): MeasureResult {
+        val labelProgress = labelProgress()
         var occupiedSpaceHorizontally = 0
         var occupiedSpaceVertically = 0
         val bottomPadding = paddingValues.calculateBottomPadding().roundToPx()
@@ -927,6 +931,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 labelPlaceableWidth = labelPlaceable.widthOrZero,
                 placeholderPlaceableWidth = placeholderPlaceable.widthOrZero,
                 constraints = constraints,
+                labelProgress = labelProgress,
             )
 
         if (isLabelAbove) {
@@ -959,6 +964,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 supportingHeight = supportingPlaceable.heightOrZero,
                 constraints = constraints,
                 isLabelAbove = isLabelAbove,
+                labelProgress = labelProgress,
             )
         val height =
             totalHeight - supportingHeight - (if (isLabelAbove) labelPlaceable.heightOrZero else 0)
@@ -990,6 +996,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 density = density,
                 layoutDirection = layoutDirection,
                 isLabelAbove = isLabelAbove,
+                labelProgress = labelProgress,
                 iconPadding = horizontalIconPadding.toPx(),
             )
         }
@@ -1071,6 +1078,7 @@ private class OutlinedTextFieldMeasurePolicy(
             labelPlaceableWidth = labelWidth,
             placeholderPlaceableWidth = placeholderWidth,
             constraints = Constraints(),
+            labelProgress = labelProgress(),
         )
     }
 
@@ -1079,6 +1087,7 @@ private class OutlinedTextFieldMeasurePolicy(
         width: Int,
         intrinsicMeasurer: (IntrinsicMeasurable, Int) -> Int
     ): Int {
+        val labelProgress = labelProgress()
         var remainingWidth = width
         val leadingHeight =
             measurables
@@ -1153,6 +1162,7 @@ private class OutlinedTextFieldMeasurePolicy(
             supportingHeight = supportingHeight,
             constraints = Constraints(),
             isLabelAbove = labelPosition is TextFieldLabelPosition.Above,
+            labelProgress = labelProgress,
         )
     }
 
@@ -1169,6 +1179,7 @@ private class OutlinedTextFieldMeasurePolicy(
         labelPlaceableWidth: Int,
         placeholderPlaceableWidth: Int,
         constraints: Constraints,
+        labelProgress: Float,
     ): Int {
         val affixTotalWidth = prefixPlaceableWidth + suffixPlaceableWidth
         val middleSection =
@@ -1187,7 +1198,7 @@ private class OutlinedTextFieldMeasurePolicy(
                 .toPx()
         val focusedLabelWidth =
             ((labelPlaceableWidth + labelHorizontalPadding) * labelProgress).roundToInt()
-        return maxOf(wrappedWidth, focusedLabelWidth, constraints.minWidth)
+        return constraints.constrainWidth(max(wrappedWidth, focusedLabelWidth))
     }
 
     /**
@@ -1206,6 +1217,7 @@ private class OutlinedTextFieldMeasurePolicy(
         supportingHeight: Int,
         constraints: Constraints,
         isLabelAbove: Boolean,
+        labelProgress: Float,
     ): Int {
         val inputFieldHeight =
             maxOf(
@@ -1225,8 +1237,7 @@ private class OutlinedTextFieldMeasurePolicy(
         val bottomPadding = paddingValues.calculateBottomPadding().toPx()
         val middleSectionHeight = actualTopPadding + inputFieldHeight + bottomPadding
 
-        return max(
-            constraints.minHeight,
+        return constraints.constrainHeight(
             (if (isLabelAbove) labelHeight else 0) +
                 maxOf(leadingHeight, trailingHeight, middleSectionHeight.roundToInt()) +
                 supportingHeight
@@ -1252,6 +1263,7 @@ private class OutlinedTextFieldMeasurePolicy(
         density: Float,
         layoutDirection: LayoutDirection,
         isLabelAbove: Boolean,
+        labelProgress: Float,
         iconPadding: Float,
     ) {
         val yOffset = if (isLabelAbove) labelPlaceable.heightOrZero else 0
@@ -1349,11 +1361,11 @@ private class OutlinedTextFieldMeasurePolicy(
                         // Multiline text fields have text components aligned to top with padding.
                         topPadding
                     }
-            return if (labelPosition is TextFieldLabelPosition.Default) {
+            return if (labelPosition is TextFieldLabelPosition.Above) {
+                defaultPosition
+            } else {
                 // Ensure components are placed below label when it's in the border
                 max(defaultPosition, labelPlaceable.heightOrZero / 2)
-            } else {
-                defaultPosition
             }
         }
 

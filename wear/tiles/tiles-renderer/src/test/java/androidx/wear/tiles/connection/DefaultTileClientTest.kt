@@ -24,6 +24,7 @@ import androidx.concurrent.futures.await
 import androidx.test.core.app.ApplicationProvider
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.protobuf.InvalidProtocolBufferException
+import androidx.wear.tiles.InteractionEventsCallback
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.ResourcesCallback
 import androidx.wear.tiles.ResourcesData
@@ -33,6 +34,7 @@ import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileCallback
 import androidx.wear.tiles.TileData
 import androidx.wear.tiles.TileEnterEventData
+import androidx.wear.tiles.TileInteractionEventData
 import androidx.wear.tiles.TileLeaveEventData
 import androidx.wear.tiles.TileProvider
 import androidx.wear.tiles.TileRemoveEventData
@@ -370,6 +372,17 @@ public class DefaultTileClientTest {
 
         override fun onTileLeaveEvent(requestData: TileLeaveEventData?) {
             onTileLeaveCalled = true
+        }
+
+        override fun processRecentInteractionEvents(
+            events: MutableList<TileInteractionEventData>?
+        ) {}
+
+        override fun onRecentInteractionEvents(
+            events: List<TileInteractionEventData?>?,
+            callback: InteractionEventsCallback?
+        ) {
+            callback!!.finish()
         }
     }
 }

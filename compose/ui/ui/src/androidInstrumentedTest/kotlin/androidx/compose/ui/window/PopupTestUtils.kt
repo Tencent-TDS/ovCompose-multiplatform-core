@@ -61,6 +61,7 @@ internal class PopupLayoutMatcher(val testTag: String) : TypeSafeMatcher<Root>()
     override fun matchesSafely(item: Root?): Boolean {
         val matches = item != null && isPopupLayout(item.decorView, testTag)
         if (matches) {
+            @Suppress("DEPRECATION")
             lastSeenWindowParams = item!!.windowLayoutParams.get()
         }
         return matches
@@ -97,7 +98,7 @@ internal fun SimpleContainer(
                         height?.roundToPx() ?: Constraints.Infinity
                     )
             )
-        val childConstraints = containerConstraints.copy(minWidth = 0, minHeight = 0)
+        val childConstraints = containerConstraints.copyMaxDimensions()
         var placeable: Placeable? = null
         val containerWidth =
             if (containerConstraints.hasFixedWidth) {

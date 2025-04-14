@@ -15,17 +15,17 @@
  */
 
 plugins {
-    id 'AndroidXPlugin'
-    id 'com.android.library'
-    id 'org.jetbrains.kotlin.android'
+    id("AndroidXPlugin")
+    id("com.android.library")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace 'androidx.privacysandbox.sdkruntime.integration.testsdk'
+    namespace = "androidx.privacysandbox.sdkruntime.integration.testsdk"
 
     defaultConfig {
-        compileSdk 34
-        compileSdkExtension 10
+        compileSdk = 35
+        compileSdkExtension = 14
     }
 }
 
@@ -33,6 +33,6 @@ dependencies {
     api(libs.kotlinStdlib)
     api("androidx.annotation:annotation:1.8.1")
 
-    implementation(project(':privacysandbox:sdkruntime:integration-tests:testaidl'))
-    implementation(project(':privacysandbox:sdkruntime:sdkruntime-provider'))
+    implementation(project(":privacysandbox:sdkruntime:integration-tests:testaidl"))
+    implementation(project(":privacysandbox:sdkruntime:sdkruntime-provider"))
 }

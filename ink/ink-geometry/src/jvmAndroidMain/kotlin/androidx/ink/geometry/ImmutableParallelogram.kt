@@ -18,28 +18,30 @@ package androidx.ink.geometry
 
 import androidx.annotation.FloatRange
 import androidx.annotation.RestrictTo
+import androidx.ink.nativeloader.UsedByNative
+import kotlin.math.atan2
 
 /**
  * Immutable parallelogram (i.e. a quadrilateral with parallel sides), defined by its [center],
  * [width], [height], [rotation], and [shearFactor].
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+@UsedByNative
 public class ImmutableParallelogram
 private constructor(
-    override val center: ImmutablePoint,
+    override val center: ImmutableVec,
     override val width: Float,
     override val height: Float,
     @AngleRadiansFloat override val rotation: Float,
     override val shearFactor: Float,
-) : Parallelogram {
+) : Parallelogram() {
 
     override fun equals(other: Any?): Boolean =
-        other === this || (other is Parallelogram && Parallelogram.areEquivalent(this, other))
+        other === this || (other is Parallelogram && areEquivalent(this, other))
 
     // NOMUTANTS -- not testing exact hashCode values, just that equality implies same hashCode
-    override fun hashCode(): Int = Parallelogram.hash(this)
+    override fun hashCode(): Int = hash(this)
 
-    override fun toString(): String = "Immutable${Parallelogram.string(this)}"
+    override fun toString(): String = "Immutable${string(this)}"
 
     public companion object {
 
@@ -50,14 +52,11 @@ private constructor(
          */
         @JvmStatic
         public fun fromCenterAndDimensions(
-            center: ImmutablePoint,
+            center: ImmutableVec,
             @FloatRange(from = 0.0) width: Float,
             height: Float,
         ): ImmutableParallelogram =
-            Parallelogram.normalizeAndRun(width, height, rotation = Angle.ZERO) {
-                w: Float,
-                h: Float,
-                r: Float ->
+            normalizeAndRun(width, height, rotation = Angle.ZERO) { w: Float, h: Float, r: Float ->
                 ImmutableParallelogram(center, w, h, r, shearFactor = 0f)
             }
 
@@ -67,14 +66,15 @@ private constructor(
          * than zero or if the [rotation] is not in the range [0, 2π), the [Parallelogram] will be
          * normalized.
          */
+        @UsedByNative
         @JvmStatic
         public fun fromCenterDimensionsAndRotation(
-            center: ImmutablePoint,
+            center: ImmutableVec,
             @FloatRange(from = 0.0) width: Float,
             height: Float,
             @AngleRadiansFloat rotation: Float,
         ): ImmutableParallelogram =
-            Parallelogram.normalizeAndRun(width, height, rotation) { w: Float, h: Float, r: Float ->
+            normalizeAndRun(width, height, rotation) { w: Float, h: Float, r: Float ->
                 ImmutableParallelogram(center, w, h, r, shearFactor = 0f)
             }
 
@@ -85,14 +85,41 @@ private constructor(
          */
         @JvmStatic
         public fun fromCenterDimensionsRotationAndShear(
-            center: ImmutablePoint,
+            center: ImmutableVec,
             @FloatRange(from = 0.0) width: Float,
             height: Float,
             @AngleRadiansFloat rotation: Float,
             shearFactor: Float,
         ): ImmutableParallelogram =
-            Parallelogram.normalizeAndRun(width, height, rotation) { w: Float, h: Float, r: Float ->
+            normalizeAndRun(width, height, rotation) { w: Float, h: Float, r: Float ->
                 ImmutableParallelogram(center, w, h, r, shearFactor)
+            }
+
+        /**
+         * Constructs an [ImmutableParallelogram] that is aligned with the [segment] and whose
+         * bounds are [padding] units away from the segment and whose [shearFactor] is zero. This
+         * makes it a rectangle, that is axis-aligned only if [segment] is axis-aligned.
+         */
+        @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+        @JvmStatic
+        public fun fromSegmentAndPadding(segment: Segment, padding: Float): ImmutableParallelogram =
+            normalizeAndRun(
+                width = segment.computeLength() + 2 * padding,
+                height = 2 * padding,
+                rotation =
+                    atan2((segment.start.y - segment.end.y), (segment.start.x - segment.end.x)),
+            ) { w: Float, h: Float, r: Float ->
+                ImmutableParallelogram(
+                    center =
+                        ImmutableVec(
+                            segment.end.x / 2f + segment.start.x / 2f,
+                            segment.end.y / 2f + segment.start.y / 2f,
+                        ),
+                    width = w,
+                    height = h,
+                    rotation = r,
+                    shearFactor = 0f,
+                )
             }
     }
 }

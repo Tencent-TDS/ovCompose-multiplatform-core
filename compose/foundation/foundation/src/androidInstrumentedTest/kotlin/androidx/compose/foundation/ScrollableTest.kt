@@ -50,10 +50,13 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.text.matchers.isZero
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -86,6 +89,7 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.TraversableNode
 import androidx.compose.ui.platform.AbstractComposeView
 import androidx.compose.ui.platform.InspectableValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
@@ -113,8 +117,10 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeWithVelocity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import androidx.compose.ui.util.fastForEach
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.CoordinatesProvider
@@ -127,6 +133,7 @@ import androidx.test.filters.LargeTest
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlin.math.abs
+import kotlin.math.absoluteValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -139,7 +146,6 @@ import org.hamcrest.CoreMatchers.instanceOf
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -1732,6 +1738,181 @@ class ScrollableTest {
     }
 
     @Test
+    fun scrollable_nestedFling_shouldCancelWhenHitTheBounds() {
+        var latestAvailableVelocity = Velocity.Zero
+        var onPostFlingCalled = false
+        val connection =
+            object : NestedScrollConnection {
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity
+                ): Velocity {
+                    latestAvailableVelocity = available
+                    onPostFlingCalled = true
+                    return super.onPostFling(consumed, available)
+                }
+            }
+        rule.setContent {
+            Box(
+                Modifier.scrollable(
+                    state = rememberScrollableState { it },
+                    orientation = Orientation.Vertical
+                )
+            ) {
+                Box(Modifier.nestedScroll(connection)) {
+                    Column(
+                        Modifier.testTag("column")
+                            .verticalScroll(
+                                rememberScrollState(with(rule.density) { (5 * 200.dp).roundToPx() })
+                            )
+                    ) {
+                        repeat(10) { Box(Modifier.size(200.dp)) }
+                    }
+                }
+            }
+        }
+
+        rule.onNodeWithTag("column").performTouchInput { swipeDown() }
+
+        /**
+         * Because previously the animation was being completely consumed by the child fling, the
+         * nested scroll connection in the middle would see a zero post fling velocity, even if the
+         * child hit the bounds.
+         */
+        rule.runOnIdle {
+            assertThat(onPostFlingCalled).isTrue()
+            assertThat(latestAvailableVelocity.y).isNonZero()
+        }
+    }
+
+    @Test
+    fun scrollable_nestedFling_parentShouldFlingWithVelocityLeft() {
+        var postFlingCalled = false
+        var lastPostFlingVelocity = Velocity.Zero
+        var flingDelta = 0.0f
+        val fling =
+            object : FlingBehavior {
+                override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                    assertThat(initialVelocity).isEqualTo(lastPostFlingVelocity.y)
+                    scrollBy(100f)
+                    return initialVelocity
+                }
+            }
+        val topConnection =
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    // accumulate deltas for second fling only
+                    if (source == NestedScrollSource.SideEffect && postFlingCalled) {
+                        flingDelta += available.y
+                    }
+                    return super.onPreScroll(available, source)
+                }
+            }
+
+        val middleConnection =
+            object : NestedScrollConnection {
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity
+                ): Velocity {
+                    postFlingCalled = true
+                    lastPostFlingVelocity = available
+                    return super.onPostFling(consumed, available)
+                }
+            }
+        val columnState = ScrollState(with(rule.density) { (5 * 200.dp).roundToPx() })
+        rule.setContent {
+            Box(
+                Modifier.nestedScroll(topConnection)
+                    .scrollable(
+                        flingBehavior = fling,
+                        state = rememberScrollableState { it },
+                        orientation = Orientation.Vertical
+                    )
+            ) {
+                Column(
+                    Modifier.nestedScroll(middleConnection)
+                        .testTag("column")
+                        .verticalScroll(columnState)
+                ) {
+                    repeat(10) { Box(Modifier.size(200.dp)) }
+                }
+            }
+        }
+
+        rule.onNodeWithTag("column").performTouchInput { swipeDown() }
+
+        rule.runOnIdle {
+            assertThat(columnState.value).isZero() // column is at the bounds
+            assertThat(postFlingCalled)
+                .isTrue() // we fired a post fling call after the cancellation
+            assertThat(lastPostFlingVelocity.y)
+                .isNonZero() // the post child fling velocity was not zero
+            assertThat(flingDelta).isEqualTo(100f) // the fling delta as propagated correctly
+        }
+    }
+
+    @Test
+    fun scrollable_nestedFling_parentShouldFlingWithVelocityLeft_whenInnerDisappears() {
+        var postFlingCalled = false
+        var postFlingAvailableVelocity = Velocity.Zero
+        var postFlingConsumedVelocity = Velocity.Zero
+        var flingDelta by mutableFloatStateOf(0.0f)
+        var preFlingVelocity = Velocity.Zero
+
+        val topConnection =
+            object : NestedScrollConnection {
+                override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                    // accumulate deltas for second fling only
+                    if (source == NestedScrollSource.SideEffect) {
+                        flingDelta += available.y
+                    }
+                    return super.onPreScroll(available, source)
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    preFlingVelocity = available
+                    return super.onPreFling(available)
+                }
+
+                override suspend fun onPostFling(
+                    consumed: Velocity,
+                    available: Velocity
+                ): Velocity {
+                    postFlingCalled = true
+                    postFlingAvailableVelocity = available
+                    postFlingConsumedVelocity = consumed
+                    return super.onPostFling(consumed, available)
+                }
+            }
+
+        val columnState = ScrollState(with(rule.density) { (50 * 200.dp).roundToPx() })
+
+        rule.setContent {
+            Box(Modifier.nestedScroll(topConnection)) {
+                if (flingDelta.absoluteValue < 100) {
+                    Column(Modifier.testTag("column").verticalScroll(columnState)) {
+                        repeat(100) { Box(Modifier.size(200.dp)) }
+                    }
+                }
+            }
+        }
+
+        rule.onNodeWithTag("column").performTouchInput { swipeUp() }
+        rule.waitForIdle()
+        // removed scrollable
+        rule.onNodeWithTag("column").assertDoesNotExist()
+        rule.runOnIdle {
+            // we fired a post fling call after the disappearance
+            assertThat(postFlingCalled).isTrue()
+
+            // fling velocity in onPostFling is correctly propagated
+            assertThat(postFlingConsumedVelocity + postFlingAvailableVelocity)
+                .isEqualTo(preFlingVelocity)
+        }
+    }
+
+    @Test
     fun scrollable_bothOrientations_proxiesPostFling() {
         val velocityFlung = 5000f
         val outerState = ScrollableState(consumeScrollDelta = { 0f })
@@ -2404,77 +2585,6 @@ class ScrollableTest {
     }
 
     @Test
-    @Ignore("b/175010956") // re-enable when we come back to fling continuation fix
-    fun nestedScrollable_shouldImmediateScrollIfChildIsFlinging() {
-        var innerDelta = 0f
-        var middleDelta = 0f
-        var outerDelta = 0f
-        var touchSlop = 0f
-
-        val outerStateController = ScrollableState {
-            outerDelta += it
-            0f
-        }
-
-        val middleController = ScrollableState {
-            middleDelta += it
-            0f
-        }
-
-        val innerController = ScrollableState {
-            innerDelta += it
-            it / 2f
-        }
-
-        rule.setContentAndGetScope {
-            touchSlop = LocalViewConfiguration.current.touchSlop
-            Box(
-                modifier =
-                    Modifier.testTag("outerScrollable")
-                        .size(600.dp)
-                        .background(Color.Red)
-                        .scrollable(outerStateController, orientation = Orientation.Vertical),
-                contentAlignment = Alignment.BottomStart
-            ) {
-                Box(
-                    modifier =
-                        Modifier.testTag("middleScrollable")
-                            .size(300.dp)
-                            .background(Color.Blue)
-                            .scrollable(middleController, orientation = Orientation.Vertical),
-                    contentAlignment = Alignment.BottomStart
-                ) {
-                    Box(
-                        modifier =
-                            Modifier.testTag("innerScrollable")
-                                .size(50.dp)
-                                .background(Color.Yellow)
-                                .scrollable(innerController, orientation = Orientation.Vertical)
-                    )
-                }
-            }
-        }
-
-        rule.mainClock.autoAdvance = false
-        rule.onNodeWithTag("innerScrollable").performTouchInput { swipeUp() }
-
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
-
-        val previousOuter = outerDelta
-
-        rule.onNodeWithTag("outerScrollable").performTouchInput {
-            down(topCenter)
-            // Move less than touch slop, should start immediately
-            moveBy(Offset(0f, touchSlop / 2))
-        }
-
-        rule.mainClock.autoAdvance = true
-
-        rule.runOnIdle { assertThat(outerDelta).isEqualTo(previousOuter + touchSlop / 2) }
-    }
-
-    @Test
     fun nestedScrollable_noFlingContinuationInCrossAxis_shouldAllowClicksOnCrossAxis_scrollable() {
         var clicked = 0
         rule.setContentAndGetScope {
@@ -2615,9 +2725,7 @@ class ScrollableTest {
         rule.setContent {
             counter.value // just to trigger recomposition
             materialized =
-                currentComposer.materialize(
-                    Modifier.scrollable(state, Orientation.Vertical, NoOpOverscrollEffect)
-                )
+                currentComposer.materialize(Modifier.scrollable(state, Orientation.Vertical, null))
         }
 
         lateinit var first: Modifier
@@ -3054,6 +3162,118 @@ class ScrollableTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollByOffset))
     }
 
+    @Test
+    fun onDensityChange_shouldUpdateFlingBehavior() {
+        var density by mutableStateOf(rule.density)
+        var flingDelta = 0f
+        val fixedSize = 400
+        rule.setContent {
+            CompositionLocalProvider(LocalDensity provides density) {
+                Box(
+                    Modifier.size(with(density) { fixedSize.toDp() })
+                        .testTag(scrollableBoxTag)
+                        .scrollable(
+                            state =
+                                rememberScrollableState {
+                                    flingDelta += it
+                                    it
+                                },
+                            orientation = Orientation.Vertical
+                        )
+                )
+            }
+        }
+
+        rule.onNodeWithTag(scrollableBoxTag).performTouchInput { swipeUp() }
+
+        rule.waitForIdle()
+
+        density = Density(rule.density.density * 2f)
+        val previousDelta = flingDelta
+        flingDelta = 0.0f
+
+        rule.onNodeWithTag(scrollableBoxTag).performTouchInput { swipeUp() }
+
+        rule.runOnIdle { assertThat(flingDelta).isNotEqualTo(previousDelta) }
+    }
+
+    @Test
+    fun onNestedFlingCancelled_shouldResetFlingState() {
+        rule.mainClock.autoAdvance = false
+        var outerStateDeltas = 0f
+        val outerState = ScrollableState {
+            outerStateDeltas += it
+            it
+        }
+
+        val innerState = ScrollableState { it }
+
+        val dispatcher = NestedScrollDispatcher()
+        var flingJob: Job? = null
+
+        rule.setContentAndGetScope {
+            Box(
+                Modifier.size(400.dp)
+                    .background(Color.Red)
+                    .scrollable(
+                        flingBehavior = ScrollableDefaults.flingBehavior(),
+                        state = outerState,
+                        orientation = Orientation.Vertical
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier.size(200.dp)
+                        .background(Color.Black)
+                        .nestedScroll(
+                            connection = object : NestedScrollConnection {},
+                            dispatcher = dispatcher
+                        )
+                        .scrollable(state = innerState, orientation = Orientation.Vertical)
+                )
+            }
+        }
+
+        rule.runOnIdle {
+            // causes the inner scrollable to dispatch a post fling to the outer scrollable
+            flingJob =
+                scope.launch {
+                    innerState.scroll {
+                        dispatcher.dispatchPreFling(Velocity(0f, 10000f))
+                        dispatcher.dispatchPostFling(Velocity.Zero, Velocity(0f, 10000f))
+                    }
+                }
+        }
+
+        rule.mainClock.advanceTimeBy(200L)
+
+        rule.runOnIdle {
+            // outer scrollable is flinging from onPostFling
+            assertThat(outerStateDeltas).isNonZero()
+        }
+
+        outerStateDeltas = 0f
+
+        rule.runOnIdle {
+            flingJob?.cancel() // cancel job mid fling
+
+            // try to run fling again
+            scope.launch {
+                innerState.scroll {
+                    dispatcher.dispatchPreFling(Velocity(0f, 10000f))
+                    dispatcher.dispatchPostFling(Velocity.Zero, Velocity(0f, 10000f))
+                }
+            }
+        }
+
+        rule.mainClock.autoAdvance = true
+        // fling reached outer scrollable even if the previous child fling was cancelled.
+        rule.runOnIdle {
+            // outer scrollable is flinging from onPostFling
+            assertThat(outerStateDeltas).isNonZero()
+        }
+    }
+
     private fun setScrollableContent(scrollableModifierFactory: @Composable () -> Modifier) {
         rule.setContentAndGetScope {
             Box {
@@ -3162,7 +3382,7 @@ private fun espressoSwipe(
 
 internal class TestScrollMotionDurationScale(override val scaleFactor: Float) : MotionDurationScale
 
-private class ScrollableContainerReaderNodeElement(val hasScrollableBlock: (Boolean) -> Unit) :
+internal class ScrollableContainerReaderNodeElement(val hasScrollableBlock: (Boolean) -> Unit) :
     ModifierNodeElement<ScrollableContainerReaderNode>() {
     override fun create(): ScrollableContainerReaderNode {
         return ScrollableContainerReaderNode(hasScrollableBlock)
@@ -3188,7 +3408,7 @@ private class ScrollableContainerReaderNodeElement(val hasScrollableBlock: (Bool
     }
 }
 
-private class ScrollableContainerReaderNode(var hasScrollableBlock: (Boolean) -> Unit) :
+internal class ScrollableContainerReaderNode(var hasScrollableBlock: (Boolean) -> Unit) :
     Modifier.Node(), TraversableNode {
     override val traverseKey: Any = TraverseKey
 

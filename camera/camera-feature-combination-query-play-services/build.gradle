@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import androidx.build.Publish
-import androidx.build.RunApiTasks
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.jspecify)
     api(libs.androidx.annotation)
-    project(":camera:camera-feature-combination-query")
     implementation(project(":camera:camera-feature-combination-query"))
 
     testImplementation(libs.testRunner)
@@ -42,21 +42,20 @@ dependencies {
 }
 
 android {
-    compileSdk 35
-    lintOptions {
-        enable 'CameraXQuirksClassDetector'
+    compileSdk = 35
+    lint {
+        enable.add("CameraXQuirksClassDetector")
     }
 
     testOptions.unitTests.includeAndroidResources = true
 
-    namespace "androidx.camera.featurecombinationquery.playservices"
+    namespace = "androidx.camera.featurecombinationquery.playservices"
 }
 
 androidx {
-    name = "Jetpack Camera Feature Combination Play Services Library"
-    publish = Publish.NONE
+    name = "Camera Feature Combination Query With Play Services"
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
-    runApiTasks = new RunApiTasks.Yes()
-    description = "Camera feature combination components for the Jetpack Camera Library, a " +
+    description = "Camera feature combination components for the Camera Library, a " +
             "library providing camera feature combination with Google Play Services dependencies."
 }

@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.material3.samples.RadioButtonSample
 import androidx.wear.compose.material3.samples.SplitRadioButtonSample
 import org.junit.Assert
@@ -479,8 +480,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             RadioButtonWithDefaults(
                 selected = true,
-                label = { labelTextAlign = LocalTextAlign.current },
-                secondaryLabel = { secondaryLabelTextAlign = LocalTextAlign.current },
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
             )
         }
 
@@ -496,8 +499,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             SplitRadioButtonWithDefaults(
                 selected = true,
-                label = { labelTextAlign = LocalTextAlign.current },
-                secondaryLabel = { secondaryLabelTextAlign = LocalTextAlign.current },
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
             )
         }
 
@@ -513,8 +518,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             RadioButtonWithDefaults(
                 selected = true,
-                label = { labelOverflow = LocalTextOverflow.current },
-                secondaryLabel = { secondaryLabelOverflow = LocalTextOverflow.current },
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
             )
         }
 
@@ -530,8 +537,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             SplitRadioButtonWithDefaults(
                 selected = true,
-                label = { labelOverflow = LocalTextOverflow.current },
-                secondaryLabel = { secondaryLabelOverflow = LocalTextOverflow.current },
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
             )
         }
 
@@ -547,8 +556,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             RadioButtonWithDefaults(
                 selected = true,
-                label = { labelMaxLines = LocalTextMaxLines.current },
-                secondaryLabel = { secondaryLabelMaxLines = LocalTextMaxLines.current },
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
             )
         }
 
@@ -564,8 +575,10 @@ class RadioButtonTest {
         rule.setContentWithTheme {
             SplitRadioButtonWithDefaults(
                 selected = true,
-                label = { labelMaxLines = LocalTextMaxLines.current },
-                secondaryLabel = { secondaryLabelMaxLines = LocalTextMaxLines.current },
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
             )
         }
 
@@ -573,7 +586,7 @@ class RadioButtonTest {
         Assert.assertEquals(2, secondaryLabelMaxLines)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun radio_button_allows_checked_background_color_override() =
         verifyRadioButtonBackgroundColor(
@@ -582,7 +595,7 @@ class RadioButtonTest {
             expectedColor = SELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun radio_button_allows_unchecked_background_color_override() =
         verifyRadioButtonBackgroundColor(
@@ -591,7 +604,7 @@ class RadioButtonTest {
             expectedColor = UNSELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun split_radio_button_allows_checked_background_color_override() =
         verifySplitRadioButtonBackgroundColor(
@@ -600,7 +613,7 @@ class RadioButtonTest {
             expectedColor = SELECTED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun split_radio_button_allows_unchecked_background_color_override() =
         verifySplitRadioButtonBackgroundColor(

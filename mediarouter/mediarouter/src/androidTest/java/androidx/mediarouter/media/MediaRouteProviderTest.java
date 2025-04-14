@@ -18,12 +18,14 @@ package androidx.mediarouter.media;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 
 import android.content.Context;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.mediarouter.media.MediaRouteProvider.RouteControllerOptions;
 import androidx.test.annotation.UiThreadTest;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -42,39 +44,53 @@ public class MediaRouteProviderTest {
     private static final String ROUTE_ID = "route_id";
 
     private Context mContext;
-    private Bundle mControlHints;
+    private MediaRouteProvider.RouteControllerOptions mRouteControllerOptions;
 
     @Before
     public void setUp() {
         mContext = ApplicationProvider.getApplicationContext();
-        mControlHints = new Bundle();
-        mControlHints.putBoolean("key", true);
+
+        Bundle controlHints = new Bundle();
+        controlHints.putBoolean("key", true);
+        mRouteControllerOptions =
+                new MediaRouteProvider.RouteControllerOptions.Builder()
+                        .setControlHints(controlHints)
+                        .build();
     }
 
     @Test
     @SmallTest
-    public void onCreateDynamicGroupRouteControllerWithHints_shouldProvideHints() {
+    public void onCreateDynamicGroupRouteControllerWithOptions_shouldProvideOptions() {
         MediaRouteProvider mediaRouteProvider = new TestMediaRouteProvider(mContext);
         TestDynamicGroupRouteController groupRouteController =
                 (TestDynamicGroupRouteController)
                         mediaRouteProvider.onCreateDynamicGroupRouteController(
-                                ROUTE_ID, mControlHints);
+                                ROUTE_ID, mRouteControllerOptions);
 
+        MediaRouteProvider.RouteControllerOptions routeControllerOptions =
+                groupRouteController.getRouteControllerOptions();
         assertEquals(ROUTE_ID, groupRouteController.getInitialMemberRouteId());
-        assertEquals(mControlHints, groupRouteController.getControlHints());
+        assertEquals(mRouteControllerOptions, routeControllerOptions);
+        assertEquals(mRouteControllerOptions.asBundle(), routeControllerOptions.asBundle());
+        assertEquals(
+                mRouteControllerOptions.getControlHints(),
+                routeControllerOptions.getControlHints());
     }
 
     @Test
     @SmallTest
-    public void onCreateDynamicGroupRouteController_shouldWorkWithoutHints() {
-        MediaRouteProvider mediaRouteProvider = new TestMediaRouteProviderWithoutHints(mContext);
+    public void onCreateDynamicGroupRouteController_shouldWorkWithoutOptions() {
+        MediaRouteProvider mediaRouteProvider = new TestMediaRouteProviderWithoutOptions(mContext);
         TestDynamicGroupRouteController groupRouteController =
                 (TestDynamicGroupRouteController)
                         mediaRouteProvider.onCreateDynamicGroupRouteController(
-                                ROUTE_ID, mControlHints);
+                                ROUTE_ID, mRouteControllerOptions);
 
+        MediaRouteProvider.RouteControllerOptions routeControllerOptions =
+                groupRouteController.getRouteControllerOptions();
         assertEquals(ROUTE_ID, groupRouteController.getInitialMemberRouteId());
-        assertNotEquals(mControlHints, groupRouteController.getControlHints());
+        assertNull(routeControllerOptions);
+        assertNotEquals(mRouteControllerOptions, routeControllerOptions);
     }
 
     private static class TestMediaRouteProvider extends MediaRouteProvider {
@@ -86,14 +102,16 @@ public class MediaRouteProviderTest {
         @Override
         @Nullable
         public DynamicGroupRouteController onCreateDynamicGroupRouteController(
-                @NonNull String initialMemberRouteId, @Nullable Bundle controlHints) {
-            return new TestDynamicGroupRouteController(initialMemberRouteId, controlHints);
+                @NonNull String initialMemberRouteId,
+                @NonNull RouteControllerOptions routeControllerOptions) {
+            return new TestDynamicGroupRouteController(
+                    initialMemberRouteId, routeControllerOptions);
         }
     }
 
-    private static class TestMediaRouteProviderWithoutHints extends MediaRouteProvider {
+    private static class TestMediaRouteProviderWithoutOptions extends MediaRouteProvider {
 
-        TestMediaRouteProviderWithoutHints(Context context) {
+        TestMediaRouteProviderWithoutOptions(Context context) {
             super(context);
         }
 
@@ -102,7 +120,7 @@ public class MediaRouteProviderTest {
         public DynamicGroupRouteController onCreateDynamicGroupRouteController(
                 @NonNull String initialMemberRouteId) {
             return new TestDynamicGroupRouteController(
-                    initialMemberRouteId, /* controlHints= */ null);
+                    initialMemberRouteId, /* routeControllerOptions= */ null);
         }
     }
 
@@ -110,12 +128,13 @@ public class MediaRouteProviderTest {
             extends MediaRouteProvider.DynamicGroupRouteController {
 
         private final String mInitialMemberRouteId;
-        @NonNull private final Bundle mControlHints;
+        @NonNull private final MediaRouteProvider.RouteControllerOptions mRouteControllerOptions;
 
         private TestDynamicGroupRouteController(
-                String initialMemberRouteId, @Nullable Bundle controlHints) {
+                String initialMemberRouteId,
+                @NonNull MediaRouteProvider.RouteControllerOptions routeControllerOptions) {
             mInitialMemberRouteId = initialMemberRouteId;
-            mControlHints = (controlHints != null) ? controlHints : new Bundle();
+            mRouteControllerOptions = routeControllerOptions;
         }
 
         @NonNull
@@ -124,8 +143,8 @@ public class MediaRouteProviderTest {
         }
 
         @NonNull
-        public Bundle getControlHints() {
-            return mControlHints;
+        public RouteControllerOptions getRouteControllerOptions() {
+            return mRouteControllerOptions;
         }
 
         @Override

@@ -16,7 +16,15 @@
 
 package androidx.compose.foundation
 
+import android.os.Build
 import android.os.Build.VERSION.SDK_INT
+import android.view.InputDevice
+import android.view.MotionEvent
+import android.view.MotionEvent.ACTION_DOWN
+import android.view.MotionEvent.ACTION_MOVE
+import android.view.MotionEvent.CLASSIFICATION_DEEP_PRESS
+import android.view.MotionEvent.CLASSIFICATION_NONE
+import android.view.View
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -61,6 +69,7 @@ import androidx.compose.ui.platform.InspectableValue
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalInputModeManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -94,6 +103,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
@@ -666,29 +676,175 @@ class CombinedClickableTest {
     }
 
     @Test
-    fun doubleClick() {
-        var counter = 0
-        val onClick: () -> Unit = { ++counter }
-
+    fun doubleClick_withinTimeout_aboveMinimumDuration() {
+        var clickCounter = 0
+        var doubleClickCounter = 0
         rule.setContent {
-            Box {
-                BasicText(
-                    "ClickableText",
-                    modifier =
-                        Modifier.testTag("myClickable").combinedClickable(
-                            onDoubleClick = onClick
-                        ) {}
-                )
-            }
+            BasicText(
+                "ClickableText",
+                modifier =
+                    Modifier.testTag("myClickable")
+                        .combinedClickable(
+                            onDoubleClick = { ++doubleClickCounter },
+                            onClick = { ++clickCounter }
+                        )
+            )
         }
 
-        rule.onNodeWithTag("myClickable").performTouchInput { doubleClick() }
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            down(center)
+            up()
+            advanceEventTime(doubleTapDelay)
+            down(center)
+            up()
+        }
 
-        rule.mainClock.advanceTimeUntil { counter == 1 }
+        // Double click should not trigger click, and the double click should be immediately invoked
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(0)
+            assertThat(doubleClickCounter).isEqualTo(1)
+        }
+    }
 
-        rule.onNodeWithTag("myClickable").performTouchInput { doubleClick() }
+    @Test
+    fun doubleClick_withinTimeout_belowMinimumDuration() {
+        var clickCounter = 0
+        var doubleClickCounter = 0
+        rule.setContent {
+            BasicText(
+                "ClickableText",
+                modifier =
+                    Modifier.testTag("myClickable")
+                        .combinedClickable(
+                            onDoubleClick = { ++doubleClickCounter },
+                            onClick = { ++clickCounter }
+                        )
+            )
+        }
 
-        rule.mainClock.advanceTimeUntil { counter == 2 }
+        var doubleTapTimeoutDelay: Long = 0
+
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            doubleTapTimeoutDelay = viewConfiguration.doubleTapTimeoutMillis + 100
+            down(center)
+            up()
+            // Send a second press below the minimum time required for a double tap
+            val minimumDuration = viewConfiguration.doubleTapMinTimeMillis
+            advanceEventTime(minimumDuration / 2)
+            down(center)
+            up()
+        }
+
+        // Because the second tap was below the timeout, it is ignored, and so no click is invoked /
+        // we are still waiting for a second tap to trigger the double click
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(0)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+
+        // After the timeout has run out, the first click will be invoked, and no double click will
+        // be invoked
+        rule.mainClock.advanceTimeBy(doubleTapTimeoutDelay)
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(1)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun doubleClick_outsideTimeout() {
+        var clickCounter = 0
+        var doubleClickCounter = 0
+        rule.setContent {
+            BasicText(
+                "ClickableText",
+                modifier =
+                    Modifier.testTag("myClickable")
+                        .combinedClickable(
+                            onDoubleClick = { ++doubleClickCounter },
+                            onClick = { ++clickCounter }
+                        )
+            )
+        }
+
+        var delay: Long = 0
+
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            // Delay slightly past the timeout
+            delay = viewConfiguration.doubleTapTimeoutMillis + 100
+            down(center)
+            up()
+        }
+
+        // The click should not be invoked until the timeout has run out
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(0)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+
+        // After the timeout has run out, the click will be invoked
+        rule.mainClock.advanceTimeBy(delay)
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(1)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+
+        // Perform a second click, after the timeout has elapsed - this should not trigger a double
+        // click
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            down(center)
+            up()
+        }
+
+        // The second click should not be invoked until the timeout has run out
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(1)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+
+        // After the timeout has run out, the second click will be invoked, and no double click will
+        // be invoked
+        rule.mainClock.advanceTimeBy(delay)
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(2)
+            assertThat(doubleClickCounter).isEqualTo(0)
+        }
+    }
+
+    @Test
+    fun doubleClick_secondClickIsALongClick() {
+        var clickCounter = 0
+        var doubleClickCounter = 0
+        var longClickCounter = 0
+        rule.setContent {
+            BasicText(
+                "ClickableText",
+                modifier =
+                    Modifier.testTag("myClickable")
+                        .combinedClickable(
+                            onDoubleClick = { ++doubleClickCounter },
+                            onClick = { ++clickCounter },
+                            onLongClick = { ++longClickCounter }
+                        )
+            )
+        }
+
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            down(center)
+            up()
+            advanceEventTime(doubleTapDelay)
+            down(center)
+        }
+
+        // Wait for the long click
+        rule.mainClock.advanceTimeBy(1000)
+
+        // Long click should cancel double click and click
+        rule.runOnIdle {
+            assertThat(clickCounter).isEqualTo(0)
+            assertThat(doubleClickCounter).isEqualTo(0)
+            assertThat(longClickCounter).isEqualTo(1)
+        }
     }
 
     @Test
@@ -1906,6 +2062,8 @@ class CombinedClickableTest {
             assertThat(modifier.valueOverride).isNull()
             assertThat(modifier.inspectableElements.map { it.name }.asIterable())
                 .containsExactly(
+                    "interactionSource",
+                    "indicationNodeFactory",
                     "enabled",
                     "onClickLabel",
                     "role",
@@ -2054,6 +2212,27 @@ class CombinedClickableTest {
         rule.runOnIdle { assertThat(interactions).isEmpty() }
     }
 
+    @Test
+    fun localIndication_interactionSource_eagerlyCreated() {
+        val interactionSource = MutableInteractionSource()
+        var created = false
+        val indication = TestIndicationNodeFactory { _, _ -> created = true }
+        rule.setContent {
+            CompositionLocalProvider(LocalIndication provides indication) {
+                Box(Modifier.padding(10.dp)) {
+                    BasicText(
+                        "ClickableText",
+                        modifier =
+                            Modifier.testTag("clickable").combinedClickable(
+                                interactionSource = interactionSource
+                            ) {}
+                    )
+                }
+            }
+        }
+        rule.runOnIdle { assertThat(created).isTrue() }
+    }
+
     // Regression test for b/332814226
     @Test
     fun movableContentWithSubcomposition_updatingSemanticsShouldNotCrash() {
@@ -2092,6 +2271,229 @@ class CombinedClickableTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .assertOnClickLabelMatches("true")
             .assertOnLongClickLabelMatches("true")
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun longClick_deepPress() {
+        lateinit var view: View
+        var clicks = 0
+        var longClicks = 0
+        var doubleClicks = 0
+        val onClick: () -> Unit = { ++clicks }
+        val onLongClick: () -> Unit = { ++longClicks }
+        val onDoubleClick: () -> Unit = { ++doubleClicks }
+        rule.setContent {
+            view = LocalView.current
+            Box {
+                BasicText(
+                    "ClickableText",
+                    modifier =
+                        Modifier.testTag("myClickable")
+                            .combinedClickable(
+                                onClick = onClick,
+                                onLongClick = onLongClick,
+                                onDoubleClick = onDoubleClick
+                            )
+                )
+            }
+        }
+
+        val pointerProperties =
+            arrayOf(
+                MotionEvent.PointerProperties().also {
+                    it.id = 0
+                    it.toolType = MotionEvent.TOOL_TYPE_FINGER
+                }
+            )
+
+        val downEvent =
+            MotionEvent.obtain(
+                /* downTime = */ 0,
+                /* eventTime = */ 0,
+                /* action = */ ACTION_DOWN,
+                /* pointerCount = */ 1,
+                /* pointerProperties = */ pointerProperties,
+                /* pointerCoords = */ arrayOf(
+                    MotionEvent.PointerCoords().apply {
+                        x = 5f
+                        y = 5f
+                    }
+                ),
+                /* metaState = */ 0,
+                /* buttonState = */ 0,
+                /* xPrecision = */ 0f,
+                /* yPrecision = */ 0f,
+                /* deviceId = */ 0,
+                /* edgeFlags = */ 0,
+                /* source = */ InputDevice.SOURCE_TOUCHSCREEN,
+                /* displayId = */ 0,
+                /* flags = */ 0,
+                /* classification = */ CLASSIFICATION_NONE
+            )
+
+        view.dispatchTouchEvent(downEvent)
+        rule.mainClock.advanceTimeBy(50)
+
+        rule.runOnIdle {
+            assertThat(clicks).isEqualTo(0)
+            assertThat(longClicks).isEqualTo(0)
+            assertThat(doubleClicks).isEqualTo(0)
+        }
+
+        val deepPressMoveEvent =
+            MotionEvent.obtain(
+                /* downTime = */ 0,
+                /* eventTime = */ 50,
+                /* action = */ ACTION_MOVE,
+                /* pointerCount = */ 1,
+                /* pointerProperties = */ pointerProperties,
+                /* pointerCoords = */ arrayOf(
+                    MotionEvent.PointerCoords().apply {
+                        x = 10f
+                        y = 10f
+                    }
+                ),
+                /* metaState = */ 0,
+                /* buttonState = */ 0,
+                /* xPrecision = */ 0f,
+                /* yPrecision = */ 0f,
+                /* deviceId = */ 0,
+                /* edgeFlags = */ 0,
+                /* source = */ InputDevice.SOURCE_TOUCHSCREEN,
+                /* displayId = */ 0,
+                /* flags = */ 0,
+                /* classification = */ CLASSIFICATION_DEEP_PRESS
+            )
+
+        view.dispatchTouchEvent(deepPressMoveEvent)
+        rule.mainClock.advanceTimeBy(50)
+
+        // Even though the timeout didn't pass, the deep press should immediately trigger the long
+        // click
+        rule.runOnIdle {
+            assertThat(clicks).isEqualTo(0)
+            assertThat(longClicks).isEqualTo(1)
+            assertThat(doubleClicks).isEqualTo(0)
+        }
+    }
+
+    /** Detect the second deep press as long click. */
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    @Test
+    fun secondTapLongClick_deepPress() {
+        lateinit var view: View
+        var clicks = 0
+        var longClicks = 0
+        var doubleClicks = 0
+        val onClick: () -> Unit = { ++clicks }
+        val onLongClick: () -> Unit = { ++longClicks }
+        val onDoubleClick: () -> Unit = { ++doubleClicks }
+        rule.setContent {
+            view = LocalView.current
+            Box {
+                BasicText(
+                    "ClickableText",
+                    modifier =
+                        Modifier.testTag("myClickable")
+                            .combinedClickable(
+                                onClick = onClick,
+                                onLongClick = onLongClick,
+                                onDoubleClick = onDoubleClick
+                            )
+                )
+            }
+        }
+
+        rule.onNodeWithTag("myClickable").performTouchInput {
+            down(0, Offset(5f, 5f))
+            up(0)
+        }
+        rule.mainClock.advanceTimeBy(50)
+
+        rule.runOnIdle {
+            assertThat(clicks).isEqualTo(0)
+            assertThat(longClicks).isEqualTo(0)
+            assertThat(doubleClicks).isEqualTo(0)
+        }
+
+        val pointerProperties =
+            arrayOf(
+                MotionEvent.PointerProperties().also {
+                    it.id = 0
+                    it.toolType = MotionEvent.TOOL_TYPE_FINGER
+                }
+            )
+
+        val downEvent =
+            MotionEvent.obtain(
+                /* downTime = */ 0,
+                /* eventTime = */ 50,
+                /* action = */ ACTION_DOWN,
+                /* pointerCount = */ 1,
+                /* pointerProperties = */ pointerProperties,
+                /* pointerCoords = */ arrayOf(
+                    MotionEvent.PointerCoords().apply {
+                        x = 5f
+                        y = 5f
+                    }
+                ),
+                /* metaState = */ 0,
+                /* buttonState = */ 0,
+                /* xPrecision = */ 0f,
+                /* yPrecision = */ 0f,
+                /* deviceId = */ 0,
+                /* edgeFlags = */ 0,
+                /* source = */ InputDevice.SOURCE_TOUCHSCREEN,
+                /* displayId = */ 0,
+                /* flags = */ 0,
+                /* classification = */ CLASSIFICATION_NONE
+            )
+
+        view.dispatchTouchEvent(downEvent)
+        rule.mainClock.advanceTimeBy(50)
+
+        rule.runOnIdle {
+            assertThat(clicks).isEqualTo(0)
+            assertThat(longClicks).isEqualTo(0)
+            assertThat(doubleClicks).isEqualTo(0)
+        }
+
+        val deepPressMoveEvent =
+            MotionEvent.obtain(
+                /* downTime = */ 0,
+                /* eventTime = */ 100,
+                /* action = */ ACTION_MOVE,
+                /* pointerCount = */ 1,
+                /* pointerProperties = */ pointerProperties,
+                /* pointerCoords = */ arrayOf(
+                    MotionEvent.PointerCoords().apply {
+                        x = 10f
+                        y = 10f
+                    }
+                ),
+                /* metaState = */ 0,
+                /* buttonState = */ 0,
+                /* xPrecision = */ 0f,
+                /* yPrecision = */ 0f,
+                /* deviceId = */ 0,
+                /* edgeFlags = */ 0,
+                /* source = */ InputDevice.SOURCE_TOUCHSCREEN,
+                /* displayId = */ 0,
+                /* flags = */ 0,
+                /* classification = */ CLASSIFICATION_DEEP_PRESS
+            )
+
+        view.dispatchTouchEvent(deepPressMoveEvent)
+        rule.mainClock.advanceTimeBy(50)
+
+        // Even though the timeout didn't pass, the deep press should immediately trigger the long
+        // press
+        rule.runOnIdle {
+            assertThat(clicks).isEqualTo(0)
+            assertThat(longClicks).isEqualTo(1)
+            assertThat(doubleClicks).isEqualTo(0)
+        }
     }
 }
 

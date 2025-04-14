@@ -17,14 +17,16 @@
 
 package androidx.appsearch.usagereporting;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresFeature;
 import androidx.appsearch.annotation.CanIgnoreReturnValue;
 import androidx.appsearch.annotation.Document;
 import androidx.appsearch.app.AppSearchSchema.StringPropertyConfig;
+import androidx.appsearch.app.ExperimentalAppSearchApi;
 import androidx.appsearch.app.Features;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * {@link ClickAction} is a built-in AppSearch document type that contains different metrics.
@@ -49,15 +51,14 @@ import androidx.core.util.Preconditions;
         enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
         name = Features.JOIN_SPEC_AND_QUALIFIED_ID)
 @Document(name = "builtin:ClickAction")
+@ExperimentalAppSearchApi
 public class ClickAction extends TakenAction {
-    @Nullable
     @Document.StringProperty(indexingType = StringPropertyConfig.INDEXING_TYPE_PREFIXES)
-    private final String mQuery;
+    private final @Nullable String mQuery;
 
-    @Nullable
     @Document.StringProperty(joinableValueType =
             StringPropertyConfig.JOINABLE_VALUE_TYPE_QUALIFIED_ID)
-    private final String mReferencedQualifiedId;
+    private final @Nullable String mReferencedQualifiedId;
 
     @Document.LongProperty
     private final int mResultRankInBlock;
@@ -85,8 +86,7 @@ public class ClickAction extends TakenAction {
      * Returns the user-entered search input (without any operators or rewriting) that yielded the
      * {@link androidx.appsearch.app.SearchResult} on which the user clicked.
      */
-    @Nullable
-    public String getQuery() {
+    public @Nullable String getQuery() {
         return mQuery;
     }
 
@@ -98,8 +98,7 @@ public class ClickAction extends TakenAction {
      * {@link androidx.appsearch.util.DocumentIdUtil#createQualifiedId(String,String,String,String)}
      * for more details.
      */
-    @Nullable
-    public String getReferencedQualifiedId() {
+    public @Nullable String getReferencedQualifiedId() {
         return mReferencedQualifiedId;
     }
 
@@ -148,7 +147,7 @@ public class ClickAction extends TakenAction {
         return mTimeStayOnResultMillis;
     }
 
-    // TODO(b/314026345): redesign builder to enable inheritance for ClickAction.
+    // TODO(b/372929164): redesign builder for inheritance to fix the base setter return type issue.
     /** Builder for {@link ClickAction}. */
     @Document.BuilderProducer
     public static final class Builder extends BuilderImpl<Builder> {
@@ -217,8 +216,7 @@ public class ClickAction extends TakenAction {
          * the {@link androidx.appsearch.app.SearchResult} on which the user clicked.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setQuery(@Nullable String query) {
+        public @NonNull Builder setQuery(@Nullable String query) {
             mQuery = query;
             return this;
         }
@@ -232,8 +230,7 @@ public class ClickAction extends TakenAction {
          * String,String,String,String)} for more details.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setReferencedQualifiedId(@Nullable String referencedQualifiedId) {
+        public @NonNull Builder setReferencedQualifiedId(@Nullable String referencedQualifiedId) {
             mReferencedQualifiedId = referencedQualifiedId;
             return this;
         }
@@ -245,8 +242,7 @@ public class ClickAction extends TakenAction {
          * @see ClickAction#getResultRankInBlock
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setResultRankInBlock(int resultRankInBlock) {
+        public @NonNull Builder setResultRankInBlock(int resultRankInBlock) {
             mResultRankInBlock = resultRankInBlock;
             return this;
         }
@@ -257,8 +253,7 @@ public class ClickAction extends TakenAction {
          * @see ClickAction#getResultRankGlobal
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setResultRankGlobal(int resultRankGlobal) {
+        public @NonNull Builder setResultRankGlobal(int resultRankGlobal) {
             mResultRankGlobal = resultRankGlobal;
             return this;
         }
@@ -268,16 +263,14 @@ public class ClickAction extends TakenAction {
          * {@link androidx.appsearch.app.SearchResult} document after clicking it.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setTimeStayOnResultMillis(long timeStayOnResultMillis) {
+        public @NonNull Builder setTimeStayOnResultMillis(long timeStayOnResultMillis) {
             mTimeStayOnResultMillis = timeStayOnResultMillis;
             return this;
         }
 
         /** Builds a {@link ClickAction}. */
         @Override
-        @NonNull
-        public ClickAction build() {
+        public @NonNull ClickAction build() {
             return new ClickAction(mNamespace, mId, mDocumentTtlMillis, mActionTimestampMillis,
                     mActionType, mQuery, mReferencedQualifiedId, mResultRankInBlock,
                     mResultRankGlobal, mTimeStayOnResultMillis);

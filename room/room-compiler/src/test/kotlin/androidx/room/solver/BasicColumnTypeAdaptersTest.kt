@@ -23,12 +23,13 @@ import androidx.room.compiler.codegen.XFunSpec
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.XTypeSpec
+import androidx.room.compiler.codegen.compat.XConverters.toString
 import androidx.room.compiler.processing.XType
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.runProcessorTest
 import androidx.room.compiler.processing.writeTo
-import androidx.room.ext.AndroidTypeNames
 import androidx.room.ext.CommonTypeNames
+import androidx.room.ext.SQLiteDriverTypeNames
 import androidx.room.processor.Context
 import androidx.room.vo.BuiltInConverterFlags
 import org.hamcrest.CoreMatchers.`is`
@@ -42,50 +43,54 @@ import testCodeGenScope
 class BasicColumnTypeAdaptersTest(
     val input: XTypeName,
     val bindCode: String,
-    val cursorCode: String
+    val readCode: String
 ) {
     companion object {
 
-        @Parameterized.Parameters(name = "kind:{0},bind:_{1},cursor:_{2}")
+        @Parameterized.Parameters(name = "kind:{0},bind:_{1},read:_{2}")
         @JvmStatic
         fun params(): List<Array<Any>> {
             return listOf(
-                arrayOf(XTypeName.PRIMITIVE_INT, "st.bindLong(6, inp);", "out = crs.getInt(9);"),
+                arrayOf(
+                    XTypeName.PRIMITIVE_INT,
+                    "st.bindLong(6, inp);",
+                    "out = (int) (readSt.getLong(9));"
+                ),
                 arrayOf(
                     XTypeName.PRIMITIVE_BYTE,
                     "st.bindLong(6, inp);",
-                    "out = (byte) (crs.getShort(9));"
+                    "out = (byte) (readSt.getLong(9));"
                 ),
                 arrayOf(
                     XTypeName.PRIMITIVE_SHORT,
                     "st.bindLong(6, inp);",
-                    "out = crs.getShort(9);"
+                    "out = (short) (readSt.getLong(9));"
                 ),
-                arrayOf(XTypeName.PRIMITIVE_LONG, "st.bindLong(6, inp);", "out = crs.getLong(9);"),
+                arrayOf(
+                    XTypeName.PRIMITIVE_LONG,
+                    "st.bindLong(6, inp);",
+                    "out = readSt.getLong(9);"
+                ),
                 arrayOf(
                     XTypeName.PRIMITIVE_CHAR,
                     "st.bindLong(6, inp);",
-                    "out = (char) (crs.getInt(9));"
+                    "out = (char) (readSt.getLong(9));"
                 ),
                 arrayOf(
                     XTypeName.PRIMITIVE_FLOAT,
                     "st.bindDouble(6, inp);",
-                    "out = crs.getFloat(9);"
+                    "out = (float) (readSt.getDouble(9));"
                 ),
                 arrayOf(
                     XTypeName.PRIMITIVE_DOUBLE,
                     "st.bindDouble(6, inp);",
-                    "out = crs.getDouble(9);"
+                    "out = readSt.getDouble(9);"
                 ),
-                arrayOf(
-                    CommonTypeNames.STRING,
-                    "st.bindString(6, inp);",
-                    "out = crs.getString(9);"
-                ),
+                arrayOf(CommonTypeNames.STRING, "st.bindText(6, inp);", "out = readSt.getText(9);"),
                 arrayOf(
                     XTypeName.getArrayName(XTypeName.PRIMITIVE_BYTE),
                     "st.bindBlob(6, inp);",
-                    "out = crs.getBlob(9);"
+                    "out = readSt.getBlob(9);"
                 )
             )
         }
@@ -120,7 +125,7 @@ class BasicColumnTypeAdaptersTest(
                         .trimIndent()
                 }
             adapter.bindToStmt("st", "6", "inp", scope)
-            assertThat(scope.generate().toString().trim(), `is`(expected))
+            assertThat(scope.generate().toString(CodeLanguage.JAVA).trim(), `is`(expected))
             generateCode(invocation, scope, type)
         }
     }
@@ -154,7 +159,7 @@ class BasicColumnTypeAdaptersTest(
                 """
                         .trimIndent()
                 }
-            assertThat(scope.generate().toString().trim(), `is`(expected))
+            assertThat(scope.generate().toString(CodeLanguage.JAVA).trim(), `is`(expected))
             generateCode(invocation, scope, boxedType)
         }
     }
@@ -176,7 +181,7 @@ class BasicColumnTypeAdaptersTest(
                     )!!
             adapter.bindToStmt("st", "6", "inp", scope)
             assertThat(
-                scope.generate().toString().trim(),
+                scope.generate().toString(CodeLanguage.JAVA).trim(),
                 `is`(
                     """
                     if (inp == null) {
@@ -197,16 +202,13 @@ class BasicColumnTypeAdaptersTest(
             // guard against multi round
             return
         }
-        XTypeSpec.classBuilder(
-                language = CodeLanguage.JAVA,
-                className = XClassName.get("foo.bar", "OuterClass")
-            )
+        val className = XClassName.get("foo.bar", "OuterClass")
+        XTypeSpec.classBuilder(className)
             .apply {
                 addProperty(
                     XPropertySpec.builder(
-                            language = CodeLanguage.JAVA,
                             name = "st",
-                            typeName = XClassName.get("android.database.sqlite", "SQLiteStatement"),
+                            typeName = SQLiteDriverTypeNames.STATEMENT,
                             visibility = VisibilityModifier.PUBLIC,
                             isMutable = true
                         )
@@ -214,9 +216,8 @@ class BasicColumnTypeAdaptersTest(
                 )
                 addProperty(
                     XPropertySpec.builder(
-                            language = CodeLanguage.JAVA,
-                            name = "crs",
-                            typeName = AndroidTypeNames.CURSOR,
+                            name = "readSt",
+                            typeName = SQLiteDriverTypeNames.STATEMENT,
                             visibility = VisibilityModifier.PUBLIC,
                             isMutable = true
                         )
@@ -224,7 +225,6 @@ class BasicColumnTypeAdaptersTest(
                 )
                 addProperty(
                     XPropertySpec.builder(
-                            language = CodeLanguage.JAVA,
                             name = "out",
                             typeName = type.asTypeName(),
                             visibility = VisibilityModifier.PUBLIC,
@@ -234,7 +234,6 @@ class BasicColumnTypeAdaptersTest(
                 )
                 addProperty(
                     XPropertySpec.builder(
-                            language = CodeLanguage.JAVA,
                             name = "inp",
                             typeName = type.asTypeName(),
                             visibility = VisibilityModifier.PUBLIC,
@@ -243,13 +242,13 @@ class BasicColumnTypeAdaptersTest(
                         .build()
                 )
                 addFunction(
-                    XFunSpec.builder(CodeLanguage.JAVA, "foo", VisibilityModifier.PUBLIC)
+                    XFunSpec.builder("foo", VisibilityModifier.PUBLIC)
                         .addCode(scope.generate())
                         .build()
                 )
             }
             .build()
-            .writeTo(invocation.processingEnv.filer)
+            .writeTo(CodeLanguage.JAVA, className.packageName, invocation.processingEnv.filer)
     }
 
     @Test
@@ -269,19 +268,19 @@ class BasicColumnTypeAdaptersTest(
                     )!!
             val expected =
                 if (invocation.isKsp || input.isPrimitive) {
-                    cursorCode
+                    readCode
                 } else {
                     """
-                if (crs.isNull(9)) {
+                if (readSt.isNull(9)) {
                   out = null;
                 } else {
-                  $cursorCode
+                  $readCode
                 }
                 """
                         .trimIndent()
                 }
-            adapter.readFromCursor("out", "crs", "9", scope)
-            assertThat(scope.generate().toString().trim(), `is`(expected))
+            adapter.readFromStatement("out", "readSt", "9", scope)
+            assertThat(scope.generate().toString(CodeLanguage.JAVA).trim(), `is`(expected))
             generateCode(invocation, scope, type)
         }
     }
@@ -301,21 +300,21 @@ class BasicColumnTypeAdaptersTest(
                         affinity = null,
                         skipDefaultConverter = false
                     )!!
-            adapter.readFromCursor("out", "crs", "9", scope)
+            adapter.readFromStatement("out", "readSt", "9", scope)
             val expected =
                 if (invocation.isKsp) {
-                    cursorCode
+                    readCode
                 } else {
                     """
-                if (crs.isNull(9)) {
+                if (readSt.isNull(9)) {
                   out = null;
                 } else {
-                  $cursorCode
+                  $readCode
                 }
                 """
                         .trimIndent()
                 }
-            assertThat(scope.generate().toString().trim(), `is`(expected))
+            assertThat(scope.generate().toString(CodeLanguage.JAVA).trim(), `is`(expected))
             generateCode(invocation, scope, boxedType)
         }
     }
@@ -331,15 +330,15 @@ class BasicColumnTypeAdaptersTest(
                         BuiltInConverterFlags.DEFAULT
                     )
                     .findColumnTypeAdapter(nullableType, null, false)!!
-            adapter.readFromCursor("out", "crs", "9", scope)
+            adapter.readFromStatement("out", "readSt", "9", scope)
             assertThat(
-                scope.generate().toString().trim(),
+                scope.generate().toString(CodeLanguage.JAVA).trim(),
                 `is`(
                     """
-                    if (crs.isNull(9)) {
+                    if (readSt.isNull(9)) {
                       out = null;
                     } else {
-                      $cursorCode
+                      $readCode
                     }
                     """
                         .trimIndent()

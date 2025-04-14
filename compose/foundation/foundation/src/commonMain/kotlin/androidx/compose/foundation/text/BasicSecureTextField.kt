@@ -19,7 +19,6 @@ package androidx.compose.foundation.text
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldBuffer
@@ -39,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -47,6 +47,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -163,13 +165,21 @@ fun BasicSecureTextField(
         }
 
     val secureTextFieldModifier =
-        modifier.then(
-            if (revealLastTypedEnabled) {
-                secureTextFieldController.focusChangeModifier
-            } else {
-                Modifier
+        modifier
+            .semantics { contentType = ContentType.Password }
+            .onPreviewKeyEvent { keyEvent ->
+                // BasicTextField uses this static mapping
+                val command = platformDefaultKeyMapping.map(keyEvent)
+                // do not propagate copy and cut operations
+                command == KeyCommand.COPY || command == KeyCommand.CUT
             }
-        )
+            .then(
+                if (revealLastTypedEnabled) {
+                    secureTextFieldController.focusChangeModifier
+                } else {
+                    Modifier
+                }
+            )
 
     DisableCutCopy {
         BasicTextField(
@@ -257,14 +267,11 @@ internal class PasswordInputTransformation(val scheduleHide: () -> Unit) : Input
         private set
 
     override fun TextFieldBuffer.transformInput() {
-        // We only care about a single character insertion changes
-        val singleCharacterInsertion =
-            changes.changeCount == 1 &&
-                changes.getRange(0).length == 1 &&
-                changes.getOriginalRange(0).length == 0
+        // We only care about changes that add a single character
+        val singleCharacterChange = changes.changeCount == 1 && changes.getRange(0).length == 1
 
         // if there is an expanded selection, don't reveal anything
-        if (!singleCharacterInsertion || hasSelection) {
+        if (!singleCharacterChange || hasSelection) {
             revealCodepointIndex = -1
             return
         }
@@ -303,31 +310,21 @@ private fun DisableCutCopy(content: @Composable () -> Unit) {
                     onCopyRequested: (() -> Unit)?,
                     onPasteRequested: (() -> Unit)?,
                     onCutRequested: (() -> Unit)?,
-                    onSelectAllRequested: (() -> Unit)?
+                    onSelectAllRequested: (() -> Unit)?,
+                    onAutofillRequested: (() -> Unit)?
                 ) {
                     currentToolbar.showMenu(
                         rect = rect,
                         onPasteRequested = onPasteRequested,
                         onSelectAllRequested = onSelectAllRequested,
                         onCopyRequested = null,
-                        onCutRequested = null
+                        onCutRequested = null,
+                        onAutofillRequested = onAutofillRequested
                     )
                 }
             }
         }
-    CompositionLocalProvider(LocalTextToolbar provides copyDisabledToolbar) {
-        Box(
-            modifier =
-                Modifier.onPreviewKeyEvent { keyEvent ->
-                    // BasicTextField uses this static mapping
-                    val command = platformDefaultKeyMapping.map(keyEvent)
-                    // do not propagate copy and cut operations
-                    command == KeyCommand.COPY || command == KeyCommand.CUT
-                }
-        ) {
-            content()
-        }
-    }
+    CompositionLocalProvider(LocalTextToolbar provides copyDisabledToolbar, content)
 }
 
 @Deprecated(

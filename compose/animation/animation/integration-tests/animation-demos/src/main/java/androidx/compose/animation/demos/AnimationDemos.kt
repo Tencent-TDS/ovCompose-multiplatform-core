@@ -38,7 +38,9 @@ import androidx.compose.animation.demos.layoutanimation.ScaleEnterExitDemo
 import androidx.compose.animation.demos.layoutanimation.ScreenTransitionDemo
 import androidx.compose.animation.demos.layoutanimation.ShrineCartDemo
 import androidx.compose.animation.demos.lookahead.AnimateBoundsModifierDemo
+import androidx.compose.animation.demos.lookahead.AnimateBoundsOnFloatingToolbarDemo
 import androidx.compose.animation.demos.lookahead.CraneDemo
+import androidx.compose.animation.demos.lookahead.LookaheadInScrollingColumn
 import androidx.compose.animation.demos.lookahead.LookaheadLayoutWithAlignmentLinesDemo
 import androidx.compose.animation.demos.lookahead.LookaheadSamplesDemo
 import androidx.compose.animation.demos.lookahead.LookaheadWithAnimatedContentSize
@@ -52,6 +54,7 @@ import androidx.compose.animation.demos.lookahead.LookaheadWithScaffold
 import androidx.compose.animation.demos.lookahead.LookaheadWithSubcompose
 import androidx.compose.animation.demos.lookahead.LookaheadWithTabRowDemo
 import androidx.compose.animation.demos.lookahead.ScreenSizeChangeDemo
+import androidx.compose.animation.demos.sharedelement.SharedElementDemos
 import androidx.compose.animation.demos.singlevalue.SingleValueAnimationDemo
 import androidx.compose.animation.demos.statetransition.CrossfadeDemo
 import androidx.compose.animation.demos.statetransition.DoubleTapToLikeDemo
@@ -82,6 +85,7 @@ val AnimationDemos =
     DemoCategory(
         "Animation",
         listOf(
+            ComposableDemo("Shared Element Demos") { SharedElementDemos() },
             DemoCategory(
                 "State Transition Demos",
                 listOf(
@@ -144,6 +148,10 @@ val AnimationDemos =
                     },
                     ComposableDemo("Lookahead With Tab Row") { LookaheadWithTabRowDemo() },
                     ComposableDemo("Lookahead With Scaffold") { LookaheadWithScaffold() },
+                    ComposableDemo("Lookahead With Scroll") { LookaheadInScrollingColumn() },
+                    ComposableDemo("Floating Toolbar w/ AnimateBounds") {
+                        AnimateBoundsOnFloatingToolbarDemo()
+                    },
                 )
             ),
             DemoCategory(

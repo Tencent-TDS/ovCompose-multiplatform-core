@@ -18,8 +18,13 @@ package androidx.compose.material3
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.tokens.ElevatedButtonTokens
 import androidx.compose.material3.tokens.FilledButtonTokens
 import androidx.compose.material3.tokens.OutlinedButtonTokens
@@ -31,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.testutils.assertIsEqualTo
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -284,7 +290,7 @@ class ToggleButtonTest {
                 )
                 .isEqualTo(
                     ToggleButtonColors(
-                        containerColor = OutlinedButtonTokens.UnselectedPressedOutlineColor.value,
+                        containerColor = Color.Transparent,
                         contentColor = OutlinedButtonTokens.UnselectedLabelTextColor.value,
                         disabledContainerColor =
                             OutlinedButtonTokens.DisabledOutlineColor.value.copy(
@@ -299,5 +305,186 @@ class ToggleButtonTest {
                     )
                 )
         }
+    }
+
+    @Test
+    fun buttonShapes_AllRounded_hasRoundedShapesIsTrue() {
+        assertThat(
+                ToggleButtonShapes(
+                        shape = RoundedCornerShape(10.dp),
+                        pressedShape = RoundedCornerShape(10.dp),
+                        checkedShape = RoundedCornerShape(4.dp),
+                    )
+                    .hasRoundedCornerShapes
+            )
+            .isTrue()
+    }
+
+    @Test
+    fun buttonShapes_mixedShapes_hasRoundedShapesIsFalse() {
+        assertThat(
+                ToggleButtonShapes(
+                        shape = RectangleShape,
+                        pressedShape = RoundedCornerShape(10.dp),
+                        checkedShape = RoundedCornerShape(4.dp),
+                    )
+                    .hasRoundedCornerShapes
+            )
+            .isFalse()
+    }
+
+    @Test
+    fun toggleButton_XSmall_positioning() {
+        val size = ButtonDefaults.ExtraSmallContainerHeight
+        rule.setMaterialContent(lightColorScheme()) {
+            Box {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = {},
+                    modifier = Modifier.heightIn(size).testTag(ToggleButtonTag),
+                    shapes = ToggleButtonDefaults.shapesFor(size),
+                    contentPadding = ButtonDefaults.contentPaddingFor(size)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Localized description",
+                        modifier =
+                            Modifier.size(ButtonDefaults.iconSizeFor(size))
+                                .testTag(IconTag)
+                                .semantics(mergeDescendants = true) {}
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(size)))
+                    Text(
+                        "Label",
+                        modifier = Modifier.testTag(TextTag).semantics(mergeDescendants = true) {}
+                    )
+                }
+            }
+        }
+
+        val toggleButtonBounds = rule.onNodeWithTag(ToggleButtonTag).getUnclippedBoundsInRoot()
+        val iconBounds = rule.onNodeWithTag(IconTag).getUnclippedBoundsInRoot()
+        val textBounds = rule.onNodeWithTag(TextTag).getUnclippedBoundsInRoot()
+
+        (iconBounds.left - toggleButtonBounds.left).assertIsEqualTo(12.dp)
+        (textBounds.left - iconBounds.right).assertIsEqualTo(4.dp)
+        (toggleButtonBounds.right - textBounds.right).assertIsEqualTo(12.dp)
+    }
+
+    @Test
+    fun toggleButton_Medium_positioning() {
+        val size = ButtonDefaults.MediumContainerHeight
+        rule.setMaterialContent(lightColorScheme()) {
+            Box {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = {},
+                    modifier = Modifier.heightIn(size).testTag(ToggleButtonTag),
+                    shapes = ToggleButtonDefaults.shapesFor(size),
+                    contentPadding = ButtonDefaults.contentPaddingFor(size)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Localized description",
+                        modifier =
+                            Modifier.size(ButtonDefaults.iconSizeFor(size))
+                                .testTag(IconTag)
+                                .semantics(mergeDescendants = true) {}
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(size)))
+                    Text(
+                        "Label",
+                        style = ButtonDefaults.textStyleFor(size),
+                        modifier = Modifier.testTag(TextTag).semantics(mergeDescendants = true) {}
+                    )
+                }
+            }
+        }
+
+        val toggleButtonBounds = rule.onNodeWithTag(ToggleButtonTag).getUnclippedBoundsInRoot()
+        val iconBounds = rule.onNodeWithTag(IconTag).getUnclippedBoundsInRoot()
+        val textBounds = rule.onNodeWithTag(TextTag).getUnclippedBoundsInRoot()
+
+        (iconBounds.left - toggleButtonBounds.left).assertIsEqualTo(24.dp)
+        (textBounds.left - iconBounds.right).assertIsEqualTo(8.dp)
+        (toggleButtonBounds.right - textBounds.right).assertIsEqualTo(24.dp)
+    }
+
+    @Test
+    fun toggleButton_Large_positioning() {
+        val size = ButtonDefaults.LargeContainerHeight
+        rule.setMaterialContent(lightColorScheme()) {
+            Box {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = {},
+                    modifier = Modifier.heightIn(size).testTag(ToggleButtonTag),
+                    shapes = ToggleButtonDefaults.shapesFor(size),
+                    contentPadding = ButtonDefaults.contentPaddingFor(size)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Localized description",
+                        modifier =
+                            Modifier.size(ButtonDefaults.iconSizeFor(size))
+                                .testTag(IconTag)
+                                .semantics(mergeDescendants = true) {}
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(size)))
+                    Text(
+                        "Label",
+                        style = ButtonDefaults.textStyleFor(size),
+                        modifier = Modifier.testTag(TextTag).semantics(mergeDescendants = true) {}
+                    )
+                }
+            }
+        }
+
+        val toggleButtonBounds = rule.onNodeWithTag(ToggleButtonTag).getUnclippedBoundsInRoot()
+        val iconBounds = rule.onNodeWithTag(IconTag).getUnclippedBoundsInRoot()
+        val textBounds = rule.onNodeWithTag(TextTag).getUnclippedBoundsInRoot()
+
+        (iconBounds.left - toggleButtonBounds.left).assertIsEqualTo(48.dp)
+        (textBounds.left - iconBounds.right).assertIsEqualTo(12.dp)
+        (toggleButtonBounds.right - textBounds.right).assertIsEqualTo(48.dp)
+    }
+
+    @Test
+    fun toggleButton_XLarge_positioning() {
+        val size = ButtonDefaults.ExtraLargeContainerHeight
+        rule.setMaterialContent(lightColorScheme()) {
+            Box {
+                ToggleButton(
+                    checked = false,
+                    onCheckedChange = {},
+                    modifier = Modifier.heightIn(size).testTag(ToggleButtonTag),
+                    shapes = ToggleButtonDefaults.shapesFor(size),
+                    contentPadding = ButtonDefaults.contentPaddingFor(size)
+                ) {
+                    Icon(
+                        Icons.Outlined.Edit,
+                        contentDescription = "Localized description",
+                        modifier =
+                            Modifier.size(ButtonDefaults.iconSizeFor(size))
+                                .testTag(IconTag)
+                                .semantics(mergeDescendants = true) {}
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.iconSpacingFor(size)))
+                    Text(
+                        "Label",
+                        style = ButtonDefaults.textStyleFor(size),
+                        modifier = Modifier.testTag(TextTag).semantics(mergeDescendants = true) {}
+                    )
+                }
+            }
+        }
+
+        val toggleButtonBounds = rule.onNodeWithTag(ToggleButtonTag).getUnclippedBoundsInRoot()
+        val iconBounds = rule.onNodeWithTag(IconTag).getUnclippedBoundsInRoot()
+        val textBounds = rule.onNodeWithTag(TextTag).getUnclippedBoundsInRoot()
+
+        (iconBounds.left - toggleButtonBounds.left).assertIsEqualTo(64.dp)
+        (textBounds.left - iconBounds.right).assertIsEqualTo(16.dp)
+        (toggleButtonBounds.right - textBounds.right).assertIsEqualTo(64.dp)
     }
 }

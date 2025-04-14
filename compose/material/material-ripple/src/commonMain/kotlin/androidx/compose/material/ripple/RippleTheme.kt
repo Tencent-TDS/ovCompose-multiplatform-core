@@ -67,7 +67,7 @@ public interface RippleTheme {
                 "is not used by the material3 library. To remove confusion and link the " +
                 "defaults more strongly to the design system library, these default values have " +
                 "been moved to the material and material3 libraries. For material, use " +
-                "MaterialRippleThemeDefaults#rippleColor. For material3, use content color " +
+                "RippleDefaults#rippleColor. For material3, use content color " +
                 "directly.",
             level = DeprecationLevel.WARNING
         )
@@ -97,8 +97,8 @@ public interface RippleTheme {
                 "is not used by the material3 library. To remove confusion and link the " +
                 "defaults more strongly to the design system library, these default values have " +
                 "been moved to the material and material3 libraries. For material, use " +
-                "MaterialRippleThemeDefaults#rippleAlpha. For material3, use " +
-                "MaterialRippleThemeDefaults#RippleAlpha.",
+                "RippleDefaults#rippleAlpha. For material3, use " +
+                "RippleDefaults#RippleAlpha.",
             level = DeprecationLevel.WARNING
         )
         public fun defaultRippleAlpha(contentColor: Color, lightTheme: Boolean): RippleAlpha {

@@ -22,9 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
- * the provided three panes in a canonical [supporting pane layout](
- * https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
+ * A three pane layout that follows the Material guidelines, displaying the provided panes in a
+ * canonical
+ * [supporting pane layout](https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
  *
  * This overload takes a [ThreePaneScaffoldValue] describing the adapted value of each pane within
  * the scaffold.
@@ -33,25 +33,43 @@ import androidx.compose.ui.Modifier
  * @param value The current adapted value of the scaffold, which indicates how each pane of the
  *   scaffold is adapted.
  * @param mainPane the main pane of the scaffold, which is supposed to hold the major content of an
- *   app, for example, the editing screen of a doc app. See [SupportingPaneScaffoldRole.Main].
+ *   app, for example, the editing screen of a doc app. See [SupportingPaneScaffoldRole.Main]. Note
+ *   that we suggest you to use [AnimatedPane] as the root layout of panes, which supports default
+ *   pane behaviors like enter/exit transitions.
  * @param supportingPane the supporting pane of the scaffold, which is supposed to hold the support
  *   content of an app, for example, the comment list of a doc app. See
- *   [SupportingPaneScaffoldRole.Supporting].
+ *   [SupportingPaneScaffoldRole.Supporting]. Note that we suggest you to use [AnimatedPane] as the
+ *   root layout of panes, which supports default pane behaviors like enter/exit transitions.
  * @param modifier [Modifier] of the scaffold layout.
  * @param extraPane the extra pane of the scaffold, which is supposed to hold any additional content
  *   besides the main and the supporting panes, for example, a styling panel in a doc app. See
- *   [SupportingPaneScaffoldRole.Extra].
+ *   [SupportingPaneScaffoldRole.Extra]. Note that we suggest you to use [AnimatedPane] as the root
+ *   layout of panes, which supports default pane behaviors like enter/exit transitions.
+ * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
+ *   pane expansion state, `null` by default.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
 fun SupportingPaneScaffold(
     directive: PaneScaffoldDirective,
     value: ThreePaneScaffoldValue,
-    mainPane: @Composable ThreePaneScaffoldScope.() -> Unit,
-    supportingPane: @Composable ThreePaneScaffoldScope.() -> Unit,
+    mainPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
+    supportingPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
     modifier: Modifier = Modifier,
-    extraPane: (@Composable ThreePaneScaffoldScope.() -> Unit)? = null,
+    extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
+    paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
+        null,
+    paneExpansionState: PaneExpansionState? = null,
 ) {
+    val expansionState =
+        paneExpansionState
+            ?: rememberDefaultPaneExpansionState(
+                keyProvider = { value },
+                mutable = paneExpansionDragHandle != null
+            )
     ThreePaneScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldDirective = directive,
@@ -59,14 +77,16 @@ fun SupportingPaneScaffold(
         paneOrder = SupportingPaneScaffoldDefaults.PaneOrder,
         secondaryPane = supportingPane,
         tertiaryPane = extraPane,
+        paneExpansionDragHandle = paneExpansionDragHandle,
+        paneExpansionState = expansionState,
         primaryPane = mainPane
     )
 }
 
 /**
- * An opinionated implementation of [ThreePaneScaffold] following Material guidelines that displays
- * the provided three panes in a canonical [supporting pane layout](
- * https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
+ * A three pane layout that follows the Material guidelines, displaying the provided panes in a
+ * canonical
+ * [supporting pane layout](https://m3.material.io/foundations/layout/canonical-layouts/supporting-pane).
  *
  * This overload takes a [ThreePaneScaffoldState] describing the current [ThreePaneScaffoldValue]
  * and any pane transitions or animations in progress.
@@ -75,25 +95,43 @@ fun SupportingPaneScaffold(
  * @param scaffoldState The current state of the scaffold, containing information about the adapted
  *   value of each pane of the scaffold and the transitions/animations in progress.
  * @param mainPane the main pane of the scaffold, which is supposed to hold the major content of an
- *   app, for example, the editing screen of a doc app. See [SupportingPaneScaffoldRole.Main].
+ *   app, for example, the editing screen of a doc app. See [SupportingPaneScaffoldRole.Main]. Note
+ *   that we suggest you to use [AnimatedPane] as the root layout of panes, which supports default
+ *   pane behaviors like enter/exit transitions.
  * @param supportingPane the supporting pane of the scaffold, which is supposed to hold the support
  *   content of an app, for example, the comment list of a doc app. See
- *   [SupportingPaneScaffoldRole.Supporting].
+ *   [SupportingPaneScaffoldRole.Supporting]. Note that we suggest you to use [AnimatedPane] as the
+ *   root layout of panes, which supports default pane behaviors like enter/exit transitions.
  * @param modifier [Modifier] of the scaffold layout.
  * @param extraPane the extra pane of the scaffold, which is supposed to hold any additional content
  *   besides the main and the supporting panes, for example, a styling panel in a doc app. See
- *   [SupportingPaneScaffoldRole.Extra].
+ *   [SupportingPaneScaffoldRole.Extra]. Note that we suggest you to use [AnimatedPane] as the root
+ *   layout of panes, which supports default pane behaviors like enter/exit transitions.
+ * @param paneExpansionDragHandle the pane expansion drag handle to allow users to drag to change
+ *   pane expansion state, `null` by default.
+ * @param paneExpansionState the state object of pane expansion; when no value is provided but
+ *   [paneExpansionDragHandle] is not `null`, a default implementation will be created for the drag
+ *   handle to use.
  */
 @ExperimentalMaterial3AdaptiveApi
 @Composable
 fun SupportingPaneScaffold(
     directive: PaneScaffoldDirective,
     scaffoldState: ThreePaneScaffoldState,
-    mainPane: @Composable ThreePaneScaffoldScope.() -> Unit,
-    supportingPane: @Composable ThreePaneScaffoldScope.() -> Unit,
+    mainPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
+    supportingPane: @Composable ThreePaneScaffoldPaneScope.() -> Unit,
     modifier: Modifier = Modifier,
-    extraPane: (@Composable ThreePaneScaffoldScope.() -> Unit)? = null,
+    extraPane: (@Composable ThreePaneScaffoldPaneScope.() -> Unit)? = null,
+    paneExpansionDragHandle: (@Composable ThreePaneScaffoldScope.(PaneExpansionState) -> Unit)? =
+        null,
+    paneExpansionState: PaneExpansionState? = null,
 ) {
+    val expansionState =
+        paneExpansionState
+            ?: rememberDefaultPaneExpansionState(
+                keyProvider = { scaffoldState.targetState },
+                mutable = paneExpansionDragHandle != null
+            )
     ThreePaneScaffold(
         modifier = modifier.fillMaxSize(),
         scaffoldDirective = directive,
@@ -101,6 +139,8 @@ fun SupportingPaneScaffold(
         paneOrder = SupportingPaneScaffoldDefaults.PaneOrder,
         secondaryPane = supportingPane,
         tertiaryPane = extraPane,
+        paneExpansionDragHandle = paneExpansionDragHandle,
+        paneExpansionState = expansionState,
         primaryPane = mainPane
     )
 }
@@ -117,7 +157,8 @@ object SupportingPaneScaffoldDefaults {
      */
     fun adaptStrategies(
         mainPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
-        supportingPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
+        supportingPaneAdaptStrategy: AdaptStrategy =
+            AdaptStrategy.Reflow(SupportingPaneScaffoldRole.Main),
         extraPaneAdaptStrategy: AdaptStrategy = AdaptStrategy.Hide,
     ): ThreePaneScaffoldAdaptStrategies =
         ThreePaneScaffoldAdaptStrategies(

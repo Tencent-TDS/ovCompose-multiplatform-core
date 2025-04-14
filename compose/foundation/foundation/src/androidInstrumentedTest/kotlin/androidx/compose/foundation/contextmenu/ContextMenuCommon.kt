@@ -161,6 +161,7 @@ internal object ContextMenuItemLabels {
     internal const val COPY = "Copy"
     internal const val PASTE = "Paste"
     internal const val SELECT_ALL = "Select all"
+    internal const val AUTOFILL = "Autofill"
 }
 
 internal fun ComposeTestRule.contextMenuItemInteraction(
@@ -183,6 +184,7 @@ internal fun ComposeTestRule.assertContextMenuItems(
     copyState: ContextMenuItemState,
     pasteState: ContextMenuItemState,
     selectAllState: ContextMenuItemState,
+    autofillState: ContextMenuItemState,
 ) {
     val contextMenuInteraction = onNode(isPopup())
     contextMenuInteraction.assertExists("Context Menu should exist.")
@@ -191,6 +193,7 @@ internal fun ComposeTestRule.assertContextMenuItems(
     assertContextMenuItem(label = ContextMenuItemLabels.COPY, state = copyState)
     assertContextMenuItem(label = ContextMenuItemLabels.PASTE, state = pasteState)
     assertContextMenuItem(label = ContextMenuItemLabels.SELECT_ALL, state = selectAllState)
+    assertContextMenuItem(label = ContextMenuItemLabels.AUTOFILL, state = autofillState)
 }
 
 private fun ComposeTestRule.assertContextMenuItem(label: String, state: ContextMenuItemState) {

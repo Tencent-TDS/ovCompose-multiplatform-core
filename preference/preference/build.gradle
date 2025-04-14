@@ -14,15 +14,16 @@
  * limitations under the License
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 dependencies {
+    api(libs.jspecify)
     api("androidx.annotation:annotation:1.8.1")
     api("androidx.appcompat:appcompat:1.1.0")
     // Use the latest version of core library for verifying insets visibility
@@ -37,21 +38,14 @@ dependencies {
     androidTestImplementation(libs.testCore)
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.testRules)
-    androidTestImplementation(libs.espressoCore, excludes.espresso)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has it"s own MockMaker
+    androidTestImplementation(libs.espressoCore)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(libs.kotlinStdlib)
     androidTestImplementation(libs.truth)
 }
 
 android {
-    sourceSets {
-        main.res.srcDirs = [
-                "res",
-                "res-public"
-        ]
-    }
-
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
     }
@@ -59,12 +53,12 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.preference"
+    namespace = "androidx.preference"
 }
 
 androidx {
     name = "Preference"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2015"
     description = "AndroidX Preference"
     legacyDisableKotlinStrictApiMode = true

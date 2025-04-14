@@ -22,14 +22,12 @@ import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.Dependency
-import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.SetProperty
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskProvider
-import org.gradle.kotlin.dsl.findByType
 import org.gradle.kotlin.dsl.setProperty
 
 /**
@@ -130,15 +128,8 @@ data class AndroidXDependency(
 }
 
 internal fun Project.createVerifyDependencyVersionsTask():
-    TaskProvider<VerifyDependencyVersionsTask>? {
-    /**
-     * Ignore -Pandroidx.useMaxDepVersions when verifying dependency versions because it is a
-     * hypothetical build which is only intended to check for forward compatibility.
-     */
-    if (project.usingMaxDepVersions()) {
-        return null
-    }
-
+    TaskProvider<VerifyDependencyVersionsTask> {
+    val usingMaxDepsVersions = project.usingMaxDepVersions()
     val taskProvider =
         tasks.register("verifyDependencyVersions", VerifyDependencyVersionsTask::class.java) { task
             ->
@@ -163,6 +154,14 @@ internal fun Project.createVerifyDependencyVersionsTask():
                     dependencies
                 }
             )
+            task.onlyIf {
+                /**
+                 * Ignore -Pandroidx.useMaxDepVersions when verifying dependency versions because it
+                 * is a hypothetical build which is only intended to check for forward
+                 * compatibility.
+                 */
+                !usingMaxDepsVersions.get()
+            }
             task.cacheEvenIfNoOutputs()
         }
 
@@ -182,6 +181,7 @@ private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boo
     if (name.startsWith("androidAndroidTest")) return false
     if (name.startsWith("androidCommonTest")) return false
     if (name.startsWith("androidInstrumentedTest")) return false
+    if (name.startsWith("androidReleaseUnitTest")) return false
     if (name.startsWith("androidUnitTest")) return false
     if (name.startsWith("debug")) return false
     if (name.startsWith("androidDebug")) return false
@@ -194,6 +194,10 @@ private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boo
     if (name == "errorprone") return false
     if (name.startsWith("lint")) return false
     if (name == "metalava") return false
+
+    // Don't check bundled inspector configurations.
+    if (name == "consumeInspector") return false
+    if (name == "importInspectorImplementation") return false
 
     // Don't check any configurations that directly bundle the dependencies with the output
     if (name == "bundleInside") return false
@@ -222,6 +226,7 @@ private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boo
     if (name.contains("TestCompile")) return false
     if (name.contains("commonTest", ignoreCase = true)) return false
     if (name.contains("nativeTest", ignoreCase = true)) return false
+    if (name.contains("TestCInterop", ignoreCase = true)) return false
     if (
         multiplatformExtension?.targets?.any {
             name.contains("${it.name}Test", ignoreCase = true)
@@ -229,6 +234,12 @@ private fun Project.shouldVerifyConfiguration(configuration: Configuration): Boo
     ) {
         return false
     }
+
+    // don't verify baseline profile generating project dependencies
+    if (name == "baselineProfile") return false
+
+    // don't verify samples
+    if (name == "samples") return false
 
     return true
 }
@@ -238,22 +249,11 @@ private fun shouldVerifyDependency(dependency: Dependency): Boolean {
     if (dependency.group == null) return false
     if (!dependency.group.toString().startsWith("androidx.")) return false
     if (dependency.name == "annotation-sampled") return false
-    if (dependency.version == AndroidXPlaygroundRootImplPlugin.SNAPSHOT_MARKER) {
+    if (dependency.version == SNAPSHOT_MARKER) {
         // This only happens in playground builds where this magic version gets replaced with
         // the version from the snapshotBuildId defined in playground-common/playground.properties.
         // It is best to leave their validation to the aosp build to ensure it is the right
         // version.
-        return false
-    }
-
-    // Should be guaranteed to be an androidx project at this point, but doesn't necessarily mean
-    // we have AndroidXExtension applied.
-    if (
-        dependency is ProjectDependency &&
-            dependency.dependencyProject.extensions
-                .findByType<AndroidXExtension>()
-                ?.shouldRelease() != true
-    ) {
         return false
     }
 

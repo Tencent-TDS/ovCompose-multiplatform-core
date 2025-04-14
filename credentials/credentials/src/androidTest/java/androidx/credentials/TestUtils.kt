@@ -34,9 +34,11 @@ import androidx.credentials.provider.CreateEntry
 import androidx.credentials.provider.CredentialEntry
 import androidx.credentials.provider.CustomCredentialEntry
 import androidx.credentials.provider.PasswordCredentialEntry
+import androidx.credentials.provider.ProviderClearCredentialStateRequest
 import androidx.credentials.provider.ProviderCreateCredentialRequest
 import androidx.credentials.provider.ProviderGetCredentialRequest
 import androidx.credentials.provider.PublicKeyCredentialEntry
+import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert
 
@@ -341,6 +343,14 @@ fun assertEquals(
     assertEquals(context, actual.callingRequest, expected.callingRequest)
 }
 
+fun assertEquals(
+    actual: ProviderClearCredentialStateRequest,
+    expected: ProviderClearCredentialStateRequest
+) {
+    if (actual === expected) return
+    assertThat(actual.callingAppInfo).isEqualTo(expected.callingAppInfo)
+}
+
 @RequiresApi(23)
 fun assertEquals(
     context: Context,
@@ -484,6 +494,28 @@ fun equals(
     equals(getCredentialResponse1.credential, getCredentialResponse2.credential)
 }
 
+@RequiresApi(34)
+fun assertEquals(
+    actual: android.credentials.CreateCredentialResponse,
+    expected: CreatePasswordResponse
+) {
+    assertEquals(actual.data, expected.data)
+}
+
+@RequiresApi(34)
+fun assertEquals(
+    actual: android.credentials.GetCredentialResponse,
+    expected: GetCredentialResponse
+) {
+    equals(actual.credential, expected.credential)
+}
+
+@RequiresApi(34)
+fun equals(actual: android.credentials.Credential, expected: Credential) {
+    assertThat(actual.type).isEqualTo(expected.type)
+    equals(actual.data, expected.data)
+}
+
 fun equals(credential1: Credential, credential2: Credential) {
     assertThat(credential1.type).isEqualTo(credential2.type)
     equals(credential1.data, credential2.data)
@@ -566,4 +598,23 @@ fun assertEquals(
         .isEqualTo(expected.getPublicKeyCredentialCount())
     assertThat(actual.isAutoSelectAllowed).isEqualTo(expected.isAutoSelectAllowed)
     assertThat(actual.biometricPromptData).isEqualTo(expected.biometricPromptData)
+}
+
+@Suppress("DEPRECATION")
+fun getTestCallingAppInfo(origin: String?): CallingAppInfo {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val packageName = context.packageName
+    if (Build.VERSION.SDK_INT >= 28) {
+        val packageInfo =
+            context.packageManager.getPackageInfo(
+                packageName,
+                PackageManager.GET_SIGNING_CERTIFICATES
+            )
+        Assert.assertNotNull(packageInfo.signingInfo)
+        return CallingAppInfo(packageName, packageInfo.signingInfo!!, origin)
+    } else {
+        val packageInfo =
+            context.packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
+        return CallingAppInfo(packageName, packageInfo.signatures!!.filterNotNull(), origin)
+    }
 }

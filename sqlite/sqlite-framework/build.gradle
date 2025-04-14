@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
+
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 import org.jetbrains.kotlin.konan.target.Family
 
@@ -53,7 +54,7 @@ configurations {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     ios() {
         // Link to sqlite3 available in iOS
         binaries.configureEach {
@@ -143,11 +144,11 @@ dependencies {
 
 androidx {
     name = "SQLite Framework Integration"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "The implementation of SQLite library using the framework code."
 }
 
 android {
-    namespace "androidx.sqlite.db.framework"
+    namespace = "androidx.sqlite.db.framework"
 }

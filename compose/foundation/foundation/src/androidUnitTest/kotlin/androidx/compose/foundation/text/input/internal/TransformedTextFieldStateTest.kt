@@ -17,11 +17,18 @@
 package androidx.compose.foundation.text.input.internal
 
 import androidx.compose.foundation.text.input.OutputTransformation
+import androidx.compose.foundation.text.input.PlacedAnnotation
+import androidx.compose.foundation.text.input.TextFieldCharSequence
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.delete
 import androidx.compose.foundation.text.input.insert
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -42,6 +49,23 @@ class TransformedTextFieldStateTest {
         assertThat(transformedState.untransformedText.toString()).isEqualTo("hello")
         assertThat(transformedState.outputText.toString()).isEqualTo("helloworld")
         assertThat(transformedState.visualText.toString()).isEqualTo("helloworld")
+    }
+
+    @Test
+    fun outputTransformationDoesNotRemoveComposingAnnotations() {
+        val state = TextFieldState()
+        val outputTransformation = OutputTransformation { append(" world") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+        val annotations: List<PlacedAnnotation> =
+            listOf(AnnotatedString.Range(SpanStyle(background = Color.Blue), 0, 5))
+        DefaultImeEditCommandScope(transformedState)
+            .setComposingText(text = "hello", newCursorPosition = 1, annotations = annotations)
+
+        assertThat(transformedState.visualText.composingAnnotations).isEqualTo(annotations)
     }
 
     @Test
@@ -212,5 +236,197 @@ class TransformedTextFieldStateTest {
         state.edit { selection = TextRange(0, 2) }
         assertThat(transformedState.outputText.selection).isEqualTo(TextRange(0, 4))
         // Rest of indices and wedge affinity are covered by mapToTransformed tests.
+    }
+
+    @Test
+    fun collectImeNotifications_usesVisualText() = runTest {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation {
+            insert(0, "a")
+            insert(length, "a")
+        }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        val collectedOldValues = mutableListOf<TextFieldCharSequence>()
+        val collectedNewValues = mutableListOf<TextFieldCharSequence>()
+        val collectedRestartImes = mutableListOf<Boolean>()
+        val job = launch {
+            transformedState.collectImeNotifications { oldValue, newValue, restartIme ->
+                collectedOldValues += oldValue
+                collectedNewValues += newValue
+                collectedRestartImes += restartIme
+            }
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        transformedState.editUntransformedTextAsUser(restartImeIfContentChanges = false) {
+            append(" world")
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        assertThat(collectedOldValues)
+            .containsExactly(TextFieldCharSequence("ahelloa", selection = TextRange(6)))
+        assertThat(collectedNewValues)
+            .containsExactly(TextFieldCharSequence("ahello worlda", selection = TextRange(12)))
+        assertThat(collectedRestartImes).containsExactly(false)
+        job.cancel()
+    }
+
+    @Test
+    fun collectImeNotifications_carriesRestartImeUnchanged() = runTest {
+        val state = TextFieldState("hello").apply { editAsUser(null) { setComposition(0, 5) } }
+        val outputTransformation = OutputTransformation {
+            insert(0, "a")
+            insert(length, "a")
+        }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        val collectedOldValues = mutableListOf<TextFieldCharSequence>()
+        val collectedNewValues = mutableListOf<TextFieldCharSequence>()
+        val collectedRestartImes = mutableListOf<Boolean>()
+        val job = launch {
+            transformedState.collectImeNotifications { oldValue, newValue, restartIme ->
+                collectedOldValues += oldValue
+                collectedNewValues += newValue
+                collectedRestartImes += restartIme
+            }
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        transformedState.editUntransformedTextAsUser(restartImeIfContentChanges = true) {
+            append(" world")
+        }
+
+        testScheduler.advanceUntilIdle()
+
+        assertThat(collectedOldValues)
+            .containsExactly(
+                TextFieldCharSequence(
+                    "ahelloa",
+                    selection = TextRange(6),
+                    composition = TextRange(0, 6)
+                )
+            )
+        assertThat(collectedNewValues)
+            .containsExactly(
+                TextFieldCharSequence(
+                    "ahello worlda",
+                    selection = TextRange(12),
+                    composition = TextRange(0, 6)
+                )
+            )
+        assertThat(collectedRestartImes).containsExactly(true)
+        job.cancel()
+    }
+
+    @Test
+    fun wedgeAffinity_resetsBackToStartAffinity_afterEditUntransformedTextAsUser() {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation { insert(0, "aa") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        transformedState.selectCharsIn(TextRange(0, 4))
+        transformedState.selectionWedgeAffinity =
+            SelectionWedgeAffinity(WedgeAffinity.Start, WedgeAffinity.End)
+
+        transformedState.editUntransformedTextAsUser { delete(0, 2) }
+
+        assertThat(transformedState.selectionWedgeAffinity)
+            .isEqualTo(SelectionWedgeAffinity(WedgeAffinity.Start))
+    }
+
+    @Test
+    fun wedgeAffinity_resetsBackToStartAffinity_afterReplaceAll() {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation { insert(0, "aa") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        transformedState.selectCharsIn(TextRange(0, 4))
+        transformedState.selectionWedgeAffinity =
+            SelectionWedgeAffinity(WedgeAffinity.Start, WedgeAffinity.End)
+
+        transformedState.replaceAll("world")
+
+        assertThat(transformedState.selectionWedgeAffinity)
+            .isEqualTo(SelectionWedgeAffinity(WedgeAffinity.Start))
+    }
+
+    @Test
+    fun wedgeAffinity_resetsBackToStartAffinity_afterDeleteSelectedText() {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation { insert(0, "aa") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        transformedState.selectCharsIn(TextRange(0, 4))
+        transformedState.selectionWedgeAffinity =
+            SelectionWedgeAffinity(WedgeAffinity.Start, WedgeAffinity.End)
+
+        transformedState.deleteSelectedText()
+
+        assertThat(transformedState.selectionWedgeAffinity)
+            .isEqualTo(SelectionWedgeAffinity(WedgeAffinity.Start))
+    }
+
+    @Test
+    fun wedgeAffinity_resetsBackToStartAffinity_afterReplaceText() {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation { insert(0, "aa") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        transformedState.selectCharsIn(TextRange(0, 4))
+        transformedState.selectionWedgeAffinity =
+            SelectionWedgeAffinity(WedgeAffinity.Start, WedgeAffinity.End)
+
+        transformedState.replaceText("world", TextRange(0, 3))
+
+        assertThat(transformedState.selectionWedgeAffinity)
+            .isEqualTo(SelectionWedgeAffinity(WedgeAffinity.Start))
+    }
+
+    @Test
+    fun wedgeAffinity_resetsBackToStartAffinity_afterReplaceSelectedText() {
+        val state = TextFieldState("hello")
+        val outputTransformation = OutputTransformation { insert(0, "aa") }
+        val transformedState =
+            TransformedTextFieldState(
+                textFieldState = state,
+                outputTransformation = outputTransformation
+            )
+
+        transformedState.selectCharsIn(TextRange(0, 4))
+        transformedState.selectionWedgeAffinity =
+            SelectionWedgeAffinity(WedgeAffinity.Start, WedgeAffinity.End)
+
+        transformedState.replaceSelectedText("world")
+
+        assertThat(transformedState.selectionWedgeAffinity)
+            .isEqualTo(SelectionWedgeAffinity(WedgeAffinity.Start))
     }
 }

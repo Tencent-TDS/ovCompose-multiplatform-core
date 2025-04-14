@@ -25,13 +25,21 @@ import androidx.appsearch.app.AppSearchResult;
 import androidx.appsearch.app.EnterpriseGlobalSearchSession;
 import androidx.appsearch.app.GenericDocument;
 import androidx.appsearch.app.GetByDocumentIdRequest;
+import androidx.appsearch.flags.Flags;
+import androidx.appsearch.testutil.AppSearchTestUtils;
+import androidx.appsearch.testutil.flags.RequiresFlagsEnabled;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 
 public abstract class EnterpriseGlobalSearchSessionCtsTestBase {
+    @Rule
+    public final RuleChain mRuleChain = AppSearchTestUtils.createCommonTestRules();
+
     protected EnterpriseGlobalSearchSession mEnterpriseGlobalSearchSession;
 
     protected abstract ListenableFuture<EnterpriseGlobalSearchSession>
@@ -42,6 +50,7 @@ public abstract class EnterpriseGlobalSearchSessionCtsTestBase {
         mEnterpriseGlobalSearchSession = createEnterpriseGlobalSearchSessionAsync().get();
     }
 
+    @RequiresFlagsEnabled(Flags.FLAG_ENABLE_ENTERPRISE_EMPTY_BATCH_RESULT_FIX)
     @Test
     public void testGetByDocumentId_returnsNotFoundResults() throws Exception {
         // The batch result may be empty instead of containing NOT_FOUND errors if the enterprise

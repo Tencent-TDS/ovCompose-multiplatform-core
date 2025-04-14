@@ -17,8 +17,10 @@
 package androidx.camera.viewfinder.compose
 
 import android.util.Size
-import androidx.camera.viewfinder.surface.ImplementationMode
-import androidx.camera.viewfinder.surface.TransformationInfo
+import androidx.camera.viewfinder.core.ImplementationMode
+import androidx.camera.viewfinder.core.TransformationInfo
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
@@ -34,15 +36,16 @@ data class ViewfinderTestParams(
             else -> throw IllegalArgumentException("Invalid source rotation: $sourceRotation")
         },
     val implementationMode: ImplementationMode = ImplementationMode.EXTERNAL,
+    val isMirroredHorizontally: Boolean = false,
+    val isMirroredVertically: Boolean = false,
     val transformationInfo: TransformationInfo =
         TransformationInfo(
             sourceRotation = sourceRotation,
-            cropRectLeft = 0,
-            cropRectTop = 0,
-            cropRectRight = sourceResolution.width,
-            cropRectBottom = sourceResolution.height,
-            shouldMirror = false
-        )
+            isSourceMirroredHorizontally = isMirroredHorizontally,
+            isSourceMirroredVertically = isMirroredVertically
+        ),
+    val alignment: Alignment = Alignment.Center,
+    val contentScale: ContentScale = ContentScale.Crop
 ) {
     companion object {
         val TEST_VIEWFINDER_SIZE = DpSize(360.dp, 640.dp)

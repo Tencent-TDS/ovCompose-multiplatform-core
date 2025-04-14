@@ -28,7 +28,7 @@ import androidx.compose.runtime.ReusableComposeNode
 import androidx.compose.runtime.ReusableContentHost
 import androidx.compose.runtime.Updater
 import androidx.compose.runtime.currentComposer
-import androidx.compose.runtime.currentCompositeKeyHash
+import androidx.compose.runtime.currentCompositeKeyHashCode
 import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.saveable.LocalSaveableStateRegistry
 import androidx.compose.runtime.saveable.SaveableStateRegistry
@@ -46,7 +46,6 @@ import androidx.compose.ui.node.UiApplier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.platform.LocalSavedStateRegistryOwner
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewRootForInspector
 import androidx.compose.ui.unit.Density
@@ -55,6 +54,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.compose.LocalSavedStateRegistryOwner
 
 /**
  * Composes an Android [View] obtained from [factory]. The [factory] block will be called exactly
@@ -198,7 +198,7 @@ fun <T : View> AndroidView(
     onRelease: (T) -> Unit = NoOpUpdate,
     update: (T) -> Unit = NoOpUpdate
 ) {
-    val compositeKeyHash = currentCompositeKeyHash
+    val compositeKeyHash = currentCompositeKeyHashCode.hashCode()
     val materializedModifier = currentComposer.materialize(modifier.focusInteropModifier())
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
@@ -251,7 +251,7 @@ fun <T : View> AndroidView(
 
 @Composable
 private fun <T : View> createAndroidViewNodeFactory(factory: (Context) -> T): () -> LayoutNode {
-    val compositeKeyHash = currentCompositeKeyHash
+    val compositeKeyHash = currentCompositeKeyHashCode.hashCode()
     val context = LocalContext.current
     val parentReference = rememberCompositionContext()
     val stateRegistry = LocalSaveableStateRegistry.current

@@ -153,7 +153,6 @@ private abstract class BaseAndroidExternalSurfaceState(val scope: CoroutineScope
     fun dispatchSurfaceDestroyed(surface: Surface) {
         onSurfaceDestroyed?.invoke(surface)
         job?.cancel()
-        job = null
     }
 }
 
@@ -435,13 +434,7 @@ fun AndroidEmbeddedExternalSurface(
     val state = rememberAndroidEmbeddedExternalSurfaceState()
 
     AndroidView(
-        factory = { context ->
-            TextureView(context).apply {
-                state.surfaceSize = surfaceSize
-                state.onInit()
-                surfaceTextureListener = state
-            }
-        },
+        factory = { TextureView(it) },
         modifier = modifier,
         onReset = {},
         update = { view ->
@@ -449,6 +442,10 @@ fun AndroidEmbeddedExternalSurface(
                 view.surfaceTexture?.setDefaultBufferSize(surfaceSize.width, surfaceSize.height)
             }
             state.surfaceSize = surfaceSize
+            if (view.surfaceTextureListener !== state) {
+                state.onInit()
+                view.surfaceTextureListener = state
+            }
             view.isOpaque = isOpaque
             // If transform is null, we'll call setTransform(null) which sets the
             // identity transform on the TextureView

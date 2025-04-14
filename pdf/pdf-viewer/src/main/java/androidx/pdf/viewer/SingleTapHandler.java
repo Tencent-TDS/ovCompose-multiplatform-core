@@ -24,7 +24,6 @@ import android.graphics.Rect;
 import android.view.MotionEvent;
 import android.view.View;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.find.FindInFileView;
 import androidx.pdf.models.GotoLinkDestination;
@@ -34,50 +33,58 @@ import androidx.pdf.widget.ZoomView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import org.jspecify.annotations.NonNull;
+
 @RestrictTo(RestrictTo.Scope.LIBRARY)
 public class SingleTapHandler {
     private final Context mContext;
     private final FloatingActionButton mFloatingActionButton;
+    private final PaginatedView mPaginatedView;
     private final FindInFileView mFindInFileView;
     private final ZoomView mZoomView;
     private final PdfSelectionModel mPdfSelectionModel;
     private final PaginationModel mPaginationModel;
     private final LayoutHandler mLayoutHandler;
+    private final ImmersiveModeRequester mImmersiveModeRequester;
     private boolean mIsAnnotationIntentResolvable;
 
     public SingleTapHandler(@NonNull Context context,
             @NonNull FloatingActionButton floatingActionButton,
+            @NonNull PaginatedView paginatedView,
             @NonNull FindInFileView findInFileView,
             @NonNull ZoomView zoomView,
             @NonNull PdfSelectionModel pdfSelectionModel,
             @NonNull PaginationModel paginationModel,
-            @NonNull LayoutHandler layoutHandler) {
+            @NonNull LayoutHandler layoutHandler,
+            @NonNull ImmersiveModeRequester immersiveModeRequester) {
         mContext = context;
         mFloatingActionButton = floatingActionButton;
+        mPaginatedView = paginatedView;
         mFindInFileView = findInFileView;
         mZoomView = zoomView;
         mPdfSelectionModel = pdfSelectionModel;
         mPaginationModel = paginationModel;
         mLayoutHandler = layoutHandler;
+        mImmersiveModeRequester = immersiveModeRequester;
     }
 
     public void setAnnotationIntentResolvable(boolean annotationIntentResolvable) {
         mIsAnnotationIntentResolvable = annotationIntentResolvable;
     }
 
-    /** */
     public void handleSingleTapConfirmedEventOnPage(@NonNull MotionEvent event,
             @NonNull PageMosaicView pageMosaicView) {
         if (mIsAnnotationIntentResolvable) {
             if (mFloatingActionButton.getVisibility() == View.GONE
                     && mFindInFileView.getVisibility() == GONE) {
-                mFloatingActionButton.setVisibility(View.VISIBLE);
+                mImmersiveModeRequester.requestImmersiveModeChange(false);
             } else {
-                mFloatingActionButton.setVisibility(View.GONE);
+                mImmersiveModeRequester.requestImmersiveModeChange(true);
             }
         }
 
         handleSelection();
+        mFindInFileView.handleSingleTapEvent();
 
         Point point = new Point((int) event.getX(), (int) event.getY());
         handleExternalLink(point, pageMosaicView);
@@ -89,8 +96,7 @@ public class SingleTapHandler {
     }
 
     private void handleSelection() {
-        boolean hadSelection =
-                mPdfSelectionModel != null && mPdfSelectionModel.selection().get() != null;
+        boolean hadSelection = mPdfSelectionModel.selection().get() != null;
         if (hadSelection) {
             mPdfSelectionModel.setSelection(null);
         }
@@ -123,7 +129,8 @@ public class SingleTapHandler {
         if (destination.getYCoordinate() != null) {
             int pageY = (int) destination.getYCoordinate().floatValue();
 
-            Rect pageRect = mPaginationModel.getPageLocation(destination.getPageNumber());
+            Rect pageRect = mPaginationModel.getPageLocation(destination.getPageNumber(),
+                    mPaginatedView.getViewArea());
             int x = pageRect.left + (pageRect.width() / 2);
             int y = mPaginationModel.getLookAtY(destination.getPageNumber(), pageY);
             // Zoom should match the width of the page.
@@ -155,7 +162,7 @@ public class SingleTapHandler {
             return;
         }
 
-        Rect pageRect = mPaginationModel.getPageLocation(pageNum);
+        Rect pageRect = mPaginationModel.getPageLocation(pageNum, mPaginatedView.getViewArea());
 
         int x = pageRect.left + (pageRect.width() / 2);
         int y = pageRect.top + (pageRect.height() / 2);

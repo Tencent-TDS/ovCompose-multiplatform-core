@@ -57,8 +57,7 @@ import kotlin.jvm.JvmInline
 import kotlin.math.max
 
 /**
- * <a href="https://m3.material.io/components/lists/overview" class="external"
- * target="_blank">Material Design list item.</a>
+ * [Material Design list item](https://m3.material.io/components/lists/overview)
  *
  * Lists are continuous, vertical indexes of text or images.
  *
@@ -414,6 +413,7 @@ private class ListItemMeasurePolicy : MultiContentMeasurePolicy {
                 height
             } ?: 0
         val overlineHeight = overlineMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
+        val headlineHeight = headlineMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
         val supportingHeight =
             supportingMeasurable.firstOrNull()?.intrinsicMeasure(remainingWidth) ?: 0
         val isSupportingMultiline = isSupportingMultilineHeuristic(supportingHeight)
@@ -427,7 +427,7 @@ private class ListItemMeasurePolicy : MultiContentMeasurePolicy {
         return calculateHeight(
             leadingHeight = leadingHeight,
             trailingHeight = trailingHeight,
-            headlineHeight = headlineMeasurable.firstOrNull()?.intrinsicMeasure(width) ?: 0,
+            headlineHeight = headlineHeight,
             overlineHeight = overlineHeight,
             supportingHeight = supportingHeight,
             listItemType = listItemType,
@@ -498,12 +498,6 @@ private fun MeasureScope.place(
                 y = if (isThreeLine) topPadding else CenterVertically.align(it.height, height)
             )
         }
-        trailingPlaceable?.let {
-            it.placeRelative(
-                x = width - endPadding - it.width,
-                y = if (isThreeLine) topPadding else CenterVertically.align(it.height, height)
-            )
-        }
 
         val mainContentX = startPadding + leadingPlaceable.widthOrZero
         val mainContentY =
@@ -525,6 +519,13 @@ private fun MeasureScope.place(
         currentY += headlinePlaceable.heightOrZero
 
         supportingPlaceable?.placeRelative(mainContentX, currentY)
+
+        trailingPlaceable?.let {
+            it.placeRelative(
+                x = width - endPadding - it.width,
+                y = if (isThreeLine) topPadding else CenterVertically.align(it.height, height)
+            )
+        }
     }
 }
 
@@ -732,7 +733,7 @@ private value class ListItemType private constructor(private val lines: Int) :
         internal operator fun invoke(
             hasOverline: Boolean,
             hasSupporting: Boolean,
-            isSupportingMultiline: Boolean
+            isSupportingMultiline: Boolean,
         ): ListItemType {
             return when {
                 (hasOverline && hasSupporting) || isSupportingMultiline -> ThreeLine

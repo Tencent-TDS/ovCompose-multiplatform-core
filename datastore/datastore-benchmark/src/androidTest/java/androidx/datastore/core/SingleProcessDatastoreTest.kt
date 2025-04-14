@@ -21,6 +21,7 @@ import androidx.benchmark.junit4.measureRepeated
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
+import java.io.File
 import kotlin.test.assertEquals
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,13 +61,13 @@ class SingleProcessDatastoreTest {
         testScope.runTest {
             benchmark.measureRepeated {
                 // create a new scope for each instance and cancel it to avoid hoarding memory
-                val newScope = runWithTimingDisabled { TestScope(UnconfinedTestDispatcher()) }
+                val newScope = runWithMeasurementDisabled { TestScope(UnconfinedTestDispatcher()) }
                 val testFile = tmp.newFile()
                 val store =
                     DataStoreFactory.create(serializer = TestingSerializer(), scope = newScope) {
                         testFile
                     }
-                runWithTimingDisabled {
+                runWithMeasurementDisabled {
                     newScope.cancel()
                     Assert.assertNotNull(store)
                 }
@@ -75,19 +76,21 @@ class SingleProcessDatastoreTest {
 
     @Test
     @MediumTest
-    fun read() {
-        lateinit var job: Job
+    fun coldRead() {
         lateinit var store: DataStore<Byte>
+        lateinit var dataFile: File
+        lateinit var job: Job
 
         suspend fun reinitDataStore() {
             job = Job()
+            dataFile = tmp.newFile()
+            dataFile.writeBytes(byteArrayOf(1))
             store =
                 DataStoreFactory.create(
-                        serializer = TestingSerializer(),
-                        scope = CoroutineScope(job),
-                        produceFile = { tmp.newFile() }
-                    )
-                    .also { it.updateData { 1 } }
+                    serializer = TestingSerializer(),
+                    scope = CoroutineScope(job),
+                    produceFile = { dataFile }
+                )
         }
 
         runBlocking { reinitDataStore() }
@@ -95,7 +98,7 @@ class SingleProcessDatastoreTest {
             runBlocking {
                 val result = store.data.first()
 
-                runWithTimingDisabled {
+                runWithMeasurementDisabled {
                     assertEquals(1, result)
                     job.cancelAndJoin()
                     reinitDataStore()
@@ -103,6 +106,28 @@ class SingleProcessDatastoreTest {
             }
         }
     }
+
+    @Test
+    @MediumTest
+    fun read() =
+        testScope.runTest {
+            val scope = this
+            val testFile = tmp.newFile()
+            val store =
+                DataStoreFactory.create(serializer = TestingSerializer(), scope = dataStoreScope) {
+                    testFile
+                }
+            store.updateData { 1 }
+            benchmark.measureRepeated {
+                runBlocking(scope.coroutineContext) {
+                    val data = store.data.first()
+                    runWithMeasurementDisabled {
+                        val exp: Byte = 1
+                        Assert.assertEquals(exp, data)
+                    }
+                }
+            }
+        }
 
     @Test
     @MediumTest
@@ -118,7 +143,7 @@ class SingleProcessDatastoreTest {
                 runBlocking(scope.coroutineContext) {
                     store.updateData { 1 }
                     val data = store.data.first()
-                    runWithTimingDisabled {
+                    runWithMeasurementDisabled {
                         val exp: Byte = 1
                         Assert.assertEquals(exp, data)
                     }
@@ -142,7 +167,7 @@ class SingleProcessDatastoreTest {
                     val newValue = (++counter).toByte()
                     store.updateData { newValue }
                     val data = store.data.first()
-                    runWithTimingDisabled {
+                    runWithMeasurementDisabled {
                         val exp: Byte = newValue
                         Assert.assertEquals(exp, data)
                     }

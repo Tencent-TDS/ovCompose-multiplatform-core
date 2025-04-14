@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -225,6 +226,36 @@ class LongFloatMapTest {
         assertEquals(3f, map5[3L])
         assertEquals(4f, map5[4L])
         assertEquals(5f, map5[5L])
+    }
+
+    @Test
+    fun buildLongFloatMapFunction() {
+        val contract: Boolean
+        val map = buildLongFloatMap {
+            contract = true
+            put(1L, 1f)
+            put(2L, 2f)
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals(1f, map[1L])
+        assertEquals(2f, map[2L])
+    }
+
+    @Test
+    fun buildLongObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildLongFloatMap(20) {
+                contract = true
+                put(1L, 1f)
+                put(2L, 2f)
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals(1f, map[1L])
+        assertEquals(2f, map[2L])
     }
 
     @Test
@@ -619,6 +650,7 @@ class LongFloatMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableLongFloatMap()
         map[1L] = 1f
@@ -631,6 +663,13 @@ class LongFloatMapTest {
 
         map2[1L] = 1f
         assertEquals(map, map2)
+
+        // Same number of items but different keys to test that looking up
+        // a non-existing entry doesn't throw during equals()
+        assertNotEquals(
+            mutableLongFloatMapOf(1L, 1f, 2L, 2f),
+            mutableLongFloatMapOf(1L, 1f, 3L, 2f)
+        )
     }
 
     @Test

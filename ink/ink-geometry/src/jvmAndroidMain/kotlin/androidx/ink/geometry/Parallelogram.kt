@@ -18,6 +18,7 @@ package androidx.ink.geometry
 
 import androidx.annotation.FloatRange
 import androidx.annotation.RestrictTo
+import androidx.ink.geometry.internal.ParallelogramNative
 import kotlin.math.abs
 
 /**
@@ -35,7 +36,8 @@ import kotlin.math.abs
  * c + 𝛼 * u + 𝛽 * v, where `c` is the center, and `𝛼` and `𝛽` are real numbers in the interval
  * [-1, 1].
  *
- * Note: Java code should use the factory function Parallelogram.from*.
+ * Note: Java code should use the factory static function `from*` in [MutableParallelogram] or
+ * [ImmutableParallelogram] to create [Parallelogram] instances.
  *
  * A [Parallelogram] may have a positive or negative height; a positive height indicates that the
  * angle from the first semi-axis to the second will also be positive.
@@ -80,41 +82,213 @@ import kotlin.math.abs
  * axes, and hence might have a non-zero [rotation]). A [Box], an axis-aligned rectangle; is a
  * [Parallelogram] with both [rotation] and [shearFactor] of zero.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
-public interface Parallelogram {
+public abstract class Parallelogram internal constructor() {
 
-    public val center: Point
+    public abstract val center: Vec
 
     /**
      * A [Parallelogram] may *not* have a negative width. If an operation on a parallelogram would
      * result in a negative width, it is instead normalized, by negating both the width and the
      * height, adding π to the angle of rotation, and normalizing rotation to the range [0, 2π).
      */
-    @get:FloatRange(from = 0.0) public val width: Float
+    @get:FloatRange(from = 0.0) public abstract val width: Float
 
     /**
      * A [Parallelogram] may have a positive or negative height; a positive height indicates that
      * the angle from the first semi-axis to the second will also be positive.
      */
-    public val height: Float
+    public abstract val height: Float
 
-    @get:AngleRadiansFloat public val rotation: Float
+    @get:AngleRadiansFloat public abstract val rotation: Float
 
     /**
      * A [Parallelogram]] may have a positive or negative shear factor; a positive shear factor
      * indicates a smaller absolute angle between the semi-axes (the shear factor is, in fact, the
      * cotangent of that angle).
      */
-    public val shearFactor: Float
+    public abstract val shearFactor: Float
 
     /**
-     * A [Parallelogram] may have a positive or negative height; a positive height indicates that
-     * the angle from the first semi-axis to the second will also be positive. A [Parallelogram]]
-     * may have a positive or negative shear factor; a positive shear factor indicates a smaller
-     * absolute angle between the semi-axes (the shear factor is, in fact, the cotangent of that
-     * angle).
+     * Returns the signed area of the [Parallelogram]. If either the width or the height is zero,
+     * this will be equal to zero; if the width is non-zero, then this will have the same sign as
+     * the height.
      */
-    public fun signedArea(): Float = width * height
+    public fun computeSignedArea(): Float = width * height
+
+    /**
+     * Returns the minimum bounding box containing the [Parallelogram].
+     *
+     * Performance-sensitive code should use the [computeBoundingBox] overload that takes a
+     * pre-allocated [MutableBox], so that instance can be reused across multiple calls.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeBoundingBox(): ImmutableBox {
+        return ParallelogramNative.createBoundingBox(
+            center.x,
+            center.y,
+            width,
+            height,
+            rotation,
+            shearFactor,
+            ImmutableBox::class.java,
+            ImmutableVec::class.java,
+        )
+    }
+
+    /** Returns the minimum bounding box containing the [Parallelogram]. */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeBoundingBox(outBox: MutableBox): MutableBox {
+        ParallelogramNative.populateBoundingBox(
+            center.x,
+            center.y,
+            width,
+            height,
+            rotation,
+            shearFactor,
+            outBox,
+        )
+        return outBox
+    }
+
+    /**
+     * Returns the semi axes of this [Parallelogram]. These are equal to:
+     * ```
+     * - (.5 * w * cos(θ), .5 * w * sin(θ))
+     * - (.5 * h * (s * cos(θ) - sin(θ)), .5 * h * (s * sin(θ) + cos(θ)))
+     * ```
+     *
+     * respectively, where w = [width], h = [height], θ = [rotation], and s = [shearFactor]
+     *
+     * The semi-axes of a parallelogram are two vectors. Each one points from the center to the
+     * midpoint of an edge. The first semi-axis points from the center to the midpoint of the edge
+     * between corners 1 and 2, and the second semi-axis points from the center to the midpoint of
+     * the edge between corners 2 and 3. In a Y-up coordinate system, on the base rectangle, these
+     * two edges are the right and top, respectively. In a Y-down coordinate system, on the base
+     * rectangle, they are the right and bottom, respectively.
+     *
+     * Performance-sensitive code should use the [computeSemiAxes] overload that takes a
+     * pre-allocated [MutableVec]s, so that instances can be reused across multiple calls.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeSemiAxes(): List<ImmutableVec> {
+        return ParallelogramNative.createSemiAxes(
+                center.x,
+                center.y,
+                width,
+                height,
+                rotation,
+                shearFactor,
+                ImmutableVec::class.java,
+            )
+            .toList()
+    }
+
+    /**
+     * Fills the [MutableVec]s with the semi axes of this [Parallelogram]. For definition please see
+     * [computeSemiAxes] above.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeSemiAxes(outAxis1: MutableVec, outAxis2: MutableVec) {
+        ParallelogramNative.populateSemiAxes(
+            center.x,
+            center.y,
+            width,
+            height,
+            rotation,
+            shearFactor,
+            outAxis1,
+            outAxis2,
+        )
+    }
+
+    /**
+     * Returns a list containing the 4 corners of the [Parallelogram].
+     *
+     * Corners are numbered 0, 1, 2, 3. In a Y-up coordinate system, the corners of the base
+     * rectangle are, in order: bottom-left, bottom-right, top-right, top-left. In a Y-down
+     * coordinate system, they are: top-left, top-right, bottom-right, bottom-left. The corners keep
+     * their numbering through any shear and/or rotation applied to the base rectangle. Numerically,
+     * the corners are equivalent to: `C - u - v C + u - v C + u + v C - u + v` Where `C` =
+     * [center], and `u` and `v` are the [semiAxes].
+     *
+     * Performance-sensitive code should use the [computeCorners] overload that takes pre-allocated
+     * [MutableVec]s, so that instances can be reused across multiple calls.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeCorners(): List<ImmutableVec> {
+        return ParallelogramNative.createCorners(
+                center.x,
+                center.y,
+                width,
+                height,
+                rotation,
+                shearFactor,
+                ImmutableVec::class.java,
+            )
+            .toList()
+    }
+
+    /**
+     * Populates the 4 output points with the corners of the [Parallelogram].
+     *
+     * For explanation of order, please see [computeCorners] above.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun computeCorners(
+        outCorner1: MutableVec,
+        outCorner2: MutableVec,
+        outCorner3: MutableVec,
+        outCorner4: MutableVec,
+    ) {
+        ParallelogramNative.populateCorners(
+            center.x,
+            center.y,
+            width,
+            height,
+            rotation,
+            shearFactor,
+            outCorner1,
+            outCorner2,
+            outCorner3,
+            outCorner4,
+        )
+    }
+
+    /**
+     * Returns whether the given point is contained within the Box. Points that lie exactly on the
+     * Box's boundary are considered to be contained.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun contains(point: ImmutableVec): Boolean {
+        return ParallelogramNative.contains(
+            center.x,
+            center.y,
+            width,
+            height,
+            rotation,
+            shearFactor,
+            point.x,
+            point.y,
+        )
+    }
+
+    /**
+     * Compares this [Parallelogram] with [other], and returns true if both [center] points are
+     * considered almost equal with the given [tolerance], and the difference between [width] and
+     * [other.width] is less than [tolerance], and likewise for [height], [rotation], and
+     * [shearFactor].
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
+    public fun isAlmostEqual(
+        other: Parallelogram,
+        @FloatRange(from = 0.0) tolerance: Float,
+    ): Boolean =
+        abs(center.x - other.center.x) < tolerance &&
+            abs(center.y - other.center.y) < tolerance &&
+            abs(width - other.width) < tolerance &&
+            abs(height - other.height) < tolerance &&
+            abs(rotation - other.rotation) < tolerance &&
+            abs(shearFactor - other.shearFactor) < tolerance
 
     public companion object {
         /**
@@ -140,27 +314,11 @@ public interface Parallelogram {
          * [Parallelogram].
          */
         internal fun areEquivalent(first: Parallelogram, second: Parallelogram): Boolean =
-            Point.areEquivalent(first.center, second.center) &&
+            Vec.areEquivalent(first.center, second.center) &&
                 first.width == second.width &&
                 first.height == second.height &&
                 first.rotation == second.rotation &&
                 first.shearFactor == second.shearFactor
-
-        /**
-         * Returns true if the values of [first] and [second] are less than [tolerance] away from
-         * each other for all properties of [Parallelogram]. [tolerance] must be a positive float.
-         */
-        internal fun areNear(
-            first: Parallelogram,
-            second: Parallelogram,
-            @FloatRange(from = 0.0) tolerance: Float = 0.0001f,
-        ): Boolean =
-            (abs(first.center.x - second.center.x) < tolerance) &&
-                (abs(first.center.y - second.center.y) < tolerance) &&
-                (abs(first.width - second.width) < tolerance) &&
-                (abs(first.height - second.height) < tolerance) &&
-                (abs(first.rotation - second.rotation) < tolerance) &&
-                (abs(first.shearFactor - second.shearFactor) < tolerance)
 
         /** Returns a hash code for [parallelogram] using its [Parallelogram] properties. */
         internal fun hash(parallelogram: Parallelogram): Int {

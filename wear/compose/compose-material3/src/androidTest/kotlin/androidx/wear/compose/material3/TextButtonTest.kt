@@ -23,11 +23,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.testutils.assertShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -49,9 +53,11 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.material3.TextButtonDefaults.DefaultButtonSize
 import androidx.wear.compose.material3.TextButtonDefaults.LargeButtonSize
 import androidx.wear.compose.material3.TextButtonDefaults.SmallButtonSize
+import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -177,6 +183,29 @@ class TextButtonTest {
         rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
 
         rule.runOnIdle { assertEquals(true, longClicked) }
+    }
+
+    @Test
+    fun triggers_haptic_when_long_clicked() {
+        val results = mutableMapOf<HapticFeedbackType, Int>()
+        val haptics = hapticFeedback(collectResultsFromHapticFeedback(results))
+
+        rule.setContentWithTheme {
+            CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                TextButton(
+                    onClick = { /* Do nothing */ },
+                    onLongClick = {},
+                    enabled = true,
+                    modifier = Modifier.testTag(TEST_TAG)
+                ) {}
+            }
+        }
+
+        rule.onNodeWithTag(TEST_TAG).performTouchInput { longClick() }
+
+        assertThat(results).hasSize(1)
+        assertThat(results).containsKey(HapticFeedbackType.LongPress)
+        assertThat(results[HapticFeedbackType.LongPress]).isEqualTo(1)
     }
 
     @Test
@@ -309,7 +338,7 @@ class TextButtonTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun default_shape_is_circular() {
         rule.isShape(
@@ -322,20 +351,24 @@ class TextButtonTest {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun allows_custom_shape_override() {
         val shape = CutCornerShape(4.dp)
 
         rule.isShape(expectedShape = shape, colors = { TextButtonDefaults.textButtonColors() }) {
             modifier ->
-            TextButton(onClick = {}, modifier = modifier, shape = shape) {
+            TextButton(
+                onClick = {},
+                modifier = modifier,
+                shapes = TextButtonDefaults.shapes(shape)
+            ) {
                 // omit content to allow us to validate the shape by pixel checking.
             }
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -346,7 +379,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -359,7 +392,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -370,7 +403,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -385,7 +418,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_variant_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -396,7 +429,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_variant_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -411,18 +444,18 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_filled_tonal_text_button_colors() {
         rule.verifyTextButtonColors(
             status = Status.Enabled,
             colors = { TextButtonDefaults.filledTonalTextButtonColors() },
             expectedContainerColor = { MaterialTheme.colorScheme.surfaceContainer },
-            expectedContentColor = { MaterialTheme.colorScheme.onSurfaceVariant }
+            expectedContentColor = { MaterialTheme.colorScheme.onSurface }
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_filled_tonal_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -437,7 +470,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -448,7 +481,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_text_button_colors() {
         rule.verifyTextButtonColors(
@@ -461,7 +494,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_enabled_outlined_text_button_correct_border_colors() {
         val status = Status.Enabled
@@ -479,7 +512,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun gives_disabled_outlined_text_button_correct_border_colors() {
         val status = Status.Disabled
@@ -499,7 +532,7 @@ class TextButtonTest {
         )
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun overrides_outlined_text_button_border_color() {
         val status = Status.Enabled
@@ -519,6 +552,28 @@ class TextButtonTest {
                 ) {}
             }
         )
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun animates_corners_to_75_percent_on_click() {
+        val baseShape = RoundedCornerShape(20.dp)
+        val pressedShape = RoundedCornerShape(0.dp)
+
+        rule.verifyRoundedButtonTapAnimationEnd(
+            baseShape,
+            pressedShape,
+            0.75f,
+            8,
+            color = { TextButtonDefaults.filledTextButtonColors().containerColor }
+        ) { modifier ->
+            TextButton(
+                onClick = {},
+                shapes = TextButtonShapes(baseShape, pressedShape),
+                modifier = modifier,
+                colors = TextButtonDefaults.filledTextButtonColors()
+            ) {}
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -578,7 +633,7 @@ private fun ComposeContentTestRule.isShape(
             verticalPadding = 0.dp,
             shapeColor = buttonColor,
             backgroundColor = background,
-            shapeOverlapPixelCount = 2.0f,
+            antiAliasingGap = 2.0f,
             shape = expectedShape,
         )
 }

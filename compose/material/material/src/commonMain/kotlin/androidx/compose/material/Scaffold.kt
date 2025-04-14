@@ -29,7 +29,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
@@ -103,12 +106,11 @@ value class FabPosition internal constructor(@Suppress("unused") private val val
 }
 
 /**
- * <a href="https://material.io/design/layout/understanding-layout.html" class="external"
- * target="_blank">Material Design layout</a>.
+ * [Material Design layout](https://material.io/design/layout/understanding-layout.html)
  *
- * Scaffold implements the basic material design visual layout structure.
+ * Scaffold implements the basic Material Design visual layout structure.
  *
- * This component provides API to put together several material components to construct your screen,
+ * This component provides API to put together several Material components to construct your screen,
  * by ensuring proper layout strategy for them and collecting necessary data so these components
  * will work together correctly.
  *
@@ -124,12 +126,12 @@ value class FabPosition internal constructor(@Suppress("unused") private val val
  * @sample androidx.compose.material.samples.SimpleScaffoldWithTopBar
  *
  * More fancy usage with [BottomAppBar] with cutout and docked [FloatingActionButton], which
- * animates it's shape when clicked:
+ * animates its shape when clicked:
  *
  * @sample androidx.compose.material.samples.ScaffoldWithBottomBarAndCutout
  *
  * To show a [Snackbar], use [SnackbarHostState.showSnackbar]. Scaffold state already have
- * [ScaffoldState.snackbarHostState] when created
+ * [ScaffoldState.snackbarHostState] when created.
  *
  * @sample androidx.compose.material.samples.ScaffoldWithSimpleSnackbar
  * @param contentWindowInsets window insets to be passed to [content] slot via [PaddingValues]
@@ -167,9 +169,9 @@ value class FabPosition internal constructor(@Suppress("unused") private val val
  *   content color for [backgroundColor], or, if it is not a color from the theme, this will keep
  *   the same value set above this Surface.
  * @param content content of your screen. The lambda receives an [PaddingValues] that should be
- *   applied to the content root via Modifier.padding to properly offset top and bottom bars. If
- *   you're using VerticalScroller, apply this modifier to the child of the scroller, and not on the
- *   scroller itself.
+ *   applied to the content root via [Modifier.padding] and [Modifier.consumeWindowInsets] to
+ *   properly offset top and bottom bars. If using [Modifier.verticalScroll], apply this modifier to
+ *   the child of the scroll, and not on the scroll itself.
  */
 @Composable
 fun Scaffold(
@@ -238,12 +240,11 @@ fun Scaffold(
 }
 
 /**
- * <a href="https://material.io/design/layout/understanding-layout.html" class="external"
- * target="_blank">Material Design layout</a>.
+ * [Material Design layout](https://material.io/design/layout/understanding-layout.html)
  *
- * Scaffold implements the basic material design visual layout structure.
+ * Scaffold implements the basic Material Design visual layout structure.
  *
- * This component provides API to put together several material components to construct your screen,
+ * This component provides API to put together several Material components to construct your screen,
  * by ensuring proper layout strategy for them and collecting necessary data so these components
  * will work together correctly.
  *
@@ -256,7 +257,7 @@ fun Scaffold(
  * @sample androidx.compose.material.samples.SimpleScaffoldWithTopBar
  *
  * More fancy usage with [BottomAppBar] with cutout and docked [FloatingActionButton], which
- * animates it's shape when clicked:
+ * animates its shape when clicked:
  *
  * @sample androidx.compose.material.samples.ScaffoldWithBottomBarAndCutout
  *
@@ -294,9 +295,9 @@ fun Scaffold(
  *   content color for [backgroundColor], or, if it is not a color from the theme, this will keep
  *   the same value set above this Surface.
  * @param content content of your screen. The lambda receives an [PaddingValues] that should be
- *   applied to the content root via Modifier.padding to properly offset top and bottom bars. If
- *   you're using VerticalScroller, apply this modifier to the child of the scroller, and not on the
- *   scroller itself.
+ *   applied to the content root via [Modifier.padding] and [Modifier.consumeWindowInsets] to
+ *   properly offset top and bottom bars. If using [Modifier.verticalScroll], apply this modifier to
+ *   the child of the scroll, and not on the scroll itself.
  */
 @Composable
 fun Scaffold(
@@ -374,6 +375,26 @@ private fun ScaffoldLayout(
     contentWindowInsets: WindowInsets,
     bottomBar: @Composable @UiComposable () -> Unit
 ) {
+    // Create the backing value for the content padding
+    // These values will be updated during measurement, but before subcomposing the body content
+    // Remembering and updating a single PaddingValues avoids needing to recompose when the values
+    // change
+    val contentPadding = remember {
+        object : PaddingValues {
+            var paddingHolder by mutableStateOf(PaddingValues(0.dp))
+
+            override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+                paddingHolder.calculateLeftPadding(layoutDirection)
+
+            override fun calculateTopPadding(): Dp = paddingHolder.calculateTopPadding()
+
+            override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+                paddingHolder.calculateRightPadding(layoutDirection)
+
+            override fun calculateBottomPadding(): Dp = paddingHolder.calculateBottomPadding()
+        }
+    }
+
     SubcomposeLayout { constraints ->
         val layoutWidth = constraints.maxWidth
         val layoutHeight = constraints.maxHeight
@@ -486,34 +507,30 @@ private fun ScaffoldLayout(
                 0
             }
 
+        // Update the backing state for the content padding before subcomposing the body
+        val insets = contentWindowInsets.asPaddingValues(this)
+        contentPadding.paddingHolder =
+            PaddingValues(
+                top =
+                    if (topBarPlaceables.isEmpty()) {
+                        insets.calculateTopPadding()
+                    } else {
+                        0.dp
+                    },
+                bottom =
+                    if (bottomBarPlaceables.isEmpty() || bottomBarHeight == null) {
+                        insets.calculateBottomPadding()
+                    } else {
+                        bottomBarHeight.toDp()
+                    },
+                start = insets.calculateStartPadding(layoutDirection),
+                end = insets.calculateEndPadding(layoutDirection)
+            )
+
         val bodyContentHeight = layoutHeight - topBarHeight
 
         val bodyContentPlaceables =
-            subcompose(ScaffoldLayoutContent.MainContent) {
-                    val insets = contentWindowInsets.asPaddingValues(this@SubcomposeLayout)
-                    val innerPadding =
-                        PaddingValues(
-                            top =
-                                if (topBarPlaceables.isEmpty()) {
-                                    insets.calculateTopPadding()
-                                } else {
-                                    0.dp
-                                },
-                            bottom =
-                                if (bottomBarPlaceables.isEmpty() || bottomBarHeight == null) {
-                                    insets.calculateBottomPadding()
-                                } else {
-                                    bottomBarHeight.toDp()
-                                },
-                            start =
-                                insets.calculateStartPadding(
-                                    (this@SubcomposeLayout).layoutDirection
-                                ),
-                            end =
-                                insets.calculateEndPadding((this@SubcomposeLayout).layoutDirection)
-                        )
-                    content(innerPadding)
-                }
+            subcompose(ScaffoldLayoutContent.MainContent) { content(contentPadding) }
                 .fastMap { it.measure(looseConstraints.copy(maxHeight = bodyContentHeight)) }
 
         layout(layoutWidth, layoutHeight) {

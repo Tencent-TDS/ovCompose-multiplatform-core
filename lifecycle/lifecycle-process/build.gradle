@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -33,7 +33,7 @@ android {
     buildTypes.configureEach {
         consumerProguardFiles "proguard-rules.pro"
     }
-    namespace "androidx.lifecycle.process"
+    namespace = "androidx.lifecycle.process"
 }
 
 dependencies {
@@ -48,8 +48,7 @@ dependencies {
 
 androidx {
     name = "Lifecycle Process"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2018"
     description = "Android Lifecycle Process"
-    legacyDisableKotlinStrictApiMode = true
 }

@@ -96,10 +96,7 @@ fun PillIndicatorTabRow(
 ) {
     val focusRequester = remember { FocusRequester() }
 
-    TabRow(
-        selectedTabIndex = selectedTabIndex,
-        modifier = Modifier.focusRestorer { focusRequester }
-    ) {
+    TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.focusRestorer(focusRequester)) {
         tabs.forEachIndexed { index, tab ->
             key(index) {
                 Tab(
@@ -137,7 +134,7 @@ fun UnderlinedIndicatorTabRow(
                 doesTabRowHaveFocus = doesTabRowHaveFocus,
             )
         },
-        modifier = Modifier.focusRestorer { focusRequester },
+        modifier = Modifier.focusRestorer(focusRequester),
     ) {
         tabs.forEachIndexed { index, tab ->
             Tab(

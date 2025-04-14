@@ -24,7 +24,7 @@ import androidx.annotation.IntRange
  * Background to be used for window transition animations for embedding activities if the animation
  * requires a background.
  *
- * @see SplitAttributes.animationBackground
+ * @see EmbeddingAnimationParams.animationBackground
  */
 abstract class EmbeddingAnimationBackground private constructor() {
 
@@ -59,6 +59,9 @@ abstract class EmbeddingAnimationBackground private constructor() {
     private class DefaultBackground : EmbeddingAnimationBackground() {
 
         override fun toString() = "DefaultBackground"
+
+        // Override #hashCode to return consistent value every time.
+        @Suppress("EqualsAndHashCode") override fun hashCode() = toString().hashCode()
     }
 
     /** Methods that create various [EmbeddingAnimationBackground]. */

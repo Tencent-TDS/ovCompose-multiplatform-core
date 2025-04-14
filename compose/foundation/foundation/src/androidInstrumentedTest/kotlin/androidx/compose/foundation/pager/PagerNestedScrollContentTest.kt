@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyList
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
@@ -81,6 +82,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 reverseLayout = false,
                 state = rememberLazyListState(),
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -126,6 +128,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 flingBehavior = flingInspector,
                 state = rememberLazyListState(initialFirstVisibleItemIndex = 8),
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -188,6 +191,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 reverseLayout = false,
                 state = rememberLazyListState(),
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -231,6 +235,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 reverseLayout = false,
                 state = lazyListState,
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -283,6 +288,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 reverseLayout = false,
                 state = lazyListState,
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -343,6 +349,7 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
                 reverseLayout = false,
                 state = lazyListState,
                 userScrollEnabled = true,
+                overscrollEffect = rememberOverscrollEffect(),
                 verticalArrangement = Arrangement.Top,
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Top,
@@ -395,8 +402,10 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
         val rowColumnContent: @Composable (Int) -> Unit = { page ->
             repeat(DefaultPageCount) { item ->
                 val columnFocusRequester =
-                    FocusRequester().apply {
-                        if (item == 3 && page == 5) innerListFocusRequester = this
+                    remember(item, page) {
+                        FocusRequester().apply {
+                            if (item == 3 && page == 5) innerListFocusRequester = this
+                        }
                     }
                 Box(
                     modifier =
@@ -421,7 +430,9 @@ class PagerNestedScrollContentTest(config: ParamConfig) : BasePagerTest(config =
             pageSize = { PageSize.Fixed(100.dp) }
         ) { page ->
             val focusRequester =
-                FocusRequester().apply { if (page == 5) pagerFocusRequester = this }
+                remember(page) {
+                    FocusRequester().apply { if (page == 5) pagerFocusRequester = this }
+                }
             val rowColumnModifier =
                 Modifier.focusRequester(focusRequester).verticalScroll(rememberScrollState())
 

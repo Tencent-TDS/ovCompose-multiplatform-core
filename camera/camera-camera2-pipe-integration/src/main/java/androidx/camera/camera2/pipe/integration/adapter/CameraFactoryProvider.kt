@@ -106,7 +106,7 @@ public class CameraFactoryProvider(
                             sharedInteropCallbacks.deviceStateCallback,
                             sharedInteropCallbacks.sessionStateCallback,
                             openRetryMaxTimeout
-                        )
+                        ),
                 )
             )
         Log.debug { "Created CameraPipe in ${start.measureNow(timeSource).formatMs()}" }

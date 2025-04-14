@@ -27,11 +27,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.ScrollInfoProvider
-import androidx.wear.compose.foundation.rememberActiveFocusRequester
+import androidx.wear.compose.foundation.hierarchicalFocusRequester
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import androidx.wear.compose.foundation.rotary.rotaryScrollable
 import androidx.wear.compose.integration.demos.common.Centralize
@@ -41,6 +43,7 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.ScreenStage
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TimeText
+import androidx.wear.compose.material3.curvedText
 import androidx.wear.compose.material3.samples.ScrollAwaySample
 import androidx.wear.compose.material3.scrollAway
 
@@ -54,13 +57,14 @@ val ScrollAwayDemos =
 @Composable
 fun ScrollAwayLazyColumn() {
     val scrollState = rememberLazyListState()
-    val focusRequester = rememberActiveFocusRequester()
+    val focusRequester = remember { FocusRequester() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = scrollState,
             modifier =
                 Modifier.fillMaxSize()
+                    .hierarchicalFocusRequester(focusRequester)
                     .rotaryScrollable(
                         RotaryScrollableDefaults.behavior(
                             scrollableState = scrollState,
@@ -100,7 +104,7 @@ fun ScrollAwayLazyColumn() {
                         else ScreenStage.Idle
                     }
                 ),
-            content = { text("ScrollAway") }
+            content = { curvedText("ScrollAway") }
         )
     }
 }
@@ -108,12 +112,13 @@ fun ScrollAwayLazyColumn() {
 @Composable
 fun ScrollAwayColumn() {
     val scrollState = rememberScrollState()
-    val focusRequester = rememberActiveFocusRequester()
+    val focusRequester = remember { FocusRequester() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier =
                 Modifier.verticalScroll(scrollState)
+                    .hierarchicalFocusRequester(focusRequester)
                     .rotaryScrollable(
                         RotaryScrollableDefaults.behavior(
                             scrollableState = scrollState,
@@ -151,7 +156,7 @@ fun ScrollAwayColumn() {
                         else ScreenStage.Idle
                     }
                 ),
-            content = { text("ScrollAway") }
+            content = { curvedText("ScrollAway") }
         )
     }
 }

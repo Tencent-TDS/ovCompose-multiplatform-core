@@ -38,13 +38,15 @@ internal class AndroidTextToolbar(private val view: View) : TextToolbar {
         onCopyRequested: (() -> Unit)?,
         onPasteRequested: (() -> Unit)?,
         onCutRequested: (() -> Unit)?,
-        onSelectAllRequested: (() -> Unit)?
+        onSelectAllRequested: (() -> Unit)?,
+        onAutofillRequested: (() -> Unit)?
     ) {
         textActionModeCallback.rect = rect
         textActionModeCallback.onCopyRequested = onCopyRequested
         textActionModeCallback.onCutRequested = onCutRequested
         textActionModeCallback.onPasteRequested = onPasteRequested
         textActionModeCallback.onSelectAllRequested = onSelectAllRequested
+        textActionModeCallback.onAutofillRequested = onAutofillRequested
         if (actionMode == null) {
             status = TextToolbarStatus.Shown
             actionMode =
@@ -60,6 +62,23 @@ internal class AndroidTextToolbar(private val view: View) : TextToolbar {
         } else {
             actionMode?.invalidate()
         }
+    }
+
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?
+    ) {
+        showMenu(
+            rect = rect,
+            onCopyRequested = onCopyRequested,
+            onPasteRequested = onPasteRequested,
+            onCutRequested = onCutRequested,
+            onSelectAllRequested = onSelectAllRequested,
+            onAutofillRequested = null
+        )
     }
 
     override fun hide() {

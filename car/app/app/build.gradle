@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.Release
 import androidx.build.metalava.MetalavaRunnerKt
 import androidx.build.uptodatedness.EnableCachingKt
@@ -41,7 +41,7 @@ buildscript {
         // This dependency means that tasks in this project might become out-of-date whenever
         // certain classes in buildSrc change, and should generally be avoided.
         // See b/140265324 for more information
-        classpath(project.files("${project.rootProject.ext["outDir"]}/buildSrc/private/build/libs/private.jar"))
+        classpath(project.files("${project.ext["outDir"]}/buildSrc/private/build/libs/private.jar"))
     }
 }
 
@@ -53,6 +53,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     // OnBackPressedDispatcher is part of the API
     api("androidx.activity:activity:1.2.0")
     implementation(libs.guavaAndroid)
@@ -79,7 +80,7 @@ dependencies {
     testImplementation(libs.mockitoKotlin4)
     testImplementation(libs.robolectric)
     testImplementation(libs.truth)
-    testImplementation project(path: ':car:app:app-testing')
+    testImplementation(project(":car:app:app-testing"))
 }
 
 project.ext {
@@ -93,21 +94,21 @@ android {
     }
     defaultConfig {
         resValue "string", "car_app_library_version", androidx.LibraryVersions.CAR_APP.toString()
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
     }
     buildTypes.configureEach {
         stableAidl {
-            version 1
+            version = 1
         }
     }
 
     testOptions.unitTests.includeAndroidResources = true
-    namespace "androidx.car.app"
+    namespace = "androidx.car.app"
 }
 
 androidx {
     name = "Android for Cars App"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2020"
     description = "Build navigation, parking, and charging apps for Android Auto"
     legacyDisableKotlinStrictApiMode = true

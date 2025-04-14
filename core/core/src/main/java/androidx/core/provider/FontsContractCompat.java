@@ -32,14 +32,15 @@ import android.provider.BaseColumns;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.TypefaceCompat;
 import androidx.core.graphics.TypefaceCompatUtil;
 import androidx.core.util.Preconditions;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -55,6 +56,16 @@ import java.util.concurrent.Executor;
 public class FontsContractCompat {
     private FontsContractCompat() { }
 
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            Typeface.NORMAL,
+            Typeface.BOLD,
+            Typeface.ITALIC,
+            Typeface.BOLD_ITALIC
+    })
+    public @interface TypefaceStyle {}
+
     /**
      * Build a Typeface from an array of {@link FontInfo}
      *
@@ -67,11 +78,10 @@ public class FontsContractCompat {
      * @param fonts An array of {@link FontInfo} to be used to create a Typeface.
      * @return A Typeface object. Returns null if typeface creation fails.
      */
-    @Nullable
-    public static Typeface buildTypeface(
+    public static @Nullable Typeface buildTypeface(
             @NonNull Context context,
             @Nullable CancellationSignal cancellationSignal,
-            @NonNull FontInfo[] fonts
+            FontInfo @NonNull [] fonts
     ) {
         return TypefaceCompat.createFromFontInfo(context, cancellationSignal, fonts,
                 Typeface.NORMAL);
@@ -93,8 +103,7 @@ public class FontsContractCompat {
      * @throws PackageManager.NameNotFoundException If requested package or authority was not found
      *      in the system.
      */
-    @NonNull
-    public static FontFamilyResult fetchFonts(
+    public static @NonNull FontFamilyResult fetchFonts(
             @NonNull Context context,
             @Nullable CancellationSignal cancellationSignal,
             @NonNull FontRequest request
@@ -156,7 +165,7 @@ public class FontsContractCompat {
     public static void requestFont(
             @NonNull Context context,
             @NonNull FontRequest request,
-            int style,
+            @TypefaceStyle int style,
             @Nullable Executor loadingExecutor,
             @NonNull Executor callbackExecutor,
             @NonNull FontRequestCallback callback
@@ -193,7 +202,7 @@ public class FontsContractCompat {
     public static void requestFontWithFallbackChain(
             @NonNull Context context,
             @NonNull List<FontRequest> requests,
-            int style,
+            @TypefaceStyle int style,
             @Nullable Executor loadingExecutor,
             @NonNull Executor callbackExecutor,
             @NonNull FontRequestCallback callback
@@ -229,15 +238,14 @@ public class FontsContractCompat {
      *
      */
     @RestrictTo(LIBRARY)
-    @Nullable
-    public static Typeface requestFont(
-            @NonNull final Context context,
-            @NonNull final List<FontRequest> requests,
-            final int style,
+    public static @Nullable Typeface requestFont(
+            final @NonNull Context context,
+            final @NonNull List<FontRequest> requests,
+            @TypefaceStyle final int style,
             boolean isBlockingFetch,
             @IntRange(from = 0) int timeout,
-            @NonNull final Handler handler,
-            @NonNull final FontRequestCallback callback
+            final @NonNull Handler handler,
+            final @NonNull FontRequestCallback callback
     ) {
         CallbackWrapper callbackWrapper = new CallbackWrapper(
                 callback, RequestExecutor.createHandlerExecutor(handler));
@@ -280,15 +288,14 @@ public class FontsContractCompat {
      *
      */
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @Nullable
-    public static Typeface requestFont(
-            @NonNull final Context context,
-            @NonNull final FontRequest request,
-            final int style,
+    public static @Nullable Typeface requestFont(
+            final @NonNull Context context,
+            final @NonNull FontRequest request,
+            @TypefaceStyle final int style,
             boolean isBlockingFetch,
             @IntRange(from = 0) int timeout,
-            @NonNull final Handler handler,
-            @NonNull final FontRequestCallback callback
+            final @NonNull Handler handler,
+            final @NonNull FontRequestCallback callback
     ) {
         return requestFont(context, List.of(request), style, isBlockingFetch, timeout, handler,
                 callback);
@@ -506,7 +513,7 @@ public class FontsContractCompat {
         // TODO after removing from public API make package private.
         @Deprecated
         @RestrictTo(LIBRARY_GROUP_PREFIX)
-        public FontFamilyResult(@FontResultStatus int statusCode, @Nullable FontInfo[] fonts) {
+        public FontFamilyResult(@FontResultStatus int statusCode, FontInfo @Nullable [] fonts) {
             mStatusCode = statusCode;
             mFonts = Collections.singletonList(fonts);
         }
@@ -537,15 +544,14 @@ public class FontsContractCompat {
         /**
          * Returns a list of arrays of fonts for each font family requested, in order.
          */
-        @NonNull
-        public List<FontInfo[]> getFontsWithFallbacks() {
+        public @NonNull List<FontInfo[]> getFontsWithFallbacks() {
             return mFonts;
         }
 
         @SuppressWarnings("deprecation")
         static FontFamilyResult create(
                 @FontResultStatus int statusCode,
-                @Nullable FontInfo[] fonts) {
+                FontInfo @Nullable [] fonts) {
             return new FontFamilyResult(statusCode, fonts);
         }
 
@@ -685,11 +691,11 @@ public class FontsContractCompat {
     public static Typeface getFontSync(
             final Context context,
             final FontRequest request,
-            final @Nullable ResourcesCompat.FontCallback fontCallback,
+            final ResourcesCompat.@Nullable FontCallback fontCallback,
             final @Nullable Handler handler,
             boolean isBlockingFetch,
             int timeout,
-            final int style
+            @TypefaceStyle final int style
     ) {
         FontRequestCallback newCallback = new TypefaceCompat.ResourcesCallbackAdapter(fontCallback);
         Handler newHandler = ResourcesCompat.FontCallback.getHandler(handler);
@@ -739,8 +745,7 @@ public class FontsContractCompat {
     @Deprecated // unused
     @VisibleForTesting
     @RestrictTo(LIBRARY_GROUP_PREFIX)
-    @Nullable
-    public static ProviderInfo getProvider(
+    public static @Nullable ProviderInfo getProvider(
             @NonNull PackageManager packageManager,
             @NonNull FontRequest request,
             @Nullable Resources resources

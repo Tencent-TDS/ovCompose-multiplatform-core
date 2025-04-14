@@ -23,7 +23,7 @@
  */
 
 import androidx.build.BundleInsideHelper
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
@@ -33,7 +33,7 @@ plugins {
 BundleInsideHelper.forInsideLintJar(project)
 
 dependencies {
-    compileOnly(libs.androidLintMinApi)
+    compileOnly(libs.androidLintApiStableAnalysis)
     compileOnly(libs.kotlinStdlib)
     compileOnly(libs.androidToolsCommon)
     compileOnly(libs.intellijCore)
@@ -41,8 +41,9 @@ dependencies {
     bundleInside(project(":navigation:lint:common"))
 
     testImplementation(libs.kotlinStdlib)
-    testImplementation(libs.androidLint)
-    testImplementation(libs.androidLintTests)
+    testImplementation(libs.androidLintApiStableAnalysis)
+    testImplementation(libs.androidLintTestsStableAnalysis)
+    testImplementation(libs.intellijCore)
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(project(":navigation:lint:common-test"))
@@ -50,7 +51,7 @@ dependencies {
 
 androidx {
     name = "Navigation Runtime Lint"
-    type = LibraryType.LINT
+    type = SoftwareType.LINT
     inceptionYear = "2022"
     description = "Lint checks for Navigation Runtime"
 }

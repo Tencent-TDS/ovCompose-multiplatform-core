@@ -18,7 +18,7 @@ package androidx.camera.camera2.pipe.integration.impl
 
 import android.os.Build
 import androidx.camera.camera2.pipe.integration.adapter.RobolectricCameraPipeTestRunner
-import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCamera
+import androidx.camera.camera2.pipe.integration.testing.FakeUseCaseCameraRequestControl
 import androidx.camera.camera2.pipe.integration.testing.FakeZoomCompat
 import androidx.camera.core.CameraControl
 import androidx.testutils.MainDispatcherRule
@@ -67,9 +67,7 @@ class ZoomControlTest {
     @Before
     fun setUp() {
         zoomControl =
-            ZoomControl(fakeUseCaseThreads, zoomCompat).apply {
-                useCaseCamera = FakeUseCaseCamera()
-            }
+            ZoomControl(zoomCompat).apply { requestControl = FakeUseCaseCameraRequestControl() }
     }
 
     @Test
@@ -110,7 +108,7 @@ class ZoomControlTest {
 
         // Act. Simulate the UseCaseCamera is recreated before applying zoom.
         zoomCompat.applyAsyncResult = CompletableDeferred() // incomplete deferred of new camera
-        zoomControl.useCaseCamera = FakeUseCaseCamera()
+        zoomControl.requestControl = FakeUseCaseCameraRequestControl()
         zoomCompat.applyAsyncResult.complete(Unit)
 
         // Assert. The setZoomRatio task should be completed.
@@ -144,7 +142,7 @@ class ZoomControlTest {
         val result1 = zoomControl.setZoomRatio(3.0f)
 
         // Act. Simulate the UseCaseCamera is recreated,
-        zoomControl.useCaseCamera = FakeUseCaseCamera()
+        zoomControl.requestControl = FakeUseCaseCameraRequestControl()
         // Act. Submit a new zoom ratio.
         val result2 = zoomControl.setZoomRatio(2.0f)
         zoomCompat.applyAsyncResult.complete(Unit)
@@ -162,7 +160,7 @@ class ZoomControlTest {
         zoomCompat.applyAsyncResult = CompletableDeferred() // incomplete deferred
         val result = zoomControl.setZoomRatio(3.0f)
 
-        zoomControl.useCaseCamera = null
+        zoomControl.requestControl = null
 
         assertFutureFailedWithOperationCancellation(result)
     }

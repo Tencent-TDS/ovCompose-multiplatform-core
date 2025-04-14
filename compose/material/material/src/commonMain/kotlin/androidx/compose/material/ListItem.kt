@@ -43,8 +43,7 @@ import androidx.compose.ui.util.fastMap
 import kotlin.math.max
 
 /**
- * <a href="https://material.io/components/lists" class="external" target="_blank">Material Design
- * list</a> item.
+ * [Material Design list](https://material.io/components/lists)
  *
  * Lists are continuous, vertical indexes of text or images.
  *
@@ -370,7 +369,7 @@ private fun BaselinesOffsetColumn(
 
         val containerWidth =
             placeables.fastFold(0) { maxWidth, placeable -> max(maxWidth, placeable.width) }
-        val y = Array(placeables.size) { 0 }
+        val y = IntArray(placeables.size)
         var containerHeight = 0
         placeables.fastForEachIndexed { index, placeable ->
             val toPreviousBaseline =

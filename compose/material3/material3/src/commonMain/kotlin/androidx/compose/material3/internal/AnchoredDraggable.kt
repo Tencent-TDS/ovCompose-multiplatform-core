@@ -701,7 +701,8 @@ internal object AnchoredDraggableDefaults {
     val AnimationSpec = SpringSpec<Float>()
 }
 
-internal expect class AnchoredDragFinishedSignal() : CancellationException
+internal class AnchoredDragFinishedSignal :
+    PlatformOptimizedCancellationException("Anchored drag finished")
 
 private suspend fun <I> restartable(inputs: () -> I, block: suspend (I) -> Unit) {
     try {
@@ -856,7 +857,14 @@ private class DraggableAnchorsNode<T>(
                 } else state.requireOffset()
             val xOffset = if (orientation == Orientation.Horizontal) offset else 0f
             val yOffset = if (orientation == Orientation.Vertical) offset else 0f
-            placeable.place(xOffset.roundToInt(), yOffset.roundToInt())
+            // Tagging as motion frame of reference placement, meaning the placement
+            // contains scrolling. This allows the consumer of this placement offset to
+            // differentiate this offset vs. offsets from structural changes. Generally
+            // speaking, this signals a preference to directly apply changes rather than
+            // animating, to avoid a chasing effect to scrolling.
+            withMotionFrameOfReferencePlacement {
+                placeable.place(xOffset.roundToInt(), yOffset.roundToInt())
+            }
         }
     }
 }

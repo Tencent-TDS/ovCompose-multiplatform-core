@@ -15,13 +15,15 @@
  */
 package androidx.room
 
+import androidx.annotation.MainThread
+import androidx.arch.core.executor.ArchTaskExecutor
 import androidx.lifecycle.LiveData
 import androidx.room.util.performSuspending
 import androidx.sqlite.SQLiteConnection
 import java.util.concurrent.Callable
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * A LiveData implementation that closely works with [InvalidationTracker] to implement database
@@ -35,33 +37,36 @@ import kotlinx.coroutines.withContext
  * This [LiveData] keeps a weak observer to the [InvalidationTracker] but it is hold strongly by the
  * [InvalidationTracker] as long as it is active.
  */
-internal class RoomTrackingLiveData<T>(
-    private val database: RoomDatabase,
+internal sealed class RoomTrackingLiveData<T>(
+    protected val database: RoomDatabase,
     private val container: InvalidationLiveDataContainer,
-    private val inTransaction: Boolean,
-    private val callableFunction: Callable<T?>?,
-    private val lambdaFunction: ((SQLiteConnection) -> T?)?,
+    protected val inTransaction: Boolean,
     tableNames: Array<out String>
 ) : LiveData<T>() {
     private val observer: InvalidationTracker.Observer =
         object : InvalidationTracker.Observer(tableNames) {
             override fun onInvalidated(tables: Set<String>) {
-                database.getCoroutineScope().launch { invalidated() }
+                ArchTaskExecutor.getInstance().executeOnMainThread { invalidated() }
             }
         }
     private val invalid = AtomicBoolean(true)
     private val computing = AtomicBoolean(false)
     private val registeredObserver = AtomicBoolean(false)
 
+    private val launchContext =
+        if (database.inCompatibilityMode()) {
+            if (inTransaction) {
+                database.getTransactionContext()
+            } else {
+                database.getQueryContext()
+            }
+        } else {
+            EmptyCoroutineContext
+        }
+
     private suspend fun refresh() {
         if (registeredObserver.compareAndSet(false, true)) {
-            database.invalidationTracker.subscribe(
-                InvalidationTracker.WeakObserver(
-                    database.invalidationTracker,
-                    database.getCoroutineScope(),
-                    observer
-                )
-            )
+            database.invalidationTracker.addWeakObserver(observer)
         }
         var computed: Boolean
         do {
@@ -74,22 +79,7 @@ internal class RoomTrackingLiveData<T>(
                     while (invalid.compareAndSet(true, false)) {
                         computed = true
                         try {
-                            value =
-                                if (callableFunction != null) {
-                                    withContext(
-                                        if (inTransaction) {
-                                            database.getTransactionContext()
-                                        } else {
-                                            database.getQueryContext()
-                                        }
-                                    ) {
-                                        callableFunction.call()
-                                    }
-                                } else if (lambdaFunction != null) {
-                                    performSuspending(database, true, inTransaction, lambdaFunction)
-                                } else {
-                                    error("Both callable and lambda functions are null")
-                                }
+                            value = compute()
                         } catch (e: Exception) {
                             throw RuntimeException(
                                 "Exception while computing database live data.",
@@ -115,23 +105,50 @@ internal class RoomTrackingLiveData<T>(
         } while (computed && invalid.get())
     }
 
-    private suspend fun invalidated() {
+    @MainThread
+    private fun invalidated() {
         val isActive = hasActiveObservers()
         if (invalid.compareAndSet(false, true)) {
             if (isActive) {
-                refresh()
+                database.getCoroutineScope().launch(launchContext) { refresh() }
             }
         }
     }
 
+    abstract suspend fun compute(): T?
+
     override fun onActive() {
         super.onActive()
         container.onActive(this)
-        database.getCoroutineScope().launch { refresh() }
+        database.getCoroutineScope().launch(launchContext) { refresh() }
     }
 
     override fun onInactive() {
         super.onInactive()
         container.onInactive(this)
+    }
+}
+
+internal class RoomCallableTrackingLiveData<T>(
+    database: RoomDatabase,
+    container: InvalidationLiveDataContainer,
+    inTransaction: Boolean,
+    tableNames: Array<out String>,
+    private val callableFunction: Callable<T?>
+) : RoomTrackingLiveData<T>(database, container, inTransaction, tableNames) {
+    override suspend fun compute(): T? {
+        return callableFunction.call()
+    }
+}
+
+internal class RoomLambdaTrackingLiveData<T>(
+    database: RoomDatabase,
+    container: InvalidationLiveDataContainer,
+    inTransaction: Boolean,
+    tableNames: Array<out String>,
+    private val lambdaFunction: ((SQLiteConnection) -> T?)
+) : RoomTrackingLiveData<T>(database, container, inTransaction, tableNames) {
+    override suspend fun compute(): T? {
+        return performSuspending(database, true, inTransaction, lambdaFunction)
     }
 }

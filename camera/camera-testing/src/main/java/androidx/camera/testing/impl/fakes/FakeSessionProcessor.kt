@@ -17,10 +17,12 @@
 package androidx.camera.testing.impl.fakes
 
 import android.graphics.ImageFormat
+import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CaptureRequest
 import android.media.ImageWriter
 import android.os.SystemClock
+import android.util.Pair
 import android.util.Size
 import android.view.Surface
 import androidx.annotation.OptIn
@@ -29,6 +31,7 @@ import androidx.camera.core.CameraInfo
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageProcessingUtil
 import androidx.camera.core.ImageReaderProxys
+import androidx.camera.core.impl.AdapterCameraInfo
 import androidx.camera.core.impl.CameraCaptureFailure
 import androidx.camera.core.impl.CameraCaptureResult
 import androidx.camera.core.impl.Config
@@ -37,7 +40,6 @@ import androidx.camera.core.impl.ImageReaderProxy
 import androidx.camera.core.impl.OptionsBundle
 import androidx.camera.core.impl.OutputSurfaceConfiguration
 import androidx.camera.core.impl.RequestProcessor
-import androidx.camera.core.impl.RestrictedCameraInfo
 import androidx.camera.core.impl.SessionConfig
 import androidx.camera.core.impl.SessionProcessor
 import androidx.camera.core.impl.SessionProcessorSurface
@@ -56,6 +58,8 @@ public class FakeSessionProcessor(
     private val inputFormatPreview: Int? = null,
     private val inputFormatCapture: Int? = null,
     private val postviewSupportedSizes: Map<Int, List<Size>>? = null,
+    private val supportedCameraOperations: Set<Int> = emptySet(),
+    private val extensionSpecificChars: List<Pair<CameraCharacteristics.Key<*>, Any>>? = emptyList()
 ) : SessionProcessor {
     private lateinit var previewProcessorSurface: DeferrableSurface
     private lateinit var captureProcessorSurface: DeferrableSurface
@@ -89,8 +93,7 @@ public class FakeSessionProcessor(
     private var rotationDegrees = 0
     private var jpegQuality = 100
 
-    @RestrictedCameraInfo.CameraOperation
-    public var restrictedCameraOperations: Set<Int> = emptySet()
+    @AdapterCameraInfo.CameraOperation public var restrictedCameraOperations: Set<Int> = emptySet()
 
     public fun releaseSurfaces() {
         intermediaPreviewImageReader?.close()
@@ -108,10 +111,10 @@ public class FakeSessionProcessor(
     @OptIn(ExperimentalGetImage::class)
     override fun initSession(
         cameraInfo: CameraInfo,
-        outputSurfaceConfig: OutputSurfaceConfiguration
+        outputSurfaceConfig: OutputSurfaceConfiguration?
     ): SessionConfig {
         initSessionCalled.complete(SystemClock.elapsedRealtimeNanos())
-        initSessionOutputSurfaceConfiguration.complete(outputSurfaceConfig)
+        initSessionOutputSurfaceConfiguration.complete(outputSurfaceConfig!!)
         val sessionBuilder = SessionConfig.Builder()
 
         val previewSurfaceConfig = outputSurfaceConfig.previewOutputSurface
@@ -249,9 +252,9 @@ public class FakeSessionProcessor(
         return latestParameters
     }
 
-    @RestrictedCameraInfo.CameraOperation
+    @AdapterCameraInfo.CameraOperation
     override fun getSupportedCameraOperations(): Set<Int> {
-        return restrictedCameraOperations
+        return supportedCameraOperations
     }
 
     override fun getSupportedPostviewSize(captureSize: Size): Map<Int, List<Size>> {
@@ -413,6 +416,9 @@ public class FakeSessionProcessor(
     }
 
     override fun abortCapture(captureSequenceId: Int) {}
+
+    override fun getAvailableCharacteristicsKeyValues():
+        List<Pair<CameraCharacteristics.Key<*>, Any>> = extensionSpecificChars!!
 
     public suspend fun assertInitSessionInvoked(): Long {
         return initSessionCalled.awaitWithTimeout(3000)

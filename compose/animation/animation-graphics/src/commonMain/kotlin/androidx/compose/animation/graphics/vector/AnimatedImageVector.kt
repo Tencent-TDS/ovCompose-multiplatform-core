@@ -16,7 +16,6 @@
 
 package androidx.compose.animation.graphics.vector
 
-import androidx.compose.animation.graphics.ExperimentalAnimationGraphicsApi
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.util.fastMaxBy
@@ -29,7 +28,6 @@ import androidx.compose.ui.util.fastMaxBy
  * @param imageVector The [ImageVector] to be animated. This is represented with the
  *   `android:drawable` parameter of an `<animated-vector>` element.
  */
-@ExperimentalAnimationGraphicsApi
 @Immutable
 public class AnimatedImageVector
 internal constructor(

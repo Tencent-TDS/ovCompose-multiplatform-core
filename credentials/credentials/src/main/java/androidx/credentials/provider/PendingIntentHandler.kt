@@ -28,10 +28,13 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RestrictTo
 import androidx.credentials.CreateCredentialResponse
+import androidx.credentials.Credential
 import androidx.credentials.CredentialOption
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.CreateCredentialException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.internal.toJetpackCreateException
+import androidx.credentials.internal.toJetpackGetException
 import androidx.credentials.provider.utils.BeginGetCredentialUtil
 import java.util.stream.Collectors
 
@@ -121,6 +124,19 @@ class PendingIntentHandler {
             }
         }
 
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @JvmStatic
+        fun retrieveCreateCredentialResponse(
+            type: String,
+            intent: Intent
+        ): CreateCredentialResponse? {
+            return if (Build.VERSION.SDK_INT >= 34) {
+                Api34Impl.extractCreateCredentialResponse(type, intent)
+            } else {
+                Api23Impl.extractCreateCredentialResponse(intent)
+            }
+        }
+
         /**
          * Extracts the [ProviderGetCredentialRequest] from the provider's [PendingIntent] invoked
          * by the Android system, when the user selects a [CredentialEntry].
@@ -162,6 +178,16 @@ class PendingIntentHandler {
                 Api34Impl.setGetCredentialResponse(intent, response)
             } else {
                 Api23Impl.setGetCredentialResponse(intent, response)
+            }
+        }
+
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @JvmStatic
+        fun retrieveGetCredentialResponse(intent: Intent): GetCredentialResponse? {
+            return if (Build.VERSION.SDK_INT >= 34) {
+                Api34Impl.extractGetCredentialResponse(intent)
+            } else {
+                Api23Impl.extractGetCredentialResponse(intent)
             }
         }
 
@@ -227,6 +253,16 @@ class PendingIntentHandler {
             }
         }
 
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @JvmStatic
+        fun retrieveGetCredentialException(intent: Intent): GetCredentialException? {
+            return if (Build.VERSION.SDK_INT >= 34) {
+                Api34Impl.extractGetCredentialException(intent)
+            } else {
+                Api23Impl.extractGetCredentialException(intent)
+            }
+        }
+
         /**
          * Sets the [androidx.credentials.exceptions.CreateCredentialException] if an error is
          * encountered during the final phase of the create credential flow.
@@ -262,6 +298,16 @@ class PendingIntentHandler {
                 Api23Impl.setCreateCredentialException(intent, exception)
             }
         }
+
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        @JvmStatic
+        fun retrieveCreateCredentialException(intent: Intent): CreateCredentialException? {
+            return if (Build.VERSION.SDK_INT >= 34) {
+                Api34Impl.extractCreateCredentialException(intent)
+            } else {
+                Api23Impl.extractCreateCredentialException(intent)
+            }
+        }
     }
 
     @SuppressLint("ObsoleteSdkInt") // TODO: b/356939416 - remove with official API update
@@ -273,10 +319,11 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.CREATE_CREDENTIAL_REQUEST"
 
             @JvmStatic
-            fun Intent.setProviderCreateCredentialRequest(
+            fun setProviderCreateCredentialRequest(
+                intent: Intent,
                 request: ProviderCreateCredentialRequest
             ) {
-                this.putExtra(
+                intent.putExtra(
                     EXTRA_CREATE_CREDENTIAL_REQUEST,
                     ProviderCreateCredentialRequest.asBundle(request)
                 )
@@ -286,17 +333,21 @@ class PendingIntentHandler {
             fun retrieveProviderCreateCredentialRequest(
                 intent: Intent
             ): ProviderCreateCredentialRequest? {
-                return ProviderCreateCredentialRequest.fromBundle(
-                    intent.getBundleExtra(EXTRA_CREATE_CREDENTIAL_REQUEST) ?: return null
-                )
+                return try {
+                    ProviderCreateCredentialRequest.fromBundle(
+                        intent.getBundleExtra(EXTRA_CREATE_CREDENTIAL_REQUEST) ?: return null
+                    )
+                } catch (e: Exception) {
+                    null
+                }
             }
 
             private const val EXTRA_BEGIN_GET_CREDENTIAL_REQUEST =
                 "android.service.credentials.extra.BEGIN_GET_CREDENTIAL_REQUEST"
 
             @JvmStatic
-            fun Intent.setBeginGetCredentialRequest(request: BeginGetCredentialRequest) {
-                this.putExtra(
+            fun setBeginGetCredentialRequest(intent: Intent, request: BeginGetCredentialRequest) {
+                intent.putExtra(
                     EXTRA_BEGIN_GET_CREDENTIAL_REQUEST,
                     BeginGetCredentialRequest.asBundle(request)
                 )
@@ -313,9 +364,9 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.CREATE_CREDENTIAL_RESPONSE"
 
             @JvmStatic
-            fun Intent.extractCreateCredentialResponse(): CreateCredentialResponse? {
+            fun extractCreateCredentialResponse(intent: Intent): CreateCredentialResponse? {
                 return CreateCredentialResponse.fromBundle(
-                    this.getBundleExtra(EXTRA_CREATE_CREDENTIAL_RESPONSE) ?: return null
+                    intent.getBundleExtra(EXTRA_CREATE_CREDENTIAL_RESPONSE) ?: return null
                 )
             }
 
@@ -331,8 +382,11 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.GET_CREDENTIAL_REQUEST"
 
             @JvmStatic
-            fun Intent.setProviderGetCredentialRequest(request: ProviderGetCredentialRequest) {
-                this.putExtra(
+            fun setProviderGetCredentialRequest(
+                intent: Intent,
+                request: ProviderGetCredentialRequest
+            ) {
+                intent.putExtra(
                     EXTRA_GET_CREDENTIAL_REQUEST,
                     ProviderGetCredentialRequest.asBundle(request)
                 )
@@ -342,18 +396,22 @@ class PendingIntentHandler {
             fun retrieveProviderGetCredentialRequest(
                 intent: Intent
             ): ProviderGetCredentialRequest? {
-                return ProviderGetCredentialRequest.fromBundle(
-                    intent.getBundleExtra(EXTRA_GET_CREDENTIAL_REQUEST) ?: return null
-                )
+                return try {
+                    ProviderGetCredentialRequest.fromBundle(
+                        intent.getBundleExtra(EXTRA_GET_CREDENTIAL_REQUEST) ?: return null
+                    )
+                } catch (e: Exception) {
+                    null
+                }
             }
 
             private const val EXTRA_GET_CREDENTIAL_RESPONSE =
                 "android.service.credentials.extra.GET_CREDENTIAL_RESPONSE"
 
             @JvmStatic
-            fun Intent.extractGetCredentialResponse(): GetCredentialResponse? {
+            fun extractGetCredentialResponse(intent: Intent): GetCredentialResponse? {
                 return GetCredentialResponse.fromBundle(
-                    this.getBundleExtra(EXTRA_GET_CREDENTIAL_RESPONSE) ?: return null
+                    intent.getBundleExtra(EXTRA_GET_CREDENTIAL_RESPONSE) ?: return null
                 )
             }
 
@@ -369,9 +427,9 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.BEGIN_GET_CREDENTIAL_RESPONSE"
 
             @JvmStatic
-            fun Intent.extractBeginGetCredentialResponse(): BeginGetCredentialResponse? {
+            fun extractBeginGetCredentialResponse(intent: Intent): BeginGetCredentialResponse? {
                 return BeginGetCredentialResponse.fromBundle(
-                    this.getBundleExtra(EXTRA_BEGIN_GET_CREDENTIAL_RESPONSE) ?: return null
+                    intent.getBundleExtra(EXTRA_BEGIN_GET_CREDENTIAL_RESPONSE) ?: return null
                 )
             }
 
@@ -390,9 +448,9 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.GET_CREDENTIAL_EXCEPTION"
 
             @JvmStatic
-            fun Intent.extractGetCredentialException(): GetCredentialException? {
+            fun extractGetCredentialException(intent: Intent): GetCredentialException? {
                 return GetCredentialException.fromBundle(
-                    this.getBundleExtra(EXTRA_GET_CREDENTIAL_EXCEPTION) ?: return null
+                    intent.getBundleExtra(EXTRA_GET_CREDENTIAL_EXCEPTION) ?: return null
                 )
             }
 
@@ -408,9 +466,9 @@ class PendingIntentHandler {
                 "android.service.credentials.extra.CREATE_CREDENTIAL_EXCEPTION"
 
             @JvmStatic
-            fun Intent.extractCreateCredentialException(): CreateCredentialException? {
+            fun extractCreateCredentialException(intent: Intent): CreateCredentialException? {
                 return CreateCredentialException.fromBundle(
-                    this.getBundleExtra(EXTRA_CREATE_CREDENTIAL_EXCEPTION) ?: return null
+                    intent.getBundleExtra(EXTRA_CREATE_CREDENTIAL_EXCEPTION) ?: return null
                 )
             }
 
@@ -570,8 +628,32 @@ class PendingIntentHandler {
                         frameworkReq.callingAppInfo.signingInfo,
                         frameworkReq.callingAppInfo.origin
                     ),
-                    biometricPromptResult
+                    biometricPromptResult,
+                    intent.extras
                 )
+            }
+
+            @JvmStatic
+            fun extractCreateCredentialResponse(
+                type: String,
+                intent: Intent
+            ): CreateCredentialResponse? {
+                val response =
+                    intent.getParcelableExtra(
+                        CredentialProviderService.EXTRA_CREATE_CREDENTIAL_RESPONSE,
+                        android.credentials.CreateCredentialResponse::class.java
+                    ) ?: return null
+                return CreateCredentialResponse.createFrom(type, response.data)
+            }
+
+            @JvmStatic
+            fun extractGetCredentialResponse(intent: Intent): GetCredentialResponse? {
+                val response =
+                    intent.getParcelableExtra(
+                        CredentialProviderService.EXTRA_GET_CREDENTIAL_RESPONSE,
+                        android.credentials.GetCredentialResponse::class.java
+                    ) ?: return null
+                return GetCredentialResponse(Credential.Companion.createFrom(response.credential))
             }
 
             @JvmStatic
@@ -596,6 +678,26 @@ class PendingIntentHandler {
                     CredentialProviderService.EXTRA_BEGIN_GET_CREDENTIAL_RESPONSE,
                     BeginGetCredentialUtil.convertToFrameworkResponse(response)
                 )
+            }
+
+            @JvmStatic
+            fun extractCreateCredentialException(intent: Intent): CreateCredentialException? {
+                val ex =
+                    intent.getSerializableExtra(
+                        CredentialProviderService.EXTRA_CREATE_CREDENTIAL_EXCEPTION,
+                        android.credentials.CreateCredentialException::class.java
+                    ) ?: return null
+                return toJetpackCreateException(ex.type, ex.message)
+            }
+
+            @JvmStatic
+            fun extractGetCredentialException(intent: Intent): GetCredentialException? {
+                val ex =
+                    intent.getSerializableExtra(
+                        CredentialProviderService.EXTRA_GET_CREDENTIAL_EXCEPTION,
+                        android.credentials.GetCredentialException::class.java
+                    ) ?: return null
+                return toJetpackGetException(ex.type, ex.message)
             }
 
             @JvmStatic

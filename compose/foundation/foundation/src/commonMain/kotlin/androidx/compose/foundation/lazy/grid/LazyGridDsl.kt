@@ -16,13 +16,13 @@
 
 package androidx.compose.foundation.lazy.grid
 
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
@@ -58,6 +58,9 @@ import androidx.compose.ui.unit.dp
  * @param flingBehavior logic describing fling behavior
  * @param userScrollEnabled whether the scrolling via the user gestures or accessibility actions is
  *   allowed. You can still scroll programmatically using the state even when it is disabled.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content the [LazyGridScope] which describes the content
  */
 @Composable
@@ -72,10 +75,11 @@ fun LazyVerticalGrid(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
     flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
     content: LazyGridScope.() -> Unit
 ) {
     LazyGrid(
-        slots = rememberColumnWidthSums(columns, horizontalArrangement, contentPadding),
+        slots = rememberColumnWidthSums(columns, horizontalArrangement),
         modifier = modifier,
         state = state,
         contentPadding = contentPadding,
@@ -85,6 +89,37 @@ fun LazyVerticalGrid(
         verticalArrangement = verticalArrangement,
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = overscrollEffect,
+        content = content
+    )
+}
+
+@Deprecated("Use the non deprecated overload", level = DeprecationLevel.HIDDEN)
+@Composable
+fun LazyVerticalGrid(
+    columns: GridCells,
+    modifier: Modifier = Modifier,
+    state: LazyGridState = rememberLazyGridState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    verticalArrangement: Arrangement.Vertical =
+        if (!reverseLayout) Arrangement.Top else Arrangement.Bottom,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    content: LazyGridScope.() -> Unit
+) {
+    LazyVerticalGrid(
+        columns = columns,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        reverseLayout = reverseLayout,
+        verticalArrangement = verticalArrangement,
+        horizontalArrangement = horizontalArrangement,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        overscrollEffect = rememberOverscrollEffect(),
         content = content
     )
 }
@@ -112,6 +147,9 @@ fun LazyVerticalGrid(
  * @param flingBehavior logic describing fling behavior
  * @param userScrollEnabled whether the scrolling via the user gestures or accessibility actions is
  *   allowed. You can still scroll programmatically using the state even when it is disabled.
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   layout. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param content the [LazyGridScope] which describes the content
  */
 @Composable
@@ -126,10 +164,11 @@ fun LazyHorizontalGrid(
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
     userScrollEnabled: Boolean = true,
+    overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
     content: LazyGridScope.() -> Unit
 ) {
     LazyGrid(
-        slots = rememberRowHeightSums(rows, verticalArrangement, contentPadding),
+        slots = rememberRowHeightSums(rows, verticalArrangement),
         modifier = modifier,
         state = state,
         contentPadding = contentPadding,
@@ -139,6 +178,37 @@ fun LazyHorizontalGrid(
         verticalArrangement = verticalArrangement,
         flingBehavior = flingBehavior,
         userScrollEnabled = userScrollEnabled,
+        overscrollEffect = overscrollEffect,
+        content = content
+    )
+}
+
+@Deprecated("Use the non deprecated overload", level = DeprecationLevel.HIDDEN)
+@Composable
+fun LazyHorizontalGrid(
+    rows: GridCells,
+    modifier: Modifier = Modifier,
+    state: LazyGridState = rememberLazyGridState(),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    reverseLayout: Boolean = false,
+    horizontalArrangement: Arrangement.Horizontal =
+        if (!reverseLayout) Arrangement.Start else Arrangement.End,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    flingBehavior: FlingBehavior = ScrollableDefaults.flingBehavior(),
+    userScrollEnabled: Boolean = true,
+    content: LazyGridScope.() -> Unit
+) {
+    LazyHorizontalGrid(
+        rows = rows,
+        modifier = modifier,
+        state = state,
+        contentPadding = contentPadding,
+        reverseLayout = reverseLayout,
+        horizontalArrangement = horizontalArrangement,
+        verticalArrangement = verticalArrangement,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        overscrollEffect = rememberOverscrollEffect(),
         content = content
     )
 }
@@ -147,22 +217,18 @@ fun LazyHorizontalGrid(
 @Composable
 private fun rememberColumnWidthSums(
     columns: GridCells,
-    horizontalArrangement: Arrangement.Horizontal,
-    contentPadding: PaddingValues
+    horizontalArrangement: Arrangement.Horizontal
 ) =
     remember<LazyGridSlotsProvider>(
         columns,
         horizontalArrangement,
-        contentPadding,
     ) {
         GridSlotCache { constraints ->
             requirePrecondition(constraints.maxWidth != Constraints.Infinity) {
                 "LazyVerticalGrid's width should be bound by parent."
             }
-            val horizontalPadding =
-                contentPadding.calculateStartPadding(LayoutDirection.Ltr) +
-                    contentPadding.calculateEndPadding(LayoutDirection.Ltr)
-            val gridWidth = constraints.maxWidth - horizontalPadding.roundToPx()
+
+            val gridWidth = constraints.maxWidth
             with(columns) {
                 calculateCrossAxisCellSizes(gridWidth, horizontalArrangement.spacing.roundToPx())
                     .toIntArray()
@@ -179,23 +245,14 @@ private fun rememberColumnWidthSums(
 
 /** Returns prefix sums of row heights. */
 @Composable
-private fun rememberRowHeightSums(
-    rows: GridCells,
-    verticalArrangement: Arrangement.Vertical,
-    contentPadding: PaddingValues
-) =
-    remember<LazyGridSlotsProvider>(
-        rows,
-        verticalArrangement,
-        contentPadding,
-    ) {
+private fun rememberRowHeightSums(rows: GridCells, verticalArrangement: Arrangement.Vertical) =
+    remember<LazyGridSlotsProvider>(rows, verticalArrangement) {
         GridSlotCache { constraints ->
             requirePrecondition(constraints.maxHeight != Constraints.Infinity) {
                 "LazyHorizontalGrid's height should be bound by parent."
             }
-            val verticalPadding =
-                contentPadding.calculateTopPadding() + contentPadding.calculateBottomPadding()
-            val gridHeight = constraints.maxHeight - verticalPadding.roundToPx()
+
+            val gridHeight = constraints.maxHeight
             with(rows) {
                 calculateCrossAxisCellSizes(gridHeight, verticalArrangement.spacing.roundToPx())
                     .toIntArray()
@@ -421,6 +478,31 @@ sealed interface LazyGridScope {
         span: (LazyGridItemSpanScope.(index: Int) -> GridItemSpan)? = null,
         contentType: (index: Int) -> Any? = { null },
         itemContent: @Composable LazyGridItemScope.(index: Int) -> Unit
+    )
+
+    /**
+     * Adds a sticky header item, which will remain pinned even when scrolling after it. The header
+     * will remain pinned until the next header will take its place. Sticky Headers are full span
+     * items, that is, they will occupy [LazyGridItemSpanScope.maxLineSpan].
+     *
+     * @sample androidx.compose.foundation.samples.StickyHeaderGridSample
+     * @param key a stable and unique key representing the item. Using the same key for multiple
+     *   items in the list is not allowed. Type of the key should be saveable via Bundle on Android.
+     *   If null is passed the position in the list will represent the key. When you specify the key
+     *   the scroll position will be maintained based on the key, which means if you add/remove
+     *   items before the current visible item the item with the given key will be kept as the first
+     *   visible one. This can be overridden by calling 'requestScrollToItem' on the
+     *   'LazyGridState'.
+     * @param contentType the type of the content of this item. The item compositions of the same
+     *   type could be reused more efficiently. Note that null is a valid type and items of such
+     *   type will be considered compatible.
+     * @param content the content of the header. The header index is provided, this is the item
+     *   position within the total set of items in this lazy list (the global index).
+     */
+    fun stickyHeader(
+        key: Any? = null,
+        contentType: Any? = null,
+        content: @Composable LazyGridItemScope.(Int) -> Unit
     )
 }
 

@@ -18,12 +18,11 @@ package androidx.room.solver.query.result
 
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
+import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.applyTo
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.processing.XType
 import androidx.room.ext.ArrayLiteral
-import androidx.room.ext.CallableTypeSpecBuilder
 import androidx.room.ext.CommonTypeNames
 import androidx.room.ext.InvokeWithLambdaParameter
 import androidx.room.ext.LambdaSpec
@@ -38,59 +37,11 @@ internal class RxQueryResultBinder(
     val queryTableNames: Set<String>,
     adapter: QueryResultAdapter?
 ) : BaseObservableQueryResultBinder(adapter) {
-    override fun convertAndReturn(
-        roomSQLiteQueryVar: String,
-        canReleaseQuery: Boolean,
-        dbProperty: XPropertySpec,
-        inTransaction: Boolean,
-        scope: CodeGenScope
-    ) {
-        val callableImpl =
-            CallableTypeSpecBuilder(scope.language, typeArg.asTypeName()) {
-                    addCode(
-                        XCodeBlock.builder(language)
-                            .apply {
-                                createRunQueryAndReturnStatements(
-                                    builder = this,
-                                    roomSQLiteQueryVar = roomSQLiteQueryVar,
-                                    inTransaction = inTransaction,
-                                    dbProperty = dbProperty,
-                                    scope = scope,
-                                    cancellationSignalVar = "null"
-                                )
-                            }
-                            .build()
-                    )
-                }
-                .apply {
-                    if (canReleaseQuery) {
-                        createFinalizeMethod(roomSQLiteQueryVar)
-                    }
-                }
-        scope.builder.apply {
-            val arrayOfTableNamesLiteral =
-                ArrayLiteral(
-                    scope.language,
-                    CommonTypeNames.STRING,
-                    *queryTableNames.toTypedArray()
-                )
-            addStatement(
-                "return %M(%N, %L, %L, %L)",
-                rxType.factoryMethodName,
-                dbProperty,
-                if (inTransaction) "true" else "false",
-                arrayOfTableNamesLiteral,
-                callableImpl.build()
-            )
-        }
-    }
-
-    override fun isMigratedToDriver() = adapter?.isMigratedToDriver() ?: false
 
     override fun convertAndReturn(
         sqlQueryVar: String,
         dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
+        bindStatement: (CodeGenScope.(String) -> Unit)?,
         returnTypeName: XTypeName,
         inTransaction: Boolean,
         scope: CodeGenScope
@@ -105,11 +56,7 @@ internal class RxQueryResultBinder(
                     listOf(
                         dbProperty,
                         inTransaction,
-                        ArrayLiteral(
-                            scope.language,
-                            CommonTypeNames.STRING,
-                            *queryTableNames.toTypedArray()
-                        )
+                        ArrayLiteral(CommonTypeNames.STRING, *queryTableNames.toTypedArray())
                     ),
                 lambdaSpec =
                     object :
@@ -120,11 +67,6 @@ internal class RxQueryResultBinder(
                             javaLambdaSyntaxAvailable = scope.javaLambdaSyntaxAvailable
                         ) {
                         override fun XCodeBlock.Builder.body(scope: CodeGenScope) {
-                            val returnPrefix =
-                                when (language) {
-                                    CodeLanguage.JAVA -> "return "
-                                    CodeLanguage.KOTLIN -> ""
-                                }
                             val statementVar = scope.getTmpVar("_stmt")
                             addLocalVal(
                                 statementVar,
@@ -134,10 +76,15 @@ internal class RxQueryResultBinder(
                                 sqlQueryVar
                             )
                             beginControlFlow("try")
-                            bindStatement(scope, statementVar)
+                            bindStatement?.invoke(scope, statementVar)
                             val outVar = scope.getTmpVar("_result")
                             adapter?.convert(outVar, statementVar, scope)
-                            addStatement("$returnPrefix%L", outVar)
+                            applyTo { language ->
+                                when (language) {
+                                    CodeLanguage.JAVA -> addStatement("return %L", outVar)
+                                    CodeLanguage.KOTLIN -> addStatement("%L", outVar)
+                                }
+                            }
                             nextControlFlow("finally")
                             addStatement("%L.close()", statementVar)
                             endControlFlow()

@@ -34,7 +34,6 @@ import androidx.activity.addCallback
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -103,7 +102,7 @@ actual class ModalBottomSheetProperties(
         shouldDismissOnBackPress: Boolean,
     ) : this(
         securePolicy = SecureFlagPolicy.Inherit,
-        shouldDismissOnBackPress = shouldDismissOnBackPress
+        shouldDismissOnBackPress = shouldDismissOnBackPress,
     )
 
     @Deprecated(
@@ -117,7 +116,27 @@ actual class ModalBottomSheetProperties(
         securePolicy: SecureFlagPolicy,
         isFocusable: Boolean,
         shouldDismissOnBackPress: Boolean,
-    ) : this(securePolicy, shouldDismissOnBackPress)
+    ) : this(
+        securePolicy = securePolicy,
+        shouldDismissOnBackPress = shouldDismissOnBackPress,
+    )
+
+    @Deprecated(
+        level = DeprecationLevel.HIDDEN,
+        message = "Android-specific parameters have been removed",
+        replaceWith =
+            ReplaceWith("ModalBottomSheetProperties(securePolicy, shouldDismissOnBackPress)")
+    )
+    @Suppress("UNUSED_PARAMETER")
+    constructor(
+        securePolicy: SecureFlagPolicy = SecureFlagPolicy.Inherit,
+        shouldDismissOnBackPress: Boolean = true,
+        isAppearanceLightStatusBars: Boolean = true,
+        isAppearanceLightNavigationBars: Boolean = true,
+    ) : this(
+        securePolicy = securePolicy,
+        shouldDismissOnBackPress = shouldDismissOnBackPress,
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -168,8 +187,7 @@ actual object ModalBottomSheetDefaults {
 }
 
 /**
- * <a href="https://m3.material.io/components/bottom-sheets/overview" class="external"
- * target="_blank">Material Design modal bottom sheet</a>.
+ * [Material Design modal bottom sheet](https://m3.material.io/components/bottom-sheets/overview)
  *
  * Modal bottom sheets are used as an alternative to inline menus or simple dialogs on mobile,
  * especially when offering a long list of action items, or when items require longer descriptions
@@ -266,6 +284,7 @@ fun ModalBottomSheet(
 @Composable
 internal actual fun ModalBottomSheetDialog(
     onDismissRequest: () -> Unit,
+    contentColor: Color,
     properties: ModalBottomSheetProperties,
     predictiveBackProgress: Animatable<Float, AnimationVector1D>,
     content: @Composable () -> Unit
@@ -277,19 +296,18 @@ internal actual fun ModalBottomSheetDialog(
     val currentContent by rememberUpdatedState(content)
     val dialogId = rememberSaveable { UUID.randomUUID() }
     val scope = rememberCoroutineScope()
-    val darkThemeEnabled = isSystemInDarkTheme()
     val dialog =
         remember(view, density) {
             ModalBottomSheetDialogWrapper(
                     onDismissRequest,
                     properties,
+                    contentColor,
                     view,
                     layoutDirection,
                     density,
                     dialogId,
                     predictiveBackProgress,
                     scope,
-                    darkThemeEnabled,
                 )
                 .apply {
                     setContent(composition) {
@@ -315,7 +333,8 @@ internal actual fun ModalBottomSheetDialog(
         dialog.updateParameters(
             onDismissRequest = onDismissRequest,
             properties = properties,
-            layoutDirection = layoutDirection
+            contentColor = contentColor,
+            layoutDirection = layoutDirection,
         )
     }
 }
@@ -431,7 +450,7 @@ private class ModalBottomSheetDialogLayout(
                 view
                     .findOnBackInvokedDispatcher()
                     ?.registerOnBackInvokedCallback(
-                        OnBackInvokedDispatcher.PRIORITY_OVERLAY,
+                        OnBackInvokedDispatcher.PRIORITY_DEFAULT,
                         backCallback
                     )
             }
@@ -453,13 +472,13 @@ private class ModalBottomSheetDialogLayout(
 private class ModalBottomSheetDialogWrapper(
     private var onDismissRequest: () -> Unit,
     private var properties: ModalBottomSheetProperties,
+    private var contentColor: Color,
     private val composeView: View,
     layoutDirection: LayoutDirection,
     density: Density,
     dialogId: UUID,
     predictiveBackProgress: Animatable<Float, AnimationVector1D>,
     scope: CoroutineScope,
-    darkThemeEnabled: Boolean,
 ) :
     ComponentDialog(
         ContextThemeWrapper(
@@ -530,11 +549,13 @@ private class ModalBottomSheetDialogWrapper(
         )
 
         // Initial setup
-        updateParameters(onDismissRequest, properties, layoutDirection)
+        updateParameters(onDismissRequest, properties, contentColor, layoutDirection)
 
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = !darkThemeEnabled
-            isAppearanceLightNavigationBars = !darkThemeEnabled
+            // Theme system bars based on content color. Light system bars provide dark icons
+            // and vice-versa. This maintains visible system bars for the bottom sheet window.
+            isAppearanceLightStatusBars = contentColor.isDark()
+            isAppearanceLightNavigationBars = contentColor.isDark()
         }
         // Due to how the onDismissRequest callback works
         // (it enforces a just-in-time decision on whether to update the state to hide the dialog)
@@ -576,10 +597,12 @@ private class ModalBottomSheetDialogWrapper(
     fun updateParameters(
         onDismissRequest: () -> Unit,
         properties: ModalBottomSheetProperties,
+        contentColor: Color,
         layoutDirection: LayoutDirection
     ) {
         this.onDismissRequest = onDismissRequest
         this.properties = properties
+        this.contentColor = contentColor
         setSecurePolicy(properties.securePolicy)
         setLayoutDirection(layoutDirection)
 

@@ -33,7 +33,7 @@ import kotlin.coroutines.CoroutineContext
 @Suppress("UNUSED_PARAMETER")
 actual open class DatabaseConfiguration
 @SuppressLint("LambdaLast")
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 constructor(
     /* The context to use while connecting to the database. */
     @JvmField val context: Context,
@@ -67,7 +67,7 @@ constructor(
      *
      * @see [multiInstanceInvalidation]
      */
-    @field:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @field:RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @JvmField
     val multiInstanceInvalidationServiceIntent: Intent?,
 
@@ -112,6 +112,8 @@ constructor(
     @JvmField
     val multiInstanceInvalidation: Boolean = multiInstanceInvalidationServiceIntent != null
 
+    internal var useTempTrackingTable = true
+
     /**
      * Creates a database configuration with the given values.
      *
@@ -128,7 +130,7 @@ constructor(
      * @param migrationNotRequiredFrom The collection of schema versions from which migrations
      *   aren't required.
      */
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -186,7 +188,7 @@ constructor(
      *   aren't required.
      */
     @OptIn(ExperimentalRoomApi::class)
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -252,7 +254,7 @@ constructor(
      * @param copyFromFile The pre-packaged database file.
      */
     @OptIn(ExperimentalRoomApi::class)
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -322,7 +324,7 @@ constructor(
      *   database file will be copied from.
      */
     @OptIn(ExperimentalRoomApi::class)
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -395,7 +397,7 @@ constructor(
      */
     @OptIn(ExperimentalRoomApi::class)
     @SuppressLint("LambdaLast")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -470,7 +472,7 @@ constructor(
      */
     @OptIn(ExperimentalRoomApi::class)
     @SuppressLint("LambdaLast")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -547,7 +549,7 @@ constructor(
      */
     @OptIn(ExperimentalRoomApi::class)
     @SuppressLint("LambdaLast")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -625,7 +627,7 @@ constructor(
      * @param autoMigrationSpecs The auto migration specs.
      */
     @SuppressLint("LambdaLast")
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,
@@ -672,7 +674,7 @@ constructor(
         queryCoroutineContext = null
     )
 
-    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
     @Deprecated("This constructor is deprecated.")
     constructor(
         context: Context,

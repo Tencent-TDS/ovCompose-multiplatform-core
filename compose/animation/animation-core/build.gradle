@@ -22,7 +22,8 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
@@ -32,7 +33,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     jvmStubs()
     linuxX64Stubs()
 
@@ -54,6 +55,9 @@ androidXMultiplatform {
 
         commonTest {
             dependencies {
+                implementation(kotlin("test"))
+                implementation(libs.kotlinCoroutinesTest)
+                implementation(project(":kruth:kruth"))
             }
         }
 
@@ -114,12 +118,12 @@ androidXMultiplatform {
 }
 
 dependencies {
-    lintPublish project(":compose:animation:animation-core-lint")
+    lintPublish(project(":compose:animation:animation-core-lint"))
 }
 
 androidx {
     name = "Compose Animation Core"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2019"
     description = "Animation engine and animation primitives that are the building blocks of the Compose animation library"
     metalavaK2UastEnabled = false
@@ -127,6 +131,9 @@ androidx {
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.compose.animation.core"
+    compileSdk = 35
+    namespace = "androidx.compose.animation.core"
+    buildTypes.configureEach {
+        consumerProguardFiles("proguard-rules.pro")
+    }
 }

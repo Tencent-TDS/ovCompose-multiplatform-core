@@ -25,14 +25,14 @@ import kotlinx.coroutines.flow.StateFlow
  * Tracks requests to kick participants from a remote InCallService and invokes the supplied action
  * when a request comes in.
  *
- * @param participants A StateFlow containing the set of Participants in the call, which is used to
- *   validate the participant to kick is valid.
+ * @param participants A StateFlow containing a list of unique Participants in the call, which is
+ *   used to validate the participant to kick is valid.
  * @param onKickParticipant The action to perform when a request comes in from the remote
  *   InCallService to kick a participant.
  */
-@ExperimentalAppActions
+@OptIn(ExperimentalAppActions::class)
 internal class KickParticipantState(
-    val participants: StateFlow<Set<Participant>>,
+    val participants: StateFlow<List<Participant>>,
     private val onKickParticipant: suspend (Participant) -> Unit
 ) {
     companion object {
@@ -51,13 +51,15 @@ internal class KickParticipantState(
     }
 
     /**
-     * Registered to be called when the remote InCallService has requested to kick a Participant.
+     * Registers to be called when the remote InCallService has requested to kick a Participant.
      *
-     * @param participant The participant to kick
+     * @param participantId The id of the participant to kick
      */
-    private suspend fun kickParticipant(participant: Participant) {
-        if (!participants.value.contains(participant)) {
-            Log.w(LOG_TAG, "kickParticipant: $participant can not be found")
+    private suspend fun kickParticipant(participantId: String) {
+        val participant =
+            participants.value.firstOrNull { participant -> participant.id == participantId }
+        if (participant == null) {
+            Log.w(LOG_TAG, "kickParticipant: $participantId can not be found")
             return
         }
         Log.d(LOG_TAG, "kickParticipant: kicking $participant")

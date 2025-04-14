@@ -28,7 +28,7 @@ import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.RequestNumber
 import androidx.camera.camera2.pipe.Result3A
 import androidx.camera.camera2.pipe.StreamId
-import androidx.camera.camera2.pipe.core.tryAcquireToken
+import androidx.camera.camera2.pipe.internal.CameraGraphParametersImpl
 import androidx.camera.camera2.pipe.internal.FrameCaptureQueue
 import androidx.camera.camera2.pipe.testing.FakeCameraMetadata
 import androidx.camera.camera2.pipe.testing.FakeCaptureSequenceProcessor
@@ -40,7 +40,7 @@ import androidx.camera.camera2.pipe.testing.RobolectricCameraPipeTestRunner
 import androidx.testutils.assertThrows
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -57,7 +57,7 @@ internal class CameraGraphSessionImplTest {
     private val graphState3A = GraphState3A()
     private val listener3A = Listener3A()
     private val graphProcessor =
-        FakeGraphProcessor(graphState3A = graphState3A, defaultListeners = listOf(listener3A))
+        FakeGraphProcessor(graphListener3A = listener3A, defaultListeners = listOf(listener3A))
     private val fakeCaptureSequenceProcessor = FakeCaptureSequenceProcessor()
     private val fakeGraphRequestProcessor = GraphRequestProcessor.from(fakeCaptureSequenceProcessor)
     private val controller3A =
@@ -72,11 +72,18 @@ internal class CameraGraphSessionImplTest {
             listener3A
         )
     private val frameCaptureQueue = FrameCaptureQueue()
-    private val sessionMutex = Mutex()
+    private val sessionMutex = SessionLock()
     private val sessionToken = sessionMutex.tryAcquireToken()!!
-
+    private val testScope = TestScope()
+    private val parameters = CameraGraphParametersImpl(sessionMutex, graphProcessor, testScope)
     private val session =
-        CameraGraphSessionImpl(sessionToken, graphProcessor, controller3A, frameCaptureQueue)
+        CameraGraphSessionImpl(
+            sessionToken,
+            graphProcessor,
+            controller3A,
+            frameCaptureQueue,
+            parameters
+        )
 
     @Test
     fun createCameraGraphSession() {
@@ -102,12 +109,16 @@ internal class CameraGraphSessionImplTest {
         session.startRepeating(Request(streams = listOf(StreamId(1))))
         graphProcessor.invalidate()
 
-        val result = session.lock3A(aeLockBehavior = Lock3ABehavior.IMMEDIATE)
+        val deferred = session.lock3A(aeLockBehavior = Lock3ABehavior.IMMEDIATE)
+
+        assertThat(deferred.isCompleted).isFalse()
 
         // Don't return any results to simulate that the 3A conditions haven't been met, but the
         // app calls stopRepeating(). In which case, we should fail here with SUBMIT_CANCELLED.
         session.stopRepeating()
-        assertThat(result.await().status).isEqualTo(Result3A.Status.SUBMIT_CANCELLED)
+        assertThat(deferred.isCompleted).isTrue()
+        val result = deferred.await()
+        assertThat(result.status).isEqualTo(Result3A.Status.SUBMIT_CANCELLED)
     }
 
     @Test

@@ -234,8 +234,10 @@ object COMMON {
 fun testCodeGenScope(): CodeGenScope {
     return CodeGenScope(
         object : TypeWriter(WriterContext(CodeLanguage.JAVA, setOf(Platform.JVM), true)) {
+            override val packageName = "test"
+
             override fun createTypeSpecBuilder(): XTypeSpec.Builder {
-                return XTypeSpec.classBuilder(codeLanguage, XClassName.get("test", "Foo"))
+                return XTypeSpec.classBuilder("Foo")
             }
         }
     )
@@ -289,7 +291,7 @@ fun XTestInvocation.getEntities(): List<androidx.room.vo.Entity> {
 
 /**
  * Create mocks of [XElement] and [XType] so that they can be used for instantiating a fake
- * [androidx.room.vo.Field].
+ * [androidx.room.vo.Property].
  */
 fun mockElementAndType(): Pair<XFieldElement, XType> {
     val element = mock(XFieldElement::class.java)

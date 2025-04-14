@@ -18,7 +18,6 @@ package androidx.room.solver.prepared.binder
 
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.box
@@ -32,23 +31,6 @@ import androidx.room.solver.prepared.result.PreparedQueryResultAdapter
 /** Default binder for prepared queries. */
 class InstantPreparedQueryResultBinder(adapter: PreparedQueryResultAdapter?) :
     PreparedQueryResultBinder(adapter) {
-
-    override fun executeAndReturn(
-        prepareQueryStmtBlock: CodeGenScope.() -> String,
-        preparedStmtProperty: XPropertySpec?,
-        dbProperty: XPropertySpec,
-        scope: CodeGenScope
-    ) {
-        scope.builder.apply { addStatement("%N.assertNotSuspendingTransaction()", dbProperty) }
-        adapter?.executeAndReturn(
-            stmtQueryVal = scope.prepareQueryStmtBlock(),
-            preparedStmtProperty = preparedStmtProperty,
-            dbProperty = dbProperty,
-            scope = scope
-        )
-    }
-
-    override fun isMigratedToDriver(): Boolean = true
 
     override fun executeAndReturn(
         sqlQueryVar: String,

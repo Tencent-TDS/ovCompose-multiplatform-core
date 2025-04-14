@@ -21,18 +21,20 @@ import static android.Manifest.permission.SET_BIOMETRIC_DIALOG_ADVANCED;
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.os.Build;
+import android.security.identity.IdentityCredential;
+import android.security.identity.PresentationSession;
 import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IntDef;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.RequiresPermission;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.biometric.BiometricManager.Authenticators;
+import androidx.biometric.utils.AuthenticatorUtils;
+import androidx.biometric.utils.CryptoObjectUtils;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
@@ -40,6 +42,9 @@ import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStoreOwner;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -53,10 +58,10 @@ import javax.crypto.Mac;
 /**
  * A class that manages a system-provided biometric prompt. On devices running Android 9.0 (API 28)
  * and above, this will show a system-provided authentication prompt, using one of the device's
- * supported biometric modalities (fingerprint, iris, face, etc). Prior to Android 9.0, this will
- * instead show a custom fingerprint authentication dialog. The prompt will persist across
- * configuration changes unless explicitly canceled. For security reasons, the prompt will be
- * dismissed when the client application is no longer in the foreground.
+ * supported biometric modalities (fingerprint, iris, face, etc) with Class 2 or Class 3 strength.
+ * Prior to Android 9.0, this will instead show a custom fingerprint authentication dialog. The
+ * prompt will persist across configuration changes unless explicitly canceled. For security
+ * reasons, the prompt will be dismissed when the client application is no longer in the foreground.
  *
  * <p>To persist authentication across configuration changes, developers should (re)create the
  * prompt every time the activity/fragment is created. Instantiating the prompt with a new
@@ -64,6 +69,13 @@ import javax.crypto.Mac;
  * ongoing authentication session's callbacks to be received by the new fragment/activity instance.
  * Note that {@code cancelAuthentication()} should not be called, and {@code authenticate()} does
  * not need to be invoked during activity/fragment creation.
+ *
+ * <p>Note that if multiple instances of {@code BiometricPrompt} are created within a single
+ * Fragment or Activity, only the callback registered with the last created instance will be
+ * saved and receive authentication results. This behavior can lead to unexpected results if
+ * multiple independent biometric authentication flows are attempted within the same Fragment or
+ * Activity. It is highly recommended to avoid creating multiple BiometricPrompt instances in
+ * this scenario.
  */
 public class BiometricPrompt {
     private static final String TAG = "BiometricPromptCompat";
@@ -165,9 +177,34 @@ public class BiometricPrompt {
     public static final int ERROR_SECURITY_UPDATE_REQUIRED = 15;
 
     /**
-     * The user pressed the more options button on prompt content.
+     * The privacy setting has been enabled and will block use of the sensor.
      */
-    public static final int ERROR_MORE_OPTIONS_BUTTON = 16;
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public static final int ERROR_SENSOR_PRIVACY_ENABLED = 18;
+
+    /**
+     * Identity Check is currently not active.
+     *
+     * This device either doesn't have this feature enabled, or it's not considered in a
+     * high-risk environment that requires extra security measures for accessing sensitive data.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public static final int ERROR_IDENTITY_CHECK_NOT_ACTIVE = 20;
+
+    /**
+     * Biometrics is not allowed to verify the user in apps. It's for internal use only. This
+     * error code, introduced in API 35, was previously covered by ERROR_HW_UNAVAILABLE and
+     * doesn't need to be public. Therefore, for backward compatibility, this error will be
+     * converted to ERROR_HW_UNAVAILABLE.
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public static final int ERROR_NOT_ENABLED_FOR_APPS = 21;
+
+    /**
+     * The user pressed the more options button on {@link PromptContentViewWithMoreOptionsButton}
+     * set by {@link PromptInfo.Builder#setContentView}
+     */
+    public static final int ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON = 22;
 
     /**
      * An error code that may be returned during authentication.
@@ -186,7 +223,11 @@ public class BiometricPrompt {
         ERROR_HW_NOT_PRESENT,
         ERROR_NEGATIVE_BUTTON,
         ERROR_NO_DEVICE_CREDENTIAL,
-        ERROR_MORE_OPTIONS_BUTTON
+        ERROR_SECURITY_UPDATE_REQUIRED,
+        ERROR_SENSOR_PRIVACY_ENABLED,
+        ERROR_IDENTITY_CHECK_NOT_ACTIVE,
+        ERROR_NOT_ENABLED_FOR_APPS,
+        ERROR_CONTENT_VIEW_MORE_OPTIONS_BUTTON
     })
     @RestrictTo(RestrictTo.Scope.LIBRARY)
     @Retention(RetentionPolicy.SOURCE)
@@ -224,7 +265,8 @@ public class BiometricPrompt {
         AUTHENTICATION_RESULT_TYPE_BIOMETRIC
     })
     @Retention(RetentionPolicy.SOURCE)
-    @interface AuthenticationResultType {}
+    @RestrictTo(RestrictTo.Scope.LIBRARY)
+    public @interface AuthenticationResultType {}
 
     /**
      * Tag used to identify the {@link BiometricFragment} attached to the client activity/fragment.
@@ -236,11 +278,11 @@ public class BiometricPrompt {
      * A wrapper class for the crypto objects supported by {@link BiometricPrompt}.
      */
     public static class CryptoObject {
-        @Nullable private final Signature mSignature;
-        @Nullable private final Cipher mCipher;
-        @Nullable private final Mac mMac;
-        @Nullable private final android.security.identity.IdentityCredential mIdentityCredential;
-        @Nullable private final android.security.identity.PresentationSession mPresentationSession;
+        private final @Nullable Signature mSignature;
+        private final @Nullable Cipher mCipher;
+        private final @Nullable Mac mMac;
+        private final android.security.identity.@Nullable IdentityCredential mIdentityCredential;
+        private final android.security.identity.@Nullable PresentationSession mPresentationSession;
         private final long mOperationHandle;
 
         /**
@@ -290,10 +332,12 @@ public class BiometricPrompt {
          *
          * @param identityCredential The identity credential to be associated with this crypto
          *                           object.
+         * @deprecated Use {@link CryptoObject#CryptoObject(PresentationSession)} instead.
          */
         @RequiresApi(Build.VERSION_CODES.R)
+        @Deprecated
         public CryptoObject(
-                @NonNull android.security.identity.IdentityCredential identityCredential) {
+                android.security.identity.@NonNull IdentityCredential identityCredential) {
             mSignature = null;
             mCipher = null;
             mMac = null;
@@ -310,7 +354,7 @@ public class BiometricPrompt {
          */
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
         public CryptoObject(
-                @NonNull android.security.identity.PresentationSession presentationSession) {
+                android.security.identity.@NonNull PresentationSession presentationSession) {
             mSignature = null;
             mCipher = null;
             mMac = null;
@@ -341,8 +385,7 @@ public class BiometricPrompt {
          *
          * @return The signature, or {@code null} if none is associated with this object.
          */
-        @Nullable
-        public Signature getSignature() {
+        public @Nullable Signature getSignature() {
             return mSignature;
         }
 
@@ -351,8 +394,7 @@ public class BiometricPrompt {
          *
          * @return The cipher, or {@code null} if none is associated with this object.
          */
-        @Nullable
-        public Cipher getCipher() {
+        public @Nullable Cipher getCipher() {
             return mCipher;
         }
 
@@ -361,8 +403,7 @@ public class BiometricPrompt {
          *
          * @return The MAC, or {@code null} if none is associated with this object.
          */
-        @Nullable
-        public Mac getMac() {
+        public @Nullable Mac getMac() {
             return mMac;
         }
 
@@ -370,10 +411,11 @@ public class BiometricPrompt {
          * Gets the identity credential object associated with this crypto object.
          *
          * @return The identity credential, or {@code null} if none is associated with this object.
+         * @deprecated Use {@link PresentationSession} instead of {@link IdentityCredential}.
          */
         @RequiresApi(Build.VERSION_CODES.R)
-        @Nullable
-        public android.security.identity.IdentityCredential getIdentityCredential() {
+        @Deprecated
+        public android.security.identity.@Nullable IdentityCredential getIdentityCredential() {
             return mIdentityCredential;
         }
 
@@ -383,8 +425,7 @@ public class BiometricPrompt {
          * @return The presentation session, or {@code null} if none is associated with this object.
          */
         @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-        @Nullable
-        public android.security.identity.PresentationSession getPresentationSession() {
+        public android.security.identity.@Nullable PresentationSession getPresentationSession() {
             return mPresentationSession;
         }
 
@@ -412,7 +453,8 @@ public class BiometricPrompt {
          * this {@link androidx.biometric.BiometricPrompt.CryptoObject} to
          * {@link android.hardware.biometrics.BiometricPrompt}.
          */
-        long getOperationHandleCryptoObject() {
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        public long getOperationHandleCryptoObject() {
             return mOperationHandle;
         }
     }
@@ -425,8 +467,9 @@ public class BiometricPrompt {
         private final CryptoObject mCryptoObject;
         @AuthenticationResultType private final int mAuthenticationType;
 
-        AuthenticationResult(
-                CryptoObject crypto, @AuthenticationResultType int authenticationType) {
+        @RestrictTo(RestrictTo.Scope.LIBRARY)
+        public AuthenticationResult(@Nullable CryptoObject crypto,
+                @AuthenticationResultType int authenticationType) {
             mCryptoObject = crypto;
             mAuthenticationType = authenticationType;
         }
@@ -436,8 +479,7 @@ public class BiometricPrompt {
          *
          * @return The {@link CryptoObject} provided to {@code authenticate()}.
          */
-        @Nullable
-        public CryptoObject getCryptoObject() {
+        public @Nullable CryptoObject getCryptoObject() {
             return mCryptoObject;
         }
 
@@ -501,13 +543,13 @@ public class BiometricPrompt {
         public static class Builder {
             // Mutable options to be set on the builder.
             @DrawableRes private int mLogoRes = -1;
-            @Nullable private Bitmap mLogoBitmap = null;
-            @Nullable private String mLogoDescription = null;
-            @Nullable private CharSequence mTitle = null;
-            @Nullable private CharSequence mSubtitle = null;
-            @Nullable private CharSequence mDescription = null;
-            @Nullable private PromptContentView mPromptContentView = null;
-            @Nullable private CharSequence mNegativeButtonText = null;
+            private @Nullable Bitmap mLogoBitmap = null;
+            private @Nullable String mLogoDescription = null;
+            private @Nullable CharSequence mTitle = null;
+            private @Nullable CharSequence mSubtitle = null;
+            private @Nullable CharSequence mDescription = null;
+            private @Nullable PromptContentView mPromptContentView = null;
+            private @Nullable CharSequence mNegativeButtonText = null;
             private boolean mIsConfirmationRequired = true;
             private boolean mIsDeviceCredentialAllowed = false;
             @BiometricManager.AuthenticatorTypes private int mAllowedAuthenticators = 0;
@@ -524,8 +566,7 @@ public class BiometricPrompt {
              * @return This builder.
              */
             @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-            @NonNull
-            public Builder setLogoRes(@DrawableRes int logoRes) {
+            public @NonNull Builder setLogoRes(@DrawableRes int logoRes) {
                 mLogoRes = logoRes;
                 return this;
             }
@@ -542,8 +583,7 @@ public class BiometricPrompt {
              * @return This builder.
              */
             @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-            @NonNull
-            public Builder setLogoBitmap(@NonNull Bitmap logoBitmap) {
+            public @NonNull Builder setLogoBitmap(@NonNull Bitmap logoBitmap) {
                 mLogoBitmap = logoBitmap;
                 return this;
             }
@@ -562,8 +602,7 @@ public class BiometricPrompt {
              *                                  character limit.
              */
             @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-            @NonNull
-            public Builder setLogoDescription(@NonNull String logoDescription) {
+            public @NonNull Builder setLogoDescription(@NonNull String logoDescription) {
                 mLogoDescription = logoDescription;
                 return this;
             }
@@ -574,8 +613,7 @@ public class BiometricPrompt {
              * @param title The title to be displayed on the prompt.
              * @return This builder.
              */
-            @NonNull
-            public Builder setTitle(@NonNull CharSequence title) {
+            public @NonNull Builder setTitle(@NonNull CharSequence title) {
                 mTitle = title;
                 return this;
             }
@@ -586,8 +624,7 @@ public class BiometricPrompt {
              * @param subtitle The subtitle to be displayed on the prompt.
              * @return This builder.
              */
-            @NonNull
-            public Builder setSubtitle(@Nullable CharSequence subtitle) {
+            public @NonNull Builder setSubtitle(@Nullable CharSequence subtitle) {
                 mSubtitle = subtitle;
                 return this;
             }
@@ -595,16 +632,16 @@ public class BiometricPrompt {
             /**
              * Optional: Sets a description that will be shown on the prompt.
              *
-             * <p> Note that the description set by {@link Builder#setDescription(CharSequence)}
-             * will be overridden by {@link Builder#setContentView(PromptContentView)}. The view
-             * provided to {@link Builder#setContentView(PromptContentView)} will be used if both
-             * methods are called.
+             * <p> Note that from API 35, the description set by
+             * {@link Builder#setDescription(CharSequence)} will be overridden by
+             * {@link Builder#setContentView(PromptContentView)}. The view provided to
+             * {@link Builder#setContentView(PromptContentView)} will be used if both methods are
+             * called.
              *
              * @param description The description to display.
              * @return This builder.
              */
-            @NonNull
-            public Builder setDescription(@Nullable CharSequence description) {
+            public @NonNull Builder setDescription(@Nullable CharSequence description) {
                 mDescription = description;
                 return this;
             }
@@ -612,16 +649,16 @@ public class BiometricPrompt {
             /**
              * Optional: Sets application customized content view that will be shown on the prompt.
              *
-             * <p> Note that the description set by {@link Builder#setDescription(CharSequence)}
-             * will be overridden by {@link Builder#setContentView(PromptContentView)}. The view
-             * provided to {@link Builder#setContentView(PromptContentView)} will be used if both
-             * methods are called.
+             * <p> Note that from API 35, the description set by
+             * {@link Builder#setDescription(CharSequence)} will be overridden by
+             * {@link Builder#setContentView(PromptContentView)}. The view provided to
+             * {@link Builder#setContentView(PromptContentView)} will be used if both methods are
+             * called.
              *
              * @param view The customized view information.
              * @return This builder.
              */
-            @NonNull
-            public Builder setContentView(@NonNull PromptContentView view) {
+            public @NonNull Builder setContentView(@NonNull PromptContentView view) {
                 mPromptContentView = view;
                 return this;
             }
@@ -637,8 +674,8 @@ public class BiometricPrompt {
              * @return This builder.
              */
             @SuppressWarnings("deprecation")
-            @NonNull
-            public Builder setNegativeButtonText(@NonNull CharSequence negativeButtonText) {
+            public @NonNull Builder setNegativeButtonText(
+                    @NonNull CharSequence negativeButtonText) {
                 mNegativeButtonText = negativeButtonText;
                 return this;
             }
@@ -660,8 +697,7 @@ public class BiometricPrompt {
              * @param confirmationRequired Whether this option should be enabled.
              * @return This builder.
              */
-            @NonNull
-            public Builder setConfirmationRequired(boolean confirmationRequired) {
+            public @NonNull Builder setConfirmationRequired(boolean confirmationRequired) {
                 mIsConfirmationRequired = confirmationRequired;
                 return this;
             }
@@ -693,8 +729,7 @@ public class BiometricPrompt {
              */
             @SuppressWarnings("deprecation")
             @Deprecated
-            @NonNull
-            public Builder setDeviceCredentialAllowed(boolean deviceCredentialAllowed) {
+            public @NonNull Builder setDeviceCredentialAllowed(boolean deviceCredentialAllowed) {
                 mIsDeviceCredentialAllowed = deviceCredentialAllowed;
                 return this;
             }
@@ -729,8 +764,7 @@ public class BiometricPrompt {
              *                              that may be invoked by the prompt.
              * @return This builder.
              */
-            @NonNull
-            public Builder setAllowedAuthenticators(
+            public @NonNull Builder setAllowedAuthenticators(
                     @BiometricManager.AuthenticatorTypes int allowedAuthenticators) {
                 mAllowedAuthenticators = allowedAuthenticators;
                 return this;
@@ -744,8 +778,7 @@ public class BiometricPrompt {
              * @throws IllegalArgumentException If any required option is not set, or if any
              *                                  illegal combination of options is present.
              */
-            @NonNull
-            public PromptInfo build() {
+            public @NonNull PromptInfo build() {
                 if (TextUtils.isEmpty(mTitle)) {
                     throw new IllegalArgumentException("Title must be set and non-empty.");
                 }
@@ -783,13 +816,13 @@ public class BiometricPrompt {
 
         // Immutable fields for the prompt info object.
         @DrawableRes private int mLogoRes;
-        @Nullable private Bitmap mLogoBitmap;
-        @Nullable private String mLogoDescription;
-        @NonNull private final CharSequence mTitle;
-        @Nullable private final CharSequence mSubtitle;
-        @Nullable private final CharSequence mDescription;
-        @Nullable private PromptContentView mPromptContentView;
-        @Nullable private final CharSequence mNegativeButtonText;
+        private @Nullable Bitmap mLogoBitmap;
+        private @Nullable String mLogoDescription;
+        private final @NonNull CharSequence mTitle;
+        private final @Nullable CharSequence mSubtitle;
+        private final @Nullable CharSequence mDescription;
+        private @Nullable PromptContentView mPromptContentView;
+        private final @Nullable CharSequence mNegativeButtonText;
         private final boolean mIsConfirmationRequired;
         private final boolean mIsDeviceCredentialAllowed;
         @BiometricManager.AuthenticatorTypes private final int mAllowedAuthenticators;
@@ -840,8 +873,7 @@ public class BiometricPrompt {
          * @return The logo bitmap of the prompt, or null if the prompt has no logo bitmap set.
          */
         @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-        @Nullable
-        public Bitmap getLogoBitmap() {
+        public @Nullable Bitmap getLogoBitmap() {
             return mLogoBitmap;
         }
 
@@ -854,8 +886,7 @@ public class BiometricPrompt {
          * set.
          */
         @RequiresPermission(SET_BIOMETRIC_DIALOG_ADVANCED)
-        @Nullable
-        public String getLogoDescription() {
+        public @Nullable String getLogoDescription() {
             return mLogoDescription;
         }
 
@@ -866,8 +897,7 @@ public class BiometricPrompt {
          *
          * @see Builder#setTitle(CharSequence)
          */
-        @NonNull
-        public CharSequence getTitle() {
+        public @NonNull CharSequence getTitle() {
             return mTitle;
         }
 
@@ -878,8 +908,7 @@ public class BiometricPrompt {
          *
          * @see Builder#setSubtitle(CharSequence)
          */
-        @Nullable
-        public CharSequence getSubtitle() {
+        public @Nullable CharSequence getSubtitle() {
             return mSubtitle;
         }
 
@@ -890,8 +919,7 @@ public class BiometricPrompt {
          *
          * @see Builder#setDescription(CharSequence)
          */
-        @Nullable
-        public CharSequence getDescription() {
+        public @Nullable CharSequence getDescription() {
             return mDescription;
         }
 
@@ -901,8 +929,7 @@ public class BiometricPrompt {
          *
          * @return The content view for the prompt, or null if the prompt has no content view.
          */
-        @Nullable
-        public PromptContentView getContentView() {
+        public @Nullable PromptContentView getContentView() {
             return mPromptContentView;
         }
 
@@ -914,8 +941,7 @@ public class BiometricPrompt {
          *
          * @see Builder#setNegativeButtonText(CharSequence)
          */
-        @NonNull
-        public CharSequence getNegativeButtonText() {
+        public @NonNull CharSequence getNegativeButtonText() {
             return mNegativeButtonText != null ? mNegativeButtonText : "";
         }
 
@@ -964,7 +990,7 @@ public class BiometricPrompt {
      * {@link BiometricViewModel} when the lifecycle owner is destroyed.
      */
     private static class ResetCallbackObserver implements DefaultLifecycleObserver {
-        @NonNull private final WeakReference<BiometricViewModel> mViewModelRef;
+        private final @NonNull WeakReference<BiometricViewModel> mViewModelRef;
 
         ResetCallbackObserver(@NonNull BiometricViewModel viewModel) {
             mViewModelRef = new WeakReference<>(viewModel);
@@ -981,7 +1007,7 @@ public class BiometricPrompt {
     /**
      * The fragment manager that will be used to attach the prompt to the client activity.
      */
-    @Nullable private FragmentManager mClientFragmentManager;
+    private @Nullable FragmentManager mClientFragmentManager;
     private boolean mHostedInActivity;
 
     /**
@@ -1188,9 +1214,11 @@ public class BiometricPrompt {
             throw new IllegalArgumentException("CryptoObject cannot be null.");
         }
 
-        // Ensure that all allowed authenticators support crypto auth.
+        // Ensure that all allowed authenticators support crypto auth. |isIdentityCheckAvailable|
+        // is not important for this check.
         @BiometricManager.AuthenticatorTypes final int authenticators =
-                AuthenticatorUtils.getConsolidatedAuthenticators(info, crypto);
+                AuthenticatorUtils.getConsolidatedAuthenticators(info, crypto,
+                        false /*isIdentityCheckAvailable*/);
         if (AuthenticatorUtils.isWeakBiometricAllowed(authenticators)) {
             throw new IllegalArgumentException("Crypto-based authentication is not supported for "
                     + "Class 2 (Weak) biometrics.");
@@ -1271,8 +1299,8 @@ public class BiometricPrompt {
      * @param hostedInActivity If one of the activity-based constructors was used.
      * @return A biometric view model tied to the lifecycle owner of the fragment.
      */
-    @NonNull
-    static BiometricViewModel getViewModel(@NonNull Fragment fragment, boolean hostedInActivity) {
+    static @NonNull BiometricViewModel getViewModel(@NonNull Fragment fragment,
+            boolean hostedInActivity) {
         ViewModelStoreOwner owner = hostedInActivity ? fragment.getActivity() : null;
         if (owner == null) {
             owner = fragment.getParentFragment();
@@ -1303,8 +1331,7 @@ public class BiometricPrompt {
      * @return An instance of {@link BiometricFragment} found by the fragment manager, or
      * {@code null} if no such fragment is found.
      */
-    @Nullable
-    private static BiometricFragment findBiometricFragment(
+    private static @Nullable BiometricFragment findBiometricFragment(
             @NonNull FragmentManager fragmentManager) {
         return (BiometricFragment) fragmentManager.findFragmentByTag(
                 BiometricPrompt.BIOMETRIC_FRAGMENT_TAG);
@@ -1316,8 +1343,7 @@ public class BiometricPrompt {
      *
      * @return An instance of {@link BiometricFragment} associated with the fragment manager.
      */
-    @NonNull
-    private BiometricFragment findOrAddBiometricFragment() {
+    private @NonNull BiometricFragment findOrAddBiometricFragment() {
         BiometricFragment biometricFragment = findBiometricFragment(mClientFragmentManager);
 
         // If the fragment hasn't been added before, add it.

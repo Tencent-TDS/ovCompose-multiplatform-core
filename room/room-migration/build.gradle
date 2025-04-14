@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
+
 import androidx.build.PlatformIdentifier
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -32,9 +33,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    jvm() {
-        withJava()
-    }
+    jvm()
     mac()
     linux()
     ios()
@@ -83,9 +82,8 @@ androidXMultiplatform {
 
 androidx {
     name = "Room Migration"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room Migration"
     legacyDisableKotlinStrictApiMode = true
-    metalavaK2UastEnabled = false
 }

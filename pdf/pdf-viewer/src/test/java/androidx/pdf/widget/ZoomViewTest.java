@@ -24,7 +24,6 @@ import static org.mockito.Mockito.when;
 import android.content.Context;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Pair;
@@ -41,7 +40,6 @@ import androidx.pdf.widget.ZoomView.FitMode;
 import androidx.pdf.widget.ZoomView.RotateMode;
 import androidx.pdf.widget.ZoomView.ZoomScroll;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.filters.SmallTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -50,16 +48,12 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
 
 /** Unit tests for {@link ZoomView}. */
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
-//TODO: Remove minsdk check after sdk extension 13 release
-@Config(minSdk = Build.VERSION_CODES.VANILLA_ICE_CREAM)
 public class ZoomViewTest {
 
     @Mock
@@ -224,7 +218,7 @@ public class ZoomViewTest {
         assertThat(mZoomview.getViewportHeight()).isEqualTo(100);
 
         // Zoom out to fit increased content height inside decreased ZoomView height
-        assertThat(mZoomview.zoomScroll().get()).isEqualTo(new ZoomScroll(0.5f, -75, 25, true));
+        assertThat(mZoomview.zoomScroll().get()).isEqualTo(new ZoomScroll(0.375f, -81, 6, true));
     }
 
     @Test

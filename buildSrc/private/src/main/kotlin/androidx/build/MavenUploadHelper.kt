@@ -18,6 +18,7 @@ package androidx.build
 
 import androidx.build.buildInfo.CreateLibraryBuildInfoFileTask
 import androidx.build.checkapi.shouldConfigureApiTasks
+import androidx.build.sources.sourcesConfigurationName
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.gradle.AppPlugin
 import com.android.build.gradle.LibraryPlugin
@@ -29,7 +30,10 @@ import com.google.gson.stream.JsonWriter
 import java.io.File
 import java.io.StringWriter
 import org.dom4j.Element
+import org.dom4j.Namespace
+import org.dom4j.QName
 import org.dom4j.io.XMLWriter
+import org.dom4j.tree.DefaultText
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.XmlProvider
@@ -51,10 +55,12 @@ import org.gradle.api.tasks.bundling.Zip
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.findByType
+import org.gradle.kotlin.dsl.named
 import org.gradle.work.DisableCachingByDefault
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.KotlinMultiplatformPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinAndroidTarget
+import org.jetbrains.kotlin.gradle.tooling.BuildKotlinToolingMetadataTask
 
 fun Project.configureMavenArtifactUpload(
     androidXExtension: AndroidXExtension,
@@ -93,7 +99,9 @@ fun Project.configureMavenArtifactUpload(
             validateTaskIsRegistered(Release.PROJECT_ARCHIVE_ZIP_TASK_NAME)
         }
         if (buildInfoTaskShouldBeRegistered(androidXExtension)) {
-            validateTaskIsRegistered(CreateLibraryBuildInfoFileTask.TASK_NAME)
+            if (!androidXExtension.isIsolatedProjectsEnabled()) {
+                validateTaskIsRegistered(CreateLibraryBuildInfoFileTask.TASK_NAME)
+            }
         }
     }
 }
@@ -159,7 +167,10 @@ private fun Project.configureComponentPublishing(
     }
 
     configure<PublishingExtension> {
-        repositories { it.maven { repo -> repo.setUrl(getRepositoryDirectory()) } }
+        repositories {
+            it.maven { repo -> repo.setUrl(getRepositoryDirectory()) }
+            it.maven { repo -> repo.setUrl(getPerProjectRepositoryDirectory()) }
+        }
         publications {
             if (appliesJavaGradlePluginPlugin()) {
                 // The 'java-gradle-plugin' will also add to the 'pluginMaven' publication
@@ -181,6 +192,8 @@ private fun Project.configureComponentPublishing(
             }
         }
         publications.withType(MavenPublication::class.java).configureEach { publication ->
+            // Used to add buildId to Gradle module metadata set below
+            publication.withBuildIdentifier()
             val isKmpAnchor = (publication.name == KMP_ANCHOR_PUBLICATION_NAME)
             val pomPlatform = androidxKmpExtension.defaultPlatform
             // b/297355397 If a kmp project has Android as the default platform, there might
@@ -261,7 +274,7 @@ private fun Project.configureComponentPublishing(
         }
     }
 
-    // Workaround for https://github.com/gradle/gradle/issues/11717
+    // Workaround for https://github.com/gradle/gradle/issues/31218
     project.tasks.withType(GenerateModuleMetadata::class.java).configureEach { task ->
         task.doLast {
             val metadata = task.outputFile.asFile.get()
@@ -272,6 +285,10 @@ private fun Project.configureComponentPublishing(
         }
     }
 }
+
+private val ARTIFACT_ID = QName("artifactId", Namespace("", "http://maven.apache.org/POM/4.0.0"))
+
+private fun Element.textElements() = content().filterIsInstance<DefaultText>()
 
 /** Looks for a dependencies XML element within [pom] and sorts its contents. */
 fun sortPomDependencies(pom: String): String {
@@ -284,15 +301,24 @@ fun sortPomDependencies(pom: String): String {
         element ->
         val deps = element.elements()
         val sortedDeps = deps.toSortedSet(compareBy { it.stringValue }).toList()
-
+        sortedDeps.map { // b/356612738 https://github.com/gradle/gradle/issues/30112
+            val itsArtifactId = it.element(ARTIFACT_ID)
+            if (itsArtifactId.stringValue.endsWith("-debug")) {
+                itsArtifactId.textElements().last().text =
+                    itsArtifactId.textElements().last().text.removeSuffix("-debug")
+            } else if (itsArtifactId.stringValue.endsWith("-release")) {
+                itsArtifactId.textElements().last().text =
+                    itsArtifactId.textElements().last().text.removeSuffix("-release")
+            }
+        }
         // Content contains formatting nodes, so to avoid modifying those we replace
         // each element with the sorted element from its respective index. Note this
         // will not move adjacent elements, so any comments would remain in their
         // original order.
         element.content().replaceAll {
-            val index = deps.indexOf(it)
+            val index = sortedDeps.indexOf(it)
             if (index >= 0) {
-                sortedDeps[index]
+                deps[index]
             } else {
                 it
             }
@@ -386,6 +412,7 @@ private fun Project.replaceBaseMultiplatformPublication(
         configure<PublishingExtension> {
             publications { pubs ->
                 pubs.create<MavenPublication>(KMP_ANCHOR_PUBLICATION_NAME) {
+                    addKotlinToolingMetadataArtifact(this@replaceBaseMultiplatformPublication)
                     // Duplicate behavior from KMP plugin
                     // (https://cs.github.com/JetBrains/kotlin/blob/0c001cc9939a2ab11815263ed825c1096b3ce087/libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/plugin/mpp/Publishing.kt#L42)
                     // Should be able to remove internal API usage once
@@ -424,6 +451,17 @@ private fun Project.replaceBaseMultiplatformPublication(
             disableBaseKmpPublications()
             afterConfigure()
         }
+    }
+}
+
+// https://github.com/JetBrains/kotlin/blob/1ff7ffbe618aa9fda68e23a7094b52f0be02f966/libraries/tools/kotlin-gradle-plugin/src/common/kotlin/org/jetbrains/kotlin/gradle/plugin/mpp/publishing/Publishing.kt#L61
+private fun MavenPublication.addKotlinToolingMetadataArtifact(project: Project) {
+    val buildKotlinToolingMetadataTask =
+        project.tasks.named<BuildKotlinToolingMetadataTask>("buildKotlinToolingMetadata")
+
+    artifact(buildKotlinToolingMetadataTask.map { it.outputFile }) { artifact ->
+        artifact.classifier = "kotlin-tooling-metadata"
+        artifact.builtBy(buildKotlinToolingMetadataTask)
     }
 }
 

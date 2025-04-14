@@ -24,6 +24,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.internal.readAnnotatedString
+import androidx.compose.foundation.internal.toClipEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -45,6 +47,11 @@ import androidx.compose.foundation.text.Handle
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.computeSizeForDefaultText
+import androidx.compose.foundation.text.contextmenu.internal.ProvidePlatformTextContextMenuToolbar
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagFlipperRunner
+import androidx.compose.foundation.text.contextmenu.test.ContextMenuFlagSuppress
+import androidx.compose.foundation.text.contextmenu.test.SpyTextActionModeCallback
+import androidx.compose.foundation.text.contextmenu.test.assertShown
 import androidx.compose.foundation.text.input.InputMethodInterceptor
 import androidx.compose.foundation.text.selection.fetchTextLayoutResult
 import androidx.compose.foundation.text.selection.isSelectionHandle
@@ -71,15 +78,21 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.ClipboardManager
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.platform.WindowInfo
@@ -113,6 +126,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -152,7 +166,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
 import androidx.test.filters.SdkSuppress
@@ -160,8 +173,10 @@ import androidx.testutils.fonts.R
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -169,7 +184,7 @@ import org.junit.runner.RunWith
 import org.mockito.kotlin.mock
 
 @MediumTest
-@RunWith(AndroidJUnit4::class)
+@RunWith(ContextMenuFlagFlipperRunner::class)
 class TextFieldTest : FocusedWindowTest {
     @get:Rule val rule = createComposeRule()
 
@@ -407,7 +422,7 @@ class TextFieldTest : FocusedWindowTest {
                 shape = RectangleShape,
                 shapeColor = Color.White,
                 backgroundColor = Color.White,
-                shapeOverlapPixelCount = 0.0f
+                antiAliasingGap = 0.0f
             )
     }
 
@@ -772,6 +787,7 @@ class TextFieldTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).assertTextEquals("HELLO")
     }
 
+    @ContextMenuFlagSuppress(suppressedFlagValue = true)
     @LargeTest
     @Test
     fun semantics_longClick() {
@@ -793,6 +809,34 @@ class TextFieldTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.OnLongClick) { it() }
 
         rule.runOnIdle { assertThat(toolbar?.status).isEqualTo(TextToolbarStatus.Shown) }
+    }
+
+    @ContextMenuFlagSuppress(suppressedFlagValue = false)
+    @LargeTest
+    @Test
+    fun semantics_longClick_newContextMenu() {
+        val text = "Hello World"
+        var value by mutableStateOf(TextFieldValue(text, TextRange(text.length)))
+        val spyTextActionModeCallback = SpyTextActionModeCallback()
+
+        rule.setTextFieldTestContent {
+            ProvidePlatformTextContextMenuToolbar(
+                callbackInjector = { spyTextActionModeCallback.apply { delegate = it } }
+            ) {
+                BasicTextField(
+                    modifier = Modifier.testTag(Tag),
+                    value = value,
+                    onValueChange = { value = it }
+                )
+            }
+        }
+
+        spyTextActionModeCallback.assertShown(false)
+
+        rule.onNodeWithTag(Tag).performSemanticsAction(SemanticsActions.OnLongClick) { it() }
+        rule.waitForIdle()
+
+        spyTextActionModeCallback.assertShown(true)
     }
 
     @Test
@@ -877,14 +921,12 @@ class TextFieldTest : FocusedWindowTest {
             )
         }
 
-        @OptIn(ExperimentalTestApi::class)
         rule.onNodeWithTag(Tag).performClick().performTextInputSelection(TextRange(0, 0))
 
         // reset
         rule.runOnIdle { onValueChangeCalled = false }
 
         // change selection
-        @OptIn(ExperimentalTestApi::class)
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(1, 1))
 
         rule.runOnIdle { assertThat(onValueChangeCalled).isFalse() }
@@ -914,13 +956,11 @@ class TextFieldTest : FocusedWindowTest {
             )
         }
 
-        @OptIn(ExperimentalTestApi::class)
         rule.onNodeWithTag(Tag).performClick().performTextInputSelection(TextRange(0, 0))
 
         // reset flag since click might change selection
         rule.runOnIdle { onValueChangeCalled = false }
 
-        @OptIn(ExperimentalTestApi::class)
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(1, 1))
 
         // selection changed
@@ -932,7 +972,6 @@ class TextFieldTest : FocusedWindowTest {
         rule.waitUntil { onValueChangeCalled == false }
 
         // set selection to same value, no change should occur
-        @OptIn(ExperimentalTestApi::class)
         rule.onNodeWithTag(Tag).performTextInputSelection(TextRange(1, 1))
 
         rule.runOnIdle {
@@ -975,7 +1014,6 @@ class TextFieldTest : FocusedWindowTest {
         rule.runOnIdle { assertThat(callbackCounter).isEqualTo(1) }
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun textField_stringOverload_doesNotCallOnValueChange_ifSelectionInherentlyChanges() {
         var callbackCounter = 0
@@ -1161,7 +1199,6 @@ class TextFieldTest : FocusedWindowTest {
         rule.onNode(isSelectionHandle(Handle.Cursor)).assertDoesNotExist()
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun whenSelectedTextIsRemoved_SelectionCoerces() {
         val textFieldValue = mutableStateOf("Hello")
@@ -1183,7 +1220,6 @@ class TextFieldTest : FocusedWindowTest {
         assertThat(actual).isEqualTo(expected)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun whenPartiallySelectedTextIsRemoved_SelectionCoercesToEdges() {
         val textFieldValue = mutableStateOf("Hello World!")
@@ -1206,7 +1242,6 @@ class TextFieldTest : FocusedWindowTest {
         assertThat(actual).isEqualTo(expected)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun whenSelectedTextIsRemoved_addedLater_SelectionDoesNotRemain() {
         val textFieldValue = mutableStateOf("Hello")
@@ -1235,7 +1270,6 @@ class TextFieldTest : FocusedWindowTest {
         assertThat(actual).isEqualTo(expected)
     }
 
-    @OptIn(ExperimentalTestApi::class)
     @Test
     fun whenSelectedTextIsPartiallyRemoved_addedLater_SelectionRemainsPartially() {
         val textFieldValue = mutableStateOf("Hello")
@@ -1296,25 +1330,28 @@ class TextFieldTest : FocusedWindowTest {
 
     // Regression test for b/311834126
     @Test
-    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() {
+    fun whenPastingTextThatIncreasesEndOffset_noCrashAndCursorAtEndOfPastedText() = runTest {
         val longText = "Text".repeat(4)
         val shortText = "Text".repeat(2)
 
         var tfv by mutableStateOf(TextFieldValue(shortText))
-        val clipboardManager =
-            object : ClipboardManager {
+        val clipboard =
+            object : Clipboard {
                 var contents: AnnotatedString? = null
 
-                override fun setText(annotatedString: AnnotatedString) {
-                    contents = annotatedString
+                override suspend fun getClipEntry(): ClipEntry? {
+                    return contents?.toClipEntry()
                 }
 
-                override fun getText(): AnnotatedString? {
-                    return contents
+                override suspend fun setClipEntry(clipEntry: ClipEntry?) {
+                    contents = clipEntry?.readAnnotatedString()
                 }
+
+                override val nativeClipboard: NativeClipboard
+                    get() = error("FakeClipboard doesn't have a backing NativeClipboard")
             }
         rule.setTextFieldTestContent {
-            CompositionLocalProvider(LocalClipboardManager provides clipboardManager) {
+            CompositionLocalProvider(LocalClipboard provides clipboard) {
                 BasicTextField(
                     value = tfv,
                     onValueChange = { tfv = it },
@@ -1322,7 +1359,7 @@ class TextFieldTest : FocusedWindowTest {
                 )
             }
         }
-        clipboardManager.setText(AnnotatedString(longText))
+        clipboard.setClipEntry(AnnotatedString(longText).toClipEntry())
         rule.waitForIdle()
 
         val node = rule.onNodeWithTag(Tag)
@@ -1560,6 +1597,41 @@ class TextFieldTest : FocusedWindowTest {
         rule.onNodeWithTag(Tag).requestFocus()
         rule.runOnIdle { windowFocus = false }
         inputMethodInterceptor.assertSessionActive()
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun singleLineTextField_enterIsNotConsumed_withDefaultKeyboardAction() {
+        var keyDownReceived = false
+        var keyUpReceived = false
+        rule.setTextFieldTestContent {
+            var value by remember { mutableStateOf("") }
+            Box(
+                Modifier.onKeyEvent {
+                    if (it.key == Key.Enter) {
+                        when (it.type) {
+                            KeyEventType.KeyDown -> keyDownReceived = true
+                            KeyEventType.KeyUp -> keyUpReceived = true
+                        }
+                    }
+                    false
+                }
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    singleLine = true,
+                    modifier = Modifier.testTag(Tag),
+                )
+            }
+        }
+        rule.onNodeWithTag(Tag).apply {
+            requestFocus()
+            performKeyInput { pressKey(Key.Enter) }
+        }
+
+        assertTrue(keyDownReceived)
+        assertTrue(keyUpReceived)
     }
 }
 

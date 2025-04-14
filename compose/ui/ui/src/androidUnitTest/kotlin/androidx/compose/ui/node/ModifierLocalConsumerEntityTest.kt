@@ -18,6 +18,8 @@
 
 package androidx.compose.ui.node
 
+import androidx.collection.IntObjectMap
+import androidx.collection.intObjectMapOf
 import androidx.compose.runtime.collection.mutableVectorOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,8 +28,8 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.Autofill
+import androidx.compose.ui.autofill.AutofillManager
 import androidx.compose.ui.autofill.AutofillTree
-import androidx.compose.ui.autofill.SemanticAutofill
 import androidx.compose.ui.draganddrop.DragAndDropManager
 import androidx.compose.ui.focus.FocusOwner
 import androidx.compose.ui.geometry.Offset
@@ -43,12 +45,16 @@ import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.modifier.modifierLocalOf
 import androidx.compose.ui.modifier.modifierLocalProvider
 import androidx.compose.ui.platform.AccessibilityManager
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.PlatformTextInputSessionScope
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.platform.WindowInfo
+import androidx.compose.ui.semantics.EmptySemanticsModifier
+import androidx.compose.ui.semantics.SemanticsOwner
+import androidx.compose.ui.spatial.RectManager
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextInputService
@@ -326,12 +332,19 @@ class ModifierLocalConsumerEntityTest {
             scheduleMeasureAndLayout: Boolean
         ) {}
 
-        override fun onAttach(node: LayoutNode) =
+        override fun onPreAttach(node: LayoutNode) =
             node.forEachNodeCoordinator { it.onLayoutNodeAttach() }
+
+        override fun onPostAttach(node: LayoutNode) {}
 
         override fun onDetach(node: LayoutNode) {}
 
-        override val root: LayoutNode
+        override val root: LayoutNode = LayoutNode()
+
+        override val semanticsOwner: SemanticsOwner =
+            SemanticsOwner(root, EmptySemanticsModifier(), intObjectMapOf())
+
+        override val layoutNodes: IntObjectMap<LayoutNode>
             get() = TODO("Not yet implemented")
 
         override val sharedDrawScope: LayoutNodeDrawScope
@@ -347,6 +360,9 @@ class ModifierLocalConsumerEntityTest {
             get() = TODO("Not yet implemented")
 
         override val clipboardManager: ClipboardManager
+            get() = TODO("Not yet implemented")
+
+        override val clipboard: Clipboard
             get() = TODO("Not yet implemented")
 
         override val accessibilityManager: AccessibilityManager
@@ -376,6 +392,8 @@ class ModifierLocalConsumerEntityTest {
         override val windowInfo: WindowInfo
             get() = TODO("Not yet implemented")
 
+        override val rectManager: RectManager = RectManager()
+
         @Deprecated(
             "fontLoader is deprecated, use fontFamilyResolver",
             replaceWith = ReplaceWith("fontFamilyResolver")
@@ -402,7 +420,7 @@ class ModifierLocalConsumerEntityTest {
         override val autofill: Autofill
             get() = TODO("Not yet implemented")
 
-        override val semanticAutofill: SemanticAutofill
+        override val autofillManager: AutofillManager
             get() = TODO("Not yet implemented")
 
         override fun createLayer(
@@ -428,6 +446,10 @@ class ModifierLocalConsumerEntityTest {
 
         override fun requestFocus() = TODO("Not yet implemented")
 
+        override fun requestAutofill(node: LayoutNode) {
+            TODO("Not yet implemented")
+        }
+
         override fun measureAndLayout(sendPointerUpdate: Boolean) = TODO("Not yet implemented")
 
         override fun measureAndLayout(layoutNode: LayoutNode, constraints: Constraints) {
@@ -437,9 +459,11 @@ class ModifierLocalConsumerEntityTest {
         override fun forceMeasureTheSubtree(layoutNode: LayoutNode, affectsLookahead: Boolean) =
             TODO("Not yet implemented")
 
-        override fun onSemanticsChange() = TODO("Not yet implemented")
+        override fun onSemanticsChange() {}
 
         override fun onLayoutChange(layoutNode: LayoutNode) = TODO("Not yet implemented")
+
+        override fun onLayoutNodeDeactivated(layoutNode: LayoutNode) {}
 
         override fun onInteropViewLayoutChange(view: InteropView) = TODO("Not yet implemented")
 

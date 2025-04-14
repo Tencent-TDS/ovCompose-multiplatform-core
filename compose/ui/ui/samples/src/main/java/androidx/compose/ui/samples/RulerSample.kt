@@ -24,8 +24,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.DerivedRuler
 import androidx.compose.ui.layout.HorizontalRuler
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.VerticalRuler
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 
 val SafeBottomRuler = HorizontalRuler()
@@ -84,4 +88,33 @@ fun RulerConsumerUsage(content: @Composable BoxScope.() -> Unit) {
         },
         content = content
     )
+}
+
+@Sampled
+@Composable
+fun DerivedRulerUsage() {
+    class PaddedRulers(val ruler: VerticalRuler, val padding: Dp) {
+        val left: VerticalRuler =
+            object : VerticalRuler(), DerivedRuler {
+                override fun Placeable.PlacementScope.calculate(defaultValue: Float): Float {
+                    val rulerValue = ruler.current(Float.NaN)
+                    return if (rulerValue.isNaN()) {
+                        defaultValue
+                    } else {
+                        rulerValue - padding.toPx()
+                    }
+                }
+            }
+        val right: VerticalRuler =
+            object : VerticalRuler(), DerivedRuler {
+                override fun Placeable.PlacementScope.calculate(defaultValue: Float): Float {
+                    val rulerValue = ruler.current(Float.NaN)
+                    return if (rulerValue.isNaN()) {
+                        defaultValue
+                    } else {
+                        rulerValue + padding.toPx()
+                    }
+                }
+            }
+    }
 }

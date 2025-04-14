@@ -65,30 +65,17 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.LookaheadScope
-import androidx.compose.ui.layout.Measurable
-import androidx.compose.ui.layout.MeasureResult
-import androidx.compose.ui.layout.MeasureScope
-import androidx.compose.ui.layout.ScaleFactor
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.node.LayoutModifierNode
-import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.platform.InspectorInfo
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.constrain
-import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastForEach
-import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -380,9 +367,9 @@ public interface SharedTransitionScope : LookaheadScope {
     public interface OverlayClip {
         /**
          * Creates a clip path based using current animated [bounds] of the [sharedBounds] or
-         * [sharedElement], their [state] (to query parent state's bounds if needed), and
-         * [layoutDirection] and [density]. The topLeft of the [bounds] is the local position of the
-         * sharedElement/sharedBounds in the [SharedTransitionScope].
+         * [sharedElement], their [sharedContentState] (to query parent state's bounds if needed),
+         * and [layoutDirection] and [density]. The topLeft of the [bounds] is the local position of
+         * the sharedElement/sharedBounds in the [SharedTransitionScope].
          *
          * **Important**: The returned [Path] needs to be offset-ed as needed such that it is in
          * [SharedTransitionScope.lookaheadScopeCoordinates]'s coordinate space. For example, if the
@@ -392,7 +379,7 @@ public interface SharedTransitionScope : LookaheadScope {
          * creating new [Path]s.
          */
         public fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
@@ -456,9 +443,8 @@ public interface SharedTransitionScope : LookaheadScope {
      * @sample androidx.compose.animation.samples.SharedElementInAnimatedContentSample
      * @see [sharedBounds]
      */
-    @OptIn(ExperimentalAnimationApi::class)
     public fun Modifier.sharedElement(
-        state: SharedContentState,
+        sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
         boundsTransform: BoundsTransform = DefaultBoundsTransform,
         placeHolderSize: PlaceHolderSize = contentSize,
@@ -536,7 +522,6 @@ public interface SharedTransitionScope : LookaheadScope {
      * @sample androidx.compose.animation.samples.NestedSharedBoundsSample
      * @see [sharedBounds]
      */
-    @OptIn(ExperimentalAnimationApi::class)
     public fun Modifier.sharedBounds(
         sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
@@ -705,7 +690,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         )
 
     override fun Modifier.sharedElement(
-        state: SharedContentState,
+        sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
         boundsTransform: BoundsTransform,
         placeHolderSize: PlaceHolderSize,
@@ -714,7 +699,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         clipInOverlayDuringTransition: OverlayClip
     ) =
         this.sharedBoundsImpl(
-            state,
+            sharedContentState,
             parentTransition = animatedVisibilityScope.transition,
             visible = { it == EnterExitState.Visible },
             boundsTransform = boundsTransform,
@@ -725,7 +710,6 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
             clipInOverlayDuringTransition = clipInOverlayDuringTransition
         )
 
-    @OptIn(ExperimentalAnimationApi::class)
     override fun Modifier.sharedBounds(
         sharedContentState: SharedContentState,
         animatedVisibilityScope: AnimatedVisibilityScope,
@@ -1140,7 +1124,7 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
         private val path = Path()
 
         override fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
@@ -1149,91 +1133,6 @@ internal constructor(lookaheadScope: LookaheadScope, val coroutineScope: Corouti
             path.addOutline(clipShape.createOutline(bounds.size, layoutDirection, density))
             path.translate(bounds.topLeft)
             return path
-        }
-    }
-}
-
-private val DefaultEnabled: () -> Boolean = { true }
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-private fun Modifier.createContentScaleModifier(
-    scaleToBounds: ScaleToBoundsImpl,
-    isEnabled: () -> Boolean
-): Modifier =
-    this.then(
-        if (scaleToBounds.contentScale == ContentScale.Crop) {
-            Modifier.graphicsLayer { clip = isEnabled() }
-        } else Modifier
-    ) then SkipToLookaheadElement(scaleToBounds, isEnabled)
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-private data class SkipToLookaheadElement(
-    val scaleToBounds: ScaleToBoundsImpl? = null,
-    val isEnabled: () -> Boolean = DefaultEnabled,
-) : ModifierNodeElement<SkipToLookaheadNode>() {
-    override fun create(): SkipToLookaheadNode {
-        return SkipToLookaheadNode(scaleToBounds, isEnabled)
-    }
-
-    override fun update(node: SkipToLookaheadNode) {
-        node.scaleToBounds = scaleToBounds
-        node.isEnabled = isEnabled
-    }
-
-    override fun InspectorInfo.inspectableProperties() {
-        name = "skipToLookahead"
-        properties["scaleToBounds"] = scaleToBounds
-        properties["isEnabled"] = isEnabled
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-private class SkipToLookaheadNode(scaleToBounds: ScaleToBoundsImpl?, isEnabled: () -> Boolean) :
-    LayoutModifierNode, Modifier.Node() {
-    var lookaheadConstraints: Constraints? = null
-    var scaleToBounds: ScaleToBoundsImpl? by mutableStateOf(scaleToBounds)
-    var isEnabled: () -> Boolean by mutableStateOf(isEnabled)
-
-    override fun MeasureScope.measure(
-        measurable: Measurable,
-        constraints: Constraints
-    ): MeasureResult {
-        if (isLookingAhead) {
-            lookaheadConstraints = constraints
-        }
-        val p = measurable.measure(lookaheadConstraints!!)
-        val contentSize = IntSize(p.width, p.height)
-        val constrainedSize = constraints.constrain(contentSize)
-        return layout(constrainedSize.width, constrainedSize.height) {
-            val scaleToBounds = scaleToBounds
-            if (!isEnabled() || scaleToBounds == null) {
-                p.place(0, 0)
-            } else {
-                val contentScale = scaleToBounds.contentScale
-                val resolvedScale =
-                    if (contentSize.width == 0 || contentSize.height == 0) {
-                        ScaleFactor(1f, 1f)
-                    } else
-                        contentScale.computeScaleFactor(
-                            contentSize.toSize(),
-                            constrainedSize.toSize()
-                        )
-
-                val (x, y) =
-                    scaleToBounds.alignment.align(
-                        IntSize(
-                            (contentSize.width * resolvedScale.scaleX).roundToInt(),
-                            (contentSize.height * resolvedScale.scaleY).roundToInt()
-                        ),
-                        constrainedSize,
-                        layoutDirection
-                    )
-                p.placeWithLayer(x, y) {
-                    scaleX = resolvedScale.scaleX
-                    scaleY = resolvedScale.scaleY
-                    transformOrigin = TransformOrigin(0f, 0f)
-                }
-            }
         }
     }
 }
@@ -1253,12 +1152,12 @@ private val DefaultSpring =
 private val ParentClip: OverlayClip =
     object : OverlayClip {
         override fun getClipPath(
-            state: SharedContentState,
+            sharedContentState: SharedContentState,
             bounds: Rect,
             layoutDirection: LayoutDirection,
             density: Density
         ): Path? {
-            return state.parentSharedContentState?.clipPathInOverlay
+            return sharedContentState.parentSharedContentState?.clipPathInOverlay
         }
     }
 
@@ -1315,7 +1214,7 @@ private val cachedScaleToBoundsImplMap =
 
 @Immutable
 @ExperimentalSharedTransitionApi
-private class ScaleToBoundsImpl(val contentScale: ContentScale, val alignment: Alignment) :
+internal class ScaleToBoundsImpl(val contentScale: ContentScale, val alignment: Alignment) :
     ResizeMode
 
 @ExperimentalSharedTransitionApi private object RemeasureImpl : ResizeMode

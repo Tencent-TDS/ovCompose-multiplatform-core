@@ -16,6 +16,7 @@
 
 package androidx.lint.gradle
 
+import com.android.tools.lint.checks.infrastructure.TestFiles.java
 import com.android.tools.lint.checks.infrastructure.TestFiles.kotlin
 
 /**
@@ -24,6 +25,24 @@ import com.android.tools.lint.checks.infrastructure.TestFiles.kotlin
  */
 internal val STUBS =
     arrayOf(
+        kotlin(
+            """
+                package org.gradle.api.artifacts
+
+                interface Configuration
+            """
+                .trimIndent()
+        ),
+        java(
+            """
+                package org.gradle.api.file;
+
+                interface ConfigurableFileCollection {
+                    ConfigurableFileCollection from(Object... paths);
+                }
+            """
+                .trimIndent()
+        ),
         kotlin(
             """
                 package org.gradle.api.tasks
@@ -69,6 +88,9 @@ internal val STUBS =
                 interface Provider<T> {
                     fun get() : T
                 }
+                interface Property<T> : Provider<T> {
+                    fun set(value: T)
+                }
             """
                 .trimIndent()
         ),
@@ -80,8 +102,15 @@ internal val STUBS =
                 import org.gradle.api.tasks.TaskContainer
                 import java.lang.Class
 
+                interface IsolatedProject {
+                    fun getRootProject(): IsolatedProject
+                    val tasks: TaskContainer
+                }
+
                 class Project {
                     val tasks: TaskContainer
+                    fun getIsolated(): IsolatedProject
+                    fun getRootProject(): Project = Project()
                     fun findProperty(propertyName: String): Object? = null
                 }
 
@@ -152,6 +181,31 @@ internal val STUBS =
                     fun withPluginClasspath(): GradleRunner = this
                     fun build(): org.gradle.testkit.runner.BuildResult = TODO()
                 }
+            """
+                .trimIndent()
+        ),
+        kotlin(
+            "src/org/gradle/kotlin/dsl/DomainObjectCollectionExtensions.kt",
+            """
+                package org.gradle.kotlin.dsl
+                import org.gradle.api.DomainObjectCollection
+
+                inline fun <reified S : Any> DomainObjectCollection<in S>.withType(): DomainObjectCollection<S> = TODO()
+                inline fun <reified S : Any> DomainObjectCollection<in S>.withType(noinline configuration: S.() -> Unit): DomainObjectCollection<S> = TODO()
+            """
+                .trimIndent()
+        ),
+        kotlin(
+            """
+                package com.android.build.gradle.internal.tasks
+                annotation class BuildAnalyzer
+            """
+                .trimIndent()
+        ),
+        kotlin(
+            """
+                package org.gradle.process.internal
+                class ExecException : Exception()
             """
                 .trimIndent()
         )

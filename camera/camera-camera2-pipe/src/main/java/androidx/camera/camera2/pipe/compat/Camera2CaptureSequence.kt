@@ -100,11 +100,11 @@ internal class Camera2CaptureSequence(
         val timestamp = CameraTimestamp(captureTimestamp)
         val frameNumber = FrameNumber(captureFrameNumber)
 
+        hasStarted.complete(Unit)
+
         // Load the request and throw if we are not able to find an associated request. Under
         // normal circumstances this should never happen.
         val request = readRequestMetadata(captureRequest)
-
-        hasStarted.complete(Unit)
 
         invokeOnRequest(request) { it.onStarted(request, frameNumber, timestamp) }
         Debug.traceStop()
@@ -169,7 +169,6 @@ internal class Camera2CaptureSequence(
         // Load the request and throw if we are not able to find an associated request. Under
         // normal circumstances this should never happen.
         val request = readRequestMetadata(captureRequest)
-
         val frameInfo = AndroidFrameInfo(captureResult, cameraId, request)
 
         Debug.traceStart { "onTotalCaptureResult" }
@@ -184,16 +183,26 @@ internal class Camera2CaptureSequence(
         Debug.traceStop() // onCaptureCompleted
     }
 
+    override fun onCaptureProcessProgressed(captureRequest: CaptureRequest, progress: Int) {
+        Debug.traceStart { "onCaptureProcessProgressed" }
+        // Load the request and throw if we are not able to find an associated request. Under
+        // normal circumstances this should never happen.
+        val request = readRequestMetadata(captureRequest)
+        invokeOnRequest(request) { it.onCaptureProgress(request, progress) }
+        Debug.traceStop()
+    }
+
     override fun onCaptureFailed(
         captureSession: CameraCaptureSession,
         captureRequest: CaptureRequest,
         captureFailure: CaptureFailure
     ) {
         Debug.traceStart { "onCaptureFailed" }
+        hasStarted.complete(Unit)
+
         // Load the request and throw if we are not able to find an associated request. Under
         // normal circumstances this should never happen.
         val request = readRequestMetadata(captureRequest)
-
         val androidCaptureFailure = AndroidCaptureFailure(request, captureFailure)
 
         invokeCaptureFailure(
@@ -215,10 +224,11 @@ internal class Camera2CaptureSequence(
 
     override fun onCaptureFailed(captureRequest: CaptureRequest, frameNumber: FrameNumber) {
         Debug.traceStart { "onCaptureFailed" }
+        hasStarted.complete(Unit)
+
         // Load the request and throw if we are not able to find an associated request. Under
         // normal circumstances this should never happen.
         val requestMetadata = readRequestMetadata(captureRequest)
-
         val extensionRequestFailure =
             ExtensionRequestFailure(
                 requestMetadata,
@@ -260,6 +270,7 @@ internal class Camera2CaptureSequence(
 
     override fun onCaptureSequenceCompleted(captureSequenceId: Int, captureFrameNumber: Long) {
         Debug.traceStart { "onCaptureSequenceCompleted" }
+        hasStarted.complete(Unit)
         sequenceListener.onCaptureSequenceComplete(this)
 
         check(sequenceNumber == captureSequenceId) {
@@ -281,6 +292,7 @@ internal class Camera2CaptureSequence(
 
     override fun onCaptureSequenceAborted(captureSequenceId: Int) {
         Debug.traceStart { "onCaptureSequenceAborted" }
+        hasStarted.complete(Unit)
         sequenceListener.onCaptureSequenceComplete(this)
 
         check(sequenceNumber == captureSequenceId) {
@@ -288,7 +300,6 @@ internal class Camera2CaptureSequence(
                 "$captureSequenceId!"
         }
 
-        hasStarted.complete(Unit)
         invokeOnRequests { request, _, listener -> listener.onRequestSequenceAborted(request) }
         Debug.traceStop() // onCaptureSequenceAborted
     }

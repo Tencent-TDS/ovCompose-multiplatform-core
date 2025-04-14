@@ -19,12 +19,15 @@ import android.content.Context
 import android.graphics.ImageFormat
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Rational
 import android.util.Size
 import android.view.Surface
 import androidx.annotation.GuardedBy
+import androidx.annotation.RequiresApi
 import androidx.camera.camera2.Camera2Config
 import androidx.camera.camera2.pipe.integration.CameraPipeConfig
 import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.CameraXConfig
 import androidx.camera.core.ExperimentalUseCaseApi
@@ -32,6 +35,9 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageAnalysis.BackpressureStrategy
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
+import androidx.camera.core.ViewPort
 import androidx.camera.core.impl.ImageOutputConfig
 import androidx.camera.core.impl.ImageOutputConfig.OPTION_RESOLUTION_SELECTOR
 import androidx.camera.core.impl.SessionConfig
@@ -49,15 +55,20 @@ import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
 import androidx.camera.testing.impl.CameraUtil.PreTestCameraIdList
 import androidx.camera.testing.impl.LabTestRule
+import androidx.camera.testing.impl.SurfaceTextureProvider
+import androidx.camera.testing.impl.WakelockEmptyActivityRule
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.LargeTest
+import androidx.test.filters.SdkSuppress
 import com.google.common.truth.Truth.assertThat
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -86,6 +97,8 @@ internal class ImageAnalysisTest(
         CameraUtil.grantCameraPermissionAndPreTestAndPostTest(PreTestCameraIdList(cameraConfig))
 
     @get:Rule val labTest: LabTestRule = LabTestRule()
+
+    @get:Rule val wakelockEmptyActivityRule = WakelockEmptyActivityRule()
 
     companion object {
         private val DEFAULT_RESOLUTION = Size(640, 480)
@@ -294,6 +307,42 @@ internal class ImageAnalysisTest(
                 useCase.currentConfig.containsOption(ImageOutputConfig.OPTION_TARGET_ASPECT_RATIO)
             )
             .isFalse()
+    }
+
+    @Test
+    fun viewPort_OverwriteCropRect(): Unit = runBlocking {
+        // Arrange.
+        val rotation =
+            if (CameraUtil.getSensorOrientation(CameraSelector.LENS_FACING_BACK)!! % 180 != 0)
+                Surface.ROTATION_90
+            else Surface.ROTATION_0
+        val imageProxyDeferred = CompletableDeferred<ImageProxy>()
+        val imageAnalysis =
+            ImageAnalysis.Builder().setTargetRotation(rotation).build().apply {
+                setAnalyzer(CameraXExecutors.newHandlerExecutor(handler)) { image ->
+                    imageProxyDeferred.complete(image)
+                    image.close()
+                }
+            }
+        val viewPort = ViewPort.Builder(Rational(2, 1), imageAnalysis.targetRotation).build()
+
+        // Act.
+        withContext(Dispatchers.Main) {
+            val useCaseGroup =
+                UseCaseGroup.Builder().setViewPort(viewPort).addUseCase(imageAnalysis).build()
+            cameraProvider.bindToLifecycle(
+                fakeLifecycleOwner,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                useCaseGroup
+            )
+        }
+        val imageProxy = withTimeoutOrNull(5000) { imageProxyDeferred.await() }
+
+        // Assert.
+        val aspectRatioThreshold = 0.01
+        assertThat(Rational(imageProxy!!.cropRect.width(), imageProxy.cropRect.height()).toDouble())
+            .isWithin(aspectRatioThreshold)
+            .of(viewPort.aspectRatio.toDouble())
     }
 
     @Test
@@ -522,6 +571,115 @@ internal class ImageAnalysisTest(
         // Checks that image can be received successfully when onError is received by the new
         // error listener.
         triggerOnErrorAndVerifyNewImageReceived(imageAnalysis.sessionConfig)
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 23)
+    fun analyzerAnalyzesYUVImages_withRotationEnabledAndReusedToHaveDifferentSize() {
+        analyzerAnalyzesImages_withRotationEnabledAndReusedToHaveDifferentSize(
+            ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 23)
+    fun analyzerAnalyzesYUVNV21Images_withRotationEnabledAndReusedToHaveDifferentSize() {
+        analyzerAnalyzesImages_withRotationEnabledAndReusedToHaveDifferentSize(
+            ImageAnalysis.OUTPUT_IMAGE_FORMAT_NV21
+        )
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = 23)
+    fun analyzerAnalyzesRGBAImages_withRotationEnabledAndReusedToHaveDifferentSize() {
+        analyzerAnalyzesImages_withRotationEnabledAndReusedToHaveDifferentSize(
+            ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
+        )
+    }
+
+    @RequiresApi(23)
+    private fun analyzerAnalyzesImages_withRotationEnabledAndReusedToHaveDifferentSize(
+        outputImageFormat: Int
+    ) {
+        var camera: Camera? = null
+        val resolutionSelector =
+            ResolutionSelector.Builder()
+                .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
+                .build()
+
+        val imageAnalysis =
+            ImageAnalysis.Builder()
+                .setResolutionSelector(resolutionSelector)
+                .setOutputImageFormat(outputImageFormat)
+                .setOutputImageRotationEnabled(true)
+                .build()
+        val preview = Preview.Builder().build()
+        val imageCapture = ImageCapture.Builder().build()
+
+        // Binds three UseCase to make imageAnalysis have a PREVIEW size resolution
+        runOnMainSync {
+            preview.surfaceProvider = SurfaceTextureProvider.createSurfaceTextureProvider()
+            camera =
+                cameraProvider.bindToLifecycle(
+                    fakeLifecycleOwner,
+                    DEFAULT_CAMERA_SELECTOR,
+                    preview,
+                    imageCapture,
+                    imageAnalysis
+                )
+        }
+
+        val expectedOutputResolution1 = getRotatedResolution(camera!!, imageAnalysis)
+        setAnalyzerAndVerifyNewImageReceivedWithCorrectResolution(
+            imageAnalysis,
+            expectedOutputResolution1
+        )
+
+        // Unbinds all and rebind the imageAnalysis only to make imageAnalysis have a MAXIMUM size
+        // resolution
+        runOnMainSync {
+            // Clears analyzer and analysisResults first to make sure the old resolution frame data
+            // will not be kept to cause test failure
+            imageAnalysis.clearAnalyzer()
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(
+                fakeLifecycleOwner,
+                DEFAULT_CAMERA_SELECTOR,
+                imageAnalysis
+            )
+        }
+
+        val expectedOutputResolution2 = getRotatedResolution(camera!!, imageAnalysis)
+        assumeTrue(expectedOutputResolution2 != expectedOutputResolution1)
+        setAnalyzerAndVerifyNewImageReceivedWithCorrectResolution(
+            imageAnalysis,
+            expectedOutputResolution2
+        )
+    }
+
+    private fun getRotatedResolution(camera: Camera, imageAnalysis: ImageAnalysis): Size {
+        val resolution = imageAnalysis.resolutionInfo!!.resolution
+        val rotationDegrees =
+            camera.cameraInfo.getSensorRotationDegrees(imageAnalysis.targetRotation)
+        return if (rotationDegrees % 180 == 0) {
+            resolution
+        } else {
+            Size(resolution.height, resolution.width)
+        }
+    }
+
+    private fun setAnalyzerAndVerifyNewImageReceivedWithCorrectResolution(
+        imageAnalysis: ImageAnalysis,
+        expectedResolution: Size
+    ) {
+        analysisResultsSemaphore = Semaphore(0)
+        synchronized(analysisResultLock) { analysisResults.clear() }
+        imageAnalysis.setAnalyzer(CameraXExecutors.newHandlerExecutor(handler), analyzer)
+        analysisResultsSemaphore.tryAcquire(5, TimeUnit.SECONDS)
+        synchronized(analysisResultLock) {
+            assertThat(analysisResults).isNotEmpty()
+            assertThat(analysisResults.last().resolution).isEqualTo(expectedResolution)
+        }
     }
 
     private fun triggerOnErrorAndVerifyNewImageReceived(sessionConfig: SessionConfig) {

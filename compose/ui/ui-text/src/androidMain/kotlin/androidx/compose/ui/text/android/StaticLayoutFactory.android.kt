@@ -32,6 +32,7 @@ import androidx.compose.ui.text.android.LayoutCompat.HyphenationFrequency
 import androidx.compose.ui.text.android.LayoutCompat.JustificationMode
 import androidx.compose.ui.text.android.LayoutCompat.LineBreakStyle
 import androidx.compose.ui.text.android.LayoutCompat.LineBreakWordStyle
+import androidx.compose.ui.text.internal.requirePrecondition
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 
@@ -139,12 +140,12 @@ private class StaticLayoutParams(
     val rightIndents: IntArray?
 ) {
     init {
-        require(start in 0..end) { "invalid start value" }
-        require(end in 0..text.length) { "invalid end value" }
-        require(maxLines >= 0) { "invalid maxLines value" }
-        require(width >= 0) { "invalid width value" }
-        require(ellipsizedWidth >= 0) { "invalid ellipsizedWidth value" }
-        require(lineSpacingMultiplier >= 0f) { "invalid lineSpacingMultiplier value" }
+        requirePrecondition(start in 0..end) { "invalid start value" }
+        requirePrecondition(end in 0..text.length) { "invalid end value" }
+        requirePrecondition(maxLines >= 0) { "invalid maxLines value" }
+        requirePrecondition(width >= 0) { "invalid width value" }
+        requirePrecondition(ellipsizedWidth >= 0) { "invalid ellipsizedWidth value" }
+        requirePrecondition(lineSpacingMultiplier >= 0f) { "invalid lineSpacingMultiplier value" }
     }
 }
 
@@ -187,6 +188,12 @@ private class StaticLayoutFactory23 : StaticLayoutFactoryImpl {
                         params.lineBreakStyle,
                         params.lineBreakWordStyle
                     )
+                }
+                if (Build.VERSION.SDK_INT >= 35) { // b/391378120
+                    // Due to a bug in API35, the useBoundsForWidth flag may become true if it was
+                    // true in the recycled object. To avoid unexpected line break behavior,
+                    // manually disable useBoundsForWidth every time we create a StaticLayout.
+                    StaticLayoutFactory35.disableUseBoundsForWidth(this)
                 }
             }
             .build()
@@ -237,6 +244,14 @@ private object StaticLayoutFactory33 {
                 .setLineBreakWordStyle(lineBreakWordStyle)
                 .build()
         builder.setLineBreakConfig(lineBreakConfig)
+    }
+}
+
+@RequiresApi(35)
+private object StaticLayoutFactory35 {
+    @JvmStatic
+    fun disableUseBoundsForWidth(builder: Builder) {
+        builder.setUseBoundsForWidth(false)
     }
 }
 

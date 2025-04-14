@@ -16,6 +16,7 @@
 
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -225,6 +226,36 @@ class FloatObjectMapTest {
         assertEquals("Welt", map5[3f])
         assertEquals("Sekai", map5[4f])
         assertEquals("Mondo", map5[5f])
+    }
+
+    @Test
+    fun buildFloatObjectMapFunction() {
+        val contract: Boolean
+        val map = buildFloatObjectMap {
+            contract = true
+            put(1f, "World")
+            put(2f, "Monde")
+        }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertEquals("World", map[1f])
+        assertEquals("Monde", map[2f])
+    }
+
+    @Test
+    fun buildFloatObjectMapWithCapacityFunction() {
+        val contract: Boolean
+        val map =
+            buildFloatObjectMap(20) {
+                contract = true
+                put(1f, "World")
+                put(2f, "Monde")
+            }
+        assertTrue(contract)
+        assertEquals(2, map.size)
+        assertTrue(map.capacity >= 18)
+        assertEquals("World", map[1f])
+        assertEquals("Monde", map[2f])
     }
 
     @Test
@@ -656,6 +687,7 @@ class FloatObjectMapTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val map = MutableFloatObjectMap<String?>()
         map[1f] = "World"

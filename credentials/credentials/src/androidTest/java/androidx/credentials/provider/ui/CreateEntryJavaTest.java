@@ -16,6 +16,8 @@
 
 package androidx.credentials.provider.ui;
 
+import static androidx.credentials.provider.ui.UiUtils.testBiometricPromptData;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertNotNull;
@@ -29,10 +31,6 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 
-import androidx.annotation.RequiresApi;
-import androidx.biometric.BiometricManager;
-import androidx.biometric.BiometricPrompt;
-import androidx.core.os.BuildCompat;
 import androidx.credentials.provider.BiometricPromptData;
 import androidx.credentials.provider.CreateEntry;
 import androidx.test.core.app.ApplicationProvider;
@@ -44,8 +42,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.time.Instant;
-
-import javax.crypto.NullCipher;
 
 @RunWith(AndroidJUnit4.class)
 @SdkSuppress(minSdkVersion = 26) // Instant usage
@@ -82,7 +78,16 @@ public class CreateEntryJavaTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
     public void constructor_allParametersAboveApiO_success() {
-        CreateEntry entry = constructEntryWithAllParams();
+        CreateEntry entry = constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
+
+        assertNotNull(entry);
+        assertEntryWithAllParams(entry);
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
+    public void constructor_allParametersAboveApiOForcedBiometricPromptDataNull_success() {
+        CreateEntry entry = constructEntryWithAllParams(/*nullBiometricPromptData=*/ true);
 
         assertNotNull(entry);
         assertEntryWithAllParams(entry);
@@ -91,7 +96,7 @@ public class CreateEntryJavaTest {
     @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.P)
     public void constructor_allParametersApiOAndBelow_success() {
-        CreateEntry entry = constructEntryWithAllParams();
+        CreateEntry entry = constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
 
         assertNotNull(entry);
         assertEntryWithAllParams(entry);
@@ -134,7 +139,7 @@ public class CreateEntryJavaTest {
     @Test
     @SdkSuppress(minSdkVersion = 28)
     public void fromSlice_allParams_success() {
-        CreateEntry originalEntry = constructEntryWithAllParams();
+        CreateEntry originalEntry = constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
 
         CreateEntry entry = CreateEntry.fromSlice(
                 CreateEntry.toSlice(originalEntry));
@@ -147,7 +152,7 @@ public class CreateEntryJavaTest {
     @SdkSuppress(minSdkVersion = 34)
     @SuppressWarnings("deprecation")
     public void fromCreateEntry_allParams_success() {
-        CreateEntry originalEntry = constructEntryWithAllParams();
+        CreateEntry originalEntry = constructEntryWithAllParams(/*nullBiometricPromptData=*/ false);
         android.app.slice.Slice slice = CreateEntry.toSlice(originalEntry);
         assertNotNull(slice);
 
@@ -168,7 +173,7 @@ public class CreateEntryJavaTest {
         assertThat(entry.getBiometricPromptData()).isNull();
     }
 
-    private CreateEntry constructEntryWithAllParams() {
+    private CreateEntry constructEntryWithAllParams(boolean nullBiometricPromptData) {
         CreateEntry.Builder testBuilder = new CreateEntry.Builder(
                 ACCOUNT_NAME,
                 mPendingIntent)
@@ -177,8 +182,12 @@ public class CreateEntryJavaTest {
                 .setPasswordCredentialCount(PASSWORD_COUNT)
                 .setPublicKeyCredentialCount(PUBLIC_KEY_CREDENTIAL_COUNT)
                 .setTotalCredentialCount(TOTAL_COUNT);
-        if (BuildCompat.isAtLeastV()) {
-            testBuilder.setBiometricPromptData(testBiometricPromptData());
+        if (Build.VERSION.SDK_INT >= 35) {
+            BiometricPromptData biometricPromptData = null;
+            if (!nullBiometricPromptData) {
+                biometricPromptData = testBiometricPromptData();
+            }
+            testBuilder.setBiometricPromptData(biometricPromptData);
         }
         return testBuilder.build();
     }
@@ -191,7 +200,7 @@ public class CreateEntryJavaTest {
         assertThat(PASSWORD_COUNT).isEqualTo(entry.getPasswordCredentialCount());
         assertThat(PUBLIC_KEY_CREDENTIAL_COUNT).isEqualTo(entry.getPublicKeyCredentialCount());
         assertThat(TOTAL_COUNT).isEqualTo(entry.getTotalCredentialCount());
-        if (BuildCompat.isAtLeastV() && entry.getBiometricPromptData() != null) {
+        if (Build.VERSION.SDK_INT >= 35 && entry.getBiometricPromptData() != null) {
             assertAboveApiV(entry);
         } else {
             assertThat(entry.getBiometricPromptData()).isNull();
@@ -199,17 +208,9 @@ public class CreateEntryJavaTest {
     }
 
     private static void assertAboveApiV(CreateEntry entry) {
-        if (BuildCompat.isAtLeastV()) {
+        if (Build.VERSION.SDK_INT >= 35) {
             assertThat(entry.getBiometricPromptData().getAllowedAuthenticators()).isEqualTo(
                     testBiometricPromptData().getAllowedAuthenticators());
         }
-    }
-
-    @RequiresApi(35)
-    private static BiometricPromptData testBiometricPromptData() {
-        return new BiometricPromptData.Builder()
-                .setCryptoObject(new BiometricPrompt.CryptoObject(new NullCipher()))
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-                .build();
     }
 }

@@ -5,25 +5,26 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.Publish
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 
 plugins {
     id("AndroidXPlugin")
-    id('com.android.library')
+    id("com.android.library")
 }
+
 android {
-    namespace 'androidx.webkit.instrumentation'
+    namespace = "androidx.webkit.instrumentation"
 
     flavorDimensions = ["targetSdk"]
 
     productFlavors {
         targetSdk32 {
-            dimension "targetSdk"
+            dimension = "targetSdk"
 
         }
         targetSdkLatest {
-            dimension "targetSdk"
+            dimension = "targetSdk"
             // uses default config
         }
     }
@@ -36,7 +37,9 @@ androidComponents {
 }
 
 dependencies {
+    api(libs.jspecify)
     androidTestImplementation(project(":webkit:webkit"))
+    androidTestImplementation(project(":webkit:integration-tests:common"))
 
     androidTestImplementation(libs.okhttpMockwebserver)
     androidTestImplementation(libs.testExtJunit)
@@ -45,14 +48,14 @@ dependencies {
     androidTestImplementation(libs.testRules)
     androidTestImplementation("androidx.appcompat:appcompat:1.1.0")
     androidTestImplementation("androidx.concurrent:concurrent-futures:1.0.0")
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has it"s own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy)
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
 
     // Hamcrest matchers:
-    androidTestImplementation(libs.bundles.espressoContrib, excludes.espresso)
+    androidTestImplementation(libs.bundles.espressoContrib)
 }
 
 androidx {
-    type = type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = type = SoftwareType.INTERNAL_TEST_LIBRARY
     additionalDeviceTestApkKeys.add("chrome")
 }

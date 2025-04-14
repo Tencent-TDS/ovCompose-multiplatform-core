@@ -23,6 +23,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.OverscrollEffect
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.TargetedFlingBehavior
@@ -32,6 +33,7 @@ import androidx.compose.foundation.gestures.snapping.calculateFinalSnappingBound
 import androidx.compose.foundation.gestures.snapping.snapFlingBehavior
 import androidx.compose.foundation.internal.requirePrecondition
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.rememberOverscrollEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -96,6 +98,9 @@ import kotlinx.coroutines.launch
  *   way to calculate [PagerState.currentPage], currentPage is the page closest to the snap position
  *   in the layout (e.g. if the snap position is the start of the layout, then currentPage will be
  *   the page closest to that).
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   Pager. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param pageContent This Pager's page Composable.
  * @sample androidx.compose.foundation.samples.SimpleHorizontalPagerSample
  * @sample androidx.compose.foundation.samples.HorizontalPagerWithScrollableContent
@@ -120,6 +125,7 @@ fun HorizontalPager(
     pageNestedScrollConnection: NestedScrollConnection =
         PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal),
     snapPosition: SnapPosition = SnapPosition.Start,
+    overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
     pageContent: @Composable PagerScope.(page: Int) -> Unit
 ) {
     Pager(
@@ -138,6 +144,45 @@ fun HorizontalPager(
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
         snapPosition = snapPosition,
+        overscrollEffect = overscrollEffect,
+        pageContent = pageContent
+    )
+}
+
+@Deprecated("Use the non deprecated overload", level = DeprecationLevel.HIDDEN)
+@Composable
+fun HorizontalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondViewportPageCount: Int = PagerDefaults.BeyondViewportPageCount,
+    pageSpacing: Dp = 0.dp,
+    verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    flingBehavior: TargetedFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection =
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Horizontal),
+    snapPosition: SnapPosition = SnapPosition.Start,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    HorizontalPager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondViewportPageCount = beyondViewportPageCount,
+        pageSpacing = pageSpacing,
+        verticalAlignment = verticalAlignment,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        snapPosition = snapPosition,
+        overscrollEffect = rememberOverscrollEffect(),
         pageContent = pageContent
     )
 }
@@ -184,6 +229,9 @@ fun HorizontalPager(
  *   way to calculate [PagerState.currentPage], currentPage is the page closest to the snap position
  *   in the layout (e.g. if the snap position is the start of the layout, then currentPage will be
  *   the page closest to that).
+ * @param overscrollEffect the [OverscrollEffect] that will be used to render overscroll for this
+ *   Pager. Note that the [OverscrollEffect.node] will be applied internally as well - you do not
+ *   need to use Modifier.overscroll separately.
  * @param pageContent This Pager's page Composable.
  * @sample androidx.compose.foundation.samples.SimpleVerticalPagerSample
  * @see androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider for the implementation
@@ -207,6 +255,7 @@ fun VerticalPager(
     pageNestedScrollConnection: NestedScrollConnection =
         PagerDefaults.pageNestedScrollConnection(state, Orientation.Vertical),
     snapPosition: SnapPosition = SnapPosition.Start,
+    overscrollEffect: OverscrollEffect? = rememberOverscrollEffect(),
     pageContent: @Composable PagerScope.(page: Int) -> Unit
 ) {
     Pager(
@@ -225,6 +274,45 @@ fun VerticalPager(
         key = key,
         pageNestedScrollConnection = pageNestedScrollConnection,
         snapPosition = snapPosition,
+        overscrollEffect = overscrollEffect,
+        pageContent = pageContent
+    )
+}
+
+@Deprecated("Use the non deprecated overload", level = DeprecationLevel.HIDDEN)
+@Composable
+fun VerticalPager(
+    state: PagerState,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+    pageSize: PageSize = PageSize.Fill,
+    beyondViewportPageCount: Int = PagerDefaults.BeyondViewportPageCount,
+    pageSpacing: Dp = 0.dp,
+    horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    flingBehavior: TargetedFlingBehavior = PagerDefaults.flingBehavior(state = state),
+    userScrollEnabled: Boolean = true,
+    reverseLayout: Boolean = false,
+    key: ((index: Int) -> Any)? = null,
+    pageNestedScrollConnection: NestedScrollConnection =
+        PagerDefaults.pageNestedScrollConnection(state, Orientation.Vertical),
+    snapPosition: SnapPosition = SnapPosition.Start,
+    pageContent: @Composable PagerScope.(page: Int) -> Unit
+) {
+    VerticalPager(
+        state = state,
+        modifier = modifier,
+        contentPadding = contentPadding,
+        pageSize = pageSize,
+        beyondViewportPageCount = beyondViewportPageCount,
+        pageSpacing = pageSpacing,
+        horizontalAlignment = horizontalAlignment,
+        flingBehavior = flingBehavior,
+        userScrollEnabled = userScrollEnabled,
+        reverseLayout = reverseLayout,
+        key = key,
+        pageNestedScrollConnection = pageNestedScrollConnection,
+        snapPosition = snapPosition,
+        overscrollEffect = rememberOverscrollEffect(),
         pageContent = pageContent
     )
 }

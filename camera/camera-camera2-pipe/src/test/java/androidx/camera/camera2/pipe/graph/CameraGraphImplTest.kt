@@ -31,9 +31,9 @@ import androidx.camera.camera2.pipe.CameraSurfaceManager
 import androidx.camera.camera2.pipe.Request
 import androidx.camera.camera2.pipe.StreamFormat
 import androidx.camera.camera2.pipe.internal.CameraBackendsImpl
+import androidx.camera.camera2.pipe.internal.CameraGraphParametersImpl
 import androidx.camera.camera2.pipe.internal.FrameCaptureQueue
 import androidx.camera.camera2.pipe.internal.FrameDistributor
-import androidx.camera.camera2.pipe.internal.GraphLifecycleManager
 import androidx.camera.camera2.pipe.internal.ImageSourceMap
 import androidx.camera.camera2.pipe.media.ImageReaderImageSources
 import androidx.camera.camera2.pipe.testing.CameraControllerSimulator
@@ -59,6 +59,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.eq
@@ -107,35 +108,27 @@ internal class CameraGraphImplTest {
             threads
         )
     private val cameraContext = CameraBackendsImpl.CameraBackendContext(context, threads, backends)
-    private val graphLifecycleManager = GraphLifecycleManager(threads)
-    private val streamGraph = StreamGraphImpl(metadata, graphConfig)
     private val imageSources = ImageReaderImageSources(threads)
-    private val imageSourceMap = ImageSourceMap(graphConfig, streamGraph, imageSources)
     private val frameCaptureQueue = FrameCaptureQueue()
+    private val cameraController =
+        CameraControllerSimulator(cameraContext, graphId, graphConfig, fakeGraphProcessor)
+    private val cameraControllerProvider: () -> CameraControllerSimulator = { cameraController }
+    private val streamGraph = StreamGraphImpl(metadata, graphConfig, cameraControllerProvider)
+    private val imageSourceMap = ImageSourceMap(graphConfig, streamGraph, imageSources)
     private val frameDistributor =
         FrameDistributor(imageSourceMap.imageSources, frameCaptureQueue) {}
-    private val cameraController =
-        CameraControllerSimulator(
-            cameraContext,
-            graphId,
-            graphConfig,
-            fakeGraphProcessor,
-            streamGraph
-        )
-
     private val surfaceGraph =
-        SurfaceGraph(streamGraph, cameraController, cameraSurfaceManager, emptyMap())
+        SurfaceGraph(streamGraph, cameraControllerProvider, cameraSurfaceManager, emptyMap())
     private val audioRestriction = FakeAudioRestrictionController()
+    private val sessionLock = SessionLock()
     private val cameraGraph =
         CameraGraphImpl(
             graphConfig,
             metadata,
-            graphLifecycleManager,
             fakeGraphProcessor,
             fakeGraphProcessor,
             streamGraph,
             surfaceGraph,
-            backend,
             cameraController,
             GraphState3A(),
             Listener3A(),
@@ -143,6 +136,8 @@ internal class CameraGraphImplTest {
             frameCaptureQueue,
             audioRestriction,
             graphId,
+            CameraGraphParametersImpl(sessionLock, fakeGraphProcessor, testScope),
+            sessionLock
         )
     private val stream1: CameraStream =
         checkNotNull(cameraGraph.streams[stream1Config]) {
@@ -156,6 +151,11 @@ internal class CameraGraphImplTest {
 
     init {
         cameraSurfaceManager.addListener(fakeSurfaceListener)
+    }
+
+    @Before
+    fun setUp() {
+        cameraController.streamGraph = streamGraph
     }
 
     @Test fun createCameraGraphImpl() = testScope.runTest { assertThat(cameraGraph).isNotNull() }
@@ -467,5 +467,14 @@ internal class CameraGraphImplTest {
     fun useSession_throwsExceptions() =
         testScope.runTest {
             assertThrows<RuntimeException> { cameraGraph.useSession { throw RuntimeException() } }
+        }
+
+    @Test
+    fun testGetOutputLatency() =
+        testScope.runTest {
+            assertThat(cameraController.getOutputLatency(null)).isNull()
+            cameraController.simulateOutputLatency()
+            assertThat(cameraController.getOutputLatency(null)?.estimatedLatencyNs)
+                .isEqualTo(cameraController.outputLatencySet?.estimatedLatencyNs)
         }
 }

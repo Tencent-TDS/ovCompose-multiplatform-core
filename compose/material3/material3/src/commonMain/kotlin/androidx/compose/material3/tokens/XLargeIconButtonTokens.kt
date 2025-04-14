@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-// VERSION: v0_9_0
+// VERSION: 14_1_0
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 package androidx.compose.material3.tokens
@@ -24,14 +24,15 @@ internal object XLargeIconButtonTokens {
     val ContainerHeight = 136.0.dp
     val ContainerShapeRound = ShapeKeyTokens.CornerFull
     val ContainerShapeSquare = ShapeKeyTokens.CornerExtraLarge
+    val DefaultLeadingSpace = 48.0.dp
+    val DefaultTrailingSpace = 48.0.dp
     val IconSize = 40.0.dp
     val NarrowLeadingSpace = 32.0.dp
     val NarrowTrailingSpace = 32.0.dp
     val OutlinedOutlineWidth = 3.0.dp
-    val PressedContainerCornerSizeMultiplierPercent = 50.0f
-    val SelectedPressedContainerShape = ShapeKeyTokens.CornerExtraLarge
-    val UniformLeadingSpace = 48.0.dp
-    val UniformTrailingSpace = 48.0.dp
+    val PressedContainerShape = ShapeKeyTokens.CornerLarge
+    val SelectedContainerShapeRound = ShapeKeyTokens.CornerExtraLarge
+    val SelectedContainerShapeSquare = ShapeKeyTokens.CornerFull
     val WideLeadingSpace = 72.0.dp
     val WideTrailingSpace = 72.0.dp
 }

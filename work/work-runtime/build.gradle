@@ -21,14 +21,15 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
+import androidx.build.KotlinTarget
 
 import static androidx.inspection.gradle.InspectionPluginKt.packageInspector
 
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("androidx.stableaidl")
 }
@@ -38,10 +39,10 @@ android {
         aidl = true
     }
     buildTypes.configureEach {
-        consumerProguardFiles "proguard-rules.pro"
+        consumerProguardFiles("proguard-rules.pro")
 
         stableAidl {
-            version 1
+            version = 1
         }
     }
     defaultConfig {
@@ -59,10 +60,11 @@ android {
     sourceSets {
         androidTest.assets.srcDirs += files("$projectDir/src/schemas".toString())
     }
-    namespace "androidx.work"
+    namespace = "androidx.work"
 }
 
 dependencies {
+    api(libs.jspecify)
     ksp("androidx.room:room-compiler:2.6.1")
     api("androidx.core:core:1.12.0")
     implementation("androidx.room:room-ktx:2.6.1")
@@ -80,12 +82,12 @@ dependencies {
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
     androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
-    androidTestImplementation(projectOrArtifact(":lifecycle:lifecycle-runtime-testing"))
+    androidTestImplementation(project(":lifecycle:lifecycle-runtime-testing"))
     androidTestImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation(libs.testRunner)
     androidTestImplementation(libs.espressoCore)
-    androidTestImplementation(libs.mockitoCore, excludes.bytebuddy) // DexMaker has its own MockMaker
-    androidTestImplementation(libs.dexmakerMockito, excludes.bytebuddy) // DexMaker has its own MockMaker
+    androidTestImplementation(libs.mockitoCore)
+    androidTestImplementation(libs.dexmakerMockito)
     androidTestImplementation(project(":internal-testutils-runtime"))
     testImplementation(libs.junit)
     testImplementation(libs.truth)
@@ -103,7 +105,9 @@ ksp {
 
 androidx {
     name = "WorkManager Runtime"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
+    //TODO(b/407640603): Migrate to Kotlin 2. Task :work:work-runtime:kspReleaseKotlin fails
+    kotlinTarget = KotlinTarget.KOTLIN_1_9
     inceptionYear = "2018"
     description = "Android WorkManager runtime library"
     failOnDeprecationWarnings = false

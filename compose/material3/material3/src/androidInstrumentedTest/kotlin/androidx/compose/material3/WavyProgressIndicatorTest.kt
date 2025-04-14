@@ -97,6 +97,20 @@ class WavyProgressIndicatorTest {
     }
 
     @Test
+    fun determinateLinearWavyProgressIndicator_NaNProgress() {
+        val tag = "linear"
+        rule.setMaterialContent(lightColorScheme()) {
+            LinearWavyProgressIndicator(modifier = Modifier.testTag(tag), progress = { Float.NaN })
+        }
+
+        // The ProgressBarRangeInfo should indicate a current value of zero.
+        rule
+            .onNodeWithTag(tag)
+            .assertIsDisplayed()
+            .assertRangeInfoEquals(ProgressBarRangeInfo(0f, 0f..1f))
+    }
+
+    @Test
     fun determinateLinearWavyProgressIndicator_ProgressIsCoercedInBounds() {
         val tag = "linear"
         val progress = mutableStateOf(-1f)
@@ -161,21 +175,29 @@ class WavyProgressIndicatorTest {
     fun determinateLinearWavyProgressIndicator_sizeModifier() {
         val expectedWidth = 100.dp
         val expectedHeight = 10.dp
-        val expectedSize =
-            with(rule.density) { IntSize(expectedWidth.roundToPx(), expectedHeight.roundToPx()) }
         val tag = "linear"
-        var trackColor = Color.Unspecified
-        var progressColor = Color.Unspecified
-        rule.setContent {
-            trackColor = ProgressIndicatorDefaults.linearTrackColor
-            progressColor = ProgressIndicatorDefaults.linearColor
-
-            Box(Modifier.testTag(tag)) {
+        val contentToTest =
+            rule.setMaterialContentForSizeAssertions {
                 LinearWavyProgressIndicator(
-                    modifier = Modifier.size(expectedWidth, expectedHeight),
+                    modifier = Modifier.size(expectedWidth, expectedHeight).testTag(tag),
                     progress = { 0.5f }
                 )
             }
+
+        contentToTest.assertWidthIsEqualTo(expectedWidth).assertHeightIsEqualTo(expectedHeight)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun determinateLinearWavyProgressIndicator_colors() {
+        val tag = "linear"
+        var trackColor = Color.Unspecified
+        var progressColor = Color.Unspecified
+        rule.setMaterialContentForSizeAssertions {
+            trackColor = ProgressIndicatorDefaults.linearTrackColor
+            progressColor = ProgressIndicatorDefaults.linearColor
+
+            Box(Modifier.testTag(tag)) { LinearWavyProgressIndicator(progress = { 0.5f }) }
         }
 
         rule
@@ -183,11 +205,6 @@ class WavyProgressIndicatorTest {
             .captureToImage()
             .assertContainsColor(trackColor)
             .assertContainsColor(progressColor)
-            .toPixelMap()
-            .let {
-                assertEquals(expectedSize.width, it.width)
-                assertEquals(expectedSize.height, it.height)
-            }
     }
 
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
@@ -195,24 +212,29 @@ class WavyProgressIndicatorTest {
     fun indeterminateLinearWavyProgressIndicator_sizeModifier() {
         val expectedWidth = 100.dp
         val expectedHeight = 10.dp
-        val expectedSize =
-            with(rule.density) { IntSize(expectedWidth.roundToPx(), expectedHeight.roundToPx()) }
-        rule.mainClock.autoAdvance = false
         val tag = "linear"
-        rule.setContent {
-            Box(Modifier.testTag(tag)) {
+        val contentToTest =
+            rule.setMaterialContentForSizeAssertions {
                 LinearWavyProgressIndicator(
-                    modifier = Modifier.size(expectedWidth, expectedHeight),
-                    color = Color.Blue
+                    modifier = Modifier.size(expectedWidth, expectedHeight).testTag(tag),
                 )
             }
+
+        contentToTest.assertWidthIsEqualTo(expectedWidth).assertHeightIsEqualTo(expectedHeight)
+    }
+
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    @Test
+    fun indeterminateLinearWavyProgressIndicator_colors() {
+        rule.mainClock.autoAdvance = false
+        val tag = "linear"
+        rule.setMaterialContentForSizeAssertions {
+            Box(Modifier.testTag(tag)) { LinearWavyProgressIndicator(color = Color.Blue) }
         }
 
-        rule.mainClock.advanceTimeBy(200)
+        rule.mainClock.advanceTimeBy(300)
 
         rule.onNodeWithTag(tag).captureToImage().toPixelMap().let {
-            assertEquals(expectedSize.width, it.width)
-            assertEquals(expectedSize.height, it.height)
             // Assert that a center pixel relatively at the start of the path has the right
             // progress color.
             it.assertPixelColor(Color.Blue, 5, it.height / 2)
@@ -400,6 +422,23 @@ class WavyProgressIndicatorTest {
             .onNodeWithTag(tag)
             .assertIsDisplayed()
             .assertRangeInfoEquals(ProgressBarRangeInfo(0.5f, 0f..1f))
+    }
+
+    @Test
+    fun determinateCircularWavyProgressIndicator_NaNProgress() {
+        val tag = "circular"
+        rule.setMaterialContent(lightColorScheme()) {
+            CircularWavyProgressIndicator(
+                modifier = Modifier.testTag(tag),
+                progress = { Float.NaN },
+            )
+        }
+
+        // The ProgressBarRangeInfo should indicate a current value of zero.
+        rule
+            .onNodeWithTag(tag)
+            .assertIsDisplayed()
+            .assertRangeInfoEquals(ProgressBarRangeInfo(0f, 0f..1f))
     }
 
     @Test

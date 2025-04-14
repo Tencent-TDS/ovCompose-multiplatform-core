@@ -21,13 +21,9 @@ import androidx.kruth.assertWithMessage
 import androidx.room.compiler.codegen.XClassName
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.codegen.XTypeName.Companion.ANY_OBJECT
-import androidx.room.compiler.codegen.XTypeName.Companion.UNAVAILABLE_KTYPE_NAME
 import androidx.room.compiler.processing.compat.XConverters.toKS
 import androidx.room.compiler.processing.javac.JavacType
-import androidx.room.compiler.processing.ksp.ERROR_JTYPE_NAME
-import androidx.room.compiler.processing.ksp.ERROR_KTYPE_NAME
 import androidx.room.compiler.processing.ksp.KspTypeArgumentType
-import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.asJClassName
@@ -356,59 +352,515 @@ class XTypeTest {
 
     @Test
     fun errorType() {
-        val missingTypeRef =
+        val javaSource =
             Source.java(
-                "foo.bar.Baz",
+                "foo.bar.JavaSource",
                 """
                 package foo.bar;
-                public class Baz {
-                    NotExistingType badField;
-                    NotExistingType badMethod() {
+                public class JavaSource {
+                    qux.NotExistingType badField;
+                    qux.NotExistingType badMethod() {
                         throw new RuntimeException("Stub");
                     }
                 }
             """
                     .trimIndent()
             )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: qux.NotExistingType = TODO()
+                    fun badMethod(): qux.NotExistingType = TODO()
+                }
+                """
+                    .trimIndent()
+            )
 
-        runProcessorTest(sources = listOf(missingTypeRef)) {
-            val errorJTypeName =
-                if (it.isKsp) {
-                    // In ksp, we lose the name when resolving the type. b/175246617
-                    ERROR_JTYPE_NAME
-                } else {
-                    ClassName.get("", "NotExistingType")
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (source == javaSource) {
+                        XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                    } else {
+                        XClassName.get("qux", "NotExistingType")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
                 }
-            val errorKTypeName =
-                if (it.isKsp) {
-                    // In ksp, we lose the name when resolving the type. b/175246617
-                    // But otherwise the name is not available in javac / kapt
-                    ERROR_KTYPE_NAME
-                } else {
-                    UNAVAILABLE_KTYPE_NAME
-                }
-            val element = it.processingEnv.requireTypeElement("foo.bar.Baz")
-            element.getField("badField").let { field ->
-                assertThat(field.type.isError()).isTrue()
-                assertThat(field.type.asTypeName().java).isEqualTo(errorJTypeName)
-                if (it.isKsp && it.kspProcessingEnv.isKsp2) {
-                    assertThat(field.type.asTypeName().kotlin)
-                        .isEqualTo(errorKTypeName.copy(nullable = true))
-                } else {
-                    assertThat(field.type.asTypeName().kotlin).isEqualTo(errorKTypeName)
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
                 }
             }
-            element.getDeclaredMethodByJvmName("badMethod").let { method ->
-                assertThat(method.returnType.isError()).isTrue()
-                assertThat(method.returnType.asTypeName().java).isEqualTo(errorJTypeName)
-                if (it.isKsp && it.kspProcessingEnv.isKsp2) {
-                    assertThat(method.returnType.asTypeName().kotlin)
-                        .isEqualTo(errorKTypeName.copy(nullable = true))
-                } else {
-                    assertThat(method.returnType.asTypeName().kotlin).isEqualTo(errorKTypeName)
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun multipleSimpleNamesErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                public class JavaSource {
+                    qux.Outer.NotExistingType badField;
+                    qux.Outer.NotExistingType badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+            """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: qux.Outer.NotExistingType = TODO()
+                    fun badMethod(): qux.Outer.NotExistingType = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (source == javaSource) {
+                        XClassName.get("qux", "Outer", "NotExistingType").copy(nullable = true)
+                    } else {
+                        XClassName.get("qux", "Outer", "NotExistingType")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
                 }
             }
-            it.assertCompilationResult { compilationDidFail() }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun nestedErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                public class JavaSource {
+                    foo.bar.JavaSource.NotExistingType badField;
+                    foo.bar.JavaSource.NotExistingType badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+            """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: foo.bar.KotlinSource.NotExistingType = TODO()
+                    fun badMethod(): foo.bar.KotlinSource.NotExistingType = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (source == javaSource) {
+                        XClassName.get("foo.bar", "JavaSource", "NotExistingType")
+                            .copy(nullable = true)
+                    } else {
+                        XClassName.get("foo.bar", "KotlinSource", "NotExistingType")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun genericErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                import java.util.List;
+                public class JavaSource {
+                    qux.NotExistingType<List<String>> badField;
+                    qux.NotExistingType<List<String>> badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+                """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: qux.NotExistingType<List<String>> = TODO()
+                    fun badMethod(): qux.NotExistingType<List<String>> = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (invocation.isKsp) {
+                        if (source == javaSource) {
+                            XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                        } else {
+                            XClassName.get("qux", "NotExistingType")
+                        }
+                    } else {
+                        // Generic error types are fixed in JDK 24, but we're not using that yet
+                        XClassName.get("", "<any>")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun wildcardErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                import java.util.List;
+                public class JavaSource {
+                    qux.NotExistingType<?> badField;
+                    qux.NotExistingType<?> badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+                """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: qux.NotExistingType<*> = TODO()
+                    fun badMethod(): qux.NotExistingType<*> = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (invocation.isKsp) {
+                        if (source == javaSource) {
+                            XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                        } else {
+                            XClassName.get("qux", "NotExistingType")
+                        }
+                    } else {
+                        // Generic error types are fixed in JDK 24, but we're not using that yet
+                        XClassName.get("", "<any>")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun boundErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                import java.util.List;
+                public class JavaSource {
+                    qux.NotExistingType<? extends Number> badField;
+                    qux.NotExistingType<? extends Number> badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+                """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: qux.NotExistingType<out Number> = TODO()
+                    fun badMethod(): qux.NotExistingType<out Number> = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (invocation.isKsp) {
+                        if (source == javaSource) {
+                            XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                        } else {
+                            XClassName.get("qux", "NotExistingType")
+                        }
+                    } else {
+                        // Generic error types are fixed in JDK 24, but we're not using that yet
+                        XClassName.get("", "<any>")
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isTrue()
+                    assertThat(field.type.asTypeName()).isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isTrue()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun typeArgumentErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                import java.util.List;
+                public class JavaSource {
+                    List<qux.NotExistingType> badField;
+                    List<qux.NotExistingType> badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+                """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: List<qux.NotExistingType> = TODO()
+                    fun badMethod(): List<qux.NotExistingType> = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (source == javaSource) {
+                        XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                    } else {
+                        XClassName.get("qux", "NotExistingType")
+                    }
+                val listOfErrorTypeName =
+                    if (source == javaSource) {
+                        XTypeName.MUTABLE_LIST.parametrizedBy(errorTypeName).copy(nullable = true)
+                    } else {
+                        XTypeName.LIST.parametrizedBy(errorTypeName)
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isFalse()
+                    assertThat(field.type.asTypeName()).isEqualTo(listOfErrorTypeName)
+                    assertThat(field.type.typeArguments.single().isError()).isTrue()
+                    assertThat(field.type.typeArguments.single().asTypeName())
+                        .isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isFalse()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(listOfErrorTypeName)
+                    assertThat(method.returnType.typeArguments.single().isError()).isTrue()
+                    assertThat(method.returnType.typeArguments.single().asTypeName())
+                        .isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
+        }
+    }
+
+    @Test
+    fun genericTypeArgumentErrorType() {
+        val javaSource =
+            Source.java(
+                "foo.bar.JavaSource",
+                """
+                package foo.bar;
+                import java.util.List;
+                public class JavaSource {
+                    List<qux.NotExistingType<String>> badField;
+                    List<qux.NotExistingType<String>> badMethod() {
+                        throw new RuntimeException("Stub");
+                    }
+                }
+                """
+                    .trimIndent()
+            )
+        val kotlinSource =
+            Source.kotlin(
+                "foo.bar.KotlinSource.kt",
+                """
+                package foo.bar
+                class KotlinSource {
+                    val badField: List<qux.NotExistingType<String>> = TODO()
+                    fun badMethod(): List<qux.NotExistingType<String>> = TODO()
+                }
+                """
+                    .trimIndent()
+            )
+
+        runProcessorTest(
+            sources = listOf(javaSource, kotlinSource),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            fun testErrorType(source: Source) {
+                val errorTypeName =
+                    if (invocation.isKsp) {
+                        if (source == javaSource) {
+                            XClassName.get("qux", "NotExistingType").copy(nullable = true)
+                        } else {
+                            XClassName.get("qux", "NotExistingType")
+                        }
+                    } else {
+                        // Generic error types are fixed in JDK 24, but we're not using that yet
+                        XClassName.get("", "<any>")
+                    }
+                val listOfErrorTypeName =
+                    if (source == javaSource) {
+                        XTypeName.MUTABLE_LIST.parametrizedBy(errorTypeName).copy(nullable = true)
+                    } else {
+                        XTypeName.LIST.parametrizedBy(errorTypeName)
+                    }
+                val sourceName = source.relativePath.substringBeforeLast('.').replace('/', '.')
+                val element = invocation.processingEnv.requireTypeElement(sourceName)
+                element.getField("badField").let { field ->
+                    assertThat(field.type.isError()).isFalse()
+                    assertThat(field.type.asTypeName()).isEqualTo(listOfErrorTypeName)
+                    assertThat(field.type.typeArguments.single().isError()).isTrue()
+                    assertThat(field.type.typeArguments.single().asTypeName())
+                        .isEqualTo(errorTypeName)
+                }
+                element.getDeclaredMethodByJvmName("badMethod").let { method ->
+                    assertThat(method.returnType.isError()).isFalse()
+                    assertThat(method.returnType.asTypeName()).isEqualTo(listOfErrorTypeName)
+                    assertThat(method.returnType.typeArguments.single().isError()).isTrue()
+                    assertThat(method.returnType.typeArguments.single().asTypeName())
+                        .isEqualTo(errorTypeName)
+                }
+            }
+            testErrorType(javaSource)
+            testErrorType(kotlinSource)
+            invocation.assertCompilationResult { compilationDidFail() }
         }
     }
 
@@ -543,24 +995,115 @@ class XTypeTest {
     }
 
     @Test
-    fun errorTypeForSuper() {
-        val missingTypeRef =
+    fun errorTypeForSuperJava() {
+        val missingSuperClassType =
             Source.java(
                 "foo.bar.Baz",
                 """
                 package foo.bar;
                 public class Baz extends IDontExist {
-                    NotExistingType foo() {
-                        throw new RuntimeException("Stub");
-                    }
                 }
             """
                     .trimIndent()
             )
-        runProcessorTest(sources = listOf(missingTypeRef)) {
+        runProcessorTest(sources = listOf(missingSuperClassType)) {
+            it.assertCompilationResult { compilationDidFail() }
             val element = it.processingEnv.requireTypeElement("foo.bar.Baz")
             assertThat(element.superClass?.isError()).isTrue()
+            assertThat(element.superInterfaces).isEmpty()
+        }
+
+        val missingSuperInterfaceType =
+            Source.java(
+                "foo.bar.Baz",
+                """
+                package foo.bar;
+                public class Baz implements IDontExist {
+                }
+            """
+                    .trimIndent()
+            )
+        runProcessorTest(sources = listOf(missingSuperInterfaceType)) {
             it.assertCompilationResult { compilationDidFail() }
+            val element = it.processingEnv.requireTypeElement("foo.bar.Baz")
+            if (it.isKsp) { // Due to https://github.com/google/ksp/issues/1443
+                assertThat(element.superClass?.isError()).isTrue()
+                assertThat(element.superInterfaces).isEmpty()
+            } else {
+                assertThat(element.superClass?.isError()).isFalse()
+                assertThat(element.superInterfaces).isNotEmpty()
+                assertThat(element.superInterfaces.single().isError()).isTrue()
+            }
+        }
+    }
+
+    @Test
+    fun errorTypeForSuperKotlin() {
+        val src =
+            Source.kotlin(
+                "Subject.kt",
+                """
+                package test
+    
+                interface SubjectInterface : MissingType
+                class SubjectClassOne : MissingType
+                class SubjectClassTwo : MissingType()
+                class SubjectClassThree : ValidSuperClass(), MissingType
+                class SubjectClassFour : ValidSuperInterface, MissingType
+    
+                abstract class ValidSuperClass
+                interface ValidSuperInterface
+                """
+                    .trimIndent()
+            )
+        runProcessorTest(
+            sources = listOf(src),
+            kotlincArguments =
+                listOf("-P", "plugin:org.jetbrains.kotlin.kapt3:correctErrorTypes=true")
+        ) { invocation ->
+            invocation.assertCompilationResult { compilationDidFail() }
+            invocation.processingEnv.requireTypeElement("test.SubjectInterface").let {
+                assertThat(it.superInterfaces).isNotEmpty()
+                assertThat(it.superInterfaces.first().isError()).isTrue()
+                assertThat(it.superClass).isNull() // interfaces has no super class
+            }
+            invocation.processingEnv.requireTypeElement("test.SubjectClassOne").let {
+                assertThat(it.superInterfaces).isNotEmpty()
+                assertThat(it.superInterfaces.first().isError()).isTrue()
+                assertThat(it.superClass).isNotNull()
+                assertThat(it.superClass!!.asTypeName()).isEqualTo(XTypeName.ANY_OBJECT)
+            }
+            invocation.processingEnv.requireTypeElement("test.SubjectClassTwo").let {
+                if (invocation.isKsp) {
+                    // In KSP regardless of the parenthesis in the super type, they are always
+                    // classified as class declarations.
+                    assertThat(it.superInterfaces).isNotEmpty()
+                    assertThat(it.superInterfaces.first().isError()).isTrue()
+                    assertThat(it.superClass).isNotNull()
+                    assertThat(it.superClass!!.asTypeName()).isEqualTo(XTypeName.ANY_OBJECT)
+                } else {
+                    // In KAPT depending if the super type has a parenthesis or not, indicating
+                    // it is a super class not a super interface, then the stub will correctly
+                    // put the reference in 'extends' vs 'implements'.
+                    assertThat(it.superInterfaces).isEmpty()
+                    assertThat(it.superClass).isNotNull()
+                    assertThat(it.superClass!!.isError()).isTrue()
+                }
+            }
+            invocation.processingEnv.requireTypeElement("test.SubjectClassThree").let {
+                assertThat(it.superInterfaces).isNotEmpty()
+                assertThat(it.superInterfaces.first().isError()).isTrue()
+                assertThat(it.superClass).isNotNull()
+                assertThat(it.superClass!!.asTypeName())
+                    .isEqualTo(XClassName.get("test", "ValidSuperClass"))
+            }
+            invocation.processingEnv.requireTypeElement("test.SubjectClassFour").let {
+                assertThat(it.superInterfaces).isNotEmpty()
+                assertThat(it.superInterfaces[0].isError()).isFalse()
+                assertThat(it.superInterfaces[1].isError()).isTrue()
+                assertThat(it.superClass).isNotNull()
+                assertThat(it.superClass!!.asTypeName()).isEqualTo(XTypeName.ANY_OBJECT)
+            }
         }
     }
 
@@ -631,6 +1174,135 @@ class XTypeTest {
                     it.processingEnv.requireType(String::class)
                 )
             assertThat(subject.rawType).isNotEqualTo(setOfStrings.rawType)
+        }
+    }
+
+    @Test
+    fun rawTypeSuperType() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(ANY_OBJECT.copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
+        }
+    }
+
+    @Test
+    fun rawTypeSuperType_singleBounds() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T extends Bar> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        interface Bar {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(XClassName.get("test", "Bar").copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
+        }
+    }
+
+    @Test
+    fun rawTypeSuperType_multipleBounds() {
+        runProcessorTest(
+            sources =
+                listOf(
+                    Source.java(
+                        "test.Subject",
+                        """
+                        package test;
+                        import java.util.HashSet;
+                        import java.util.Set;
+                        class Subject {
+                            Foo rawFoo;
+                        }
+                        interface Foo<T extends Bar & Baz> extends FooSuper<T> {}
+                        interface FooSuper<T> {}
+                        interface Bar {}
+                        interface Baz {}
+                        """
+                            .trimIndent()
+                    )
+                ),
+        ) { invocation ->
+            val subject = invocation.processingEnv.requireTypeElement("test.Subject")
+            val rawFoo = subject.getDeclaredField("rawFoo")
+
+            assertThat(rawFoo.type.asTypeName())
+                .isEqualTo(XClassName.get("test", "Foo").copy(nullable = true))
+            assertThat(rawFoo.type.superTypes.map { it.asTypeName() })
+                .containsExactly(
+                    XTypeName.ANY_OBJECT,
+                    // In KSP there's no API for creating java raw KSTypes, so the FooSuper we
+                    // create for XType#superTypes is forced to contain type arguments.
+                    if (invocation.isKsp) {
+                        XClassName.get("test", "FooSuper")
+                            .parametrizedBy(XClassName.get("test", "Bar").copy(nullable = true))
+                    } else {
+                        XClassName.get("test", "FooSuper")
+                    }
+                )
+                .inOrder()
         }
     }
 
@@ -1085,10 +1757,7 @@ class XTypeTest {
             """
                     .trimIndent()
             )
-        runProcessorTest(
-            sources = listOf(src, javaSource),
-            kotlincArguments = KOTLINC_LANGUAGE_1_9_ARGS
-        ) { invocation ->
+        runProcessorTest(sources = listOf(src, javaSource)) { invocation ->
             val styleApplier = invocation.processingEnv.requireType("StyleApplier")
             val styleBuilder = invocation.processingEnv.requireType("StyleBuilder")
             assertThat(styleApplier.typeName.dumpToString(5))
@@ -1481,18 +2150,7 @@ class XTypeTest {
                 isLastRound: Boolean
             ): Set<XElement> {
                 val barElement = env.requireTypeElement("test.Bar")
-                val missingTypeName =
-                    if (
-                        env.backend == XProcessingEnv.Backend.KSP ||
-                            // There's a bug in KAPT that doesn't replace NonExistentClass even when
-                            // correctErrorTypes is enabled, so we account for that here.
-                            // https://youtrack.jetbrains.com/issue/KT-34193/Kapt-CorrectErrorTypes-doesnt-work-for-generics
-                            barElement.hasAnnotation(Metadata::class)
-                    ) {
-                        ClassName.get("error", "NonExistentClass")
-                    } else {
-                        ClassName.get("", "MissingType")
-                    }
+                val missingTypeName = ClassName.get("", "MissingType")
                 val barType = barElement.type
                 val fooTypeName =
                     ParameterizedTypeName.get(ClassName.get("test", "Foo"), missingTypeName)
@@ -1578,12 +2236,7 @@ class XTypeTest {
                 elementsByAnnotation: Map<String, Set<XElement>>,
                 isLastRound: Boolean
             ): Set<XElement> {
-                val missingTypeName =
-                    if (env.backend == XProcessingEnv.Backend.KSP) {
-                        ClassName.get("error", "NonExistentClass")
-                    } else {
-                        ClassName.get("", "MissingType")
-                    }
+                val missingTypeName = ClassName.get("", "MissingType")
                 val wildcardTypeName = WildcardTypeName.subtypeOf(missingTypeName)
                 val fooTypeName =
                     ParameterizedTypeName.get(ClassName.get("test", "Foo"), wildcardTypeName)
@@ -1623,7 +2276,6 @@ class XTypeTest {
                     )
                 ),
             createProcessingSteps = { listOf(WildcardProcessingStep()) },
-            kotlincArguments = KOTLINC_LANGUAGE_1_9_ARGS
         ) { result ->
             result.hasError()
             result.hasErrorCount(1)
@@ -1862,27 +2514,12 @@ class XTypeTest {
         ) {
             val fooTypeElement = it.processingEnv.requireTypeElement("test.Foo")
             fooTypeElement.getMethodByJvmName("bar").parameters.single().let { param ->
-                if (it.isKsp) {
-                    // TODO(b/248552462): KSP doesn't expose simple names on error types, see:
-                    //  https://github.com/google/ksp/issues/1232
-                    assertThat(param.type.asTypeName())
-                        .isEqualTo(XClassName.get("error", "NonExistentClass"))
-                } else {
-                    assertThat(param.type.asTypeName()).isEqualTo(XClassName.get("", "MissingType"))
-                }
+                assertThat(param.type.asTypeName()).isEqualTo(XClassName.get("", "MissingType"))
             }
             fooTypeElement.getMethodByJvmName("barQualified").parameters.single().let { param ->
-                if (it.isKsp) {
-                    // TODO(b/248552462): KSP doesn't expose simple names on error types, see:
-                    //  https://github.com/google/ksp/issues/1232
-                    assertThat(param.type.asTypeName())
-                        .isEqualTo(XClassName.get("error", "NonExistentClass"))
-                } else {
-                    assertThat(param.type.asTypeName())
-                        .isEqualTo(XClassName.get("", "bar.MissingType"))
-                }
+                assertThat(param.type.asTypeName()).isEqualTo(XClassName.get("bar", "MissingType"))
             }
-            it.assertCompilationResult { hasErrorContaining("Unresolved reference: MissingType") }
+            it.assertCompilationResult { hasErrorContaining("Unresolved reference 'MissingType'") }
         }
     }
 
@@ -2332,7 +2969,6 @@ class XTypeTest {
                 } else {
                     emptyList()
                 },
-            kotlincArguments = KOTLINC_LANGUAGE_1_9_ARGS
         ) { invocation ->
             val kotlinElm = invocation.processingEnv.requireTypeElement("KotlinClass")
             kotlinElm.getMethodByJvmName("kotlinValueClassDirectUsage").apply {
@@ -2449,6 +3085,301 @@ class XTypeTest {
             javaElm.getMethodByJvmName("customGenericInlineClassIndirectUsage").apply {
                 assertThat(returnType.asTypeName().java.toString())
                     .isEqualTo("java.util.List<MyGenericInlineClass<java.lang.Integer>>")
+            }
+        }
+    }
+
+    @Test
+    fun innerTypeNames(@TestParameter isPrecompiled: Boolean) {
+        val kotlinSrc =
+            Source.kotlin(
+                "KotlinOuter.kt",
+                """
+            class KotlinOuter<T> {
+                inner class Inner<P> {
+                    inner class InnerAgain<Q>
+                }
+                inner class InnerWithoutArgs
+            }
+            class KotlinOuterWithoutArgs {
+                inner class Inner<P> {
+                    inner class InnerAgain<Q>
+                }
+                inner class InnerWithoutArgs
+            }
+            class KotlinClient {
+                fun outer(): KotlinOuter<String> = TODO()
+                fun inner(): KotlinOuter<String>.Inner<Number> = TODO()
+                fun innerAgain(): KotlinOuter<String>.Inner<Number>.InnerAgain<Boolean> = TODO()
+                fun innerWithoutArgs(): KotlinOuter<String>.InnerWithoutArgs = TODO()
+                fun outerWithoutArgs(): KotlinOuterWithoutArgs = TODO()
+                fun innerInOuterWithoutArgs(): KotlinOuterWithoutArgs.Inner<String> = TODO()
+                fun innerAgainInOuterWithoutArgs(): KotlinOuterWithoutArgs.Inner<String>.InnerAgain<Number> = TODO()
+                fun innerWithoutArgsInOuterWithoutArgs(): KotlinOuterWithoutArgs.InnerWithoutArgs = TODO()
+            }
+            """
+                    .trimIndent()
+            )
+        val javaSrc =
+            Source.java(
+                "JavaOuter",
+                """
+                class JavaOuter<T> {
+                    class Nested<P> {
+                        class NestedAgain<Q> {}
+                        class NestedAgainWithoutArgs {}
+                    }
+                    class NestedWithoutArgs {}
+                }
+                class JavaOuterWithoutArgs {
+                    class Nested<P> {
+                        class NestedAgain<Q> {}
+                    }
+                    class NestedWithoutArgs {}
+                }
+                class JavaClient {
+                    JavaOuter<String> javaOuter() { throw new RuntimeException("Stub"); }
+                    JavaOuter<String>.Nested<Number> nested() { throw new RuntimeException("Stub"); }
+                    JavaOuter<String>.Nested<Number>.NestedAgain<Boolean> nestedAgain() { throw new RuntimeException("Stub"); }
+                    JavaOuter<String>.Nested<Number>.NestedAgainWithoutArgs nestedAgainWithoutArgs() { throw new RuntimeException("Stub"); }
+                    JavaOuter<String>.NestedWithoutArgs nestedWithoutArgs() { throw new RuntimeException("Stub"); }
+                    JavaOuter javaOuterRaw() { throw new RuntimeException("Stub"); }
+                    JavaOuterWithoutArgs javaOuterWithoutArgs() { throw new RuntimeException("Stub"); }
+                    JavaOuterWithoutArgs.Nested<String> nestedInOuterWithoutArgs() { throw new RuntimeException("Stub"); }
+                    JavaOuterWithoutArgs.Nested<String>.NestedAgain<Boolean> nestedAgainInOuterWithoutArgs() { throw new RuntimeException("Stub"); }
+                    JavaOuterWithoutArgs.NestedWithoutArgs nestedWithoutArgsInOuterWithoutArgs() { throw new RuntimeException("Stub"); }
+                }
+                """
+                    .trimIndent()
+            )
+        runProcessorTest(
+            sources =
+                if (isPrecompiled) {
+                    emptyList()
+                } else {
+                    listOf(kotlinSrc, javaSrc)
+                },
+            classpath =
+                if (isPrecompiled) {
+                    compileFiles(listOf(kotlinSrc, javaSrc))
+                } else {
+                    emptyList()
+                },
+        ) { invocation ->
+            invocation.processingEnv.requireTypeElement("KotlinClient").let { cls ->
+                cls.getDeclaredMethodByJvmName("outer").returnType.asTypeName().let { typeName ->
+                    assertThat(typeName.java.toString()).isEqualTo("KotlinOuter<java.lang.String>")
+                    if (invocation.isKsp) {
+                        assertThat(typeName.kotlin.toString())
+                            .isEqualTo("KotlinOuter<kotlin.String>")
+                    }
+                }
+
+                cls.getDeclaredMethodByJvmName("inner").returnType.asTypeName().let { typeName ->
+                    assertThat(typeName.java.toString())
+                        .isEqualTo("KotlinOuter<java.lang.String>.Inner<java.lang.Number>")
+                    if (invocation.isKsp) {
+                        assertThat(typeName.kotlin.toString())
+                            .isEqualTo("KotlinOuter<kotlin.String>.Inner<kotlin.Number>")
+                    }
+                }
+
+                cls.getDeclaredMethodByJvmName("innerAgain").returnType.asTypeName().let { typeName
+                    ->
+                    assertThat(typeName.java.toString())
+                        .isEqualTo(
+                            "KotlinOuter<java.lang.String>.Inner<java.lang.Number>.InnerAgain<java.lang.Boolean>"
+                        )
+                    if (invocation.isKsp) {
+                        assertThat(typeName.kotlin.toString())
+                            .isEqualTo(
+                                "KotlinOuter<kotlin.String>.Inner<kotlin.Number>.InnerAgain<kotlin.Boolean>"
+                            )
+                    }
+                }
+
+                cls.getDeclaredMethodByJvmName("innerWithoutArgs").returnType.asTypeName().let {
+                    typeName ->
+                    assertThat(typeName.java.toString())
+                        .isEqualTo("KotlinOuter<java.lang.String>.InnerWithoutArgs")
+                    if (invocation.isKsp) {
+                        assertThat(typeName.kotlin.toString())
+                            .isEqualTo("KotlinOuter<kotlin.String>.InnerWithoutArgs")
+                    }
+                }
+
+                cls.getDeclaredMethodByJvmName("outerWithoutArgs").returnType.asTypeName().let {
+                    typeName ->
+                    assertThat(typeName.java.toString()).isEqualTo("KotlinOuterWithoutArgs")
+                    if (invocation.isKsp) {
+                        assertThat(typeName.kotlin.toString()).isEqualTo("KotlinOuterWithoutArgs")
+                    }
+                }
+
+                cls.getDeclaredMethodByJvmName("innerInOuterWithoutArgs")
+                    .returnType
+                    .asTypeName()
+                    .let { typeName ->
+                        assertThat(typeName.java.toString())
+                            .isEqualTo("KotlinOuterWithoutArgs.Inner<java.lang.String>")
+                        if (invocation.isKsp) {
+                            assertThat(typeName.kotlin.toString())
+                                .isEqualTo("KotlinOuterWithoutArgs.Inner<kotlin.String>")
+                        }
+                    }
+
+                cls.getDeclaredMethodByJvmName("innerAgainInOuterWithoutArgs")
+                    .returnType
+                    .asTypeName()
+                    .let { typeName ->
+                        assertThat(typeName.java.toString())
+                            .isEqualTo(
+                                "KotlinOuterWithoutArgs.Inner<java.lang.String>.InnerAgain<java.lang.Number>"
+                            )
+                        if (invocation.isKsp) {
+                            assertThat(typeName.kotlin.toString())
+                                .isEqualTo(
+                                    "KotlinOuterWithoutArgs.Inner<kotlin.String>.InnerAgain<kotlin.Number>"
+                                )
+                        }
+                    }
+
+                cls.getDeclaredMethodByJvmName("innerWithoutArgsInOuterWithoutArgs")
+                    .returnType
+                    .asTypeName()
+                    .let { typeName ->
+                        assertThat(typeName.java.toString())
+                            .isEqualTo("KotlinOuterWithoutArgs.InnerWithoutArgs")
+                        if (invocation.isKsp) {
+                            assertThat(typeName.kotlin.toString())
+                                .isEqualTo("KotlinOuterWithoutArgs.InnerWithoutArgs")
+                        }
+                    }
+            }
+
+            invocation.processingEnv.requireTypeElement("JavaClient").let { cls ->
+                cls.getDeclaredMethodByJvmName("javaOuter").returnType.asTypeName().let { typeName
+                    ->
+                    assertThat(typeName.java.toString()).isEqualTo("JavaOuter<java.lang.String>")
+                    if (invocation.isKsp)
+                        assertThat(typeName.kotlin.toString())
+                            .isEqualTo("JavaOuter<kotlin.String?>?")
+                }
+
+                if (!isPrecompiled && invocation.isKsp) {
+                    // https://github.com/google/ksp/issues/2066
+                } else {
+                    cls.getDeclaredMethodByJvmName("nested").returnType.asTypeName().let { typeName
+                        ->
+                        assertThat(typeName.java.toString())
+                            .isEqualTo("JavaOuter<java.lang.String>.Nested<java.lang.Number>")
+                        if (invocation.isKsp) {
+                            assertThat(typeName.kotlin.toString())
+                                .isEqualTo("JavaOuter<kotlin.String?>.Nested<kotlin.Number?>?")
+                        }
+                    }
+
+                    cls.getDeclaredMethodByJvmName("nestedAgain").returnType.asTypeName().let {
+                        typeName ->
+                        assertThat(typeName.java.toString())
+                            .isEqualTo(
+                                "JavaOuter<java.lang.String>.Nested<java.lang.Number>.NestedAgain<java.lang.Boolean>"
+                            )
+                        if (invocation.isKsp) {
+                            assertThat(typeName.kotlin.toString())
+                                .isEqualTo(
+                                    "JavaOuter<kotlin.String?>.Nested<kotlin.Number?>.NestedAgain<kotlin.Boolean?>?"
+                                )
+                        }
+                    }
+
+                    cls.getDeclaredMethodByJvmName("nestedWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString())
+                                .isEqualTo("JavaOuter<java.lang.String>.NestedWithoutArgs")
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo("JavaOuter<kotlin.String?>.NestedWithoutArgs?")
+                            }
+                        }
+
+                    cls.getDeclaredMethodByJvmName("javaOuterRaw").returnType.asTypeName().let {
+                        typeName ->
+                        assertThat(typeName.java.toString()).isEqualTo("JavaOuter")
+                        if (invocation.isKsp) {
+                            // TODO: This is wrong as Kotlin doesn't allow raw types, but it's
+                            // probably not possible for us to know what type arg to fill when the\
+                            // type parameter has multiple bounds.
+                            assertThat(typeName.kotlin.toString()).isEqualTo("JavaOuter?")
+                        }
+                    }
+
+                    cls.getDeclaredMethodByJvmName("javaOuterWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString()).isEqualTo("JavaOuterWithoutArgs")
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo("JavaOuterWithoutArgs?")
+                            }
+                        }
+
+                    cls.getDeclaredMethodByJvmName("nestedInOuterWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString())
+                                .isEqualTo("JavaOuterWithoutArgs.Nested<java.lang.String>")
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo("JavaOuterWithoutArgs.Nested<kotlin.String?>?")
+                            }
+                        }
+                    cls.getDeclaredMethodByJvmName("nestedAgainInOuterWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString())
+                                .isEqualTo(
+                                    "JavaOuterWithoutArgs.Nested<java.lang.String>.NestedAgain<java.lang.Boolean>"
+                                )
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo(
+                                        "JavaOuterWithoutArgs.Nested<kotlin.String?>.NestedAgain<kotlin.Boolean?>?"
+                                    )
+                            }
+                        }
+                    cls.getDeclaredMethodByJvmName("nestedWithoutArgsInOuterWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString())
+                                .isEqualTo("JavaOuterWithoutArgs.NestedWithoutArgs")
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo("JavaOuterWithoutArgs.NestedWithoutArgs?")
+                            }
+                        }
+                    cls.getDeclaredMethodByJvmName("nestedAgainWithoutArgs")
+                        .returnType
+                        .asTypeName()
+                        .let { typeName ->
+                            assertThat(typeName.java.toString())
+                                .isEqualTo(
+                                    "JavaOuter<java.lang.String>.Nested<java.lang.Number>.NestedAgainWithoutArgs"
+                                )
+                            if (invocation.isKsp) {
+                                assertThat(typeName.kotlin.toString())
+                                    .isEqualTo(
+                                        "JavaOuter<kotlin.String?>.Nested<kotlin.Number?>.NestedAgainWithoutArgs?"
+                                    )
+                            }
+                        }
+                }
             }
         }
     }

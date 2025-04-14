@@ -212,7 +212,7 @@ private class SizeAnimationModifierNode(
                     space = IntSize(width, height),
                     layoutDirection = this@measure.layoutDirection
                 )
-            placeable.placeRelative(offset)
+            placeable.place(offset)
         }
     }
 
@@ -262,28 +262,6 @@ internal abstract class LayoutModifierNodeWithPassThroughIntrinsics :
     ) = measurable.maxIntrinsicWidth(height)
 
     override fun IntrinsicMeasureScope.maxIntrinsicHeight(
-        measurable: IntrinsicMeasurable,
-        width: Int
-    ) = measurable.maxIntrinsicHeight(width)
-}
-
-internal abstract class LayoutModifierWithPassThroughIntrinsics : LayoutModifier {
-    final override fun IntrinsicMeasureScope.minIntrinsicWidth(
-        measurable: IntrinsicMeasurable,
-        height: Int
-    ) = measurable.minIntrinsicWidth(height)
-
-    final override fun IntrinsicMeasureScope.minIntrinsicHeight(
-        measurable: IntrinsicMeasurable,
-        width: Int
-    ) = measurable.minIntrinsicHeight(width)
-
-    final override fun IntrinsicMeasureScope.maxIntrinsicWidth(
-        measurable: IntrinsicMeasurable,
-        height: Int
-    ) = measurable.maxIntrinsicWidth(height)
-
-    final override fun IntrinsicMeasureScope.maxIntrinsicHeight(
         measurable: IntrinsicMeasurable,
         width: Int
     ) = measurable.maxIntrinsicHeight(width)

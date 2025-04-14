@@ -34,7 +34,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -71,7 +70,9 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.samples.StickyHeaderSample
+import androidx.compose.foundation.samples.StickyHeaderGridSample
+import androidx.compose.foundation.samples.StickyHeaderHeaderIndexSample
+import androidx.compose.foundation.samples.StickyHeaderListSample
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.integration.demos.common.ComposableDemo
@@ -134,7 +135,11 @@ val LazyListDemos =
         ComposableDemo("Rtl list") { RtlListDemo() },
         ComposableDemo("LazyColumn DSL") { LazyColumnScope() },
         ComposableDemo("LazyRow DSL") { LazyRowScope() },
-        ComposableDemo("LazyColumn with sticky headers") { StickyHeaderSample() },
+        ComposableDemo("LazyColumn with sticky headers") { StickyHeaderListSample() },
+        ComposableDemo("LazyVerticalGrid with sticky headers") { StickyHeaderGridSample() },
+        ComposableDemo("LazyColumn with sticky headers - header index") {
+            StickyHeaderHeaderIndexSample()
+        },
         ComposableDemo("Arrangements") { LazyListArrangements() },
         ComposableDemo("ReverseLayout and RTL") { ReverseLayoutAndRtlDemo() },
         ComposableDemo("Nested lazy lists") { NestedLazyDemo() },
@@ -149,6 +154,7 @@ val LazyListDemos =
         ComposableDemo("Staggered grid") { LazyStaggeredGridDemo() },
         ComposableDemo("Animate item placement") { AnimateItemPlacementDemo() },
         ComposableDemo("Focus Scrolling") { BringIntoViewDemo() },
+        ComposableDemo("2D Custom Lazy Layout") { Lazy2DGridDemo() },
         PagingDemos
     )
 
@@ -1038,16 +1044,10 @@ fun CrossListDragAndDropDemo() {
 @Composable
 private fun LazyItemScope.DragAndDropItem(index: Int, color: Color) {
     Box(
-        Modifier.dragAndDropSource {
-                detectTapGestures(
-                    onLongPress = {
-                        startTransfer(
-                            DragAndDropTransferData(
-                                clipData = ClipData.newPlainText("item_id", index.toString()),
-                                localState = index
-                            )
-                        )
-                    }
+        Modifier.dragAndDropSource { _ ->
+                DragAndDropTransferData(
+                    clipData = ClipData.newPlainText("item_id", index.toString()),
+                    localState = index
                 )
             }
             .animateItem()

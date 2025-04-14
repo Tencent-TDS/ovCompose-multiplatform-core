@@ -18,16 +18,22 @@ package androidx.compose.foundation
 
 import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitAllPointersUp
+import androidx.compose.foundation.gestures.awaitDragOrCancellation
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitVerticalPointerSlopOrCancellation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -36,6 +42,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.InspectableValue
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
@@ -43,14 +51,17 @@ import androidx.compose.ui.platform.isDebugInspectorInfoEnabled
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeWithVelocity
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.google.common.truth.Truth.assertThat
+import kotlin.math.absoluteValue
 import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -153,7 +164,6 @@ class DraggableTest {
     }
 
     @Test
-    @Ignore("b/303237627")
     fun draggable_verticalDrag_newState() {
         var total = 0f
         setDraggableContent { Modifier.draggable(Orientation.Vertical) { total += it } }
@@ -519,7 +529,6 @@ class DraggableTest {
     }
 
     @Test
-    @Ignore("b/303237627")
     fun draggable_resumesNormally_whenInterruptedWithHigherPriority() = runBlocking {
         var total = 0f
         var dragStopped = 0f
@@ -1038,6 +1047,177 @@ class DraggableTest {
             up()
         }
 
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun nestedDraggable_childStopsConsuming_shouldAllowParentToConsume() {
+        var parentDeltas by mutableFloatStateOf(0.0f)
+        var childDeltas by mutableFloatStateOf(0.0f)
+
+        val parentDraggableController = DraggableState { parentDeltas += it }
+        val childDraggableController = DraggableState { childDeltas += it }
+
+        rule.setContent {
+            Box(
+                Modifier.size(400.dp)
+                    .draggable(parentDraggableController, orientation = Orientation.Vertical)
+            ) {
+                if (childDeltas.absoluteValue < 80.0f) {
+                    Box(
+                        Modifier.testTag("childDraggable")
+                            .size(400.dp)
+                            .draggable(childDraggableController, orientation = Orientation.Vertical)
+                    )
+                }
+            }
+        }
+
+        rule.onRoot().performTouchInput { swipeUp() }
+
+        rule.onNodeWithTag("childDraggable").assertDoesNotExist()
+
+        rule.runOnIdle {
+            assertThat(parentDeltas).isNonZero()
+            assertThat(childDeltas).isNonZero()
+        }
+    }
+
+    // b/380242617
+    @Test
+    fun nestedDraggable_childStopsConsumingMidway_shouldAllowParentToConsume() {
+        var parentDeltas = 0.0f
+        val parentDraggableController = DraggableState { parentDeltas += it }
+        var keepChild by mutableStateOf(true)
+        var childDeltas = 0f
+        val dragDistance = with(rule.density) { 400.dp.toPx() }
+
+        var eventDropHappened = false
+        var extraUnconsumed = 0f
+        var parentStartOffset = 0f
+
+        rule.setContent {
+            Box(
+                Modifier.size(400.dp)
+                    .draggable(
+                        parentDraggableController,
+                        onDragStarted = { parentStartOffset = it.y },
+                        orientation = Orientation.Vertical
+                    )
+            ) {
+                if (keepChild) {
+                    Box(
+                        Modifier.testTag("childDraggable").size(400.dp).pointerInput(keepChild) {
+                            awaitPointerEventScope {
+                                val down = awaitFirstDown()
+                                awaitVerticalPointerSlopOrCancellation(
+                                    pointerId = down.id,
+                                    pointerType = down.type
+                                ) { change, overSlop ->
+                                    change.consume()
+                                    childDeltas += overSlop
+                                }
+                                while (keepChild) {
+                                    val drag = awaitDragOrCancellation(down.id) ?: break
+                                    if (
+                                        childDeltas.absoluteValue < dragDistance * 0.2 ||
+                                            eventDropHappened
+                                    ) {
+                                        childDeltas += drag.positionChange().y
+                                        drag.consume()
+                                    } else {
+                                        extraUnconsumed += drag.positionChange().y
+                                        eventDropHappened = true
+                                    }
+                                    if (childDeltas.absoluteValue > dragDistance * 0.4) {
+                                        keepChild = false
+                                    }
+                                }
+                                awaitAllPointersUp()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        var swipeStartOffset = 0f
+        rule.onRoot().performTouchInput {
+            swipeUp()
+            swipeStartOffset = bottom
+        }
+
+        rule.onNodeWithTag("childDraggable").assertDoesNotExist()
+
+        // the total drag distance should be reflected on the parent's drag callbacks.
+        rule.runOnIdle {
+            assertThat(dragDistance)
+                .isWithin(2f)
+                .of(
+                    (parentStartOffset - swipeStartOffset).absoluteValue +
+                        parentDeltas.absoluteValue
+                )
+        }
+    }
+
+    @Test
+    fun onGesturePickUp_doesNotNeedToWaitForCompleteTouchSlop() {
+        var dragStarted = false
+        var composeNestedScrollable by mutableStateOf(true)
+        var touchSlop = 0f
+        rule.setContent {
+            touchSlop = LocalViewConfiguration.current.touchSlop
+            Box(
+                Modifier.fillMaxSize()
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        onDragStarted = { dragStarted = true },
+                        state = rememberDraggableState {},
+                    )
+                    .then(
+                        if (composeNestedScrollable) Modifier.verticalScroll(rememberScrollState())
+                        else Modifier
+                    )
+            )
+        }
+
+        rule.onRoot().performTouchInput {
+            down(center)
+            moveBy(Offset(x = 0f, y = touchSlop + 10f))
+        }
+
+        assertThat(dragStarted).isFalse()
+
+        composeNestedScrollable = false
+
+        // one event for entering pick up.
+        rule.onRoot().performTouchInput { moveBy(Offset(x = 0f, y = touchSlop / 2)) }
+
+        // one event for triggering touch slop
+        rule.onRoot().performTouchInput { moveBy(Offset(x = 0f, y = touchSlop / 2)) }
+        assertThat(dragStarted).isTrue()
+    }
+
+    // On tests this wouldn't fail due to usage of a UnconfinedTestDispatcher. Using a
+    // standard test dispatcher will reveal this issue.
+    @Test
+    fun assertDraggableCallbackOrder() {
+        var onStartCalled = false
+        val draggableController = DraggableState { assertTrue { onStartCalled } }
+
+        rule.setContent {
+            Box(
+                Modifier.size(400.dp)
+                    .draggable(
+                        draggableController,
+                        orientation = Orientation.Vertical,
+                        onDragStarted = { onStartCalled = true },
+                        onDragStopped = { assertTrue { onStartCalled } }
+                    )
+            )
+        }
+
+        rule.onRoot().performTouchInput { swipeUp() }
         rule.waitForIdle()
     }
 

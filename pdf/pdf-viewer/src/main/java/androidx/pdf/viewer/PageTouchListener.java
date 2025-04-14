@@ -17,14 +17,16 @@
 package androidx.pdf.viewer;
 
 import android.graphics.Point;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.pdf.find.FindInFileView;
 import androidx.pdf.models.SelectionBoundary;
 import androidx.pdf.util.GestureTracker;
 import androidx.pdf.viewer.loader.PdfLoader;
+
+import org.jspecify.annotations.NonNull;
 
 /** Gesture listener for PageView's handling of tap and long press. */
 @RestrictTo(RestrictTo.Scope.LIBRARY)
@@ -38,7 +40,7 @@ class PageTouchListener extends GestureTracker.GestureHandler {
 
     private final SingleTapHandler mSingleTapHandler;
 
-    PageTouchListener(@NonNull PageViewFactory.PageView pageView,
+    PageTouchListener(PageViewFactory.@NonNull PageView pageView,
             @NonNull PdfLoader pdfLoader,
             @NonNull SingleTapHandler singleTapHandler,
             @NonNull FindInFileView findInFileView) {
@@ -62,6 +64,8 @@ class PageTouchListener extends GestureTracker.GestureHandler {
     @Override
     public void onLongPress(MotionEvent e) {
         mFindInFileView.resetFindInFile();
+
+        mPageView.asView().performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
         SelectionBoundary boundary =
                 SelectionBoundary.atPoint(new Point((int) e.getX(), (int) e.getY()));
         mPdfLoader.selectPageText(mPageView.getPageNum(), boundary, boundary);

@@ -37,42 +37,32 @@ import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.node.LayoutModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.remeasureSync
+import androidx.compose.ui.node.requireLayoutDirection
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.LayoutDirection.Ltr
 import androidx.compose.ui.unit.LayoutDirection.Rtl
 
 /**
  * This modifier is used to measure and place additional items when the lazy layout receives a
  * request to layout items beyond the visible bounds.
+ *
+ * We will layout a limited number of items (currently the number of items in the viewport times a
+ * constant) so the focus search may give up if focusable items are too far apart.
  */
 internal fun Modifier.lazyLayoutBeyondBoundsModifier(
     state: LazyLayoutBeyondBoundsState,
     beyondBoundsInfo: LazyLayoutBeyondBoundsInfo,
     reverseLayout: Boolean,
-    layoutDirection: LayoutDirection,
-    orientation: Orientation,
-    enabled: Boolean
+    orientation: Orientation
 ): Modifier =
-    if (!enabled) {
-        this
-    } else {
-        this then
-            LazyLayoutBeyondBoundsModifierElement(
-                state,
-                beyondBoundsInfo,
-                reverseLayout,
-                layoutDirection,
-                orientation
-            )
-    }
+    this then
+        LazyLayoutBeyondBoundsModifierElement(state, beyondBoundsInfo, reverseLayout, orientation)
 
 private class LazyLayoutBeyondBoundsModifierElement(
     val state: LazyLayoutBeyondBoundsState,
     val beyondBoundsInfo: LazyLayoutBeyondBoundsInfo,
     val reverseLayout: Boolean,
-    val layoutDirection: LayoutDirection,
     val orientation: Orientation
 ) : ModifierNodeElement<LazyLayoutBeyondBoundsModifierNode>() {
     override fun create(): LazyLayoutBeyondBoundsModifierNode {
@@ -80,20 +70,18 @@ private class LazyLayoutBeyondBoundsModifierElement(
             state,
             beyondBoundsInfo,
             reverseLayout,
-            layoutDirection,
             orientation
         )
     }
 
     override fun update(node: LazyLayoutBeyondBoundsModifierNode) {
-        node.update(state, beyondBoundsInfo, reverseLayout, layoutDirection, orientation)
+        node.update(state, beyondBoundsInfo, reverseLayout, orientation)
     }
 
     override fun hashCode(): Int {
         var result = state.hashCode()
         result = 31 * result + beyondBoundsInfo.hashCode()
         result = 31 * result + reverseLayout.hashCode()
-        result = 31 * result + layoutDirection.hashCode()
         result = 31 * result + orientation.hashCode()
         return result
     }
@@ -106,7 +94,6 @@ private class LazyLayoutBeyondBoundsModifierElement(
         if (state != other.state) return false
         if (beyondBoundsInfo != other.beyondBoundsInfo) return false
         if (reverseLayout != other.reverseLayout) return false
-        if (layoutDirection != other.layoutDirection) return false
         if (orientation != other.orientation) return false
 
         return true
@@ -121,7 +108,6 @@ internal class LazyLayoutBeyondBoundsModifierNode(
     private var state: LazyLayoutBeyondBoundsState,
     private var beyondBoundsInfo: LazyLayoutBeyondBoundsInfo,
     private var reverseLayout: Boolean,
-    private var layoutDirection: LayoutDirection,
     private var orientation: Orientation
 ) : Modifier.Node(), ModifierLocalModifierNode, BeyondBoundsLayout, LayoutModifierNode {
 
@@ -163,12 +149,21 @@ internal class LazyLayoutBeyondBoundsModifierNode(
             }
         var interval = beyondBoundsInfo.addInterval(startIndex, startIndex)
         var found: T? = null
-        while (found == null && interval.hasMoreContent(direction)) {
+        // Layout at most one viewport worth of items (times BeyondBoundsViewportFactor).
+        val maxItemsToLayout =
+            (BeyondBoundsViewportFactor * state.itemsPerViewport()).coerceAtMost(state.itemCount)
+        var itemsCreatedSoFar = 0
+        while (
+            found == null &&
+                interval.hasMoreContent(direction) &&
+                itemsCreatedSoFar < maxItemsToLayout
+        ) {
             // Add one extra beyond bounds item.
             interval =
                 addNextInterval(interval, direction).also {
                     beyondBoundsInfo.removeInterval(interval)
                 }
+            itemsCreatedSoFar++
             remeasureSync()
 
             // When we invoke this block, the beyond bounds items are present.
@@ -194,12 +189,12 @@ internal class LazyLayoutBeyondBoundsModifierNode(
             Above -> reverseLayout
             Below -> !reverseLayout
             Left ->
-                when (layoutDirection) {
+                when (requireLayoutDirection()) {
                     Ltr -> reverseLayout
                     Rtl -> !reverseLayout
                 }
             Right ->
-                when (layoutDirection) {
+                when (requireLayoutDirection()) {
                     Ltr -> !reverseLayout
                     Rtl -> reverseLayout
                 }
@@ -241,16 +236,16 @@ internal class LazyLayoutBeyondBoundsModifierNode(
         state: LazyLayoutBeyondBoundsState,
         beyondBoundsInfo: LazyLayoutBeyondBoundsInfo,
         reverseLayout: Boolean,
-        layoutDirection: LayoutDirection,
         orientation: Orientation
     ) {
         this.state = state
         this.beyondBoundsInfo = beyondBoundsInfo
         this.reverseLayout = reverseLayout
-        this.layoutDirection = layoutDirection
         this.orientation = orientation
     }
 }
 
 private fun unsupportedDirection(): Nothing =
     error("Lazy list does not support beyond bounds layout for the specified direction")
+
+private const val BeyondBoundsViewportFactor = 2

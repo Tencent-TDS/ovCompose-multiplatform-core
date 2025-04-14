@@ -16,54 +16,30 @@
 
 package androidx.ink.geometry
 
-import androidx.annotation.FloatRange
 import androidx.annotation.RestrictTo
+import androidx.ink.nativeloader.UsedByNative
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * A mutable 2-dimensional vector, representing an offset in space. See [ImmutableVec] for an
- * immutable alternative, and see [Point] (and its concrete implementations [ImmutablePoint] and
- * [MutablePoint]) for a location in space.
+ * A mutable two-dimensional vector, i.e. an (x, y) coordinate pair. It can be used to represent
+ * either:
+ * 1) A two-dimensional offset, i.e. the difference between two points
+ * 2) A point in space, i.e. treating the vector as an offset from the origin
+ *
+ * This object is mutable and is not inherently thread-safe, so callers should apply their own
+ * synchronization logic or use this object from a single thread. See [ImmutableVec] for an
+ * immutable alternative.
  */
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP) // PublicApiNotReadyForJetpackReview
 public class MutableVec(
-    override var x:
-        Float, // TODO: b/355248266 - @set:UsedByNative("vec_jni.cc") must go in Proguard config
-    // file instead.
-    override var y:
-        Float, // TODO: b/355248266 - @set:UsedByNative("vec_jni.cc") must go in Proguard config
-    // file instead.
-) : Vec {
+    @set:UsedByNative override var x: Float,
+    @set:UsedByNative override var y: Float,
+) : Vec() {
 
-    /**
-     * Constructs a [MutableVec] without any initial data. This is useful when pre-allocating an
-     * instance to be filled later.
-     */
-    public constructor() : this(0f, 0f)
+    public constructor() : this(0F, 0F)
 
-    override val magnitude: Float
-        @FloatRange(from = 0.0) get() = hypot(x, y)
-
-    override val magnitudeSquared: Float
-        @FloatRange(from = 0.0) get() = x * x + y * y
-
-    override val asImmutable: ImmutableVec = ImmutableVec(x, y)
-
-    @JvmSynthetic override fun asImmutable(x: Float, y: Float): ImmutableVec = ImmutableVec(x, y)
-
-    /** Sets the value of [x]. */
-    public fun x(value: Float): MutableVec {
-        x = value
-        return this
-    }
-
-    /** Sets the value of [y]. */
-    public fun y(value: Float): MutableVec {
-        y = value
-        return this
-    }
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    override fun asImmutable(): ImmutableVec = ImmutableVec(x, y)
 
     /** Fills this [MutableVec] with the same values contained in [input]. */
     public fun populateFrom(input: Vec): MutableVec {
@@ -73,12 +49,12 @@ public class MutableVec(
     }
 
     override fun equals(other: Any?): Boolean =
-        other === this || (other is Vec && Vec.areEquivalent(this, other))
+        other === this || (other is Vec && areEquivalent(this, other))
 
     // NOMUTANTS -- not testing exact hashCode values, just that equality implies same hashCode
-    override fun hashCode(): Int = Vec.hash(this)
+    override fun hashCode(): Int = hash(this)
 
-    override fun toString(): String = "Mutable${Vec.string(this)}"
+    override fun toString(): String = "Mutable${string(this)}"
 
     public companion object {
         @JvmStatic

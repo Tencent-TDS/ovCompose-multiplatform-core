@@ -18,6 +18,7 @@ package androidx.compose.foundation.lazy.staggeredgrid
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.internal.requirePrecondition
+import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimation.Companion.NotInitialized
 import androidx.compose.foundation.lazy.layout.LazyLayoutItemAnimator
 import androidx.compose.foundation.lazy.layout.LazyLayoutKeyIndexMap
 import androidx.compose.foundation.lazy.layout.LazyLayoutMeasureScope
@@ -33,11 +34,13 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.constrainWidth
-import androidx.compose.ui.unit.max
+import androidx.compose.ui.util.fastAny
+import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.util.fastForEachReversed
-import androidx.compose.ui.util.fastMaxOfOrNull
+import androidx.compose.ui.util.fastJoinToString
+import androidx.compose.ui.util.fastMaxOfOrDefault
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.packInts
 import androidx.compose.ui.util.unpackInt1
@@ -98,6 +101,9 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
     beforeContentPadding: Int,
     afterContentPadding: Int,
     coroutineScope: CoroutineScope,
+    isInLookaheadScope: Boolean,
+    isLookingAhead: Boolean,
+    approachLayoutInfo: LazyStaggeredGridLayoutInfo?,
     graphicsContext: GraphicsContext
 ): LazyStaggeredGridMeasureResult {
     val context =
@@ -116,6 +122,9 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
             mainAxisSpacing = mainAxisSpacing,
             measureScope = this,
             coroutineScope = coroutineScope,
+            isInLookaheadScope = isInLookaheadScope,
+            isLookingAhead = isLookingAhead,
+            approachLayoutInfo = approachLayoutInfo,
             graphicsContext = graphicsContext
         )
 
@@ -172,7 +181,8 @@ internal fun LazyLayoutMeasureScope.measureStaggeredGrid(
         }
 
     return context.measure(
-        initialScrollDelta = state.scrollToBeConsumed.fastRoundToInt(),
+        initialScrollDelta =
+            state.scrollToBeConsumed(isLookingAhead = isLookingAhead).fastRoundToInt(),
         initialItemIndices = initialItemIndices,
         initialItemOffsets = initialItemOffsets,
         canRestartMeasure = true,
@@ -195,6 +205,9 @@ internal class LazyStaggeredGridMeasureContext(
     val reverseLayout: Boolean,
     val mainAxisSpacing: Int,
     val coroutineScope: CoroutineScope,
+    val isInLookaheadScope: Boolean,
+    val isLookingAhead: Boolean,
+    val approachLayoutInfo: LazyStaggeredGridLayoutInfo?,
     val graphicsContext: GraphicsContext
 ) {
     val measuredItemProvider =
@@ -273,17 +286,20 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 itemProvider = measuredItemProvider,
                 laneCount = laneCount,
                 isVertical = isVertical,
-                isLookingAhead = false,
-                hasLookaheadOccurred = false,
+                isLookingAhead = isLookingAhead,
+                hasLookaheadOccurred = isInLookaheadScope,
                 layoutMinOffset = 0,
                 layoutMaxOffset = 0,
                 coroutineScope = coroutineScope,
                 graphicsContext = graphicsContext
             )
-            val disappearingItemsSize = state.itemAnimator.minSizeToFitDisappearingItems
-            if (disappearingItemsSize != IntSize.Zero) {
-                layoutWidth = constraints.constrainWidth(disappearingItemsSize.width)
-                layoutHeight = constraints.constrainHeight(disappearingItemsSize.height)
+
+            if (!isLookingAhead) {
+                val disappearingItemsSize = state.itemAnimator.minSizeToFitDisappearingItems
+                if (disappearingItemsSize != IntSize.Zero) {
+                    layoutWidth = constraints.constrainWidth(disappearingItemsSize.width)
+                    layoutHeight = constraints.constrainHeight(disappearingItemsSize.height)
+                }
             }
             return LazyStaggeredGridMeasureResult(
                 firstVisibleItemIndices = initialItemIndices,
@@ -304,6 +320,7 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 slots = resolvedSlots,
                 spanProvider = itemProvider.spanProvider,
                 density = this,
+                scrollBackAmount = 0f,
                 coroutineScope = coroutineScope
             )
         }
@@ -607,6 +624,7 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 "offsets: ${firstItemOffsets.toList()}"
         }
 
+        val preScrollBackScrollDelta = scrollDelta
         // we didn't fill the whole viewport with items starting from firstVisibleItemIndex.
         // lets try to scroll back if we have enough items before firstVisibleItemIndex.
         if (currentItemOffsets.all { it < mainAxisAvailableSize }) {
@@ -715,16 +733,25 @@ private fun LazyStaggeredGridMeasureContext.measure(
         // scrollToBeConsumed if there were not enough items to fill the offered space or it
         // can be larger if items were resized, or if, for example, we were previously
         // displaying the item 15, but now we have only 10 items in total in the data set.
+        val scrollToBeConsumed = state.scrollToBeConsumed(isLookingAhead)
         val consumedScroll =
             if (
-                state.scrollToBeConsumed.fastRoundToInt().sign == scrollDelta.sign &&
-                    abs(state.scrollToBeConsumed.fastRoundToInt()) >= abs(scrollDelta)
+                scrollToBeConsumed.fastRoundToInt().sign == scrollDelta.sign &&
+                    abs(scrollToBeConsumed.fastRoundToInt()) >= abs(scrollDelta)
             ) {
                 scrollDelta.toFloat()
             } else {
-                state.scrollToBeConsumed
+                scrollToBeConsumed
             }
 
+        val unconsumedScroll = scrollToBeConsumed - consumedScroll
+        // When scrolling to the bottom via gesture, there could be scrollback due to
+        // not being able to consume the whole scroll. In that case, the amount of
+        // scrollBack is the inverse of unconsumed scroll.
+        val scrollBackAmount: Float =
+            if (isLookingAhead && scrollDelta > preScrollBackScrollDelta && unconsumedScroll <= 0) {
+                scrollDelta - preScrollBackScrollDelta + unconsumedScroll
+            } else 0f
         val itemScrollOffsets = firstItemOffsets.copyOf().transform { -it }
 
         // even if we compose items to fill before content padding we should ignore items fully
@@ -783,6 +810,8 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 it - beforeContentPadding + afterContentPadding
             }
 
+        debugLog { "pinned items: $pinnedItems" }
+
         var extraItemOffset = itemScrollOffsets[0]
         val extraItemsBefore =
             calculateExtraItems(
@@ -799,15 +828,23 @@ private fun LazyStaggeredGridMeasureContext.measure(
                     when (lane) {
                         Unset,
                         FullSpan -> {
-                            firstItemIndices.all { it > itemIndex }
+                            measuredItems.all {
+                                val firstIndex = it.firstOrNull()?.index ?: -1
+                                firstIndex > itemIndex
+                            }
                         }
                         else -> {
-                            firstItemIndices[lane] > itemIndex
+                            val firstIndex = measuredItems[lane].firstOrNull()?.index ?: -1
+                            firstIndex > itemIndex
                         }
                     }
                 },
                 beforeVisibleBounds = true
             )
+
+        debugLog {
+            "extra items before: ${extraItemsBefore.fastJoinToString { it.index.toString() }}"
+        }
 
         val visibleItems =
             calculateVisibleItems(
@@ -819,6 +856,21 @@ private fun LazyStaggeredGridMeasureContext.measure(
             )
 
         extraItemOffset = itemScrollOffsets[0]
+
+        val itemsRetainedForLookahead =
+            itemsRetainedForLookahead(
+                lastVisibleItemIndex = visibleItems.lastOrNull()?.index ?: -1,
+                itemCount,
+                isLookingAhead,
+                position = { item, crossAxis ->
+                    item.position(
+                        mainAxis = extraItemOffset,
+                        crossAxis = crossAxis,
+                        mainAxisLayoutSize = mainAxisLayoutSize
+                    )
+                    extraItemOffset += item.mainAxisSizeWithSpacings
+                }
+            )
         val extraItemsAfter =
             calculateExtraItems(
                 position = {
@@ -831,6 +883,10 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 },
                 filter = { itemIndex ->
                     if (itemIndex >= itemCount) {
+                        return@calculateExtraItems false
+                    }
+                    // Also filter out items already in itemsRetainedForLookahead
+                    if (itemsRetainedForLookahead?.fastAny { it.index == itemIndex } == true) {
                         return@calculateExtraItems false
                     }
                     val lane = laneInfo.getLane(itemIndex)
@@ -847,9 +903,16 @@ private fun LazyStaggeredGridMeasureContext.measure(
                 beforeVisibleBounds = false
             )
 
+        debugLog {
+            "extra items after: ${extraItemsAfter.fastJoinToString { it.index.toString() }}"
+        }
+
         val positionedItems = mutableListOf<LazyStaggeredGridMeasuredItem>()
         positionedItems.addAll(extraItemsBefore)
         positionedItems.addAll(visibleItems)
+        if (itemsRetainedForLookahead != null) {
+            positionedItems.addAll(itemsRetainedForLookahead)
+        }
         positionedItems.addAll(extraItemsAfter)
 
         debugLog { "positioned: $positionedItems" }
@@ -863,24 +926,26 @@ private fun LazyStaggeredGridMeasureContext.measure(
             itemProvider = measuredItemProvider,
             isVertical = isVertical,
             laneCount = laneCount,
-            isLookingAhead = false,
-            hasLookaheadOccurred = false,
+            isLookingAhead = isLookingAhead,
+            hasLookaheadOccurred = isInLookaheadScope,
             layoutMinOffset = firstItemOffsets.min(),
             layoutMaxOffset = currentItemOffsets.max() + contentPadding,
             coroutineScope = coroutineScope,
             graphicsContext = graphicsContext
         )
 
-        val disappearingItemsSize = state.itemAnimator.minSizeToFitDisappearingItems
-        if (disappearingItemsSize != IntSize.Zero) {
-            val oldMainAxisSize = if (isVertical) layoutHeight else layoutWidth
-            layoutWidth =
-                constraints.constrainWidth(maxOf(layoutWidth, disappearingItemsSize.width))
-            layoutHeight =
-                constraints.constrainHeight(maxOf(layoutHeight, disappearingItemsSize.height))
-            val newMainAxisSize = if (isVertical) layoutHeight else layoutWidth
-            if (newMainAxisSize != oldMainAxisSize) {
-                positionedItems.fastForEach { it.updateMainAxisLayoutSize(newMainAxisSize) }
+        if (!isLookingAhead) {
+            val disappearingItemsSize = state.itemAnimator.minSizeToFitDisappearingItems
+            if (disappearingItemsSize != IntSize.Zero) {
+                val oldMainAxisSize = if (isVertical) layoutHeight else layoutWidth
+                layoutWidth =
+                    constraints.constrainWidth(maxOf(layoutWidth, disappearingItemsSize.width))
+                layoutHeight =
+                    constraints.constrainHeight(maxOf(layoutHeight, disappearingItemsSize.height))
+                val newMainAxisSize = if (isVertical) layoutHeight else layoutWidth
+                if (newMainAxisSize != oldMainAxisSize) {
+                    positionedItems.fastForEach { it.updateMainAxisLayoutSize(newMainAxisSize) }
+                }
             }
         }
 
@@ -897,14 +962,22 @@ private fun LazyStaggeredGridMeasureContext.measure(
             consumedScroll = consumedScroll,
             measureResult =
                 layout(layoutWidth, layoutHeight) {
-                    positionedItems.fastForEach { item ->
-                        item.place(scope = this, context = this@measure)
+                    // Tagging as motion frame of reference placement, meaning the placement
+                    // contains scrolling. This allows the consumer of this placement offset to
+                    // differentiate this offset vs. offsets from structural changes. Generally
+                    // speaking, this signals a preference to directly apply changes rather than
+                    // animating, to avoid a chasing effect to scrolling.
+                    withMotionFrameOfReferencePlacement {
+                        positionedItems.fastForEach { item ->
+                            item.place(scope = this, context = this@measure, isLookingAhead)
+                        }
                     }
 
                     // we attach it during the placement so LazyStaggeredGridState can trigger
                     // re-placement
                     state.placementScopeInvalidator.attachToScope()
                 },
+            scrollBackAmount = scrollBackAmount,
             canScrollForward = canScrollForward,
             isVertical = isVertical,
             visibleItemsInfo = visibleItems,
@@ -961,6 +1034,65 @@ private fun LazyStaggeredGridMeasureContext.calculateVisibleItems(
         }
     }
     return positionedItems
+}
+
+/**
+ * Retain the items from last approach pass until they are no longer needed in the approach. This
+ * avoids disposing items in lookahead too early, which would lead to the items being composed in a
+ * different node later in the approach and lose all its internal states.
+ */
+private inline fun LazyStaggeredGridMeasureContext.itemsRetainedForLookahead(
+    lastVisibleItemIndex: Int,
+    itemsCount: Int,
+    isLookingAhead: Boolean,
+    position: (LazyStaggeredGridMeasuredItem, Int) -> Unit
+): List<LazyStaggeredGridMeasuredItem>? {
+    var list: MutableList<LazyStaggeredGridMeasuredItem>? = null
+
+    if (isLookingAhead) {
+        // Check if there's any item that needs to be composed based on last approachLayoutInfo
+        if (approachLayoutInfo != null && approachLayoutInfo.visibleItemsInfo.isNotEmpty()) {
+            // Find first item with index > end. Note that `visibleItemsInfo.last()` may not have
+            // the largest index as the last few items could be added to animate item placement.
+            val firstItem =
+                approachLayoutInfo.visibleItemsInfo.run {
+                    var found: LazyStaggeredGridItemInfo? = null
+                    for (i in size - 1 downTo 0) {
+                        if (
+                            this[i].index > lastVisibleItemIndex &&
+                                (i == 0 || this[i - 1].index <= lastVisibleItemIndex)
+                        ) {
+                            found = this[i]
+                            break
+                        }
+                    }
+                    found
+                }
+            val lastVisibleItem = approachLayoutInfo.visibleItemsInfo.last()
+            if (firstItem != null) {
+                for (i in firstItem.index..min(lastVisibleItem.index, itemsCount - 1)) {
+                    if (list?.fastAny { it.index == i } != true) {
+                        if (list == null) list = mutableListOf()
+                        val lane =
+                            approachLayoutInfo.visibleItemsInfo
+                                .fastFirstOrNull { it.index == i }
+                                ?.lane ?: 0
+                        val spanRange = itemProvider.getSpanRange(i, lane)
+                        val item = measuredItemProvider.getAndMeasure(i, spanRange)
+                        list.add(item)
+                        val crossAxisOffset =
+                            resolvedSlots.positions.let { if (it.size > lane) it[lane] else 0 }
+                        // Position items that are no longer in the lookahead based on their
+                        // last seen crossAxisOffset, so their position animation for disappearance
+                        // will only have motion along the mainAxis, which produces a more
+                        // pleasant and less chaotic overall look.
+                        position(item, crossAxisOffset)
+                    }
+                }
+            }
+        }
+    }
+    return list
 }
 
 private inline fun LazyStaggeredGridMeasureContext.calculateExtraItems(
@@ -1177,14 +1309,14 @@ internal class LazyStaggeredGridMeasuredItem(
     override fun getParentData(index: Int) = placeables[index].parentData
 
     val mainAxisSize: Int =
-        placeables.fastMaxOfOrNull { placeable ->
+        placeables.fastMaxOfOrDefault(0) { placeable ->
             if (isVertical) placeable.height else placeable.width
-        } ?: 0
+        }
 
     override val mainAxisSizeWithSpacings: Int = (mainAxisSize + spacing).coerceAtLeast(0)
 
     val crossAxisSize: Int =
-        placeables.fastMaxOfOrNull { if (isVertical) it.width else it.height } ?: 0
+        placeables.fastMaxOfOrDefault(0) { if (isVertical) it.width else it.height }
 
     private var mainAxisLayoutSize: Int = Unset
     private var minMainAxisOffset: Int = 0
@@ -1235,7 +1367,11 @@ internal class LazyStaggeredGridMeasuredItem(
     val mainAxisOffset
         get() = if (!isVertical) offset.x else offset.y
 
-    fun place(scope: Placeable.PlacementScope, context: LazyStaggeredGridMeasureContext) =
+    fun place(
+        scope: Placeable.PlacementScope,
+        context: LazyStaggeredGridMeasureContext,
+        isLookingAhead: Boolean
+    ) =
         with(context) {
             requirePrecondition(mainAxisLayoutSize != Unset) { "position() should be called first" }
             with(scope) {
@@ -1247,18 +1383,30 @@ internal class LazyStaggeredGridMeasuredItem(
                     val animation = animator.getAnimation(key, index)
                     val layer: GraphicsLayer?
                     if (animation != null) {
-                        val animatedOffset = offset + animation.placementDelta
-                        // cancel the animation if current and target offsets are both out of the
-                        // bounds.
-                        if (
-                            (offset.mainAxis <= minOffset &&
-                                animatedOffset.mainAxis <= minOffset) ||
-                                (offset.mainAxis >= maxOffset &&
-                                    animatedOffset.mainAxis >= maxOffset)
-                        ) {
-                            animation.cancelPlacementAnimation()
+                        if (isLookingAhead) {
+                            // Skip animation in lookahead pass
+                            animation.lookaheadOffset = offset
+                        } else {
+                            val targetOffset =
+                                if (animation.lookaheadOffset != NotInitialized) {
+                                    animation.lookaheadOffset
+                                } else {
+                                    offset
+                                }
+                            val animatedOffset = targetOffset + animation.placementDelta
+                            // cancel the animation if current and target offsets are both out of
+                            // the
+                            // bounds.
+                            if (
+                                (offset.mainAxis <= minOffset &&
+                                    animatedOffset.mainAxis <= minOffset) ||
+                                    (offset.mainAxis >= maxOffset &&
+                                        animatedOffset.mainAxis >= maxOffset)
+                            ) {
+                                animation.cancelPlacementAnimation()
+                            }
+                            offset = animatedOffset
                         }
-                        offset = animatedOffset
                         layer = animation.layer
                     } else {
                         layer = null
@@ -1270,7 +1418,9 @@ internal class LazyStaggeredGridMeasuredItem(
                             }
                     }
                     offset += contentOffset
-                    animation?.finalOffset = offset
+                    if (!isLookingAhead) {
+                        animation?.finalOffset = offset
+                    }
                     if (layer != null) {
                         placeable.placeRelativeWithLayer(offset, layer)
                     } else {
@@ -1289,15 +1439,17 @@ internal class LazyStaggeredGridMeasuredItem(
         maxMainAxisOffset = mainAxisLayoutSize + afterContentPadding
     }
 
-    fun applyScrollDelta(delta: Int) {
+    fun applyScrollDelta(delta: Int, updateAnimations: Boolean) {
         if (nonScrollableItem) {
             return
         }
         offset = offset.copy { it + delta }
-        repeat(placeablesCount) { index ->
-            val animation = animator.getAnimation(key, index)
-            if (animation != null) {
-                animation.rawOffset = animation.rawOffset.copy { mainAxis -> mainAxis + delta }
+        if (updateAnimations) {
+            repeat(placeablesCount) { index ->
+                val animation = animator.getAnimation(key, index)
+                if (animation != null) {
+                    animation.rawOffset = animation.rawOffset.copy { mainAxis -> mainAxis + delta }
+                }
             }
         }
     }

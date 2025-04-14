@@ -1018,7 +1018,6 @@ public class MutableScatterMap<K, V>(initialCapacity: Int = DefaultScatterCapaci
         // Converts Sentinel and Deleted to Empty, and Full to Deleted
         convertMetadataForCleanup(metadata, capacity)
 
-        var swapIndex = -1
         var index = 0
 
         // Drop deleted items and re-hashes surviving entries
@@ -1026,7 +1025,6 @@ public class MutableScatterMap<K, V>(initialCapacity: Int = DefaultScatterCapaci
             var m = readRawMetadata(metadata, index)
             // Formerly Deleted entry, we can use it as a swap spot
             if (m == Empty) {
-                swapIndex = index
                 index++
                 continue
             }
@@ -1072,25 +1070,19 @@ public class MutableScatterMap<K, V>(initialCapacity: Int = DefaultScatterCapaci
 
                 values[targetIndex] = values[index]
                 values[index] = null
-
-                swapIndex = index
             } else /* m == Deleted */ {
                 // The target isn't empty so we use an empty slot denoted by
                 // swapIndex to perform the swap
                 val hash2 = h2(hash)
                 writeRawMetadata(metadata, targetIndex, hash2.toLong())
 
-                if (swapIndex == -1) {
-                    swapIndex = findEmptySlot(metadata, index + 1, capacity)
-                }
-
-                keys[swapIndex] = keys[targetIndex]
+                val oldKey = keys[targetIndex]
                 keys[targetIndex] = keys[index]
-                keys[index] = keys[swapIndex]
+                keys[index] = oldKey
 
-                values[swapIndex] = values[targetIndex]
+                val oldValue = values[targetIndex]
                 values[targetIndex] = values[index]
-                values[index] = values[swapIndex]
+                values[index] = oldValue
 
                 // Since we exchanged two slots we must repeat the process with
                 // element we just moved in the current location
@@ -1162,15 +1154,6 @@ internal inline fun convertMetadataForCleanup(metadata: LongArray, capacity: Int
         (Sentinel shl 56) or (metadata[lastIndex - 1] and 0x00ffffff_ffffffffL)
     // Copies the metadata into the clone area
     metadata[lastIndex] = metadata[0]
-}
-
-internal fun findEmptySlot(metadata: LongArray, start: Int, end: Int): Int {
-    for (i in start until end) {
-        if (readRawMetadata(metadata, i) == Empty) {
-            return i
-        }
-    }
-    return -1
 }
 
 /**
@@ -1493,12 +1476,24 @@ private open class MapWrapper<K, V>(private val parent: ScatterMap<K, V>) : Map<
 
     override fun isEmpty(): Boolean = parent.isEmpty()
 
-    // TODO: @Suppress required because of a lint check issue (b/294130025)
-    override fun get(@Suppress("MissingNullability") key: K): V? = parent[key]
+    override fun get(key: K): V? = parent[key]
 
     override fun containsValue(value: V): Boolean = parent.containsValue(value)
 
     override fun containsKey(key: K): Boolean = parent.containsKey(key)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as MapWrapper<*, *>
+
+        return parent == other.parent
+    }
+
+    override fun hashCode(): Int = parent.hashCode()
+
+    override fun toString(): String = parent.toString()
 }
 
 private class MutableMapEntry<K, V>(

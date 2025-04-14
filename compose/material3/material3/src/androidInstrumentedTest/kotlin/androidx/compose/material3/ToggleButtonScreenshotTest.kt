@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.testutils.assertAgainstGolden
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -41,7 +42,7 @@ import org.junit.runner.RunWith
 
 @MediumTest
 @RunWith(AndroidJUnit4::class)
-@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O, maxSdkVersion = 32)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 class ToggleButtonScreenshotTest {
     @get:Rule val rule = createComposeRule()
@@ -102,7 +103,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("toggleButton_checked_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun toggleButton_lightTheme_defaultToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -125,7 +126,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("toggleButton_lightTheme_defaultToPressed")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun toggleButton_lightTheme_checkedToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -200,7 +201,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("elevatedToggleButton_checked_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun elevatedToggleButton_lightTheme_defaultToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -223,7 +224,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("elevatedToggleButton_lightTheme_defaultToPressed")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun elevatedToggleButton_lightTheme_checkedToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -298,7 +299,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("tonalToggleButton_checked_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun tonalToggleButton_lightTheme_defaultToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -321,7 +322,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("tonalToggleButton_lightTheme_defaultToPressed")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun tonalToggleButton_lightTheme_checkedToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -396,7 +397,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("outlinedToggleButton_checked_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun outlinedToggleButton_lightTheme_defaultToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -419,7 +420,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("outlinedToggleButton_lightTheme_defaultToPressed")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun outlinedToggleButton_lightTheme_checkedToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
@@ -448,7 +449,7 @@ class ToggleButtonScreenshotTest {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ToggleButton(checked = false, onCheckedChange = {}) {
                     Icon(
-                        Icons.Filled.Favorite,
+                        Icons.Outlined.Favorite,
                         contentDescription = "Localized description",
                         modifier = Modifier.size(ToggleButtonDefaults.IconSize)
                     )
@@ -466,7 +467,7 @@ class ToggleButtonScreenshotTest {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ToggleButton(checked = false, onCheckedChange = {}, enabled = false) {
                     Icon(
-                        Icons.Filled.Favorite,
+                        Icons.Outlined.Favorite,
                         contentDescription = "Localized description",
                         modifier = Modifier.size(ToggleButtonDefaults.IconSize)
                     )
@@ -484,7 +485,7 @@ class ToggleButtonScreenshotTest {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ToggleButton(checked = false, onCheckedChange = {}) {
                     Icon(
-                        Icons.Filled.Favorite,
+                        Icons.Outlined.Favorite,
                         contentDescription = "Localized description",
                         modifier = Modifier.size(ToggleButtonDefaults.IconSize)
                     )
@@ -532,14 +533,14 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("toggleButton_withIcon_checked_darkTheme")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun toggleButton_withIcon_lightTheme_defaultToPressed() {
         rule.setMaterialContent(lightColorScheme()) {
             Box(Modifier.testTag(wrapperTestTag)) {
                 ToggleButton(checked = false, onCheckedChange = {}) {
                     Icon(
-                        Icons.Filled.Favorite,
+                        Icons.Outlined.Favorite,
                         contentDescription = "Localized description",
                         modifier = Modifier.size(ToggleButtonDefaults.IconSize)
                     )
@@ -563,7 +564,7 @@ class ToggleButtonScreenshotTest {
         assertAgainstGolden("toggleButton_withIcon_lightTheme_defaultToPressed")
     }
 
-    @Ignore
+    @Ignore("b/355413615")
     @Test
     fun toggleButton_withIcon_lightTheme_checkedToPressed() {
         rule.setMaterialContent(lightColorScheme()) {

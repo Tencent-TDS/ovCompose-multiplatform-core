@@ -26,7 +26,6 @@ import androidx.room.compiler.processing.ksp.KspFieldElement
 import androidx.room.compiler.processing.ksp.KspFileMemberContainer
 import androidx.room.compiler.processing.ksp.synthetic.KspSyntheticFileMemberContainer
 import androidx.room.compiler.processing.testcode.OtherAnnotation
-import androidx.room.compiler.processing.util.KOTLINC_LANGUAGE_1_9_ARGS
 import androidx.room.compiler.processing.util.Source
 import androidx.room.compiler.processing.util.XTestInvocation
 import androidx.room.compiler.processing.util.asJClassName
@@ -868,7 +867,6 @@ class XElementTest {
                         .trimIndent()
                 )
             ),
-            kotlincArgs = KOTLINC_LANGUAGE_1_9_ARGS
         ) { invocation, precompiled ->
             val enclosingElement =
                 invocation.processingEnv.requireTypeElement("foo.bar.KotlinClass")
@@ -937,16 +935,22 @@ class XElementTest {
             companionObj.getDeclaredMethods().let { methods ->
                 methods.forEach { assertThat(it.enclosingElement).isEqualTo(companionObj) }
                 if (invocation.isKsp || precompiled) {
-                    assertThat(methods.map { it.name })
-                        .containsExactly(
-                            "getCompanionObjectProperty",
-                            "getCompanionObjectPropertyJvmStatic",
-                            "getCompanionObjectPropertyLateinit",
-                            "setCompanionObjectPropertyLateinit",
-                            "companionObjectFunction",
-                            "companionObjectFunctionJvmStatic"
-                        )
-                        .inOrder()
+                    val subject =
+                        assertThat(methods.map { it.name })
+                            .containsExactly(
+                                "getCompanionObjectProperty",
+                                "getCompanionObjectPropertyJvmStatic",
+                                "getCompanionObjectPropertyLateinit",
+                                "setCompanionObjectPropertyLateinit",
+                                "companionObjectFunction",
+                                "companionObjectFunctionJvmStatic"
+                            )
+                    // No ordering check for precompiled because the members in companion objects
+                    // can either be in the enclosing class or in the companion so there's no way
+                    // to reconstruct the ordering from class files for now.
+                    if (!precompiled) {
+                        subject.inOrder()
+                    }
                 } else {
                     // TODO(b/290800523): Remove the synthetic annotations method from the list
                     //  of declared methods so that KAPT matches KSP.

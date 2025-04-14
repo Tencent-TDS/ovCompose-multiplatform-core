@@ -16,7 +16,7 @@
 
 package androidx.compose.ui.text
 
-import androidx.collection.SieveCache
+import androidx.collection.LruCache
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.text.font.FontFamily
@@ -144,7 +144,7 @@ class TextMeasurer(
         overflow: TextOverflow = TextOverflow.Clip,
         softWrap: Boolean = true,
         maxLines: Int = Int.MAX_VALUE,
-        placeholders: List<AnnotatedString.Range<Placeholder>> = emptyList(),
+        placeholders: List<AnnotatedString.Range<Placeholder>> = listOf(),
         constraints: Constraints = Constraints(),
         layoutDirection: LayoutDirection = this.defaultLayoutDirection,
         density: Density = this.defaultDensity,
@@ -277,7 +277,7 @@ class TextMeasurer(
                     )
 
                 val minWidth = constraints.minWidth
-                val widthMatters = softWrap || overflow == TextOverflow.Ellipsis
+                val widthMatters = softWrap || overflow.isEllipsis
                 val maxWidth =
                     if (widthMatters && constraints.hasBoundedWidth) {
                         constraints.maxWidth
@@ -300,7 +300,7 @@ class TextMeasurer(
                 //     AA…
                 // Here we assume there won't be any '\n' character when softWrap is false. And make
                 // maxLines 1 to implement the similar behavior.
-                val overwriteMaxLines = !softWrap && overflow == TextOverflow.Ellipsis
+                val overwriteMaxLines = !softWrap && overflow.isEllipsis
                 val finalMaxLines = if (overwriteMaxLines) 1 else maxLines
 
                 // if minWidth == maxWidth the width is fixed.
@@ -332,7 +332,7 @@ class TextMeasurer(
                             ),
                         // This is a fallback behavior for ellipsis. Native
                         maxLines = finalMaxLines,
-                        ellipsis = overflow == TextOverflow.Ellipsis
+                        overflow = overflow
                     )
 
                 return TextLayoutResult(
@@ -360,10 +360,10 @@ class TextMeasurer(
  */
 internal class TextLayoutCache(capacity: Int = DefaultCacheSize) {
     // Do not allocate an LRU cache if the size is just 1.
-    private val cache: SieveCache<CacheTextLayoutInput, TextLayoutResult>? =
+    private val cache: LruCache<CacheTextLayoutInput, TextLayoutResult>? =
         if (capacity != 1) {
-            // 0 or negative cache size is also handled by SieveCache.
-            SieveCache(capacity, capacity)
+            // 0 or negative cache size is also handled by LruCache.
+            LruCache(capacity)
         } else {
             null
         }
@@ -421,8 +421,7 @@ internal class CacheTextLayoutInput(val textLayoutInput: TextLayoutInput) {
             result = 31 * result + density.hashCode()
             result = 31 * result + layoutDirection.hashCode()
             result = 31 * result + fontFamilyResolver.hashCode()
-            result = 31 * result + constraints.maxWidth.hashCode()
-            result = 31 * result + constraints.maxHeight.hashCode()
+            result = 31 * result + constraints.hashCode()
             return result
         }
 
@@ -440,10 +439,16 @@ internal class CacheTextLayoutInput(val textLayoutInput: TextLayoutInput) {
             if (density != other.textLayoutInput.density) return false
             if (layoutDirection != other.textLayoutInput.layoutDirection) return false
             if (fontFamilyResolver !== other.textLayoutInput.fontFamilyResolver) return false
-            if (constraints.maxWidth != other.textLayoutInput.constraints.maxWidth) return false
-            if (constraints.maxHeight != other.textLayoutInput.constraints.maxHeight) return false
+            if (constraints != other.textLayoutInput.constraints) return false
         }
 
         return true
     }
 }
+
+private val TextOverflow.isEllipsis: Boolean
+    get() {
+        return this == TextOverflow.Ellipsis ||
+            this == TextOverflow.StartEllipsis ||
+            this == TextOverflow.MiddleEllipsis
+    }

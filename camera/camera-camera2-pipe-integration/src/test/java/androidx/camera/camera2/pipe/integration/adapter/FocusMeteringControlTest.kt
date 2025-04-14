@@ -40,7 +40,6 @@ import androidx.camera.camera2.pipe.integration.compat.workaround.OutputSizesCor
 import androidx.camera.camera2.pipe.integration.impl.CameraProperties
 import androidx.camera.camera2.pipe.integration.impl.FocusMeteringControl
 import androidx.camera.camera2.pipe.integration.impl.State3AControl
-import androidx.camera.camera2.pipe.integration.impl.UseCaseCamera
 import androidx.camera.camera2.pipe.integration.impl.UseCaseCameraRequestControl
 import androidx.camera.camera2.pipe.integration.impl.UseCaseThreads
 import androidx.camera.camera2.pipe.integration.testing.FakeCameraProperties
@@ -61,7 +60,6 @@ import androidx.camera.core.impl.utils.executor.CameraXExecutors
 import androidx.camera.testing.fakes.FakeCamera
 import androidx.camera.testing.impl.SurfaceTextureProvider
 import androidx.camera.testing.impl.fakes.FakeUseCase
-import androidx.test.filters.MediumTest
 import androidx.testutils.MainDispatcherRule
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -73,10 +71,8 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -158,6 +154,7 @@ class FocusMeteringControlTest {
     private val cameraPropertiesMap = mutableMapOf<String, CameraProperties>()
 
     private val fakeRequestControl = FakeUseCaseCameraRequestControl(testScope)
+    private val runningUseCases = mutableSetOf<UseCase>()
 
     @Before
     fun setUp() {
@@ -171,9 +168,9 @@ class FocusMeteringControlTest {
     fun tearDown() {
         // CoroutineScope#cancel can throw exception if the scope has no job left
         try {
-            fakeUseCaseCamera.runningUseCases.forEach {
-                it.onStateDetached()
-                it.onUnbind()
+            for (useCase in runningUseCases) {
+                useCase.onStateDetached()
+                useCase.onUnbind()
             }
             // fakeUseCaseThreads may still be using Main dispatcher which sometimes
             // causes Dispatchers.resetMain() to throw an exception:
@@ -666,8 +663,7 @@ class FocusMeteringControlTest {
                 CAMERA_ID_0,
                 useCases = setOf(createPreview(Size(1920, 1080))),
             )
-        fakeUseCaseCamera.runningUseCases = emptySet()
-        focusMeteringControl.onRunningUseCasesChanged()
+        focusMeteringControl.onRunningUseCasesChanged(emptySet())
 
         startFocusMeteringAndAwait(FocusMeteringAction.Builder(point1).build())
 
@@ -785,7 +781,6 @@ class FocusMeteringControlTest {
         assertFutureFocusCompleted(result, true)
     }
 
-    @MediumTest
     @Test
     fun startFocusMetering_cancelledBeforeCompletion_failsWithOperationCanceledOperation() =
         runTest {
@@ -835,7 +830,6 @@ class FocusMeteringControlTest {
         assertFutureFailedWithOperationCancellation(result2)
     }
 
-    @MediumTest
     @Test
     fun startMultipleActions_allExceptLatestAreCancelled() = runTest {
         // Arrange.
@@ -1057,7 +1051,6 @@ class FocusMeteringControlTest {
         assertThat(cancelResult[3, TimeUnit.SECONDS]?.status).isEqualTo(Result3A.Status.OK)
     }
 
-    @MediumTest
     @Test
     fun cancelFocusAndMetering_autoCancelIsDisabled(): Unit = runTest {
         // Arrange. Set a never complete CompletableDeferred
@@ -1081,7 +1074,6 @@ class FocusMeteringControlTest {
         assertThat(fakeRequestControl.cancelFocusMeteringCallCount).isEqualTo(1)
     }
 
-    @MediumTest
     @Test
     fun autoCancelDuration_completeWithIsFocusSuccessfulFalse() = runTest {
         // Arrange.
@@ -1106,7 +1098,6 @@ class FocusMeteringControlTest {
         assertFutureFocusCompleted(future, false)
     }
 
-    @MediumTest
     @Test
     fun shorterAutoCancelDuration_cancelIsCalled_completeActionFutureIsNotCalled(): Unit = runTest {
         // Arrange.
@@ -1134,7 +1125,6 @@ class FocusMeteringControlTest {
         assertFutureFailedWithOperationCancellation(future)
     }
 
-    @MediumTest
     @Test
     fun longerAutoCancelDuration_completeWithIsFocusSuccessfulFalse() = runTest {
         // Arrange.
@@ -1160,7 +1150,6 @@ class FocusMeteringControlTest {
         assertFutureFocusCompleted(future, false)
     }
 
-    @MediumTest
     @Test
     fun autoCancelDurationDisabled_completeAfterAutoFocusTimeoutDuration(): Unit = runTest {
         // Arrange.
@@ -1188,7 +1177,6 @@ class FocusMeteringControlTest {
         assertFutureFocusCompleted(future, false)
     }
 
-    @MediumTest
     @Test
     fun defaultAutoCancelDurationAndFocusTimeout_completesWithIsFocusSuccessfulFalse() = runTest {
         // Arrange.
@@ -1545,46 +1533,15 @@ class FocusMeteringControlTest {
         focusMeteringResultCallback.await()
     }
 
-    private val fakeUseCaseCamera =
-        object : UseCaseCamera {
-            override var runningUseCases = setOf<UseCase>()
-
-            override val requestControl: UseCaseCameraRequestControl
-                get() = fakeRequestControl
-
-            override var isPrimary: Boolean = true
-                set(value) {
-                    field = value
-                }
-
-            override fun <T> setParameterAsync(
-                key: CaptureRequest.Key<T>,
-                value: T,
-                priority: androidx.camera.core.impl.Config.OptionPriority
-            ): Deferred<Unit> {
-                TODO("Not yet implemented")
-            }
-
-            override fun setParametersAsync(
-                values: Map<CaptureRequest.Key<*>, Any>,
-                priority: androidx.camera.core.impl.Config.OptionPriority
-            ): Deferred<Unit> {
-                TODO("Not yet implemented")
-            }
-
-            override fun close(): Job {
-                TODO("Not yet implemented")
-            }
-        }
-
     private fun initFocusMeteringControl(
         cameraId: String,
         useCases: Set<UseCase> = emptySet(),
         useCaseThreads: UseCaseThreads = fakeUseCaseThreads,
         state3AControl: State3AControl = createState3AControl(cameraId),
         zoomCompat: ZoomCompat = FakeZoomCompat()
-    ) =
-        FocusMeteringControl(
+    ): FocusMeteringControl {
+        runningUseCases.addAll(useCases)
+        return FocusMeteringControl(
                 cameraPropertiesMap[cameraId]!!,
                 MeteringRegionCorrection.Bindings.provideMeteringRegionCorrection(
                     CameraQuirks(
@@ -1603,10 +1560,10 @@ class FocusMeteringControlTest {
                 zoomCompat
             )
             .apply {
-                fakeUseCaseCamera.runningUseCases = useCases
-                useCaseCamera = fakeUseCaseCamera
-                onRunningUseCasesChanged()
+                requestControl = fakeRequestControl
+                onRunningUseCasesChanged(useCases)
             }
+    }
 
     private fun initCameraProperties(
         cameraIdStr: String,
@@ -1738,8 +1695,8 @@ class FocusMeteringControlTest {
     private fun createState3AControl(
         cameraId: String = CAMERA_ID_0,
         properties: CameraProperties = cameraPropertiesMap[cameraId]!!,
-        useCaseCamera: UseCaseCamera = fakeUseCaseCamera,
-    ) = FakeState3AControlCreator.createState3AControl(properties, useCaseCamera)
+        requestControl: UseCaseCameraRequestControl = fakeRequestControl,
+    ) = FakeState3AControlCreator.createState3AControl(properties, requestControl)
 
     private fun FocusMeteringControl.startFocusAndMeteringAndAdvanceTestScope(
         testScope: TestScope,

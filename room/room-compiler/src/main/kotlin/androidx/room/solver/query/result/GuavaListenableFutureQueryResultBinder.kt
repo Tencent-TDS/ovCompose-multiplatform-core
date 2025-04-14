@@ -18,12 +18,10 @@ package androidx.room.solver.query.result
 
 import androidx.room.compiler.codegen.CodeLanguage
 import androidx.room.compiler.codegen.XCodeBlock
-import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.addLocalVal
+import androidx.room.compiler.codegen.XCodeBlock.Builder.Companion.applyTo
 import androidx.room.compiler.codegen.XPropertySpec
 import androidx.room.compiler.codegen.XTypeName
 import androidx.room.compiler.processing.XType
-import androidx.room.ext.AndroidTypeNames
-import androidx.room.ext.CallableTypeSpecBuilder
 import androidx.room.ext.InvokeWithLambdaParameter
 import androidx.room.ext.LambdaSpec
 import androidx.room.ext.RoomGuavaMemberNames.GUAVA_ROOM_CREATE_LISTENABLE_FUTURE
@@ -39,63 +37,9 @@ class GuavaListenableFutureQueryResultBinder(val typeArg: XType, adapter: QueryR
     BaseObservableQueryResultBinder(adapter) {
 
     override fun convertAndReturn(
-        roomSQLiteQueryVar: String,
-        canReleaseQuery: Boolean,
-        dbProperty: XPropertySpec,
-        inTransaction: Boolean,
-        scope: CodeGenScope
-    ) {
-        val cancellationSignalVar = scope.getTmpVar("_cancellationSignal")
-        scope.builder.apply {
-            addLocalVariable(
-                name = cancellationSignalVar,
-                typeName = AndroidTypeNames.CANCELLATION_SIGNAL,
-                assignExpr =
-                    XCodeBlock.ofNewInstance(
-                        language,
-                        AndroidTypeNames.CANCELLATION_SIGNAL,
-                    )
-            )
-        }
-
-        // Callable<T> // Note that this callable does not release the query object.
-        val callableImpl =
-            CallableTypeSpecBuilder(scope.language, typeArg.asTypeName()) {
-                    addCode(
-                        XCodeBlock.builder(language)
-                            .apply {
-                                createRunQueryAndReturnStatements(
-                                    builder = this,
-                                    roomSQLiteQueryVar = roomSQLiteQueryVar,
-                                    dbProperty = dbProperty,
-                                    inTransaction = inTransaction,
-                                    scope = scope,
-                                    cancellationSignalVar = cancellationSignalVar
-                                )
-                            }
-                            .build()
-                    )
-                }
-                .build()
-
-        scope.builder.apply {
-            addStatement(
-                "return %M(%N, %L, %L, %L, %L, %L)",
-                GUAVA_ROOM_CREATE_LISTENABLE_FUTURE,
-                dbProperty,
-                if (inTransaction) "true" else "false",
-                callableImpl,
-                roomSQLiteQueryVar,
-                canReleaseQuery,
-                cancellationSignalVar
-            )
-        }
-    }
-
-    override fun convertAndReturn(
         sqlQueryVar: String,
         dbProperty: XPropertySpec,
-        bindStatement: CodeGenScope.(String) -> Unit,
+        bindStatement: (CodeGenScope.(String) -> Unit)?,
         returnTypeName: XTypeName,
         inTransaction: Boolean,
         scope: CodeGenScope
@@ -116,11 +60,6 @@ class GuavaListenableFutureQueryResultBinder(val typeArg: XType, adapter: QueryR
                             javaLambdaSyntaxAvailable = scope.javaLambdaSyntaxAvailable
                         ) {
                         override fun XCodeBlock.Builder.body(scope: CodeGenScope) {
-                            val returnPrefix =
-                                when (language) {
-                                    CodeLanguage.JAVA -> "return "
-                                    CodeLanguage.KOTLIN -> ""
-                                }
                             val statementVar = scope.getTmpVar("_stmt")
                             addLocalVal(
                                 statementVar,
@@ -130,10 +69,15 @@ class GuavaListenableFutureQueryResultBinder(val typeArg: XType, adapter: QueryR
                                 sqlQueryVar
                             )
                             beginControlFlow("try")
-                            bindStatement(scope, statementVar)
+                            bindStatement?.invoke(scope, statementVar)
                             val outVar = scope.getTmpVar("_result")
                             adapter?.convert(outVar, statementVar, scope)
-                            addStatement("$returnPrefix%L", outVar)
+                            applyTo { language ->
+                                when (language) {
+                                    CodeLanguage.JAVA -> addStatement("return %L", outVar)
+                                    CodeLanguage.KOTLIN -> addStatement("%L", outVar)
+                                }
+                            }
                             nextControlFlow("finally")
                             addStatement("%L.close()", statementVar)
                             endControlFlow()
@@ -142,6 +86,4 @@ class GuavaListenableFutureQueryResultBinder(val typeArg: XType, adapter: QueryR
             )
         scope.builder.add("return %L", performBlock)
     }
-
-    override fun isMigratedToDriver() = adapter?.isMigratedToDriver() == true
 }

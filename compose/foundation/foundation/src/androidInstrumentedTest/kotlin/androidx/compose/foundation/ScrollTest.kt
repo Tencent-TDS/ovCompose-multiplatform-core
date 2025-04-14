@@ -46,6 +46,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.testutils.assertPixels
 import androidx.compose.testutils.assertShape
+import androidx.compose.testutils.first
+import androidx.compose.testutils.toList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.drawBehind
@@ -53,6 +55,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.IntrinsicMeasureScope
 import androidx.compose.ui.layout.Layout
@@ -63,6 +67,8 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.OnRemeasuredModifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.platform.InspectableValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -93,6 +99,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.LayoutDirection.Ltr
 import androidx.compose.ui.unit.LayoutDirection.Rtl
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
@@ -653,25 +660,78 @@ class ScrollTest(private val config: Config) {
     }
 
     @Test
-    fun testInspectorValue() {
+    fun testInspectorValue_withoutOverscrollParameter() {
         val state = ScrollState(initial = 0)
         rule.setContent {
-            val modifier =
+            val modifiers =
                 when (config.orientation) {
                     Vertical -> Modifier.verticalScroll(state)
                     Horizontal -> Modifier.horizontalScroll(state)
-                }
-                    as InspectableValue
-            assertThat(modifier.nameFallback).isEqualTo("scroll")
-            assertThat(modifier.valueOverride).isNull()
-            assertThat(modifier.inspectableElements.map { it.name }.asIterable())
+                }.toList()
+
+            val clip = modifiers[0] as InspectableValue
+            val scrollableContainer = modifiers[1] as InspectableValue
+            val scroll = modifiers[2] as InspectableValue
+
+            assertThat(clip.nameFallback).isEqualTo("graphicsLayer")
+
+            assertThat(scrollableContainer.nameFallback).isEqualTo("scrollingContainer")
+            assertThat(scrollableContainer.valueOverride).isNull()
+            assertThat(scrollableContainer.inspectableElements.map { it.name }.asIterable())
                 .containsExactly(
                     "state",
+                    "orientation",
+                    "enabled",
                     "reverseScrolling",
                     "flingBehavior",
-                    "isScrollable",
-                    "isVertical"
+                    "interactionSource",
+                    "bringIntoViewSpec",
+                    "useLocalOverscrollFactory",
+                    "overscrollEffect"
                 )
+
+            assertThat(scroll.nameFallback).isEqualTo("scroll")
+            assertThat(scroll.valueOverride).isNull()
+            assertThat(scroll.inspectableElements.map { it.name }.asIterable())
+                .containsExactly("state", "reverseScrolling", "isVertical")
+        }
+    }
+
+    @Test
+    fun testInspectorValue_withOverscrollParameter() {
+        val state = ScrollState(initial = 0)
+        rule.setContent {
+            val modifiers =
+                when (config.orientation) {
+                    Vertical -> Modifier.verticalScroll(state, overscrollEffect = null)
+                    Horizontal -> Modifier.horizontalScroll(state, overscrollEffect = null)
+                }.toList()
+
+            val clip = modifiers[0] as InspectableValue
+            val scrollableContainer = modifiers[1] as InspectableValue
+            val scroll = modifiers[2] as InspectableValue
+
+            assertThat(clip.nameFallback).isEqualTo("graphicsLayer")
+
+            assertThat(scrollableContainer.nameFallback).isEqualTo("scrollingContainer")
+            assertThat(scrollableContainer.valueOverride).isNull()
+            assertThat(scrollableContainer.inspectableElements.map { it.name }.asIterable())
+                .containsExactly(
+                    "state",
+                    "orientation",
+                    "enabled",
+                    "reverseScrolling",
+                    "flingBehavior",
+                    "interactionSource",
+                    "bringIntoViewSpec",
+                    "useLocalOverscrollFactory",
+                    "overscrollEffect"
+                )
+
+            assertThat(scroll.nameFallback).isEqualTo("scroll")
+            assertThat(scroll.valueOverride).isNull()
+            assertThat(scroll.inspectableElements.map { it.name }.asIterable())
+                .containsExactly("state", "reverseScrolling", "isVertical")
         }
     }
 
@@ -1135,6 +1195,79 @@ class ScrollTest(private val config: Config) {
         }
     }
 
+    @Test
+    fun customOverscroll() {
+        val containerSize = with(rule.density) { 100.toDp() }
+        val contentSize = with(rule.density) { 110.toDp() }
+        val scrollState = ScrollState(initial = 0)
+        val overscroll = TestOverscrollEffect()
+        rule.setContent {
+            Box {
+                Box(Modifier.size(containerSize, containerSize)) {
+                    when (config.orientation) {
+                        Vertical -> {
+                            Column(
+                                Modifier.testTag(scrollerTag)
+                                    .verticalScroll(
+                                        state = scrollState,
+                                        overscrollEffect = overscroll
+                                    )
+                            ) {
+                                Box(Modifier.height(contentSize).fillMaxWidth())
+                            }
+                        }
+                        Horizontal -> {
+                            CompositionLocalProvider(
+                                LocalLayoutDirection provides config.layoutDirection
+                            ) {
+                                Row(
+                                    Modifier.testTag(scrollerTag)
+                                        .horizontalScroll(
+                                            state = scrollState,
+                                            overscrollEffect = overscroll
+                                        )
+                                ) {
+                                    Box(Modifier.width(contentSize).fillMaxHeight())
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // The overscroll modifier should be added / drawn
+        rule.runOnIdle { assertThat(overscroll.drawCalled).isTrue() }
+
+        // Swipe past the end
+        rule.onNodeWithTag(scrollerTag).performTouchInput { configAwareSwipe() }
+
+        rule.runOnIdle {
+            assertThat(scrollState.value).isEqualTo(10)
+            // The swipe will result in multiple scroll deltas
+            assertThat(overscroll.applyToScrollCalledCount).isGreaterThan(1)
+            assertThat(overscroll.applyToFlingCalledCount).isEqualTo(1)
+            when (config.orientation) {
+                Vertical -> {
+                    assertThat(overscroll.scrollOverscrollDelta.y).isLessThan(0)
+                    assertThat(overscroll.flingOverscrollVelocity.y).isLessThan(0)
+                }
+                Horizontal -> {
+                    when (config.layoutDirection) {
+                        Ltr -> {
+                            assertThat(overscroll.scrollOverscrollDelta.x).isLessThan(0)
+                            assertThat(overscroll.flingOverscrollVelocity.x).isLessThan(0)
+                        }
+                        Rtl -> {
+                            assertThat(overscroll.scrollOverscrollDelta.x).isGreaterThan(0)
+                            assertThat(overscroll.flingOverscrollVelocity.x).isGreaterThan(0)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun Modifier.intrinsicMainAxisSize(size: IntrinsicSize): Modifier =
         if (config.orientation == Horizontal) {
             width(size)
@@ -1436,5 +1569,50 @@ class ScrollTest(private val config: Config) {
     private object DisableAnimationMotionDurationScale : MotionDurationScale {
         override val scaleFactor: Float
             get() = 0f
+    }
+
+    private class TestOverscrollEffect : OverscrollEffect {
+        var applyToScrollCalledCount: Int = 0
+            private set
+
+        var applyToFlingCalledCount: Int = 0
+            private set
+
+        var scrollOverscrollDelta: Offset = Offset.Zero
+            private set
+
+        var flingOverscrollVelocity: Velocity = Velocity.Zero
+            private set
+
+        var drawCalled: Boolean = false
+
+        override fun applyToScroll(
+            delta: Offset,
+            source: NestedScrollSource,
+            performScroll: (Offset) -> Offset
+        ): Offset {
+            applyToScrollCalledCount++
+            val consumed = performScroll(delta)
+            scrollOverscrollDelta = delta - consumed
+            return consumed
+        }
+
+        override suspend fun applyToFling(
+            velocity: Velocity,
+            performFling: suspend (Velocity) -> Velocity
+        ) {
+            applyToFlingCalledCount++
+            val consumed = performFling(velocity)
+            flingOverscrollVelocity = velocity - consumed
+        }
+
+        override val isInProgress: Boolean = false
+        override val node: DelegatableNode =
+            object : Modifier.Node(), DrawModifierNode {
+                override fun ContentDrawScope.draw() {
+                    drawContent()
+                    drawCalled = true
+                }
+            }
     }
 }

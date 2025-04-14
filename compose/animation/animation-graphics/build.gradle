@@ -21,7 +21,8 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
@@ -31,7 +32,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    android()
+    androidTarget()
     jvmStubs()
     linuxX64Stubs()
 
@@ -113,14 +114,13 @@ androidXMultiplatform {
 
 androidx {
     name = "Compose Animation Graphics"
-    type = LibraryType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
+    type = SoftwareType.PUBLISHED_LIBRARY_ONLY_USED_BY_KOTLIN_CONSUMERS
     inceptionYear = "2021"
     description = "Compose Animation Graphics Library for using animated-vector resources in Compose"
-    metalavaK2UastEnabled = false
     samples(project(":compose:animation:animation-graphics:animation-graphics-samples"))
 }
 
 android {
-    compileSdk 35
-    namespace "androidx.compose.animation.graphics"
+    compileSdk = 35
+    namespace = "androidx.compose.animation.graphics"
 }

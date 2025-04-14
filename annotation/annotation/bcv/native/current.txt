@@ -1,5 +1,5 @@
 // Klib ABI Dump
-// Targets: [androidNativeArm32, androidNativeArm64, androidNativeX64, androidNativeX86, iosArm64, iosSimulatorArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64, tvosArm64, tvosSimulatorArm64, tvosX64, watchosArm32, watchosArm64, watchosSimulatorArm64, watchosX64]
+// Targets: [androidNativeArm32, androidNativeArm64, androidNativeX64, androidNativeX86, iosArm64, iosSimulatorArm64, iosX64, linuxArm64, linuxX64, macosArm64, macosX64, mingwX64, tvosArm64, tvosSimulatorArm64, tvosX64, watchosArm32, watchosArm64, watchosDeviceArm64, watchosSimulatorArm64, watchosX64]
 // Rendering settings:
 // - Signature version: 2
 // - Show manifest properties: true
@@ -130,6 +130,9 @@ open annotation class androidx.annotation/RestrictTo : kotlin/Annotation { // an
         enum entry LIBRARY_GROUP_PREFIX // androidx.annotation/RestrictTo.Scope.LIBRARY_GROUP_PREFIX|null[0]
         enum entry SUBCLASSES // androidx.annotation/RestrictTo.Scope.SUBCLASSES|null[0]
         enum entry TESTS // androidx.annotation/RestrictTo.Scope.TESTS|null[0]
+
+        final val entries // androidx.annotation/RestrictTo.Scope.entries|#static{}entries[0]
+            final fun <get-entries>(): kotlin.enums/EnumEntries<androidx.annotation/RestrictTo.Scope> // androidx.annotation/RestrictTo.Scope.entries.<get-entries>|<get-entries>#static(){}[0]
 
         final fun valueOf(kotlin/String): androidx.annotation/RestrictTo.Scope // androidx.annotation/RestrictTo.Scope.valueOf|valueOf#static(kotlin.String){}[0]
         final fun values(): kotlin/Array<androidx.annotation/RestrictTo.Scope> // androidx.annotation/RestrictTo.Scope.values|values#static(){}[0]

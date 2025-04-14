@@ -19,9 +19,11 @@ package androidx.privacysandbox.sdkruntime.client.loader.impl
 import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.privacysandbox.sdkruntime.client.loader.impl.injector.AppOwnedSdkInterfaceProxyFactory
+import androidx.privacysandbox.sdkruntime.client.loader.impl.injector.ClientImportanceListenerWrapper
 import androidx.privacysandbox.sdkruntime.client.loader.impl.injector.LoadSdkCallbackWrapper
 import androidx.privacysandbox.sdkruntime.client.loader.impl.injector.SandboxedSdkCompatProxyFactory
 import androidx.privacysandbox.sdkruntime.client.loader.impl.injector.SdkActivityHandlerWrapper
+import androidx.privacysandbox.sdkruntime.core.SdkSandboxClientImportanceListenerCompat
 import androidx.privacysandbox.sdkruntime.core.activity.SdkSandboxActivityHandlerCompat
 import androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat
 import androidx.privacysandbox.sdkruntime.core.internal.ClientFeature
@@ -50,12 +52,16 @@ internal object SandboxControllerInjector {
         controller: SdkSandboxControllerCompat.SandboxControllerImpl
     ) {
         val controllerClass =
-            Class.forName(SdkSandboxControllerCompat::class.java.name, false, sdkClassLoader)
+            Class.forName(
+                "androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat",
+                /* initialize = */ false,
+                sdkClassLoader
+            )
 
         val controllerImplClass =
             Class.forName(
-                SdkSandboxControllerCompat.SandboxControllerImpl::class.java.name,
-                false,
+                "androidx.privacysandbox.sdkruntime.core.controller.SdkSandboxControllerCompat\$SandboxControllerImpl",
+                /* initialize = */ false,
                 sdkClassLoader
             )
 
@@ -88,42 +94,50 @@ internal object SandboxControllerInjector {
             controller.getSandboxedSdks().map(sandboxedSdkFactory::createFrom)
         }
 
-        if (ClientFeature.APP_OWNED_INTERFACES.isAvailable(sdkVersion)) {
-            val sdkInterfaceFactory = AppOwnedSdkInterfaceProxyFactory.createFor(sdkClassLoader)
-            handlerBuilder.addHandlerFor("getAppOwnedSdkSandboxInterfaces") {
-                controller.getAppOwnedSdkSandboxInterfaces().map(sdkInterfaceFactory::createFrom)
-            }
+        val sdkInterfaceFactory = AppOwnedSdkInterfaceProxyFactory.createFor(sdkClassLoader)
+        handlerBuilder.addHandlerFor("getAppOwnedSdkSandboxInterfaces") {
+            controller.getAppOwnedSdkSandboxInterfaces().map(sdkInterfaceFactory::createFrom)
         }
 
-        if (ClientFeature.SDK_ACTIVITY_HANDLER.isAvailable(sdkVersion)) {
-            val sdkHandlerWrapper = SdkActivityHandlerWrapper.createFor(sdkClassLoader)
-            val activityMethodsHandler = ActivityMethodsHandler(controller, sdkHandlerWrapper)
-            handlerBuilder.addHandlerFor(
-                "registerSdkSandboxActivityHandler",
-                activityMethodsHandler.registerMethodHandler
-            )
-            handlerBuilder.addHandlerFor(
-                "unregisterSdkSandboxActivityHandler",
-                activityMethodsHandler.unregisterMethodHandler
-            )
-        }
+        val sdkHandlerWrapper = SdkActivityHandlerWrapper.createFor(sdkClassLoader)
+        val activityMethodsHandler = ActivityMethodsHandler(controller, sdkHandlerWrapper)
+        handlerBuilder.addHandlerFor(
+            "registerSdkSandboxActivityHandler",
+            activityMethodsHandler.registerMethodHandler
+        )
+        handlerBuilder.addHandlerFor(
+            "unregisterSdkSandboxActivityHandler",
+            activityMethodsHandler.unregisterMethodHandler
+        )
 
-        if (ClientFeature.LOAD_SDK.isAvailable(sdkVersion)) {
-            val loadSdkCallbackWrapper = LoadSdkCallbackWrapper.createFor(sdkClassLoader)
-            handlerBuilder.addHandlerFor("loadSdk") { args ->
-                controller.loadSdk(
-                    sdkName = args!![0] as String,
-                    params = args[1] as Bundle,
-                    executor = args[2] as Executor,
-                    callback = loadSdkCallbackWrapper.wrapLoadSdkCallback(args[3]!!)
-                )
-            }
+        val loadSdkCallbackWrapper = LoadSdkCallbackWrapper.createFor(sdkClassLoader)
+        handlerBuilder.addHandlerFor("loadSdk") { args ->
+            controller.loadSdk(
+                sdkName = args!![0] as String,
+                params = args[1] as Bundle,
+                executor = args[2] as Executor,
+                callback = loadSdkCallbackWrapper.wrapLoadSdkCallback(args[3]!!)
+            )
         }
 
         if (ClientFeature.GET_CLIENT_PACKAGE_NAME.isAvailable(sdkVersion)) {
             handlerBuilder.addHandlerFor("getClientPackageName") {
                 controller.getClientPackageName()
             }
+        }
+
+        if (ClientFeature.CLIENT_IMPORTANCE_LISTENER.isAvailable(sdkVersion)) {
+            val sdkListenerWrapper = ClientImportanceListenerWrapper.createFor(sdkClassLoader)
+            val clientImportanceListenerMethodsHandler =
+                ClientImportanceListenerMethodsHandler(controller, sdkListenerWrapper)
+            handlerBuilder.addHandlerFor(
+                "registerSdkSandboxClientImportanceListener",
+                clientImportanceListenerMethodsHandler.registerMethodHandler
+            )
+            handlerBuilder.addHandlerFor(
+                "unregisterSdkSandboxClientImportanceListener",
+                clientImportanceListenerMethodsHandler.unregisterMethodHandler
+            )
         }
 
         return handlerBuilder.build()
@@ -205,6 +219,61 @@ internal object SandboxControllerInjector {
                 sdkToAppHandlerMap[sdkSideHandler] = appSideHandler
 
                 return appSideHandler
+            }
+    }
+
+    private class ClientImportanceListenerMethodsHandler(
+        private val controller: SdkSandboxControllerCompat.SandboxControllerImpl,
+        private val clientImportanceListenerWrapper: ClientImportanceListenerWrapper
+    ) {
+        val registerMethodHandler = MethodHandler { args ->
+            registerSdkSandboxClientImportanceListener(
+                sdkSideExecutor = args!![0]!!,
+                sdkSideListener = args[1]!!
+            )
+        }
+        val unregisterMethodHandler = MethodHandler { args ->
+            unregisterSdkSandboxClientImportanceListener(sdkSideListener = args!![0]!!)
+        }
+
+        private val sdkToAppListenerMap = hashMapOf<Any, SdkSandboxClientImportanceListenerCompat>()
+
+        private fun registerSdkSandboxClientImportanceListener(
+            sdkSideExecutor: Any,
+            sdkSideListener: Any
+        ): Any {
+            val listenerToRegister = wrapSdkClientImportanceListener(sdkSideListener)
+            return controller.registerSdkSandboxClientImportanceListener(
+                sdkSideExecutor as Executor,
+                listenerToRegister
+            )
+        }
+
+        private fun unregisterSdkSandboxClientImportanceListener(sdkSideListener: Any) {
+            val appSideListener =
+                synchronized(sdkToAppListenerMap) { sdkToAppListenerMap.remove(sdkSideListener) }
+            if (appSideListener != null) {
+                controller.unregisterSdkSandboxClientImportanceListener(appSideListener)
+            }
+        }
+
+        private fun wrapSdkClientImportanceListener(
+            sdkSideListener: Any
+        ): SdkSandboxClientImportanceListenerCompat =
+            synchronized(sdkToAppListenerMap) {
+                val existingAppSideListener = sdkToAppListenerMap[sdkSideListener]
+                if (existingAppSideListener != null) {
+                    return existingAppSideListener
+                }
+
+                val appSideListener =
+                    clientImportanceListenerWrapper.wrapSdkSandboxClientImportanceListenerCompat(
+                        sdkSideListener
+                    )
+
+                sdkToAppListenerMap[sdkSideListener] = appSideListener
+
+                return appSideListener
             }
     }
 }

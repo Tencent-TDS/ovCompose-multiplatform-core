@@ -17,13 +17,16 @@
 package androidx.camera.video.internal.config
 
 import android.media.MediaCodecInfo
+import android.os.Build
 import android.util.Range
 import androidx.camera.core.impl.Timebase
+import androidx.camera.testing.impl.AndroidUtil.isEmulator
 import androidx.camera.video.AudioSpec
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.filters.SmallTest
 import com.google.common.truth.Truth.assertThat
+import org.junit.Assume.assumeFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -39,10 +42,15 @@ class AudioEncoderConfigDefaultResolverTest {
     }
 
     private val defaultAudioSpec = AudioSpec.builder().build()
-    private val defaultAudioSettings = AudioSettingsDefaultResolver(defaultAudioSpec).get()
+    private val defaultAudioSettings = AudioSettingsDefaultResolver(defaultAudioSpec, null).get()
 
     @Test
     fun defaultAudioSpecProducesValidSettings() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
         val resolvedAudioConfig =
             AudioEncoderConfigDefaultResolver(
                     MIME_TYPE,
@@ -56,12 +64,20 @@ class AudioEncoderConfigDefaultResolverTest {
         assertThat(resolvedAudioConfig.mimeType).isEqualTo(MIME_TYPE)
         assertThat(resolvedAudioConfig.profile).isEqualTo(ENCODER_PROFILE)
         assertThat(resolvedAudioConfig.channelCount).isEqualTo(defaultAudioSettings.channelCount)
-        assertThat(resolvedAudioConfig.sampleRate).isEqualTo(defaultAudioSettings.sampleRate)
+        assertThat(resolvedAudioConfig.captureSampleRate)
+            .isEqualTo(defaultAudioSettings.captureSampleRate)
+        assertThat(resolvedAudioConfig.encodeSampleRate)
+            .isEqualTo(defaultAudioSettings.encodeSampleRate)
         assertThat(resolvedAudioConfig.bitrate).isGreaterThan(0)
     }
 
     @Test
     fun increasedChannelCountIncreasesBitrate() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
         // Get default channel count
         val defaultConfig =
             AudioEncoderConfigDefaultResolver(
@@ -92,6 +108,11 @@ class AudioEncoderConfigDefaultResolverTest {
 
     @Test
     fun increasedSampleRateIncreasesBitrate() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
         // Get default sample rate
         val defaultConfig =
             AudioEncoderConfigDefaultResolver(
@@ -102,10 +123,15 @@ class AudioEncoderConfigDefaultResolverTest {
                     defaultAudioSettings
                 )
                 .get()
-        val defaultSampleRate = defaultConfig.sampleRate
+        val defaultSampleRate = defaultConfig.captureSampleRate
 
+        val higherSampleRate = defaultSampleRate * 2
         val higherSampleRateAudioSettings =
-            defaultAudioSettings.toBuilder().setSampleRate(defaultSampleRate * 2).build()
+            defaultAudioSettings
+                .toBuilder()
+                .setCaptureSampleRate(higherSampleRate)
+                .setEncodeSampleRate(higherSampleRate)
+                .build()
 
         val higherSampleRateConfig =
             AudioEncoderConfigDefaultResolver(
@@ -122,6 +148,11 @@ class AudioEncoderConfigDefaultResolverTest {
 
     @Test
     fun bitrateRangeInVideoSpecClampsBitrate() {
+        // Skip for b/264902324
+        assumeFalse(
+            "Emulator API 30 crashes running this test.",
+            Build.VERSION.SDK_INT == 30 && isEmulator()
+        )
         val defaultConfig =
             AudioEncoderConfigDefaultResolver(
                     MIME_TYPE,

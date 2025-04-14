@@ -16,17 +16,17 @@
 
 package androidx.compose.ui.text.font
 
-import androidx.collection.SieveCache
+import androidx.collection.LruCache
 import androidx.collection.mutableScatterMapOf
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.platform.FontCacheManagementDispatcher
-import androidx.compose.ui.text.platform.createSynchronizedObject
+import androidx.compose.ui.text.platform.makeSynchronizedObject
 import androidx.compose.ui.text.platform.synchronized
 import androidx.compose.ui.util.fastDistinctBy
-import androidx.compose.ui.util.fastFilter
+import androidx.compose.ui.util.fastFilteredMap
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import kotlin.coroutines.CoroutineContext
@@ -68,8 +68,9 @@ internal class FontListFontFamilyTypefaceAdapter(
         // only preload styles that can be satisfied by async fonts
         val asyncStyles =
             family.fonts
-                .fastFilter { it.loadingStrategy == FontLoadingStrategy.Async }
-                .fastMap { it.weight to it.style }
+                .fastFilteredMap({ it.loadingStrategy == FontLoadingStrategy.Async }) {
+                    it.weight to it.style
+                }
                 .fastDistinctBy { it }
 
         val asyncLoads: MutableList<Font> = mutableListOf()
@@ -196,9 +197,9 @@ private fun List<Font>.firstImmediatelyAvailable(
                         try {
                             platformFontLoader.loadBlocking(font)
                         } catch (cause: Exception) {
-                            throw IllegalStateException("Unable to load font $font", cause)
+                            createDefaultTypeface(typefaceRequest)
                         }
-                    } ?: throw IllegalStateException("Unable to load font $font")
+                    } ?: createDefaultTypeface(typefaceRequest)
                 return asyncFontsToLoad to
                     typefaceRequest.fontSynthesis.synthesizeTypeface(
                         result,
@@ -252,8 +253,7 @@ private fun List<Font>.firstImmediatelyAvailable(
     return asyncFontsToLoad to fallbackTypeface
 }
 
-internal class AsyncFontListLoader
-constructor(
+internal class AsyncFontListLoader(
     private val fontList: List<Font>,
     initialType: Any,
     private val typefaceRequest: TypefaceRequest,
@@ -362,12 +362,12 @@ internal class AsyncTypefaceCache {
     // After loading, fonts are put into the resultCache to allow reading from a kotlin function
     // context, reducing async fonts overhead cache lookup overhead only while cached
     // @GuardedBy("cacheLock")
-    private val resultCache = SieveCache<Key, AsyncTypefaceResult>(16, 16)
+    private val resultCache = LruCache<Key, AsyncTypefaceResult>(16)
     // failures and preloads are permanent, so they are stored separately
     // @GuardedBy("cacheLock")
     private val permanentCache = mutableScatterMapOf<Key, AsyncTypefaceResult>()
 
-    private val cacheLock = createSynchronizedObject()
+    private val cacheLock = makeSynchronizedObject()
 
     fun put(
         font: Font,
@@ -385,7 +385,7 @@ internal class AsyncTypefaceCache {
                     permanentCache[key] = AsyncTypefaceResult(result)
                 }
                 else -> {
-                    resultCache[key] = AsyncTypefaceResult(result)
+                    resultCache.put(key, AsyncTypefaceResult(result))
                 }
             }
         }
@@ -419,7 +419,7 @@ internal class AsyncTypefaceCache {
                         permanentCache[key] = AsyncTypefaceResult(it)
                     }
                     else -> {
-                        resultCache[key] = AsyncTypefaceResult(it)
+                        resultCache.put(key, AsyncTypefaceResult(it))
                     }
                 }
             }

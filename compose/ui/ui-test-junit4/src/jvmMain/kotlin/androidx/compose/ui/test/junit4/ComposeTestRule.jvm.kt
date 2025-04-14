@@ -25,6 +25,8 @@ import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.unit.Density
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.TestDispatcher
 import org.junit.rules.TestRule
 
 /**
@@ -225,30 +227,6 @@ interface ComposeTestRule : TestRule, SemanticsNodeInteractionsProvider {
 
     /** Unregisters an [IdlingResource] from this test. */
     fun unregisterIdlingResource(idlingResource: IdlingResource)
-
-    /**
-     * Enables accessibility checks that will be run before every action that is expected to change
-     * the UI.
-     *
-     * Accessibility checks are platform dependent, refer to the documentation of the platform
-     * specific variant of [ComposeTestRule] to see if it is supported and how you can configure it.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withComposeTestRule_sample
-     * @see disableAccessibilityChecks
-     */
-    fun enableAccessibilityChecks() {
-        throw NotImplementedError("Accessibility Checks are not implemented on this platform")
-    }
-
-    /**
-     * Disables accessibility checks.
-     *
-     * @sample androidx.compose.ui.test.samples.accessibilityChecks_withAndroidComposeTestRule_sample
-     * @see enableAccessibilityChecks
-     */
-    fun disableAccessibilityChecks() {
-        throw NotImplementedError("Accessibility Checks are not implemented on this platform")
-    }
 }
 
 /**
@@ -305,7 +283,9 @@ expect fun createComposeRule(): ComposeContentTestRule
  * launched, see [createAndroidComposeRule].
  *
  * @param effectContext The [CoroutineContext] used to run the composition. The context for
- *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context.
+ *   `LaunchedEffect`s and `rememberCoroutineScope` will be derived from this context. If this
+ *   context contains a [TestDispatcher] or [TestCoroutineScheduler] (in that order), it will be
+ *   used for composition and the [MainTestClock].
  */
 @ExperimentalTestApi
 expect fun createComposeRule(

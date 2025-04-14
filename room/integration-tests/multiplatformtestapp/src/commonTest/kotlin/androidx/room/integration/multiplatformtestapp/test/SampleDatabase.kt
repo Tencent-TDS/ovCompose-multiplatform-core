@@ -41,12 +41,47 @@ import androidx.room.Transaction
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 @Entity
+@Serializable
 data class SampleEntity(
-    @PrimaryKey val pk: Long,
+    @PrimaryKey @SerialName("key") val pk: Long,
     @ColumnInfo(defaultValue = "0") val data: Long = 0
 )
+
+@Entity
+data class SampleEntity1Byte(@PrimaryKey val pk: ByteArray) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as SampleEntity1Byte
+
+        return pk.contentEquals(other.pk)
+    }
+
+    override fun hashCode(): Int {
+        return pk.contentHashCode()
+    }
+}
+
+@Entity
+data class SampleEntity2Byte(@PrimaryKey val pk2: ByteArray) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as SampleEntity2Byte
+
+        return pk2.contentEquals(other.pk2)
+    }
+
+    override fun hashCode(): Int {
+        return pk2.contentHashCode()
+    }
+}
 
 @Entity
 data class SampleEntity2(
@@ -167,6 +202,10 @@ interface SampleDao {
 
     @Insert suspend fun insert(entity: SampleEntity)
 
+    @Insert suspend fun insert(entity: SampleEntity1Byte)
+
+    @Insert suspend fun insert(entity: SampleEntity2Byte)
+
     @Insert suspend fun insertArray(entities: Array<SampleEntity>)
 
     @Insert suspend fun insertSampleEntityList(entities: List<SampleEntity>)
@@ -197,15 +236,40 @@ interface SampleDao {
 
     @Transaction @Query("SELECT * FROM SampleEntity") suspend fun getSample1To2(): Sample1And2
 
+    @Transaction
+    @Query("SELECT * FROM SampleEntity1Byte")
+    suspend fun getSample1To2Byte(): Sample1And2Byte
+
     @Transaction @Query("SELECT * FROM SampleEntity") suspend fun getSample1ToMany(): Sample1AndMany
 
     @Transaction
     @Query("SELECT * FROM StringSampleEntity1")
     suspend fun getSampleManyToMany(): SampleManyAndMany
 
+    @Transaction
+    @Query("SELECT * FROM SampleEntity3")
+    fun getPagingSourceRelation(): androidx.paging.PagingSource<Int, SampleRelation>
+
+    data class SampleRelation(
+        val pk3: Long,
+        @ColumnInfo(defaultValue = "0") val data3: Long,
+        @Relation(parentColumn = "pk3", entityColumn = "pk3") val relationEntity: SampleEntity3
+    )
+
+    @Query("SELECT * FROM SampleEntity")
+    fun getAllIds(): androidx.paging.PagingSource<Int, SampleEntity>
+
+    @Query("SELECT * FROM SampleEntity WHERE pk > :gt ORDER BY pk ASC")
+    fun getAllIdsWithArgs(gt: Long): androidx.paging.PagingSource<Int, SampleEntity>
+
     data class Sample1And2(
         @Embedded val sample1: SampleEntity,
         @Relation(parentColumn = "pk", entityColumn = "pk2") val sample2: SampleEntity2
+    )
+
+    data class Sample1And2Byte(
+        @Embedded val sample1: SampleEntity1Byte,
+        @Relation(parentColumn = "pk", entityColumn = "pk2") val sample2: SampleEntity2Byte
     )
 
     data class Sample1AndMany(
@@ -235,6 +299,8 @@ interface SampleDao {
             SampleEntity::class,
             SampleEntity2::class,
             SampleEntity3::class,
+            SampleEntity1Byte::class,
+            SampleEntity2Byte::class,
             SampleEntityCopy::class,
             StringSampleEntity1::class,
             StringSampleEntity2::class,

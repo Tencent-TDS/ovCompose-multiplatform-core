@@ -19,15 +19,17 @@ package androidx.wear.compose.foundation
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.util.fastFirstOrNull
-import androidx.compose.ui.util.fastForEach
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListAnchorType
-import androidx.wear.compose.foundation.lazy.ScalingLazyListItemInfo
 import androidx.wear.compose.foundation.lazy.ScalingLazyListState
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.startOffset
+import androidx.wear.compose.foundation.pager.HorizontalPager
+import androidx.wear.compose.foundation.pager.PagerState
+import androidx.wear.compose.foundation.pager.VerticalPager
 
 /**
  * An interface for providing scroll information for different scrollable containers, such lists.
@@ -38,21 +40,21 @@ import androidx.wear.compose.foundation.lazy.startOffset
  * upwards. The scrolled offset is typically calculated with reference to the position of an anchor
  * e.g. the top item.
  */
-interface ScrollInfoProvider {
+public interface ScrollInfoProvider {
     /**
      * Whether it is valid to scroll away the anchor item with the current configuration, For
      * example, if the selected anchor item does not exist, it is not valid to scroll away.
      */
-    val isScrollAwayValid: Boolean
+    public val isScrollAwayValid: Boolean
 
     /** Whether the container is currently scrollable. */
-    val isScrollable: Boolean
+    public val isScrollable: Boolean
 
     /**
      * Whether the list is currently scrolling (which can be used to show/hide a scroll indicator or
      * time text during the scroll operation).
      */
-    val isScrollInProgress: Boolean
+    public val isScrollInProgress: Boolean
 
     /**
      * The amount that the anchor item has been scrolled upwards in the y direction (in Pixels),
@@ -60,48 +62,63 @@ interface ScrollInfoProvider {
      * the anchor item is no longer visible on the screen and its offset cannot be calculated, the
      * returned offset is Float.NaN.
      */
-    val anchorItemOffset: Float
+    public val anchorItemOffset: Float
 
     /**
      * The amount of space between the last item (which may not be visible) and the bottom edge of
      * the viewport. This is always greater or equal to 0, if there is no (or negative) room
      * (including the case in which the last item is not on screen), 0 should be returned.
      */
-    val lastItemOffset: Float
+    public val lastItemOffset: Float
 }
 
 /**
  * Function for creating a [ScrollInfoProvider] from a [ScalingLazyListState], for use with
- * [ScalingLazyColumn] - used to create a ScrollAway modifier directly that can be applied to an
- * object that appears at the top of the screen, to scroll it away vertically when the
- * [ScalingLazyColumn] is scrolled upwards.
- *
- * @param state
+ * [ScalingLazyColumn] - used to coordinate between scrollable content and scaffold content such as
+ * [TimeText] which is scrolled away at the top of the screen and [EdgeButton] which is scaled.
  */
-fun ScrollInfoProvider(state: ScalingLazyListState): ScrollInfoProvider =
+public fun ScrollInfoProvider(state: ScalingLazyListState): ScrollInfoProvider =
     ScalingLazyListStateScrollInfoProvider(state)
 
 /**
  * Function for creating a [ScrollInfoProvider] from a [LazyListState], for use with [LazyColumn] -
- * used to create a ScrollAway modifier directly that can be applied to an object that appears at
- * the top of the screen, to scroll it away vertically when the [LazyColumn] is scrolled upwards.
+ * used to coordinate between scrollable content and scaffold content such as [TimeText] which is
+ * scrolled away at the top of the screen and [EdgeButton] which is scaled.
  */
-fun ScrollInfoProvider(state: LazyListState): ScrollInfoProvider =
+public fun ScrollInfoProvider(state: LazyListState): ScrollInfoProvider =
     LazyListStateScrollInfoProvider(state)
 
 /**
+ * Function for creating a [ScrollInfoProvider] from a [TransformingLazyColumnState], for use with
+ * [TransformingLazyColumn] - used to coordinate between scrollable content and scaffold content
+ * such as [TimeText] which is scrolled away at the top of the screen and [EdgeButton] which is
+ * scaled.
+ */
+public fun ScrollInfoProvider(state: TransformingLazyColumnState): ScrollInfoProvider =
+    TransformingLazyColumnStateScrollInfoProvider(state)
+
+/**
  * Function for creating a [ScrollInfoProvider] from a [ScrollState], for use with [Column] - used
- * to create a ScrollAway modifier directly that can be applied to an object that appears at the top
- * of the screen, to scroll it away vertically when the [Column] is scrolled upwards.
+ * to coordinate between scrollable content and scaffold content such as [TimeText] which is
+ * scrolled away at the top of the screen and [EdgeButton] which is scaled.
  *
  * @param state the [ScrollState] to use as the base for creating the [ScrollInfoProvider]
- * @param bottomButtonHeight optional parameter to specify the size of a bottom button if one is
- *   provided.
  */
-fun ScrollInfoProvider(state: ScrollState, bottomButtonHeight: Float = 0f): ScrollInfoProvider =
-    ScrollStateScrollInfoProvider(state, bottomButtonHeight)
+public fun ScrollInfoProvider(state: ScrollState): ScrollInfoProvider =
+    ScrollStateScrollInfoProvider(state)
 
-// Implementation of [ScrollAwayInfoProvider] for [ScalingLazyColumn].
+/**
+ * Function for creating a [ScrollInfoProvider] from a [PagerState], for use with [HorizontalPager]
+ * and [VerticalPager]
+ * - used to coordinate when to fade out the PageIndicator and [TimeText]. The PageIndicator fades
+ *   out when when scrolling is finished and the screen is in an idle state.
+ *
+ * @param state the [PagerState] to use as the base for creating the [ScrollInfoProvider]
+ */
+public fun ScrollInfoProvider(state: PagerState): ScrollInfoProvider =
+    PagerStateScrollInfoProvider(state)
+
+// Implementation of [ScrollInfoProvider] for [ScalingLazyColumn].
 // Being in Foundation, this implementation has access to the ScalingLazyListState
 // auto-centering params, which are internal.
 private class ScalingLazyListStateScrollInfoProvider(val state: ScalingLazyListState) :
@@ -121,9 +138,8 @@ private class ScalingLazyListStateScrollInfoProvider(val state: ScalingLazyListS
     override val anchorItemOffset: Float
         get() {
             val layoutInfo = state.layoutInfo
-            val autoCentering = state.config.value?.autoCentering
             return layoutInfo.visibleItemsInfo
-                .fastFirstOrNull { it.index == (autoCentering?.itemIndex ?: 1) }
+                .fastFirstOrNull { it.index == 1 }
                 ?.let {
                     val startOffset = it.startOffset(ScalingLazyListAnchorType.ItemStart)
                     if (initialStartOffset == null || startOffset > initialStartOffset!!) {
@@ -136,11 +152,11 @@ private class ScalingLazyListStateScrollInfoProvider(val state: ScalingLazyListS
     override val lastItemOffset: Float
         get() {
             val screenHeightPx = state.config.value?.viewportHeightPx ?: 0
-            var lastItemInfo: ScalingLazyListItemInfo? = null
-            state.layoutInfo.visibleItemsInfo.fastForEach { ii ->
-                if (ii.index == state.layoutInfo.totalItemsCount - 1) lastItemInfo = ii
-            }
-            return lastItemInfo?.let {
+            val layoutInfo = state.layoutInfo
+            return layoutInfo.visibleItemsInfo.lastOrNull()?.let {
+                if (it.index != layoutInfo.totalItemsCount - 1) {
+                    return@let 0f
+                }
                 val bottomEdge = it.offset + screenHeightPx / 2 + it.size / 2
                 (screenHeightPx - bottomEdge).toFloat().coerceAtLeast(0f)
             } ?: 0f
@@ -157,7 +173,7 @@ private class ScalingLazyListStateScrollInfoProvider(val state: ScalingLazyListS
     private var initialStartOffset: Float? = null
 }
 
-// Implementation of [ScrollAwayInfoProvider] for [LazyColumn].
+// Implementation of [ScrollInfoProvider] for [LazyColumn].
 private class LazyListStateScrollInfoProvider(val state: LazyListState) : ScrollInfoProvider {
     override val isScrollAwayValid
         get() = state.layoutInfo.totalItemsCount > 0
@@ -170,19 +186,22 @@ private class LazyListStateScrollInfoProvider(val state: LazyListState) : Scroll
 
     override val anchorItemOffset
         get() =
-            state.layoutInfo.visibleItemsInfo
-                .fastFirstOrNull { it.index == 0 }
-                ?.let { -it.offset.toFloat() } ?: Float.NaN
+            state.layoutInfo.visibleItemsInfo.firstOrNull()?.let {
+                if (it.index != 0) {
+                    return@let Float.NaN
+                }
+                -it.offset.toFloat()
+            } ?: Float.NaN
 
     override val lastItemOffset: Float
         get() {
-            val screenHeightPx = state.layoutInfo.viewportSize.height
-            var lastItemInfo: LazyListItemInfo? = null
-            state.layoutInfo.visibleItemsInfo.fastForEach { ii ->
-                if (ii.index == state.layoutInfo.totalItemsCount - 1) lastItemInfo = ii
-            }
-            return lastItemInfo?.let {
-                val bottomEdge = it.offset + it.size - state.layoutInfo.viewportStartOffset
+            val layoutInfo = state.layoutInfo
+            val screenHeightPx = layoutInfo.viewportSize.height
+            return layoutInfo.visibleItemsInfo.lastOrNull()?.let {
+                if (it.index != layoutInfo.totalItemsCount - 1) {
+                    return@let 0f
+                }
+                val bottomEdge = it.offset + it.size - layoutInfo.viewportStartOffset
                 (screenHeightPx - bottomEdge).toFloat().coerceAtLeast(0f)
             } ?: 0f
         }
@@ -196,15 +215,14 @@ private class LazyListStateScrollInfoProvider(val state: LazyListState) : Scroll
     }
 }
 
-// Implementation of [ScrollAwayInfoProvider] for [Column]
-private class ScrollStateScrollInfoProvider(
-    val state: ScrollState,
-    val bottomButtonHeight: Float = 0f
-) : ScrollInfoProvider {
+// Implementation of [ScrollInfoProvider] for [Column].
+private class ScrollStateScrollInfoProvider(val state: ScrollState) : ScrollInfoProvider {
     override val isScrollAwayValid: Boolean
         get() = true
 
-    override val isScrollable = state.maxValue != 0
+    override val isScrollable: Boolean
+        get() = state.maxValue != 0
+
     // Work around the default implementation of ScrollState not providing a useful
     // isScrollInProgress
     private var prevOffset: Int? = null
@@ -219,10 +237,7 @@ private class ScrollStateScrollInfoProvider(
         get() = state.value.toFloat()
 
     override val lastItemOffset: Float
-        get() {
-            return if (state.maxValue == Int.MAX_VALUE || bottomButtonHeight == 0f) 0f
-            else (state.value - state.maxValue + bottomButtonHeight).coerceAtLeast(0f)
-        }
+        get() = 0f
 
     override fun toString(): String {
         return "ScrollStateScrollInfoProvider(isScrollAwayValid=$isScrollAwayValid, " +
@@ -231,4 +246,75 @@ private class ScrollStateScrollInfoProvider(
             "anchorItemOffset=$anchorItemOffset, " +
             "lastItemOffset=$lastItemOffset)"
     }
+}
+
+// Implementation of [ScrollInfoProvider] for [TransformingLazyColumn].
+private class TransformingLazyColumnStateScrollInfoProvider(
+    val state: TransformingLazyColumnState
+) : ScrollInfoProvider {
+    override val isScrollAwayValid
+        get() = state.layoutInfo.totalItemsCount > 0
+
+    override val isScrollable
+        get() =
+            state.layoutInfo.totalItemsCount > 0 &&
+                (state.canScrollBackward || state.canScrollForward)
+
+    override val isScrollInProgress
+        get() = state.isScrollInProgress
+
+    // TODO: b/3364857296 - Rework using scroll anchor item.
+    private var initialStartOffset: Float = Float.NaN
+
+    override val anchorItemOffset: Float
+        get() =
+            state.layoutInfo.visibleItems.firstOrNull()?.let { item ->
+                if (item.index != 0) {
+                    return@let Float.NaN
+                }
+                val newOffset = item.offset.toFloat()
+                if (initialStartOffset.isNaN()) {
+                    initialStartOffset = newOffset
+                }
+                initialStartOffset - newOffset
+            } ?: Float.NaN
+
+    override val lastItemOffset: Float
+        get() {
+            val layoutInfo = state.layoutInfo
+            val screenHeightPx = layoutInfo.viewportSize.height
+            return layoutInfo.visibleItems.lastOrNull()?.let {
+                if (it.index != layoutInfo.totalItemsCount - 1) {
+                    return@let 0f
+                }
+                (screenHeightPx - it.offset - it.transformedHeight).toFloat().coerceAtLeast(0f)
+            } ?: 0f
+        }
+
+    override fun toString(): String {
+        return "TransformingLazyColumnStateScrollInfoProvider(" +
+            "isScrollAwayValid=$isScrollAwayValid, " +
+            "isScrollable=$isScrollable," +
+            "isScrollInProgress=$isScrollInProgress, " +
+            "anchorItemOffset=$anchorItemOffset, " +
+            "lastItemOffset=$lastItemOffset)"
+    }
+}
+
+// Implementation of [ScrollInfoProvider] for [Pager].
+private class PagerStateScrollInfoProvider(val state: PagerState) : ScrollInfoProvider {
+    override val isScrollAwayValid: Boolean
+        get() = false
+
+    override val isScrollable: Boolean
+        get() = state.canScrollBackward || state.canScrollForward
+
+    override val isScrollInProgress: Boolean
+        get() = state.isScrollInProgress
+
+    override val anchorItemOffset: Float
+        get() = Float.NaN
+
+    override val lastItemOffset: Float
+        get() = 0f
 }

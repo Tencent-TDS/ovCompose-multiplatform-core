@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.test.filters.SdkSuppress
 import androidx.wear.compose.material3.samples.CheckboxButtonSample
 import androidx.wear.compose.material3.samples.SplitCheckboxButtonSample
 import org.junit.Assert
@@ -440,8 +441,10 @@ class CheckboxButtonTest {
             CheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelTextAlign = LocalTextAlign.current },
-                secondaryLabel = { secondaryLabelTextAlign = LocalTextAlign.current },
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
             )
         }
 
@@ -458,8 +461,10 @@ class CheckboxButtonTest {
             SplitCheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelTextAlign = LocalTextAlign.current },
-                secondaryLabel = { secondaryLabelTextAlign = LocalTextAlign.current },
+                label = { labelTextAlign = LocalTextConfiguration.current.textAlign },
+                secondaryLabel = {
+                    secondaryLabelTextAlign = LocalTextConfiguration.current.textAlign
+                },
             )
         }
 
@@ -476,8 +481,10 @@ class CheckboxButtonTest {
             CheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelOverflow = LocalTextOverflow.current },
-                secondaryLabel = { secondaryLabelOverflow = LocalTextOverflow.current },
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
             )
         }
 
@@ -494,8 +501,10 @@ class CheckboxButtonTest {
             SplitCheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelOverflow = LocalTextOverflow.current },
-                secondaryLabel = { secondaryLabelOverflow = LocalTextOverflow.current },
+                label = { labelOverflow = LocalTextConfiguration.current.overflow },
+                secondaryLabel = {
+                    secondaryLabelOverflow = LocalTextConfiguration.current.overflow
+                },
             )
         }
 
@@ -512,8 +521,10 @@ class CheckboxButtonTest {
             CheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelMaxLines = LocalTextMaxLines.current },
-                secondaryLabel = { secondaryLabelMaxLines = LocalTextMaxLines.current },
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
             )
         }
 
@@ -530,8 +541,10 @@ class CheckboxButtonTest {
             SplitCheckboxButtonWithDefaults(
                 checked = true,
                 onCheckedChange = {},
-                label = { labelMaxLines = LocalTextMaxLines.current },
-                secondaryLabel = { secondaryLabelMaxLines = LocalTextMaxLines.current },
+                label = { labelMaxLines = LocalTextConfiguration.current.maxLines },
+                secondaryLabel = {
+                    secondaryLabelMaxLines = LocalTextConfiguration.current.maxLines
+                },
             )
         }
 
@@ -539,7 +552,7 @@ class CheckboxButtonTest {
         Assert.assertEquals(2, secondaryLabelMaxLines)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun checkbox_button_allows_checked_background_color_override() =
         verifyToggleButtonBackgroundColor(
@@ -548,7 +561,7 @@ class CheckboxButtonTest {
             expectedColor = CHECKED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun checkbox_button_allows_unchecked_background_color_override() =
         verifyToggleButtonBackgroundColor(
@@ -557,7 +570,7 @@ class CheckboxButtonTest {
             expectedColor = UNCHECKED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun split_checkbox_button_allows_checked_background_color_override() =
         verifySplitToggleButtonBackgroundColor(
@@ -566,7 +579,7 @@ class CheckboxButtonTest {
             expectedColor = CHECKED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun split_checkbox_button_allows_unchecked_background_color_override() =
         verifySplitToggleButtonBackgroundColor(
@@ -575,55 +588,55 @@ class CheckboxButtonTest {
             expectedColor = UNCHECKED_COLOR
         )
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_checkbox_button_colors_enabled_and_checked() {
         rule.verifyCheckboxButtonColors(checked = true, enabled = true)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_checkbox_button_colors_enabled_and_unchecked() {
         rule.verifyCheckboxButtonColors(checked = false, enabled = true)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_checkbox_button_colors_disabled_and_checked() {
         rule.verifyCheckboxButtonColors(checked = true, enabled = false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_checkbox_button_colors_disabled_and_unchecked() {
         rule.verifyCheckboxButtonColors(checked = false, enabled = false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_split_checkbox_button_colors_enabled_and_checked() {
         rule.verifySplitCheckboxButtonColors(checked = true, enabled = true)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_split_checkbox_button_colors_enabled_and_unchecked() {
         rule.verifySplitCheckboxButtonColors(checked = false, enabled = true)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_split_checkbox_button_colors_disabled_and_checked() {
         rule.verifySplitCheckboxButtonColors(checked = true, enabled = false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun verify_split_checkbox_button_colors_disabled_and_unchecked() {
         rule.verifySplitCheckboxButtonColors(checked = false, enabled = false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun checkbox_checked_colors_are_customisable() {
         val boxColor = Color.Green
@@ -646,7 +659,7 @@ class CheckboxButtonTest {
         checkboxImage.assertContainsColor(checkmarkColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun checkbox_unchecked_colors_are_customisable() {
         // NB checkmark is erased during animation, so we don't test uncheckedCheckmarkColor
@@ -668,7 +681,7 @@ class CheckboxButtonTest {
         checkboxImage.assertContainsColor(boxColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun disabled_checkbox_checked_colors_are_customisable() {
         val boxColor = Color.Green
@@ -691,7 +704,7 @@ class CheckboxButtonTest {
         checkboxImage.assertContainsColor(checkmarkColor)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
     fun disabled_checkbox_unchecked_colors_are_customisable() {
         // NB checkmark is erased during animation, so we don't test uncheckedCheckmarkColor
@@ -858,14 +871,11 @@ private fun ComposeContentTestRule.verifySplitCheckboxButtonColors(
     var actualSecondaryLabelColor = Color.Transparent
     setContentWithTheme {
         expectedContainerColor =
-            split_checkbox_button_container_color(checked)
-                .withDisabledAlphaApplied(enabled = enabled)
+            split_checkbox_button_container_color(checked, enabled)
                 .compositeOver(testBackgroundColor)
         expectedLabelColor =
             split_checkbox_button_content_color(checked).withDisabledAlphaApplied(enabled = enabled)
-        expectedSecondaryLabelColor =
-            split_checkbox_button_secondary_label_color(checked)
-                .withDisabledAlphaApplied(enabled = enabled)
+        expectedSecondaryLabelColor = split_checkbox_button_secondary_label_color(checked, enabled)
         Box(Modifier.fillMaxSize().background(testBackgroundColor)) {
             SplitCheckboxButton(
                 modifier = Modifier.testTag(TEST_TAG),
@@ -909,7 +919,7 @@ private fun checkbox_button_content_color(checked: Boolean, enabled: Boolean): C
 
 @Composable
 private fun checkbox_button_secondary_label_color(checked: Boolean, enabled: Boolean): Color {
-    return if (checked && enabled) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+    return if (checked && enabled) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
     else if (!checked && enabled) MaterialTheme.colorScheme.onSurfaceVariant
     else MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.38f)
 }
@@ -921,8 +931,9 @@ private fun checkbox_button_icon_color(enabled: Boolean): Color {
 }
 
 @Composable
-private fun split_checkbox_button_container_color(checked: Boolean): Color {
-    return if (checked) MaterialTheme.colorScheme.primaryContainer
+private fun split_checkbox_button_container_color(checked: Boolean, enabled: Boolean): Color {
+    return if (!enabled) MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.12f)
+    else if (checked) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceContainer
 }
 
@@ -933,8 +944,9 @@ private fun split_checkbox_button_content_color(checked: Boolean): Color {
 }
 
 @Composable
-private fun split_checkbox_button_secondary_label_color(checked: Boolean): Color {
-    return if (checked) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+private fun split_checkbox_button_secondary_label_color(checked: Boolean, enabled: Boolean): Color {
+    return if (!enabled) MaterialTheme.colorScheme.onSurface.toDisabledColor(disabledAlpha = 0.38f)
+    else if (checked) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
     else MaterialTheme.colorScheme.onSurfaceVariant
 }
 

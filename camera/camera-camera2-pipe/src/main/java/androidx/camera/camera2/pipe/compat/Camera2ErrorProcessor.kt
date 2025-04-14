@@ -26,7 +26,7 @@ import javax.inject.Singleton
 
 /**
  * A class responsible for reporting camera errors with a particular [CameraId]. When
- * [androidx.camera.camera2.pipe.compat.VirtualCameraManager] processes a camera open request, it
+ * [androidx.camera.camera2.pipe.compat.Camera2DeviceManager] processes a camera open request, it
  * should update CameraErrorProcessor with the [VirtualCameraState] that came with the open request.
  */
 @Singleton

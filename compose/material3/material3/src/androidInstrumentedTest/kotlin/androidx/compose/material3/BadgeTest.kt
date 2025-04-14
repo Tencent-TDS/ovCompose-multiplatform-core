@@ -113,7 +113,7 @@ class BadgeTest {
                 shape = shape,
                 shapeColor = errorColor,
                 backgroundColor = Color.White,
-                shapeOverlapPixelCount = with(rule.density) { 1.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 1.dp.toPx() }
             )
     }
 
@@ -133,6 +133,7 @@ class BadgeTest {
     }
 
     @Test
+    @SdkSuppress(maxSdkVersion = 34) // b/384973010: Failing on SDK 35
     fun badgeBox_shortContent_position() {
         rule.setMaterialContent(lightColorScheme()) {
             BadgedBox(badge = { Badge { Text("8") } }) {

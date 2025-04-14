@@ -49,8 +49,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Density
 
 /**
- * <a href="https://m3.material.io/components/text-fields/overview" class="external"
- * target="_blank">Material Design filled text field for secure content</a>.
+ * [Material Design filled text field for secure
+ * content](https://m3.material.io/components/text-fields/overview)
  *
  * Text fields allow users to enter text into a UI. [SecureTextField] is specifically designed for
  * password entry fields. It only supports a single line of content and comes with default settings
@@ -69,9 +69,6 @@ import androidx.compose.ui.unit.Density
  * @param enabled controls the enabled state of this text field. When `false`, this component will
  *   not respond to user input, and it will appear visually disabled and disabled to accessibility
  *   services.
- * @param readOnly controls the editable state of the text field. When `true`, the text field cannot
- *   be modified. However, a user can still focus it. Read-only text fields are usually used to
- *   display pre-filled forms that a user cannot edit.
  * @param textStyle the style to be applied to the input text. Defaults to [LocalTextStyle].
  * @param labelPosition the position of the label. See [TextFieldLabelPosition].
  * @param label the optional label to be displayed with this text field. The default text style uses
@@ -131,9 +128,8 @@ fun SecureTextField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Default(),
+    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Attached(),
     label: @Composable (TextFieldLabelScope.() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
@@ -179,7 +175,6 @@ fun SecureTextField(
                         minHeight = TextFieldDefaults.MinHeight
                     ),
             enabled = enabled,
-            readOnly = readOnly,
             textStyle = mergedTextStyle,
             cursorBrush = SolidColor(colors.cursorColor(isError)),
             keyboardOptions = keyboardOptions,
@@ -222,8 +217,8 @@ fun SecureTextField(
 }
 
 /**
- * <a href="https://m3.material.io/components/text-fields/overview" class="external"
- * target="_blank">Material Design outlined text field for secure content</a>.
+ * [Material Design outlined text field for secure
+ * content](https://m3.material.io/components/text-fields/overview)
  *
  * Text fields allow users to enter text into a UI. [OutlinedSecureTextField] is specifically
  * designed for password entry fields. It only supports a single line of content and comes with
@@ -239,9 +234,6 @@ fun SecureTextField(
  * @param enabled controls the enabled state of this text field. When `false`, this component will
  *   not respond to user input, and it will appear visually disabled and disabled to accessibility
  *   services.
- * @param readOnly controls the editable state of the text field. When `true`, the text field cannot
- *   be modified. However, a user can still focus it. Read-only text fields are usually used to
- *   display pre-filled forms that a user cannot edit.
  * @param textStyle the style to be applied to the input text. Defaults to [LocalTextStyle].
  * @param labelPosition the position of the label. See [TextFieldLabelPosition].
  * @param label the optional label to be displayed with this text field. The default text style uses
@@ -301,9 +293,8 @@ fun OutlinedSecureTextField(
     state: TextFieldState,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    readOnly: Boolean = false,
     textStyle: TextStyle = LocalTextStyle.current,
-    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Default(),
+    labelPosition: TextFieldLabelPosition = TextFieldLabelPosition.Attached(),
     label: @Composable (TextFieldLabelScope.() -> Unit)? = null,
     placeholder: @Composable (() -> Unit)? = null,
     leadingIcon: @Composable (() -> Unit)? = null,
@@ -355,7 +346,6 @@ fun OutlinedSecureTextField(
                         minHeight = OutlinedTextFieldDefaults.MinHeight
                     ),
             enabled = enabled,
-            readOnly = readOnly,
             textStyle = mergedTextStyle,
             cursorBrush = SolidColor(colors.cursorColor(isError)),
             keyboardOptions = keyboardOptions,

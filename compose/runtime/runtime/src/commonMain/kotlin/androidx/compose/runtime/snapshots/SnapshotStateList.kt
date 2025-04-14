@@ -17,11 +17,11 @@
 package androidx.compose.runtime.snapshots
 
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.SynchronizedObject
 import androidx.compose.runtime.external.kotlinx.collections.immutable.PersistentList
 import androidx.compose.runtime.external.kotlinx.collections.immutable.persistentListOf
+import androidx.compose.runtime.platform.makeSynchronizedObject
+import androidx.compose.runtime.platform.synchronized
 import androidx.compose.runtime.requirePrecondition
-import androidx.compose.runtime.synchronized
 import kotlin.jvm.JvmName
 
 /**
@@ -72,7 +72,8 @@ class SnapshotStateList<T> internal constructor(persistentList: PersistentList<T
 
     /** This is an internal implementation class of [SnapshotStateList]. Do not use. */
     internal class StateListStateRecord<T>
-    internal constructor(internal var list: PersistentList<T>) : StateRecord() {
+    internal constructor(snapshotId: SnapshotId, internal var list: PersistentList<T>) :
+        StateRecord(snapshotId) {
         internal var modification = 0
         internal var structuralChange = 0
 
@@ -85,7 +86,10 @@ class SnapshotStateList<T> internal constructor(persistentList: PersistentList<T
             }
         }
 
-        override fun create(): StateRecord = StateListStateRecord(list)
+        override fun create(): StateRecord = create(currentSnapshot().snapshotId)
+
+        override fun create(snapshotId: SnapshotId): StateRecord =
+            StateListStateRecord(snapshotId, list)
     }
 
     override val size: Int
@@ -195,16 +199,7 @@ class SnapshotStateList<T> internal constructor(persistentList: PersistentList<T
             val newList = builder.build()
             if (
                 newList == oldList ||
-                    writable {
-                        synchronized(sync) {
-                            if (modification == currentModification) {
-                                list = newList
-                                modification++
-                                structuralChange++
-                                true
-                            } else false
-                        }
-                    }
+                    writable { attemptUpdate(currentModification, newList, structural = true) }
             )
                 break
         }
@@ -236,18 +231,7 @@ class SnapshotStateList<T> internal constructor(persistentList: PersistentList<T
                 result = false
                 break
             }
-            if (
-                writable {
-                    synchronized(sync) {
-                        if (modification == currentModification) {
-                            list = newList
-                            if (structural) structuralChange++
-                            modification++
-                            true
-                        } else false
-                    }
-                }
-            ) {
+            if (writable { attemptUpdate(currentModification, newList, structural) }) {
                 result = true
                 break
             }
@@ -255,13 +239,26 @@ class SnapshotStateList<T> internal constructor(persistentList: PersistentList<T
         result
     }
 
+    // NOTE: do not inline this method to avoid class verification failures, see b/369909868
+    private fun StateListStateRecord<T>.attemptUpdate(
+        currentModification: Int,
+        newList: PersistentList<T>,
+        structural: Boolean
+    ): Boolean =
+        synchronized(sync) {
+            if (modification == currentModification) {
+                list = newList
+                if (structural) structuralChange++
+                modification++
+                true
+            } else false
+        }
+
     private fun stateRecordWith(list: PersistentList<T>): StateRecord {
-        return StateListStateRecord(list).also {
-            if (Snapshot.isInSnapshot) {
-                it.next =
-                    StateListStateRecord(list).also { next ->
-                        next.snapshotId = Snapshot.PreexistingSnapshotId
-                    }
+        val snapshot = currentSnapshot()
+        return StateListStateRecord(snapshot.snapshotId, list).also {
+            if (snapshot !is GlobalSnapshot) {
+                it.next = StateListStateRecord(Snapshot.PreexistingSnapshotId.toSnapshotId(), list)
             }
         }
     }
@@ -296,9 +293,10 @@ fun <T> SnapshotStateList(size: Int, init: (index: Int) -> T): SnapshotStateList
  * additional contention introduced by this lock is nominal.
  *
  * In code the requires this lock and calls `writable` (or other operation that acquires the
- * snapshot global lock), this lock *MUST* be acquired first to avoid deadlocks.
+ * snapshot global lock), this lock *MUST* be acquired last to avoid deadlocks. In other words, the
+ * lock must be taken in the `writable` lambda, if `writable` is used.
  */
-private val sync = SynchronizedObject()
+private val sync = makeSynchronizedObject()
 
 private fun modificationError(): Nothing = error("Cannot modify a state list through an iterator")
 

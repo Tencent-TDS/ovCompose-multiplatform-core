@@ -712,7 +712,7 @@ class SnapshotTests {
         parent.apply().check()
         parent.dispose()
         snapshot.enter {
-            // Should se the change of state1
+            // Should see the change of state1
             assertEquals(1, state1)
 
             // But not the state change of state2
@@ -992,10 +992,10 @@ class SnapshotTests {
     fun testNestedWithinTransparentSnapshotDisposedCorrectly() {
         val outerSnapshot =
             TransparentObserverSnapshot(
-                previousSnapshot = currentSnapshot(),
+                parentSnapshot = currentSnapshot(),
                 specifiedReadObserver = null,
                 mergeParentObservers = false,
-                ownsPreviousSnapshot = false
+                ownsParentSnapshot = false
             )
 
         try {
@@ -1047,10 +1047,10 @@ class SnapshotTests {
 
         val outerSnapshot =
             TransparentObserverSnapshot(
-                previousSnapshot = currentSnapshot(),
+                parentSnapshot = currentSnapshot(),
                 specifiedReadObserver = { outerChanges++ },
                 mergeParentObservers = false,
-                ownsPreviousSnapshot = false
+                ownsParentSnapshot = false
             )
 
         try {
@@ -1371,17 +1371,21 @@ class SnapshotTests {
         }
     }
 
-    @Test(expected = IllegalStateException::class)
+    @Test
     fun throwInWithMutableSnapshot() {
-        Snapshot.withMutableSnapshot { error("Test error") }
+        assertFailsWith<IllegalStateException> {
+            Snapshot.withMutableSnapshot { error("Test error") }
+        }
     }
 
-    @Test(expected = SnapshotApplyConflictException::class)
+    @Test
     fun throwInApplyWithMutableSnapshot() {
-        val state = mutableStateOf(0)
-        Snapshot.withMutableSnapshot {
-            Snapshot.global { state.value = 1 }
-            state.value = 2
+        assertFailsWith<SnapshotApplyConflictException> {
+            val state = mutableStateOf(0)
+            Snapshot.withMutableSnapshot {
+                Snapshot.global { state.value = 1 }
+                state.value = 2
+            }
         }
     }
 

@@ -22,17 +22,23 @@
  * modifying its settings.
  */
 
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import androidx.build.PlatformIdentifier
 
 plugins {
     id("AndroidXPlugin")
-    id("com.android.library")
 }
 
 androidXMultiplatform {
-  android()
   jvm()
+  androidLibrary {
+    namespace = "androidx.ink.brush"
+    withAndroidTestOnDeviceBuilder {
+      it.compilationName = "instrumentedTest"
+      it.defaultSourceSetName = "androidInstrumentedTest"
+      it.sourceSetTreeName = "test"
+    }
+  }
 
   defaultPlatform(PlatformIdentifier.JVM)
 
@@ -44,16 +50,20 @@ androidXMultiplatform {
     jvmAndroidMain {
       dependsOn(commonMain)
       dependencies {
-        implementation(libs.kotlinStdlib)
         api(libs.androidx.annotation)
-        implementation(project(":collection:collection"))
+        implementation(libs.kotlinStdlib)
+        implementation("androidx.collection:collection:1.4.3")
+        implementation(project(":ink:ink-geometry"))
+        implementation(project(":ink:ink-nativeloader"))
       }
     }
 
     jvmAndroidTest {
       dependsOn(commonTest)
       dependencies {
+        implementation(libs.junit)
         implementation(libs.kotlinTest)
+        implementation(libs.truth)
       }
     }
 
@@ -64,7 +74,12 @@ androidXMultiplatform {
     androidInstrumentedTest {
       dependsOn(jvmAndroidTest)
       dependencies {
+        implementation(libs.testExtJunit)
+        implementation(libs.testRules)
         implementation(libs.testRunner)
+        implementation(libs.espressoCore)
+        implementation(libs.junit)
+        implementation(libs.truth)
       }
     }
 
@@ -73,20 +88,16 @@ androidXMultiplatform {
     }
 
     jvmTest {
-      dependsOn(jvmAndroidTest)
+      // TODO: b/362697089 - add `dependsOn(jvmAndroidTest)` to run the tests
+      //   in a JVM environment in addition to on Android emulators, once the
+      //   mysterious SIGSEGV is resolved.
     }
   }
 }
 
-android {
-    compileSdk 35
-    namespace = "androidx.ink.brush"
-}
-
 androidx {
     name = "Ink Brush"
-    type = LibraryType.PUBLISHED_LIBRARY
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2024"
     description = "Define brushes for freehand input."
-    metalavaK2UastEnabled = false
 }

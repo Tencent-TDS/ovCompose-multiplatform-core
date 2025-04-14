@@ -26,20 +26,23 @@ import androidx.annotation.RestrictTo
 import androidx.benchmark.Arguments
 import androidx.benchmark.ConfigurationError
 import androidx.benchmark.DeviceInfo
+import androidx.benchmark.ExperimentalBenchmarkConfigApi
+import androidx.benchmark.ExperimentalConfig
 import androidx.benchmark.InstrumentationResults
 import androidx.benchmark.Profiler
 import androidx.benchmark.ResultWriter
 import androidx.benchmark.Shell
 import androidx.benchmark.checkAndGetSuppressionState
 import androidx.benchmark.conditionalError
+import androidx.benchmark.createInsightSummaries
 import androidx.benchmark.inMemoryTrace
 import androidx.benchmark.json.BenchmarkData
-import androidx.benchmark.perfetto.ExperimentalPerfettoCaptureApi
+import androidx.benchmark.macro.MacrobenchmarkScope.KillMode
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig
 import androidx.benchmark.perfetto.PerfettoCapture.PerfettoSdkConfig.InitialProcessState
-import androidx.benchmark.perfetto.PerfettoConfig
-import androidx.benchmark.perfetto.PerfettoTraceProcessor
+import androidx.benchmark.traceprocessor.TraceProcessor
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assume.assumeFalse
 
 /** Get package ApplicationInfo, throw if not found. */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
@@ -196,7 +199,7 @@ internal fun checkErrors(packageName: String): ConfigurationError.SuppressionSta
  *
  * This function is a building block for public testing APIs
  */
-@ExperimentalPerfettoCaptureApi
+@ExperimentalBenchmarkConfigApi
 private fun macrobenchmark(
     uniqueName: String,
     className: String,
@@ -207,7 +210,7 @@ private fun macrobenchmark(
     iterations: Int,
     launchWithClearTask: Boolean,
     startupModeMetricHint: StartupMode?,
-    perfettoConfig: PerfettoConfig?,
+    experimentalConfig: ExperimentalConfig?,
     perfettoSdkConfig: PerfettoSdkConfig?,
     setupBlock: MacrobenchmarkScope.() -> Unit,
     measureBlock: MacrobenchmarkScope.() -> Unit
@@ -215,6 +218,14 @@ private fun macrobenchmark(
     require(iterations > 0) { "Require iterations > 0 (iterations = $iterations)" }
     require(metrics.isNotEmpty()) {
         "Empty list of metrics passed to metrics param, must pass at least one Metric"
+    }
+
+    // When running on emulator and argument `skipOnEmulator` is passed, the test is skipped.
+    if (Arguments.skipBenchmarksOnEmulator) {
+        assumeFalse(
+            "Skipping test because it's running on emulator and `skipOnEmulator` is enabled",
+            DeviceInfo.isEmulator
+        )
     }
 
     val suppressionState = checkErrors(packageName)
@@ -225,10 +236,7 @@ private fun macrobenchmark(
     val startTime = System.nanoTime()
     // Ensure method tracing is explicitly enabled and that we are not running in dry run mode.
     val requestMethodTracing = Arguments.macrobenchMethodTracingEnabled()
-    val applicationInfo = getInstalledPackageInfo(packageName)
     val scope = MacrobenchmarkScope(packageName, launchWithClearTask = launchWithClearTask)
-    // Capture if the app being benchmarked is a system app.
-    scope.isSystemApp = applicationInfo.isSystemApp()
 
     // Ensure the device is awake
     scope.device.wakeUp()
@@ -250,59 +258,55 @@ private fun macrobenchmark(
 
     // package name for macrobench process, so it's captured as well
     val macrobenchPackageName = InstrumentationRegistry.getInstrumentation().context.packageName
-    val outputs = mutableListOf<PhaseResult>()
+    val iterationResults = mutableListOf<IterationResult>()
 
-    PerfettoTraceProcessor.runServer {
-        // Measurement Phase
-        outputs +=
-            runPhase(
-                uniqueName = uniqueName,
-                packageName = packageName,
-                macrobenchmarkPackageName = macrobenchPackageName,
-                iterations = if (Arguments.dryRunMode) 1 else iterations,
-                startupMode = startupModeMetricHint,
-                scope = scope,
-                profiler = null, // Don't profile when measuring
-                metrics = metrics,
-                perfettoConfig = perfettoConfig,
-                perfettoSdkConfig = perfettoSdkConfig,
-                setupBlock = setupBlock,
-                measureBlock = measureBlock
-            )
-        // Profiling Phase
-        if (requestMethodTracing) {
-            outputs +=
+    TraceProcessor.runServer {
+        scope.withKillMode(
+            current = KillMode.None,
+            override =
+                KillMode(clearArtRuntimeImage = compilationMode.requiresClearArtRuntimeImage())
+        ) {
+            // Measurement Phase
+            iterationResults +=
                 runPhase(
                     uniqueName = uniqueName,
                     packageName = packageName,
                     macrobenchmarkPackageName = macrobenchPackageName,
-                    // We should open up an API to control the number of iterations here.
-                    // Run profiling for 1 additional iteration.
-                    iterations = 1,
+                    iterations = if (Arguments.dryRunMode) 1 else iterations,
                     startupMode = startupModeMetricHint,
                     scope = scope,
-                    profiler = MethodTracingProfiler(scope),
-                    metrics = emptyList(), // Nothing to measure
-                    perfettoConfig = perfettoConfig,
+                    profiler = null, // Don't profile when measuring
+                    metrics = metrics,
+                    experimentalConfig = experimentalConfig,
                     perfettoSdkConfig = perfettoSdkConfig,
                     setupBlock = setupBlock,
                     measureBlock = measureBlock
                 )
+            // Profiling Phase
+            if (requestMethodTracing) {
+                iterationResults +=
+                    runPhase(
+                        uniqueName = uniqueName,
+                        packageName = packageName,
+                        macrobenchmarkPackageName = macrobenchPackageName,
+                        // We should open up an API to control the number of iterations here.
+                        // Run profiling for 1 additional iteration.
+                        iterations = 1,
+                        startupMode = startupModeMetricHint,
+                        scope = scope,
+                        profiler = MethodTracingProfiler(scope),
+                        metrics = emptyList(), // Nothing to measure
+                        experimentalConfig = experimentalConfig,
+                        perfettoSdkConfig = perfettoSdkConfig,
+                        setupBlock = setupBlock,
+                        measureBlock = measureBlock
+                    )
+            }
         }
     }
 
-    val tracePaths = mutableListOf<String>()
-    val profilerResults = mutableListOf<Profiler.ResultFile>()
-    val measurementsList = mutableListOf<List<Metric.Measurement>>()
-
-    outputs.forEach {
-        tracePaths += it.tracePaths
-        profilerResults += it.profilerResults
-        measurementsList += it.measurements
-    }
-
     // Merge measurements
-    val measurements = measurementsList.mergeMultiIterResults()
+    val measurements = iterationResults.map { it.measurements }.mergeMultiIterResults()
     require(measurements.isNotEmpty()) {
         """
             Unable to read any metrics during benchmark (metric list: $metrics).
@@ -313,13 +317,17 @@ private fun macrobenchmark(
             .trimIndent()
     }
 
+    val iterationTracePaths = iterationResults.map { it.tracePath }
+    val profilerResults = iterationResults.flatMap { it.profilerResultFiles }
     InstrumentationResults.instrumentationReport {
         reportSummaryToIde(
             warningMessage = warningMessage,
             testName = uniqueName,
             measurements = measurements,
-            iterationTracePaths = tracePaths,
-            profilerResults = profilerResults
+            insightSummaries = iterationResults.flatMap { it.insights }.createInsightSummaries(),
+            iterationTracePaths = iterationTracePaths,
+            profilerResults = profilerResults,
+            useTreeDisplayFormat = experimentalConfig?.startupInsightsConfig?.isEnabled == true
         )
 
         warningMessage = "" // warning only printed once
@@ -338,7 +346,7 @@ private fun macrobenchmark(
         }
 
     val mergedProfilerOutputs =
-        (tracePaths.mapIndexed { index, it ->
+        (iterationTracePaths.mapIndexed { index, it ->
                 Profiler.ResultFile.ofPerfettoTrace(
                     label = "Trace Iteration $index",
                     absolutePath = it
@@ -363,7 +371,7 @@ private fun macrobenchmark(
 
 /** Run a macrobenchmark with the specified StartupMode */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-@ExperimentalPerfettoCaptureApi
+@ExperimentalBenchmarkConfigApi
 fun macrobenchmarkWithStartupMode(
     uniqueName: String,
     className: String,
@@ -372,7 +380,7 @@ fun macrobenchmarkWithStartupMode(
     metrics: List<Metric>,
     compilationMode: CompilationMode,
     iterations: Int,
-    perfettoConfig: PerfettoConfig?,
+    experimentalConfig: ExperimentalConfig?,
     startupMode: StartupMode?,
     setupBlock: MacrobenchmarkScope.() -> Unit,
     measureBlock: MacrobenchmarkScope.() -> Unit
@@ -398,7 +406,7 @@ fun macrobenchmarkWithStartupMode(
         compilationMode = compilationMode,
         iterations = iterations,
         startupModeMetricHint = startupMode,
-        perfettoConfig = perfettoConfig,
+        experimentalConfig = experimentalConfig,
         perfettoSdkConfig = perfettoSdkConfig,
         setupBlock = {
             if (startupMode == StartupMode.COLD) {

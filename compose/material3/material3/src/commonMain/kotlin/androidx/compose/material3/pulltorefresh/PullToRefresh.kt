@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.internal.FloatProducer
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.tokens.ElevationTokens
 import androidx.compose.material3.tokens.MotionSchemeKeyTokens
@@ -65,10 +66,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScrollModifierNode
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DelegatingNode
@@ -77,11 +78,12 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlin.js.JsName
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -185,7 +187,7 @@ fun Modifier.pullToRefresh(
         )
 
 @OptIn(ExperimentalMaterial3Api::class)
-internal data class PullToRefreshElement(
+internal class PullToRefreshElement(
     val isRefreshing: Boolean,
     val onRefresh: () -> Unit,
     val enabled: Boolean,
@@ -220,6 +222,28 @@ internal data class PullToRefreshElement(
         properties["state"] = state
         properties["threshold"] = threshold
     }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is PullToRefreshElement) return false
+
+        if (isRefreshing != other.isRefreshing) return false
+        if (enabled != other.enabled) return false
+        if (onRefresh !== other.onRefresh) return false
+        if (state != other.state) return false
+        if (threshold != other.threshold) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = isRefreshing.hashCode()
+        result = 31 * result + enabled.hashCode()
+        result = 31 * result + onRefresh.hashCode()
+        result = 31 * result + state.hashCode()
+        result = 31 * result + threshold.hashCode()
+        return result
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -230,6 +254,9 @@ internal class PullToRefreshModifierNode(
     var state: PullToRefreshState,
     var threshold: Dp,
 ) : DelegatingNode(), CompositionLocalConsumerModifierNode, NestedScrollConnection {
+
+    override val shouldAutoInvalidate: Boolean
+        get() = false
 
     private var nestedScrollNode: DelegatableNode =
         nestedScrollModifierNode(
@@ -252,6 +279,7 @@ internal class PullToRefreshModifierNode(
     override fun onAttach() {
         delegate(nestedScrollNode)
         coroutineScope.launch { state.snapTo(if (isRefreshing) 1f else 0f) }
+        verticalOffset = if (isRefreshing) thresholdPx.toFloat() else 0f
     }
 
     override fun onPreScroll(
@@ -279,7 +307,11 @@ internal class PullToRefreshModifierNode(
             // Swiping down
             source == NestedScrollSource.UserInput -> {
                 val newOffset = consumeAvailableOffset(available)
-                coroutineScope.launch { state.snapTo(verticalOffset / thresholdPx) }
+                coroutineScope.launch {
+                    if (!state.isAnimating) {
+                        state.snapTo(verticalOffset / thresholdPx)
+                    }
+                }
 
                 newOffset
             }
@@ -319,26 +351,25 @@ internal class PullToRefreshModifierNode(
         if (isRefreshing) return 0f // Already refreshing, do nothing
         // Trigger refresh
         if (adjustedDistancePulled > thresholdPx) {
-            animateToThreshold()
             onRefresh()
-        } else {
-            animateToHidden()
         }
 
         val consumed =
             when {
                 // We are flinging without having dragged the pull refresh (for example a fling
-                // inside
-                // a list) - don't consume
+                // inside a list) - don't consume
                 distancePulled == 0f -> 0f
                 // If the velocity is negative, the fling is upwards, and we don't want to prevent
-                // the
                 // the list from scrolling
                 velocity < 0f -> 0f
                 // We are showing the indicator, and the fling is downwards - consume everything
                 else -> velocity
             }
+
+        animateToHidden()
+
         distancePulled = 0f
+
         return consumed
     }
 
@@ -360,15 +391,21 @@ internal class PullToRefreshModifierNode(
         }
 
     private suspend fun animateToThreshold() {
-        state.animateToThreshold()
-        distancePulled = thresholdPx.toFloat()
-        verticalOffset = thresholdPx.toFloat()
+        try {
+            state.animateToThreshold()
+        } finally {
+            distancePulled = thresholdPx.toFloat()
+            verticalOffset = thresholdPx.toFloat()
+        }
     }
 
     private suspend fun animateToHidden() {
-        state.animateToHidden()
-        distancePulled = 0f
-        verticalOffset = 0f
+        try {
+            state.animateToHidden()
+        } finally {
+            distancePulled = 0f
+            verticalOffset = 0f
+        }
     }
 }
 
@@ -391,7 +428,7 @@ object PullToRefreshDefaults {
      */
     @ExperimentalMaterial3ExpressiveApi
     val loadingIndicatorContainerColor: Color
-        @Composable get() = LoadingIndicatorDefaults.ContainedContainerColor
+        @Composable get() = LoadingIndicatorDefaults.containedContainerColor
 
     /** The default indicator color for [Indicator] */
     @Deprecated("Use loadingIndicatorColor instead", ReplaceWith("loadingIndicatorColor"))
@@ -404,13 +441,16 @@ object PullToRefreshDefaults {
      */
     @ExperimentalMaterial3ExpressiveApi
     val loadingIndicatorColor: Color
-        @Composable get() = LoadingIndicatorDefaults.ContainedIndicatorColor
+        @Composable get() = LoadingIndicatorDefaults.containedIndicatorColor
 
     /** The default refresh threshold for [rememberPullToRefreshState] */
     val PositionalThreshold = 80.dp
 
-    /** The default elevation for [IndicatorBox] */
+    /** The default elevation for an [IndicatorBox] that is applied to an [Indicator] */
     val Elevation = ElevationTokens.Level2
+
+    /** The default elevation for an [IndicatorBox] that is applied to a [LoadingIndicator] */
+    val LoadingIndicatorElevation = ElevationTokens.Level0
 
     /**
      * A Wrapper that handles the size, offset, clipping, shadow, and background drawing for a
@@ -453,12 +493,22 @@ object PullToRefreshDefaults {
                             this@drawWithContent.drawContent()
                         }
                     }
-                    .graphicsLayer {
-                        val showElevation = state.distanceFraction > 0f || isRefreshing
-                        translationY = state.distanceFraction * threshold.roundToPx() - size.height
-                        shadowElevation = if (showElevation) elevation.toPx() else 0f
-                        this.shape = shape
-                        clip = true
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        layout(placeable.width, placeable.height) {
+                            placeable.placeWithLayer(
+                                0,
+                                0,
+                                layerBlock = {
+                                    val showElevation = state.distanceFraction > 0f || isRefreshing
+                                    translationY =
+                                        state.distanceFraction * threshold.roundToPx() - size.height
+                                    shadowElevation = if (showElevation) elevation.toPx() else 0f
+                                    this.shape = shape
+                                    clip = true
+                                }
+                            )
+                        }
                     }
                     .background(color = containerColor, shape = shape),
             contentAlignment = Alignment.Center,
@@ -516,7 +566,18 @@ object PullToRefreshDefaults {
         }
     }
 
-    /** A [LoadingIndicator] indicator for [PullToRefreshBox]. */
+    /**
+     * A [LoadingIndicator] indicator for [PullToRefreshBox].
+     *
+     * @param state the state of this modifier, will use `state.distanceFraction` and [threshold] to
+     *   calculate the offset
+     * @param isRefreshing whether a refresh is occurring
+     * @param modifier the modifier applied to this layout
+     * @param containerColor the container color of this indicator
+     * @param color the color of this indicator
+     * @param elevation the elevation of this indicator
+     * @param threshold how much the indicator can be pulled down before a refresh is triggered on
+     */
     @ExperimentalMaterial3ExpressiveApi
     @Composable
     fun LoadingIndicator(
@@ -525,7 +586,7 @@ object PullToRefreshDefaults {
         modifier: Modifier = Modifier,
         containerColor: Color = this.loadingIndicatorContainerColor,
         color: Color = this.loadingIndicatorColor,
-        elevation: Dp = ElevationTokens.Level0,
+        elevation: Dp = LoadingIndicatorElevation,
         threshold: Dp = PositionalThreshold
     ) {
         IndicatorBox(
@@ -606,9 +667,11 @@ interface PullToRefreshState {
      */
     @get:FloatRange(from = 0.0) val distanceFraction: Float
 
-    /** Whether the state is currently animating */
+    /**
+     * whether the state is currently animating the indicator to the threshold offset, or back to
+     * the hidden offset
+     */
     val isAnimating: Boolean
-        get() = false
 
     /**
      * Animate the distance towards the anchor or threshold position, where the indicator will be
@@ -635,7 +698,9 @@ fun rememberPullToRefreshState(): PullToRefreshState {
  *
  * Note that in most cases, you are advised to use [rememberPullToRefreshState] when in composition.
  */
-@ExperimentalMaterial3Api fun PullToRefreshState(): PullToRefreshState = PullToRefreshStateImpl()
+@JsName("funPullToRefreshState")
+@ExperimentalMaterial3Api
+fun PullToRefreshState(): PullToRefreshState = PullToRefreshStateImpl()
 
 @ExperimentalMaterial3Api
 internal class PullToRefreshStateImpl
@@ -673,7 +738,7 @@ private constructor(private val anim: Animatable<Float, AnimationVector1D>) : Pu
 /** The default pull indicator for [PullToRefreshBox] */
 @Composable
 private fun CircularArrowProgressIndicator(
-    progress: () -> Float,
+    progress: FloatProducer,
     color: Color,
 ) {
     val path = remember { Path().apply { fillType = PathFillType.EvenOdd } }
@@ -685,11 +750,15 @@ private fun CircularArrowProgressIndicator(
             targetValue = targetAlpha,
             animationSpec = MotionSchemeKeyTokens.DefaultEffects.value()
         )
+
     Canvas(
-        Modifier.semantics(mergeDescendants = true) {
-                progressBarRangeInfo = ProgressBarRangeInfo(progress(), 0f..1f, 0)
-            }
-            .size(SpinnerSize)
+        modifier =
+            Modifier.clearAndSetSemantics {
+                    if (progress() > 0f) {
+                        progressBarRangeInfo = ProgressBarRangeInfo(progress(), 0f..1f, 0)
+                    }
+                }
+                .size(SpinnerSize)
     ) {
         val values = ArrowValues(progress())
         val alpha = alphaState.value

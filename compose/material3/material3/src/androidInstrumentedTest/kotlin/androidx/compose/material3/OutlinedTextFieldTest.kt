@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -451,7 +452,7 @@ class OutlinedTextFieldTest {
                     )
                 },
                 labelPosition =
-                    TextFieldLabelPosition.Default(
+                    TextFieldLabelPosition.Attached(
                         minimizedAlignment = Alignment.End,
                         expandedAlignment = Alignment.CenterHorizontally
                     ),
@@ -578,7 +579,7 @@ class OutlinedTextFieldTest {
                     SideEffect { compositionCount++ }
 
                     // lambda reads `progress` in the draw phase
-                    Box(Modifier.graphicsLayer { progressValue.value = progress })
+                    Box(Modifier.graphicsLayer { progressValue.value = labelMinimizedProgress })
                 }
             )
         }
@@ -1014,7 +1015,7 @@ class OutlinedTextFieldTest {
                 prefix = { Text(prefixText) },
                 suffix = { Text(suffixText) },
                 placeholder = { Text(placeholderText) },
-                labelPosition = TextFieldLabelPosition.Default(alwaysMinimize = false),
+                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = false),
             )
         }
 
@@ -1038,7 +1039,7 @@ class OutlinedTextFieldTest {
                 prefix = { Text(prefixText) },
                 suffix = { Text(suffixText) },
                 placeholder = { Text(placeholderText) },
-                labelPosition = TextFieldLabelPosition.Default(alwaysMinimize = true),
+                labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = true),
             )
         }
 
@@ -1501,7 +1502,7 @@ class OutlinedTextFieldTest {
                 shapeColor = Color.White,
                 shape = RectangleShape,
                 // avoid elevation artifacts
-                shapeOverlapPixelCount = with(rule.density) { 3.dp.toPx() }
+                antiAliasingGap = with(rule.density) { 3.dp.toPx() }
             )
     }
 
@@ -1939,6 +1940,23 @@ class OutlinedTextFieldTest {
         assertThat(tfHeightNoIntrinsic).isNotEqualTo(0)
 
         assertThat(tfHeightIntrinsic).isEqualTo(tfHeightNoIntrinsic)
+    }
+
+    @Test
+    fun outlinedTextField_withTrailingIcon_inIntrinsicHeight_andTooShortWidth_doesNotCrash() {
+        // Regression test for b/328954156
+        rule.setContent {
+            Box(Modifier.width(200.dp)) {
+                Box(Modifier.height(IntrinsicSize.Min)) {
+                    OutlinedTextField(
+                        state = rememberTextFieldState(),
+                        modifier = Modifier.padding(100.dp),
+                        trailingIcon = { Box(Modifier.size(20.dp)) },
+                    )
+                }
+            }
+        }
+        // Nothing to assert; just make sure it doesn't crash
     }
 
     @Test

@@ -88,8 +88,8 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
 
         val hasAnimations = positionedItems.fastAny { it.hasAnimations }
         if (!hasAnimations && keyToItemInfoMap.isEmpty()) {
-            // no animations specified - no work needed
-            reset()
+            // no animations specified - no work needed - clear animation info
+            releaseAnimations()
             return
         }
 
@@ -182,7 +182,7 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
             }
         }
 
-        val accumulatedOffsetPerLane = IntArray(laneCount) { 0 }
+        val accumulatedOffsetPerLane = IntArray(laneCount)
         if (shouldSetupAnimation && previousKeyToIndexMap != null) {
             if (movingInFromStartBound.isNotEmpty()) {
                 movingInFromStartBound.sortByDescending { previousKeyToIndexMap.getIndex(it.key) }
@@ -315,10 +315,14 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
                 val itemInfo = keyToItemInfoMap[item.key]!!
                 val accumulatedOffset = accumulatedOffsetPerLane.updateAndReturnOffsetFor(item)
                 val mainAxisOffset =
-                    if (isLookingAhead) positionedItems.last().let { it.mainAxisOffset }
-                    else {
-                        itemInfo.layoutMaxOffset - item.mainAxisSizeWithSpacings
-                    } + accumulatedOffset
+                    if (isLookingAhead) {
+                        // Position the moving away items starting from the end of the last
+                        // visible item.
+                        val lastVisibleItem = positionedItems.last()
+                        lastVisibleItem.mainAxisOffset + lastVisibleItem.mainAxisSizeWithSpacings
+                    } else {
+                        itemInfo.layoutMaxOffset
+                    } - item.mainAxisSizeWithSpacings + accumulatedOffset
 
                 item.position(
                     mainAxisOffset = mainAxisOffset,
@@ -354,14 +358,18 @@ internal class LazyLayoutItemAnimator<T : LazyLayoutMeasuredItem> {
      * example when we snap to a new position.
      */
     fun reset() {
+        releaseAnimations()
+        keyIndexMap = null
+        firstVisibleIndex = -1
+    }
+
+    private fun releaseAnimations() {
         if (keyToItemInfoMap.isNotEmpty()) {
             keyToItemInfoMap.forEachValue {
                 it.animations.forEach { animation -> animation?.release() }
             }
             keyToItemInfoMap.clear()
         }
-        keyIndexMap = LazyLayoutKeyIndexMap.Empty
-        firstVisibleIndex = -1
     }
 
     private fun initializeAnimation(

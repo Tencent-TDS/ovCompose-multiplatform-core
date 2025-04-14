@@ -64,13 +64,6 @@ public interface CameraController {
     public fun stop()
 
     /**
-     * Restart the current session. This should basically perform stop() then start(). However, the
-     * implementation should handle its internal states correctly, and only restart under the right
-     * [CameraStatusMonitor.CameraStatus] and [ControllerState].
-     */
-    public fun tryRestart(cameraStatus: CameraStatusMonitor.CameraStatus)
-
-    /**
      * Close this instance. [start] and [stop] should not be invoked, and any additional calls will
      * be ignored once this method returns. Depending on implementation the underlying camera
      * connection may not be terminated immediately, depending on the [CameraBackend]
@@ -83,6 +76,12 @@ public interface CameraController {
      * missing from the [StreamGraph] that was used to create this [CameraController].
      */
     public fun updateSurfaceMap(surfaceMap: Map<StreamId, Surface>)
+
+    /**
+     * Get the estimated real time latency for an extension session. This method returns null if the
+     * [StreamGraph] is not configured correctly or the CaptureSession is not ready.
+     */
+    public fun getOutputLatency(streamId: StreamId?): StreamGraph.OutputLatency?
 
     /**
      * ControllerState indicates the internal state of a [CameraController]. These states are needed

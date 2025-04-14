@@ -15,6 +15,7 @@
  */
 package androidx.collection
 
+import kotlin.js.JsName
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -367,6 +368,7 @@ class LongSetTest {
     }
 
     @Test
+    @JsName("jsEquals")
     fun equals() {
         val set = MutableLongSet()
         set += 1L
@@ -549,6 +551,36 @@ class LongSetTest {
         assertTrue(3L in set)
         assertTrue(4L in set)
         assertFalse(5L in set)
+    }
+
+    @Test
+    fun buildLongSetFunction() {
+        val contract: Boolean
+        val set = buildLongSet {
+            contract = true
+            add(1L)
+            add(2L)
+        }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(1L in set)
+        assertTrue(2L in set)
+    }
+
+    @Test
+    fun buildLongSetWithCapacityFunction() {
+        val contract: Boolean
+        val set =
+            buildLongSet(20) {
+                contract = true
+                add(1L)
+                add(2L)
+            }
+        assertTrue(contract)
+        assertEquals(2, set.size)
+        assertTrue(set.capacity >= 18)
+        assertTrue(1L in set)
+        assertTrue(2L in set)
     }
 
     @Test

@@ -30,6 +30,7 @@ import androidx.appsearch.flags.FlaggedApi;
 import androidx.appsearch.flags.Flags;
 import androidx.collection.ArrayMap;
 import androidx.collection.ArraySet;
+import androidx.core.util.ObjectsCompat;
 import androidx.core.util.Preconditions;
 
 import java.lang.annotation.Retention;
@@ -87,6 +88,8 @@ import java.util.Set;
  * @see AppSearchSession#setSchemaAsync
  * @see Migrator
  */
+// TODO(b/384721898): Switch to JSpecify annotations
+@SuppressWarnings("JSpecifyNullness")
 public final class SetSchemaRequest {
 
     /**
@@ -105,6 +108,8 @@ public final class SetSchemaRequest {
             READ_ASSISTANT_APP_SEARCH_DATA,
             ENTERPRISE_ACCESS,
             MANAGED_PROFILE_CONTACTS_ACCESS,
+            EXECUTE_APP_FUNCTIONS,
+            PACKAGE_USAGE_STATS,
     })
     @Retention(RetentionPolicy.SOURCE)
     @RequiresFeature(
@@ -190,6 +195,39 @@ public final class SetSchemaRequest {
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
     public static final int MANAGED_PROFILE_CONTACTS_ACCESS = 8;
 
+    /**
+     * The AppSearch enumeration corresponding to {@link
+     * android.Manifest.permission#EXECUTE_APP_FUNCTIONS} Android permission that can be used to
+     * guard AppSearch schema type visibility in {@link
+     * SetSchemaRequest.Builder#addRequiredPermissionsForSchemaTypeVisibility}.
+     *
+     * <p>This is internally used by AppFunctions API to store app functions runtime metadata so it
+     * is visible to packages holding {@link android.Manifest.permission#EXECUTE_APP_FUNCTIONS}
+     * permission (currently associated with system assistant apps).
+     *
+     * @exportToFramework:hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static final int EXECUTE_APP_FUNCTIONS = 9;
+
+    /**
+     * @deprecated The corresponding permission is deprecated. Some documents are already persisted
+     *     with this constant, therefore keeping the constant here for compatibility reasons.
+     *
+     * @exportToFramework:hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static final int EXECUTE_APP_FUNCTIONS_TRUSTED = 10;
+
+    /**
+     * The {@link android.Manifest.permission#PACKAGE_USAGE_STATS} AppSearch supported in {@link
+     * SetSchemaRequest.Builder#addRequiredPermissionsForSchemaTypeVisibility}
+     *
+     * @exportToFramework:hide
+     */
+    @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+    public static final int PACKAGE_USAGE_STATS = 11;
+
     private final Set<AppSearchSchema> mSchemas;
     private final Set<String> mSchemasNotDisplayedBySystem;
     private final Map<String, Set<PackageIdentifier>> mSchemasVisibleToPackages;
@@ -221,8 +259,7 @@ public final class SetSchemaRequest {
     }
 
     /** Returns the {@link AppSearchSchema} types that are part of this request. */
-    @NonNull
-    public Set<AppSearchSchema> getSchemas() {
+    public @NonNull Set<AppSearchSchema> getSchemas() {
         return Collections.unmodifiableSet(mSchemas);
     }
 
@@ -230,8 +267,7 @@ public final class SetSchemaRequest {
      * Returns all the schema types that are opted out of being displayed and visible on any
      * system UI surface.
      */
-    @NonNull
-    public Set<String> getSchemasNotDisplayedBySystem() {
+    public @NonNull Set<String> getSchemasNotDisplayedBySystem() {
         return Collections.unmodifiableSet(mSchemasNotDisplayedBySystem);
     }
 
@@ -241,8 +277,7 @@ public final class SetSchemaRequest {
      *
      * <p>It’s inefficient to call this method repeatedly.
      */
-    @NonNull
-    public Map<String, Set<PackageIdentifier>> getSchemasVisibleToPackages() {
+    public @NonNull Map<String, Set<PackageIdentifier>> getSchemasVisibleToPackages() {
         Map<String, Set<PackageIdentifier>> copy = new ArrayMap<>();
         for (Map.Entry<String, Set<PackageIdentifier>> entry :
                 mSchemasVisibleToPackages.entrySet()) {
@@ -279,8 +314,10 @@ public final class SetSchemaRequest {
      *         {@link SetSchemaRequest#READ_ASSISTANT_APP_SEARCH_DATA}.
      */
     // TODO(b/237388235): add enterprise permissions to javadocs after they're unhidden
-    @NonNull
-    public Map<String, Set<Set<Integer>>> getRequiredPermissionsForSchemaTypeVisibility() {
+    // Annotation is here to suppress lint error. Lint error is erroneous since the method does not
+    // require the caller to hold any permission for the method to function.
+    @SuppressLint("RequiresPermission")
+    public @NonNull Map<String, Set<Set<Integer>>> getRequiredPermissionsForSchemaTypeVisibility() {
         return deepCopy(mSchemasVisibleToPermissions);
     }
 
@@ -289,8 +326,7 @@ public final class SetSchemaRequest {
      * the package the schemas are from.
      */
     @FlaggedApi(Flags.FLAG_ENABLE_SET_PUBLICLY_VISIBLE_SCHEMA)
-    @NonNull
-    public Map<String, PackageIdentifier> getPubliclyVisibleSchemas() {
+    public @NonNull Map<String, PackageIdentifier> getPubliclyVisibleSchemas() {
         return Collections.unmodifiableMap(mPubliclyVisibleSchemas);
     }
 
@@ -302,8 +338,7 @@ public final class SetSchemaRequest {
      * @see SetSchemaRequest.Builder#addSchemaTypeVisibleToConfig
      */
     @FlaggedApi(Flags.FLAG_ENABLE_SET_SCHEMA_VISIBLE_TO_CONFIGS)
-    @NonNull
-    public Map<String, Set<SchemaVisibilityConfig>> getSchemasVisibleToConfigs() {
+    public @NonNull Map<String, Set<SchemaVisibilityConfig>> getSchemasVisibleToConfigs() {
         Map<String, Set<SchemaVisibilityConfig>> copy = new ArrayMap<>();
         for (Map.Entry<String, Set<SchemaVisibilityConfig>> entry :
                 mSchemasVisibleToConfigs.entrySet()) {
@@ -316,8 +351,7 @@ public final class SetSchemaRequest {
      * Returns the map of {@link Migrator}, the key will be the schema type of the
      * {@link Migrator} associated with.
      */
-    @NonNull
-    public Map<String, Migrator> getMigrators() {
+    public @NonNull Map<String, Migrator> getMigrators() {
         return Collections.unmodifiableMap(mMigrators);
     }
 
@@ -332,8 +366,7 @@ public final class SetSchemaRequest {
      * @exportToFramework:hide
      */
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
-    @NonNull
-    public Map<String, Set<PackageIdentifier>> getSchemasVisibleToPackagesInternal() {
+    public @NonNull Map<String, Set<PackageIdentifier>> getSchemasVisibleToPackagesInternal() {
         return mSchemasVisibleToPackages;
     }
 
@@ -346,6 +379,33 @@ public final class SetSchemaRequest {
     @IntRange(from = 1)
     public int getVersion() {
         return mVersion;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (!(other instanceof SetSchemaRequest)) {
+            return false;
+        }
+        SetSchemaRequest otherRequest = (SetSchemaRequest) other;
+        return mSchemas.equals(otherRequest.mSchemas)
+                && mSchemasNotDisplayedBySystem.equals(otherRequest.mSchemasNotDisplayedBySystem)
+                && mSchemasVisibleToPackages.equals(otherRequest.mSchemasVisibleToPackages)
+                && mSchemasVisibleToPermissions.equals(otherRequest.mSchemasVisibleToPermissions)
+                && mPubliclyVisibleSchemas.equals(otherRequest.mPubliclyVisibleSchemas)
+                && mSchemasVisibleToConfigs.equals(otherRequest.mSchemasVisibleToConfigs)
+                && mMigrators.equals(otherRequest.mMigrators)
+                && mForceOverride == otherRequest.mForceOverride
+                && mVersion == otherRequest.mVersion;
+    }
+
+    @Override
+    public int hashCode() {
+        return ObjectsCompat.hash(mSchemas, mSchemasNotDisplayedBySystem, mSchemasVisibleToPackages,
+        mSchemasVisibleToPermissions, mPubliclyVisibleSchemas, mSchemasVisibleToConfigs, mMigrators,
+                mForceOverride, mVersion);
     }
 
     /** Builder for {@link SetSchemaRequest} objects. */
@@ -364,6 +424,33 @@ public final class SetSchemaRequest {
         private int mVersion = DEFAULT_VERSION;
         private boolean mBuilt = false;
 
+        /** Creates a new {@link SetSchemaRequest.Builder}. */
+        public Builder() {
+        }
+
+        /**
+         * Creates a {@link SetSchemaRequest.Builder} from the given {@link SetSchemaRequest}.
+         */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        public Builder(@NonNull SetSchemaRequest request) {
+            mSchemas.addAll(request.mSchemas);
+            mSchemasNotDisplayedBySystem.addAll(request.mSchemasNotDisplayedBySystem);
+            for (Map.Entry<String, Set<PackageIdentifier>> entry
+                    : request.mSchemasVisibleToPackages.entrySet()) {
+                mSchemasVisibleToPackages.put(entry.getKey(), new ArraySet<>(entry.getValue()));
+            }
+            mSchemasVisibleToPermissions = deepCopy(request.mSchemasVisibleToPermissions);
+            mPubliclyVisibleSchemas.putAll(request.mPubliclyVisibleSchemas);
+            for (Map.Entry<String, Set<SchemaVisibilityConfig>> entry :
+                    request.mSchemasVisibleToConfigs.entrySet()) {
+                mSchemaVisibleToConfigs.put(entry.getKey(), new ArraySet<>(entry.getValue()));
+            }
+            mMigrators.putAll(request.mMigrators);
+            mForceOverride = request.mForceOverride;
+            mVersion = request.mVersion;
+        }
+
         /**
          * Adds one or more {@link AppSearchSchema} types to the schema.
          *
@@ -372,8 +459,7 @@ public final class SetSchemaRequest {
          * <p>Any documents of these types will be displayed on system UI surfaces by default.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder addSchemas(@NonNull AppSearchSchema... schemas) {
+        public @NonNull Builder addSchemas(@NonNull AppSearchSchema... schemas) {
             Preconditions.checkNotNull(schemas);
             resetIfBuilt();
             return addSchemas(Arrays.asList(schemas));
@@ -385,8 +471,7 @@ public final class SetSchemaRequest {
          * <p>An {@link AppSearchSchema} object represents one type of structured data.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder addSchemas(@NonNull Collection<AppSearchSchema> schemas) {
+        public @NonNull Builder addSchemas(@NonNull Collection<AppSearchSchema> schemas) {
             Preconditions.checkNotNull(schemas);
             resetIfBuilt();
             mSchemas.addAll(schemas);
@@ -407,8 +492,7 @@ public final class SetSchemaRequest {
          */
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder addDocumentClasses(@NonNull Class<?>... documentClasses)
+        public @NonNull Builder addDocumentClasses(@NonNull Class<?>... documentClasses)
                 throws AppSearchException {
             Preconditions.checkNotNull(documentClasses);
             resetIfBuilt();
@@ -431,9 +515,8 @@ public final class SetSchemaRequest {
          */
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder addDocumentClasses(@NonNull Collection<? extends Class<?>> documentClasses)
-                throws AppSearchException {
+        public @NonNull Builder addDocumentClasses(
+                @NonNull Collection<? extends Class<?>> documentClasses) throws AppSearchException {
             Preconditions.checkNotNull(documentClasses);
             resetIfBuilt();
 
@@ -464,6 +547,18 @@ public final class SetSchemaRequest {
 // @exportToFramework:endStrip()
 
         /**
+         * Clears all {@link AppSearchSchema}s from the list of schemas.
+         */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearSchemas() {
+            resetIfBuilt();
+            mSchemas.clear();
+            return this;
+        }
+
+        /**
          * Sets whether or not documents from the provided {@code schemaType} will be displayed
          * and visible on any system UI surface.
          *
@@ -480,8 +575,7 @@ public final class SetSchemaRequest {
         // Merged list available from getSchemasNotDisplayedBySystem
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder setSchemaTypeDisplayedBySystem(
+        public @NonNull Builder setSchemaTypeDisplayedBySystem(
                 @NonNull String schemaType, boolean displayed) {
             Preconditions.checkNotNull(schemaType);
             resetIfBuilt();
@@ -527,19 +621,21 @@ public final class SetSchemaRequest {
          */
         // TODO(b/237388235): add enterprise permissions to javadocs after they're unhidden
         // Merged list available from getRequiredPermissionsForSchemaTypeVisibility
+        // Annotation is here to suppress lint error. Lint error is erroneous since the method does
+        // not require the caller to hold any permission for the method to function.
         @CanIgnoreReturnValue
-        @SuppressLint("MissingGetterMatchingBuilder")
+        @SuppressLint({"MissingGetterMatchingBuilder", "RequiresPermission"})
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        @NonNull
-        public Builder addRequiredPermissionsForSchemaTypeVisibility(@NonNull String schemaType,
+        public @NonNull Builder addRequiredPermissionsForSchemaTypeVisibility(
+                @NonNull String schemaType,
                 @AppSearchSupportedPermission @NonNull Set<Integer> permissions) {
             Preconditions.checkNotNull(schemaType);
             Preconditions.checkNotNull(permissions);
             for (int permission : permissions) {
                 Preconditions.checkArgumentInRange(permission, READ_SMS,
-                        MANAGED_PROFILE_CONTACTS_ACCESS, "permission");
+                        PACKAGE_USAGE_STATS, "permission");
             }
             resetIfBuilt();
             Set<Set<Integer>> visibleToPermissions = mSchemasVisibleToPermissions.get(schemaType);
@@ -556,8 +652,8 @@ public final class SetSchemaRequest {
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        @NonNull
-        public Builder clearRequiredPermissionsForSchemaTypeVisibility(@NonNull String schemaType) {
+        public @NonNull Builder clearRequiredPermissionsForSchemaTypeVisibility(
+                @NonNull String schemaType) {
             Preconditions.checkNotNull(schemaType);
             resetIfBuilt();
             mSchemasVisibleToPermissions.remove(schemaType);
@@ -593,8 +689,7 @@ public final class SetSchemaRequest {
         // Merged list available from getSchemasVisibleToPackages
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder setSchemaTypeVisibilityForPackage(
+        public @NonNull Builder setSchemaTypeVisibilityForPackage(
                 @NonNull String schemaType,
                 boolean visible,
                 @NonNull PackageIdentifier packageIdentifier) {
@@ -653,8 +748,7 @@ public final class SetSchemaRequest {
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE)
         @FlaggedApi(Flags.FLAG_ENABLE_SET_PUBLICLY_VISIBLE_SCHEMA)
-        @NonNull
-        public Builder setPubliclyVisibleSchema(@NonNull String schema,
+        public @NonNull Builder setPubliclyVisibleSchema(@NonNull String schema,
                 @Nullable PackageIdentifier packageIdentifier) {
             Preconditions.checkNotNull(schema);
             resetIfBuilt();
@@ -671,10 +765,28 @@ public final class SetSchemaRequest {
 
 // @exportToFramework:startStrip()
         /**
-         * Specify that the schema should be publicly available, to packages which already have
-         * visibility to {@code packageIdentifier}.
+         * Specify that the documents from the provided
+         * {@link androidx.appsearch.annotation.Document} annotated class should be publicly
+         * available, to packages which already have visibility to {@code packageIdentifier}. This
+         * visibility is determined by the result of
+         * {@link android.content.pm.PackageManager#canPackageQuery}.
          *
-         * @param documentClass the document to make publicly accessible.
+         * <p> It is possible for the packageIdentifier parameter to be different from the
+         * package performing the indexing. This might happen in the case of an on-device indexer
+         * processing information about various packages. The visibility will be the same
+         * regardless of which package indexes the document, as the visibility is based on the
+         * packageIdentifier parameter.
+         *
+         * <p> If this is called repeatedly with the same
+         * {@link androidx.appsearch.annotation.Document} annotated class, the
+         * {@link PackageIdentifier} in the last call will be used as the "from" package for that
+         * class (or schema).
+         *
+         * <p> Calling this with packageIdentifier set to null is valid, and will remove public
+         * visibility for the class (or schema).
+         *
+         * @param documentClass the {@link androidx.appsearch.annotation.Document} annotated class
+         *                      to make publicly accessible.
          * @param packageIdentifier if an app can see this package via
          *                          PackageManager#canPackageQuery, it will be able to see the
          *                          documents of type {@code documentClass}.
@@ -687,8 +799,7 @@ public final class SetSchemaRequest {
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_SET_PUBLICLY_VISIBLE)
         @FlaggedApi(Flags.FLAG_ENABLE_SET_PUBLICLY_VISIBLE_SCHEMA)
-        @NonNull
-        public Builder setPubliclyVisibleDocumentClass(@NonNull Class<?> documentClass,
+        public @NonNull Builder setPubliclyVisibleDocumentClass(@NonNull Class<?> documentClass,
                 @Nullable PackageIdentifier packageIdentifier) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
@@ -721,8 +832,7 @@ public final class SetSchemaRequest {
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG)
-        @NonNull
-        public Builder addSchemaTypeVisibleToConfig(@NonNull String schemaType,
+        public @NonNull Builder addSchemaTypeVisibleToConfig(@NonNull String schemaType,
                 @NonNull SchemaVisibilityConfig schemaVisibilityConfig) {
             Preconditions.checkNotNull(schemaType);
             Preconditions.checkNotNull(schemaVisibilityConfig);
@@ -742,8 +852,7 @@ public final class SetSchemaRequest {
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG)
-        @NonNull
-        public Builder clearSchemaTypeVisibleToConfigs(@NonNull String schemaType) {
+        public @NonNull Builder clearSchemaTypeVisibleToConfigs(@NonNull String schemaType) {
             Preconditions.checkNotNull(schemaType);
             resetIfBuilt();
             mSchemaVisibleToConfigs.remove(schemaType);
@@ -774,9 +883,9 @@ public final class SetSchemaRequest {
          * @see AppSearchSession#setSchemaAsync
          */
         @CanIgnoreReturnValue
-        @NonNull
         @SuppressLint("MissingGetterMatchingBuilder")        // Getter return plural objects.
-        public Builder setMigrator(@NonNull String schemaType, @NonNull Migrator migrator) {
+        public @NonNull Builder setMigrator(@NonNull String schemaType,
+                @NonNull Migrator migrator) {
             Preconditions.checkNotNull(schemaType);
             Preconditions.checkNotNull(migrator);
             resetIfBuilt();
@@ -810,11 +919,22 @@ public final class SetSchemaRequest {
          * @see AppSearchSession#setSchemaAsync
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setMigrators(@NonNull Map<String, Migrator> migrators) {
+        public @NonNull Builder setMigrators(@NonNull Map<String, Migrator> migrators) {
             Preconditions.checkNotNull(migrators);
             resetIfBuilt();
             mMigrators.putAll(migrators);
+            return this;
+        }
+
+        /**
+         * Clears all {@link Migrator}s.
+         */
+        @ExperimentalAppSearchApi
+        @FlaggedApi(Flags.FLAG_ENABLE_ADDITIONAL_BUILDER_COPY_CONSTRUCTORS)
+        @CanIgnoreReturnValue
+        public @NonNull Builder clearMigrators() {
+            resetIfBuilt();
+            mMigrators.clear();
             return this;
         }
 
@@ -844,8 +964,7 @@ public final class SetSchemaRequest {
          */
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder setDocumentClassDisplayedBySystem(@NonNull Class<?> documentClass,
+        public @NonNull Builder setDocumentClassDisplayedBySystem(@NonNull Class<?> documentClass,
                 boolean displayed) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
@@ -888,10 +1007,9 @@ public final class SetSchemaRequest {
          */
         @CanIgnoreReturnValue
         @SuppressLint("MissingGetterMatchingBuilder")
-        @NonNull
-        public Builder setDocumentClassVisibilityForPackage(@NonNull Class<?> documentClass,
-                boolean visible, @NonNull PackageIdentifier packageIdentifier)
-                throws AppSearchException {
+        public @NonNull Builder setDocumentClassVisibilityForPackage(
+                @NonNull Class<?> documentClass, boolean visible,
+                @NonNull PackageIdentifier packageIdentifier) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
             DocumentClassFactoryRegistry registry = DocumentClassFactoryRegistry.getInstance();
@@ -939,8 +1057,7 @@ public final class SetSchemaRequest {
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        @NonNull
-        public Builder addRequiredPermissionsForDocumentClassVisibility(
+        public @NonNull Builder addRequiredPermissionsForDocumentClassVisibility(
                 @NonNull Class<?> documentClass,
                 @AppSearchSupportedPermission @NonNull Set<Integer> permissions)
                 throws AppSearchException {
@@ -957,8 +1074,7 @@ public final class SetSchemaRequest {
         @RequiresFeature(
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.ADD_PERMISSIONS_AND_GET_VISIBILITY)
-        @NonNull
-        public Builder clearRequiredPermissionsForDocumentClassVisibility(
+        public @NonNull Builder clearRequiredPermissionsForDocumentClassVisibility(
                 @NonNull Class<?> documentClass)
                 throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
@@ -992,8 +1108,7 @@ public final class SetSchemaRequest {
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG)
         @FlaggedApi(Flags.FLAG_ENABLE_SET_SCHEMA_VISIBLE_TO_CONFIGS)
-        @NonNull
-        public Builder addDocumentClassVisibleToConfig(
+        public @NonNull Builder addDocumentClassVisibleToConfig(
                 @NonNull Class<?> documentClass,
                 @NonNull SchemaVisibilityConfig schemaVisibilityConfig)
                 throws AppSearchException {
@@ -1010,8 +1125,7 @@ public final class SetSchemaRequest {
                 enforcement = "androidx.appsearch.app.Features#isFeatureSupported",
                 name = Features.SET_SCHEMA_REQUEST_ADD_SCHEMA_TYPE_VISIBLE_TO_CONFIG)
         @FlaggedApi(Flags.FLAG_ENABLE_SET_SCHEMA_VISIBLE_TO_CONFIGS)
-        @NonNull
-        public Builder clearDocumentClassVisibleToConfigs(
+        public @NonNull Builder clearDocumentClassVisibleToConfigs(
                 @NonNull Class<?> documentClass) throws AppSearchException {
             Preconditions.checkNotNull(documentClass);
             resetIfBuilt();
@@ -1033,8 +1147,7 @@ public final class SetSchemaRequest {
          * <p>By default, this is {@code false}.
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setForceOverride(boolean forceOverride) {
+        public @NonNull Builder setForceOverride(boolean forceOverride) {
             resetIfBuilt();
             mForceOverride = forceOverride;
             return this;
@@ -1069,8 +1182,7 @@ public final class SetSchemaRequest {
          * @see SetSchemaRequest.Builder#setMigrator
          */
         @CanIgnoreReturnValue
-        @NonNull
-        public Builder setVersion(@IntRange(from = 1) int version) {
+        public @NonNull Builder setVersion(@IntRange(from = 1) int version) {
             Preconditions.checkArgument(version >= 1, "Version must be a positive number.");
             resetIfBuilt();
             mVersion = version;
@@ -1084,8 +1196,7 @@ public final class SetSchemaRequest {
          *                                  corresponding {@link AppSearchSchema} type was never
          *                                  added.
          */
-        @NonNull
-        public SetSchemaRequest build() {
+        public @NonNull SetSchemaRequest build() {
             // Verify that any schema types with display or visibility settings refer to a real
             // schema.
             // Create a copy because we're going to remove from the set for verification purposes.

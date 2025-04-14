@@ -45,8 +45,8 @@ import androidx.compose.runtime.mock.revalidate
 import androidx.compose.runtime.mock.skip
 import androidx.compose.runtime.mock.validate
 import androidx.compose.runtime.snapshots.Snapshot
-import java.lang.Integer.min
 import kotlin.coroutines.CoroutineContext
+import kotlin.math.min
 import kotlin.random.Random
 import kotlin.reflect.KProperty
 import kotlin.test.Ignore
@@ -56,6 +56,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -67,7 +68,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -202,6 +202,43 @@ class CompositionTests {
                 }
             }
         }
+    }
+
+    @Test
+    fun testSeveralArbitraryMoves() = compositionTest {
+        val random = Random(1337)
+        val list = mutableStateListOf(*List(10) { it }.toTypedArray())
+
+        var position by mutableStateOf(-1)
+
+        compose {
+            for (item in list) {
+                key(item) { Text("Item $item") }
+            }
+        }
+
+        fun validate() {
+            validate {
+                for (item in list) {
+                    Text("Item $item")
+                }
+            }
+        }
+
+        validate()
+
+        repeat(10) {
+            position = it
+            list.shuffle(random)
+            expectChanges()
+            validate()
+            list.first()
+        }
+
+        position = -1
+        list.shuffle(random)
+        expectChanges()
+        validate()
     }
 
     @Test
@@ -1668,6 +1705,60 @@ class CompositionTests {
     }
 
     @Test
+    fun testRemember_forget_forgetAfterPredecessorReplaced() = compositionTest {
+        val rememberObject =
+            object : RememberObserver {
+                var count = 0
+
+                override fun onRemembered() {
+                    count++
+                }
+
+                override fun onForgotten() {
+                    count--
+                }
+
+                override fun onAbandoned() {
+                    assertEquals(0, count, "onAbandon called after onRemember")
+                }
+
+                override fun toString() = "rememberObject"
+            }
+
+        var key = 0
+        var include = true
+        var scope: RecomposeScope? = null
+        compose {
+            scope = currentRecomposeScope
+            if (include) {
+                Linear {
+                    key(key) { Linear { Text("Some value") } }
+                    use(remember { rememberObject })
+                }
+            }
+        }
+
+        fun MockViewValidator.Composition() {
+            if (include) Linear { Linear { Text("Some value") } }
+        }
+
+        validate { this.Composition() }
+        assertEquals(1, rememberObject.count, "object should enter")
+
+        key++
+        scope?.invalidate()
+        expectChanges()
+        validate { Composition() }
+        assertEquals(1, rememberObject.count, "object should still be remembered")
+
+        include = false
+        scope?.invalidate()
+        expectChanges()
+        validate { Composition() }
+        assertEquals(0, rememberObject.count, "object should have left")
+    }
+
+    @Test
     fun testRemember_RememberForgetNestedOrder() = compositionTest {
         var order = 0
         val objects = mutableListOf<Any>()
@@ -2548,9 +2639,9 @@ class CompositionTests {
     }
 
     @Test
-    fun testCompoundKeyHashStaysTheSameAfterRecompositions() = compositionTest {
-        val outerKeys = mutableListOf<Int>()
-        val innerKeys = mutableListOf<Int>()
+    fun testCompoundKeyHashCodeStaysTheSameAfterRecompositions() = compositionTest {
+        val outerKeys = mutableListOf<CompositeKeyHashCode>()
+        val innerKeys = mutableListOf<CompositeKeyHashCode>()
         var previousOuterKeysSize = 0
         var previousInnerKeysSize = 0
         var outerScope: RecomposeScope? = null
@@ -2559,15 +2650,15 @@ class CompositionTests {
         @Composable
         fun Test() {
             outerScope = currentRecomposeScope
-            outerKeys.add(currentComposer.compoundKeyHash)
+            outerKeys.add(currentComposer.compositeKeyHashCode)
             Container {
                 Linear {
                     innerScope = currentRecomposeScope
-                    innerKeys.add(currentComposer.compoundKeyHash)
+                    innerKeys.add(currentComposer.compositeKeyHashCode)
                 }
             }
             // asserts that the key is correctly rolled back after start and end of Observe
-            assertEquals(outerKeys.last(), currentComposer.compoundKeyHash)
+            assertEquals(outerKeys.last(), currentComposer.compositeKeyHashCode)
         }
 
         compose { Test() }
@@ -3486,11 +3577,11 @@ class CompositionTests {
 
     @Test
     fun enumCompositeKeyShouldBeStable() = compositionTest {
-        var parentHash: Int = 0
-        var compositeHash: Int = 0
+        var parentHash = EmptyCompositeKeyHashCode
+        var compositeHash = EmptyCompositeKeyHashCode
         compose {
-            parentHash = currentCompositeKeyHash
-            key(MyEnum.First) { compositeHash = currentCompositeKeyHash }
+            parentHash = currentCompositeKeyHashCode
+            key(MyEnum.First) { compositeHash = currentCompositeKeyHashCode }
         }
 
         val effectiveHash = compositeHash xor (parentHash rol 6)
@@ -3499,11 +3590,11 @@ class CompositionTests {
 
     @Test
     fun enumCompositeKeysShouldBeStable() = compositionTest {
-        var parentHash: Int = 0
-        var compositeHash: Int = 0
+        var parentHash = EmptyCompositeKeyHashCode
+        var compositeHash = EmptyCompositeKeyHashCode
         compose {
-            parentHash = currentCompositeKeyHash
-            key(MyEnum.First, MyEnum.Second) { compositeHash = currentCompositeKeyHash }
+            parentHash = currentCompositeKeyHashCode
+            key(MyEnum.First, MyEnum.Second) { compositeHash = currentCompositeKeyHashCode }
         }
 
         val effectiveHash = compositeHash xor (parentHash rol 6)
@@ -3527,6 +3618,110 @@ class CompositionTests {
         // Force Defaults to recompose
         stateA++
         advance()
+    }
+
+    // Regression test for b/383769314
+    @Test
+    fun testRememberNotRecomputedInElidedGroupAfterMovableGroup() = compositionTest {
+        var baseKey by mutableIntStateOf(0)
+        var rememberInvocations = 0
+
+        compose {
+            key(baseKey) { remember { baseKey.toString() } }
+
+            key(Unit) {}
+
+            remember {
+                assertEquals(
+                    1,
+                    ++rememberInvocations,
+                    "Remember block should be invoked exactly once"
+                )
+            }
+        }
+
+        baseKey++
+        advance()
+
+        assertEquals(1, rememberInvocations, "Remember block should be invoked exactly once")
+    }
+
+    // Regression test for b/383769314
+    @Test
+    fun testRememberNotRecomputedInElidedGroupAfterNestedMovableGroup() = compositionTest {
+        var baseKey by mutableIntStateOf(0)
+        var rememberInvocations = 0
+
+        compose {
+            key(baseKey) { remember { baseKey.toString() } }
+
+            key(Unit) { key(Unit) {} }
+
+            remember {
+                assertEquals(
+                    1,
+                    ++rememberInvocations,
+                    "Remember block should be invoked exactly once"
+                )
+            }
+        }
+
+        baseKey++
+        advance()
+
+        assertEquals(1, rememberInvocations, "Remember block should be invoked exactly once")
+    }
+
+    // Regression test for b/383769314
+    @Test
+    fun testInvalidateCapturingLambdaInElidedGroupAfterMovableGroup() = compositionTest {
+        var baseKey by mutableIntStateOf(0)
+        var lastOuterSeen = ""
+        var lastInnerSeen = ""
+
+        compose {
+            val captor = key(baseKey) { remember { baseKey.toString() } }
+
+            key(Unit) {}
+
+            lastOuterSeen = captor
+            Container { lastInnerSeen = captor }
+        }
+
+        assertEquals("0", lastOuterSeen, "Outer scope did not compose")
+        assertEquals("0", lastInnerSeen, "Inner scope did not compose")
+
+        baseKey++
+        advance()
+
+        assertEquals("1", lastOuterSeen, "Outer scope did not recompose")
+        assertEquals("1", lastInnerSeen, "Inner scope did not recompose")
+    }
+
+    // Regression test for b/383769314
+    @Test
+    fun testInvalidateCapturingLambdaInElidedGroupAfterNestedMovableGroup() = compositionTest {
+        var baseKey by mutableIntStateOf(0)
+        var lastOuterSeen = ""
+        var lastInnerSeen = ""
+
+        compose {
+            val captor = key(baseKey) { remember { baseKey.toString() } }
+
+            key(Unit) { key(Unit) {} }
+
+            lastOuterSeen = captor
+            Container { lastInnerSeen = captor }
+        }
+
+        assertEquals("0", lastOuterSeen, "Outer scope did not compose")
+        assertEquals("0", lastInnerSeen, "Inner scope did not compose")
+
+        baseKey++
+        advance()
+
+        assertEquals("1", lastOuterSeen, "Outer scope did not recompose")
+        assertEquals("1", lastInnerSeen, "Inner scope did not recompose")
     }
 
     enum class MyEnum {
@@ -4168,9 +4363,9 @@ class CompositionTests {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
     fun testCompositionAndRecomposerDeadlock() {
-        runBlocking {
+        runTest(timeout = 10.seconds) {
             withGlobalSnapshotManager {
                 repeat(100) {
                     val job = Job(parent = coroutineContext[Job])
@@ -4241,24 +4436,24 @@ class CompositionTests {
         compose {
             composers += currentComposer
             if (rememberValue) {
-                remember { value }
+                // <Any> prevents implicit coercion to Unit from inline lambda
+                // https://youtrack.jetbrains.com/issue/KT-76579
+                remember<Any> { value }
             }
         }
 
-        validate { assertFalse(value in composition!!.getSlots()) }
+        assertFalse(value in composition!!.getSlots())
 
         rememberValue = true
         expectChanges()
 
-        validate { assertTrue(value in composition!!.getSlots()) }
+        assertTrue(value in composition!!.getSlots())
 
         rememberValue = false
         expectChanges()
 
-        validate {
-            assertFalse(value in composition!!.getSlots())
-            assertFalse(composers.any { value in it.getInsertTableSlots() })
-        }
+        assertFalse(value in composition!!.getSlots())
+        assertFalse(composers.any { value in it.getInsertTableSlots() })
     }
 
     @Stable
@@ -4608,6 +4803,19 @@ class CompositionTests {
         revalidate()
     }
 
+    @Test // regression test for b/362291064
+    fun avoidsThrashingTheSlotTable() = compositionTest {
+        val count = 100
+        var data by mutableIntStateOf(0)
+        compose { repeat(count) { Linear { Text("Value: $it, data: $data") } } }
+
+        validate { repeat(count) { Linear { Text("Value: $it, data: $data") } } }
+
+        data++
+        advance()
+        revalidate()
+    }
+
     private inline fun CoroutineScope.withGlobalSnapshotManager(block: CoroutineScope.() -> Unit) {
         val channel = Channel<Unit>(Channel.CONFLATED)
         val job = launch { channel.consumeEach { Snapshot.sendApplyNotifications() } }
@@ -4800,16 +5008,16 @@ private val jim_reports_to_sally = Report("Jim", "Sally")
 private val rob_reports_to_alice = Report("Rob", "Alice")
 private val clark_reports_to_lois = Report("Clark", "Lois")
 
-private interface Counted {
+internal interface Counted {
     val count: Int
 }
 
-private interface Ordered {
+internal interface Ordered {
     val rememberOrder: Int
     val forgetOrder: Int
 }
 
-private interface Named {
+internal interface Named {
     val name: String
 }
 

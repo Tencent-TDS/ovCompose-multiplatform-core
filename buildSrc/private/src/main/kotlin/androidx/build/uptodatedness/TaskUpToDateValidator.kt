@@ -47,7 +47,6 @@ private const val ENABLE_FLAG_NAME = VERIFY_UP_TO_DATE
 val ALLOW_RERUNNING_TASKS =
     setOf(
         "buildOnServer",
-        "checkExternalLicenses",
         // verifies the existence of some archives to check for caching bugs: http://b/273294710
         "createAllArchives",
         "externalNativeBuildDebug",
@@ -57,7 +56,7 @@ val ALLOW_RERUNNING_TASKS =
         "generateJsonModelRelease",
         /**
          * relocateShadowJar is used to configure the ShadowJar hence it does not have any outputs.
-         * https://github.com/johnrengelman/shadow/issues/561
+         * https://github.com/GradleUp/shadow/issues/561
          */
         "relocateShadowJar",
         "testDebugUnitTest",

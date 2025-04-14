@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("TYPE_INTERSECTION_AS_REIFIED_WARNING")
+
 package androidx.kruth
 
 import androidx.kruth.Fact.Companion.simpleFact
@@ -388,7 +390,7 @@ class SubjectTest {
     }
 
     @Test
-    fun isSameInstanceAsFailureWithComparableObjects() {
+    fun isSameInstanceAsFailureWithComparableObjects() = assumeNotJs {
         val a: Any = "ab"
         val b: Any = buildString { append("ab") }
         assertFailsWith<AssertionError> { assertThat(a).isSameInstanceAs(b) }
@@ -435,7 +437,7 @@ class SubjectTest {
     }
 
     @Test
-    fun isNotSameInstanceAsWithComparableObjects() {
+    fun isNotSameInstanceAsWithComparableObjects() = assumeNotJs {
         val a: Any = "ab"
         val b: Any = buildString { append("ab") }
         assertThat(a).isNotSameInstanceAs(b)
