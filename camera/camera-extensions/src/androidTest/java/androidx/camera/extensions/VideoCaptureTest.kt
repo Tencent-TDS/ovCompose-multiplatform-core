@@ -33,9 +33,9 @@ import androidx.camera.extensions.impl.ExtensionsTestlibControl
 import androidx.camera.extensions.util.ExtensionsTestUtil
 import androidx.camera.extensions.util.ExtensionsTestUtil.CAMERA_PIPE_IMPLEMENTATION_OPTION
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.testing.impl.AndroidUtil.skipVideoRecordingTestIfNotSupportedByEmulator
 import androidx.camera.testing.impl.CameraPipeConfigTestRule
 import androidx.camera.testing.impl.CameraUtil
+import androidx.camera.testing.impl.IgnoreVideoRecordingProblematicDeviceRule
 import androidx.camera.testing.impl.SurfaceTextureProvider
 import androidx.camera.testing.impl.fakes.FakeLifecycleOwner
 import androidx.camera.video.FileOutputOptions
@@ -63,6 +63,7 @@ import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.rules.TestRule
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
@@ -77,14 +78,14 @@ class VideoCaptureTest(
     @field:CameraSelector.LensFacing @param:CameraSelector.LensFacing private val lensFacing: Int
 ) {
     @get:Rule
-    val cameraPipeConfigTestRule = CameraPipeConfigTestRule(
-        active = implName == CAMERA_PIPE_IMPLEMENTATION_OPTION
-    )
+    val cameraPipeConfigTestRule =
+        CameraPipeConfigTestRule(active = implName == CAMERA_PIPE_IMPLEMENTATION_OPTION)
 
     @get:Rule
-    val useCamera = CameraUtil.grantCameraPermissionAndPreTest(
-        CameraUtil.PreTestCameraIdList(cameraXConfig)
-    )
+    val useCamera =
+        CameraUtil.grantCameraPermissionAndPreTestAndPostTest(
+            CameraUtil.PreTestCameraIdList(cameraXConfig)
+        )
 
     @get:Rule
     val temporaryFolder =
@@ -93,6 +94,8 @@ class VideoCaptureTest(
     @get:Rule
     val permissionRule: GrantPermissionRule =
         GrantPermissionRule.grant(Manifest.permission.RECORD_AUDIO)
+
+    @get:Rule val skipRule: TestRule = IgnoreVideoRecordingProblematicDeviceRule()
 
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
     private val context = ApplicationProvider.getApplicationContext<Context>()
@@ -106,60 +109,50 @@ class VideoCaptureTest(
     private lateinit var latchForVideoRecording: CountDownLatch
     private lateinit var finalize: VideoRecordEvent.Finalize
     private lateinit var recording: Recording
-    private val videoRecordEventListener = Consumer<VideoRecordEvent> {
-        when (it) {
-            is VideoRecordEvent.Start -> {
-                Log.d(TAG, "Recording start")
-                latchForVideoStarted.countDown()
-            }
-
-            is VideoRecordEvent.Finalize -> {
-                Log.d(TAG, "Recording finalize")
-                finalize = it
-                latchForVideoSaved.countDown()
-            }
-
-            is VideoRecordEvent.Status -> {
-                Log.d(TAG, "Recording Status")
-                latchForVideoRecording.countDown()
-            }
-
-            is VideoRecordEvent.Pause,
-            is VideoRecordEvent.Resume -> {
-                // Do nothing.
-            }
-
-            else -> {
-                throw IllegalStateException()
+    private val videoRecordEventListener =
+        Consumer<VideoRecordEvent> {
+            when (it) {
+                is VideoRecordEvent.Start -> {
+                    Log.d(TAG, "Recording start")
+                    latchForVideoStarted.countDown()
+                }
+                is VideoRecordEvent.Finalize -> {
+                    Log.d(TAG, "Recording finalize")
+                    finalize = it
+                    latchForVideoSaved.countDown()
+                }
+                is VideoRecordEvent.Status -> {
+                    Log.d(TAG, "Recording Status")
+                    latchForVideoRecording.countDown()
+                }
+                is VideoRecordEvent.Pause,
+                is VideoRecordEvent.Resume -> {
+                    // Do nothing.
+                }
+                else -> {
+                    throw IllegalStateException()
+                }
             }
         }
-    }
 
     @Before
     fun setUp(): Unit = runBlocking {
         assumeTrue(
-            ExtensionsTestUtil.isTargetDeviceAvailableForExtensions(
-                lensFacing,
-                extensionMode
-            )
+            ExtensionsTestUtil.isTargetDeviceAvailableForExtensions(lensFacing, extensionMode)
         )
-        skipVideoRecordingTestIfNotSupportedByEmulator()
 
         ProcessCameraProvider.configureInstance(cameraXConfig)
         cameraProvider = ProcessCameraProvider.getInstance(context)[10000, TimeUnit.MILLISECONDS]
         ExtensionsTestlibControl.getInstance().setImplementationType(implType)
         baseCameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-        extensionsManager = ExtensionsManager.getInstanceAsync(
-            context,
-            cameraProvider
-        )[10000, TimeUnit.MILLISECONDS]
+        extensionsManager =
+            ExtensionsManager.getInstanceAsync(context, cameraProvider)[
+                    10000, TimeUnit.MILLISECONDS]
 
         assumeTrue(extensionsManager.isExtensionAvailable(baseCameraSelector, extensionMode))
 
-        extensionsCameraSelector = extensionsManager.getExtensionEnabledCameraSelector(
-            baseCameraSelector,
-            extensionMode
-        )
+        extensionsCameraSelector =
+            extensionsManager.getExtensionEnabledCameraSelector(baseCameraSelector, extensionMode)
 
         fakeLifecycleOwner = FakeLifecycleOwner().apply { startAndResume() }
     }
@@ -254,9 +247,7 @@ class VideoCaptureTest(
     }
 
     private fun createTempFile(): File {
-        return File.createTempFile("CameraX", ".tmp").apply {
-            deleteOnExit()
-        }
+        return File.createTempFile("CameraX", ".tmp").apply { deleteOnExit() }
     }
 
     private fun checkFileHasAudioAndVideo(uri: Uri) {
@@ -275,10 +266,11 @@ class VideoCaptureTest(
         latchForVideoSaved = CountDownLatch(1)
         latchForVideoRecording = CountDownLatch(5)
 
-        recording = output
-            .prepareRecording(context, FileOutputOptions.Builder(file).build())
-            .withAudioEnabled()
-            .start(CameraXExecutors.directExecutor(), videoRecordEventListener)
+        recording =
+            output
+                .prepareRecording(context, FileOutputOptions.Builder(file).build())
+                .withAudioEnabled()
+                .start(CameraXExecutors.directExecutor(), videoRecordEventListener)
 
         try {
             // Wait for status event to proceed recording for a while.
@@ -292,7 +284,8 @@ class VideoCaptureTest(
 
         // Check if any error after recording finalized
         assertWithMessage(TAG + "Finalize with error: ${finalize.error}, ${finalize.cause}.")
-            .that(finalize.hasError()).isFalse()
+            .that(finalize.hasError())
+            .isFalse()
     }
 
     companion object {

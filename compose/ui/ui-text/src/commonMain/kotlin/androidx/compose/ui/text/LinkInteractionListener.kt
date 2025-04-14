@@ -16,11 +16,9 @@
 
 package androidx.compose.ui.text
 
-/**
- * An interface triggered when a user interacts with a link in the text
- */
+/** An interface triggered when a user interacts with a link in the text */
 fun interface LinkInteractionListener {
 
     /** Triggered when a user clicks on the [link] */
-    fun onClicked(link: LinkAnnotation)
+    fun onClick(link: LinkAnnotation)
 }

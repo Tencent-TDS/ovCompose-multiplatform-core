@@ -31,14 +31,12 @@ import androidx.sqlite.SQLiteException
  * An implementation instance can be created via the factory function [newConnectionPool] and
  * [newSingleConnectionPool].
  */
-@Suppress("NotCloseable") // TODO(b/315461431): No common Closeable interface in KMP
-internal interface ConnectionPool {
+internal interface ConnectionPool : AutoCloseable {
 
     /**
      * Acquires a connection, suspending while waiting if none is available and then calling the
-     * [block] to use the connection once it is acquired. The connection to use in the [block] is
-     * an instance of [Transactor] that provides the capabilities for performing nested
-     * transactions.
+     * [block] to use the connection once it is acquired. The connection to use in the [block] is an
+     * instance of [Transactor] that provides the capabilities for performing nested transactions.
      *
      * Using the connection after [block] completes is prohibited.
      *
@@ -55,7 +53,7 @@ internal interface ConnectionPool {
      * @param isReadOnly Whether to use a reader or a writer connection.
      * @param block The code to use the connection.
      * @throws SQLiteException when the pool is closed or a thread confined connection needs to be
-     * upgraded or there is a timeout acquiring a connection.
+     *   upgraded or there is a timeout acquiring a connection.
      */
     suspend fun <R> useConnection(isReadOnly: Boolean, block: suspend (Transactor) -> R): R
 
@@ -63,7 +61,10 @@ internal interface ConnectionPool {
      * Closes the pool and any opened connections, attempting to use connections is an error once
      * the pool is closed.
      */
-    fun close()
+    override fun close()
+
+    /** Internal exception thrown to rollback a transaction. */
+    class RollbackException(val result: Any?) : Throwable()
 }
 
 /**
@@ -75,6 +76,7 @@ internal interface ConnectionPool {
  * @param driver The driver from which to request the connection to be opened.
  * @param fileName The database file name.
  * @return The newly created connection pool
+ * @see newConnectionPool
  */
 internal fun newSingleConnectionPool(driver: SQLiteDriver, fileName: String): ConnectionPool =
     ConnectionPoolImpl(driver, fileName)
@@ -84,13 +86,14 @@ internal fun newSingleConnectionPool(driver: SQLiteDriver, fileName: String): Co
  *
  * If the database journal mode is Write-Ahead Logging (WAL) then it is recommended to create a pool
  * of one writer and multiple readers. If the database journal mode is not WAL (e.g. TRUNCATE,
- * DELETE or PERSIST) then it is recommended to create a pool of one writer and one reader.
+ * DELETE or PERSIST) then a single connection pool is recommended.
  *
  * @param driver The driver from which to request new connections to be opened.
  * @param fileName The database file name.
  * @param maxNumOfReaders The maximum number of connections to be opened and used as readers.
  * @param maxNumOfWriters The maximum number of connections to be opened and used as writers.
  * @return The newly created connection pool
+ * @see newSingleConnectionPool
  */
 internal fun newConnectionPool(
     driver: SQLiteDriver,
@@ -99,9 +102,7 @@ internal fun newConnectionPool(
     maxNumOfWriters: Int
 ): ConnectionPool = ConnectionPoolImpl(driver, fileName, maxNumOfReaders, maxNumOfWriters)
 
-/**
- * Defines an object that provides 'raw' access to a connection.
- */
+/** Defines an object that provides 'raw' access to a connection. */
 internal interface RawConnectionAccessor {
     val rawConnection: SQLiteConnection
 }

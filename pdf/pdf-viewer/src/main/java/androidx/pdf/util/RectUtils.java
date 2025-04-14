@@ -18,9 +18,10 @@ package androidx.pdf.util;
 
 import android.graphics.Rect;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
-import androidx.pdf.aidl.Dimensions;
+import androidx.pdf.models.Dimensions;
+
+import org.jspecify.annotations.NonNull;
 
 /**
  * Utilities related to {@link Rect}s.
@@ -29,14 +30,14 @@ import androidx.pdf.aidl.Dimensions;
 public final class RectUtils {
 
     /** Scales the given Rect by the given scaling factor. Modifies (and returns) the given rect. */
-    public static Rect scale(Rect rect, float scale) {
+    public static @NonNull Rect scale(@NonNull Rect rect, float scale) {
         return scale(rect, scale, scale);
     }
 
     /**
      *
      */
-    public static Rect scale(Rect rect, float scaleX, float scaleY) {
+    public static @NonNull Rect scale(@NonNull Rect rect, float scaleX, float scaleY) {
         rect.set(
                 floor(rect.left * scaleX),
                 floor(rect.top * scaleY),
@@ -48,14 +49,14 @@ public final class RectUtils {
     /**
      *
      */
-    public static int area(Rect rect) {
+    public static int area(@NonNull Rect rect) {
         return rect.width() * rect.height();
     }
 
     /**
      *
      */
-    public static Rect fromDimensions(Dimensions dimensions) {
+    public static @NonNull Rect fromDimensions(@NonNull Dimensions dimensions) {
         return new Rect(0, 0, dimensions.getWidth(), dimensions.getHeight());
     }
 
@@ -68,7 +69,7 @@ public final class RectUtils {
      *   <li>Otherwise, return an empty (0x0) {@link Rect}.
      * </ul>
      */
-    public static Rect getInnerIntersection(@NonNull Rect rect1, @NonNull Rect rect2) {
+    public static @NonNull Rect getInnerIntersection(@NonNull Rect rect1, @NonNull Rect rect2) {
         if (rect1.contains(rect2)) {
             return rect2;
         }

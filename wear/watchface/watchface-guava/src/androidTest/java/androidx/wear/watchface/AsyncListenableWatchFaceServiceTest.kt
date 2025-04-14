@@ -21,9 +21,9 @@ import android.graphics.Canvas
 import android.graphics.Rect
 import android.os.Build
 import android.view.SurfaceHolder
-import androidx.annotation.RequiresApi
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
+import androidx.test.filters.SdkSuppress
 import androidx.wear.watchface.client.DeviceConfig
 import androidx.wear.watchface.client.WatchUiState
 import androidx.wear.watchface.style.CurrentUserStyleRepository
@@ -125,9 +125,9 @@ private class TestAsyncListenableWatchFaceRuntimeService(
         getUiThreadHandler().post {
             future.set(
                 WatchFace(
-                    WatchFaceType.DIGITAL,
-                    FakeRenderer(surfaceHolder, watchState, currentUserStyleRepository)
-                )
+                        WatchFaceType.DIGITAL,
+                        FakeRenderer(surfaceHolder, watchState, currentUserStyleRepository)
+                    )
                     .apply { setOverridePreviewReferenceInstant(REFERENCE_PREVIEW_TIME) }
             )
         }
@@ -183,9 +183,9 @@ private class TestAsyncListenableStatefulWatchFaceRuntimeService(
         getUiThreadHandler().post {
             future.set(
                 WatchFace(
-                    WatchFaceType.DIGITAL,
-                    FakeRenderer(surfaceHolder, watchState, currentUserStyleRepository)
-                )
+                        WatchFaceType.DIGITAL,
+                        FakeRenderer(surfaceHolder, watchState, currentUserStyleRepository)
+                    )
                     .apply { setOverridePreviewReferenceInstant(REFERENCE_PREVIEW_TIME) }
             )
         }
@@ -258,7 +258,7 @@ public class AsyncListenableWatchFaceServiceTest {
 }
 
 @RunWith(AndroidJUnit4::class)
-@RequiresApi(Build.VERSION_CODES.O_MR1)
+@SdkSuppress(minSdkVersion = Build.VERSION_CODES.O_MR1)
 @MediumTest
 public class AsyncListenableWatchFaceRuntimeServiceTest : WatchFaceControlClientServiceTest() {
 

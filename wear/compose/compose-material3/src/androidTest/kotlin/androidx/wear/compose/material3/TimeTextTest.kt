@@ -20,21 +20,17 @@ import android.os.Build
 import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.testutils.assertContainsColor
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.DeviceConfigurationOverride
-import androidx.compose.ui.test.RoundScreen
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.unit.sp
 import androidx.test.filters.SdkSuppress
+import androidx.wear.compose.foundation.curvedComposable
 import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
@@ -43,164 +39,96 @@ import org.junit.Rule
 import org.junit.Test
 
 class TimeTextTest {
-    @get:Rule
-    val rule = createComposeRule()
+    @get:Rule val rule = createComposeRule()
 
     @Test
     fun supports_testtag() {
-        rule.setContentWithTheme {
-            TimeText(
-                modifier = Modifier.testTag(TEST_TAG)
-            ) {
-                time()
-            }
-        }
+        rule.setContentWithTheme { TimeText(modifier = Modifier.testTag(TEST_TAG)) }
 
         rule.onNodeWithTag(TEST_TAG).assertExists()
     }
 
     @Test
-    fun updates_clock_when_source_changes_on_non_round_device() {
-        val timeState = mutableStateOf("Unchanged")
+    fun shows_time_by_default() {
+        val timeText = "time"
 
         rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(false)
-            ) {
-                TimeText(
-                    modifier = Modifier.testTag(TEST_TAG),
-                    timeSource = object : TimeSource {
-                        override val currentTime: String
-                            @Composable
-                            get() = timeState.value
+            TimeText(
+                timeSource =
+                    object : TimeSource {
+                        @Composable override fun currentTime(): String = timeText
                     },
-                ) {
-                    time()
-                }
+            ) { time ->
+                // Use 'curvedText' instead of 'timeTextCurvedText' so that we get a content
+                // description that can be verified.
+                curvedText(time)
             }
         }
-        timeState.value = "Changed"
-        rule.onNodeWithText("Changed").assertIsDisplayed()
+
+        rule.onNodeWithContentDescription(timeText).assertIsDisplayed()
     }
 
     @Test
-    fun updates_clock_when_source_changes_on_round_device() {
+    fun updates_clock_when_source_changes() {
         val timeState = mutableStateOf("Unchanged")
 
         rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(true)
-            ) {
-                TimeText(
-                    modifier = Modifier.testTag(TEST_TAG),
-                    timeSource = object : TimeSource {
-                        override val currentTime: String
-                            @Composable
-                            get() = timeState.value
+            TimeText(
+                modifier = Modifier.testTag(TEST_TAG),
+                timeSource =
+                    object : TimeSource {
+                        @Composable override fun currentTime(): String = timeState.value
                     },
-                ) {
-                    time()
-                }
+            ) { time ->
+                // Use 'curvedText' instead of 'timeTextCurvedText' so that we get a content
+                // description that can be verified.
+                curvedText(time)
             }
         }
         timeState.value = "Changed"
-        rule.waitForIdle()
         rule.onNodeWithContentDescription("Changed").assertIsDisplayed()
     }
 
     @Test
-    fun checks_status_displayed_on_non_round_device() {
+    fun checks_status_displayed() {
         val statusText = "Status"
 
-        rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(false)
-            ) {
-                TimeText {
-                    text(statusText)
-                    separator()
-                    time()
-                }
-            }
-        }
-
-        rule.onNodeWithText(statusText).assertIsDisplayed()
-    }
-
-    @Test
-    fun checks_status_displayed_on_round_device() {
-        val statusText = "Status"
-
-        rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(true)
-            ) {
-                TimeText {
-                    text(statusText)
-                    separator()
-                    time()
-                }
+        rule.setContentWithTheme() {
+            TimeText { time ->
+                curvedText(statusText)
+                timeTextSeparator()
+                curvedText(time)
             }
         }
 
         rule.onNodeWithContentDescription(statusText).assertIsDisplayed()
     }
 
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     @Test
-    fun checks_separator_displayed_on_non_round_device() {
-        val statusText = "Status"
-        val separatorText = "·"
+    fun checks_separator_displayed() {
+        val separatorColor = Color.Red
 
         rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(false)
-            ) {
-                TimeText {
-                    text(statusText)
-                    separator()
-                    time()
-                }
-            }
+            val style = TimeTextDefaults.timeTextStyle(color = separatorColor)
+
+            TimeText(modifier = Modifier.testTag(TEST_TAG)) { timeTextSeparator(style) }
         }
 
-        rule.onNodeWithText(separatorText).assertIsDisplayed()
+        rule.onNodeWithTag(TEST_TAG).captureToImage().assertContainsColor(separatorColor)
     }
 
     @Test
-    fun checks_separator_displayed_on_round_device() {
-        val statusText = "Status"
-        val separatorText = "·"
-
+    fun checks_composable_displayed() {
         rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(true)
-            ) {
-                TimeText {
-                    text(statusText)
-                    separator()
-                    time()
-                }
-            }
-        }
-
-        rule.onNodeWithContentDescription(separatorText).assertIsDisplayed()
-    }
-
-    @Test
-    fun checks_composable_displayed_on_non_round_device() {
-        rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(false)
-            ) {
-                TimeText {
-                    time()
-                    separator()
-                    composable {
-                        Text(
-                            modifier = Modifier.testTag(TEST_TAG),
-                            text = "Compose",
-                        )
-                    }
+            TimeText { time ->
+                curvedText(time)
+                timeTextSeparator()
+                curvedComposable {
+                    Text(
+                        modifier = Modifier.testTag(TEST_TAG),
+                        text = "Compose",
+                    )
                 }
             }
         }
@@ -209,96 +137,16 @@ class TimeTextTest {
     }
 
     @Test
-    fun checks_composable_displayed_on_round_device() {
+    fun does_not_announce_time() {
         rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(true)
-            ) {
-                TimeText {
-                    time()
-                    separator()
-                    composable {
-                        Text(
-                            modifier = Modifier.testTag(TEST_TAG),
-                            text = "Compose",
-                        )
-                    }
-                }
+            TimeText {
+                timeTextCurvedText("time")
+                timeTextSeparator()
             }
         }
 
-        rule.onNodeWithTag(TEST_TAG).assertIsDisplayed()
-    }
-
-    @Test
-    fun changes_timeTextStyle_on_non_round_device() {
-        val timeText = "testTime"
-
-        val testTextStyle = TextStyle(
-            color = Color.Green,
-            background = Color.Black,
-            fontSize = 20.sp
-        )
-        rule.setContentWithTheme {
-            DeviceConfigurationOverride(
-                DeviceConfigurationOverride.RoundScreen(false)
-            ) {
-                TimeText(
-                    timeSource = object : TimeSource {
-                        override val currentTime: String
-                            @Composable
-                            get() = timeText
-                    },
-                    timeTextStyle = testTextStyle
-                ) {
-                    time()
-                }
-            }
-        }
-        val actualStyle = rule.textStyleOf(timeText)
-        Assert.assertEquals(testTextStyle.color, actualStyle.color)
-        Assert.assertEquals(testTextStyle.background, actualStyle.background)
-        Assert.assertEquals(testTextStyle.fontSize, actualStyle.fontSize)
-    }
-
-    @Test
-    fun changes_material_theme_on_non_round_device() {
-        val timeText = "testTime"
-
-        val testTextStyle = TextStyle(
-            color = Color.Green,
-            background = Color.Black,
-            fontStyle = FontStyle.Italic,
-            fontSize = 25.sp,
-            fontFamily = FontFamily.SansSerif
-        )
-        rule.setContent {
-            MaterialTheme(
-                typography = MaterialTheme.typography.copy(
-                    labelSmall = testTextStyle
-                )
-            ) {
-                DeviceConfigurationOverride(
-                    DeviceConfigurationOverride.RoundScreen(false)
-                ) {
-                    TimeText(
-                        timeSource = object : TimeSource {
-                            override val currentTime: String
-                                @Composable
-                                get() = timeText
-                        }
-                    ) {
-                        time()
-                    }
-                }
-            }
-        }
-        val actualStyle = rule.textStyleOf(timeText)
-        Assert.assertEquals(testTextStyle.color, actualStyle.color)
-        Assert.assertEquals(testTextStyle.background, actualStyle.background)
-        Assert.assertEquals(testTextStyle.fontSize, actualStyle.fontSize)
-        Assert.assertEquals(testTextStyle.fontStyle, actualStyle.fontStyle)
-        Assert.assertEquals(testTextStyle.fontFamily, actualStyle.fontFamily)
+        rule.onNodeWithContentDescription("time").assertDoesNotExist()
+        rule.onNodeWithContentDescription(".").assertDoesNotExist()
     }
 
     @Test
@@ -309,9 +157,7 @@ class TimeTextTest {
         val convertedTime = DateFormat.format(format, currentCalendar).toString()
 
         var actualTime: String? = null
-        rule.setContentWithTheme {
-            actualTime = currentTime({ currentTimeInMillis }, format).value
-        }
+        rule.setContentWithTheme { actualTime = currentTime({ currentTimeInMillis }, format).value }
         Assert.assertEquals(convertedTime, actualTime)
     }
 
@@ -323,10 +169,8 @@ class TimeTextTest {
 
         var actualTime: String? = null
         rule.setContentWithTheme {
-            actualTime = currentTime(
-                { currentTimeInMillis },
-                TimeTextDefaults.TimeFormat12Hours
-            ).value
+            actualTime =
+                currentTime({ currentTimeInMillis }, TimeTextDefaults.TimeFormat12Hours).value
         }
         Assert.assertEquals(expectedTime, actualTime)
     }
@@ -346,5 +190,14 @@ class TimeTextTest {
             actualTime = currentTime({ currentTimeInMillis }, format).value
         }
         Assert.assertEquals(expectedTime, actualTime)
+    }
+
+    @Composable
+    private fun BasicTimeTextWithStatus(statusText: String) {
+        TimeText { time ->
+            curvedText(statusText)
+            timeTextSeparator()
+            curvedText(time)
+        }
     }
 }

@@ -17,6 +17,7 @@
 package androidx.compose.foundation.contextmenu
 
 import androidx.compose.foundation.contextmenu.ContextMenuState.Status
+import androidx.compose.foundation.internal.checkPrecondition
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,14 +28,14 @@ private const val UNSPECIFIED_OFFSET_ERROR_MESSAGE =
     "ContextMenuState.Status should never be open with an unspecified offset. " +
         "Use ContextMenuState.Status.Closed instead."
 
-/**
- * Holds state related to the context menu.
- */
+/** Holds state related to the context menu. */
 internal class ContextMenuState internal constructor(initialStatus: Status = Status.Closed) {
     var status by mutableStateOf(initialStatus)
 
     override fun toString(): String = "ContextMenuState(status=$status)"
+
     override fun hashCode(): Int = status.hashCode()
+
     override fun equals(other: Any?): Boolean {
         if (other === this) return true
         if (other !is ContextMenuState) return false
@@ -49,11 +50,13 @@ internal class ContextMenuState internal constructor(initialStatus: Status = Sta
             val offset: Offset
         ) : Status() {
             init {
-                check(offset.isSpecified) { UNSPECIFIED_OFFSET_ERROR_MESSAGE }
+                checkPrecondition(offset.isSpecified) { UNSPECIFIED_OFFSET_ERROR_MESSAGE }
             }
 
             override fun toString(): String = "Open(offset=$offset)"
+
             override fun hashCode(): Int = offset.hashCode()
+
             override fun equals(other: Any?): Boolean {
                 if (other === this) return true
                 if (other !is Open) return false
@@ -68,9 +71,7 @@ internal class ContextMenuState internal constructor(initialStatus: Status = Sta
     }
 }
 
-/**
- * Convenience method to set the state's status to [Status.Closed].
- */
+/** Convenience method to set the state's status to [Status.Closed]. */
 internal fun ContextMenuState.close() {
     status = Status.Closed
 }

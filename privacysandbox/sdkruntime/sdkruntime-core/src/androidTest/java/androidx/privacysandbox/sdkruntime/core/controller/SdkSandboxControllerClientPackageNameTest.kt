@@ -17,7 +17,6 @@
 package androidx.privacysandbox.sdkruntime.core.controller
 
 import android.os.ext.SdkExtensions
-import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.core.os.BuildCompat
 import androidx.test.filters.SdkSuppress
@@ -33,9 +32,7 @@ import org.mockito.Mockito.`when`
 @SdkSuppress(minSdkVersion = 34)
 class SdkSandboxControllerClientPackageNameTest {
 
-    @Rule
-    @JvmField
-    val sdkSandboxControllerMockRule = SdkSandboxControllerMockRule()
+    @Rule @JvmField val sdkSandboxControllerMockRule = SdkSandboxControllerMockRule()
 
     @Test
     fun getClientPackageName_withoutApiAvailable_parseSdkDataDirPath() {
@@ -55,7 +52,7 @@ class SdkSandboxControllerClientPackageNameTest {
     }
 
     @Test
-    @RequiresApi(34)
+    @SdkSuppress(minSdkVersion = 34)
     @RequiresExtension(extension = SdkExtensions.AD_SERVICES, version = 8)
     fun getClientPackageName_withApiAvailable_returnsResultFromPlatformApi() {
         Assume.assumeTrue(
@@ -65,17 +62,14 @@ class SdkSandboxControllerClientPackageNameTest {
 
         val expectedResult = "test.client.package.name"
         val sdkSandboxController = sdkSandboxControllerMockRule.sdkSandboxControllerMock
-        `when`(sdkSandboxController.getClientPackageName())
-            .thenReturn(expectedResult)
+        `when`(sdkSandboxController.getClientPackageName()).thenReturn(expectedResult)
 
         val controllerCompat = sdkSandboxControllerMockRule.controllerCompat
         val result = controllerCompat.getClientPackageName()
 
         assertThat(result).isEqualTo(expectedResult)
-        Mockito.verify(sdkSandboxController)
-            .getClientPackageName()
+        Mockito.verify(sdkSandboxController).getClientPackageName()
     }
 
-    private fun isClientPackageNameAvailable() =
-        BuildCompat.AD_SERVICES_EXTENSION_INT >= 8
+    private fun isClientPackageNameAvailable() = BuildCompat.AD_SERVICES_EXTENSION_INT >= 8
 }

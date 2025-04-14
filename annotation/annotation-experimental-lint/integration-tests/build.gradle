@@ -21,7 +21,7 @@
  * Please use that script when creating a new project, rather than copying an existing project and
  * modifying its settings.
  */
-import androidx.build.LibraryType
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 def isIdeBuild() {
@@ -31,16 +31,16 @@ def isIdeBuild() {
 plugins {
     id("AndroidXPlugin")
     id("com.android.library")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace "androidx.annotation.experimental.lint.integrationtests"
+    namespace = "androidx.annotation.experimental.lint.integrationtests"
 }
 
 dependencies {
     implementation(libs.kotlinStdlib)
-    implementation("androidx.annotation:annotation-experimental:1.4.0")
+    implementation(project(":annotation:annotation-experimental"))
 }
 
 // Allow usage of Kotlin's @Experimental annotation, which is itself experimental.
@@ -57,5 +57,5 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 androidx {
-    type = LibraryType.INTERNAL_TEST_LIBRARY
+    type = SoftwareType.INTERNAL_TEST_LIBRARY
 }

@@ -18,13 +18,15 @@ package androidx.pdf.util;
 
 import android.util.SparseArray;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.pdf.util.ObservableArray.ArrayObserver;
 import androidx.pdf.util.ObservableValue.ValueObserver;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -50,7 +52,7 @@ public class Observables {
 
         @CanIgnoreReturnValue
         @Override
-        public Object addObserver(O observer) {
+        public @NonNull Object addObserver(O observer) {
             Preconditions.checkNotNull(observer);
             synchronized (mObservers) {
                 Preconditions.checkState(
@@ -61,7 +63,7 @@ public class Observables {
         }
 
         @Override
-        public void removeObserver(Object observer) {
+        public void removeObserver(@NonNull Object observer) {
             synchronized (mObservers) {
                 Preconditions.checkArgument(
                         mObservers.remove(observer),
@@ -78,15 +80,11 @@ public class Observables {
 
         @Override
         protected void finalize() throws Throwable {
-            if (hasObservers()) {
-                ErrorLog.log(TAG, "Leaking " + mObservers.size() + " observers, e.g. "
-                        + mObservers.iterator().next());
-            }
             super.finalize();
         }
 
         @Override
-        public Iterator<O> iterator() {
+        public @NonNull Iterator<O> iterator() {
             Iterator<O> iterator;
             synchronized (mObservers) {
                 iterator = new ArrayList<O>(mObservers).iterator();
@@ -111,8 +109,7 @@ public class Observables {
     public static class ExposedValue<V> extends MultiObservers<ValueObserver<V>>
             implements ObservableValue<V> {
 
-        @Nullable
-        protected V mValue;
+        protected @Nullable V mValue;
 
         /**
          * Constructor with supplied initial value. Observers are not notified when assigning
@@ -148,12 +145,12 @@ public class Observables {
     }
 
     /** Shortcut method for creating a new {@link ExposedValue} instance. */
-    public static <V> ExposedValue<V> newExposedValue() {
+    public static <V> @NonNull ExposedValue<V> newExposedValue() {
         return new ExposedValue<V>(null);
     }
 
     /** Shortcut method for creating a new {@link ExposedValue} instance with an initial value. */
-    public static <V> ExposedValue<V> newExposedValueWithInitialValue(V initialValue) {
+    public static <V> @NonNull ExposedValue<V> newExposedValueWithInitialValue(V initialValue) {
         return new ExposedValue<V>(initialValue);
     }
 
@@ -184,15 +181,14 @@ public class Observables {
          *
          */
         @Override
-        public Iterable<Integer> keys() {
+        public @NonNull Iterable<Integer> keys() {
             return CollectUtils.iterableKeys(mArray);
         }
 
         /**
          *
          */
-        @Nullable
-        public V set(int index, V value) {
+        public @Nullable V set(int index, V value) {
             V previousValue = mArray.get(index);
             mArray.put(index, value);
             for (ArrayObserver<V> observer : mObservers) {
@@ -208,8 +204,7 @@ public class Observables {
         /**
          *
          */
-        @Nullable
-        public V remove(int index) {
+        public @Nullable V remove(int index) {
             V previousValue = mArray.get(index);
             if (previousValue != null) {
                 mArray.delete(index);
@@ -221,14 +216,13 @@ public class Observables {
         }
 
         @Override
-        @Nullable
-        public V get(int index) {
+        public @Nullable V get(int index) {
             return mArray.get(index);
         }
     }
 
     /** Shortcut method for creating a new {@link ExposedArray} instance. */
-    public static <V> ExposedArray<V> newExposedArray() {
+    public static <V> @NonNull ExposedArray<V> newExposedArray() {
         return new ExposedArray<V>();
     }
 
@@ -241,16 +235,16 @@ public class Observables {
         protected final MultiObservers<O> mObservers = new MultiObservers<O>();
 
         @Override
-        public Object addObserver(O observer) {
+        public @NonNull Object addObserver(O observer) {
             return mObservers.addObserver(observer);
         }
 
         @Override
-        public void removeObserver(Object observer) {
+        public void removeObserver(@NonNull Object observer) {
             mObservers.removeObserver(observer);
         }
 
-        protected Iterable<O> getObservers() {
+        protected @NonNull Iterable<O> getObservers() {
             return mObservers;
         }
     }

@@ -21,53 +21,50 @@ import androidx.annotation.RestrictTo
 /**
  * List of all supported internal API versions (Client-Core communication).
  *
- * NEVER REMOVE / MODIFY RELEASED VERSIONS:
- * That could break loading of SDKs built with previous/future library version.
+ * NEVER REMOVE / MODIFY RELEASED VERSIONS: That could break loading of SDKs built with
+ * previous/future library version.
  *
  * Adding new version here bumps internal API version for next library release:
- * [androidx.privacysandbox.sdkruntime.core.Versions.API_VERSION]
- * When adding a new version, ALL new features from this version should be specified
- * (NO FUTURE CHANGES SUPPORTED).
+ * [androidx.privacysandbox.sdkruntime.core.Versions.API_VERSION] When adding a new version, ALL new
+ * features from this version should be specified (NO FUTURE CHANGES SUPPORTED).
  */
 @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
 enum class ClientApiVersion(
     val apiLevel: Int,
+    val stable: Boolean = false,
     private val newFeatures: Set<ClientFeature> = emptySet()
 ) {
-    V1__1_0_ALPHA01(apiLevel = 1),
-
-    V2__1_0_ALPHA02(
-        apiLevel = 2,
-        newFeatures = setOf(
-            ClientFeature.SDK_SANDBOX_CONTROLLER
-        )
+    V5__1_0_ALPHA13(apiLevel = 5),
+    V6__1_0_ALPHA14(
+        apiLevel = 6,
+        /** Temporary mark as stable to run tests for V6 and V7 */
+        stable = true,
+        newFeatures = setOf(ClientFeature.GET_CLIENT_PACKAGE_NAME)
     ),
-
-    // V3 was released as V4 (original release postponed)
-    V4__1_0_ALPHA05(
-        apiLevel = 4,
-        newFeatures = setOf(
-            ClientFeature.SDK_ACTIVITY_HANDLER,
-            ClientFeature.APP_OWNED_INTERFACES,
-        )
-    ),
-
-    V5__1_0_ALPHA13(
-        apiLevel = 5,
-        newFeatures = setOf(
-            ClientFeature.LOAD_SDK
-        )
-    ),
+    V7__1_0_ALPHA16(apiLevel = 7, newFeatures = setOf(ClientFeature.CLIENT_IMPORTANCE_LISTENER)),
 
     /**
-     * Unreleased API version.
-     * Features not added to other versions will be automatically added here (to allow testing).
+     * Unreleased API version. Features not added to other versions will be automatically added here
+     * (to allow testing).
      */
     FUTURE_VERSION(apiLevel = Int.MAX_VALUE);
 
     companion object {
-        val MIN_SUPPORTED = values().minBy { v -> v.apiLevel }
+        /**
+         * Minimal version of sdkruntime-client lib that could load SDK built with current version
+         * of sdkruntime-provider lib.
+         */
+        val MIN_SUPPORTED_CLIENT_VERSION = V6__1_0_ALPHA14
+
+        /**
+         * Minimal version of sdkruntime-provider lib that could be loaded by current version of
+         * sdkruntime-client lib.
+         */
+        val MIN_SUPPORTED_SDK_VERSION = values().minBy { v -> v.apiLevel }
+
         val CURRENT_VERSION = values().filter { v -> v != FUTURE_VERSION }.maxBy { v -> v.apiLevel }
+
+        val LATEST_STABLE_VERSION = values().filter { v -> v.stable }.maxBy { v -> v.apiLevel }
 
         private val FEATURE_TO_VERSION_MAP = buildFeatureMap()
 
@@ -75,12 +72,17 @@ enum class ClientApiVersion(
             return FEATURE_TO_VERSION_MAP[clientFeature] ?: FUTURE_VERSION
         }
 
-        /**
-         * Build mapping between [ClientFeature] and version where it first became available.
-         */
+        /** Build mapping between [ClientFeature] and version where it first became available. */
         private fun buildFeatureMap(): Map<ClientFeature, ClientApiVersion> {
             if (FUTURE_VERSION.newFeatures.isNotEmpty()) {
                 throw IllegalStateException("FUTURE_VERSION MUST NOT define any features")
+            }
+            if (MIN_SUPPORTED_SDK_VERSION.newFeatures.isNotEmpty()) {
+                throw IllegalStateException(
+                    "$MIN_SUPPORTED_SDK_VERSION MUST NOT define any features. " +
+                        "Features added in this version are available without version checks because " +
+                        "it is minimum supported version."
+                )
             }
             return buildMap {
                 values().forEach { version ->

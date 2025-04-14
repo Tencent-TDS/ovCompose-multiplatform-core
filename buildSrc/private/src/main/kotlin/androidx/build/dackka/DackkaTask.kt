@@ -34,11 +34,13 @@ import org.gradle.api.tasks.Classpath
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
 import org.gradle.workers.WorkAction
 import org.gradle.workers.WorkParameters
@@ -50,8 +52,7 @@ abstract class DackkaTask
 constructor(private val workerExecutor: WorkerExecutor, private val objects: ObjectFactory) :
     DefaultTask() {
 
-    @get:OutputFile
-    abstract val argsJsonFile: RegularFileProperty
+    @get:OutputFile abstract val argsJsonFile: RegularFileProperty
 
     @get:[InputFiles PathSensitive(PathSensitivity.RELATIVE)]
     abstract val projectStructureMetadataFile: RegularFileProperty
@@ -114,8 +115,18 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
 
     @get:Input abstract val nullabilityAnnotations: ListProperty<String>
 
-    @get:[InputFiles PathSensitive(PathSensitivity.NONE)]
-    abstract val versionMetadataFiles: ConfigurableFileCollection
+    // Version metadata for apiSince, only marked as @InputFiles if includeVersionMetadata is true
+    @get:Internal abstract val versionMetadataFiles: ConfigurableFileCollection
+
+    @InputFiles
+    @PathSensitive(PathSensitivity.NONE)
+    fun getOptionalVersionMetadataFiles(): ConfigurableFileCollection {
+        return if (includeVersionMetadata) {
+            versionMetadataFiles
+        } else {
+            objects.fileCollection()
+        }
+    }
 
     // Maps to the system variable LIBRARY_METADATA_FILE containing artifactID and other metadata
     @get:[InputFile PathSensitive(PathSensitivity.NONE)]
@@ -127,6 +138,17 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
     @get:Input abstract val baseSourceLink: Property<String>
     @get:Input abstract val baseFunctionSourceLink: Property<String>
     @get:Input abstract val basePropertySourceLink: Property<String>
+
+    /**
+     * Option for whether to include apiSince metadata in the docs. Defaults to including metadata.
+     * Run with `--no-version-metadata` to avoid running `generateApi` before `docs`.
+     */
+    @get:Input
+    @set:Option(
+        option = "version-metadata",
+        description = "Include added-in/deprecated-in API version metadata"
+    )
+    var includeVersionMetadata: Boolean = true
 
     private fun sourceSets(): List<DokkaInputModels.SourceSet> {
         val externalDocs =
@@ -148,40 +170,51 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
                 ?.let { metadataFile ->
                     val metadata =
                         gson.fromJson(metadataFile.readText(), ProjectStructureMetadata::class.java)
-                    metadata.sourceSets.mapNotNull { sourceSet ->
-                        val sourceDir = multiplatformSourcesDir.get().asFile.resolve(sourceSet.name)
-                        if (!sourceDir.exists()) return@mapNotNull null
-                        val analysisPlatform =
-                            DokkaAnalysisPlatform.valueOf(sourceSet.analysisPlatform.uppercase())
-                        DokkaInputModels.SourceSet(
-                            id = sourceSetIdForSourceSet(sourceSet.name),
-                            displayName = sourceSet.name,
-                            analysisPlatform = analysisPlatform.jsonName,
-                            sourceRoots = objects.fileCollection().from(sourceDir),
-                            // TODO(b/181224204): KMP samples aren't supported, dackka assumes all
-                            // samples are in common
-                            samples = if (analysisPlatform == DokkaAnalysisPlatform.COMMON) {
-                                objects.fileCollection().from(
-                                    samplesDeprecatedDir,
-                                    samplesJvmDir,
-                                    samplesKmpDir,
-                                    frameworkSamplesDir.get().asFile
+                    // Sort to ensure that child sourceSets come after their parents, b/404784813
+                    metadata.sourceSets
+                        .sortedWith(compareBy({ it.dependencies.size }, { it.name }))
+                        .mapNotNull { sourceSet ->
+                            val sourceDir =
+                                multiplatformSourcesDir.get().asFile.resolve(sourceSet.name)
+                            if (!sourceDir.exists()) return@mapNotNull null
+                            val analysisPlatform =
+                                DokkaAnalysisPlatform.valueOf(
+                                    sourceSet.analysisPlatform.uppercase()
                                 )
-                            } else {
-                                objects.fileCollection()
-                            },
-                            includes = objects.fileCollection().from(includesFiles(sourceDir)),
-                            classpath = dependenciesClasspath,
-                            externalDocumentationLinks = externalDocs,
-                            dependentSourceSets =
-                                sourceSet.dependencies.map { sourceSetIdForSourceSet(it) },
-                            noJdkLink = !analysisPlatform.androidOrJvm(),
-                            noAndroidSdkLink = analysisPlatform != DokkaAnalysisPlatform.ANDROID,
-                            noStdlibLink = false,
-                            // Dackka source link configuration doesn't use the Dokka version
-                            sourceLinks = emptyList()
-                        )
-                    }
+                            DokkaInputModels.SourceSet(
+                                id = sourceSetIdForSourceSet(sourceSet.name),
+                                displayName = sourceSet.name,
+                                analysisPlatform = analysisPlatform.jsonName,
+                                sourceRoots = objects.fileCollection().from(sourceDir),
+                                // TODO(b/181224204): KMP samples aren't supported, dackka assumes
+                                // all
+                                // samples are in common
+                                samples =
+                                    if (analysisPlatform == DokkaAnalysisPlatform.COMMON) {
+                                        objects
+                                            .fileCollection()
+                                            .from(
+                                                samplesDeprecatedDir,
+                                                samplesJvmDir,
+                                                samplesKmpDir,
+                                                frameworkSamplesDir.get().asFile
+                                            )
+                                    } else {
+                                        objects.fileCollection()
+                                    },
+                                includes = objects.fileCollection().from(includesFiles(sourceDir)),
+                                classpath = dependenciesClasspath,
+                                externalDocumentationLinks = externalDocs,
+                                dependentSourceSets =
+                                    sourceSet.dependencies.map { sourceSetIdForSourceSet(it) },
+                                noJdkLink = !analysisPlatform.androidOrJvm(),
+                                noAndroidSdkLink =
+                                    analysisPlatform != DokkaAnalysisPlatform.ANDROID,
+                                noStdlibLink = false,
+                                // Dackka source link configuration doesn't use the Dokka version
+                                sourceLinks = emptyList()
+                            )
+                        }
                 } ?: emptyList()
         return listOf(
             DokkaInputModels.SourceSet(
@@ -189,12 +222,15 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
                 displayName = "main",
                 analysisPlatform = "jvm",
                 sourceRoots = objects.fileCollection().from(jvmSourcesDir),
-                samples = objects.fileCollection().from(
-                    samplesDeprecatedDir,
-                    samplesJvmDir,
-                    samplesKmpDir,
-                    frameworkSamplesDir.get().asFile
-                ),
+                samples =
+                    objects
+                        .fileCollection()
+                        .from(
+                            samplesDeprecatedDir,
+                            samplesJvmDir,
+                            samplesKmpDir,
+                            frameworkSamplesDir.get().asFile
+                        ),
                 includes = objects.fileCollection().from(includesFiles(jvmSourcesDir.get().asFile)),
                 classpath = dependenciesClasspath,
                 externalDocumentationLinks = externalDocs,
@@ -249,7 +285,7 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
                                         "annotationsNotToDisplayKotlin" to
                                             annotationsNotToDisplayKotlin.get(),
                                         "hidingAnnotations" to hidingAnnotations.get(),
-                                        "versionMetadataFilenames" to checkVersionMetadataFiles(),
+                                        "versionMetadataFilenames" to getVersionMetadataFiles(),
                                         "validNullabilityAnnotations" to
                                             nullabilityAnnotations.get(),
                                     )
@@ -259,18 +295,18 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
             )
 
         val json = gson.toJson(jsonMap)
-        return argsJsonFile.get().asFile.apply {
-            writeText(json)
-        }
+        return argsJsonFile.get().asFile.apply { writeText(json) }
     }
 
     /**
-     * Return the list of version metadata files after checking if they're all JSON. If version
+     * If version metadata shouldn't be included in the docs, returns an empty list. Otherwise,
+     * returns the list of version metadata files after checking if they're all JSON. If version
      * metadata does not exist for a project, it's possible that a configuration which isn't an
      * exact match of the version metadata attributes to be selected as version metadata.
      */
-    private fun checkVersionMetadataFiles(): List<File> {
-        val (json, nonJson) = versionMetadataFiles.files.partition { it.extension == "json" }
+    private fun getVersionMetadataFiles(): List<File> {
+        val (json, nonJson) =
+            getOptionalVersionMetadataFiles().files.partition { it.extension == "json" }
         if (nonJson.isNotEmpty()) {
             logger.error(
                 "The following were resolved as version metadata files but are not JSON files. " +
@@ -333,12 +369,13 @@ constructor(private val workerExecutor: WorkerExecutor, private val objects: Obj
                 "robolectric" to "https://robolectric.org/javadoc/4.11/",
                 "interactive-media" to
                     "https://developers.google.com/interactive-media-ads/docs/sdks/android/" +
-                    "client-side/api/reference/com/google/ads/interactivemedia/v3",
+                        "client-side/api/reference/com/google/ads/interactivemedia/v3",
                 "errorprone" to "https://errorprone.info/api/latest/",
                 "gms" to "https://developers.google.com/android/reference",
                 "checkerframework" to "https://checkerframework.org/api/",
                 "chromium" to
                     "https://developer.android.com/develop/connectivity/cronet/reference/",
+                "jspecify" to "https://jspecify.dev/docs/api/",
             )
     }
 }

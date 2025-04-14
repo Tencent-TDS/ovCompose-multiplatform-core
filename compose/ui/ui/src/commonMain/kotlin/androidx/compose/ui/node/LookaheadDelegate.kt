@@ -19,9 +19,10 @@ package androidx.compose.ui.node
 import androidx.collection.MutableObjectFloatMap
 import androidx.collection.MutableScatterMap
 import androidx.collection.MutableScatterSet
-import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.collection.mutableObjectIntMapOf
 import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.internal.checkPrecondition
+import androidx.compose.ui.internal.throwIllegalStateExceptionForNullCheck
 import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.LookaheadLayoutCoordinates
@@ -33,91 +34,93 @@ import androidx.compose.ui.layout.Ruler
 import androidx.compose.ui.layout.RulerScope
 import androidx.compose.ui.layout.VerticalAlignmentLine
 import androidx.compose.ui.layout.VerticalRuler
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.round
 
 /**
- * This is the base class for NodeCoordinator and LookaheadDelegate. The common
- * functionalities between the two are extracted here.
+ * This is the base class for NodeCoordinator and LookaheadDelegate. The common functionalities
+ * between the two are extracted here.
  */
-internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWithLayoutNode,
-    DirectManipulationDelegate {
+internal abstract class LookaheadCapablePlaceable :
+    Placeable(), MeasureScopeWithLayoutNode, MotionReferencePlacementDelegate {
     abstract val position: IntOffset
     abstract val child: LookaheadCapablePlaceable?
     abstract val parent: LookaheadCapablePlaceable?
     abstract val hasMeasureResult: Boolean
     abstract override val layoutNode: LayoutNode
     abstract val coordinates: LayoutCoordinates
-    private var _rulerScope: RulerScope? = null
+    private var _rulerScope: ResettableRulerScope? = null
+    private var rulersLambda: (RulerScope.() -> Unit)? = null
 
     /**
-     * Indicates whether the [Placeable] was placed under direct manipulation.
+     * Indicates whether the [Placeable] was placed under a motion frame of reference.
      *
-     * This means, that its offset may be ignored with [LookaheadLayoutCoordinates.localPositionOf],
-     * using the `excludeDirectManipulationOffset` parameter.
+     * This means, that its offset may be excluded from calculation with
+     * `includeMotionFrameOfReference = false` in [LookaheadLayoutCoordinates.localPositionOf].
      */
-    override var isDirectManipulationPlacement: Boolean = false
+    override var isPlacedUnderMotionFrameOfReference: Boolean = false
 
-    val rulerScope: RulerScope
-        get() {
-            return _rulerScope ?: object : RulerScope {
-                override val coordinates: LayoutCoordinates
-                    get() {
-                        this@LookaheadCapablePlaceable.layoutNode.layoutDelegate.onCoordinatesUsed()
-                        return this@LookaheadCapablePlaceable.coordinates
-                    }
-
-                override fun Ruler.provides(value: Float) {
-                    this@LookaheadCapablePlaceable.provideRulerValue(this, value)
-                }
-
-                override fun VerticalRuler.providesRelative(value: Float) {
-                    this@LookaheadCapablePlaceable.provideRelativeRulerValue(this, value)
-                }
-
-                override val density: Float
-                    get() = this@LookaheadCapablePlaceable.density
-                override val fontScale: Float
-                    get() = this@LookaheadCapablePlaceable.fontScale
+    override fun updatePlacedUnderMotionFrameOfReference(newMFR: Boolean) {
+        val parentNode = parent?.layoutNode
+        if (parentNode == layoutNode) {
+            isPlacedUnderMotionFrameOfReference = newMFR
+        } else {
+            // This node is the beginning of the chain (i.e. outerCoordinator), check if this
+            // placement call comes from the parent
+            if (
+                parentNode?.layoutState == LayoutNode.LayoutState.LayingOut ||
+                    parentNode?.layoutState == LayoutNode.LayoutState.LookaheadLayingOut
+            ) {
+                isPlacedUnderMotionFrameOfReference = newMFR
             }
+            // If the node is simply being replaced without parent, we need to maintain the flag
+            // from last time when `placeChildren` lambda was run. Therefore no op.
+        }
+    }
+
+    private val rulerScope: ResettableRulerScope
+        get() {
+            return _rulerScope ?: ResettableRulerScope().also { _rulerScope = it }
         }
 
     final override fun get(alignmentLine: AlignmentLine): Int {
         if (!hasMeasureResult) return AlignmentLine.Unspecified
         val measuredPosition = calculateAlignmentLine(alignmentLine)
         if (measuredPosition == AlignmentLine.Unspecified) return AlignmentLine.Unspecified
-        return measuredPosition + if (alignmentLine is VerticalAlignmentLine) {
-            apparentToRealOffset.x
-        } else {
-            apparentToRealOffset.y
-        }
+        return measuredPosition +
+            if (alignmentLine is VerticalAlignmentLine) {
+                apparentToRealOffset.x
+            } else {
+                apparentToRealOffset.y
+            }
     }
 
     abstract fun calculateAlignmentLine(alignmentLine: AlignmentLine): Int
 
     /**
-     * True when the coordinator is running its own placing block to obtain the position
-     * in parent, but is not interested in the position of children.
+     * True when the coordinator is running its own placing block to obtain the position in parent,
+     * but is not interested in the position of children.
      */
     internal var isShallowPlacing: Boolean = false
     internal abstract val measureResult: MeasureResult
+
     internal abstract fun replace()
+
     abstract val alignmentLinesOwner: AlignmentLinesOwner
 
     /**
-     * Used to indicate that this placement pass is for the purposes of calculating an
-     * alignment line. If it is, then
-     * [LayoutNodeLayoutDelegate.coordinatesAccessedDuringPlacement] will be changed
-     * when [Placeable.PlacementScope.coordinates] is accessed to indicate that the placement
-     * is not finalized and must be run again.
+     * Used to indicate that this placement pass is for the purposes of calculating an alignment
+     * line. If it is, then [LayoutNodeLayoutDelegate.coordinatesAccessedDuringPlacement] will be
+     * changed when [Placeable.PlacementScope.coordinates] is accessed to indicate that the
+     * placement is not finalized and must be run again.
      */
     internal var isPlacingForAlignment = false
 
-    /**
-     * [PlacementScope] used to place children.
-     */
+    /** [PlacementScope] used to place children. */
     val placementScope = PlacementScope(this)
 
     protected fun NodeCoordinator.invalidateAlignmentLinesFromPositionChange() {
@@ -128,7 +131,6 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
         }
     }
 
-    @OptIn(ExperimentalComposeUiApi::class)
     override val isLookingAhead: Boolean
         get() = false
 
@@ -137,7 +139,8 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
     // For comparing before and after running the ruler lambda
     private var rulerValuesCache: MutableObjectFloatMap<Ruler>? = null
     private var rulerReaders:
-        MutableScatterMap<Ruler, MutableScatterSet<WeakReference<LayoutNode>>>? = null
+        MutableScatterMap<Ruler, MutableScatterSet<WeakReference<LayoutNode>>>? =
+        null
 
     fun findRulerValue(ruler: Ruler, defaultValue: Float): Float {
         if (isPlacingForAlignment) {
@@ -160,17 +163,14 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
     }
 
     private fun addRulerReader(layoutNode: LayoutNode, ruler: Ruler) {
-        rulerReaders?.forEachValue { set ->
-            set.removeIf { it.get()?.isAttached != true }
-        }
+        rulerReaders?.forEachValue { set -> set.removeIf { it.get()?.isAttached != true } }
         rulerReaders?.removeIf { _, value -> value.isEmpty() }
-        val readerMap = rulerReaders
-            ?: MutableScatterMap<Ruler, MutableScatterSet<WeakReference<LayoutNode>>>().also {
-                rulerReaders = it
-            }
-        val readers = readerMap.getOrPut(ruler) {
-            MutableScatterSet()
-        }
+        val readerMap =
+            rulerReaders
+                ?: MutableScatterMap<Ruler, MutableScatterSet<WeakReference<LayoutNode>>>().also {
+                    rulerReaders = it
+                }
+        val readers = readerMap.getOrPut(ruler) { MutableScatterSet() }
         readers += WeakReference(layoutNode)
     }
 
@@ -212,10 +212,13 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
         return object : MeasureResult {
             override val width: Int
                 get() = width
+
             override val height: Int
                 get() = height
+
             override val alignmentLines: Map<AlignmentLine, Int>
                 get() = alignmentLines
+
             override val rulers: (RulerScope.() -> Unit)?
                 get() = rulers
 
@@ -225,9 +228,31 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
         }
     }
 
-    internal fun captureRulers(result: MeasureResult?) {
+    internal fun captureRulersIfNeeded(result: MeasureResult?) {
+        val rulerReaders = rulerReaders
         if (result != null) {
-            captureRulers(PlaceableResult(result, this))
+            if (isPlacingForAlignment) {
+                return
+            }
+            val rulerLambda = result.rulers
+            if (rulerLambda == null) {
+                // Notify anything that read a value it must have a relayout
+                if (rulerReaders != null) {
+                    rulerReaders.forEachValue { notifyRulerValueChange(it) }
+                    rulerReaders.clear()
+                }
+            } else {
+                // NOTE: consider using a mutable PlaceableResult to be reused for this purpose
+                if (
+                    this.rulersLambda !== result.rulers ||
+                        (rulerScope.coordinatesAccessed &&
+                            (rulerScope.positionInRoot != coordinates.positionInRoot().round() ||
+                                rulerScope.size != coordinates.size))
+                ) {
+                    captureRulers(PlaceableResult(result, this))
+                    this.rulersLambda = result.rulers
+                }
+            }
         } else {
             rulerReaders?.forEachValue { notifyRulerValueChange(it) }
             rulerReaders?.clear()
@@ -235,7 +260,47 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
         }
     }
 
-    private fun captureRulers(placeableResult: PlaceableResult) {
+    private fun captureRulers(
+        placeableResult: PlaceableResult,
+    ) {
+        val rulerReaders = rulerReaders
+        val oldValues =
+            rulerValuesCache ?: MutableObjectFloatMap<Ruler>().also { rulerValuesCache = it }
+        val newValues = rulerValues ?: MutableObjectFloatMap<Ruler>().also { rulerValues = it }
+        oldValues.putAll(newValues)
+        newValues.clear()
+        // capture the new values
+        layoutNode.owner?.snapshotObserver?.observeReads(placeableResult, onCommitAffectingRuler) {
+            rulerScope.coordinatesAccessed = false
+            rulerScope.positionInRoot = IntOffset.Max
+            rulerScope.size = IntSize.Zero
+            placeableResult.result.rulers?.invoke(rulerScope)
+        }
+        // compare the old values to the new ones
+        if (rulerReaders != null) {
+            // Notify any LayoutNode that got a value that the value has changed
+            oldValues.forEach { ruler, oldValue ->
+                val newValue = newValues.getOrDefault(ruler, Float.NaN)
+                if (newValue != oldValue) {
+                    // Either the value has changed or it stopped being provided.
+                    // Notify all watchers of that value that it has changed.
+                    val readers = rulerReaders.remove(ruler)
+                    if (readers != null) {
+                        notifyRulerValueChange(readers)
+                    }
+                }
+            }
+        }
+        // Notify everything that might want to read new values
+        newValues.forEachKey { ruler ->
+            if (ruler !in oldValues) {
+                parent?.invalidateChildrenOfDefiningRuler(ruler)
+            }
+        }
+        oldValues.clear()
+    }
+
+    private fun captureRulersIfNeeded(placeableResult: PlaceableResult) {
         if (isPlacingForAlignment) {
             return
         }
@@ -248,42 +313,8 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
                 rulerReaders.clear()
             }
         } else {
-            val oldValues = rulerValuesCache ?: MutableObjectFloatMap<Ruler>().also {
-                rulerValuesCache = it
-            }
-            val newValues =
-                rulerValues ?: MutableObjectFloatMap<Ruler>().also { rulerValues = it }
-            oldValues.putAll(newValues)
-            newValues.clear()
-            // capture the new values
-            layoutNode.owner?.snapshotObserver?.observeReads(
-                placeableResult,
-                onCommitAffectingRuler
-            ) {
-                placeableResult.result.rulers?.invoke(rulerScope)
-            }
-            // compare the old values to the new ones
-            if (rulerReaders != null) {
-                // Notify any LayoutNode that got a value that the value has changed
-                oldValues.forEach { ruler, oldValue ->
-                    val newValue = newValues.getOrDefault(ruler, Float.NaN)
-                    if (newValue != oldValue) {
-                        // Either the value has changed or it stopped being provided.
-                        // Notify all watchers of that value that it has changed.
-                        val readers = rulerReaders.remove(ruler)
-                        if (readers != null) {
-                            notifyRulerValueChange(readers)
-                        }
-                    }
-                }
-            }
-            // Notify everything that might want to read new values
-            newValues.forEachKey { ruler ->
-                if (ruler !in oldValues) {
-                    parent?.invalidateChildrenOfDefiningRuler(ruler)
-                }
-            }
-            oldValues.clear()
+            captureRulers(placeableResult)
+            this.rulersLambda = rulerLambda
         }
     }
 
@@ -306,18 +337,50 @@ internal abstract class LookaheadCapablePlaceable : Placeable(), MeasureScopeWit
 
     fun provideRelativeRulerValue(ruler: Ruler, value: Float) {
         val rulerValues = rulerValues ?: MutableObjectFloatMap<Ruler>().also { rulerValues = it }
-        rulerValues[ruler] = if (layoutDirection == LayoutDirection.Ltr) {
-            value
-        } else {
-            width - value
+        rulerValues[ruler] =
+            if (layoutDirection == LayoutDirection.Ltr) {
+                value
+            } else {
+                width - value
+            }
+    }
+
+    private inner class ResettableRulerScope : RulerScope {
+        var coordinatesAccessed = false
+        var positionInRoot = IntOffset.Max
+        var size = IntSize.Zero
+
+        override val coordinates: LayoutCoordinates
+            get() {
+                coordinatesAccessed = true
+                val coords = this@LookaheadCapablePlaceable.coordinates
+                if (positionInRoot == IntOffset.Max) {
+                    positionInRoot = coords.positionInRoot().round()
+                    size = coords.size
+                }
+                this@LookaheadCapablePlaceable.layoutNode.layoutDelegate.onCoordinatesUsed()
+                return coords
+            }
+
+        override fun Ruler.provides(value: Float) {
+            this@LookaheadCapablePlaceable.provideRulerValue(this, value)
         }
+
+        override fun VerticalRuler.providesRelative(value: Float) {
+            this@LookaheadCapablePlaceable.provideRelativeRulerValue(this, value)
+        }
+
+        override val density: Float
+            get() = this@LookaheadCapablePlaceable.density
+
+        override val fontScale: Float
+            get() = this@LookaheadCapablePlaceable.fontScale
     }
 
     companion object {
-        private val onCommitAffectingRuler:
-                (PlaceableResult) -> Unit = { result ->
+        private val onCommitAffectingRuler: (PlaceableResult) -> Unit = { result ->
             if (result.isValidOwnerScope) {
-                result.placeable.captureRulers(result)
+                result.placeable.captureRulersIfNeeded(result)
             }
         }
     }
@@ -349,26 +412,37 @@ internal abstract class LookaheadDelegate(
 ) : Measurable, LookaheadCapablePlaceable() {
     override val child: LookaheadCapablePlaceable?
         get() = coordinator.wrapped?.lookaheadDelegate
+
     override val hasMeasureResult: Boolean
         get() = _measureResult != null
+
     override var position = IntOffset.Zero
     private var oldAlignmentLines: MutableMap<AlignmentLine, Int>? = null
     override val measureResult: MeasureResult
-        get() = _measureResult ?: error(
-            "LookaheadDelegate has not been measured yet when measureResult is requested."
-        )
+        get() =
+            _measureResult
+                ?: throwIllegalStateExceptionForNullCheck(
+                    "LookaheadDelegate has not been measured yet when measureResult is requested."
+                )
+
     override val isLookingAhead: Boolean
         get() = true
+
     override val layoutDirection: LayoutDirection
         get() = coordinator.layoutDirection
+
     override val density: Float
         get() = coordinator.density
+
     override val fontScale: Float
         get() = coordinator.fontScale
+
     override val parent: LookaheadCapablePlaceable?
         get() = coordinator.wrappedBy?.lookaheadDelegate
+
     override val layoutNode: LayoutNode
         get() = coordinator.layoutNode
+
     override val coordinates: LayoutCoordinates
         get() = lookaheadLayoutCoordinates
 
@@ -384,20 +458,21 @@ internal abstract class LookaheadDelegate(
 
     private var _measureResult: MeasureResult? = null
         set(result) {
-            result?.let {
-                measuredSize = IntSize(it.width, it.height)
-            } ?: run { measuredSize = IntSize.Zero }
+            result?.let { measuredSize = IntSize(it.width, it.height) }
+                ?: run { measuredSize = IntSize.Zero }
             if (field != result && result != null) {
                 // We do not simply compare against old.alignmentLines in case this is a
                 // MutableStateMap and the same instance might be passed.
-                if ((!oldAlignmentLines.isNullOrEmpty() || result.alignmentLines.isNotEmpty()) &&
-                    result.alignmentLines != oldAlignmentLines
+                if (
+                    (!oldAlignmentLines.isNullOrEmpty() || result.alignmentLines.isNotEmpty()) &&
+                        result.alignmentLines != oldAlignmentLines
                 ) {
                     alignmentLinesOwner.alignmentLines.onAlignmentsChanged()
 
                     @Suppress("PrimitiveInCollection")
-                    val oldLines = oldAlignmentLines
-                        ?: (mutableMapOf<AlignmentLine, Int>().also { oldAlignmentLines = it })
+                    val oldLines =
+                        oldAlignmentLines
+                            ?: (mutableMapOf<AlignmentLine, Int>().also { oldAlignmentLines = it })
                     oldLines.clear()
                     oldLines.putAll(result.alignmentLines)
                 }
@@ -405,10 +480,10 @@ internal abstract class LookaheadDelegate(
             field = result
         }
 
-    protected val cachedAlignmentLinesMap = mutableMapOf<AlignmentLine, Int>()
+    protected val cachedAlignmentLinesMap = mutableObjectIntMapOf<AlignmentLine>()
 
     internal fun getCachedAlignmentLine(alignmentLine: AlignmentLine): Int =
-        cachedAlignmentLinesMap[alignmentLine] ?: AlignmentLine.Unspecified
+        cachedAlignmentLinesMap.getOrDefault(alignmentLine, AlignmentLine.Unspecified)
 
     override fun replace() {
         placeAt(position, 0f, null)
@@ -432,7 +507,7 @@ internal abstract class LookaheadDelegate(
             coordinator.invalidateAlignmentLinesFromPositionChange()
         }
         if (!isPlacingForAlignment) {
-            captureRulers(measureResult)
+            captureRulersIfNeeded(measureResult)
         }
     }
 
@@ -444,10 +519,7 @@ internal abstract class LookaheadDelegate(
         measureResult.placeChildren()
     }
 
-    inline fun performingMeasure(
-        constraints: Constraints,
-        block: () -> MeasureResult
-    ): Placeable {
+    inline fun performingMeasure(constraints: Constraints, block: () -> MeasureResult): Placeable {
         measurementConstraints = constraints
         _measureResult = block()
         return this
@@ -479,7 +551,9 @@ internal abstract class LookaheadDelegate(
         var aggregatedOffset = IntOffset.Zero
         var lookaheadDelegate = this
         while (lookaheadDelegate != ancestor) {
-            if (!lookaheadDelegate.isDirectManipulationPlacement || !excludingAgnosticOffset) {
+            if (
+                !lookaheadDelegate.isPlacedUnderMotionFrameOfReference || !excludingAgnosticOffset
+            ) {
                 aggregatedOffset += lookaheadDelegate.position
             }
             lookaheadDelegate = lookaheadDelegate.coordinator.wrappedBy!!.lookaheadDelegate!!

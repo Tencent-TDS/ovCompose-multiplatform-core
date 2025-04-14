@@ -27,9 +27,6 @@ import android.util.Pair;
 import android.util.Range;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 import androidx.camera.core.CameraInfo;
 import androidx.camera.core.Logger;
@@ -54,6 +51,9 @@ import androidx.camera.extensions.internal.compat.workaround.ExtensionDisabledVa
 import androidx.camera.extensions.internal.sessionprocessor.BasicExtenderSessionProcessor;
 import androidx.core.util.Preconditions;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,11 +64,11 @@ import java.util.Map;
 /**
  * Basic vendor interface implementation
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class BasicVendorExtender implements VendorExtender {
     private static final String TAG = "BasicVendorExtender";
     private final ExtensionDisabledValidator mExtensionDisabledValidator =
             new ExtensionDisabledValidator();
+    private final @ExtensionMode.Mode int mMode;
     private PreviewExtenderImpl mPreviewExtenderImpl = null;
     private ImageCaptureExtenderImpl mImageCaptureExtenderImpl = null;
     private CameraInfoInternal mCameraInfo;
@@ -76,7 +76,7 @@ public class BasicVendorExtender implements VendorExtender {
     private CameraCharacteristics mCameraCharacteristics;
     private AvailableKeysRetriever mAvailableKeysRetriever = new AvailableKeysRetriever();
 
-    static final List<CaptureRequest.Key> sBaseSupportedKeys = new ArrayList<>(Arrays.asList(
+    static final List<CaptureRequest.Key<?>> sBaseSupportedKeys = new ArrayList<>(Arrays.asList(
             CaptureRequest.SCALER_CROP_REGION,
             CaptureRequest.CONTROL_AF_MODE,
             CaptureRequest.CONTROL_AF_TRIGGER,
@@ -95,6 +95,7 @@ public class BasicVendorExtender implements VendorExtender {
     }
 
     public BasicVendorExtender(@ExtensionMode.Mode int mode) {
+        mMode = mode;
         try {
             switch (mode) {
                 case ExtensionMode.BOKEH:
@@ -131,13 +132,14 @@ public class BasicVendorExtender implements VendorExtender {
             @Nullable PreviewExtenderImpl previewExtenderImpl) {
         mPreviewExtenderImpl = previewExtenderImpl;
         mImageCaptureExtenderImpl = imageCaptureExtenderImpl;
+        mMode = ExtensionMode.NONE;
     }
 
     @Override
     public boolean isExtensionAvailable(@NonNull String cameraId,
             @NonNull Map<String, CameraCharacteristics> characteristicsMap) {
 
-        if (mExtensionDisabledValidator.shouldDisableExtension()) {
+        if (mExtensionDisabledValidator.shouldDisableExtension(cameraId)) {
             return false;
         }
 
@@ -169,9 +171,8 @@ public class BasicVendorExtender implements VendorExtender {
                 + mImageCaptureExtenderImpl.getCaptureProcessor());
     }
 
-    @Nullable
     @Override
-    public Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
+    public @Nullable Range<Long> getEstimatedCaptureLatencyRange(@Nullable Size size) {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         if (mImageCaptureExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
                 Version.VERSION_1_2) >= 0) {
@@ -208,9 +209,8 @@ public class BasicVendorExtender implements VendorExtender {
         }
     }
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedPreviewOutputResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
 
         if (mPreviewExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
@@ -222,11 +222,11 @@ public class BasicVendorExtender implements VendorExtender {
                     // Ensure the PRIVATE format is in the list.
                     // PreviewExtenderImpl.getSupportedResolutions() returns the supported size
                     // for input surface. We need to ensure output surface format is supported.
-                    return replaceImageFormatIfMissing(result,
-                            /* formatToBeReplaced */
-                            ImageFormat.YUV_420_888,
-                            /* newFormat */
-                            ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE);
+                    return getSupportedResolutionsOfFormat(result,
+                            /* imageFormat */
+                            ImageFormatConstants.INTERNAL_DEFINED_IMAGE_FORMAT_PRIVATE,
+                            /* formatToBeReplacedIfMissing */
+                            ImageFormat.YUV_420_888);
                 }
             } catch (NoSuchMethodError e) {
             }
@@ -244,9 +244,8 @@ public class BasicVendorExtender implements VendorExtender {
     }
 
 
-    @NonNull
     @Override
-    public List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
+    public @NonNull List<Pair<Integer, Size[]>> getSupportedCaptureOutputResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         if (mImageCaptureExtenderImpl != null && ExtensionVersion.getRuntimeVersion().compareTo(
                 Version.VERSION_1_1) >= 0) {
@@ -254,74 +253,73 @@ public class BasicVendorExtender implements VendorExtender {
                 List<Pair<Integer, Size[]>> result =
                         mImageCaptureExtenderImpl.getSupportedResolutions();
                 if (result != null) {
-                    // Ensure the JPEG format is in the list.
-                    // ImageCaptureExtenderImpl.getSupportedResolutions() returns the supported
-                    // size for input surface. We need to ensure output surface format is supported.
-                    return replaceImageFormatIfMissing(result,
-                            ImageFormat.YUV_420_888 /* formatToBeReplaced */,
-                            ImageFormat.JPEG /* newFormat */);
+                    if (mImageCaptureExtenderImpl.getCaptureProcessor() != null) {
+                        // Return YUV supported resolutions when CaptureProcessor is enabled.
+                        // Replace JPEG as YUV sizes if YUV is missing.
+                        return getSupportedResolutionsOfFormat(result,
+                                ImageFormat.YUV_420_888 /* imageFormat */,
+                                ImageFormat.JPEG /* formatToBeReplacedIfMissing */);
+                    } else {
+                        return result;
+                    }
                 }
             } catch (NoSuchMethodError e) {
             }
         }
 
         // Returns output sizes from stream configuration map if OEM returns null or OEM does not
-        // implement the function. BasicVendorExtender's SessionProcessor will always output
-        // JPEG Images, but the input image which connect to the camera could be either YUV or
-        // JPEG. Since the input image from input surface is guaranteed to be able to output to
-        // the output surface, therefore we fetch the sizes from the input image format for the
-        // output format.
+        // implement the function. BasicVendorExtender's SessionProcessor will output
+        // YUV Images if CaptureProcessor implemented, otherwise it will output JPEG image
+        // directly.
         int inputImageFormat = getCaptureInputImageFormat();
-        return Arrays.asList(new Pair<>(ImageFormat.JPEG, getOutputSizes(inputImageFormat)));
+        return Arrays.asList(new Pair<>(inputImageFormat, getOutputSizes(inputImageFormat)));
     }
 
-    private List<Pair<Integer, Size[]>> replaceImageFormatIfMissing(
-            List<Pair<Integer, Size[]>> input, int formatToBeReplaced, int newFormat) {
-        for (Pair<Integer, Size[]> pair : input) {
-            if (pair.first == newFormat) {
-                return input;
-            }
-        }
-
+    private List<Pair<Integer, Size[]>> getSupportedResolutionsOfFormat(
+            List<Pair<Integer, Size[]>> input, int imageFormat, int formatToBeReplacedWhenMissing) {
         List<Pair<Integer, Size[]>> output = new ArrayList<>();
-        boolean formatFound = false;
+
         for (Pair<Integer, Size[]> pair : input) {
-            if (pair.first == formatToBeReplaced) {
-                formatFound = true;
-                output.add(new Pair<>(newFormat, pair.second));
-            } else {
-                output.add(pair);
+            if (pair.first == imageFormat) {
+                output.add(new Pair<>(imageFormat, pair.second));
+                return output;
             }
         }
 
-        if (!formatFound) {
+        for (Pair<Integer, Size[]> pair : input) {
+            if (pair.first == formatToBeReplacedWhenMissing) {
+                output.add(new Pair<>(imageFormat, pair.second));
+            }
+        }
+
+        if (output.isEmpty()) {
             throw new IllegalArgumentException(
-                    "Supported resolution should contain " + newFormat + " format.");
+                    "Supported resolution should contain " + imageFormat + " format.");
         }
         return output;
     }
 
-    @NonNull
     @Override
-    public Size[] getSupportedYuvAnalysisResolutions() {
+    public Size @NonNull [] getSupportedYuvAnalysisResolutions() {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         // Disable ImageAnalysis
         return new Size[0];
     }
 
-    @NonNull
-    private List<CaptureRequest.Key> getSupportedParameterKeys(Context context) {
+    private @NonNull List<CaptureRequest.Key<?>> getSupportedParameterKeys(Context context) {
         if (ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)) {
             try {
-                List<CaptureRequest.Key> keys =
+                List<CaptureRequest.Key<?>> keys = new ArrayList<>();
+                for (CaptureRequest.Key<?> key :
                         mAvailableKeysRetriever.getAvailableCaptureRequestKeys(
-                                mImageCaptureExtenderImpl,
-                                mCameraId,
-                                mCameraCharacteristics,
-                                context);
-                if (keys != null) {
-                    return Collections.unmodifiableList(keys);
+                        mImageCaptureExtenderImpl,
+                        mCameraId,
+                        mCameraCharacteristics,
+                        context)) {
+                    keys.add(key);
                 }
+
+                return Collections.unmodifiableList(keys);
             } catch (Exception e) {
                 // it could crash on some OEMs.
                 Logger.e(TAG, "ImageCaptureExtenderImpl.getAvailableCaptureRequestKeys "
@@ -335,8 +333,8 @@ public class BasicVendorExtender implements VendorExtender {
         }
     }
 
-    @NonNull
-    private List<CaptureResult.Key> getSupportedCaptureResultKeys() {
+    @Override
+    public @NonNull List<CaptureResult.Key> getSupportedCaptureResultKeys() {
         if (ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_3)) {
             try {
                 List<CaptureResult.Key> keys =
@@ -353,9 +351,9 @@ public class BasicVendorExtender implements VendorExtender {
         return Collections.emptyList();
     }
 
-    @NonNull
     @Override
-    public Map<Integer, List<Size>> getSupportedPostviewResolutions(@NonNull Size captureSize) {
+    public @NonNull Map<Integer, List<Size>> getSupportedPostviewResolutions(
+            @NonNull Size captureSize) {
         if (ClientVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)
                 && ExtensionVersion.isMinimumCompatibleVersion(Version.VERSION_1_4)) {
             List<Pair<Integer, Size[]>> list =
@@ -398,15 +396,14 @@ public class BasicVendorExtender implements VendorExtender {
         return false;
     }
 
-    @Nullable
     @Override
-    public SessionProcessor createSessionProcessor(@NonNull Context context) {
+    public @Nullable SessionProcessor createSessionProcessor(@NonNull Context context) {
         Preconditions.checkNotNull(mCameraInfo, "VendorExtender#init() must be called first");
         return new BasicExtenderSessionProcessor(
                 mPreviewExtenderImpl, mImageCaptureExtenderImpl,
                 getSupportedParameterKeys(context),
-                getSupportedCaptureResultKeys(),
                 this,
-                context);
+                context,
+                mMode);
     }
 }

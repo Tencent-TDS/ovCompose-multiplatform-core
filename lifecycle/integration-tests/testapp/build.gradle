@@ -21,6 +21,7 @@ plugins {
 }
 
 dependencies {
+    api(libs.jspecify)
     implementation(libs.kotlinStdlib)
     implementation("androidx.fragment:fragment:1.3.0") {
         exclude group: "androidx.lifecycle", module: "lifecycle-runtime"
@@ -31,7 +32,6 @@ dependencies {
     annotationProcessor(project(":lifecycle:lifecycle-compiler"))
 
     androidTestAnnotationProcessor(project(":lifecycle:lifecycle-compiler"))
-    // androidTestImplementation("androidx.lifecycle:lifecycle-common:2.6.1")
     androidTestImplementation(project(":lifecycle:lifecycle-common")) // Added for b/155802460
     androidTestImplementation(libs.testExtJunit)
     androidTestImplementation(libs.testCore)
@@ -46,5 +46,5 @@ dependencies {
 }
 
 android {
-    namespace "androidx.lifecycle.testapp"
+    namespace = "androidx.lifecycle.testapp"
 }

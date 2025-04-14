@@ -19,19 +19,17 @@ import androidx.annotation.RestrictTo
 import androidx.room.util.getTotalChangedRows
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.SQLiteStatement
-import androidx.sqlite.use
 
 /**
  * Implementations of this class know how to delete or update a particular entity.
  *
  * This is an library class and all of its implementations are auto-generated.
  *
- * @constructor Creates a DeletionOrUpdateAdapter that can delete or update the entity type T on the
- * given database.
- *
  * @param T The type parameter of the entity to be deleted
-*/
-@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX)
+ * @constructor Creates a DeletionOrUpdateAdapter that can delete or update the entity type T on the
+ *   given database.
+ */
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP_PREFIX) // used in generated code
 abstract class EntityDeleteOrUpdateAdapter<T> {
     /**
      * Create the deletion or update query
@@ -43,9 +41,8 @@ abstract class EntityDeleteOrUpdateAdapter<T> {
     /**
      * Binds the entity into the given statement.
      *
-     * @param statement The SQLite statement that prepared for the query returned from
-     * createQuery.
-     * @param entity    The entity of type T.
+     * @param statement The SQLite statement that prepared for the query returned from createQuery.
+     * @param entity The entity of type T.
      */
     protected abstract fun bind(statement: SQLiteStatement, entity: T)
 
@@ -55,10 +52,8 @@ abstract class EntityDeleteOrUpdateAdapter<T> {
      * @param entity The entity to delete or update
      * @return The number of affected rows
      */
-    fun handle(
-        connection: SQLiteConnection,
-        entity: T
-    ): Int {
+    fun handle(connection: SQLiteConnection, entity: T?): Int {
+        if (entity == null) return 0
         connection.prepare(createQuery()).use { stmt ->
             bind(stmt, entity)
             stmt.step()
@@ -72,13 +67,12 @@ abstract class EntityDeleteOrUpdateAdapter<T> {
      * @param entities Entities to delete or update
      * @return The number of affected rows
      */
-    fun handleMultiple(
-        connection: SQLiteConnection,
-        entities: Iterable<T>
-    ): Int {
+    fun handleMultiple(connection: SQLiteConnection, entities: Iterable<T?>?): Int {
+        if (entities == null) return 0
         var total = 0
         connection.prepare(createQuery()).use { stmt ->
-            entities.forEach { entity ->
+            for (entity in entities) {
+                if (entity == null) continue
                 bind(stmt, entity)
                 stmt.step()
                 stmt.reset()
@@ -94,13 +88,12 @@ abstract class EntityDeleteOrUpdateAdapter<T> {
      * @param entities Entities to delete or update
      * @return The number of affected rows
      */
-    fun handleMultiple(
-        connection: SQLiteConnection,
-        entities: Array<out T>
-    ): Int {
+    fun handleMultiple(connection: SQLiteConnection, entities: Array<out T?>?): Int {
+        if (entities == null) return 0
         var total = 0
         connection.prepare(createQuery()).use { stmt ->
-            entities.forEach { entity ->
+            for (entity in entities) {
+                if (entity == null) continue
                 bind(stmt, entity)
                 stmt.step()
                 stmt.reset()

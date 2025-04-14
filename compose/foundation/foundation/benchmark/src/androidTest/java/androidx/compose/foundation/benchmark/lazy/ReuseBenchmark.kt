@@ -40,16 +40,11 @@ import org.junit.runners.MethodSorters
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class ReuseBenchmark {
 
-    @get:Rule
-    val rule = ComposeBenchmarkRule()
+    @get:Rule val rule = ComposeBenchmarkRule()
 
     @Test
     fun create_button() {
-        rule.benchmarkCreateFor {
-            Button(onClick = {}) {
-                Text("Hello")
-            }
-        }
+        rule.benchmarkCreateFor { Button(onClick = {}) { Text("Hello") } }
     }
 
     @Test
@@ -66,23 +61,13 @@ class ReuseBenchmark {
     @Test
     fun create_lazy_column() {
         rule.benchmarkCreateFor {
-            LazyColumn {
-                items(10) {
-                    Button(onClick = {}) {
-                        Text("Hello")
-                    }
-                }
-            }
+            LazyColumn { items(10) { Button(onClick = {}) { Text("Hello") } } }
         }
     }
 
     @Test
     fun reuse_button() {
-        rule.benchmarkReuseFor {
-            Button(onClick = {}) {
-                Text("Hello")
-            }
-        }
+        rule.benchmarkReuseFor { Button(onClick = {}) { Text("Hello") } }
     }
 
     @Test
@@ -99,13 +84,7 @@ class ReuseBenchmark {
     @Test
     fun reuse_lazy_column() {
         rule.benchmarkReuseFor {
-            LazyColumn {
-                items(10) {
-                    Button(onClick = {}) {
-                        Text("Hello")
-                    }
-                }
-            }
+            LazyColumn { items(10) { Button(onClick = {}) { Text("Hello") } } }
         }
     }
 
@@ -113,13 +92,7 @@ class ReuseBenchmark {
     fun dispose_lazy_column() {
         rule.disposeBenchmark {
             SubcomposeLayoutReuseTestCase(reusableSlots = 0) {
-                LazyColumn {
-                    items(10) {
-                        Button(onClick = {}) {
-                            Text("Hello")
-                        }
-                    }
-                }
+                LazyColumn { items(10) { Button(onClick = {}) { Text("Hello") } } }
             }
         }
     }
@@ -128,13 +101,7 @@ class ReuseBenchmark {
     fun deactivate_lazy_column() {
         rule.disposeBenchmark {
             SubcomposeLayoutReuseTestCase(reusableSlots = 1) {
-                LazyColumn {
-                    items(10) {
-                        Button(onClick = {}) {
-                            Text("Hello")
-                        }
-                    }
-                }
+                LazyColumn { items(10) { Button(onClick = {}) { Text("Hello") } } }
             }
         }
     }
@@ -147,9 +114,7 @@ internal fun ComposeExecutionControl.doFramesUntilIdle() {
 }
 
 private fun ComposeBenchmarkRule.benchmarkCreateFor(content: @Composable () -> Unit) {
-    createBenchmark {
-        SubcomposeLayoutReuseTestCase(reusableSlots = 0, content)
-    }
+    createBenchmark { SubcomposeLayoutReuseTestCase(reusableSlots = 0, content) }
 }
 
 private fun ComposeBenchmarkRule.createBenchmark(
@@ -162,7 +127,7 @@ private fun ComposeBenchmarkRule.createBenchmark(
         }
 
         measureRepeatedOnUiThread {
-            runWithTimingDisabled {
+            runWithMeasurementDisabled {
                 assertNoPendingChanges()
                 getTestCase().clearContent()
                 doFramesUntilIdle()
@@ -189,7 +154,7 @@ private fun ComposeBenchmarkRule.disposeBenchmark(
             getTestCase().clearContent()
             doFramesUntilIdle()
 
-            runWithTimingDisabled {
+            runWithMeasurementDisabled {
                 assertNoPendingChanges()
                 getTestCase().initContent()
                 doFramesUntilIdle()

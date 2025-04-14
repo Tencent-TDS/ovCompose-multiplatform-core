@@ -20,6 +20,8 @@ import android.annotation.SuppressLint;
 
 import androidx.annotation.RestrictTo;
 
+import org.jspecify.annotations.NonNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,7 +54,7 @@ public enum WidgetType {
     }
 
     /** Returns the WidgetType corresponding to the id. */
-    public static WidgetType of(int id) {
+    public static @NonNull WidgetType of(int id) {
         return LOOKUP_MAP.get(id);
     }
 

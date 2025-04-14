@@ -15,13 +15,25 @@
  */
 package androidx.lifecycle
 
+import androidx.annotation.RestrictTo
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-@Suppress("ACTUAL_WITHOUT_EXPECT") // https://youtrack.jetbrains.com/issue/KT-37316
-public actual typealias AtomicReference<V> = AtomicReference<V>
+// TODO(b/320544977): Switch back to typealias when RestrictTo supports it. For now, we use an
+//  actual class implementation that delegates to the Java class, ensuring that the signatures of
+//  the members match the ones expected by the expect declaration
+@RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
+public actual class AtomicReference<V> actual constructor(initialValue: V) {
+
+    private val base = AtomicReference<V>(initialValue)
+
+    public actual fun get(): V = base.get()
+
+    public actual fun compareAndSet(expectedValue: V, newValue: V): Boolean =
+        base.compareAndSet(expectedValue, newValue)
+}
 
 /**
  * [CoroutineScope] tied to a [Lifecycle] and
@@ -46,9 +58,10 @@ public actual abstract class LifecycleCoroutineScope internal actual constructor
      * @see Lifecycle.coroutineScope
      */
     @Deprecated(
-        message = "launchWhenCreated is deprecated as it can lead to wasted resources " +
-            "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
-            "the Lifecycle state is at least Lifecycle.State.CREATED."
+        message =
+            "launchWhenCreated is deprecated as it can lead to wasted resources " +
+                "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
+                "the Lifecycle state is at least Lifecycle.State.CREATED."
     )
     @Suppress("DEPRECATION")
     public fun launchWhenCreated(block: suspend CoroutineScope.() -> Unit): Job = launch {
@@ -65,9 +78,10 @@ public actual abstract class LifecycleCoroutineScope internal actual constructor
      * @see Lifecycle.coroutineScope
      */
     @Deprecated(
-        message = "launchWhenStarted is deprecated as it can lead to wasted resources " +
-            "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
-            "the Lifecycle state is at least Lifecycle.State.STARTED."
+        message =
+            "launchWhenStarted is deprecated as it can lead to wasted resources " +
+                "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
+                "the Lifecycle state is at least Lifecycle.State.STARTED."
     )
     @Suppress("DEPRECATION")
     public fun launchWhenStarted(block: suspend CoroutineScope.() -> Unit): Job = launch {
@@ -84,9 +98,10 @@ public actual abstract class LifecycleCoroutineScope internal actual constructor
      * @see Lifecycle.coroutineScope
      */
     @Deprecated(
-        message = "launchWhenResumed is deprecated as it can lead to wasted resources " +
-            "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
-            "the Lifecycle state is at least Lifecycle.State.RESUMED."
+        message =
+            "launchWhenResumed is deprecated as it can lead to wasted resources " +
+                "in some cases. Replace with suspending repeatOnLifecycle to run the block whenever " +
+                "the Lifecycle state is at least Lifecycle.State.RESUMED."
     )
     @Suppress("DEPRECATION")
     public fun launchWhenResumed(block: suspend CoroutineScope.() -> Unit): Job = launch {

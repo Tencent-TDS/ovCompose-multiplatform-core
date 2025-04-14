@@ -5,7 +5,7 @@ package androidx.collection {
     ctor public ArrayMap();
     ctor public ArrayMap(androidx.collection.SimpleArrayMap?);
     ctor public ArrayMap(int);
-    method public boolean containsAll(java.util.Collection<?>);
+    method public boolean containsAll(java.util.Collection<? extends java.lang.Object!>);
     method public boolean containsKey(Object?);
     method public boolean containsValue(Object?);
     method public java.util.Set<java.util.Map.Entry<K!,V!>!> entrySet();
@@ -13,8 +13,8 @@ package androidx.collection {
     method public java.util.Set<K!> keySet();
     method public void putAll(java.util.Map<? extends K!,? extends V!>);
     method public V! remove(Object?);
-    method public boolean removeAll(java.util.Collection<?>);
-    method public boolean retainAll(java.util.Collection<?>);
+    method public boolean removeAll(java.util.Collection<? extends java.lang.Object!>);
+    method public boolean retainAll(java.util.Collection<? extends java.lang.Object!>);
     method public java.util.Collection<V!> values();
   }
 
@@ -24,9 +24,9 @@ package androidx.collection {
   }
 
   public final class ArraySet<E> implements java.util.Collection<E> kotlin.jvm.internal.markers.KMutableCollection kotlin.jvm.internal.markers.KMutableSet java.util.Set<E> {
+    ctor public ArraySet();
     ctor public ArraySet(androidx.collection.ArraySet<? extends E>? set);
     ctor public ArraySet(E[]? array);
-    ctor public ArraySet();
     ctor public ArraySet(optional int capacity);
     ctor public ArraySet(java.util.Collection<? extends E>? set);
     method public boolean add(E element);

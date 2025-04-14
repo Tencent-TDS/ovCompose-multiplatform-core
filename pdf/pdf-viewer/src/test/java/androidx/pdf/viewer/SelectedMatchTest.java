@@ -23,8 +23,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.graphics.Rect;
 
-import androidx.pdf.aidl.MatchRects;
-import androidx.test.filters.SmallTest;
+import androidx.pdf.models.MatchRects;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,9 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-@SmallTest
 @RunWith(RobolectricTestRunner.class)
-
 public class SelectedMatchTest {
 
     @Test

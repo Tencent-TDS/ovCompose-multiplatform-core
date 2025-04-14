@@ -21,7 +21,6 @@ import static androidx.wear.protolayout.DimensionBuilders.dp;
 import static androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_CENTER;
 import static androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_END;
 import static androidx.wear.protolayout.LayoutElementBuilders.HORIZONTAL_ALIGN_START;
-
 import static androidx.wear.protolayout.material.ProgressIndicatorDefaults.GAP_END_ANGLE;
 import static androidx.wear.protolayout.material.ProgressIndicatorDefaults.GAP_START_ANGLE;
 
@@ -30,7 +29,6 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import android.content.Context;
 import android.graphics.Color;
 
-import androidx.annotation.NonNull;
 import androidx.wear.protolayout.ActionBuilders.LaunchAction;
 import androidx.wear.protolayout.DeviceParametersBuilders;
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters;
@@ -44,6 +42,8 @@ import androidx.wear.protolayout.ModifiersBuilders.Clickable;
 import androidx.wear.protolayout.ModifiersBuilders.Modifiers;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.jspecify.annotations.NonNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -64,10 +64,9 @@ public class TestCasesGenerator {
      * as it should point on the same size independent image. These test cases are meant to be
      * tested in RTL and LTR modes.
      */
-    @NonNull
-    static ImmutableMap<String, Layout> generateTestCases(
+    static @NonNull ImmutableMap<String, Layout> generateTestCases(
             @NonNull Context context,
-            @NonNull DeviceParametersBuilders.DeviceParameters deviceParameters,
+            DeviceParametersBuilders.@NonNull DeviceParameters deviceParameters,
             @NonNull String goldenSuffix) {
         Clickable clickable =
                 new Clickable.Builder()
@@ -375,8 +374,7 @@ public class TestCasesGenerator {
      * Generates test cases for text only material components. The text is provided in English and
      * suitable for LTR tests. {@code _en} will be appended to the {@code goldenSuffix}.
      */
-    @NonNull
-    static ImmutableMap<String, Layout> generateTextTestCasesLtrOnly(
+    static @NonNull ImmutableMap<String, Layout> generateTextTestCasesLtrOnly(
             @NonNull Context context,
             @NonNull DeviceParameters deviceParameters,
             @NonNull String goldenSuffix) {
@@ -394,8 +392,7 @@ public class TestCasesGenerator {
      * Generates test cases for text only material components. The text is provided in Arabic and
      * suitable for RTL tests. {@code _ar} will be appended to the {@code goldenSuffix}.
      */
-    @NonNull
-    static ImmutableMap<String, Layout> generateTextTestCasesRtlOnly(
+    static @NonNull ImmutableMap<String, Layout> generateTextTestCasesRtlOnly(
             @NonNull Context context,
             @NonNull DeviceParameters deviceParameters,
             @NonNull String goldenSuffix) {
@@ -406,7 +403,7 @@ public class TestCasesGenerator {
                 "التسمية الأولية",
                 "نص اختباري.",
                 "نص طويل جدًا لا يمكن احتواؤه في المربع الأصلي الخاص به، لذا يجب تغيير حجمه بشكل"
-                    + " صحيح قبل السطر الأخير");
+                        + " صحيح قبل السطر الأخير");
     }
 
     /**
@@ -414,9 +411,8 @@ public class TestCasesGenerator {
      * different for different user font sizes. Note that some of the golden will have the same name
      * as it should point on the same size independent image.
      */
-    @NonNull
-    @SuppressWarnings("deprecation")    // TEXT_OVERFLOW_ELLIPSIZE_END
-    private static ImmutableMap<String, Layout> generateTextTestCasesForLanguage(
+    @SuppressWarnings("deprecation") // TEXT_OVERFLOW_ELLIPSIZE_END
+    private static @NonNull ImmutableMap<String, Layout> generateTextTestCasesForLanguage(
             @NonNull Context context,
             @NonNull DeviceParameters deviceParameters,
             @NonNull String goldenSuffix,
@@ -439,18 +435,9 @@ public class TestCasesGenerator {
                         .setColor(argb(Color.YELLOW))
                         .setWeight(LayoutElementBuilders.FONT_WEIGHT_BOLD)
                         .setTypography(Typography.TYPOGRAPHY_BODY2)
-                        .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_START)
                         .build());
         testCases.put(
-                "overflow_text_golden" + goldenSuffix,
-                new Text.Builder(context, longText)
-                        .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_START)
-                        .build());
-        testCases.put(
-                "overflow_text_center_golden" + goldenSuffix,
-                new Text.Builder(context, longText)
-                        .setMultilineAlignment(LayoutElementBuilders.TEXT_ALIGN_CENTER)
-                        .build());
+                "overflow_text_golden" + goldenSuffix, new Text.Builder(context, longText).build());
         testCases.put(
                 "overflow_ellipsize_maxlines_notreached" + goldenSuffix,
                 new Box.Builder()

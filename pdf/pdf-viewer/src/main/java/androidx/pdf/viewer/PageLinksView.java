@@ -19,24 +19,28 @@ package androidx.pdf.viewer;
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.RestrictTo;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.customview.widget.ExploreByTouchHelper;
-import androidx.pdf.aidl.LinkRects;
+import androidx.pdf.R;
+import androidx.pdf.models.GotoLink;
+import androidx.pdf.models.LinkRects;
+import androidx.pdf.util.ExternalLinks;
 import androidx.pdf.util.ObservableValue;
 import androidx.pdf.widget.ZoomView;
 
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A transparent container for virtual views representing clickable links within the Page. NOTE:
@@ -50,15 +54,18 @@ public class PageLinksView extends LinearLayout {
 
     private static final Rect DUMMY_RECT = new Rect(0, 0, 1, 1);
 
-    @Nullable
-    private LinkRects mUrlLinks;
+    private @Nullable LinkRects mUrlLinks;
+    private List<GotoLink> mGotoLinks;
+    private final ObservableValue<ZoomView.ZoomScroll> mZoomScroll;
     private ExploreByTouchHelper mTouchHelper;
 
-    public PageLinksView(Context context, ObservableValue<ZoomView.ZoomScroll> zoomScroll) {
+    public PageLinksView(@NonNull Context context,
+            @NonNull ObservableValue<ZoomView.ZoomScroll> zoomScroll) {
         super(context);
         setLayoutParams(
                 new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT));
+        this.mZoomScroll = zoomScroll;
         setWillNotDraw(true);
         setFocusableInTouchMode(false);
     }
@@ -72,9 +79,19 @@ public class PageLinksView extends LinearLayout {
         }
     }
 
+    /** Set page goto links. */
+    public void setPageGotoLinks(@Nullable List<GotoLink> links) {
+        mGotoLinks = links;
+        if (links != null && !links.isEmpty() && mTouchHelper == null) {
+            this.mTouchHelper = new PageTouchHelper();
+            ViewCompat.setAccessibilityDelegate(this, mTouchHelper);
+        }
+    }
+
     /** Reset page URL links to null. */
     public void clearAll() {
         setPageUrlLinks(null);
+        mGotoLinks = null;
     }
 
     @Override
@@ -115,14 +132,20 @@ public class PageLinksView extends LinearLayout {
                     }
                 }
             }
-            return INVALID_ID;
+            return getVirtualViewForGotoLink(x, y, linkSize);
         }
 
         @Override
         protected void getVisibleVirtualViews(List<Integer> virtualViewIds) {
+            int linkSize = mUrlLinks != null ? mUrlLinks.size() : 0;
             if (mUrlLinks != null) {
                 for (int i = 0; i < mUrlLinks.size(); i++) {
                     virtualViewIds.add(i);
+                }
+            }
+            if (mGotoLinks != null) {
+                for (int i = 0; i < mGotoLinks.size(); i++) {
+                    virtualViewIds.add((linkSize - 1) + i);
                 }
             }
         }
@@ -158,21 +181,70 @@ public class PageLinksView extends LinearLayout {
 
             node.setContentDescription(getContentDescription(virtualViewId));
             node.setFocusable(true);
+
+            int linkSize = mUrlLinks != null ? mUrlLinks.size() : 0;
+            int gotoLinksSize = mGotoLinks != null ? mGotoLinks.size() : 0;
+            Rect bounds = null;
+            if (virtualViewId < linkSize) {
+                bounds = new Rect(mUrlLinks.get(virtualViewId).get(0));
+            } else if (virtualViewId < linkSize + gotoLinksSize) {
+                // TODO: Add list handling instead of taking its first element
+                bounds = mGotoLinks.get(virtualViewId - linkSize).getBounds().get(0);
+            }
+
+            if (bounds != null) {
+                // The AccessibilityNodeInfo isn't automatically scaled by the scaling of the View
+                // it is part of, so we have to do that ourselves - in contrast to
+                // #getVirtualViewAt.
+                float zoom = Objects.requireNonNull(mZoomScroll.get()).zoom;
+
+                // Explicitly cast to int after scaling
+                bounds.top = (int) (bounds.top * zoom);
+                bounds.bottom = (int) (bounds.bottom * zoom);
+                bounds.left = (int) (bounds.left * zoom);
+                bounds.right = (int) (bounds.right * zoom);
+
+                node.setBoundsInParent(bounds);
+            }
         }
 
         private boolean isLinkLoaded(int virtualViewId) {
-            Log.d(TAG, String.format("virtualViewId %d", virtualViewId));
             // Links can be deleted as we unload pages as the user scrolls around - if this
             // happens but an event for the link somehow happens afterward, we should ignore it
             // and try not to crash. Also, the accessibility framework sometimes requests links
             // that don't exist - eg it requests the virtual view at Integer.MAX_VALUE
-            return true; // TODO: Uncomment after resolving goto pagelinks
+            int linkSize = mUrlLinks != null ? mUrlLinks.size() : 0;
+            int gotoLinksSize = mGotoLinks != null ? mGotoLinks.size() : 0;
+            return virtualViewId >= 0 && virtualViewId < linkSize + gotoLinksSize;
         }
 
         private String getContentDescription(int virtualViewId) {
-            Log.d(TAG, String.format("virtualViewId %d", virtualViewId));
-            // TODO: Uncomment after resolving gotopagelinks
+            int linkSize = mUrlLinks != null ? mUrlLinks.size() : 0;
+            int gotoLinksSize = mGotoLinks != null ? mGotoLinks.size() : 0;
+            if (virtualViewId < linkSize) {
+                return ExternalLinks.getDescription(mUrlLinks.getUrl(virtualViewId), getContext());
+            } else if (virtualViewId < linkSize + gotoLinksSize) {
+                int pageNum = mGotoLinks.get(
+                        virtualViewId - linkSize).getDestination().getPageNumber();
+                return getContext().getString(R.string.desc_goto_link, pageNum);
+            }
             return "";
+        }
+
+        private int getVirtualViewForGotoLink(float x, float y, int linkSize) {
+            if (mGotoLinks != null) {
+                for (int i = 0; i < mGotoLinks.size(); i++) {
+                    GotoLink gotoLink = mGotoLinks.get(i);
+                    if (gotoLink.getBounds() != null) {
+                        // TODO: Add list handling instead of taking its first element
+                        Rect rect = gotoLink.getBounds().get(0);
+                        if (rect.contains((int) x, (int) y)) {
+                            return (linkSize - 1) + i;
+                        }
+                    }
+                }
+            }
+            return INVALID_ID;
         }
     }
 }

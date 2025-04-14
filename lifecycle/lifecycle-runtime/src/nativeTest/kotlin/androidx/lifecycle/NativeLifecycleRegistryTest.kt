@@ -17,7 +17,8 @@
 package androidx.lifecycle
 
 import androidx.kruth.assertThat
-import kotlin.native.internal.GC
+import kotlin.native.runtime.GC
+import kotlin.native.runtime.NativeRuntimeApi
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 
@@ -27,13 +28,15 @@ class NativeLifecycleRegistryTest {
 
     @BeforeTest
     fun init() {
-        mLifecycleOwner = object : LifecycleOwner {
-            override val lifecycle get() = mRegistry
-        }
+        mLifecycleOwner =
+            object : LifecycleOwner {
+                override val lifecycle
+                    get() = mRegistry
+            }
         mRegistry = LifecycleRegistry.createUnsafe(mLifecycleOwner!!)
     }
 
-    @Suppress("DEPRECATION")
+    @OptIn(NativeRuntimeApi::class)
     private fun forceGc() {
         GC.collect()
         GC.collect()

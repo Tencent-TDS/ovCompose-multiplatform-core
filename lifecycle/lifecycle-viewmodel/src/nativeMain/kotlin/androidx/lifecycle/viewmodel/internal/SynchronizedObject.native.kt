@@ -15,7 +15,8 @@
  */
 package androidx.lifecycle.viewmodel.internal
 
-import kotlin.native.internal.createCleaner
+import kotlin.experimental.ExperimentalNativeApi
+import kotlin.native.ref.createCleaner
 import kotlinx.cinterop.Arena
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.alloc
@@ -29,10 +30,10 @@ import platform.posix.pthread_mutexattr_destroy
 import platform.posix.pthread_mutexattr_init
 import platform.posix.pthread_mutexattr_settype
 import platform.posix.pthread_mutexattr_t
+
 /**
- * Wrapper for platform.posix.PTHREAD_MUTEX_RECURSIVE which
- * is represented as kotlin.Int on darwin platforms and kotlin.UInt on linuxX64
- * See: // https://youtrack.jetbrains.com/issue/KT-41509
+ * Wrapper for platform.posix.PTHREAD_MUTEX_RECURSIVE which is represented as kotlin.Int on darwin
+ * platforms and kotlin.UInt on linuxX64 See: // https://youtrack.jetbrains.com/issue/KT-41509
  */
 internal expect val PTHREAD_MUTEX_RECURSIVE: Int
 
@@ -41,7 +42,7 @@ internal actual class SynchronizedObject actual constructor() {
     private val resource = Resource()
 
     @Suppress("unused") // The returned Cleaner must be assigned to a property
-    @OptIn(ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalNativeApi::class)
     private val cleaner = createCleaner(resource, Resource::dispose)
 
     fun lock() {

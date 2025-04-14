@@ -26,10 +26,10 @@ import android.media.MediaFormat;
 import android.os.Build;
 import android.util.Size;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.impl.Quirk;
+
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,9 +89,9 @@ import java.util.Set;
  *                  </ul>
  *     Device(s): Nokia 1, Motc C, X650, LG-X230, Positivo Twist 2 Pro, Huawei Mate9,
  *                Redmi Note 8 Pro, Redmi Note 4, Redmi Note 9, Redmi 9, LG K10 LTE K430,
- *                Samsung Galaxy A03 Core, Vivo Y75, Realme C11 2021
+ *                Samsung Galaxy A03 Core, Vivo Y75, Realme C11 2021, Redmi 12, Realme GT neo5 SE,
+ *                Realme C35, Vivo Y22, Motorola Moto E20
  */
-@RequiresApi(21) // TODO(b/200306659): Remove and replace with annotation on package-info.java
 public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
 
     static boolean load() {
@@ -142,7 +142,12 @@ public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
             "sm-a035m",
             "v2204",
             "23078pnd5g",
-            "pht110"
+            "pht110",
+            "23053rn02l", // Redmi 12
+            "rmx3710", // Realme GT neo5 SE
+            "rmx3511", // Realme C35
+            "v2207", // Vivo Y22
+            "moto e20" // Motorola Moto E20
     );
 
     /** Check if problematic MediaFormat info for these candidate devices. */
@@ -162,8 +167,7 @@ public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
      * Returns the extra supported sizes for the problematic devices if any, otherwise returns an
      * empty set.
      */
-    @NonNull
-    public static Set<Size> getExtraSupportedSizes() {
+    public static @NonNull Set<Size> getExtraSupportedSizes() {
         if (isFHDProblematicDevice()) {
             return Collections.singleton(new Size(1920, 1080));
         }
@@ -200,8 +204,7 @@ public class MediaCodecInfoReportIncorrectInfoQuirk implements Quirk {
             return formatWidth == width && formatHeight == height;
         }
 
-        @Nullable
-        private String getMime() {
+        private @Nullable String getMime() {
             return mMediaFormat.getString(MediaFormat.KEY_MIME);
         }
     }

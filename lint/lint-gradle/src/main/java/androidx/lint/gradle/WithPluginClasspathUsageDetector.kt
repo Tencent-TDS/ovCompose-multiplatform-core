@@ -26,6 +26,7 @@ import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity
 import com.android.tools.lint.detector.api.SourceCodeScanner
 import com.intellij.psi.PsiMethod
+import java.util.EnumSet
 import org.jetbrains.uast.UCallExpression
 
 class WithPluginClasspathUsageDetector : Detector(), SourceCodeScanner {
@@ -35,15 +36,17 @@ class WithPluginClasspathUsageDetector : Detector(), SourceCodeScanner {
     override fun visitMethodCall(context: JavaContext, node: UCallExpression, method: PsiMethod) {
         val evaluator = context.evaluator
 
-        val message = "Avoid usage of GradleRunner#withPluginClasspath, which is broken. " +
-            "Instead use something like https://github.com/autonomousapps/" +
-            "dependency-analysis-gradle-plugin/tree/main/testkit#gradle-testkit-support-plugin"
+        val message =
+            "Avoid usage of GradleRunner#withPluginClasspath, which is broken. " +
+                "Instead use something like https://github.com/autonomousapps/" +
+                "dependency-analysis-gradle-plugin/tree/main/testkit#gradle-testkit-support-plugin"
 
-        val incident = Incident(context)
-            .issue(ISSUE)
-            .location(context.getNameLocation(node))
-            .message(message)
-            .scope(node)
+        val incident =
+            Incident(context)
+                .issue(ISSUE)
+                .location(context.getNameLocation(node))
+                .message(message)
+                .scope(node)
 
         if (evaluator.isMemberInClass(node.resolve(), "org.gradle.testkit.runner.GradleRunner")) {
             context.report(incident)
@@ -51,20 +54,23 @@ class WithPluginClasspathUsageDetector : Detector(), SourceCodeScanner {
     }
 
     companion object {
-        val ISSUE: Issue = Issue.create(
-            id = "WithPluginClasspathUsage",
-            briefDescription = "Flags usage of GradleRunner#withPluginClasspath",
-            explanation = """
+        val ISSUE: Issue =
+            Issue.create(
+                id = "WithPluginClasspathUsage",
+                briefDescription = "Flags usage of GradleRunner#withPluginClasspath",
+                explanation =
+                    """
                 This check flags usage of `GradleRunner#withPluginClasspath` in tests,
                 as it might lead to potential issues or it is discouraged in certain contexts.
             """,
-            category = Category.CORRECTNESS,
-            priority = 5,
-            severity = Severity.ERROR,
-            implementation = Implementation(
-                WithPluginClasspathUsageDetector::class.java,
-                Scope.JAVA_FILE_SCOPE
+                category = Category.CORRECTNESS,
+                priority = 5,
+                severity = Severity.ERROR,
+                implementation =
+                    Implementation(
+                        WithPluginClasspathUsageDetector::class.java,
+                        EnumSet.of(Scope.JAVA_FILE, Scope.TEST_SOURCES)
+                    )
             )
-        )
     }
 }

@@ -18,16 +18,19 @@ package androidx.pdf.viewer.loader;
 
 import android.graphics.Bitmap;
 import android.graphics.Rect;
-import android.util.Log;
 
 import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
-import androidx.pdf.aidl.Dimensions;
-import androidx.pdf.aidl.LinkRects;
-import androidx.pdf.aidl.MatchRects;
-import androidx.pdf.aidl.PageSelection;
+import androidx.pdf.data.DisplayData;
 import androidx.pdf.data.PdfStatus;
+import androidx.pdf.models.Dimensions;
+import androidx.pdf.models.GotoLink;
+import androidx.pdf.models.LinkRects;
+import androidx.pdf.models.MatchRects;
+import androidx.pdf.models.PageSelection;
 import androidx.pdf.util.TileBoard.TileInfo;
+
+import org.jspecify.annotations.NonNull;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -43,7 +46,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     private static final String TAG = WeakPdfLoaderCallbacks.class.getSimpleName();
 
     /** Take some callbacks and hold them with only a weak reference. */
-    public static WeakPdfLoaderCallbacks wrap(PdfLoaderCallbacks delegate) {
+    public static @NonNull WeakPdfLoaderCallbacks wrap(@NonNull PdfLoaderCallbacks delegate) {
         if (delegate instanceof WeakPdfLoaderCallbacks) {
             return (WeakPdfLoaderCallbacks) delegate;
         }
@@ -53,7 +56,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     private final WeakReference<PdfLoaderCallbacks> mDelegate;
 
     @VisibleForTesting
-    protected WeakPdfLoaderCallbacks(PdfLoaderCallbacks delegate) {
+    protected WeakPdfLoaderCallbacks(@NonNull PdfLoaderCallbacks delegate) {
         this.mDelegate = new WeakReference<PdfLoaderCallbacks>(delegate);
     }
 
@@ -66,15 +69,15 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void documentLoaded(int numPages) {
+    public void documentLoaded(int numPages, @NonNull DisplayData data) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
-            callbacks.documentLoaded(numPages);
+            callbacks.documentLoaded(numPages, data);
         }
     }
 
     @Override
-    public void documentNotLoaded(PdfStatus status) {
+    public void documentNotLoaded(@NonNull PdfStatus status) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.documentNotLoaded(status);
@@ -90,7 +93,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setPageDimensions(int pageNum, Dimensions dimensions) {
+    public void setPageDimensions(int pageNum, @NonNull Dimensions dimensions) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setPageDimensions(pageNum, dimensions);
@@ -98,7 +101,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setPageBitmap(int pageNum, Bitmap bitmap) {
+    public void setPageBitmap(int pageNum, @NonNull Bitmap bitmap) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setPageBitmap(pageNum, bitmap);
@@ -106,7 +109,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setTileBitmap(int pageNum, TileInfo tileInfo, Bitmap bitmap) {
+    public void setTileBitmap(int pageNum, @NonNull TileInfo tileInfo, @NonNull Bitmap bitmap) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setTileBitmap(pageNum, tileInfo, bitmap);
@@ -114,7 +117,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setPageText(int pageNum, String text) {
+    public void setPageText(int pageNum, @NonNull String text) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setPageText(pageNum, text);
@@ -122,7 +125,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setSearchResults(String query, int pageNum, MatchRects matches) {
+    public void setSearchResults(@NonNull String query, int pageNum, @NonNull MatchRects matches) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setSearchResults(query, pageNum, matches);
@@ -130,7 +133,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setSelection(int pageNum, PageSelection selection) {
+    public void setSelection(int pageNum, @NonNull PageSelection selection) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setSelection(pageNum, selection);
@@ -138,7 +141,7 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void setPageUrlLinks(int pageNum, LinkRects links) {
+    public void setPageUrlLinks(int pageNum, @NonNull LinkRects links) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setPageUrlLinks(pageNum, links);
@@ -146,23 +149,15 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
     }
 
     @Override
-    public void documentCloned(boolean result) {
+    public void setPageGotoLinks(int pageNum, @NonNull List<GotoLink> links) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
-            callbacks.documentCloned(result);
+            callbacks.setPageGotoLinks(pageNum, links);
         }
     }
 
     @Override
-    public void documentSavedAs(boolean result) {
-        PdfLoaderCallbacks callbacks = getCallbacks();
-        if (callbacks != null) {
-            callbacks.documentSavedAs(result);
-        }
-    }
-
-    @Override
-    public void setInvalidRects(int pageNum, List<Rect> invalidRects) {
+    public void setInvalidRects(int pageNum, @NonNull List<Rect> invalidRects) {
         PdfLoaderCallbacks callbacks = getCallbacks();
         if (callbacks != null) {
             callbacks.setInvalidRects(pageNum, invalidRects);
@@ -171,9 +166,6 @@ public class WeakPdfLoaderCallbacks implements PdfLoaderCallbacks {
 
     private PdfLoaderCallbacks getCallbacks() {
         PdfLoaderCallbacks callbacks = mDelegate.get();
-        if (callbacks == null) {
-            Log.w(TAG, "Callbacks have been garbage collected - nothing to do.");
-        }
         return callbacks;
     }
 }

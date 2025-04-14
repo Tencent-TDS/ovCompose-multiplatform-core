@@ -16,7 +16,6 @@
 
 package androidx.build.docs
 
-import androidx.build.PROJECT_STRUCTURE_METADATA_FILENAME
 import androidx.build.configureTaskTimeouts
 import androidx.build.dackka.DackkaTask
 import androidx.build.dackka.GenerateMetadataTask
@@ -27,8 +26,10 @@ import androidx.build.getCheckoutRoot
 import androidx.build.getDistributionDirectory
 import androidx.build.getKeystore
 import androidx.build.getLibraryByName
+import androidx.build.getSupportRootFolder
 import androidx.build.metalava.versionMetadataUsage
-import androidx.build.multiplatformUsage
+import androidx.build.sources.PROJECT_STRUCTURE_METADATA_FILENAME
+import androidx.build.sources.multiplatformUsage
 import androidx.build.versionCatalog
 import androidx.build.workaroundPrebuiltTakingPrecedenceOverProject
 import com.android.build.api.attributes.BuildTypeAttr
@@ -60,6 +61,8 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
+import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
@@ -100,18 +103,19 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         docsType = project.name.removePrefix("docs-")
-        project.plugins.all { plugin ->
+        project.plugins.configureEach { plugin ->
             when (plugin) {
                 is LibraryPlugin -> {
                     val libraryExtension = project.extensions.getByType<LibraryExtension>()
-                    libraryExtension.compileSdk = project.defaultAndroidConfig.compileSdk
+                    libraryExtension.compileSdk =
+                        project.defaultAndroidConfig.latestStableCompileSdk
                     libraryExtension.buildToolsVersion =
                         project.defaultAndroidConfig.buildToolsVersion
 
                     // Use a local debug keystore to avoid build server issues.
                     val debugSigningConfig = libraryExtension.signingConfigs.getByName("debug")
                     debugSigningConfig.storeFile = project.getKeystore()
-                    libraryExtension.buildTypes.all { buildType ->
+                    libraryExtension.buildTypes.configureEach { buildType ->
                         // Sign all the builds (including release) with debug key
                         buildType.signingConfig = debugSigningConfig
                     }
@@ -235,35 +239,64 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
         samplesDestinationDirectory: Provider<Directory>,
         docsConfiguration: Configuration
     ): Pair<TaskProvider<Sync>, TaskProvider<Sync>> {
-        val pairProvider = docsConfiguration.incoming.artifactView {}.files.elements.map {
-            it.map { it.asFile }.toSortedSet().partition { "samples" !in it.toString() }
-        }
+        val pairProvider =
+            docsConfiguration.incoming
+                .artifactView {}
+                .files
+                .elements
+                .map {
+                    it.map { it.asFile }.toSortedSet().partition { "samples" !in it.toString() }
+                }
         return project.tasks.register("unzipJvmSources", Sync::class.java) { task ->
             // Store archiveOperations into a local variable to prevent access to the plugin
             // during the task execution, as that breaks configuration caching.
             val localVar = archiveOperations
+            val tempDir = project.layout.buildDirectory.dir("tmp/JvmSources").get().asFile
+            // Get rid of stale files in the directory
+            tempDir.deleteRecursively()
             task.into(sourcesDestinationDirectory)
             task.from(
-                pairProvider.map { it.first }.map { it.map { jar ->
-                    localVar.zipTree(jar).matching { it.exclude("**/META-INF/MANIFEST.MF") }
-                } }
+                pairProvider
+                    .map { it.first }
+                    .map {
+                        it.map { jar ->
+                            localVar
+                                .zipTree(jar)
+                                .matching { it.exclude("**/META-INF/MANIFEST.MF") }
+                                .rewriteImageTagsAndCopy(tempDir)
+                            tempDir
+                        }
+                    }
             )
             // Files with the same path in different source jars of the same library will lead to
             // some classes/methods not appearing in the docs.
             task.duplicatesStrategy = DuplicatesStrategy.WARN
-        } to project.tasks.register("unzipSampleSources", Sync::class.java) { task ->
-            // Store archiveOperations into a local variable to prevent access to the plugin
-            // during the task execution, as that breaks configuration caching.
-            val localVar = archiveOperations
-            task.into(samplesDestinationDirectory)
-            task.from(
-                pairProvider.map { it.second }.map { it.map { jar ->
-                    localVar.zipTree(jar).matching { it.exclude("**/META-INF/MANIFEST.MF") }
-                } }
-            )
-            // We expect this to happen when multiple libraries use the same sample, e.g. paging.
-            task.duplicatesStrategy = DuplicatesStrategy.INCLUDE
-        }
+        } to
+            project.tasks.register("unzipSampleSources", Sync::class.java) { task ->
+                // Store archiveOperations into a local variable to prevent access to the plugin
+                // during the task execution, as that breaks configuration caching.
+                val localVar = archiveOperations
+                val tempDir = project.layout.buildDirectory.dir("tmp/SampleSources").get().asFile
+                // Get rid of stale files in the directory
+                tempDir.deleteRecursively()
+                task.into(samplesDestinationDirectory)
+                task.from(
+                    pairProvider
+                        .map { it.second }
+                        .map {
+                            it.map { jar ->
+                                localVar
+                                    .zipTree(jar)
+                                    .matching { it.exclude("**/META-INF/MANIFEST.MF") }
+                                    .rewriteImageTagsAndCopy(tempDir)
+                                tempDir
+                            }
+                        }
+                )
+                // We expect this to happen when multiple libraries use the same sample, e.g.
+                // paging.
+                task.duplicatesStrategy = DuplicatesStrategy.INCLUDE
+            }
     }
 
     /**
@@ -442,7 +475,7 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
             project.configurations.create("docs-runtime-classpath") {
                 it.setResolveClasspathForUsage(Usage.JAVA_RUNTIME)
             }
-        val kotlinDefaultCatalogVersion = androidx.build.KotlinTarget.DEFAULT.catalogVersion
+        val kotlinDefaultCatalogVersion = androidx.build.KotlinTarget.LATEST.catalogVersion
         val kotlinLatest = project.versionCatalog.findVersion(kotlinDefaultCatalogVersion).get()
         listOf(docsCompileClasspath, docsRuntimeClasspath).forEach { config ->
             config.resolutionStrategy {
@@ -520,10 +553,7 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
             project.tasks.register("docs", DackkaTask::class.java) { task ->
                 var taskStartTime: LocalDateTime? = null
                 task.argsJsonFile.set(
-                    File(
-                        project.rootProject.getDistributionDirectory(),
-                        "dackkaArgs-${project.name}.json"
-                    )
+                    File(project.getDistributionDirectory(), "dackkaArgs-${project.name}.json")
                 )
                 task.apply {
                     // Remove once there is property version of Copy#destinationDir
@@ -536,25 +566,25 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
 
                     description =
                         "Generates reference documentation using a Google devsite Dokka" +
-                            " plugin. Places docs in $generatedDocsDir"
+                            " plugin. Places docs in ${generatedDocsDir.get()}"
                     group = JavaBasePlugin.DOCUMENTATION_GROUP
 
                     dackkaClasspath.from(project.files(dackkaConfiguration))
                     destinationDir.set(generatedDocsDir)
-                    frameworkSamplesDir.set(
-                        project.rootProject.layout.projectDirectory.dir("samples")
-                    )
+                    frameworkSamplesDir.set(File(project.getSupportRootFolder(), "samples"))
                     samplesDeprecatedDir.set(unzippedDeprecatedSamplesSources)
                     samplesJvmDir.set(unzippedJvmSamplesSources)
                     samplesKmpDir.set(unzippedKmpSamplesSources)
                     jvmSourcesDir.set(unzippedJvmSourcesDirectory)
                     multiplatformSourcesDir.set(unzippedMultiplatformSourcesDirectory)
                     projectListsDirectory.set(
-                        project.rootProject.layout.projectDirectory.dir("docs-public/package-lists")
+                        File(project.getSupportRootFolder(), "docs-public/package-lists")
                     )
                     dependenciesClasspath.from(
                         dependencyClasspath +
-                            project.getAndroidJar() +
+                            project.getAndroidJar(
+                                project.defaultAndroidConfig.latestStableCompileSdk
+                            ) +
                             project.getExtraCommonDependencies()
                     )
                     excludedPackages.set(hiddenPackages.toSet())
@@ -574,17 +604,26 @@ abstract class AndroidXDocsImplPlugin : Plugin<Project> {
                     hidingAnnotations.set(annotationsToHideApis)
                     nullabilityAnnotations.set(validNullabilityAnnotations)
                     versionMetadataFiles.from(
-                        versionMetadataConfiguration.incoming.artifactView { }.files
+                        versionMetadataConfiguration.incoming.artifactView {}.files
                     )
                     task.doFirst { taskStartTime = LocalDateTime.now() }
                     task.doLast {
-                        val cpus = try {
-                            ProcessBuilder("lscpu").start()
-                                .apply { waitFor(100L, TimeUnit.MILLISECONDS) }
-                                .inputStream.bufferedReader().readLines()
-                                .filter { it.startsWith("CPU(s):") }.singleOrNull()
-                                ?.split(" ")?.last()?.toInt()
-                        } catch (e: java.io.IOException) { null } // not running on linux
+                        val cpus =
+                            try {
+                                ProcessBuilder("lscpu")
+                                    .start()
+                                    .apply { waitFor(100L, TimeUnit.MILLISECONDS) }
+                                    .inputStream
+                                    .bufferedReader()
+                                    .readLines()
+                                    .filter { it.startsWith("CPU(s):") }
+                                    .singleOrNull()
+                                    ?.split(" ")
+                                    ?.last()
+                                    ?.toInt()
+                            } catch (e: java.io.IOException) {
+                                null
+                            } // not running on linux
                         if (cpus != 64) { // Keep stddev of build metrics low b/334867245
                             println("$cpus cpus, so not storing build metrics.")
                             return@doLast
@@ -761,12 +800,17 @@ private val hiddenAnnotations: List<String> =
         "androidx.room.Ignore"
     )
 
-val validNullabilityAnnotations = listOf(
-    "androidx.annotation.Nullable", "android.annotation.Nullable",
-    "androidx.annotation.NonNull", "android.annotation.NonNull",
-    // Required by media3
-    "org.checkerframework.checker.nullness.qual.Nullable",
-)
+val validNullabilityAnnotations =
+    listOf(
+        "org.jspecify.annotations.NonNull",
+        "org.jspecify.annotations.Nullable",
+        "androidx.annotation.Nullable",
+        "android.annotation.Nullable",
+        "androidx.annotation.NonNull",
+        "android.annotation.NonNull",
+        // Required by media3
+        "org.checkerframework.checker.nullness.qual.Nullable",
+    )
 
 // Annotations which should not be displayed in the Kotlin docs, in addition to hiddenAnnotations
 private val hiddenAnnotationsKotlin: List<String> = listOf("kotlin.ExtensionFunctionType")
@@ -775,11 +819,12 @@ private val hiddenAnnotationsKotlin: List<String> = listOf("kotlin.ExtensionFunc
 private val hiddenAnnotationsJava: List<String> = emptyList()
 
 // Annotations which mean the elements they are applied to should be hidden from the docs
-private val annotationsToHideApis: List<String> = listOf(
-    "androidx.annotation.RestrictTo",
-    // Appears in androidx.test sources
-    "dagger.internal.DaggerGenerated",
-)
+private val annotationsToHideApis: List<String> =
+    listOf(
+        "androidx.annotation.RestrictTo",
+        // Appears in androidx.test sources
+        "dagger.internal.DaggerGenerated",
+    )
 
 /** Data class that matches JSON structure of kotlin source set metadata */
 data class ProjectStructureMetadata(var sourceSets: List<SourceSetMetadata>)
@@ -798,30 +843,53 @@ abstract class UnzipMultiplatformSourcesTask() : DefaultTask() {
     @get:OutputDirectory abstract val metadataOutput: DirectoryProperty
 
     @get:OutputDirectory abstract val sourceOutput: DirectoryProperty
+
     @get:OutputDirectory abstract val samplesOutput: DirectoryProperty
 
     @get:Inject abstract val fileSystemOperations: FileSystemOperations
+
     @get:Inject abstract val archiveOperations: ArchiveOperations
+
+    @get:Inject abstract val projectLayout: ProjectLayout
 
     @TaskAction
     fun execute() {
-        val (sources, samples) = inputJars.get()
-            .associate { it.name to archiveOperations.zipTree(it) }.toSortedMap()
-            // Now that we publish sample jars, they can get confused with normal source
-            // jars. We want to handle sample jars separately, so filter by the name.
-            .partition { name -> "samples" !in name }
+        val tempSourcesDir =
+            projectLayout.buildDirectory.dir("tmp/MultiplatformSources").get().asFile
+        val tempSamplesDir =
+            projectLayout.buildDirectory.dir("tmp/MultiplatformSamples").get().asFile
+        // Get rid of stale files in the directories
+        tempSourcesDir.deleteRecursively()
+        tempSamplesDir.deleteRecursively()
+
+        val (sources, samples) =
+            inputJars
+                .get()
+                .associate { it.name to archiveOperations.zipTree(it) }
+                .toSortedMap()
+                // Now that we publish sample jars, they can get confused with normal source
+                // jars. We want to handle sample jars separately, so filter by the name.
+                .partition { name -> "samples" !in name }
+
+        sources.values.forEach { fileTree ->
+            fileTree.matching { it.exclude("META-INF/*") }.rewriteImageTagsAndCopy(tempSourcesDir)
+        }
         fileSystemOperations.sync {
             it.duplicatesStrategy = DuplicatesStrategy.FAIL
-            it.from(sources.values)
+            it.from(tempSourcesDir)
             it.into(sourceOutput)
             it.exclude("META-INF/*")
+        }
+
+        samples.values.forEach { fileTree ->
+            fileTree.matching { it.exclude("META-INF/*") }.rewriteImageTagsAndCopy(tempSamplesDir)
         }
         fileSystemOperations.sync {
             // Some libraries share samples, e.g. paging. This can be an issue if and only if the
             // consumer libraries have pinned samples version or are not in an atomic group.
             // We don't have anything matching this case now, but should enforce better. b/334825580
             it.duplicatesStrategy = DuplicatesStrategy.INCLUDE
-            it.from(samples.values)
+            it.from(tempSamplesDir)
             it.into(samplesOutput)
             it.exclude("META-INF/*")
         }
@@ -834,6 +902,7 @@ abstract class UnzipMultiplatformSourcesTask() : DefaultTask() {
         }
     }
 }
+
 private fun <K, V> Map<K, V>.partition(condition: (K) -> Boolean): Pair<Map<K, V>, Map<K, V>> =
     this.toList().partition { (k, _) -> condition(k) }.let { it.first.toMap() to it.second.toMap() }
 
@@ -861,6 +930,10 @@ abstract class MergeMultiplatformMetadataTask : DefaultTask() {
                 mergedMetadata.merge(metadata)
             }
         val gson = GsonBuilder().setPrettyPrinting().create()
+        // Sort sourceSets to ensure that child sourceSets come after their parents, b/404784813
+        // Also ensure deterministic order--mergedMetadata.merge() uses .toSet() to deduplicate.
+        mergedMetadata.sourceSets =
+            mergedMetadata.sourceSets.sortedWith(compareBy({ it.dependencies.size }, { it.name }))
         val json = gson.toJson(mergedMetadata)
         mergedProjectMetadata.get().asFile.apply {
             parentFile.mkdirs()
@@ -901,7 +974,12 @@ private fun Project.getExtraCommonDependencies(): FileCollection =
                 getPrebuiltsExternalPath(),
                 "org/jetbrains/kotlinx/atomicfu/0.17.0/atomicfu-0.17.0.jar"
             ),
-            File(getPrebuiltsExternalPath(), "com/squareup/okio/okio-jvm/3.1.0/okio-jvm-3.1.0.jar")
+            File(getPrebuiltsExternalPath(), "com/squareup/okio/okio-jvm/3.1.0/okio-jvm-3.1.0.jar"),
+            // TODO(b/409256436): Remove when KMP classes (.knm) in Kotlin 2.1 can be loaded
+            File(
+                getPrebuiltsExternalPath(),
+                "org/jetbrains/kotlin/kotlin-stdlib/2.0.20/kotlin-stdlib-2.0.20-common.jar"
+            )
         ) +
             PLATFORMS.map {
                 File(
@@ -910,3 +988,48 @@ private fun Project.getExtraCommonDependencies(): FileCollection =
                 )
             }
     )
+
+private fun FileTree.rewriteImageTagsAndCopy(destinationDir: File) {
+    visit { fileDetails ->
+        if (!fileDetails.isDirectory) {
+            val targetFile = File(destinationDir, fileDetails.relativePath.pathString)
+            targetFile.parentFile.mkdirs()
+
+            if (fileDetails.file.extension == "kt") {
+                val content = fileDetails.file.readText()
+                val updatedContent = rewriteLinks(content)
+                targetFile.writeText(updatedContent)
+            } else {
+                fileDetails.file.copyTo(targetFile, overwrite = true)
+            }
+        }
+    }
+}
+
+/**
+ * Rewrites multi-line markdown links ![]()to a single-line format. Work-around for b/350055200.
+ *
+ * Example transformation:
+ * ```
+ * Original: ![Example
+ *           Image](http://example.com/image.png)
+ * Result:   ![Example Image](http://example.com/image.png)
+ * ```
+ */
+internal fun rewriteLinks(content: String): String =
+    markdownLinksRegex.replace(content) { matchResult ->
+        val exclamationMark = matchResult.groupValues[1]
+        val linkText = matchResult.groupValues[2].replace("\n", " ").replace(" * ", "").trim()
+        val url = matchResult.groupValues[3].trim()
+        "$exclamationMark[$linkText]($url)"
+    }
+
+/**
+ * Regular expression to match markdown link syntax, supporting both standard links and image links.
+ *
+ * The pattern matches:
+ * - Optional `!` at the beginning for image links.
+ * - Link text enclosed in square brackets `[ ... ]`, allowing for whitespace around the text.
+ * - URL in parentheses `( ... )`, allowing for whitespace around the URL.
+ */
+private val markdownLinksRegex = Regex("""(!?)\[\s*([^\[\]]+?)\s*]\(\s*([^(]+?)\s*\)""")

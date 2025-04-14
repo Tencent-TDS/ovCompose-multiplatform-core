@@ -22,8 +22,9 @@
  * modifying its settings.
  */
 
+
 import androidx.build.PlatformIdentifier
-import androidx.build.Publish
+import androidx.build.SoftwareType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
@@ -32,9 +33,7 @@ plugins {
 }
 
 androidXMultiplatform {
-    jvm() {
-        withJava()
-    }
+    jvm()
     mac()
     linux()
     ios()
@@ -71,7 +70,7 @@ androidXMultiplatform {
                 implementation(libs.kotlinSerializationJsonOkio)
             }
         }
-        targets.all { target ->
+        targets.configureEach { target ->
             if (target.platformType == KotlinPlatformType.native) {
                 target.compilations["main"].defaultSourceSet {
                     dependsOn(nativeMain)
@@ -83,7 +82,7 @@ androidXMultiplatform {
 
 androidx {
     name = "Room Migration"
-    publish = Publish.SNAPSHOT_AND_RELEASE
+    type = SoftwareType.PUBLISHED_LIBRARY
     inceptionYear = "2017"
     description = "Android Room Migration"
     legacyDisableKotlinStrictApiMode = true
